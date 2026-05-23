@@ -73,6 +73,7 @@ import collectionsRoutes from "./routes/collections.js";
 import falCreditsRoute from "./routes/fal-credits.js";
 import falPricingRoute from "./routes/fal-pricing.js";
 import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
+import kieCreditsRoute from "./routes/kie-credits.js";
 import {
   agentSocketRoute,
   getAgentRuntime,
@@ -857,6 +858,7 @@ await app.register(collectionsRoutes, routeOpts);
 await app.register(falCreditsRoute);
 await app.register(falPricingRoute);
 await app.register(falPricingEstimateRoute);
+await app.register(kieCreditsRoute);
 // MCP endpoints are only available in local/dev mode — not in production.
 // The configuration endpoints moved to the tRPC `mcpConfig` router; the
 // `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.

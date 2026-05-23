@@ -16,6 +16,8 @@ import {
   formatFalUnitPricingTooltip,
   isFalVagueBillingSummary
 } from "../../utils/formatFalUnitPricing";
+import KieCreditsFooter from "../node/KieCreditsFooter";
+import { isKieNodeMetadata } from "../../utils/isKieNode";
 import isEqual from "fast-deep-equal";
 
 interface NodeInfoProps {
@@ -267,6 +269,14 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
             FAL: {formatFalUnitPricingShort(nodeMetadata.fal_unit_pricing)}
           </Text>
         </Tooltip>
+      )}
+
+      {isKieNodeMetadata(nodeMetadata) && (
+        <KieCreditsFooter
+          metadata={nodeMetadata}
+          selected
+          variant="inline"
+        />
       )}
 
       {showConnections && (

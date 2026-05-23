@@ -1,15 +1,9 @@
 /**
- * FalPricingFooter
+ * KieCreditsFooter
  *
- * A small footer "FAL: $X" chip rendered on selected FAL nodes (BaseNode).
- * Clicking opens a Popover that shows:
- *   - the full per-call pricing breakdown,
- *   - a historical per-run cost estimate (when FAL_API_KEY is configured),
- *   - the user's FAL account credit balance (fetched on open), and
- *   - a "View on fal.ai" deep-link to the model page.
- *
- * Extracted from BaseNode.tsx so the per-node FAL logic lives in one place
- * and BaseNode only needs to render `<FalPricingFooter metadata=... selected=... />`.
+ * A small "KIE credits" chip on selected kie.ai nodes. Clicking opens a popover
+ * with the account credit balance (fetched on open) and links to kie.ai pricing
+ * and billing.
  */
 
 import React, {
@@ -18,7 +12,7 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import LaunchIcon from "@mui/icons-material/Launch";
@@ -31,92 +25,63 @@ import {
   FlexRow,
   LoadingSpinner,
   ExternalLink,
-  MenuItemPrimitive
+  MenuItemPrimitive,
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import type { NodeMetadata } from "../../stores/ApiTypes";
+import { isKieNodeMetadata } from "../../utils/isKieNode";
 import {
-  formatFalUnitPricingShort,
-  formatFalUnitPricingTooltip,
-  formatFalPerRunEstimate,
-  isFalVagueBillingSummary
-} from "../../utils/formatFalUnitPricing";
-import {
-  FAL_DASHBOARD_KEYS_URL,
-  falCreditsDetailSuggestsKeysLink,
-  fetchFalCredits,
-  formatCredits,
-  type FalCredits
-} from "../../utils/falCredits";
-import {
-  fetchFalPricingEstimate,
-  type FalPricingEstimate
-} from "../../utils/fetchFalPricingEstimate";
+  KIE_API_KEY_URL,
+  KIE_BILLING_URL,
+  KIE_PRICING_URL,
+  fetchKieCredits,
+  formatKieCredits,
+  kieCreditsDetailSuggestsKeysLink,
+  type KieCredits,
+} from "../../utils/kieCredits";
 
-export interface FalPricingFooterProps {
+export interface KieCreditsFooterProps {
   metadata: NodeMetadata;
-  /** Only render the chip while the parent node is selected. */
+  /** Only render the chip while the parent node is selected (or always in panels). */
   selected: boolean;
   /**
-   * Canvas chip anchored under the node. `inline`: compact chip for panels (inspector).
+   * Canvas chip anchored under the node. `inline`: compact chip for panels.
    * @default "nodeFooter"
    */
   variant?: "nodeFooter" | "inline";
-  /**
-   * When this identity changes while the menu is open, close the menu
-   * (use the inspected node's id when `variant === "inline"`).
-   */
+  /** Close the popover when this identity changes (inspector node id). */
   popoverResetDep?: string;
 }
 
-const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
+const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
   metadata,
   selected,
   variant = "nodeFooter",
-  popoverResetDep
+  popoverResetDep,
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(false);
-  const [creditsData, setCreditsData] = useState<FalCredits | null | "error">(
-    null
-  );
-  const [estimateLoading, setEstimateLoading] = useState(false);
-  const [estimateData, setEstimateData] = useState<FalPricingEstimate | null>(
-    null
+  const [creditsData, setCreditsData] = useState<KieCredits | null | "error">(
+    null,
   );
   const menuOpen = Boolean(anchorEl);
 
-  const handleClick = useCallback(
-    async (e: React.MouseEvent<HTMLElement>) => {
-      e.stopPropagation();
-      e.preventDefault();
-      setAnchorEl(e.currentTarget);
-      const endpointId = metadata.fal_unit_pricing?.endpoint_id;
-      setCreditsLoading(true);
-      setEstimateLoading(true);
-      setCreditsData(null);
-      setEstimateData(null);
-
-      const [creditsResult, estimateResult] = await Promise.all([
-        fetchFalCredits(),
-        endpointId ? fetchFalPricingEstimate(endpointId) : Promise.resolve(null),
-      ]);
-
-      setCreditsLoading(false);
-      setEstimateLoading(false);
-      setCreditsData(creditsResult ?? "error");
-      setEstimateData(estimateResult);
-    },
-    [metadata.fal_unit_pricing?.endpoint_id]
-  );
+  const handleClick = useCallback(async (e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setAnchorEl(e.currentTarget);
+    setCreditsLoading(true);
+    setCreditsData(null);
+    const result = await fetchKieCredits();
+    setCreditsLoading(false);
+    setCreditsData(result ?? "error");
+  }, []);
 
   const handleClose = useCallback(() => {
     setAnchorEl(null);
   }, []);
 
-  // Close the menu whenever the parent node is deselected — matches the
-  // BaseNode behavior in sketch-editor-main.
   useEffect(() => {
     if (!selected) {
       setAnchorEl(null);
@@ -137,13 +102,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
     popoverAnchorPrev.current = popoverResetDep;
   }, [popoverResetDep]);
 
-  const pricing = metadata.fal_unit_pricing ?? null;
-  const vaguePrice =
-    pricing != null ? isFalVagueBillingSummary(pricing) : false;
-  const tier = vaguePrice
-    ? theme.vars.palette.warning
-    : theme.vars.palette.success;
-
+  const tier = theme.vars.palette.info;
   const placement = variant === "inline" ? "bottom-left" : "top-right";
 
   const chipSx = useMemo(
@@ -170,20 +129,20 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
             right: 4,
             left: "auto",
             flexShrink: 0,
-            zIndex: 1000
+            zIndex: 1000,
           }
         : {
             position: "static" as const,
-            flexShrink: 0
+            flexShrink: 0,
           }),
       "&:hover": {
-        bgcolor: tier.main
-      }
+        bgcolor: tier.main,
+      },
     }),
-    [tier.dark, tier.contrastText, tier.main, variant]
+    [tier.contrastText, tier.dark, tier.main, variant],
   );
 
-  if (!selected || !pricing) {
+  if (!selected || !isKieNodeMetadata(metadata)) {
     return null;
   }
 
@@ -191,21 +150,13 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
     <>
       <EditorButton
         variant="text"
-        className={`node-fal-pricing nodrag nopan fal-pricing-${variant}`}
+        className={`node-kie-credits nodrag nopan kie-credits-${variant}`}
         aria-haspopup="true"
         aria-expanded={menuOpen}
         onClick={handleClick}
         sx={chipSx}
       >
-        {pricing.source === "live" && (
-          <span
-            style={{ marginRight: 3, fontSize: "0.55rem", opacity: 0.85 }}
-            aria-label="live price"
-          >
-            ●
-          </span>
-        )}
-        {formatFalUnitPricingShort(pricing)}
+        KIE credits
       </EditorButton>
 
       <Popover
@@ -215,7 +166,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
         placement={placement}
         paperSx={{
           minWidth: 220,
-          fontSize: "12px"
+          fontSize: "12px",
         }}
       >
         <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
@@ -224,48 +175,22 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
               fontWeight: 600,
               color: tier.main,
               textTransform: "uppercase",
-              letterSpacing: "0.05em"
+              letterSpacing: "0.05em",
             }}
           >
-            FAL pricing
+            kie.ai account
           </Caption>
           <Text
             sx={{
               fontSize: "12px",
               mt: 0.5,
               whiteSpace: "pre-line",
-              color: theme.vars.palette.text.secondary
+              color: theme.vars.palette.text.secondary,
             }}
           >
-            {formatFalUnitPricingTooltip(pricing)}
+            Credit balance for your KIE API key. Per-model pricing is listed on
+            kie.ai — there is no per-endpoint pricing API.
           </Text>
-          {estimateLoading ? (
-            <FlexRow gap={1} align="center" sx={{ mt: 1 }}>
-              <LoadingSpinner size={12} />
-              <Text
-                sx={{
-                  fontSize: "12px",
-                  color: theme.vars.palette.text.secondary
-                }}
-              >
-                Loading estimate…
-              </Text>
-            </FlexRow>
-          ) : estimateData != null ? (
-            <Text
-              sx={{
-                fontSize: "12px",
-                mt: 1,
-                fontWeight: 600,
-                color: theme.vars.palette.text.primary
-              }}
-            >
-              {formatFalPerRunEstimate(
-                estimateData.total_cost,
-                estimateData.currency
-              )}
-            </Text>
-          ) : null}
         </FlexColumn>
 
         <Divider />
@@ -276,10 +201,10 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
               fontWeight: 600,
               color: theme.vars.palette.text.secondary,
               textTransform: "uppercase",
-              letterSpacing: "0.05em"
+              letterSpacing: "0.05em",
             }}
           >
-            Account credits
+            Remaining credits
           </Caption>
           {creditsLoading ? (
             <FlexRow gap={1} align="center" sx={{ mt: 0.5 }}>
@@ -287,7 +212,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
               <Text
                 sx={{
                   fontSize: "12px",
-                  color: theme.vars.palette.text.secondary
+                  color: theme.vars.palette.text.secondary,
                 }}
               >
                 Loading…
@@ -298,7 +223,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
               sx={{
                 fontSize: "12px",
                 color: theme.vars.palette.text.disabled,
-                mt: 0.5
+                mt: 0.5,
               }}
             >
               {creditsData === "error" ? "Could not load credits" : "—"}
@@ -310,18 +235,18 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
                   fontSize: "12px",
                   color: theme.vars.palette.warning.main,
                   lineHeight: 1.4,
-                  wordBreak: "break-word"
+                  wordBreak: "break-word",
                 }}
               >
                 {creditsData.detail ?? "Credits unavailable"}
               </Text>
-              {falCreditsDetailSuggestsKeysLink(creditsData.detail) && (
+              {kieCreditsDetailSuggestsKeysLink(creditsData.detail) && (
                 <ExternalLink
-                  href={FAL_DASHBOARD_KEYS_URL}
+                  href={KIE_API_KEY_URL}
                   iconVariant="launch"
                   size="small"
                 >
-                  fal.ai API keys
+                  kie.ai API keys
                 </ExternalLink>
               )}
             </FlexColumn>
@@ -331,10 +256,10 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
                 fontSize: "13px",
                 fontWeight: 600,
                 color: theme.vars.palette.success.main,
-                mt: 0.5
+                mt: 0.5,
               }}
             >
-              {formatCredits(creditsData)} remaining
+              {formatKieCredits(creditsData)} remaining
             </Text>
           )}
         </FlexColumn>
@@ -342,15 +267,21 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
         <Divider />
 
         <MenuItemPrimitive
-          label="View on fal.ai"
+          label="View pricing on kie.ai"
           icon={<LaunchIcon sx={{ fontSize: 14 }} />}
           compact
           onClick={() => {
-            window.open(
-              `https://fal.ai/models/${pricing.endpoint_id}`,
-              "_blank",
-              "noopener,noreferrer"
-            );
+            window.open(KIE_PRICING_URL, "_blank", "noopener,noreferrer");
+            handleClose();
+          }}
+        />
+
+        <MenuItemPrimitive
+          label="Top up credits"
+          icon={<LaunchIcon sx={{ fontSize: 14 }} />}
+          compact
+          onClick={() => {
+            window.open(KIE_BILLING_URL, "_blank", "noopener,noreferrer");
             handleClose();
           }}
         />
@@ -359,5 +290,5 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
   );
 };
 
-export const FalPricingFooter = memo(FalPricingFooterInternal);
-export default FalPricingFooter;
+export const KieCreditsFooter = memo(KieCreditsFooterInternal);
+export default KieCreditsFooter;

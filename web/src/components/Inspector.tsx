@@ -26,6 +26,8 @@ import {
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import FalPricingFooter from "./node/FalPricingFooter";
+import KieCreditsFooter from "./node/KieCreditsFooter";
+import { isKieNodeMetadata } from "../utils/isKieNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
 import { InspectorHeaderActionsProvider } from "../contexts/InspectorPropertyHeaderContext";
@@ -557,6 +559,16 @@ const Inspector: React.FC = () => {
               {metadata.fal_unit_pricing ? (
                 <Box sx={{ mt: 0.5 }}>
                   <FalPricingFooter
+                    metadata={metadata}
+                    selected
+                    variant="inline"
+                    popoverResetDep={selectedNode.id}
+                  />
+                </Box>
+              ) : null}
+              {isKieNodeMetadata(metadata) ? (
+                <Box sx={{ mt: 0.5 }}>
+                  <KieCreditsFooter
                     metadata={metadata}
                     selected
                     variant="inline"

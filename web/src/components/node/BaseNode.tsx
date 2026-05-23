@@ -19,6 +19,7 @@ import {
 import isEqual from "fast-deep-equal";
 import { Container } from "../ui_primitives";
 import FalPricingFooter from "./FalPricingFooter";
+import KieCreditsFooter from "./KieCreditsFooter";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -774,6 +775,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       <FalPricingFooter metadata={metadata} selected={!!selected} />
+      <KieCreditsFooter metadata={metadata} selected={!!selected} />
     </Container>
     </NodeSelectionContext.Provider>
   );
