@@ -38,6 +38,7 @@ import { getBaseNodeSelectionStyles } from "./selectionStyles";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { resolveExposedInputNames } from "../../utils/exposedInputs";
 import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../../hooks/nodes/useSelect";
 import EditableTitle from "./EditableTitle";
@@ -64,14 +65,14 @@ import {
 } from "./codeNodeUi";
 
 // CONSTANTS
-const BASE_HEIGHT = 0; // Minimum height for the node
-const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
-/** Cap metadata-driven minHeight so many-output types do not force huge boxes (collapse snapshot / RF measure). */
-const MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX = 320;
+const BASE_HEIGHT = 0;
+const INCREMENT_PER_HANDLE = 25;
+/** Cap metadata-driven minHeight so many-handle types do not force huge boxes (collapse snapshot / RF measure). */
+const MAX_HANDLE_DRIVEN_MIN_HEIGHT_PX = 320;
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-/** Floor for user-resize and for nodes whose own minHeight isn't metadata-driven. */
-const MIN_RESIZE_HEIGHT = 100;
+/** Shared floor for initial layout and user resizing. */
+const MIN_NODE_HEIGHT = 150;
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
@@ -90,25 +91,30 @@ const NODE_CONTENT_CONTAINER_COLLAPSED_STYLE: React.CSSProperties = {
   overflow: "visible"
 };
 
-const resizer = (
-  <div className="node-resizer">
-    <div className="resizer">
-      <NodeResizer
-        shouldResize={(
-          event,
-          params: ResizeParams & { direction: number[] }
-        ) => {
-          const [dirX, dirY] = params.direction;
-          // Allow both horizontal and vertical resizing
-          return dirX !== 0 || dirY !== 0;
-        }}
-        minWidth={200}
-        maxWidth={MAX_NODE_WIDTH}
-        minHeight={MIN_RESIZE_HEIGHT}
-      />
+const ResizeOverlay = memo(function ResizeOverlay({
+  minHeight
+}: {
+  minHeight: number;
+}) {
+  return (
+    <div className="node-resizer">
+      <div className="resizer">
+        <NodeResizer
+          shouldResize={(
+            _event,
+            params: ResizeParams & { direction: number[] }
+          ) => {
+            const [dirX, dirY] = params.direction;
+            return dirX !== 0 || dirY !== 0;
+          }}
+          minWidth={200}
+          maxWidth={MAX_NODE_WIDTH}
+          minHeight={minHeight}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+});
 
 const TOOLBAR_SHOW_DELAY = 200; // ms delay before showing toolbar after selection
 
@@ -206,6 +212,35 @@ const getNodeStyles = (colors: string[]) =>
     }
   });
 
+const getVisibleInputHandleCount = (
+  metadata: NodeMetadata | undefined,
+  data: NodeData
+): number => {
+  if (!metadata) {
+    return 0;
+  }
+  const propertyNames = new Set(
+    (metadata.properties ?? []).map((property) => property.name)
+  );
+  return resolveExposedInputNames(metadata, data).filter((name) =>
+    propertyNames.has(name)
+  ).length;
+};
+
+const getVisibleOutputHandleCount = (
+  metadata: NodeMetadata | undefined,
+  data: NodeData,
+  isOutputNode: boolean
+): number => {
+  if (!metadata || isOutputNode) {
+    return 0;
+  }
+  return (
+    (metadata.outputs?.length ?? 0) +
+    Object.keys(data.dynamic_outputs ?? {}).length
+  );
+};
+
 const getStyleProps = (
   parentId: string | undefined,
   nodeType: {
@@ -215,15 +250,21 @@ const getStyleProps = (
   },
   isLoading: boolean,
   metadata: NodeMetadata | undefined,
+  data: NodeData,
   collapsed: boolean | undefined
 ) => {
   const hasParent = Boolean(parentId);
-  const outputCountMin = metadata
-    ? BASE_HEIGHT + (metadata.outputs?.length ?? 0) * INCREMENT_PER_OUTPUT
-    : BASE_HEIGHT;
-  // Cap metadata-driven minHeight so many-output types do not force huge
+  const handleCount = Math.max(
+    getVisibleInputHandleCount(metadata, data),
+    getVisibleOutputHandleCount(metadata, data, nodeType.isOutputNode)
+  );
+  const handleCountMin = BASE_HEIGHT + handleCount * INCREMENT_PER_HANDLE;
+  // Cap metadata-driven minHeight so many-handle types do not force huge
   // boxes (collapse snapshot / RF measure).
-  const minHeight = Math.min(outputCountMin, MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX);
+  const minHeight = Math.max(
+    MIN_NODE_HEIGHT,
+    Math.min(handleCountMin, MAX_HANDLE_DRIVEN_MIN_HEIGHT_PX)
+  );
   return {
     className: `base-node node-body
       ${hasParent ? "has-parent" : ""}
@@ -393,8 +434,15 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Style
   const styleProps = useMemo(
     () =>
-      getStyleProps(parentId, nodeType, isLoading, metadata, data.collapsed),
-    [parentId, nodeType, isLoading, metadata, data.collapsed]
+      getStyleProps(
+        parentId,
+        nodeType,
+        isLoading,
+        metadata,
+        data,
+        data.collapsed
+      ),
+    [parentId, nodeType, isLoading, metadata, data]
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
@@ -683,7 +731,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         isConnectable={true}
       />
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
-      <NodeResizeHandle minWidth={150} minHeight={150} />
+      <NodeResizeHandle minWidth={150} minHeight={styleProps.minHeight} />
       <NodeHeader
         id={id}
         selected={selected}
@@ -742,7 +790,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
       {/* Default behavior: width-only resize for regular nodes.
           If a node has toggleable result rendering, it uses the Preview-style corner handle instead. */}
-      {selected && !hasToggleableResult && resizer}
+      {selected && !hasToggleableResult && (
+        <ResizeOverlay minHeight={styleProps.minHeight} />
+      )}
       {toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
