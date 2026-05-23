@@ -97,7 +97,7 @@ async function pollStatus(
 async function downloadResult(
   apiKey: string,
   taskId: string
-): Promise<{ bytes: Buffer; taskId: string }> {
+): Promise<{ items: Buffer[]; taskId: string }> {
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
   const res = await fetch(url, { headers: headers(apiKey) });
   if (!res.ok) throw new Error(withTaskId(`Failed to get result: ${res.status}`, taskId));
@@ -109,12 +109,16 @@ async function downloadResult(
   const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
   const resultUrls = resultData.resultUrls as string[];
   if (!resultUrls?.length) throw new Error(withTaskId("No resultUrls in resultJson", taskId));
-  const dlRes = await fetch(resultUrls[0]);
-  if (!dlRes.ok) {
-    throw new Error(withTaskId(`Failed to download from ${resultUrls[0]}`, taskId));
-  }
-  const buf = Buffer.from(await dlRes.arrayBuffer());
-  return { bytes: buf, taskId };
+  const items = await Promise.all(
+    resultUrls.map(async (resultUrl) => {
+      const dlRes = await fetch(resultUrl);
+      if (!dlRes.ok) {
+        throw new Error(withTaskId(`Failed to download from ${resultUrl}`, taskId));
+      }
+      return Buffer.from(await dlRes.arrayBuffer());
+    })
+  );
+  return { items, taskId };
 }
 
 export async function uploadFile(
@@ -401,7 +405,7 @@ export async function kieExecuteOmniDirect(
   endpoint: string,
   body: Record<string, unknown>,
   responseIdKey: string
-): Promise<{ data: string; taskId: string }> {
+): Promise<{ data: string; items: string[]; taskId: string }> {
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
@@ -420,7 +424,7 @@ export async function kieExecuteOmniDirect(
   if (typeof id !== "string" || !id) {
     throw new Error(`No ${responseIdKey} in response: ${JSON.stringify(data)}`);
   }
-  return { data: id, taskId: "" };
+  return { data: id, items: [id], taskId: "" };
 }
 
 export async function kieExecuteTask(
@@ -432,7 +436,7 @@ export async function kieExecuteTask(
   submitEndpoint?: string,
   pollEndpoint?: string,
   resultObjectKey?: string
-): Promise<{ data: string; taskId: string }> {
+): Promise<{ data: string; items: string[]; taskId: string }> {
   if (submitEndpoint) {
     // Custom submit/poll endpoints (Veo, Runway, etc.)
     const taskId = await submitCustom(apiKey, submitEndpoint, { model, ...input });
@@ -444,16 +448,18 @@ export async function kieExecuteTask(
       maxAttempts
     );
     const resultBytes = await downloadCustomResult(statusData);
-    return { data: resultBytes.toString("base64"), taskId };
+    const b64 = resultBytes.toString("base64");
+    return { data: b64, items: [b64], taskId };
   }
   const taskId = await submitTask(apiKey, model, input);
   await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
   if (resultObjectKey) {
     const text = await downloadTextResult(apiKey, taskId, resultObjectKey);
-    return { data: text, taskId };
+    return { data: text, items: [text], taskId };
   }
   const result = await downloadResult(apiKey, taskId);
-  return { data: result.bytes.toString("base64"), taskId: result.taskId };
+  const items = result.items.map((b) => b.toString("base64"));
+  return { data: items[0], items, taskId: result.taskId };
 }
 
 // Suno music uses different endpoints
@@ -514,7 +520,7 @@ export async function kieExecuteSunoTask(
   pollInterval = 4000,
   maxAttempts = 120,
   endpoint?: string
-): Promise<{ data: string; taskId: string }> {
+): Promise<{ data: string; items: string[]; taskId: string }> {
   const taskId = await kieSubmitSuno(apiKey, input, endpoint);
   const pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
   // Polling response: data.response.sunoData[].audioUrl
@@ -527,7 +533,8 @@ export async function kieExecuteSunoTask(
   const dlRes = await fetch(audioUrl);
   if (!dlRes.ok) throw new Error(`Failed to download audio: ${dlRes.status}`);
   const buf = Buffer.from(await dlRes.arrayBuffer());
-  return { data: buf.toString("base64"), taskId };
+  const b64 = buf.toString("base64");
+  return { data: b64, items: [b64], taskId };
 }
 
 export async function kieImageRef(base64: string): Promise<Record<string, unknown>> {
