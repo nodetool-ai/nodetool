@@ -59,6 +59,7 @@ import {
   NodeProgress,
   NodeUpdate,
   Notification,
+  ProviderCost,
   NPArray,
   OutputSlot,
   OutputUpdate,
@@ -184,6 +185,7 @@ export type { PreviewUpdate };
 export type { Property };
 export type { PropertyTypeMetadata };
 export type { Provider };
+export type { ProviderCost };
 export type { ProviderInfo };
 export type { RepoPath };
 export type { ResourceChangeMessage };

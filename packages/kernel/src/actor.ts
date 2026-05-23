@@ -223,6 +223,7 @@ export class NodeActor {
 
   private async _runImpl(): Promise<ActorResult> {
     let errorMessage: string | undefined;
+    this._executionContext?.clearProviderCost?.();
     try {
       log.debug("Actor started", {
         nodeId: this.node.id,
@@ -1180,7 +1181,8 @@ export class NodeActor {
       properties:
         this.node.properties && typeof this.node.properties === "object"
           ? (this.node.properties as Record<string, unknown>)
-          : null
+          : null,
+      provider_cost: this._executionContext?.getProviderCost?.() ?? null
     });
   }
 

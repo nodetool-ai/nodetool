@@ -1,11 +1,12 @@
 /** ResultsStore manages workflow execution results and streaming data. */
 
 import { create } from "zustand";
-import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
+import { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "./ApiTypes";
 
 type ResultsStore = {
   results: Record<string, unknown>;
   outputResults: Record<string, unknown>;
+  providerCosts: Record<string, ProviderCost>;
   resultsVersion: number;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
   edges: Record<string, { status: string; counter?: number }>;
@@ -48,6 +49,15 @@ type ResultsStore = {
     append?: boolean
   ) => void;
   getResult: (workflowId: string, nodeId: string) => unknown;
+  getProviderCost: (
+    workflowId: string,
+    nodeId: string
+  ) => ProviderCost | undefined;
+  setProviderCost: (
+    workflowId: string,
+    nodeId: string,
+    cost: ProviderCost
+  ) => void;
   getOutputResult: (workflowId: string, nodeId: string) => unknown;
   setOutputResult: (
     workflowId: string,
@@ -129,6 +139,7 @@ const filterRecord = <T>(
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
   outputResults: {},
+  providerCosts: {},
   resultsVersion: 0,
   progress: {},
   chunks: {},
@@ -293,7 +304,8 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    */
   clearResults: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      results: filterRecord(state.results, workflowId, nodeIds)
+      results: filterRecord(state.results, workflowId, nodeIds),
+      providerCosts: filterRecord(state.providerCosts, workflowId, nodeIds)
     }));
   },
   clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => {
@@ -402,6 +414,19 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const results = get().results;
     const key = hashKey(workflowId, nodeId);
     return results[key];
+  },
+
+  setProviderCost: (workflowId: string, nodeId: string, cost: ProviderCost) => {
+    set((state) => ({
+      providerCosts: {
+        ...state.providerCosts,
+        [hashKey(workflowId, nodeId)]: cost
+      }
+    }));
+  },
+
+  getProviderCost: (workflowId: string, nodeId: string) => {
+    return get().providerCosts[hashKey(workflowId, nodeId)];
   },
 
   /**

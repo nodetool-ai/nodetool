@@ -38,6 +38,7 @@ import {
   kieCreditsDetailSuggestsKeysLink,
   type KieCredits,
 } from "../../utils/kieCredits";
+import useResultsStore, { hashKey } from "../../stores/ResultsStore";
 import {
   formatKieUnitPricingShort,
   formatKieUnitPricingTooltip,
@@ -47,7 +48,10 @@ import {
 
 export interface KieCreditsFooterProps {
   metadata: NodeMetadata;
+  /** Only render the chip while the parent node is selected. */
   selected: boolean;
+  nodeId?: string;
+  workflowId?: string;
   variant?: "nodeFooter" | "inline";
   popoverResetDep?: string;
 }
@@ -55,10 +59,17 @@ export interface KieCreditsFooterProps {
 const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
   metadata,
   selected,
+  nodeId,
+  workflowId,
   variant = "nodeFooter",
   popoverResetDep,
 }) => {
   const theme = useTheme();
+  const lastRunCost = useResultsStore((state) =>
+    workflowId && nodeId
+      ? state.providerCosts[hashKey(workflowId, nodeId)]
+      : undefined,
+  );
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(false);
   const [creditsData, setCreditsData] = useState<KieCredits | null | "error">(
@@ -310,6 +321,34 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             </Text>
           )}
         </FlexColumn>
+
+        {lastRunCost?.provider === "kie" ? (
+          <>
+            <Divider />
+            <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
+              <Caption
+                sx={{
+                  fontWeight: 600,
+                  color: theme.vars.palette.text.secondary,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Last run
+              </Caption>
+              <Text
+                sx={{
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: theme.vars.palette.info.main,
+                  mt: 0.5,
+                }}
+              >
+                {formatKieCredits({ credit_balance: lastRunCost.amount })} credits
+              </Text>
+            </FlexColumn>
+          </>
+        ) : null}
 
         <Divider />
 

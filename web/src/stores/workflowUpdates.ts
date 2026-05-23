@@ -223,6 +223,7 @@ export const handleUpdate = (
 ) => {
   const runner = runnerStore.getState();
   const setResult = useResultsStore.getState().setResult;
+  const setProviderCost = useResultsStore.getState().setProviderCost;
   const setOutputResult = useResultsStore.getState().setOutputResult;
   const clearOutputResults = useResultsStore.getState().clearOutputResults;
   const setStatus = useStatusStore.getState().setStatus;
@@ -598,6 +599,10 @@ export const handleUpdate = (
       }
 
       setStatus(workflow.id, update.node_id, update.status);
+
+      if (update.provider_cost) {
+        setProviderCost(workflow.id, update.node_id, update.provider_cost);
+      }
 
       // Store result if present
       if (update.result) {

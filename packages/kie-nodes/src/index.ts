@@ -13,10 +13,13 @@ export {
   kieExecuteTask,
   kieExecuteOmniDirect,
   kieImageRef,
+  parseCreditsConsumed,
+  reportKieProviderCost,
   uploadAudioInput,
   uploadImageInput,
   uploadVideoInput
 } from "./kie-base.js";
+export type { KieExecuteResult } from "./kie-base.js";
 export {
   buildVideoClipsFromRefs,
   readClipStart,

@@ -198,4 +198,23 @@ describe("createKieNodeClass omni chaining", () => {
       output: "video"
     });
   });
+
+  it("reports credits consumed via processing context", async () => {
+    vi.mocked(kieExecuteTask).mockResolvedValue({
+      data: Buffer.from("video-bytes").toString("base64"),
+      taskId: "task_cost",
+      creditsConsumed: 9
+    });
+
+    const setProviderCost = vi.fn();
+    const NodeClass = createKieNodeClass(videoSpec);
+    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
+    (node as unknown as Record<string, unknown>).prompt = "Neon city";
+    (node as unknown as Record<string, unknown>).duration = "8";
+    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+
+    await node.process({ setProviderCost } as never);
+
+    expect(setProviderCost).toHaveBeenCalledWith("kie", 9, "credits");
+  });
 });

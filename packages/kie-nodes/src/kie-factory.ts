@@ -20,6 +20,7 @@ import {
   kieExecuteSunoTask,
   kieImageRef,
   isRefSet,
+  reportKieProviderCost,
   uploadImageInput,
   uploadAudioInput,
   uploadVideoInput
@@ -353,7 +354,7 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
 
       const params = await buildParams(this, specRef, apiKey, context);
 
-      let result: { data: string; taskId: string };
+      let result: Awaited<ReturnType<typeof kieExecuteTask>>;
       if (specRef.useOmniDirect) {
         if (!specRef.submitEndpoint || !specRef.responseIdKey) {
           throw new Error(
@@ -386,6 +387,8 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
           specRef.resultObjectKey
         );
       }
+
+      reportKieProviderCost(context, result.creditsConsumed);
 
       if (isTextOutput) {
         return { output: result.data };

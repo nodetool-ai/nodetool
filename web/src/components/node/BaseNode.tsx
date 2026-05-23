@@ -825,7 +825,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       <FalPricingFooter metadata={metadata} selected={!!selected} />
-      <KieCreditsFooter metadata={metadata} selected={!!selected} />
+      <KieCreditsFooter
+        metadata={metadata}
+        selected={!!selected}
+        nodeId={id}
+        workflowId={workflow_id}
+      />
     </Container>
     </NodeSelectionContext.Provider>
   );

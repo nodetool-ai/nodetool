@@ -547,6 +547,8 @@ const Inspector: React.FC = () => {
                     metadata={metadata}
                     selected
                     variant="inline"
+                    nodeId={selectedNode.id}
+                    workflowId={selectedNode.data.workflow_id}
                     popoverResetDep={selectedNode.id}
                   />
                 </Box>

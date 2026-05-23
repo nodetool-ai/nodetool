@@ -396,6 +396,45 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
+export type KieExecuteResult = {
+  data: string;
+  taskId: string;
+  creditsConsumed?: number;
+};
+
+type ProviderCostReporter = {
+  setProviderCost?: (provider: string, amount: number, unit: string) => void;
+};
+
+export function parseCreditsConsumed(
+  statusData: Record<string, unknown>
+): number | undefined {
+  const raw = asRecord(statusData.data)?.creditsConsumed;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return raw;
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
+export function reportKieProviderCost(
+  context: ProviderCostReporter | undefined,
+  creditsConsumed: number | undefined
+): void {
+  if (
+    context?.setProviderCost &&
+    creditsConsumed != null &&
+    Number.isFinite(creditsConsumed)
+  ) {
+    context.setProviderCost("kie", creditsConsumed, "credits");
+  }
+}
+
 export async function kieExecuteOmniDirect(
   apiKey: string,
   endpoint: string,
@@ -432,7 +471,7 @@ export async function kieExecuteTask(
   submitEndpoint?: string,
   pollEndpoint?: string,
   resultObjectKey?: string
-): Promise<{ data: string; taskId: string }> {
+): Promise<KieExecuteResult> {
   if (submitEndpoint) {
     // Custom submit/poll endpoints (Veo, Runway, etc.)
     const taskId = await submitCustom(apiKey, submitEndpoint, { model, ...input });
@@ -443,17 +482,23 @@ export async function kieExecuteTask(
       pollInterval,
       maxAttempts
     );
+    const creditsConsumed = parseCreditsConsumed(statusData);
     const resultBytes = await downloadCustomResult(statusData);
-    return { data: resultBytes.toString("base64"), taskId };
+    return { data: resultBytes.toString("base64"), taskId, creditsConsumed };
   }
   const taskId = await submitTask(apiKey, model, input);
-  await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+  const statusData = await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+  const creditsConsumed = parseCreditsConsumed(statusData);
   if (resultObjectKey) {
     const text = await downloadTextResult(apiKey, taskId, resultObjectKey);
-    return { data: text, taskId };
+    return { data: text, taskId, creditsConsumed };
   }
   const result = await downloadResult(apiKey, taskId);
-  return { data: result.bytes.toString("base64"), taskId: result.taskId };
+  return {
+    data: result.bytes.toString("base64"),
+    taskId: result.taskId,
+    creditsConsumed
+  };
 }
 
 // Suno music uses different endpoints
@@ -514,9 +559,10 @@ export async function kieExecuteSunoTask(
   pollInterval = 4000,
   maxAttempts = 120,
   endpoint?: string
-): Promise<{ data: string; taskId: string }> {
+): Promise<KieExecuteResult> {
   const taskId = await kieSubmitSuno(apiKey, input, endpoint);
   const pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
+  const creditsConsumed = parseCreditsConsumed(pollResult);
   // Polling response: data.response.sunoData[].audioUrl
   const sunoData = (
     (pollResult.data as Record<string, unknown>)?.response as Record<string, unknown>
@@ -527,7 +573,7 @@ export async function kieExecuteSunoTask(
   const dlRes = await fetch(audioUrl);
   if (!dlRes.ok) throw new Error(`Failed to download audio: ${dlRes.status}`);
   const buf = Buffer.from(await dlRes.arrayBuffer());
-  return { data: buf.toString("base64"), taskId };
+  return { data: buf.toString("base64"), taskId, creditsConsumed };
 }
 
 export async function kieImageRef(base64: string): Promise<Record<string, unknown>> {

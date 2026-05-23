@@ -10,7 +10,7 @@
  *   - Asset handling with pluggable storage adapters.
  */
 
-import type { AssetRef, ProcessingMessage } from "@nodetool-ai/protocol";
+import type { AssetRef, ProcessingMessage, ProviderCost } from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
 import { encodeRawImageRef } from "./image-codec.js";
 import { randomUUID } from "node:crypto";
@@ -783,6 +783,8 @@ export class ProcessingContext {
         properties: Record<string, unknown>
       ) => Promise<Record<string, unknown>>)
     | null = null;
+  /** Provider charge reported by the current node execution (e.g. KIE creditsConsumed). */
+  private _providerCost: ProviderCost | null = null;
   /** Optional executor resolver for sub-workflow execution. */
   private _resolveExecutor:
     | ((node: {
@@ -1160,6 +1162,19 @@ export class ProcessingContext {
 
   post_message(msg: ProcessingMessage): void {
     this.emit(msg);
+  }
+
+  /** Record actual provider charge for the current node run (attached to completed NodeUpdate). */
+  setProviderCost(provider: string, amount: number, unit: string): void {
+    this._providerCost = { provider, amount, unit };
+  }
+
+  getProviderCost(): ProviderCost | null {
+    return this._providerCost;
+  }
+
+  clearProviderCost(): void {
+    this._providerCost = null;
   }
 
   /** Get all emitted messages. */
