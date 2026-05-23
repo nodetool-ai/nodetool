@@ -21,9 +21,14 @@ export const nextExposedInputPlacement = (
   return null;
 };
 
+type ExposedPlacementMetadata = Pick<
+  NodeMetadata,
+  "input_fields" | "inline_fields"
+>;
+
 /** Metadata default before per-node overrides. */
 export const getDefaultExposedPlacement = (
-  metadata: NodeMetadata,
+  metadata: ExposedPlacementMetadata,
   propertyName: string
 ): ExposedInputPlacement | null => {
   if ((metadata.input_fields ?? []).includes(propertyName)) {
@@ -174,7 +179,7 @@ export type ExposedInputListsPatch = {
  * inline_fields). Uses override lists only when target differs from default.
  */
 export const applyExposedPlacementTarget = (
-  metadata: NodeMetadata,
+  metadata: ExposedPlacementMetadata,
   data: ExposedInputPlacementData,
   propertyName: string,
   target: ExposedInputPlacement | null
@@ -231,7 +236,7 @@ export const patchExposedInputPlacement = (
   placement: ExposedInputPlacement | null
 ): ExposedInputListsPatch =>
   applyExposedPlacementTarget(
-    { input_fields: [], inline_fields: [] } as NodeMetadata,
+    { input_fields: [], inline_fields: [] },
     data,
     propertyName,
     placement

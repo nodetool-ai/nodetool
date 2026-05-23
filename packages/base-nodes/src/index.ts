@@ -309,6 +309,10 @@ export {
   ImageEditorNode,
   CompositorNode,
   PainterNode,
+  UpscaleImageNode,
+  RemoveBackgroundNode,
+  RelightImageNode,
+  VectorizeImageNode,
   IMAGE_NODES
 } from "./nodes/image.js";
 export {
@@ -341,6 +345,8 @@ export {
   ExtractAudioVideoNode,
   ExtractFrameVideoNode,
   GetVideoInfoNode,
+  VideoToVideoNode,
+  LipSyncNode,
   VIDEO_NODES
 } from "./nodes/video.js";
 export {

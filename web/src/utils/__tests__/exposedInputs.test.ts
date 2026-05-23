@@ -161,8 +161,16 @@ describe("exposedInputs utility", () => {
       const md = baseMetadata({
         input_fields: ["image"],
         properties: [
-          { name: "image", type: { type: "image", type_args: [], optional: false } },
-          { name: "prompt", type: { type: "str", type_args: [], optional: false } }
+          {
+            name: "image",
+            required: true,
+            type: { type: "image", type_args: [], optional: false }
+          },
+          {
+            name: "prompt",
+            required: true,
+            type: { type: "str", type_args: [], optional: false }
+          }
         ]
       });
       expect(canConfigureExposedPlacement(md, "image")).toBe(true);

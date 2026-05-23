@@ -2366,6 +2366,275 @@ export class PainterNode extends BaseNode {
   }
 }
 
+export class UpscaleImageNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Upscale";
+  static readonly title = "Upscale Image";
+  static readonly description =
+    "Increase the resolution and detail of an image using any supported upscaling provider.\n    image, upscale, super-resolution, enhance, AI";
+  static readonly metadataOutputTypes = { output: "image" };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+  static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
+
+  @prop({
+    type: "image_model",
+    default: {
+      type: "image_model",
+      provider: "fal_ai",
+      id: "fal-ai/clarity-upscaler",
+      name: "Clarity Upscaler",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The upscaling model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    description: "Input image to upscale"
+  })
+  declare image: any;
+
+  @prop({
+    type: "int",
+    default: 2,
+    title: "Scale",
+    description: "Target magnification factor",
+    values: [2, 4]
+  })
+  declare scale: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Optional guidance prompt for creative upscalers"
+  })
+  declare prompt: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) throw new Error("The input image is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for image upscaling.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "upscale_image",
+      model: modelId,
+      params: {
+        image: bytes,
+        scale: Number(this.scale ?? 2) || undefined,
+        prompt: this.prompt ? String(this.prompt) : undefined
+      }
+    })) as Uint8Array;
+    const meta = await metadataFor(output);
+    return {
+      output: imageRef(output, {
+        mimeType: inferImageMime(image.uri, output),
+        width: meta.width,
+        height: meta.height
+      })
+    };
+  }
+}
+
+export class RemoveBackgroundNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.RemoveBackground";
+  static readonly title = "Remove Background";
+  static readonly description =
+    "Remove the background from an image, returning a cutout with transparency.\n    image, background, remove, matte, cutout, AI";
+  static readonly metadataOutputTypes = { output: "image" };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+  static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
+
+  @prop({
+    type: "image_model",
+    default: {
+      type: "image_model",
+      provider: "fal_ai",
+      id: "fal-ai/bria/background/remove",
+      name: "Bria Background Remove",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The background-removal model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    description: "Input image to remove the background from"
+  })
+  declare image: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) throw new Error("The input image is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for background removal.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "remove_background",
+      model: modelId,
+      params: { image: bytes }
+    })) as Uint8Array;
+    const meta = await metadataFor(output);
+    return {
+      output: imageRef(output, {
+        mimeType: inferImageMime(image.uri, output),
+        width: meta.width,
+        height: meta.height
+      })
+    };
+  }
+}
+
+export class RelightImageNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Relight";
+  static readonly title = "Relight Image";
+  static readonly description =
+    "Re-light a subject according to a text prompt using any supported relighting provider.\n    image, relight, lighting, AI";
+  static readonly metadataOutputTypes = { output: "image" };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image", "prompt"];
+  static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
+
+  @prop({
+    type: "image_model",
+    default: {
+      type: "image_model",
+      provider: "fal_ai",
+      id: "fal-ai/image-apps-v2/relighting",
+      name: "Relight",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The relighting model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    description: "Input image to relight"
+  })
+  declare image: any;
+
+  @prop({
+    type: "str",
+    default: "studio lighting from the left",
+    title: "Prompt",
+    description: "Description of the desired lighting"
+  })
+  declare prompt: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Text prompt describing what to avoid"
+  })
+  declare negative_prompt: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) throw new Error("The input image is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for image relighting.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "relight_image",
+      model: modelId,
+      params: {
+        image: bytes,
+        prompt: String(this.prompt ?? ""),
+        negative_prompt: this.negative_prompt
+      }
+    })) as Uint8Array;
+    const meta = await metadataFor(output);
+    return {
+      output: imageRef(output, {
+        mimeType: inferImageMime(image.uri, output),
+        width: meta.width,
+        height: meta.height
+      })
+    };
+  }
+}
+
+export class VectorizeImageNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Vectorize";
+  static readonly title = "Vectorize Image";
+  static readonly description =
+    "Convert a raster image into a scalable vector (SVG) using any supported vectorization provider.\n    image, vector, svg, vectorize, trace, AI";
+  static readonly metadataOutputTypes = { output: "svg_element" };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "image_model",
+    default: {
+      type: "image_model",
+      provider: "fal_ai",
+      id: "fal-ai/recraft/vectorize",
+      name: "Recraft Vectorize",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The vectorization model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    description: "Input image to vectorize"
+  })
+  declare image: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) throw new Error("The input image is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for image vectorization.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "vectorize_image",
+      model: modelId,
+      params: { image: bytes }
+    })) as Uint8Array;
+    return { output: { content: new TextDecoder().decode(output) } };
+  }
+}
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -2388,5 +2657,9 @@ export const IMAGE_NODES = [
   ImageToImageNode,
   ImageEditorNode,
   CompositorNode,
-  PainterNode
+  PainterNode,
+  UpscaleImageNode,
+  RemoveBackgroundNode,
+  RelightImageNode,
+  VectorizeImageNode
 ] as const;

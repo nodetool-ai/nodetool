@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { audioBytes, toBytes } from "../lib/audio-wav.js";
+import { audioBytes, audioBytesAsync, toBytes } from "../lib/audio-wav.js";
 
 type VideoRefLike = { uri?: string; data?: Uint8Array | string };
 type ImageRefLike = { uri?: string; data?: Uint8Array | string };
@@ -2592,6 +2592,147 @@ export class GetVideoInfoNode extends BaseNode {
   }
 }
 
+export class VideoToVideoNode extends BaseNode {
+  static readonly nodeType = "nodetool.video.VideoToVideo";
+  static readonly title = "Video To Video";
+  static readonly description =
+    "Restyle or edit an existing video with a text prompt using any supported video provider.\n    video, video-to-video, v2v, restyle, style-transfer, AI";
+  static readonly metadataOutputTypes = { output: "video" };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video", "prompt"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "video_model",
+    default: {
+      type: "video_model",
+      provider: "fal_ai",
+      id: "fal-ai/ltx-2-19b/distilled/video-to-video",
+      name: "LTX Video To Video",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The video-to-video model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "video",
+    default: { type: "video", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Video",
+    description: "The input video to transform"
+  })
+  declare video: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Text prompt describing the desired transformation"
+  })
+  declare prompt: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Text prompt describing what to avoid"
+  })
+  declare negative_prompt: any;
+
+  @prop({
+    type: "float",
+    default: 0.6,
+    title: "Strength",
+    description: "How much to transform the input video",
+    min: 0,
+    max: 1
+  })
+  declare strength: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    if (bytes.length === 0) throw new Error("The input video is empty.");
+    const { providerId, modelId } = modelConfig(this.serialize());
+    if (!canUseProvider(context, providerId, modelId)) {
+      throw new Error("No provider available for video-to-video generation.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "video_to_video",
+      model: modelId,
+      params: {
+        video: bytes,
+        prompt: String(this.prompt ?? ""),
+        negative_prompt: this.negative_prompt,
+        strength: Number(this.strength ?? 0.6)
+      }
+    })) as Uint8Array;
+    return { output: videoRef(output) };
+  }
+}
+
+export class LipSyncNode extends BaseNode {
+  static readonly nodeType = "nodetool.video.LipSync";
+  static readonly title = "Lip Sync";
+  static readonly description =
+    "Drive a face in a video to match speech in an audio track using any supported lip-sync provider.\n    video, lip-sync, lipsync, talking-head, dubbing, AI";
+  static readonly metadataOutputTypes = { output: "video" };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video", "audio"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "video_model",
+    default: {
+      type: "video_model",
+      provider: "fal_ai",
+      id: "fal-ai/sync-lipsync/v2",
+      name: "Sync Lipsync V2",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The lip-sync model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "video",
+    default: { type: "video", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Video",
+    description: "The input video containing the face to drive"
+  })
+  declare video: any;
+
+  @prop({
+    type: "audio",
+    default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Audio",
+    description: "The audio track the mouth motion should follow"
+  })
+  declare audio: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const video = await videoBytesAsync(this.video, context);
+    if (video.length === 0) throw new Error("The input video is empty.");
+    const audio = await audioBytesAsync(this.audio, context);
+    if (audio.length === 0) throw new Error("The input audio is empty.");
+    const { providerId, modelId } = modelConfig(this.serialize());
+    if (!canUseProvider(context, providerId, modelId)) {
+      throw new Error("No provider available for lip sync.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "lip_sync",
+      model: modelId,
+      params: { video, audio }
+    })) as Uint8Array;
+    return { output: videoRef(output) };
+  }
+}
+
 export const VIDEO_NODES = [
   TextToVideoNode,
   ImageToVideoNode,
@@ -2621,5 +2762,7 @@ export const VIDEO_NODES = [
   ChromaKeyVideoNode,
   ExtractAudioVideoNode,
   ExtractFrameVideoNode,
-  GetVideoInfoNode
+  GetVideoInfoNode,
+  VideoToVideoNode,
+  LipSyncNode
 ] as const;

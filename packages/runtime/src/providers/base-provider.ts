@@ -6,19 +6,25 @@ import type {
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
+  LipSyncParams,
   Message,
   Model3D,
   ProviderId,
   ProviderStreamItem,
   ProviderTool,
   EncodedAudioResult,
+  RelightImageParams,
+  RemoveBackgroundParams,
   StreamingAudioChunk,
   TextTo3DParams,
   TextToImageParams,
   TextToVideoParams,
   ToolCall,
   TTSModel,
-  VideoModel
+  UpscaleImageParams,
+  VectorizeImageParams,
+  VideoModel,
+  VideoToVideoParams
 } from "./types.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
@@ -47,8 +53,14 @@ export type ProviderCapability =
   | "generate_messages"
   | "text_to_image"
   | "image_to_image"
+  | "upscale_image"
+  | "remove_background"
+  | "relight_image"
+  | "vectorize_image"
   | "text_to_video"
   | "image_to_video"
+  | "video_to_video"
+  | "lip_sync"
   | "text_to_speech"
   | "automatic_speech_recognition"
   | "generate_embedding"
@@ -83,6 +95,28 @@ export function providerCapabilities(
     BaseProvider.prototype.getAvailableVideoModels
   ) {
     capabilities.push("text_to_video", "image_to_video");
+  }
+  // The remaining task types don't have their own model-discovery method —
+  // they reuse Image/VideoModel (advertised via each model's `supportedTasks`).
+  // Advertise the provider-level capability when the concrete class overrides
+  // the matching task method.
+  if (instance.upscaleImage !== BaseProvider.prototype.upscaleImage) {
+    capabilities.push("upscale_image");
+  }
+  if (instance.removeBackground !== BaseProvider.prototype.removeBackground) {
+    capabilities.push("remove_background");
+  }
+  if (instance.relightImage !== BaseProvider.prototype.relightImage) {
+    capabilities.push("relight_image");
+  }
+  if (instance.vectorizeImage !== BaseProvider.prototype.vectorizeImage) {
+    capabilities.push("vectorize_image");
+  }
+  if (instance.videoToVideo !== BaseProvider.prototype.videoToVideo) {
+    capabilities.push("video_to_video");
+  }
+  if (instance.lipSync !== BaseProvider.prototype.lipSync) {
+    capabilities.push("lip_sync");
   }
   if (
     instance.getAvailableTTSModels !==
@@ -543,6 +577,38 @@ export abstract class BaseProvider {
     return results;
   }
 
+  /** Increase the resolution / detail of an image. */
+  async upscaleImage(
+    _image: Uint8Array,
+    _params: UpscaleImageParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support upscaleImage`);
+  }
+
+  /** Remove the background from an image, returning an image with alpha. */
+  async removeBackground(
+    _image: Uint8Array,
+    _params: RemoveBackgroundParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support removeBackground`);
+  }
+
+  /** Re-light a subject according to a prompt / background reference. */
+  async relightImage(
+    _image: Uint8Array,
+    _params: RelightImageParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support relightImage`);
+  }
+
+  /** Convert a raster image into a vector (SVG) representation. */
+  async vectorizeImage(
+    _image: Uint8Array,
+    _params: VectorizeImageParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support vectorizeImage`);
+  }
+
   async *textToSpeech(_args: {
     text: string;
     model: string;
@@ -599,6 +665,22 @@ export abstract class BaseProvider {
     _params: ImageToVideoParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToVideo`);
+  }
+
+  /** Restyle / edit an existing video, guided by a prompt. */
+  async videoToVideo(
+    _video: Uint8Array,
+    _params: VideoToVideoParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support videoToVideo`);
+  }
+
+  /** Drive a face in a video/image to match the speech in an audio track. */
+  async lipSync(
+    _video: Uint8Array,
+    _params: LipSyncParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support lipSync`);
   }
 
   /**
