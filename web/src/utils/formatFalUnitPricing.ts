@@ -33,6 +33,16 @@ export function isFalVagueBillingSummary(p: { billing_unit: string }): boolean {
   return /\bunits?\b/i.test(p.billing_unit.trim());
 }
 
+/** Formats a monetary amount in the given ISO currency code. */
+export function formatFalMoney(amount: number, currency: string): string {
+  return formatMoney(amount, currency);
+}
+
+/** Label for historical per-run estimate from fal.ai pricing/estimate API. */
+export function formatFalPerRunEstimate(totalCost: number, currency: string): string {
+  return `~${formatMoney(totalCost, currency)} per run (historical avg)`;
+}
+
 /** Compact label for node chrome (fal monetary `unit_price`). */
 export function formatFalUnitPricingShort(p: FalUnitPricing): string {
   return formatMoney(p.unit_price, p.currency);
