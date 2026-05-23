@@ -310,7 +310,7 @@ const Inspector: React.FC = () => {
       selectedNodes
         .map((node) => ({
           node,
-          metadata: node.type ? getMetadata(node.type as string) : null
+          metadata: node.type ? getMetadata(node.type) : null
         }))
         .filter(
           (
@@ -387,8 +387,8 @@ const Inspector: React.FC = () => {
 
   // Define selectedNode and metadata early so callbacks can reference them
   const selectedNode = selectedNodes[0] || null;
-  const metadata = selectedNode
-    ? getMetadata(selectedNode.type as string)
+  const metadata = selectedNode?.type
+    ? getMetadata(selectedNode.type)
     : null;
 
   const handleNamespaceClick = useCallback(
@@ -415,10 +415,10 @@ const Inspector: React.FC = () => {
     return new Set(
       edges
         .filter(
-          (edge) =>
+          (edge): edge is typeof edge & { targetHandle: string } =>
             edge.target === selectedNode.id && typeof edge.targetHandle === "string"
         )
-        .map((edge) => edge.targetHandle as string)
+        .map((edge) => edge.targetHandle)
     );
   }, [edges, selectedNode]);
 
@@ -484,7 +484,7 @@ const Inspector: React.FC = () => {
                       propertyIndex={property.name}
                       showHandle={false}
                       isInspector={true}
-                      nodeType={(nodesWithMetadata[0].node.type as string) ?? "inspector"}
+                      nodeType={nodesWithMetadata[0].node.type ?? "inspector"}
                       data={nodesWithMetadata[0].node.data}
                       layout=""
                       inspectorBatchNodeIds={multiNodeIds}
@@ -648,7 +648,7 @@ const Inspector: React.FC = () => {
                       propertyIndex={index.toString()}
                       showHandle={false}
                       isInspector={true}
-                      nodeType={(selectedNode.type as string) ?? "inspector"}
+                      nodeType={selectedNode.type ?? "inspector"}
                       data={selectedNode.data}
                       layout=""
                     />
@@ -715,7 +715,7 @@ const Inspector: React.FC = () => {
                     propertyIndex={`dynamic-${index}`}
                     showHandle={false}
                     isInspector={true}
-                    nodeType={(selectedNode.type as string) ?? "inspector"}
+                    nodeType={selectedNode.type ?? "inspector"}
                     data={selectedNode.data}
                     layout=""
                     isDynamicProperty={true}
