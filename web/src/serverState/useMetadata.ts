@@ -6,6 +6,7 @@ import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
 import { generateSnippetMetadata } from "../config/snippetMetadata";
 import { attachBundleFalUnitPricing } from "../utils/attachBundleFalUnitPricing";
+import { attachBundleKieUnitPricing } from "../utils/attachBundleKieUnitPricing";
 
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 
@@ -110,6 +111,7 @@ export const loadMetadata = async (): Promise<"success" | "error"> => {
   // store. Backend `NodeMetadata` does not include `fal_unit_pricing` today,
   // so we attach it client-side from the codegen JSON bundle.
   attachBundleFalUnitPricing(metadataByType);
+  attachBundleKieUnitPricing(metadataByType);
 
   useMetadataStore.getState().setMetadata(metadataByType);
   useMetadataStore.getState().setRecommendedModels(uniqueRecommendedModels);

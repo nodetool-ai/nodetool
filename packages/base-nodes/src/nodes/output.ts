@@ -191,23 +191,9 @@ export class PreviewNode extends BaseNode {
     return context.normalizeOutputValue(value);
   }
 
-  private emitPreview(value: unknown, context?: ProcessingContext): void {
-    if (!context || typeof context.emit !== "function") return;
-    const nodeId = String(
-      this.__node_id ?? this.name ?? this.__node_name ?? ""
-    );
-    context.emit({
-      type: "preview_update",
-      node_id: nodeId,
-      value
-    });
-  }
-
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const value = this.value ?? null;
-
     const normalized = await this.normalize(value, context);
-    this.emitPreview(normalized, context);
     return { output: normalized };
   }
 }

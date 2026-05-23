@@ -17,8 +17,7 @@ describe("ResultsStore", () => {
       chunks: {},
       tasks: {},
       toolCalls: {},
-      planningUpdates: {},
-      previews: {}
+      planningUpdates: {}
     });
   });
 
@@ -313,41 +312,6 @@ describe("ResultsStore", () => {
     });
   });
 
-  describe("previews", () => {
-    it("should set preview for a node", () => {
-      const preview = { type: "image", data: "base64..." };
-      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview);
-
-      expect(useResultsStore.getState().getPreview(workflowId1, nodeId1)).toEqual(preview);
-    });
-
-    it("should append preview when append is true and existing is array", () => {
-      const preview1 = { type: "image", data: "img1" };
-      const preview2 = { type: "image", data: "img2" };
-
-      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview1);
-      useResultsStore.getState().setPreview(workflowId1, nodeId1, preview2, true);
-
-      const stored = useResultsStore.getState().getPreview(workflowId1, nodeId1);
-      expect(Array.isArray(stored)).toBe(true);
-      expect(stored).toHaveLength(2);
-    });
-
-    it("should return undefined for non-existent preview", () => {
-      expect(useResultsStore.getState().getPreview(workflowId1, nodeId1)).toBeUndefined();
-    });
-
-    it("should clear previews for a workflow", () => {
-      useResultsStore.getState().setPreview(workflowId1, nodeId1, { data: "1" });
-      useResultsStore.getState().setPreview(workflowId2, nodeId1, { data: "2" });
-
-      useResultsStore.getState().clearPreviews(workflowId1);
-
-      expect(useResultsStore.getState().getPreview(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getPreview(workflowId2, nodeId1)).toEqual({ data: "2" });
-    });
-  });
-
   describe("node-specific clearing", () => {
     it("should clear results only for specified nodes", () => {
       useResultsStore.getState().setResult(workflowId1, nodeId1, "result-1");
@@ -359,16 +323,6 @@ describe("ResultsStore", () => {
       expect(useResultsStore.getState().getResult(workflowId1, nodeId1)).toBeUndefined();
       expect(useResultsStore.getState().getResult(workflowId1, nodeId2)).toBe("result-2");
       expect(useResultsStore.getState().getResult(workflowId2, nodeId1)).toBe("result-other");
-    });
-
-    it("should clear previews only for specified nodes", () => {
-      useResultsStore.getState().setPreview(workflowId1, nodeId1, "preview-1");
-      useResultsStore.getState().setPreview(workflowId1, nodeId2, "preview-2");
-
-      useResultsStore.getState().clearPreviews(workflowId1, new Set([nodeId1]));
-
-      expect(useResultsStore.getState().getPreview(workflowId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getPreview(workflowId1, nodeId2)).toBe("preview-2");
     });
 
     it("should clear output results only for specified nodes", () => {

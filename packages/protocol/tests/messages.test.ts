@@ -16,7 +16,6 @@ import type {
   NodeProgress,
   EdgeUpdate,
   OutputUpdate,
-  PreviewUpdate,
   SaveUpdate,
   BinaryUpdate,
   LogUpdate,
@@ -74,9 +73,6 @@ function outputUpdate(): OutputUpdate {
     output_type: "int",
     metadata: {}
   };
-}
-function previewUpdate(): PreviewUpdate {
-  return { type: "preview_update", node_id: "n1", value: "preview data" };
 }
 function saveUpdate(): SaveUpdate {
   return {
@@ -183,7 +179,6 @@ const factories: Array<[MessageType, () => ProcessingMessage]> = [
   ["node_progress", nodeProgress],
   ["edge_update", edgeUpdate],
   ["output_update", outputUpdate],
-  ["preview_update", previewUpdate],
   ["save_update", saveUpdate],
   ["binary_update", binaryUpdate],
   ["log_update", logUpdate],
@@ -216,8 +211,8 @@ describe("ProcessingMessage discriminator", () => {
     expect(new Set(types).size).toBe(types.length);
   });
 
-  it("has exactly 19 message types matching Python ProcessingMessage", () => {
-    expect(factories.length).toBe(19);
+  it("has exactly 18 message types matching Python ProcessingMessage", () => {
+    expect(factories.length).toBe(18);
   });
 });
 

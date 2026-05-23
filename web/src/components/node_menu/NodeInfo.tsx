@@ -16,6 +16,13 @@ import {
   formatFalUnitPricingTooltip,
   isFalVagueBillingSummary
 } from "../../utils/formatFalUnitPricing";
+import KieCreditsFooter from "../node/KieCreditsFooter";
+import { isKieNodeMetadata } from "../../utils/isKieNode";
+import {
+  formatKieUnitPricingShort,
+  formatKieUnitPricingTooltip,
+  isKieVagueBillingSummary,
+} from "../../utils/formatKieUnitPricing";
 import isEqual from "fast-deep-equal";
 
 interface NodeInfoProps {
@@ -267,6 +274,35 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
             FAL: {formatFalUnitPricingShort(nodeMetadata.fal_unit_pricing)}
           </Text>
         </Tooltip>
+      )}
+
+      {isKieNodeMetadata(nodeMetadata) && nodeMetadata.kie_unit_pricing && (
+        <Tooltip
+          delay={TOOLTIP_ENTER_DELAY}
+          placement="top-start"
+          title={
+            <Text sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+              {formatKieUnitPricingTooltip(nodeMetadata.kie_unit_pricing)}
+            </Text>
+          }
+        >
+          <Text
+            sx={{
+              fontSize: theme.fontSizeSmall,
+              color: isKieVagueBillingSummary(nodeMetadata.kie_unit_pricing)
+                ? theme.vars.palette.warning.main
+                : theme.vars.palette.success.main,
+              fontWeight: 600,
+              cursor: "default",
+            }}
+          >
+            KIE: {formatKieUnitPricingShort(nodeMetadata.kie_unit_pricing)}
+          </Text>
+        </Tooltip>
+      )}
+
+      {isKieNodeMetadata(nodeMetadata) && !nodeMetadata.kie_unit_pricing && (
+        <KieCreditsFooter metadata={nodeMetadata} selected variant="inline" />
       )}
 
       {showConnections && (

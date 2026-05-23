@@ -3,7 +3,10 @@ import type { ShaderModule } from "../src/module.js";
 import {
   sourcesSolidV1,
   sourcesLinearGradientV1,
-  sourcesCheckerboardV1
+  sourcesCheckerboardV1,
+  sourcesRadialGradientV1,
+  sourcesAngularGradientV1,
+  sourcesDiamondGradientV1
 } from "../src/shaders/index.js";
 
 /**
@@ -14,7 +17,10 @@ import {
 const SOURCE_MODULES: Array<{ module: ShaderModule; id: string }> = [
   { module: sourcesSolidV1, id: "sources.solid" },
   { module: sourcesLinearGradientV1, id: "sources.linearGradient" },
-  { module: sourcesCheckerboardV1, id: "sources.checkerboard" }
+  { module: sourcesCheckerboardV1, id: "sources.checkerboard" },
+  { module: sourcesRadialGradientV1, id: "sources.radialGradient" },
+  { module: sourcesAngularGradientV1, id: "sources.angularGradient" },
+  { module: sourcesDiamondGradientV1, id: "sources.diamondGradient" }
 ];
 
 describe("Phase 3 Batch 2 source modules", () => {
@@ -65,5 +71,17 @@ describe("Phase 3 Batch 2 source modules", () => {
 
   it("sources.checkerboard default cell size is 16 pixels", () => {
     expect(sourcesCheckerboardV1.paramDefaults.cellSize).toBe(16);
+  });
+
+  it("sources.radialGradient default radius is 0.5", () => {
+    expect(sourcesRadialGradientV1.paramDefaults.radius).toBe(0.5);
+  });
+
+  it("sources.angularGradient default rotation is 0 radians", () => {
+    expect(sourcesAngularGradientV1.paramDefaults.rotation).toBe(0);
+  });
+
+  it("sources.diamondGradient default radius is 0.5", () => {
+    expect(sourcesDiamondGradientV1.paramDefaults.radius).toBe(0.5);
   });
 });

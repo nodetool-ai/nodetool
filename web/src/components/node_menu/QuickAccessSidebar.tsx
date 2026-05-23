@@ -2,25 +2,22 @@ import { memo } from "react";
 
 import { Tooltip, ToolbarIconButton } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import {
-  QUICK_ACCESS_CATEGORIES,
-  type QuickAccessCategoryId
-} from "../../config/quickAccessCategories";
+import { LEFT_PANEL_TOP_LEVEL } from "../../config/quickAccessCategories";
+import type { LeftPanelView } from "../../stores/PanelStore";
 
 interface QuickAccessSidebarProps {
-  activeCategory: QuickAccessCategoryId | "";
-  onCategoryClick: (id: QuickAccessCategoryId) => void;
+  activeCategory: LeftPanelView | "";
+  onCategoryClick: (id: LeftPanelView) => void;
 }
 
 /**
- * Vertical icon list of left-panel categories (plan §7.2). Returns just the
- * buttons — the parent provides container styling (already in place via
- * `.vertical-toolbar` in `PanelLeft.tsx`).
+ * Vertical icon list of left-panel top-level views. Returns just the
+ * buttons — the parent provides container styling via `.vertical-toolbar`.
  */
 const QuickAccessSidebar = memo<QuickAccessSidebarProps>(
   ({ activeCategory, onCategoryClick }) => (
     <>
-      {QUICK_ACCESS_CATEGORIES.map((cat) => (
+      {LEFT_PANEL_TOP_LEVEL.map((cat) => (
         <Tooltip
           key={cat.id}
           title={cat.label}

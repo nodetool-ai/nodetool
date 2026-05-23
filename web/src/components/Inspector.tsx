@@ -5,7 +5,6 @@ import PropertyField from "./node/PropertyField";
 import { Box } from "@mui/material";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
-import NodeExplorer from "./node/NodeExplorer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
@@ -26,6 +25,8 @@ import {
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import FalPricingFooter from "./node/FalPricingFooter";
+import KieCreditsFooter from "./node/KieCreditsFooter";
+import { isKieNodeMetadata } from "../utils/isKieNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
 import { InspectorHeaderActionsProvider } from "../contexts/InspectorPropertyHeaderContext";
@@ -423,18 +424,7 @@ const Inspector: React.FC = () => {
   }, [edges, selectedNode]);
 
   if (selectedNodes.length === 0) {
-    return (
-      <EditorUiProvider scope="inspector">
-        <Box className="inspector" css={inspectorStyles}>
-          <Box className="top">
-            <ScrollArea className="top-content" direction="vertical">
-              <NodeExplorer />
-            </ScrollArea>
-          </Box>
-          <Box className="bottom"></Box>
-        </Box>
-      </EditorUiProvider>
-    );
+    return null;
   }
 
   if (isMultiSelect) {
@@ -519,20 +509,7 @@ const Inspector: React.FC = () => {
   }
 
   if (!selectedNode) {
-    return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <ScrollArea className="top-content" direction="vertical">
-            <Box className="inspector-header">
-              <Caption size="smaller" color="muted">
-                Select a node to inspect
-              </Caption>
-            </Box>
-          </ScrollArea>
-        </Box>
-        <Box className="bottom"></Box>
-      </Box>
-    );
+    return null;
   }
 
   if (!metadata) {
@@ -557,6 +534,16 @@ const Inspector: React.FC = () => {
               {metadata.fal_unit_pricing ? (
                 <Box sx={{ mt: 0.5 }}>
                   <FalPricingFooter
+                    metadata={metadata}
+                    selected
+                    variant="inline"
+                    popoverResetDep={selectedNode.id}
+                  />
+                </Box>
+              ) : null}
+              {isKieNodeMetadata(metadata) ? (
+                <Box sx={{ mt: 0.5 }}>
+                  <KieCreditsFooter
                     metadata={metadata}
                     selected
                     variant="inline"

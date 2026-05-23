@@ -13,8 +13,7 @@ export interface ImageSource {
 
 /**
  * Resolve a URI string to a fetchable URL.
- * - `asset://{id}` → `${BASE_URL}/api/storage/{id}` (same mapping as
- *   `resolveHistoryUri` in `useNodeResultHistory.ts`).
+ * - `asset://{id}` → `${BASE_URL}/api/storage/{id}`.
  * - `/api/...` → prefixed with `BASE_URL`.
  * - Other absolute URIs (`data:`, `blob:`, `http:`, `https:`) returned as-is.
  */

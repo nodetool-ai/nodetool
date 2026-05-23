@@ -65,7 +65,6 @@ import {
   PlanningUpdate,
   PlotlyConfig,
   Prediction,
-  PreviewUpdate,
   Property,
   PropertyTypeMetadata,
   Provider,
@@ -180,7 +179,6 @@ export type { OutputUpdate };
 export type { PlanningUpdate };
 export type { PlotlyConfig };
 export type { Prediction };
-export type { PreviewUpdate };
 export type { Property };
 export type { PropertyTypeMetadata };
 export type { Provider };
@@ -279,6 +277,19 @@ export interface FalUnitPricing {
   checked_at?: string | null;
 }
 
+/** kie.ai list price on generated KIE nodes — frontend-enriched shape. */
+export interface KieUnitPricing {
+  model_id: string;
+  unit_price: number;
+  billing_unit: string;
+  currency: "credits";
+  usd_price?: number;
+  tier_count?: number;
+  pricing_url?: string;
+  source?: "live" | "bundle";
+  checked_at?: string | null;
+}
+
 export interface NodeMetadata extends BaseNodeMetadata {
   searchInfo?: {
     score?: number;
@@ -300,6 +311,8 @@ export interface NodeMetadata extends BaseNodeMetadata {
   required_runtimes?: string[];
   /** FAL.ai unit pricing from generated TS nodes / metadata index. */
   fal_unit_pricing?: FalUnitPricing | null;
+  /** kie.ai unit pricing from generated KIE nodes / metadata index. */
+  kie_unit_pricing?: KieUnitPricing | null;
   /**
    * Marks a node as generative — its outputs should be auto-saved as assets
    * by the backend, and the UI uses this flag to auto-show the result preview

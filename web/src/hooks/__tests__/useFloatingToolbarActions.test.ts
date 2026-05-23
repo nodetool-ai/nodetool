@@ -6,7 +6,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "../useAutosave";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 
@@ -21,7 +20,6 @@ jest.mock("../../contexts/WorkflowManagerContext");
 jest.mock("../../stores/SettingsStore");
 jest.mock("../useAutosave");
 jest.mock("../../stores/NodeMenuStore");
-jest.mock("../../stores/RightPanelStore");
 jest.mock("../../stores/BottomPanelStore");
 jest.mock("../../stores/MiniMapStore");
 
@@ -43,9 +41,6 @@ const mockTriggerAutosave = triggerAutosaveForWorkflow as jest.MockedFunction<
 >;
 const mockUseNodeMenuStore = useNodeMenuStore as jest.MockedFunction<
   typeof useNodeMenuStore
->;
-const mockUseRightPanelStore = useRightPanelStore as jest.MockedFunction<
-  typeof useRightPanelStore
 >;
 const mockUseBottomPanelStore = useBottomPanelStore as jest.MockedFunction<
   typeof useBottomPanelStore
@@ -73,7 +68,6 @@ describe("useFloatingToolbarActions", () => {
   const mockCloseNodeMenu = jest.fn();
   const mockToggleBottomPanel = jest.fn();
   const mockToggleMiniMap = jest.fn();
-  const mockHandleViewChange = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -170,8 +164,6 @@ describe("useFloatingToolbarActions", () => {
       // Fallback for non-function selectors
       return mockNodeMenuState as any;
     });
-
-    mockUseRightPanelStore.mockReturnValue(mockHandleViewChange as any);
 
     mockUseBottomPanelStore.mockReturnValue(mockToggleBottomPanel as any);
 

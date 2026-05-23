@@ -17,6 +17,7 @@ import { trpcClient } from "../trpc/client";
 import { debounce, omit } from "../utils/lodashAlternatives";
 import { createErrorMessage } from "../utils/errorHandling";
 import { fetchLiveFalPricing } from "../utils/fetchLiveFalPricing";
+import { fetchLiveKiePricing } from "../utils/fetchLiveKiePricing";
 import useMetadataStore from "./MetadataStore";
 import { uuidv4 } from "./uuidv4";
 import { QueryClient } from "@tanstack/react-query";
@@ -30,7 +31,6 @@ import useResultsStore from "./ResultsStore";
 import useErrorStore from "./ErrorStore";
 import useStatusStore from "./StatusStore";
 import useExecutionTimeStore from "./ExecutionTimeStore";
-import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
 import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
 import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
@@ -620,6 +620,40 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             });
           }
         }
+
+        const kieNodeTypes = [
+          ...new Set(
+            (workflow.graph?.nodes ?? []).map((n) => n.type as string)
+          ),
+        ].filter((t) => t.startsWith("kie."));
+
+        if (kieNodeTypes.length > 0) {
+          const doFetchKie = (): boolean => {
+            const meta = useMetadataStore.getState().metadata;
+            const modelIds = kieNodeTypes
+              .map((t) => meta[t]?.kie_unit_pricing?.model_id)
+              .filter((id): id is string => Boolean(id));
+            if (modelIds.length === 0) {
+              return false;
+            }
+            fetchLiveKiePricing(meta, modelIds)
+              .then((updated) => {
+                if (updated) {
+                  useMetadataStore.getState().setMetadata({ ...meta });
+                }
+              })
+              .catch(() => {
+                // surfaced as console.error inside fetchLiveKiePricing
+              });
+            return true;
+          };
+
+          if (!doFetchKie()) {
+            const unsub = useMetadataStore.subscribe(() => {
+              if (doFetchKie()) unsub();
+            });
+          }
+        }
       },
 
        /**
@@ -656,12 +690,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          useResultsStore.getState().clearTasks(workflowId);
          useResultsStore.getState().clearToolCalls(workflowId);
          useResultsStore.getState().clearPlanningUpdates(workflowId);
-         useResultsStore.getState().clearPreviews(workflowId);
          useResultsStore.getState().clearEdges(workflowId);
          useErrorStore.getState().clearErrors(workflowId);
          useStatusStore.getState().clearStatuses(workflowId);
          useExecutionTimeStore.getState().clearTimings(workflowId);
-         useNodeResultHistoryStore.getState().clearWorkflowHistory(workflowId);
          usePropertyValidationStore.getState().clearWorkflow(workflowId);
 
          const newOpenWorkflows = openWorkflows.filter(
