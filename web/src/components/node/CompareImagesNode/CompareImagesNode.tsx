@@ -113,20 +113,38 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
   const theme = useTheme();
   const hasParent = props.parentId !== undefined;
 
-  // Get the preview result for this node
+  // The `comparison` snapshot is one of the node's regular outputs and
+  // flows through the same channel as score/equal. Reads the final
+  // node_update record first (keyed by output name), then falls back to
+  // any streamed output_update for the same handle.
   const result = useResultsStore((state) =>
-    state.getPreview(props.data.workflow_id, props.id)
+    state.getResult(props.data.workflow_id, props.id) ??
+    state.getOutputResult(props.data.workflow_id, props.id)
   );
 
-  // Extract comparison data from result
   const comparisonData = useMemo(() => {
-    if (!result || typeof result !== "object") {
+    const pickComparison = (value: unknown): unknown => {
+      if (!value || typeof value !== "object") return null;
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const found = pickComparison(item);
+          if (found) return found;
+        }
+        return null;
+      }
+      const record = value as Record<string, unknown>;
+      if ((record as { type?: string }).type === "image_comparison") {
+        return record;
+      }
+      if (record.comparison) {
+        return pickComparison(record.comparison);
+      }
       return null;
-    }
-    if ((result as { type?: string }).type !== "image_comparison") {
-      return null;
-    }
-    return result as {
+    };
+
+    const snapshot = pickComparison(result);
+    if (!snapshot) return null;
+    return snapshot as {
       type: string;
       image_a: { uri?: string; data?: ImageData; type?: string };
       image_b: { uri?: string; data?: ImageData; type?: string };

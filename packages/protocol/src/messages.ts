@@ -174,12 +174,6 @@ export interface OutputUpdate {
   workflow_id?: string | null;
 }
 
-export interface PreviewUpdate {
-  type: "preview_update";
-  node_id: string;
-  value: unknown;
-}
-
 export interface SaveUpdate {
   type: "save_update";
   node_id: string;
@@ -522,7 +516,6 @@ export type ProcessingMessage =
   | NodeProgress
   | EdgeUpdate
   | OutputUpdate
-  | PreviewUpdate
   | SaveUpdate
   | BinaryUpdate
   | LogUpdate

@@ -63,6 +63,7 @@ import {
   isCodeNodeTitleEditable,
   resolveCodeNodeTitle
 } from "./codeNodeUi";
+import { isContentCardNode } from "../node_types/contentCardRegistry";
 
 // CONSTANTS
 const BASE_HEIGHT = 0;
@@ -449,7 +450,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const resultsKey = hashKey(workflow_id, id);
   const { result, chunk, toolCall, planningUpdate, task } = useResultsStore(
     (state) => ({
-      result: state.outputResults[resultsKey] || state.results[resultsKey],
+      result: state.outputResults[resultsKey] ?? state.results[resultsKey],
       chunk: state.chunks[resultsKey] as string | undefined,
       toolCall: state.toolCalls[resultsKey],
       planningUpdate: state.planningUpdates[resultsKey],
@@ -505,6 +506,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
 
+  const usesContentCardBody = isContentCardNode(metadata);
+
   // Only auto-switch to result view for generative nodes (marked via
   // `auto_save_asset` by providers like fal, kie, replicate, elevenlabs,
   // gemini/openai image+audio, etc.). Non-generative nodes with visual
@@ -541,6 +544,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     else if (
       result &&
       isGenerativeNode &&
+      !usesContentCardBody &&
       !nodeType.isOutputNode &&
       !nodeType.isConstantNode &&
       status === "completed"
@@ -553,6 +557,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     result,
     isConstantInputLockedResult,
     isGenerativeNode,
+    usesContentCardBody,
     nodeType.isOutputNode,
     nodeType.isConstantNode,
     status,
@@ -579,14 +584,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [id, suppressResultOverlay, updateNodeData]);
 
   const shouldAlwaysShowResult =
+    !usesContentCardBody &&
     !suppressResultOverlay &&
     (nodeType.isOutputNode || isConstantInputLockedResult);
-  const isOverlayVisible = suppressResultOverlay
-    ? false
-    : shouldAlwaysShowResult
-    ? Boolean(result && !isEmptyResult(result))
-    : Boolean(showResultOverlay && result && !isEmptyResult(result));
+  const isOverlayVisible =
+    suppressResultOverlay || usesContentCardBody
+      ? false
+      : shouldAlwaysShowResult
+      ? Boolean(result && !isEmptyResult(result))
+      : Boolean(showResultOverlay && result && !isEmptyResult(result));
   const hasToggleableResult =
+    !usesContentCardBody &&
     !suppressResultOverlay &&
     !shouldAlwaysShowResult &&
     result &&

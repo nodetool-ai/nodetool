@@ -266,6 +266,12 @@ describe("createKieNodeClass multi-variant", () => {
     expect(numOutputs!.options.max).toBe(8);
     expect(numOutputs!.options.default).toBe(1);
     expect((NodeClass as unknown as { isStreamingOutput: boolean }).isStreamingOutput).toBe(true);
+    expect(NodeClass.outputCorrelation).toEqual({
+      output: { kind: "iteration", source: "__execution__" }
+    });
+    expect(NodeClass.toDescriptor("kie").output_correlation).toEqual({
+      output: { kind: "iteration", source: "__execution__" }
+    });
   });
 
   it("does not register num_outputs on nodes with native num_images", () => {
@@ -281,6 +287,7 @@ describe("createKieNodeClass multi-variant", () => {
     const props = (NodeClass as any).getDeclaredProperties() as Array<{ name: string }>;
     expect(props.find((p) => p.name === "num_outputs")).toBeUndefined();
     expect((NodeClass as unknown as { isStreamingOutput?: boolean }).isStreamingOutput).toBeFalsy();
+    expect(NodeClass.outputCorrelation).toBeUndefined();
   });
 
   it("fans out N parallel kieExecuteTask calls when num_outputs > 1 (no native field)", async () => {

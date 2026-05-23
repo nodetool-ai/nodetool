@@ -187,7 +187,6 @@ describe("MasksExtractorBody", () => {
       if (typeof selector === "function") {
         const state = {
           getOutputResult: () => undefined,
-          getPreview: () => undefined,
           getResult: (_wf: string, nodeId: string) => {
             if (nodeId === "upstream-node") {
               return { output: { uri: "upstream.jpg" } };
@@ -211,7 +210,6 @@ describe("MasksExtractorBody", () => {
       if (typeof selector === "function") {
         const state = {
           getOutputResult: () => undefined,
-          getPreview: () => undefined,
           getResult: (_wf: string, nodeId: string) => {
             if (nodeId === "node-1") {
               return { output: { uri: "mask.png" } };

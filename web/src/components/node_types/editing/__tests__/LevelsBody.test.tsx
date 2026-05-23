@@ -39,8 +39,7 @@ jest.mock("../../../../stores/ResultsStore", () => ({
   default: jest.fn((selector: any) =>
     selector({
       getOutputResult: () => undefined,
-      getResult: () => undefined,
-      getPreview: () => undefined
+      getResult: () => undefined
     })
   )
 }));
@@ -101,7 +100,6 @@ describe("LevelsBody", () => {
       (selector: any) =>
         selector({
           getOutputResult: () => undefined,
-          getPreview: () => undefined,
           getResult: mockGetResult
         })
     );

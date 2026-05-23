@@ -27,8 +27,7 @@ beforeEach(() => {
     chunks: {},
     tasks: {},
     toolCalls: {},
-    planningUpdates: {},
-    previews: {}
+    planningUpdates: {}
   });
   mockRunnerStore.setState.mockClear();
 });

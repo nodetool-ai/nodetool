@@ -521,6 +521,10 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     configurable: true
   });
   if (supportsMultiOutput) {
+    Object.defineProperty(KieNodeClass, "outputCorrelation", {
+      value: { output: { kind: "iteration", source: "__execution__" } },
+      configurable: true
+    });
     Object.defineProperty(KieNodeClass, "isStreamingOutput", {
       value: true,
       configurable: true

@@ -93,4 +93,15 @@ describe("FAL num_images", () => {
     }
     expect(yields).toHaveLength(4);
   });
+
+  it("marks each generated image as a correlated iteration item", () => {
+    const NodeClass = makeNode();
+
+    expect(NodeClass.outputCorrelation).toEqual({
+      output: { kind: "iteration", source: "__execution__" }
+    });
+    expect(NodeClass.toDescriptor("fal").output_correlation).toEqual({
+      output: { kind: "iteration", source: "__execution__" }
+    });
+  });
 });

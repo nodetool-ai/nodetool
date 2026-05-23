@@ -24,8 +24,12 @@ export class CompareImagesNode extends BaseNode {
   static readonly title = "Compare Images";
   static readonly description =
     "Compare two images side-by-side with an interactive slider.\n    image, compare, comparison, diff, before, after, slider\n\n    Use this node to visually compare:\n    - Before/after processing results\n    - Different model outputs\n    - Original vs edited images\n    - A/B testing of image variations";
+  // The `comparison` output carries the side-by-side snapshot consumed by
+  // the node body; `score` and `equal` are connectable for downstream use.
   static readonly metadataOutputTypes = {
-    output: "none"
+    comparison: "any",
+    score: "float",
+    equal: "bool"
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["image_a", "image_b"];
@@ -80,35 +84,30 @@ export class CompareImagesNode extends BaseNode {
     const a = toBytes(imageA as ImageLike);
     const b = toBytes(imageB as ImageLike);
 
-    // Emit a PreviewUpdate for UI slider comparison if context supports it
-    if (context && typeof context.emit === "function") {
-      const nodeId = String(this.__node_id ?? this.__node_name ?? "");
-      const normalize =
-        typeof context.normalizeOutputValue === "function"
-          ? context.normalizeOutputValue.bind(context)
-          : async (value: unknown) => value;
-      const [normalizedA, normalizedB] = await Promise.all([
-        normalize(imageA),
-        normalize(imageB)
-      ]);
-      context.emit({
-        type: "preview_update",
-        node_id: nodeId,
-        value: {
-          type: "image_comparison",
-          image_a: normalizedA,
-          image_b: normalizedB,
-          label_a: String(this.label_a ?? "A"),
-          label_b: String(this.label_b ?? "B")
-        }
-      });
-    }
+    // Build the comparison snapshot the UI slider consumes. Images are
+    // normalized (asset URIs resolved, in-memory bytes materialized) so
+    // the client can render without extra round-trips.
+    const normalize =
+      context && typeof context.normalizeOutputValue === "function"
+        ? context.normalizeOutputValue.bind(context)
+        : async (value: unknown) => value;
+    const [normalizedA, normalizedB] = await Promise.all([
+      normalize(imageA),
+      normalize(imageB)
+    ]);
+    const comparison = {
+      type: "image_comparison",
+      image_a: normalizedA,
+      image_b: normalizedB,
+      label_a: String(this.label_a ?? "A"),
+      label_b: String(this.label_b ?? "B")
+    };
 
     if (a.length === 0 && b.length === 0) {
-      return { score: 1, equal: true };
+      return { comparison, score: 1, equal: true };
     }
     if (a.length === 0 || b.length === 0) {
-      return { score: 0, equal: false };
+      return { comparison, score: 0, equal: false };
     }
 
     const len = Math.min(a.length, b.length);
@@ -120,6 +119,7 @@ export class CompareImagesNode extends BaseNode {
     const lengthPenalty = len / Math.max(a.length, b.length);
     const score = (same / len) * lengthPenalty;
     return {
+      comparison,
       score,
       equal: score === 1
     };

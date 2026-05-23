@@ -19,15 +19,15 @@ jest.mock("../NodeHistoryPanel", () => ({
   default: () => <div data-testid="node-history-panel" />
 }));
 
-// Mock NodeResultHistoryStore
-jest.mock("../../../stores/NodeResultHistoryStore", () => ({
-  EMPTY_HISTORY: [],
-  useNodeResultHistoryStore: (selector: any) => {
-    const mockState = {
-      getHistory: () => []
-    };
-    return selector ? selector(mockState) : mockState;
-  }
+// Mock the DB-backed history hook so we don't hit tRPC in unit tests.
+jest.mock("../../../hooks/nodes/useNodeResultHistory", () => ({
+  useNodeResultHistory: () => ({
+    assetHistory: [],
+    historyCount: 0,
+    isLoading: false,
+    refresh: jest.fn(),
+    workflowId: null
+  })
 }));
 
 const renderWithProviders = (component: React.ReactElement) => {

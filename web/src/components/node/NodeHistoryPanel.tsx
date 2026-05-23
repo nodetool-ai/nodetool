@@ -1,39 +1,27 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useState, useCallback, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import {
   DialogTitle,
   DialogContent,
   DialogActions,
   Stack
 } from "@mui/material";
-import { Text, Caption, FlexColumn, Chip, EditorButton, LoadingSpinner, AlertBanner, FlexRow, Dialog } from "../ui_primitives";
+import {
+  Text,
+  Caption,
+  FlexColumn,
+  Chip,
+  EditorButton,
+  LoadingSpinner,
+  FlexRow,
+  Dialog
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
-import DeleteIcon from "@mui/icons-material/Delete";
-import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import { CloseButton } from "../ui_primitives";
 import { useNodeResultHistory } from "../../hooks/nodes/useNodeResultHistory";
-import { HistoricalResult } from "../../stores/NodeResultHistoryStore";
+import type { Asset } from "../../stores/ApiTypes";
 import PreviewImageGrid, { ImageSource } from "./PreviewImageGrid";
-import OutputRenderer from "./OutputRenderer";
-import { Divider } from "../ui_primitives";
-
-/**
- * Unwrap a history result to find the displayable value.
- * Single-key objects get unwrapped; multi-key picks the first typed value.
- */
-function unwrapHistoryResult(result: unknown): unknown {
-  if (!result || typeof result !== "object" || Array.isArray(result)) {
-    return result;
-  }
-  const entries = Object.entries(result as Record<string, unknown>);
-  if (entries.length === 1) return entries[0][1];
-  const typed = entries.find(
-    ([, v]) => v && typeof v === "object" && "type" in (v as Record<string, unknown>)
-  );
-  if (typed) return typed[1];
-  return result;
-}
 
 interface NodeHistoryPanelProps {
   workflowId: string;
@@ -43,110 +31,21 @@ interface NodeHistoryPanelProps {
   onClose: () => void;
 }
 
-function ConfirmDialog({
-  open,
-  title,
-  message,
-  onConfirm,
-  onCancel
-}: {
-  open: boolean;
-  title: string;
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent>
-        <Text>{message}</Text>
-      </DialogContent>
-      <DialogActions>
-        <EditorButton onClick={onCancel}>Cancel</EditorButton>
-        <EditorButton onClick={onConfirm} color="error" variant="contained">
-          Confirm
-        </EditorButton>
-      </DialogActions>
-    </Dialog>
-  );
-}
+const isImageAsset = (asset: Asset) =>
+  typeof asset.content_type === "string" &&
+  asset.content_type.startsWith("image/");
+
+const assetToImageSource = (asset: Asset): ImageSource | undefined => {
+  const url = asset.thumb_url || asset.get_url;
+  return url || undefined;
+};
 
 /**
- * Extract image URIs from a result object.
- * Handles various result formats: single images, arrays, nested objects.
- */
-function extractImageSources(result: unknown): ImageSource[] {
-  if (!result) {
-    return [];
-  }
-
-  const images: ImageSource[] = [];
-
-  // Handle array of results
-  if (Array.isArray(result)) {
-    result.forEach((item: unknown) => {
-      images.push(...extractImageSources(item));
-    });
-    return images;
-  }
-
-  if (typeof result !== "object") {
-    return images;
-  }
-
-  const obj = result as Record<string, unknown>;
-
-  // Handle single image/asset with uri
-  if (obj.type === "image" && obj.uri) {
-    images.push(obj.uri as string);
-    return images;
-  }
-
-  // Handle asset with uri
-  if (obj.uri && typeof obj.uri === "string") {
-    // Check if it looks like an image URI
-    const uri = obj.uri.toLowerCase();
-    if (
-      uri.endsWith(".png") ||
-      uri.endsWith(".jpg") ||
-      uri.endsWith(".jpeg") ||
-      uri.endsWith(".gif") ||
-      uri.endsWith(".webp") ||
-      uri.includes("/image/") ||
-      (typeof obj.content_type === "string" && obj.content_type.startsWith("image/"))
-    ) {
-      images.push(obj.uri);
-      return images;
-    }
-  }
-
-  // Handle base64 data
-  if (obj.data && obj.data instanceof Uint8Array) {
-    images.push(obj.data);
-    return images;
-  }
-
-  // Handle nested output property
-  if (obj.output) {
-    images.push(...extractImageSources(obj.output));
-  }
-
-  // Handle nested result property
-  if (obj.result) {
-    images.push(...extractImageSources(obj.result));
-  }
-
-  return images;
-}
-
-/**
- * NodeHistoryPanel displays the execution history for a specific node.
- * 
- * Features:
- * - Shows session history as image tiles (accumulated results from current session)
- * - Option to load persistent asset-based history
- * - Clear history action
+ * NodeHistoryPanel — displays a node's persisted output history.
+ *
+ * Backed entirely by the assets table (filtered by node_id). Generative
+ * nodes auto-save their outputs to assets on completion, so this dialog
+ * is the canonical view of "what did this node produce across runs."
  */
 const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
   workflowId,
@@ -156,47 +55,22 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
   onClose
 }) => {
   const theme = useTheme();
-  const [showAssetHistory, setShowAssetHistory] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const { assetHistory, historyCount, isLoading } = useNodeResultHistory(
+    workflowId,
+    nodeId
+  );
 
-  const {
-    sessionHistory,
-    historyCount,
-    clearHistory,
-    assetHistory,
-    isLoadingAssets,
-    loadAssetHistory
-  } = useNodeResultHistory(workflowId, nodeId);
+  const imageSources = useMemo<ImageSource[]>(() => {
+    return assetHistory
+      .filter(isImageAsset)
+      .map(assetToImageSource)
+      .filter((src): src is ImageSource => Boolean(src));
+  }, [assetHistory]);
 
-  // Extract all images from session history
-  const allImages = useMemo(() => {
-    const images: ImageSource[] = [];
-    sessionHistory.forEach((item: HistoricalResult) => {
-      images.push(...extractImageSources(item.result));
-    });
-    return images;
-  }, [sessionHistory]);
-
-  const handleLoadAssetHistory = useCallback(() => {
-    setShowAssetHistory(true);
-    loadAssetHistory();
-  }, [loadAssetHistory]);
-
-  const handleClearHistory = useCallback(() => {
-    setShowClearConfirm(true);
-  }, []);
-
-  const handleConfirmClearHistory = useCallback(() => {
-    clearHistory();
-    setShowClearConfirm(false);
-  }, [clearHistory]);
-
-  const handleCancelClearHistory = useCallback(() => {
-    setShowClearConfirm(false);
-  }, []);
-
-  // Double-click is now handled internally by PreviewImageGrid
-  // which opens the image in AssetViewer
+  const nonImageAssets = useMemo(
+    () => assetHistory.filter((asset) => !isImageAsset(asset)),
+    [assetHistory]
+  );
 
   return (
     <Dialog
@@ -224,7 +98,13 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
       }}
     >
       <DialogTitle className="dialog-title">
-        <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between" width="100%">
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          justifyContent="space-between"
+          width="100%"
+        >
           <Stack direction="row" spacing={1} alignItems="center">
             <HistoryIcon />
             <Text size="normal" weight={600} component="h6">
@@ -236,103 +116,69 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
         </Stack>
       </DialogTitle>
 
-      <DialogContent dividers sx={{ p: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* Session History as Image Grid */}
-        {allImages.length > 0 ? (
+      <DialogContent
+        dividers
+        sx={{
+          p: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden"
+        }}
+      >
+        {isLoading ? (
+          <FlexRow justify="center" align="center" sx={{ p: 4, flex: 1 }}>
+            <LoadingSpinner size="medium" />
+          </FlexRow>
+        ) : imageSources.length > 0 ? (
           <div style={{ flex: 1, overflow: "hidden" }}>
             <PreviewImageGrid
-              images={allImages}
+              images={imageSources}
               itemSize={128}
               gap={8}
               showActions={true}
             />
           </div>
-        ) : sessionHistory.length > 0 ? (
+        ) : nonImageAssets.length > 0 ? (
           <div style={{ flex: 1, overflow: "auto", padding: "8px 16px" }}>
-            {sessionHistory.map((item: HistoricalResult, index: number) => {
-              const value = unwrapHistoryResult(item.result);
-              return (
-                <div key={`history-${item.timestamp}-${index}`}>
-                  {index > 0 && <Divider sx={{ my: 1 }} />}
-                  <Caption size="tiny" sx={{ opacity: 0.5, mb: 0.5 }}>
-                    {new Date(item.timestamp).toLocaleTimeString()}
-                  </Caption>
-                  <OutputRenderer value={value} />
-                </div>
-              );
-            })}
+            {nonImageAssets.map((asset) => (
+              <FlexRow
+                key={asset.id}
+                sx={{
+                  py: 0.5,
+                  borderBottom: `1px solid ${theme.vars.palette.divider}`
+                }}
+                justify="space-between"
+              >
+                <Text size="small">{asset.name || asset.id}</Text>
+                <Caption size="tiny" sx={{ opacity: 0.6 }}>
+                  {asset.created_at
+                    ? new Date(asset.created_at).toLocaleString()
+                    : ""}
+                </Caption>
+              </FlexRow>
+            ))}
           </div>
         ) : (
-          <FlexColumn
-            align="center"
-            justify="center"
-            fullHeight
-            sx={{ p: 4 }}
-          >
+          <FlexColumn align="center" justify="center" fullHeight sx={{ p: 4 }}>
             <HistoryIcon
-              sx={{ fontSize: 64, color: theme.vars.palette.text.secondary, mb: 2, opacity: 0.5 }}
+              sx={{
+                fontSize: 64,
+                color: theme.vars.palette.text.secondary,
+                mb: 2,
+                opacity: 0.5
+              }}
             />
-            <Text color="secondary">
-              No history available for this node
-            </Text>
-            <Caption
-              sx={{ mt: 1 }}
-            >
-              Results will appear here as you run the workflow
+            <Text color="secondary">No saved outputs for this node</Text>
+            <Caption sx={{ mt: 1 }}>
+              Results appear here once a run completes
             </Caption>
           </FlexColumn>
-        )}
-
-        {/* Asset History Section */}
-        {showAssetHistory && (
-          <div style={{ padding: 16, borderTop: `1px solid ${theme.vars.palette.divider}` }}>
-            <Text size="small" weight={500} sx={{ mb: 1 }}>
-              Persistent Asset History
-            </Text>
-            {isLoadingAssets ? (
-              <FlexRow justify="center" sx={{ p: 2 }}>
-                <LoadingSpinner size="medium" />
-              </FlexRow>
-            ) : assetHistory && assetHistory.length > 0 ? (
-              <AlertBanner severity="info" sx={{ mb: 1 }}>
-                Found {assetHistory.length} asset(s) created by this node
-              </AlertBanner>
-            ) : (
-              <AlertBanner severity="info">
-                No persistent assets found for this node
-              </AlertBanner>
-            )}
-          </div>
         )}
       </DialogContent>
 
       <DialogActions>
-        {!showAssetHistory && (
-          <EditorButton
-            startIcon={<CloudDownloadIcon />}
-            onClick={handleLoadAssetHistory}
-            disabled={isLoadingAssets}
-          >
-            Load Persistent History
-          </EditorButton>
-        )}
-        <EditorButton
-          startIcon={<DeleteIcon />}
-          onClick={handleClearHistory}
-          disabled={historyCount === 0}
-          color="error"
-        >
-          Clear History
-        </EditorButton>
         <EditorButton onClick={onClose}>Close</EditorButton>
       </DialogActions>
-      <ConfirmDialog
-        open={showClearConfirm}
-        title="Clear History"
-        message="Are you sure you want to clear the history for this node?"
-        onConfirm={handleConfirmClearHistory}
-        onCancel={handleCancelClearHistory}
-      />
     </Dialog>
   );
 };
