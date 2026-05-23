@@ -78,6 +78,12 @@ export {
   type StreamingOutputs,
   type MessageEnvelopeLike
 } from "./node-executor.js";
+export {
+  createFakeContext,
+  stubGlobalFetch,
+  type FakeContextHandle,
+  type FakeContextOptions
+} from "./testing.js";
 export { executeComfy } from "./comfy-executor.js";
 export type {
   ComfyExecutorResult,
