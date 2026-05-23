@@ -1541,7 +1541,9 @@ export class ProcessingContext {
     }
     const raw =
       trimmed.startsWith("asset://") ? trimmed.slice("asset://".length) : trimmed;
-    const primary = raw.split(/[/?#]/)[0];
+    // Preserve sub-paths: `asset://user-1/image.png` -> primary `user-1/image.png`,
+    // so storage keys with hierarchical layouts still resolve.
+    const primary = raw.split(/[?#]/)[0];
     if (!primary) {
       return [];
     }
@@ -1620,24 +1622,36 @@ export class ProcessingContext {
       // Extension-tolerant fallback: locate the stored file whose name starts
       // with the id, since the URN extension may differ from the one on disk
       // (e.g. jpeg vs jpg). Only reached when the exact-key lookups all miss.
+      //
+      // Try a narrow prefix first (S3 treats `list(bareId)` as a raw-string
+      // prefix match — bounded to a handful of entries) before falling back to
+      // a root listing for adapters that treat the prefix as a folder path
+      // (memory/supabase). Avoids `list("")` becoming a multi-thousand-object
+      // scan on production S3 backends.
       const bareId = idCandidates[idCandidates.length - 1];
       if (bareId) {
-        try {
-          const listing = await this.storage.list("");
-          const match = listing.entries.find((entry) => {
-            const base = entry.key.split("/").pop() ?? "";
-            return base.startsWith(`${bareId}.`) && !base.includes("_thumb");
-          });
-          if (match) {
-            const bytes = await tryStorageUri(match.uri);
-            if (bytes) {
-              return { bytes, attempts };
+        const tryListing = async (prefix: string): Promise<Uint8Array | null> => {
+          try {
+            const listing = await this.storage!.list(prefix);
+            const match = listing.entries.find((entry) => {
+              const base = entry.key.split("/").pop() ?? "";
+              return base.startsWith(`${bareId}.`) && !base.includes("_thumb");
+            });
+            if (match) {
+              return await tryStorageUri(match.uri);
             }
+          } catch (error) {
+            attempts.push(
+              `storage list error (${error instanceof Error ? error.message : String(error)})`
+            );
           }
-        } catch (error) {
-          attempts.push(
-            `storage list error (${error instanceof Error ? error.message : String(error)})`
-          );
+          return null;
+        };
+        for (const prefix of [bareId, ""]) {
+          const bytes = await tryListing(prefix);
+          if (bytes) {
+            return { bytes, attempts };
+          }
         }
       }
     }

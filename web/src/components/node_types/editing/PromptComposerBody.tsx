@@ -13,11 +13,10 @@
  * (`asset://…`, `{{ name }}`), so existing `{{variable}}` substitution and the
  * backend asset dereferencing work whether or not a token is chipped.
  */
-import React, { memo, useCallback, useMemo, useRef } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { shallow } from "zustand/shallow";
 import { $insertNodes, type EditorState } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import type { InitialConfigType } from "@lexical/react/LexicalComposer";
@@ -246,6 +245,12 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
       }, 400),
     [setProperties, setPropertyComplete]
   );
+
+  useEffect(() => {
+    return () => {
+      writePrompt.cancel();
+    };
+  }, [writePrompt]);
 
   const handleEditorChange = useCallback(
     (editorState: EditorState) => {
