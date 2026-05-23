@@ -14,6 +14,8 @@ import isEqual from "fast-deep-equal";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
+import WorkflowForm from "../workflows/WorkflowForm";
+import AgentPanel from "./AgentPanel";
 import SidebarSearchPanel from "../node_menu/SidebarSearchPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
@@ -25,6 +27,7 @@ import {
   NodeCategoryId,
   usePanelStore
 } from "../../stores/PanelStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import {
   LEFT_PANEL_TOP_LEVEL,
   NODE_SUBCATEGORIES,
@@ -286,6 +289,14 @@ const PanelContent = memo(function PanelContent({
 }) {
   const navigate = useNavigate();
   const path = useLocation().pathname;
+  const currentWorkflow = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
+        null
+      : null
+  );
+  const setVisibility = usePanelStore((state) => state.setVisibility);
+  const closePanel = useCallback(() => setVisibility(false), [setVisibility]);
 
   const handleFullscreenClick = useCallback(() => {
     navigate("/assets");
@@ -386,6 +397,32 @@ const PanelContent = memo(function PanelContent({
           <ScrollArea fullHeight>
             <WorkflowList />
           </ScrollArea>
+        </Box>
+      )}
+      {activeView === "settings" && currentWorkflow && (
+        <Box
+          className="workflow-settings-container"
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "auto"
+          }}
+        >
+          <WorkflowForm workflow={currentWorkflow} onClose={closePanel} />
+        </Box>
+      )}
+      {activeView === "agent" && (
+        <Box
+          className="agent-panel-container"
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          <AgentPanel />
         </Box>
       )}
     </>

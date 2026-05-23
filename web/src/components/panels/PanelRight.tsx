@@ -14,15 +14,15 @@ import { useShallow } from "zustand/react/shallow";
 import { useNavigate } from "react-router-dom";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import useMetadataStore from "../../stores/MetadataStore";
 import { setFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import type { NodeStore } from "../../stores/NodeStore";
 
-import { TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
+import { PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ContextMenus from "../context_menus/ContextMenus";
-import { MobileBottomSheet, ToolbarIconButton, Tooltip } from "../ui_primitives";
-
-import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
+import { MobileBottomSheet } from "../ui_primitives";
 
 const HEADER_AREA_HEIGHT = 77;
 
@@ -71,67 +71,11 @@ const styles = (theme: Theme) =>
       }
     },
 
-    ".vertical-toolbar": {
-      width: `${TOOLBAR_WIDTH}px`,
-      flexShrink: 0,
-      display: "flex",
-      flexDirection: "column",
-      gap: 0,
-      backgroundColor: theme.vars.palette.background.default,
-      borderLeft: `1px solid ${theme.vars.palette.divider}`,
-      paddingTop: "8px",
-
-      "& .MuiIconButton-root": {
-        padding: "14px",
-        borderRadius: "5px",
-        position: "relative",
-        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        "&.active svg": {
-          color: "var(--palette-primary-main)"
-        },
-        "& svg": {
-          display: "block",
-          width: "18px",
-          height: "18px",
-          fontSize: "18px"
-        }
-      }
-    },
-
     ".panel-inner-content": {
       display: "flex",
       flex: 1,
       height: "100%",
       overflow: "hidden"
-    }
-  });
-
-const MOBILE_LAUNCHER_TOP = 48;
-
-const mobileLauncherStyles = (theme: Theme) =>
-  css({
-    position: "fixed",
-    top: `${MOBILE_LAUNCHER_TOP}px`,
-    right: 8,
-    zIndex: 1100,
-    backgroundColor: theme.vars.palette.background.paper,
-    color: theme.vars.palette.text.primary,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-    padding: "8px",
-    borderRadius: "10px",
-    "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover
-    },
-    "&.active": {
-      backgroundColor: theme.vars.palette.primary.main,
-      color: theme.vars.palette.primary.contrastText,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.primary.dark
-      }
-    },
-    "& svg": {
-      fontSize: "1.25rem"
     }
   });
 
@@ -302,6 +246,28 @@ const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
   return null;
 });
 
+/**
+ * Selection-driven visibility for the inspector. Subscribes to the active
+ * workflow's node store and mirrors `selection > 0` onto the right panel's
+ * visibility — selecting a node opens the panel, deselecting closes it.
+ * Renders nothing.
+ */
+const InspectorVisibilitySync = memo(function InspectorVisibilitySync({
+  activeNodeStore
+}: {
+  activeNodeStore: NodeStore;
+}) {
+  const hasSelection = useStoreWithEqualityFn(
+    activeNodeStore,
+    (state) => state.nodes.some((node) => node.selected)
+  );
+  const setVisibility = useRightPanelStore((state) => state.setVisibility);
+  useEffect(() => {
+    setVisibility(hasSelection);
+  }, [hasSelection, setVisibility]);
+  return null;
+});
+
 const PanelRight: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -310,8 +276,7 @@ const PanelRight: React.FC = () => {
     size: panelSize,
     isVisible,
     isDragging,
-    handleMouseDown,
-    handlePanelToggle
+    handleMouseDown
   } = useResizeRightPanel("right");
 
   const setVisibility = useRightPanelStore((state) => state.setVisibility);
@@ -322,48 +287,29 @@ const PanelRight: React.FC = () => {
       : undefined
   );
 
-  const handleInspectorToggle = useCallback(
-    () => handlePanelToggle("inspector"),
-    [handlePanelToggle]
-  );
-
   const handleMobileSheetClose = useCallback(
     () => setVisibility(false),
     [setVisibility]
   );
-  const handleMobileSheetOpen = useCallback(
-    () => setVisibility(true),
-    [setVisibility]
-  );
 
-  const inspectorBody = (
+  const inspectorBody = activeNodeStore ? (
     <ContextMenuProvider>
       <ReactFlowProvider>
-        {activeNodeStore && (
-          <NodeContext.Provider value={activeNodeStore}>
-            <ContextMenus />
-            <Inspector />
-          </NodeContext.Provider>
-        )}
+        <NodeContext.Provider value={activeNodeStore}>
+          <ContextMenus />
+          <Inspector />
+        </NodeContext.Provider>
       </ReactFlowProvider>
     </ContextMenuProvider>
-  );
+  ) : null;
 
   if (isMobile) {
     return (
       <>
         <FrontendToolRuntimeSync />
-        <ToolbarIconButton
-          icon={<CenterFocusWeakIcon />}
-          tooltip={isVisible ? "Close inspector" : "Open inspector"}
-          className="panel-right-mobile-launcher"
-          active={isVisible}
-          css={mobileLauncherStyles(theme)}
-          onClick={isVisible ? handleMobileSheetClose : handleMobileSheetOpen}
-          ariaLabel={isVisible ? "Close inspector" : "Open inspector"}
-          aria-expanded={isVisible}
-          tabIndex={-1}
-        />
+        {activeNodeStore && (
+          <InspectorVisibilitySync activeNodeStore={activeNodeStore} />
+        )}
         <MobileBottomSheet
           open={isVisible}
           onClose={handleMobileSheetClose}
@@ -386,38 +332,30 @@ const PanelRight: React.FC = () => {
   }
 
   return (
-    <div css={styles(theme)} className="panel-right-container">
+    <>
       <FrontendToolRuntimeSync />
+      {activeNodeStore && (
+        <InspectorVisibilitySync activeNodeStore={activeNodeStore} />
+      )}
       {isVisible && (
-        <div
-          ref={panelRef}
-          className={`drawer-content ${isDragging ? "dragging" : ""}`}
-          style={{ width: `${panelSize - TOOLBAR_WIDTH}px` }}
-        >
+        <div css={styles(theme)} className="panel-right-container">
           <div
-            className="panel-button"
-            onMouseDown={handleMouseDown}
-            role="slider"
-            aria-label="Resize panel"
-            tabIndex={-1}
-          />
-          <div className="panel-inner-content">{inspectorBody}</div>
+            ref={panelRef}
+            className={`drawer-content ${isDragging ? "dragging" : ""}`}
+            style={{ width: `${panelSize}px` }}
+          >
+            <div
+              className="panel-button"
+              onMouseDown={handleMouseDown}
+              role="slider"
+              aria-label="Resize panel"
+              tabIndex={-1}
+            />
+            <div className="panel-inner-content">{inspectorBody}</div>
+          </div>
         </div>
       )}
-
-      <div className="vertical-toolbar">
-        <Tooltip title="Inspector (I)" placement="left-start">
-          <ToolbarIconButton
-            icon={<CenterFocusWeakIcon />}
-            onClick={handleInspectorToggle}
-            ariaLabel="Toggle Inspector panel (I)"
-            className="inspector"
-            active={isVisible}
-            tabIndex={-1}
-          />
-        </Tooltip>
-      </div>
-    </div>
+    </>
   );
 };
 

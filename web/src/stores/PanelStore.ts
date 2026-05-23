@@ -13,9 +13,11 @@ import { persist } from "zustand/middleware";
 export type LeftPanelView =
   | "search"
   | "workflows"
+  | "settings"
   | "history"
   | "assets"
-  | "nodes";
+  | "nodes"
+  | "agent";
 export type PanelView = LeftPanelView;
 
 export type NodeCategoryId =
@@ -61,9 +63,11 @@ const MAX_PANEL_SIZE = 800;
 const VALID_VIEWS: LeftPanelView[] = [
   "search",
   "workflows",
+  "settings",
   "history",
   "assets",
-  "nodes"
+  "nodes",
+  "agent"
 ];
 
 const VALID_NODE_CATEGORIES: NodeCategoryId[] = [

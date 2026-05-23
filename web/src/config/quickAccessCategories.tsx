@@ -13,6 +13,8 @@ import type { ReactNode } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import HistoryIcon from "@mui/icons-material/History";
 import GridViewIcon from "@mui/icons-material/GridView";
+import SettingsIcon from "@mui/icons-material/Settings";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import ImageIcon from "@mui/icons-material/Image";
 import MovieIcon from "@mui/icons-material/Movie";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
@@ -115,13 +117,15 @@ const POPULAR_MODEL_RANK: ReadonlyMap<string, number> = new Map(
 export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
   { id: "search", label: "Search", icon: <SearchIcon /> },
   { id: "workflows", label: "Workflows", icon: <GridViewIcon /> },
+  { id: "settings", label: "Settings", icon: <SettingsIcon /> },
   { id: "history", label: "History", icon: <HistoryIcon /> },
   {
     id: "assets",
     label: "Assets",
     icon: <IconForType iconName="asset" showTooltip={false} iconSize="small" />
   },
-  { id: "nodes", label: "Nodes", icon: <HubIcon /> }
+  { id: "nodes", label: "Nodes", icon: <HubIcon /> },
+  { id: "agent", label: "Agent", icon: <SmartToyOutlinedIcon /> }
 ];
 
 /**

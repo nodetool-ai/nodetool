@@ -486,14 +486,14 @@ const PanelCommands = memo(function PanelCommands() {
         <InfoRoundedIcon /> Toggle Inspector
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => bottomPanelToggle("workflow"))}
+        onSelect={() => executeAndClose(() => leftPanelToggle("settings"))}
       >
         <SettingsRoundedIcon /> Toggle Workflow Settings
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => bottomPanelToggle("assistant"))}
+        onSelect={() => executeAndClose(() => leftPanelToggle("agent"))}
       >
-        <ChatRoundedIcon /> Toggle Chat
+        <ChatRoundedIcon /> Toggle Agent
       </Command.Item>
       <Command.Item
         onSelect={() => executeAndClose(() => leftPanelToggle("assets"))}

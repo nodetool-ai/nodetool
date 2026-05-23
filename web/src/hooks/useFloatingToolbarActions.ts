@@ -7,6 +7,7 @@ import { useSettingsStore } from "../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "./useAutosave";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useBottomPanelStore } from "../stores/BottomPanelStore";
+import { usePanelStore } from "../stores/PanelStore";
 import { useMiniMapStore } from "../stores/MiniMapStore";
 
 /**
@@ -61,8 +62,8 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
-  const toggleWorkflowPanel = useBottomPanelStore(
-    (state) => () => state.handleViewChange("workflow")
+  const toggleWorkflowPanel = usePanelStore(
+    (state) => () => state.handleViewChange("settings")
   );
 
   const toggleBottomPanel = useBottomPanelStore(

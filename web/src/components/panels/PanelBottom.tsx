@@ -16,6 +16,7 @@ import {
   useBottomPanelStore
 } from "../../stores/BottomPanelStore";
 import { memo, useCallback, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import isEqual from "fast-deep-equal";
 import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
@@ -23,16 +24,13 @@ import JobsPanel from "./jobs/JobsPanel";
 import SandboxesPanel from "../dashboard/SandboxesPanel";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
-import WorkflowForm from "../workflows/WorkflowForm";
-import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
-import WorkflowAssistantChat from "./WorkflowAssistantChat";
-import AgentPanel from "./AgentPanel";
 import PanelHeadline from "../ui/PanelHeadline";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isProduction } from "../../lib/env";
-import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
+import ContextMenus from "../context_menus/ContextMenus";
 import {
   Workflow,
   WorkflowVersion,
@@ -45,12 +43,8 @@ import TimelineIcon from "@mui/icons-material/Timeline";
 import ArticleIcon from "@mui/icons-material/Article";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
-import SettingsIcon from "@mui/icons-material/Settings";
 import HistoryIcon from "@mui/icons-material/History";
-import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
 import FolderIcon from "@mui/icons-material/Folder";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
-import SvgFileIcon from "../SvgFileIcon";
 
 const workspacesEnabled = !isProduction;
 const sandboxesEnabled = !isProduction;
@@ -78,22 +72,10 @@ const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
     icon: <DesktopWindowsIcon />,
     enabled: sandboxesEnabled
   },
-  workflow: {
-    id: "workflow",
-    label: "Settings",
-    icon: <SettingsIcon />,
-    enabled: true
-  },
   versions: {
     id: "versions",
     label: "Versions",
     icon: <HistoryIcon />,
-    enabled: true
-  },
-  workflowAssets: {
-    id: "workflowAssets",
-    label: "Assets",
-    icon: <FolderSpecialIcon />,
     enabled: true
   },
   workspace: {
@@ -101,18 +83,6 @@ const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
     label: "Workspace",
     icon: <FolderIcon />,
     enabled: workspacesEnabled
-  },
-  assistant: {
-    id: "assistant",
-    label: "Assistant",
-    icon: <SvgFileIcon iconName="assistant" svgProp={{ width: 16, height: 16 }} />,
-    enabled: true
-  },
-  agent: {
-    id: "agent",
-    label: "Agent",
-    icon: <SmartToyIcon />,
-    enabled: true
   },
   trace: {
     id: "trace",
@@ -288,12 +258,6 @@ const PanelBodyContent = memo(function PanelBodyContent({
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
-  const currentWorkflow = useWorkflowManager((state) =>
-    state.currentWorkflowId
-      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
-        null
-      : null
-  );
 
   const handleRestoreVersion = useCallback(
     async (version: WorkflowVersion) => {
@@ -352,15 +316,6 @@ const PanelBodyContent = memo(function PanelBodyContent({
       );
     case "sandboxes":
       return sandboxesEnabled ? <SandboxesPanel /> : null;
-    case "workflow":
-      return activeNodeStore && currentWorkflowId && currentWorkflow ? (
-        <Box
-          className="workflow-panel"
-          sx={{ width: "100%", height: "100%", overflow: "auto" }}
-        >
-          <WorkflowForm workflow={currentWorkflow} onClose={closeView} />
-        </Box>
-      ) : null;
     case "versions":
       return currentWorkflowId ? (
         <VersionHistoryPanel
@@ -369,28 +324,6 @@ const PanelBodyContent = memo(function PanelBodyContent({
           onClose={closeView}
         />
       ) : null;
-    case "workflowAssets":
-      return (
-        <Box
-          className="workflow-assets-panel"
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-            padding: "0 1em"
-          }}
-        >
-          <PanelHeadline title="Workflow Assets" />
-          <Box
-            className="workflow-assets-panel-inner"
-            sx={{ flex: 1, overflow: "hidden" }}
-          >
-            <WorkflowAssetPanel />
-          </Box>
-        </Box>
-      );
     case "workspace":
       return workspacesEnabled ? (
         <Box
@@ -400,14 +333,6 @@ const PanelBodyContent = memo(function PanelBodyContent({
           <WorkspaceTree />
         </Box>
       ) : null;
-    case "assistant":
-      return activeNodeStore ? (
-        <NodeContext.Provider value={activeNodeStore}>
-          <WorkflowAssistantChat />
-        </NodeContext.Provider>
-      ) : null;
-    case "agent":
-      return <AgentPanel />;
     case "trace":
       return <TracePanel />;
     default:
@@ -417,6 +342,7 @@ const PanelBodyContent = memo(function PanelBodyContent({
 
 const PanelBottom: React.FC = () => {
   const theme = useTheme();
+  const path = useLocation().pathname;
   const {
     ref: panelRef,
     size: panelSize,
@@ -442,6 +368,10 @@ const PanelBottom: React.FC = () => {
       setActiveView("logs");
     }
   }, [activeView, setActiveView]);
+
+  if (!path.startsWith("/editor")) {
+    return null;
+  }
 
   const handleClose = useCallback(() => {
     setVisibility(false);
@@ -534,7 +464,12 @@ const PanelBottom: React.FC = () => {
             )}
           </div>
           <div className="panel-body">
-            {isVisible && <PanelBodyContent activeView={activeView} />}
+            {isVisible && (
+              <ContextMenuProvider>
+                <ContextMenus />
+                <PanelBodyContent activeView={activeView} />
+              </ContextMenuProvider>
+            )}
           </div>
         </div>
       </Drawer>
