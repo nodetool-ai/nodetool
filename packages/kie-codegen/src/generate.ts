@@ -23,6 +23,10 @@ interface ManifestEntry {
   maxAttempts: number;
   useSuno?: boolean;
   sunoEndpoint?: string;
+  useOmniDirect?: boolean;
+  submitEndpoint?: string;
+  responseIdKey?: string;
+  resultObjectKey?: string;
   fields: NodeConfig["fields"];
   uploads?: NodeConfig["uploads"];
   validation?: NodeConfig["validation"];
@@ -41,7 +45,7 @@ function configToManifest(config: ModuleConfig): ManifestEntry[] {
   return config.nodes.map((node) => {
     const entry: ManifestEntry = {
       className: node.className,
-      moduleName: config.moduleName,
+      moduleName: node.moduleName ?? config.moduleName,
       modelId: node.modelId,
       title: node.title || node.className.replace(/([A-Z])/g, " $1").trim(),
       description: node.description,
@@ -52,6 +56,10 @@ function configToManifest(config: ModuleConfig): ManifestEntry[] {
     };
     if (node.useSuno) entry.useSuno = true;
     if (node.sunoEndpoint) entry.sunoEndpoint = node.sunoEndpoint;
+    if (node.useOmniDirect) entry.useOmniDirect = true;
+    if (node.submitEndpoint) entry.submitEndpoint = node.submitEndpoint;
+    if (node.responseIdKey) entry.responseIdKey = node.responseIdKey;
+    if (node.resultObjectKey) entry.resultObjectKey = node.resultObjectKey;
     if (node.uploads?.length) entry.uploads = node.uploads;
     if (node.validation?.length) entry.validation = node.validation;
     if (node.paramNames && Object.keys(node.paramNames).length > 0)

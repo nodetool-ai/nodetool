@@ -147,12 +147,10 @@ export const determineNextWorkflowId = (
 export type WorkflowManagerState = {
   nodeStores: Record<string, NodeStore>;
   currentWorkflowId: string | null;
-  loadingStates: Record<string, never>;
   openWorkflows: WorkflowAttributes[];
   queryClient: QueryClient;
   // Track notified autosave versions to prevent duplicate notifications
   notifiedAutosaveVersions: Record<string, Set<string>>;
-  getCurrentLoadingState: () => undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;
   removeWorkflow: (workflowId: string) => void;
@@ -163,7 +161,6 @@ export type WorkflowManagerState = {
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
   fetchWorkflow: (workflowId: string) => Promise<Workflow | undefined>;
-  getLoadingState: (workflowId: string) => undefined;
   newWorkflow: () => Workflow;
   createNew: () => Promise<Workflow>;
   create: (
@@ -202,7 +199,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       openWorkflows: [],
       notifiedAutosaveVersions: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
-      loadingStates: {},
       queryClient: queryClient,
 
       // ---------------------------------------------------------------------------------
@@ -537,9 +533,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       // Current Workflow (loading state handled via React Query)
       // ---------------------------------------------------------------------------------
 
-      // Deprecated: replaced by React Query; keep API for compatibility
-      getCurrentLoadingState: () => undefined,
-
       /**
        * Sets the current workflow ID and syncs it to localStorage.
        * @param {string} workflowId The ID of the workflow to set as current
@@ -596,7 +589,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         // (workflows restored from localStorage open before metadata fetch).
         const falNodeTypes = [
           ...new Set(
-            (workflow.graph?.nodes ?? []).map((n) => n.type as string)
+            (workflow.graph?.nodes ?? [])
+              .map((n) => n.type)
+              .filter((t): t is string => typeof t === "string")
           )
         ].filter((t) => t.startsWith("fal."));
 
@@ -688,7 +683,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           nodeStores: newStores,
           openWorkflows: newOpenWorkflows,
           currentWorkflowId: newCurrentId,
-          loadingStates: {},
           notifiedAutosaveVersions: newNotified
         });
 
@@ -770,13 +764,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           return { openWorkflows: newWorkflows };
         });
       },
-
-      // ---------------------------------------------------------------------------------
-      // Loading States for Workflows (deprecated)
-      // ---------------------------------------------------------------------------------
-
-      // Deprecated: always undefined; use React Query hooks for loading/error
-      getLoadingState: (_workflowId: string) => undefined,
 
       // Fetches the workflow data by its ID, using QueryClient cache and adds the workflow store.
       fetchWorkflow: async (workflowId: string) => {

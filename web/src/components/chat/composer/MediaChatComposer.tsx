@@ -740,6 +740,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const isDisabled = disabled || isBusy;
   const elapsed = useElapsedTime(isBusy);
 
+  const removeCallbacks = useMemo(
+    () => new Map(droppedFiles.map((f) => [f.id, () => removeFile(f.id)])),
+    [droppedFiles, removeFile]
+  );
+
   return (
     <div css={createMediaComposerStyles(theme)} className="media-chat-composer">
       <div
@@ -750,11 +755,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       >
         {droppedFiles.length > 0 && (
           <div className="media-file-preview-row">
-            {droppedFiles.map((file, index) => (
+            {droppedFiles.map((file) => (
               <FilePreview
                 key={file.id}
                 file={file}
-                onRemove={() => removeFile(index)}
+                onRemove={removeCallbacks.get(file.id)!}
               />
             ))}
           </div>

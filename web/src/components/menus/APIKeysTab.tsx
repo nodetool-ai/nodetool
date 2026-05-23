@@ -195,24 +195,6 @@ const PROVIDER_META: ProviderMeta[] = [
 const getProviderMeta = (key: string): ProviderMeta | undefined =>
   PROVIDER_META.find((p) => p.key === key);
 
-const SETTING_LINKS: Record<string, string> = {
-  OPENAI_API_KEY: "https://platform.openai.com/api-keys",
-  ANTHROPIC_API_KEY: "https://console.anthropic.com/",
-  GEMINI_API_KEY: "https://aistudio.google.com/app/apikey",
-  OPENROUTER_API_KEY: "https://openrouter.ai/keys",
-  HF_TOKEN: "https://huggingface.co/settings/tokens",
-  REPLICATE_API_TOKEN: "https://replicate.com/account/api-tokens",
-  ELEVENLABS_API_KEY: "https://elevenlabs.io/subscription",
-  FAL_API_KEY: "https://fal.ai/dashboard/keys",
-  CEREBRAS_API_KEY: "https://cloud.cerebras.ai/",
-  TOGETHER_API_KEY: "https://api.together.ai/settings/api-keys",
-  DEEPSEEK_API_KEY: "https://platform.deepseek.com/api-keys",
-  GROQ_API_KEY: "https://console.groq.com/keys",
-  MISTRAL_API_KEY: "https://console.mistral.ai/api-keys",
-  XAI_API_KEY: "https://console.x.ai/",
-  KIMI_API_KEY: "https://platform.moonshot.cn/console/api-keys"
-};
-
 /* ------------------------------------------------------------------ */
 //  Provider card
 /* ------------------------------------------------------------------ */

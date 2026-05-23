@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getApiKey, isRefSet, uploadImageInput } from "../src/kie-base.js";
+import {
+  getApiKey,
+  isRefSet,
+  uploadImageInput,
+  kieExecuteOmniDirect,
+  kieExecuteTask
+} from "../src/kie-base.js";
 
 // ---------------------------------------------------------------------------
 // getApiKey
@@ -122,5 +128,84 @@ describe("uploadImageInput", () => {
     expect(storage.retrieve).toHaveBeenCalledWith("/api/storage/test-image.png");
     expect(result).toBe("https://kie.example/uploaded.png");
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("kieExecuteOmniDirect", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it("returns audioId from sync omni response", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        code: 200,
+        data: { audioId: "ff6af85771af49b08bef5b0aa1cba56b", name: "Test" }
+      })
+    }) as unknown as typeof fetch;
+
+    const result = await kieExecuteOmniDirect(
+      "key",
+      "/api/v1/omni/audio/create",
+      { audio_id: "achernar", name: "Test" },
+      "audioId"
+    );
+
+    expect(result).toEqual({
+      data: "ff6af85771af49b08bef5b0aa1cba56b",
+      taskId: ""
+    });
+  });
+
+  it("accepts code 0 responses", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        code: 0,
+        data: { characterId: "char_123" }
+      })
+    }) as unknown as typeof fetch;
+
+    const result = await kieExecuteOmniDirect(
+      "key",
+      "/api/v1/omni/character/create",
+      { descriptions: "test", image_urls: ["https://example.com/a.png"] },
+      "characterId"
+    );
+
+    expect(result.data).toBe("char_123");
+  });
+});
+
+describe("kieExecuteTask poll failure", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it("throws when poll state is fail", async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ code: 200, data: { taskId: "task_fail" } })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 200,
+          data: { state: "fail", failMsg: "Internal Error" }
+        })
+      }) as unknown as typeof fetch;
+
+    await expect(
+      kieExecuteTask("key", "gemini-omni-video", { prompt: "test", duration: "8" }, 1, 2)
+    ).rejects.toThrow("Task failed: Internal Error");
   });
 });

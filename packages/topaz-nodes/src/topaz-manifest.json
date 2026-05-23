@@ -1,0 +1,359 @@
+[
+  {
+    "className": "EnhanceImage",
+    "moduleName": "image",
+    "modelId": "topaz/image/enhance",
+    "title": "Topaz Enhance Image",
+    "description": "Topaz Image API — Precision Upscale / Enhance.\n\n    topaz, image, upscale, enhance, restore\n\n    Async /image/v1/enhance/async endpoint with Topaz precision models (Standard V2, High Fidelity V2/V3, Low Resolution V2, CGI, Text Refine). Supports face enhancement, sharpening, denoising, and subject-targeted application.",
+    "outputType": "image",
+    "submitEndpoint": "https://api.topazlabs.com/image/v1/enhance/async",
+    "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
+    "downloadEndpoint": "https://api.topazlabs.com/image/v1/download/{process_id}",
+    "pollInterval": 3000,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Source image to enhance.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "Standard V2",
+        "title": "Model",
+        "description": "Topaz precision image model.",
+        "required": false,
+        "values": [
+          "Standard V2",
+          "High Fidelity V2",
+          "Upscale High Fidelity V3",
+          "Low Resolution V2",
+          "CGI",
+          "Text Refine"
+        ]
+      },
+      {
+        "name": "output_width",
+        "type": "int",
+        "default": 0,
+        "title": "Output Width",
+        "description": "Output width in pixels. Leave 0 to derive from scale.",
+        "required": false,
+        "min": 0
+      },
+      {
+        "name": "output_height",
+        "type": "int",
+        "default": 0,
+        "title": "Output Height",
+        "description": "Output height in pixels. Leave 0 to derive from scale.",
+        "required": false,
+        "min": 0
+      },
+      {
+        "name": "scale",
+        "type": "float",
+        "default": 2.0,
+        "title": "Scale",
+        "description": "Upscale factor when output_width and output_height are both 0.",
+        "required": false,
+        "min": 1.0,
+        "max": 6.0
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Encoded format of the returned image.",
+        "required": false,
+        "values": ["jpeg", "png", "tiff"]
+      },
+      {
+        "name": "face_enhancement",
+        "type": "bool",
+        "default": false,
+        "title": "Face Enhancement",
+        "description": "Enable face recovery pass.",
+        "required": false
+      },
+      {
+        "name": "face_enhancement_strength",
+        "type": "float",
+        "default": 0.8,
+        "title": "Face Enhancement Strength",
+        "description": "Intensity of face recovery (0 = off, 1 = strongest).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "face_enhancement_creativity",
+        "type": "float",
+        "default": 0.3,
+        "title": "Face Enhancement Creativity",
+        "description": "Realistic (0) ↔ creative (1) face recovery.",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "sharpen",
+        "type": "float",
+        "default": 0.0,
+        "title": "Sharpen",
+        "description": "Sharpening strength.",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "denoise",
+        "type": "float",
+        "default": 0.0,
+        "title": "Denoise",
+        "description": "Noise reduction strength.",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "fix_compression",
+        "type": "float",
+        "default": 0.0,
+        "title": "Fix Compression",
+        "description": "Reduce JPEG/compression artifacts.",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "subject_detection",
+        "type": "enum",
+        "default": "",
+        "title": "Subject Detection",
+        "description": "Apply enhancements only to a region.",
+        "required": false,
+        "values": ["", "foreground", "background", "all"]
+      }
+    ],
+    "validation": []
+  },
+  {
+    "className": "EnhanceImageGenerative",
+    "moduleName": "image",
+    "modelId": "topaz/image/enhance-gen",
+    "title": "Topaz Enhance Image (Generative)",
+    "description": "Topaz Image API — Generative Upscale (Redefine / Recover).\n\n    topaz, image, generative, upscale, prompt\n\n    Async /image/v1/enhance-gen/async endpoint. Prompt-guided enhancement with creativity and texture controls.",
+    "outputType": "image",
+    "submitEndpoint": "https://api.topazlabs.com/image/v1/enhance-gen/async",
+    "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
+    "downloadEndpoint": "https://api.topazlabs.com/image/v1/download/{process_id}",
+    "pollInterval": 3000,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Source image to enhance.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "Redefine",
+        "title": "Model",
+        "description": "Topaz generative model.",
+        "required": false,
+        "values": ["Redefine"]
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text describing the desired enhancement (max 1024 chars).",
+        "required": false,
+        "max": 1024
+      },
+      {
+        "name": "autoprompt",
+        "type": "bool",
+        "default": true,
+        "title": "Auto Prompt",
+        "description": "Let Topaz auto-generate a prompt from the image.",
+        "required": false
+      },
+      {
+        "name": "creativity",
+        "type": "int",
+        "default": 3,
+        "title": "Creativity",
+        "description": "Creative liberty level.",
+        "required": false,
+        "min": 1,
+        "max": 9
+      },
+      {
+        "name": "texture",
+        "type": "int",
+        "default": 3,
+        "title": "Texture",
+        "description": "Texture addition amount.",
+        "required": false,
+        "min": 1,
+        "max": 5
+      },
+      {
+        "name": "output_width",
+        "type": "int",
+        "default": 0,
+        "title": "Output Width",
+        "required": false,
+        "min": 0
+      },
+      {
+        "name": "output_height",
+        "type": "int",
+        "default": 0,
+        "title": "Output Height",
+        "required": false,
+        "min": 0
+      },
+      {
+        "name": "scale",
+        "type": "float",
+        "default": 2.0,
+        "title": "Scale",
+        "required": false,
+        "min": 1.0,
+        "max": 4.0
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "required": false,
+        "values": ["jpeg", "png", "tiff"]
+      },
+      {
+        "name": "face_enhancement",
+        "type": "bool",
+        "default": true,
+        "title": "Face Enhancement",
+        "required": false
+      },
+      {
+        "name": "face_enhancement_strength",
+        "type": "float",
+        "default": 0.8,
+        "title": "Face Enhancement Strength",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      }
+    ],
+    "validation": []
+  },
+  {
+    "className": "EnhanceVideo",
+    "moduleName": "video",
+    "modelId": "topaz/video/enhance",
+    "title": "Topaz Enhance Video",
+    "description": "Topaz Video API — full upload + process + download pipeline.\n\n    topaz, video, upscale, enhance, interpolate\n\n    Creates a job at /video/, accepts the upload URL, PUTs the source, completes the upload, polls /status, and downloads the result. Requires source metadata (resolution, frame rate, duration, frame count), probed locally via ffprobe.",
+    "outputType": "video",
+    "requiredRuntimes": ["ffmpeg"],
+    "submitEndpoint": "https://api.topazlabs.com/video/",
+    "acceptEndpoint": "https://api.topazlabs.com/video/{request_id}/accept",
+    "completeEndpoint": "https://api.topazlabs.com/video/{request_id}/complete-upload",
+    "statusEndpoint": "https://api.topazlabs.com/video/{request_id}/status",
+    "pollInterval": 15000,
+    "maxAttempts": 1000,
+    "fields": [
+      {
+        "name": "video",
+        "type": "video",
+        "title": "Video",
+        "description": "Source video to enhance.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "prob-4",
+        "title": "Model",
+        "description": "Topaz video model.",
+        "required": false,
+        "values": [
+          "prob-4",
+          "apo-8",
+          "thm-2",
+          "iris-1",
+          "starlight-precise-2"
+        ]
+      },
+      {
+        "name": "output_width",
+        "type": "int",
+        "default": 0,
+        "title": "Output Width",
+        "description": "0 = same as source.",
+        "required": false,
+        "min": 0
+      },
+      {
+        "name": "output_height",
+        "type": "int",
+        "default": 0,
+        "title": "Output Height",
+        "description": "0 = same as source.",
+        "required": false,
+        "min": 0
+      },
+      {
+        "name": "output_frame_rate",
+        "type": "float",
+        "default": 0,
+        "title": "Output Frame Rate",
+        "description": "0 = same as source.",
+        "required": false,
+        "min": 0
+      },
+      {
+        "name": "output_container",
+        "type": "enum",
+        "default": "mp4",
+        "title": "Container",
+        "required": false,
+        "values": ["mp4", "mov", "mkv"]
+      },
+      {
+        "name": "audio_codec",
+        "type": "enum",
+        "default": "copy",
+        "title": "Audio Codec",
+        "required": false,
+        "values": ["copy", "aac", "none"]
+      },
+      {
+        "name": "slowmo",
+        "type": "float",
+        "default": 1.0,
+        "title": "Slow-mo Factor",
+        "description": "1.0 = no slow motion. >1 stretches duration.",
+        "required": false,
+        "min": 0.1,
+        "max": 8.0
+      }
+    ],
+    "validation": []
+  }
+]

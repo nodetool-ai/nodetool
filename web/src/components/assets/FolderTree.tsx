@@ -124,4 +124,4 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   );
 };
 
-export default FolderTree;
+export default React.memo(FolderTree);

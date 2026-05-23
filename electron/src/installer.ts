@@ -1028,8 +1028,6 @@ async function ensureCondaEnvironment(
 
 export {
   promptForInstallLocation,
-  installCondaEnvironment,
-  provisionCondaEnvironment,
   ensureCondaEnvironment,
   ensureLlamaCppInstalled,
   installCondaPackageBySpec,

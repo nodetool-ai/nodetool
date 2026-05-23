@@ -74,6 +74,14 @@ export interface GPUContext {
   readonly pipelineCache: PipelineCache;
   readonly scratch: ScratchPool;
   readonly uniformRing: UniformRing;
+  /**
+   * 1×1 white texture used as the default for unbound optional inputs (the
+   * canonical case is the `mask` slot — modules sample as if a mask is always
+   * present, the executor supplies coverage = 1 when no mask is bound).
+   * Lazy-allocated on first use; lifetime is tied to the context (no
+   * per-encode allocation).
+   */
+  getDefaultWhiteTexture(): LabeledTexture;
 }
 
 /** Round a dimension up to the allocation bucket (multiple of 64, pow2 ≥ 256). */
@@ -234,6 +242,34 @@ export async function createBrowserGPUContext(
   return createGPUContextFromDevice(device);
 }
 
+/** Lazy-allocated 1×1 white texture (default for unbound optional inputs). */
+function makeWhiteTextureProvider(
+  device: GPUDevice
+): () => LabeledTexture {
+  let cached: LabeledTexture | null = null;
+  return () => {
+    if (cached) {
+      return cached;
+    }
+    const tex = createLabeledTexture(device, {
+      label: "default-white-1x1",
+      width: 1,
+      height: 1,
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      meta: { colorSpace: "linear", alpha: "premultiplied" }
+    });
+    device.queue.writeTexture(
+      { texture: tex.texture },
+      new Uint8Array([255, 255, 255, 255]),
+      { bytesPerRow: 4, rowsPerImage: 1 },
+      { width: 1, height: 1 }
+    );
+    cached = tex;
+    return cached;
+  };
+}
+
 /**
  * Build a {@link GPUContext} from an already-acquired `GPUDevice` (browser,
  * Electron, or Node.js Dawn). The shared path every adapter funnels into.
@@ -246,6 +282,7 @@ export function createGPUContextFromDevice(device: GPUDevice): GPUContext {
     capabilities: detectCapabilities(device),
     pipelineCache: makePipelineCache(),
     scratch: makeScratchPool(device),
-    uniformRing: makeUniformRing(device)
+    uniformRing: makeUniformRing(device),
+    getDefaultWhiteTexture: makeWhiteTextureProvider(device)
   };
 }

@@ -442,7 +442,7 @@ export const handleUpdate = (
             .findNode(firstIssue.node_id);
           const nodeLabel =
             firstNode?.data?.title?.trim() ||
-            (firstNode?.type as string | undefined)?.split(".").pop() ||
+            firstNode?.type?.split(".").pop() ||
             firstIssue.node_id;
           const noun = validationIssues.length === 1 ? "field" : "fields";
           const content =

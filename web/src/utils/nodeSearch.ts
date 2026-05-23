@@ -1,56 +1,16 @@
-import Fuse, { FuseResult } from "fuse.js";
+import Fuse from "fuse.js";
 import { NodeMetadata, TypeName } from "../stores/ApiTypes";
 import {
   filterDataByType,
   filterDataByExactType
 } from "../components/node_menu/typeFilterUtils";
 import { formatNodeDocumentation } from "../stores/formatNodeDocumentation";
-import { fuseOptions, ExtendedFuseOptions, FuseMatch } from "../stores/fuseOptions";
+import { fuseOptions } from "../stores/fuseOptions";
 import { PrefixTreeSearch, SearchField } from "./PrefixTreeSearch";
 import { getProviderKindForNamespace } from "./nodeProvider";
 import { rankNodeMetadata, searchTermsFromQuery } from "./nodeRanking";
 import { QUICK_ACTION_NODE_TYPES } from "../config/quickActionNodeTypes";
 import { BM25Index, buildNodeBM25Index } from "./bm25";
-
-/** Stop words to filter from multi-word queries */
-const QUERY_STOP_WORDS = new Set([
-  "a",
-  "an",
-  "the",
-  "is",
-  "in",
-  "on",
-  "of",
-  "for",
-  "and",
-  "or",
-  "by",
-  "with",
-  "from",
-  "at",
-  "as",
-  "it",
-  "be",
-  "do",
-  "no",
-  "so",
-  "if",
-  "up",
-  "to",
-  "not",
-  "but",
-  "are",
-  "was",
-  "has",
-  "its",
-  "all",
-  "into",
-  "that",
-  "this",
-  "can",
-  "will",
-  "may"
-]);
 
 export type SearchResultGroup = {
   title: string;
@@ -62,13 +22,6 @@ export interface ComputedSearchResults {
   groupedResults: SearchResultGroup[];
   allMatches: NodeMetadata[];
 }
-
-const GROUP_PRIORITY: Record<string, number> = {
-  Name: 0,
-  Results: 1,
-  "Namespace + Tags": 2,
-  Description: 3
-};
 
 interface SearchEntry {
   title: string;
@@ -185,117 +138,6 @@ function ensureBM25Index(nodes: NodeMetadata[]): BM25Index {
 
 function ensurePrefixTree(nodes: NodeMetadata[]): PrefixTreeSearch {
   return ensureIndexes(nodes).prefixTree;
-}
-
-/**
- * Determine if a query is suitable for prefix tree search
- * Prefix tree is best for prefix queries, including multi-word queries
- * where each word is searched individually
- */
-function shouldUsePrefixTree(term: string): boolean {
-  // Avoid for very short queries (< 2 chars)
-  if (term.length < 2) {
-    return false;
-  }
-  return true;
-}
-
-/**
- * For multi-word queries, search each word individually in the prefix tree
- * and combine results, scoring by how many words matched and which fields matched.
- * Exact title matches are boosted to the top.
- */
-function multiWordPrefixSearch(
-  prefixTree: PrefixTreeSearch,
-  words: string[],
-  originalQuery: string
-): {
-  titleMatches: NodeMetadata[];
-  namespaceMatches: NodeMetadata[];
-  descriptionMatches: NodeMetadata[];
-} {
-  const normalizedQuery = originalQuery.toLowerCase().trim();
-
-  // Collect per-word results
-  const perWordResults: Map<
-    string,
-    { node: NodeMetadata; fields: Set<string>; wordCount: number }
-  >[] = [];
-
-  words.forEach((word) => {
-    const wordResults = prefixTree.search(word, { maxResults: 200 });
-    const wordMap = new Map<
-      string,
-      { node: NodeMetadata; fields: Set<string>; wordCount: number }
-    >();
-
-    wordResults.forEach((result) => {
-      const existing = wordMap.get(result.node.node_type);
-      if (existing) {
-        existing.fields.add(result.matchedField);
-      } else {
-        wordMap.set(result.node.node_type, {
-          node: result.node,
-          fields: new Set([result.matchedField]),
-          wordCount: 1
-        });
-      }
-    });
-
-    perWordResults.push(wordMap);
-  });
-
-  // Merge: count how many query words each node matched
-  const merged = new Map<
-    string,
-    { node: NodeMetadata; matchedWords: number; fields: Set<string> }
-  >();
-
-  perWordResults.forEach((wordMap) => {
-    wordMap.forEach((entry, nodeType) => {
-      const existing = merged.get(nodeType);
-      if (existing) {
-        existing.matchedWords += 1;
-        entry.fields.forEach((f) => existing.fields.add(f));
-      } else {
-        merged.set(nodeType, {
-          node: entry.node,
-          matchedWords: 1,
-          fields: new Set(entry.fields)
-        });
-      }
-    });
-  });
-
-  // Sort by: exact title match first, then matchedWords descending, then alphabetically
-  const sorted = Array.from(merged.values()).sort((a, b) => {
-    const aExact = a.node.title.toLowerCase() === normalizedQuery ? 1 : 0;
-    const bExact = b.node.title.toLowerCase() === normalizedQuery ? 1 : 0;
-    if (bExact !== aExact) {
-      return bExact - aExact;
-    }
-    if (b.matchedWords !== a.matchedWords) {
-      return b.matchedWords - a.matchedWords;
-    }
-    return a.node.title.localeCompare(b.node.title);
-  });
-
-  // Group by best matched field (title > namespace > description)
-  const titleMatches: NodeMetadata[] = [];
-  const namespaceMatches: NodeMetadata[] = [];
-  const descriptionMatches: NodeMetadata[] = [];
-
-  sorted.forEach((entry) => {
-    if (entry.fields.has("title")) {
-      titleMatches.push(entry.node);
-    } else if (entry.fields.has("namespace")) {
-      namespaceMatches.push(entry.node);
-    } else if (entry.fields.has("description")) {
-      descriptionMatches.push(entry.node);
-    }
-  });
-
-  return { titleMatches, namespaceMatches, descriptionMatches };
 }
 
 const createSearchEntries = (nodes: NodeMetadata[]): SearchEntry[] =>

@@ -205,10 +205,6 @@ const buildFolderTree = (
   return sortedTree;
 };
 
-interface AssetTreeResponse {
-  assets: AssetTreeNode[];
-}
-
 export interface AssetTreeNode extends Asset {
   updated_at?: string;
   children: AssetTreeNode[];

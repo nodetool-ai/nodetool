@@ -9,6 +9,11 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
+  loadExampleGraph,
+  defaultExamplePackageName,
+  deriveExampleAssetsDir
+} from "./example-workflows.js";
+import {
   createLogger,
   loadAssetStorageConfig,
   type StorageConfig
@@ -75,8 +80,12 @@ export interface HttpApiOptions {
    * serve thumbnail images at both:
    *   - `/api/workflows/examples/thumbnails/<name>.jpg` (used by WorkflowTile)
    *   - `/api/assets/packages/<package-name>/<name>.jpg` (used by WorkflowCard)
+   *
+   * When examples are overridden (e.g. a Docker volume) but thumbnails remain
+   * bundled with the server, set `examplesAssetsFallbackDir` to that assets path.
    */
   examplesDir?: string;
+  examplesAssetsFallbackDir?: string;
 }
 
 // Lazily created storage handler — recreated if options change
@@ -791,18 +800,6 @@ interface ExampleMetadata {
 }
 
 /**
- * Given an `examplesDir` (e.g. `.../nodetool/examples/nodetool-base`), return
- * the sibling assets directory (`.../nodetool/assets/nodetool-base`).
- */
-function deriveAssetsDir(examplesDir: string): string {
-  return nodePath.join(
-    nodePath.dirname(nodePath.dirname(examplesDir)),
-    "assets",
-    nodePath.basename(examplesDir)
-  );
-}
-
-/**
  * Read example workflow metadata from a directory of JSON files.
  * Returns lightweight objects (no graph data) suitable for the /examples list.
  *
@@ -811,10 +808,15 @@ function deriveAssetsDir(examplesDir: string): string {
  * pointing to `/api/workflows/examples/thumbnails/<name>` is set so the
  * frontend can display the pre-generated JPG thumbnails.
  */
-function buildExamplesFromDir(examplesDir: string): unknown[] {
+function buildExamplesFromDir(
+  examplesDir: string,
+  examplesAssetsFallbackDir?: string
+): unknown[] {
   if (!existsSync(examplesDir)) return [];
-  // Derive the assets directory from the examples directory.
-  const assetsDir = deriveAssetsDir(examplesDir);
+  const assetsDir = deriveExampleAssetsDir(
+    examplesDir,
+    examplesAssetsFallbackDir
+  );
   const now = new Date().toISOString();
   const workflows: unknown[] = [];
   let files: string[];
@@ -883,7 +885,10 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
 function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
   // If a static examples directory is configured, use it directly — no Python needed.
   if (options.examplesDir) {
-    return buildExamplesFromDir(options.examplesDir);
+    return buildExamplesFromDir(
+      options.examplesDir,
+      options.examplesAssetsFallbackDir
+    );
   }
   const loaded = loadPythonPackageMetadata({
     roots: options.metadataRoots,
@@ -922,32 +927,6 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
     }
   }
   return workflows;
-}
-
-function loadExampleGraph(
-  packageName: string,
-  exampleName: string,
-  options: HttpApiOptions
-): Record<string, unknown> | null {
-  const loaded = loadPythonPackageMetadata({
-    roots: options.metadataRoots,
-    maxDepth: options.metadataMaxDepth
-  });
-  const pkg = loaded.packages.find((p) => p.name === packageName);
-  if (!pkg?.sourceFolder) return null;
-  const examplePath = nodePath.join(
-    pkg.sourceFolder,
-    "nodetool",
-    "examples",
-    packageName,
-    `${exampleName}.json`
-  );
-  try {
-    const raw = readFileSync(examplePath, "utf8");
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
 }
 
 export async function handleWorkflowExamples(
@@ -1003,7 +982,10 @@ export async function handleWorkflowExamplesThumbnail(
     return errorResponse(404, "Examples not configured");
   }
   // Derive the assets directory from the examples directory.
-  const assetsDir = deriveAssetsDir(options.examplesDir);
+  const assetsDir = deriveExampleAssetsDir(
+    options.examplesDir,
+    options.examplesAssetsFallbackDir
+  );
   // Prevent path traversal — only allow a plain filename (no slashes).
   const safe = nodePath.basename(filename);
   const safeLower = safe.toLowerCase();
@@ -1333,12 +1315,12 @@ export async function handleWorkflowsRoot(
         url.searchParams.get("from_example_package")?.trim() ?? undefined;
       const fromName =
         url.searchParams.get("from_example_name")?.trim() ?? undefined;
-      if (
-        fromPkg &&
-        fromName &&
-        (!body.graph || body.graph.nodes?.length === 0)
-      ) {
-        const example = loadExampleGraph(fromPkg, fromName, options);
+      if (fromName && (!body.graph || body.graph.nodes?.length === 0)) {
+        const packageName =
+          fromPkg ??
+          defaultExamplePackageName(options) ??
+          "nodetool-base";
+        const example = loadExampleGraph(packageName, fromName, options);
         if (example?.graph) {
           body.graph = example.graph as WorkflowRequestBody["graph"];
         }

@@ -18,10 +18,13 @@ import {
   Caption,
   CloseButton,
   CollapsibleSection,
+  EditorButton,
   ScrollArea,
   Text,
   Tooltip
 } from "./ui_primitives";
+import useNodeMenuStore from "../stores/NodeMenuStore";
+import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import FalPricingFooter from "./node/FalPricingFooter";
 import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
@@ -80,19 +83,34 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       fontWeight: 500
     },
-    ".namespace": {
-      fontSize: theme.fontSizeTiny,
-      color: theme.vars.palette.text.disabled,
+    ".namespace-button": {
+      alignSelf: "flex-start",
+      marginTop: theme.spacing(0.5),
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.secondary,
       fontFamily: "monospace",
       letterSpacing: "0.02em",
-      marginTop: theme.spacing(0.25)
+      fontWeight: 500,
+      textTransform: "none",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: theme.shape.borderRadius,
+      backgroundColor: theme.vars.palette.action.hover,
+      whiteSpace: "nowrap",
+      maxWidth: "100%",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      "&:hover": {
+        bgcolor: theme.vars.palette.action.selected,
+        color: theme.vars.palette.text.primary,
+        borderColor: theme.vars.palette.text.secondary
+      }
     },
     ".header-description": {
-      color: theme.vars.palette.text.secondary,
-      fontSize: theme.fontSizeTiny,
-      lineHeight: 1.4,
+      color: theme.vars.palette.text.primary,
+      fontSize: theme.fontSizeSmaller,
+      lineHeight: 1.45,
       marginTop: theme.spacing(0.5),
-      opacity: 0.8,
       whiteSpace: "pre-wrap"
     },
     ".description": {
@@ -292,7 +310,7 @@ const Inspector: React.FC = () => {
       selectedNodes
         .map((node) => ({
           node,
-          metadata: node.type ? getMetadata(node.type as string) : null
+          metadata: node.type ? getMetadata(node.type) : null
         }))
         .filter(
           (
@@ -369,9 +387,24 @@ const Inspector: React.FC = () => {
 
   // Define selectedNode and metadata early so callbacks can reference them
   const selectedNode = selectedNodes[0] || null;
-  const metadata = selectedNode
-    ? getMetadata(selectedNode.type as string)
+  const metadata = selectedNode?.type
+    ? getMetadata(selectedNode.type)
     : null;
+
+  const handleNamespaceClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!metadata?.namespace) {
+        return;
+      }
+      e.stopPropagation();
+      useNodeMenuStore.getState().openNodeMenu({
+        x: e.clientX,
+        y: e.clientY,
+        selectedPath: metadata.namespace.split(".")
+      });
+    },
+    [metadata?.namespace]
+  );
 
   // Connected target-handle names for the focused node, used to (a) gate the
   // demotion confirmation prompt and (b) flag the toggle as "connected".
@@ -382,10 +415,10 @@ const Inspector: React.FC = () => {
     return new Set(
       edges
         .filter(
-          (edge) =>
+          (edge): edge is typeof edge & { targetHandle: string } =>
             edge.target === selectedNode.id && typeof edge.targetHandle === "string"
         )
-        .map((edge) => edge.targetHandle as string)
+        .map((edge) => edge.targetHandle)
     );
   }, [edges, selectedNode]);
 
@@ -451,7 +484,7 @@ const Inspector: React.FC = () => {
                       propertyIndex={property.name}
                       showHandle={false}
                       isInspector={true}
-                      nodeType={(nodesWithMetadata[0].node.type as string) ?? "inspector"}
+                      nodeType={nodesWithMetadata[0].node.type ?? "inspector"}
                       data={nodesWithMetadata[0].node.data}
                       layout=""
                       inspectorBatchNodeIds={multiNodeIds}
@@ -531,7 +564,22 @@ const Inspector: React.FC = () => {
                   />
                 </Box>
               ) : null}
-              <div className="namespace">{metadata.node_type}</div>
+              {metadata.namespace ? (
+                <Tooltip
+                  delay={TOOLTIP_ENTER_DELAY}
+                  title="Browse related nodes in the node menu"
+                  placement="bottom"
+                  arrow
+                >
+                  <EditorButton
+                    variant="text"
+                    className="namespace-button"
+                    onClick={handleNamespaceClick}
+                  >
+                    {metadata.namespace}
+                  </EditorButton>
+                </Tooltip>
+              ) : null}
               {metadata.description && (
                 <CollapsibleSection
                   title={<Caption size="tiny" color="muted">Description</Caption>}
@@ -600,7 +648,7 @@ const Inspector: React.FC = () => {
                       propertyIndex={index.toString()}
                       showHandle={false}
                       isInspector={true}
-                      nodeType={(selectedNode.type as string) ?? "inspector"}
+                      nodeType={selectedNode.type ?? "inspector"}
                       data={selectedNode.data}
                       layout=""
                     />
@@ -667,7 +715,7 @@ const Inspector: React.FC = () => {
                     propertyIndex={`dynamic-${index}`}
                     showHandle={false}
                     isInspector={true}
-                    nodeType={(selectedNode.type as string) ?? "inspector"}
+                    nodeType={selectedNode.type ?? "inspector"}
                     data={selectedNode.data}
                     layout=""
                     isDynamicProperty={true}

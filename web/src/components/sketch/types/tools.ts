@@ -293,9 +293,6 @@ export function mergePenPressureIntoPencil(
 /** Brush: same stamp as Brush tool (`drawBrushStroke`). Pencil: same as Pencil tool (`drawPencilStroke`). */
 export type EraserMode = "brush" | "pencil";
 
-/** @deprecated Use `EraserMode`; kept for document migration only. */
-export type EraserTip = EraserMode;
-
 export interface EraserSettings {
   size: number;
   opacity: number;

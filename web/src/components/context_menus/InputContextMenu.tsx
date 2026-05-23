@@ -15,6 +15,7 @@ import { useTheme } from "@mui/material/styles";
 //icons
 import PushPinIcon from "@mui/icons-material/PushPin";
 import InputIcon from "@mui/icons-material/Input";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 //store
@@ -220,6 +221,8 @@ const InputContextMenu: React.FC = () => {
     fallbackConstantPath;
   const inputNodeMetadata = getMetadata(inputNodePath);
   const constantNodeMetadata = getMetadata(constantNodePath);
+  const promptNodeMetadata =
+    type?.type === "str" ? getMetadata("nodetool.text.Prompt") : null;
 
   const specializedListLabel = specializedListPaths?.label;
 
@@ -462,6 +465,55 @@ const InputContextMenu: React.FC = () => {
     ]
   );
 
+  const createPromptNode = useCallback(
+    (event: React.MouseEvent) => {
+      if (!promptNodeMetadata) {
+        return;
+      }
+      const isCollect = type ? isCollectType(type) : false;
+      const placement = computeFlowPosition(
+        { x: event.clientX, y: event.clientY },
+        promptNodeMetadata
+      );
+      const newNode = createNode(promptNodeMetadata, {
+        x: placement.x,
+        y: placement.y
+      });
+      newNode.data.size = { width: placement.width, height: placement.height };
+      addNode(newNode);
+      const validEdges = replaceTargetEdges(
+        edges,
+        nodeId && handleId ? { nodeId, handleId } : null,
+        isCollect
+      );
+      setEdges([
+        ...validEdges,
+        {
+          id: generateEdgeId(),
+          source: newNode.id,
+          target: nodeId || "",
+          sourceHandle: "output",
+          targetHandle: handleId,
+          type: "default",
+          className: Slugify(type?.type || "")
+        }
+      ]);
+    },
+    [
+      promptNodeMetadata,
+      computeFlowPosition,
+      createNode,
+      type,
+      addNode,
+      replaceTargetEdges,
+      edges,
+      nodeId,
+      handleId,
+      setEdges,
+      generateEdgeId
+    ]
+  );
+
   const createCollectElementConstantNode = useCallback(
     (event: React.MouseEvent) => {
       if (!collectElementConstantNodeMetadata) {
@@ -573,6 +625,18 @@ const InputContextMenu: React.FC = () => {
       closeContextMenu();
     },
     [createInputNode, closeContextMenu]
+  );
+
+  const handleCreatePromptNode = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        createPromptNode(event);
+      }
+      closeContextMenu();
+    },
+    [createPromptNode, closeContextMenu]
   );
 
   const handleCreateCollectElementConstantNode = useCallback(
@@ -937,6 +1001,20 @@ const InputContextMenu: React.FC = () => {
                 <InputIcon />
               </span>
               <Text size="small">{inputLabel}</Text>
+            </Box>
+          )}
+          {promptNodeMetadata && (
+            <Box
+              component="button"
+              type="button"
+              className="create-prompt-node"
+              onClick={handleCreatePromptNode}
+              sx={actionRowStyles}
+            >
+              <span className="icon-bg">
+                <EditNoteIcon />
+              </span>
+              <Text size="small">Prompt</Text>
             </Box>
           )}
         </Box>

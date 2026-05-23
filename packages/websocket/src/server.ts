@@ -655,6 +655,7 @@ app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
 const _serverDir = dirname(fileURLToPath(import.meta.url));
 const _envExamplesDir = process.env["NODETOOL_BASE_EXAMPLES_DIR"];
 const _bundledExamplesDir = resolve(_serverDir, "examples", "nodetool-base");
+const _bundledAssetsDir = resolve(_serverDir, "assets", "nodetool-base");
 const _monoExamplesDir = resolve(
   _serverDir,
   "..",
@@ -687,6 +688,9 @@ if (_resolvedExamplesDir) {
 const apiOptions: HttpApiOptions = { metadataRoots, registry };
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
+  if (existsSync(_bundledAssetsDir)) {
+    apiOptions.examplesAssetsFallbackDir = _bundledAssetsDir;
+  }
 }
 const staticFolder = process.env["STATIC_FOLDER"];
 const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
@@ -755,7 +759,7 @@ await app.register(websocketPlugin, {
         ...(nodeMeta as unknown as NodeMetadata),
         namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
         layout: "default",
-        recommended_models: [],
+        recommended_models: nodeMeta.recommended_models ?? [],
         required_settings: nodeMeta.required_settings ?? [],
         is_dynamic: nodeMeta.is_dynamic ?? false,
         is_streaming_output: nodeMeta.is_streaming_output ?? false,
@@ -1016,7 +1020,7 @@ if (pythonBridge.hasPython()) {
           ...(nodeMeta as unknown as NodeMetadata),
           namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
           layout: "default",
-          recommended_models: [],
+          recommended_models: nodeMeta.recommended_models ?? [],
           required_settings: nodeMeta.required_settings ?? [],
           is_dynamic: nodeMeta.is_dynamic ?? false,
           is_streaming_output: nodeMeta.is_streaming_output ?? false,

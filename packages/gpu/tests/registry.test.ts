@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { ShaderRegistry } from "../src/registry.js";
-import { createDefaultRegistry, ALL_SHADERS } from "../src/pool.js";
+import { createDefaultRegistry, ALL_SHADERS, ALL_RECIPES } from "../src/pool.js";
 import { passthroughV1 } from "../src/shaders/_canary/passthrough/v1/module.js";
+import { filtersGlowV1 } from "../src/shaders/filters/glow/v1/module.js";
 
 describe("ShaderRegistry", () => {
   it("registers and resolves a module by (id, version)", () => {
@@ -50,10 +51,37 @@ describe("ShaderRegistry", () => {
     expect(registry.list({ category: "color" })).toEqual([]);
   });
 
-  it("createDefaultRegistry preloads every catalog module", () => {
+  it("createDefaultRegistry preloads every catalog module (shaders + recipes)", () => {
     const registry = createDefaultRegistry();
     for (const module of ALL_SHADERS) {
       expect(registry.has({ id: module.id, version: module.version })).toBe(true);
     }
+    for (const recipe of ALL_RECIPES) {
+      expect(registry.has({ id: recipe.id, version: recipe.version })).toBe(true);
+    }
+  });
+
+  it("getRecipe returns recipes and getShader returns shaders", () => {
+    const registry = createDefaultRegistry();
+    expect(registry.getRecipe({ id: "filters.glow", version: 1 })).toBe(
+      filtersGlowV1
+    );
+    expect(registry.getShader({ id: "_canary.passthrough", version: 1 })).toBe(
+      passthroughV1
+    );
+  });
+
+  it("getRecipe throws when target is a single-pass module", () => {
+    const registry = createDefaultRegistry();
+    expect(() =>
+      registry.getRecipe({ id: "_canary.passthrough", version: 1 })
+    ).toThrow(/is a single-pass module/);
+  });
+
+  it("getShader throws when target is a recipe", () => {
+    const registry = createDefaultRegistry();
+    expect(() => registry.getShader({ id: "filters.glow", version: 1 })).toThrow(
+      /is a recipe/
+    );
   });
 });
