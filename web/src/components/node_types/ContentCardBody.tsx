@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
     // params (flex-shrink: 0) clip at the bottom via node-content-container.
     ".preview-area": {
       position: "relative",
-      flex: "1 0 auto",
+      flex: "1 1 auto",
       minHeight: theme.spacing(6),
       borderRadius: "var(--rounded-sm)",
       // Allow the handle column to extend past the preview's left edge so
