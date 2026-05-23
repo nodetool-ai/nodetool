@@ -3,6 +3,7 @@ import React, {
   useRef,
   useState,
   useCallback,
+  useMemo,
   memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
@@ -120,6 +121,11 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   // Input is never disabled - messages are always queued by globalWebSocketManager
   const isInputDisabled = false;
 
+  const removeCallbacks = useMemo(
+    () => new Map(droppedFiles.map((f) => [f.id, () => removeFile(f.id)])),
+    [droppedFiles, removeFile]
+  );
+
   return (
     <div css={createStyles(theme)} className="chat-composer">
       {/* Queued Message Widget */}
@@ -193,11 +199,11 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
         <>
           {droppedFiles.length > 0 && (
             <div className="file-preview-container">
-              {droppedFiles.map((file, index) => (
+              {droppedFiles.map((file) => (
                 <FilePreview
                   key={file.id}
                   file={file}
-                  onRemove={() => removeFile(index)}
+                  onRemove={removeCallbacks.get(file.id)!}
                 />
               ))}
             </div>
