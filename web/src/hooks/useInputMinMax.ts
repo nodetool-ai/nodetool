@@ -40,24 +40,24 @@ export const useInputMinMax = ({
 
   const context = useContext(NodeContext);
 
-  const nodes: Node<NodeData>[] = useStoreWithEqualityFn(
+  const [nodeMin, nodeMax] = useStoreWithEqualityFn(
     context ?? { subscribe: () => () => {}, getState: () => ({ nodes: [] }) } as unknown as NodeStore,
-    (state: NodeStoreState) => state?.nodes ?? [],
+    (state: NodeStoreState) => {
+      if (!shouldLookupBounds || !context) {
+        return [undefined, undefined];
+      }
+      const node = state?.nodes?.find((n) => n.id === nodeId);
+      const props = node?.data?.properties;
+      return [
+        typeof props?.min === "number" ? props.min : undefined,
+        typeof props?.max === "number" ? props.max : undefined,
+      ];
+    },
     shallow
   );
 
-  let nodeMin: number | undefined;
-  let nodeMax: number | undefined;
-
-  if (shouldLookupBounds && context && nodes.length > 0) {
-    const node = nodes.find((n) => n.id === nodeId);
-    const props = node?.data?.properties;
-    nodeMin = typeof props?.min === "number" ? props.min : undefined;
-    nodeMax = typeof props?.max === "number" ? props.max : undefined;
-
-    if (process.env.NODE_ENV === "development") {
-      console.info("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
-    }
+  if (process.env.NODE_ENV === "development" && shouldLookupBounds && context) {
+    console.info("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax });
   }
 
   const min =
