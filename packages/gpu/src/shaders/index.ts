@@ -37,6 +37,9 @@ import { maskInvertV1 } from "./mask/invert/v1/module.js";
 import { sourcesSolidV1 } from "./sources/solid/v1/module.js";
 import { sourcesLinearGradientV1 } from "./sources/linearGradient/v1/module.js";
 import { sourcesCheckerboardV1 } from "./sources/checkerboard/v1/module.js";
+import { sourcesRadialGradientV1 } from "./sources/radialGradient/v1/module.js";
+import { sourcesAngularGradientV1 } from "./sources/angularGradient/v1/module.js";
+import { sourcesDiamondGradientV1 } from "./sources/diamondGradient/v1/module.js";
 
 import { mixerAddV1 } from "./mixer/add/v1/module.js";
 
@@ -66,6 +69,9 @@ export {
   sourcesSolidV1,
   sourcesLinearGradientV1,
   sourcesCheckerboardV1,
+  sourcesRadialGradientV1,
+  sourcesAngularGradientV1,
+  sourcesDiamondGradientV1,
   mixerAddV1,
   transformMirrorV1,
   transformOffsetV1,
@@ -102,6 +108,9 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   sourcesSolidV1,
   sourcesLinearGradientV1,
   sourcesCheckerboardV1,
+  sourcesRadialGradientV1,
+  sourcesAngularGradientV1,
+  sourcesDiamondGradientV1,
   // mixer
   mixerAddV1,
   // transform
