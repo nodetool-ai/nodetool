@@ -596,7 +596,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         // (workflows restored from localStorage open before metadata fetch).
         const falNodeTypes = [
           ...new Set(
-            (workflow.graph?.nodes ?? []).map((n) => n.type as string)
+            (workflow.graph?.nodes ?? [])
+              .map((n) => n.type)
+              .filter((t): t is string => typeof t === "string")
           )
         ].filter((t) => t.startsWith("fal."));
 
