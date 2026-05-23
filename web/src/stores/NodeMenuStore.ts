@@ -598,22 +598,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
 // can release them without leaking subscriptions across hot reloads.
 const nodeMenuMetadataUnsubscribers = new Set<() => void>();
 
-/**
- * Release all metadata subscriptions registered by `createNodeMenuStore`.
- * Intended for HMR cleanup (Vite's `import.meta.hot.dispose`); can also
- * be wired into test teardown if needed.
- */
-const cleanupNodeMenuMetadataSubscriptions = (): void => {
-  for (const unsubscribe of nodeMenuMetadataUnsubscribers) {
-    try {
-      unsubscribe();
-    } catch (err) {
-      console.warn("[NodeMenuStore] metadata unsubscribe failed", err);
-    }
-  }
-  nodeMenuMetadataUnsubscribers.clear();
-};
-
 export const useNodeMenuStore = createNodeMenuStore();
 export const useNodeToolsMenuStore = createNodeMenuStore({ onlyTools: true });
 

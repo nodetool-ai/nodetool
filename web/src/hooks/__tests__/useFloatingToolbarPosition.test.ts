@@ -2,83 +2,49 @@ import { renderHook } from "@testing-library/react";
 import { useFloatingToolbarPosition } from "../useFloatingToolbarPosition";
 
 describe("useFloatingToolbarPosition", () => {
-  it("returns default position when no panels are visible", () => {
+  // The bottom panel always renders a thin tab rail (36px), so the toolbar
+  // sits 12px above it (48px) when no view is expanded.
+  const COLLAPSED_BOTTOM = "48px";
+
+  it("returns default position when the bottom panel is collapsed", () => {
     const { result } = renderHook(() =>
-      useFloatingToolbarPosition(false, 0, false, 0)
+      useFloatingToolbarPosition(false, 0)
     );
 
     expect(result.current).toEqual({
-      bottom: "20px"
+      bottom: COLLAPSED_BOTTOM
     });
   });
 
-  it("adjusts position when right panel is visible", () => {
+  it("ignores right-panel state — toolbar stays centered when inspector opens", () => {
+    // The right panel auto-opens on node selection; shifting the toolbar
+    // with it would jump on every click.
     const { result } = renderHook(() =>
-      useFloatingToolbarPosition(true, 300, false, 0)
+      useFloatingToolbarPosition(false, 0)
     );
 
     expect(result.current).toEqual({
-      left: "auto",
-      transform: "none",
-      right: "320px",
-      bottom: "20px"
-    });
-  });
-
-  it("uses minimum right offset of 72px", () => {
-    const { result } = renderHook(() =>
-      useFloatingToolbarPosition(true, 50, false, 0)
-    );
-
-    expect(result.current).toEqual({
-      left: "auto",
-      transform: "none",
-      right: "72px",
-      bottom: "20px"
+      bottom: COLLAPSED_BOTTOM
     });
   });
 
   it("adjusts position when bottom panel is visible", () => {
     const { result } = renderHook(() =>
-      useFloatingToolbarPosition(false, 0, true, 200)
+      useFloatingToolbarPosition(true, 200)
     );
 
     expect(result.current.bottom).toBe("220px");
   });
 
-  it("adjusts position when both panels are visible", () => {
-    const { result } = renderHook(() =>
-      useFloatingToolbarPosition(true, 400, true, 250)
-    );
-
-    expect(result.current).toEqual({
-      left: "auto",
-      transform: "none",
-      right: "420px",
-      bottom: "270px"
-    });
-  });
-
-  it("skips right-panel horizontal offset on mobile", () => {
-    const { result } = renderHook(() =>
-      useFloatingToolbarPosition(true, 300, false, 0, true)
-    );
-
-    // On mobile the right panel renders as a bottom sheet, so the toolbar
-    // should stay centered (no `right`/`left`/`transform` override).
-    expect(result.current).toEqual({ bottom: "20px" });
-  });
-
   it("respects minimum bottom offset of 80px", () => {
     const { result } = renderHook(() =>
-      useFloatingToolbarPosition(false, 0, true, 10)
+      useFloatingToolbarPosition(true, 10)
     );
 
     expect(result.current.bottom).toBe("80px");
   });
 
   it("caps bottom panel size at 60% of window height", () => {
-    // Mock window.innerHeight
     Object.defineProperty(window, "innerHeight", {
       writable: true,
       configurable: true,
@@ -86,7 +52,7 @@ describe("useFloatingToolbarPosition", () => {
     });
 
     const { result } = renderHook(() =>
-      useFloatingToolbarPosition(false, 0, true, 800)
+      useFloatingToolbarPosition(true, 800)
     );
 
     // Max allowed: 1000 * 0.6 = 600
@@ -95,7 +61,6 @@ describe("useFloatingToolbarPosition", () => {
   });
 
   it("uses minimum height of 200px for bottom panel", () => {
-    // Mock window.innerHeight to very small value
     Object.defineProperty(window, "innerHeight", {
       writable: true,
       configurable: true,
@@ -103,7 +68,7 @@ describe("useFloatingToolbarPosition", () => {
     });
 
     const { result } = renderHook(() =>
-      useFloatingToolbarPosition(false, 0, true, 150)
+      useFloatingToolbarPosition(true, 150)
     );
 
     // Max allowed: max(200, 300 * 0.6) = max(200, 180) = 200
@@ -114,17 +79,10 @@ describe("useFloatingToolbarPosition", () => {
 
   it("memoizes result when inputs don't change", () => {
     const { result, rerender } = renderHook(
-      ({ isRightVisible, rightSize, isBottomVisible, bottomSize }) =>
-        useFloatingToolbarPosition(
-          isRightVisible,
-          rightSize,
-          isBottomVisible,
-          bottomSize
-        ),
+      ({ isBottomVisible, bottomSize }) =>
+        useFloatingToolbarPosition(isBottomVisible, bottomSize),
       {
         initialProps: {
-          isRightVisible: true,
-          rightSize: 300,
           isBottomVisible: true,
           bottomSize: 200
         }
@@ -134,8 +92,6 @@ describe("useFloatingToolbarPosition", () => {
     const firstResult = result.current;
 
     rerender({
-      isRightVisible: true,
-      rightSize: 300,
       isBottomVisible: true,
       bottomSize: 200
     });
@@ -144,18 +100,16 @@ describe("useFloatingToolbarPosition", () => {
   });
 
   it("updates result when inputs change", () => {
+    Object.defineProperty(window, "innerHeight", {
+      writable: true,
+      configurable: true,
+      value: 1000
+    });
     const { result, rerender } = renderHook(
-      ({ isRightVisible, rightSize, isBottomVisible, bottomSize }) =>
-        useFloatingToolbarPosition(
-          isRightVisible,
-          rightSize,
-          isBottomVisible,
-          bottomSize
-        ),
+      ({ isBottomVisible, bottomSize }) =>
+        useFloatingToolbarPosition(isBottomVisible, bottomSize),
       {
         initialProps: {
-          isRightVisible: true,
-          rightSize: 300,
           isBottomVisible: true,
           bottomSize: 200
         }
@@ -165,13 +119,11 @@ describe("useFloatingToolbarPosition", () => {
     const firstResult = result.current;
 
     rerender({
-      isRightVisible: true,
-      rightSize: 400,
       isBottomVisible: true,
-      bottomSize: 200
+      bottomSize: 300
     });
 
     expect(result.current).not.toBe(firstResult);
-    expect(result.current.right).toBe("420px");
+    expect(result.current.bottom).toBe("320px");
   });
 });

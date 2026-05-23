@@ -25,7 +25,7 @@
     "@react-navigation/native-stack": "^7.14.14",
     "@supabase/supabase-js": "^2.105.4",
     "@trpc/client": "^11.17.0",
-    "expo": "~54.0.30",
+    "expo": "~56.0.3",
     "expo-av": "~16.0.8",
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
@@ -47,6 +47,8 @@
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^9.39.4",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.19.19",

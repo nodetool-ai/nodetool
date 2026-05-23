@@ -840,7 +840,6 @@ export {
   initializeBackendServer,
   stopServer,
   restartLlamaServer,
-  webPath,
   isServerRunning,
   isLlamaServerRunning,
   startLlamaCppService,

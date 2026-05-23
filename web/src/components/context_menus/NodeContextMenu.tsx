@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from "react";
-import { Menu, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
+import { Menu } from "@mui/material";
 import { Divider } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";

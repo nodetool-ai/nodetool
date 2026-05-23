@@ -5,7 +5,6 @@ import PropertyField from "./node/PropertyField";
 import { Box } from "@mui/material";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
-import NodeExplorer from "./node/NodeExplorer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
@@ -312,7 +311,7 @@ const Inspector: React.FC = () => {
       selectedNodes
         .map((node) => ({
           node,
-          metadata: node.type ? getMetadata(node.type as string) : null
+          metadata: node.type ? getMetadata(node.type) : null
         }))
         .filter(
           (
@@ -389,8 +388,8 @@ const Inspector: React.FC = () => {
 
   // Define selectedNode and metadata early so callbacks can reference them
   const selectedNode = selectedNodes[0] || null;
-  const metadata = selectedNode
-    ? getMetadata(selectedNode.type as string)
+  const metadata = selectedNode?.type
+    ? getMetadata(selectedNode.type)
     : null;
 
   const handleNamespaceClick = useCallback(
@@ -417,26 +416,15 @@ const Inspector: React.FC = () => {
     return new Set(
       edges
         .filter(
-          (edge) =>
+          (edge): edge is typeof edge & { targetHandle: string } =>
             edge.target === selectedNode.id && typeof edge.targetHandle === "string"
         )
-        .map((edge) => edge.targetHandle as string)
+        .map((edge) => edge.targetHandle)
     );
   }, [edges, selectedNode]);
 
   if (selectedNodes.length === 0) {
-    return (
-      <EditorUiProvider scope="inspector">
-        <Box className="inspector" css={inspectorStyles}>
-          <Box className="top">
-            <ScrollArea className="top-content" direction="vertical">
-              <NodeExplorer />
-            </ScrollArea>
-          </Box>
-          <Box className="bottom"></Box>
-        </Box>
-      </EditorUiProvider>
-    );
+    return null;
   }
 
   if (isMultiSelect) {
@@ -486,7 +474,7 @@ const Inspector: React.FC = () => {
                       propertyIndex={property.name}
                       showHandle={false}
                       isInspector={true}
-                      nodeType={(nodesWithMetadata[0].node.type as string) ?? "inspector"}
+                      nodeType={nodesWithMetadata[0].node.type ?? "inspector"}
                       data={nodesWithMetadata[0].node.data}
                       layout=""
                       inspectorBatchNodeIds={multiNodeIds}
@@ -521,20 +509,7 @@ const Inspector: React.FC = () => {
   }
 
   if (!selectedNode) {
-    return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <ScrollArea className="top-content" direction="vertical">
-            <Box className="inspector-header">
-              <Caption size="smaller" color="muted">
-                Select a node to inspect
-              </Caption>
-            </Box>
-          </ScrollArea>
-        </Box>
-        <Box className="bottom"></Box>
-      </Box>
-    );
+    return null;
   }
 
   if (!metadata) {
@@ -660,7 +635,7 @@ const Inspector: React.FC = () => {
                       propertyIndex={index.toString()}
                       showHandle={false}
                       isInspector={true}
-                      nodeType={(selectedNode.type as string) ?? "inspector"}
+                      nodeType={selectedNode.type ?? "inspector"}
                       data={selectedNode.data}
                       layout=""
                     />
@@ -727,7 +702,7 @@ const Inspector: React.FC = () => {
                     propertyIndex={`dynamic-${index}`}
                     showHandle={false}
                     isInspector={true}
-                    nodeType={(selectedNode.type as string) ?? "inspector"}
+                    nodeType={selectedNode.type ?? "inspector"}
                     data={selectedNode.data}
                     layout=""
                     isDynamicProperty={true}

@@ -40,9 +40,9 @@ export class MyNode extends BaseNode {
   declare count: any;
 
   // Process method — MUST return all keys from metadataOutputTypes
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.input_text ?? this.input_text ?? "");
-    const count = Number(inputs.count ?? this.count ?? 10);
+  async process(): Promise<Record<string, unknown>> {
+    const text = String(this.input_text ?? "");
+    const count = Number(this.count ?? 10);
     return { output: text.repeat(count) };
   }
 }
@@ -50,13 +50,18 @@ export class MyNode extends BaseNode {
 
 # Input Resolution Pattern
 
-Always resolve inputs with this fallback chain:
+Property values **and** connected input values are assigned to instance fields
+*before* `process()` is called, so always read inputs from `this`:
 ```typescript
-const value = inputs.field ?? this.field ?? defaultValue;
+const value = this.field ?? defaultValue;
 ```
-- `inputs.field` — runtime connection value
-- `this.field` — static property value set by user
-- `defaultValue` — hardcoded fallback
+- `this.field` — resolved value (connection value if connected, else the
+  user-set property, else the `@prop` default)
+- `defaultValue` — extra in-code fallback for `null`/`undefined`
+
+Do **not** declare a `process(inputs: Record<string, unknown>)` parameter — the
+runtime calls `process(context?: ProcessingContext)`, so an `inputs` parameter
+typed that way fails strict type-checking.
 
 # @prop Decorator Options
 
@@ -76,7 +81,7 @@ const value = inputs.field ?? this.field ?? defaultValue;
 ```typescript
 static readonly metadataOutputTypes = { text: "str", confidence: "float" };
 
-async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+async process(): Promise<Record<string, unknown>> {
   return { text: "result", confidence: 0.95 }; // ALL keys must be returned
 }
 ```
@@ -86,7 +91,7 @@ async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>>
 static readonly isStreamingOutput = true;
 static readonly metadataOutputTypes = { output: "str" };
 
-async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string, unknown>> {
+async *genProcess(): AsyncGenerator<Record<string, unknown>> {
   for (const item of items) {
     yield { output: item };
   }
@@ -97,14 +102,17 @@ async *genProcess(inputs: Record<string, unknown>): AsyncGenerator<Record<string
 ```typescript
 static readonly syncMode = "on_any"; // fires on each incoming value
 
-private collected: string[] = [];
+@prop({ type: "any", title: "Item" })
+declare item: unknown;
+
+private collected: unknown[] = [];
 
 initialize(): void {
   this.collected = []; // reset per run
 }
 
-async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-  this.collected.push(String(inputs.item ?? ""));
+async process(): Promise<Record<string, unknown>> {
+  this.collected.push(this.item);
   return { output: this.collected };
 }
 ```
@@ -119,9 +127,9 @@ declare quality: any;
 ```typescript
 static readonly requiredSettings = ["MY_API_KEY"];
 
-async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const secrets = (inputs._secrets as Record<string, string>) ?? {};
-  const apiKey = secrets.MY_API_KEY || process.env.MY_API_KEY;
+async process(): Promise<Record<string, unknown>> {
+  // Resolved secrets are available via the `_secrets` getter.
+  const apiKey = this._secrets.MY_API_KEY || process.env.MY_API_KEY;
   if (!apiKey) throw new Error("MY_API_KEY not configured");
   // use apiKey...
 }
@@ -130,10 +138,10 @@ async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>>
 ## Media Refs (Image/Audio/Video)
 ```typescript
 @prop({ type: "image", title: "Input Image" })
-declare image: any;
+declare image: { uri?: string; data?: string } | undefined;
 
-async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const img = inputs.image as { uri?: string; data?: string } | undefined;
+async process(): Promise<Record<string, unknown>> {
+  const img = this.image;
   if (!img) throw new Error("No image provided");
   // img.data is base64, img.uri is a URL
   const resultData = await processImage(img);
@@ -158,34 +166,68 @@ static readonly isStreamingInput = true;
 static readonly basicFields = ["prompt", "model"]; // shown first in UI
 ```
 
+# Scaffold a Pack
+
+The fastest start is the scaffolder, which generates a self-contained pack
+(package.json with the `nodetool` manifest field, tsconfig, an example node, a
+test, and a README):
+
+```bash
+npm run create:pack -- @myorg/my-nodes        # in the nodetool repo
+# or directly: node scripts/create-pack.mjs @myorg/my-nodes ./my-nodes
+```
+
 # Registration
 
 ```typescript
 // src/index.ts
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { MyNode, OtherNode } from "./nodes/my-nodes";
+import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
+import { MyNode, OtherNode } from "./nodes/my-nodes.js";
 
-export const ALL_MYPACK_NODES = [MyNode, OtherNode] as const;
+export const ALL_NODES: readonly NodeClass[] = [MyNode, OtherNode];
 
-export function registerMypackNodes(registry: NodeRegistry): void {
-  for (const nodeClass of ALL_MYPACK_NODES) {
+export function register(registry: NodeRegistry): void {
+  for (const nodeClass of ALL_NODES) {
     registry.register(nodeClass);
   }
 }
 ```
 
-Then register in `packages/base-nodes/src/index.ts` (or your package's entry).
+The server auto-loads packs — no need to edit its source. Mark the package as a
+pack with a `nodetool` field in `package.json`, naming the export above:
+
+```jsonc
+{
+  "name": "@myorg/my-nodes",
+  "main": "dist/index.js",
+  "nodetool": { "apiVersion": 1, "register": "register" }
+}
+```
+
+On startup the server scans installed dependencies, imports any package with a
+`nodetool` field, and calls the named export with the registry. Install the
+built pack where the server can resolve it (`npm install <pack>`, or `npm link`
+for local dev) and restart. The export may be sync or `async`.
+
+**Trust model.** Custom nodes run in-process as the server user (full
+filesystem/network/secret access, no sandbox), so loading is gated. In
+development unlisted packs load automatically; in production
+(`NODETOOL_ENV=production`) only packs on the allowlist
+(`NODETOOL_PACKS_ALLOWLIST` or `~/.config/nodetool/packs.json`) load. Packs also
+cannot register under reserved namespaces (`nodetool.`, `lib.`, provider names)
+or shadow an existing node type. Only install packs you trust.
 
 # Testing
 
 ```typescript
 import { describe, it, expect } from "vitest";
-import { MyNode } from "../src/nodes/my-nodes";
+import { MyNode } from "../src/nodes/my-nodes.js";
 
 describe("MyNode", () => {
   it("processes input", async () => {
-    const node = new MyNode();
-    const result = await node.process({ input_text: "hello", count: 3 });
+    // Constructor assigns properties to instance fields.
+    const node = new MyNode({ input_text: "hello", count: 3 });
+    const result = await node.process();
     expect(result.output).toBe("hellohellohello");
   });
 });
@@ -194,7 +236,7 @@ describe("MyNode", () => {
 # Common Pitfalls
 
 - **Forgetting output keys**: Every key in `metadataOutputTypes` must appear in the return object
-- **Wrong input resolution**: Always use `inputs.field ?? this.field ?? default`, never just `inputs.field`
+- **Wrong input access**: Read inputs from `this.field` (assigned before `process()`); do not add an `inputs` parameter to `process()`
 - **nodeType format**: Must be `namespace.category.Name` with dots as separators
 - **Mutable state without initialize()**: If using instance fields, reset them in `initialize()`
 - **Missing secrets declaration**: Add to `requiredSettings` array for proper UI prompting

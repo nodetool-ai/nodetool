@@ -50,6 +50,10 @@ const IpcChannels = {
   PACKAGE_SEARCH_NODES: "package-search-nodes",
   PACKAGE_UPDATES_AVAILABLE: "package-updates-available",
   PACKAGE_VERSION_CHECK: "package-version-check",
+  NODE_PACK_LIST_INSTALLED: "node-pack-list-installed",
+  NODE_PACK_INSTALL: "node-pack-install",
+  NODE_PACK_UNINSTALL: "node-pack-uninstall",
+  NODE_PACK_GET_INSTALL_DIR: "node-pack-get-install-dir",
   RUNTIME_PACKAGE_STATUSES: "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL: "runtime-package-install",
   RUNTIME_PACKAGE_UNINSTALL: "runtime-package-uninstall",
@@ -117,6 +121,7 @@ describe("preload contract", () => {
       "server",
       "workflows",
       "packages",
+      "nodePacks",
       "settings",
       "dialog",
       "logging",
@@ -163,6 +168,25 @@ describe("preload contract", () => {
       IpcChannels.PACKAGE_LIST_INSTALLED,
       IpcChannels.PACKAGE_INSTALL,
       IpcChannels.PACKAGE_UNINSTALL,
+    ]);
+  });
+
+  test("nodePacks namespace methods route to expected IPC channels", () => {
+    (electronMock.ipcRenderer.invoke as jest.Mock).mockClear();
+
+    api.nodePacks.listInstalled();
+    api.nodePacks.install("@acme/cool-nodes");
+    api.nodePacks.uninstall("@acme/cool-nodes");
+    api.nodePacks.getInstallDir();
+
+    const channels = (electronMock.ipcRenderer.invoke as jest.Mock).mock.calls
+      .map((c: unknown[]) => c[0]);
+
+    expect(channels).toEqual([
+      IpcChannels.NODE_PACK_LIST_INSTALLED,
+      IpcChannels.NODE_PACK_INSTALL,
+      IpcChannels.NODE_PACK_UNINSTALL,
+      IpcChannels.NODE_PACK_GET_INSTALL_DIR,
     ]);
   });
 

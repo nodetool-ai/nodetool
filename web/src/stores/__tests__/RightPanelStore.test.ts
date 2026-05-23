@@ -3,7 +3,6 @@ import { useRightPanelStore } from "../RightPanelStore";
 
 describe("RightPanelStore", () => {
   beforeEach(() => {
-    // Reset store to initial state
     const store = useRightPanelStore.getState();
     store.closePanel();
     store.setHasDragged(false);
@@ -28,7 +27,7 @@ describe("RightPanelStore", () => {
       expect(panel.hasDragged).toBe(false);
     });
 
-    it("has correct default view", () => {
+    it("has inspector as the only view", () => {
       const { panel } = useRightPanelStore.getState();
       expect(panel.activeView).toBe("inspector");
     });
@@ -47,118 +46,72 @@ describe("RightPanelStore", () => {
       act(() => {
         setSize(400);
       });
-
       expect(useRightPanelStore.getState().panel.panelSize).toBe(400);
     });
 
     it("constrains size to maximum", () => {
       const { setSize } = useRightPanelStore.getState();
       act(() => {
-        setSize(800); // Above MAX_PANEL_SIZE (600)
+        setSize(800);
       });
-
       expect(useRightPanelStore.getState().panel.panelSize).toBe(600);
     });
 
     it("constrains size to minimum drag size", () => {
       const { setSize } = useRightPanelStore.getState();
       act(() => {
-        setSize(50); // Below MIN_DRAG_SIZE (60)
+        setSize(50);
       });
-
       expect(useRightPanelStore.getState().panel.panelSize).toBe(60);
     });
   });
 
-  describe("setActiveView", () => {
-    it("sets active view to inspector", () => {
-      const { setActiveView } = useRightPanelStore.getState();
-      act(() => {
-        setActiveView("inspector");
-      });
-
-      expect(useRightPanelStore.getState().panel.activeView).toBe("inspector");
-    });
-
-    it("sets active view to assistant", () => {
-      const { setActiveView } = useRightPanelStore.getState();
-      act(() => {
-        setActiveView("assistant");
-      });
-
-      expect(useRightPanelStore.getState().panel.activeView).toBe("assistant");
-    });
-
-    it("sets active view to logs", () => {
-      const { setActiveView } = useRightPanelStore.getState();
-      act(() => {
-        setActiveView("logs");
-      });
-
-      expect(useRightPanelStore.getState().panel.activeView).toBe("logs");
-    });
-  });
-
   describe("handleViewChange", () => {
-    it("shows panel when changing to new view", () => {
+    it("opens the inspector panel", () => {
       const { handleViewChange } = useRightPanelStore.getState();
       act(() => {
-        handleViewChange("assistant");
+        handleViewChange("inspector");
       });
 
       const { panel } = useRightPanelStore.getState();
-      expect(panel.activeView).toBe("assistant");
+      expect(panel.activeView).toBe("inspector");
       expect(panel.isVisible).toBe(true);
     });
 
-    it("toggles visibility when clicking same view", () => {
+    it("toggles visibility when clicking the active view again", () => {
       const { handleViewChange } = useRightPanelStore.getState();
-      
+
       act(() => {
-        handleViewChange("inspector"); // Open
+        handleViewChange("inspector");
       });
       expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
 
       act(() => {
-        handleViewChange("inspector"); // Toggle
+        handleViewChange("inspector");
       });
       expect(useRightPanelStore.getState().panel.isVisible).toBe(false);
     });
 
-    it("expands panel to minimum size when clicking same view with small panel", () => {
-      const { handleViewChange, setSize, setVisibility } = useRightPanelStore.getState();
-      
+    it("expands panel to minimum size when reopening from a collapsed state", () => {
+      const { handleViewChange, setSize, setVisibility } =
+        useRightPanelStore.getState();
+
       act(() => {
-        setSize(100); // Below MIN_PANEL_SIZE (250)
+        setSize(100);
         setVisibility(false);
         handleViewChange("inspector");
       });
 
       const { panel } = useRightPanelStore.getState();
-      expect(panel.panelSize).toBe(250); // MIN_PANEL_SIZE (DEFAULT_PANEL_SIZE - 100)
+      expect(panel.panelSize).toBe(250);
       expect(panel.isVisible).toBe(true);
-    });
-
-    it("switches views and shows panel", () => {
-      const { handleViewChange } = useRightPanelStore.getState();
-      
-      act(() => {
-        handleViewChange("inspector");
-      });
-      expect(useRightPanelStore.getState().panel.activeView).toBe("inspector");
-
-      act(() => {
-        handleViewChange("assistant");
-      });
-      expect(useRightPanelStore.getState().panel.activeView).toBe("assistant");
-      expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
     });
   });
 
   describe("closePanel", () => {
     it("closes panel and sets size to minimum", () => {
       const { closePanel, setVisibility, setSize } = useRightPanelStore.getState();
-      
+
       act(() => {
         setSize(400);
         setVisibility(true);
@@ -167,7 +120,7 @@ describe("RightPanelStore", () => {
 
       const { panel } = useRightPanelStore.getState();
       expect(panel.isVisible).toBe(false);
-      expect(panel.panelSize).toBe(60); // MIN_DRAG_SIZE
+      expect(panel.panelSize).toBe(60);
     });
   });
 });

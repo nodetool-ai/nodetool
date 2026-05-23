@@ -84,7 +84,8 @@ COPY web/ web/
 ARG WEB_BUILD_NODE_OPTIONS=--max-old-space-size=4096
 RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build
 
-# Assemble a minimal runtime filesystem with compiled packages and web assets.
+# Assemble a minimal runtime filesystem with compiled packages, web assets, and
+# bundled workflow examples/thumbnails.
 RUN mkdir -p /runtime/packages /runtime/web \
     && cp package.json package-lock.json /runtime/ \
     && for pkg in packages/*; do \
@@ -94,6 +95,13 @@ RUN mkdir -p /runtime/packages /runtime/web \
            cp -a "$pkg/dist" "/runtime/$pkg/dist"; \
          fi; \
        done \
+    && mkdir -p /runtime/packages/base-nodes/nodetool \
+    && if [ -d packages/base-nodes/nodetool/examples ]; then \
+         cp -a packages/base-nodes/nodetool/examples /runtime/packages/base-nodes/nodetool/examples; \
+       fi \
+    && if [ -d packages/base-nodes/nodetool/assets ]; then \
+         cp -a packages/base-nodes/nodetool/assets /runtime/packages/base-nodes/nodetool/assets; \
+       fi \
     && cp web/package.json /runtime/web/package.json \
     && cp -a web/dist /runtime/web/dist
 

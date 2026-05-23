@@ -10,7 +10,7 @@ import SearchResultsPanel from "./SearchResultsPanel";
 import useMetadataStore from "../../stores/MetadataStore";
 import {
   filterNodesForCategory,
-  type QuickAccessCategory
+  type NodeSubcategory
 } from "../../config/quickAccessCategories";
 
 const styles = (theme: Theme) =>
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
   });
 
 interface QuickAccessGridProps {
-  category: QuickAccessCategory;
+  category: NodeSubcategory;
 }
 
 /**

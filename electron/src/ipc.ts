@@ -57,6 +57,12 @@ import {
   RUNTIME_PACKAGE_IDS,
 } from "./packageManager";
 import {
+  installNodePack,
+  uninstallNodePack,
+  listInstalledNodePacks,
+  getNodePackInstallRoot,
+} from "./nodePackManager";
+import {
   openModelDirectory,
   openPathInExplorer,
   openSystemDirectory,
@@ -909,6 +915,22 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.PACKAGE_VERSION_CHECK, async () => {
     logMessage("Checking expected package versions");
     return await checkExpectedPackageVersions();
+  });
+
+  // Node pack handlers (third-party TS node packs)
+  createIpcMainHandler(IpcChannels.NODE_PACK_LIST_INSTALLED, async () => {
+    return await listInstalledNodePacks();
+  });
+  createIpcMainHandler(IpcChannels.NODE_PACK_INSTALL, async (_event, req) => {
+    logMessage(`Installing node pack: ${req.spec}`);
+    return await installNodePack(req.spec);
+  });
+  createIpcMainHandler(IpcChannels.NODE_PACK_UNINSTALL, async (_event, req) => {
+    logMessage(`Uninstalling node pack: ${req.name}`);
+    return await uninstallNodePack(req.name);
+  });
+  createIpcMainHandler(IpcChannels.NODE_PACK_GET_INSTALL_DIR, async () => {
+    return getNodePackInstallRoot();
   });
 
   // Runtime package handlers

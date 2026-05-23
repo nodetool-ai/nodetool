@@ -16,7 +16,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
 import { isEditableElement } from "../utils/browser";
-import { useRightPanelStore } from "./RightPanelStore";
+import { usePanelStore } from "./PanelStore";
 
 // Allowed key combinations for HTMLTextAreaElement
 const ALLOWED_TEXTAREA_COMBOS: Array<{
@@ -429,15 +429,15 @@ const useCombo = (
   }, [memoizedCombo, callback, preventDefault, active, keyboardActive, scope]);
 };
 
-const assistantCallback = () => {
-  const { handleViewChange } = useRightPanelStore.getState();
-  handleViewChange("assistant");
+const agentCallback = () => {
+  const { handleViewChange } = usePanelStore.getState();
+  handleViewChange("agent");
 };
 
-// Lower-case 'o'
+// Lower-case 'o' — toggles the left-panel Agent view.
 registerComboCallback("o", {
   preventDefault: false,
-  callback: assistantCallback
+  callback: agentCallback
 });
 
 export {

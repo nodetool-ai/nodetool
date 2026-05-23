@@ -41,11 +41,13 @@ const MODULES: Array<{
 describe("timeline compute effects", () => {
   for (const { module, id, category, uniformBytes } of MODULES) {
     describe(id, () => {
-      it("is an internal compute module in the right category", () => {
+      it("is a published compute module in the right category", () => {
         expect(module.id).toBe(id);
         expect(module.version).toBe(1);
         expect(module.kind).toBe("compute");
-        expect(module.surface).toBe("internal");
+        // Promoted in Phase 3 — params + I/O contract are stable across the
+        // five Phase 2 modules and the timeline depends on them.
+        expect(module.surface).toBe("published");
         expect(module.category).toBe(category);
         expect(module.entryPoint).toBe("main");
         expect(module.wgsl.length).toBeGreaterThan(0);

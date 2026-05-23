@@ -149,6 +149,15 @@ jest.mock("../../stores/RightPanelStore", () => ({
     })
 }));
 
+jest.mock("../../stores/BottomPanelStore", () => ({
+  useBottomPanelStore: (
+    selector: (state: { handleViewChange: () => void }) => unknown
+  ) =>
+    selector({
+      handleViewChange: jest.fn()
+    })
+}));
+
 jest.mock("../useFindInWorkflow", () => ({
   useFindInWorkflow: () => ({
     openFind: jest.fn()

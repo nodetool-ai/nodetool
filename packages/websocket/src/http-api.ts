@@ -31,12 +31,7 @@ import {
   type NodeMetadata,
   NodeRegistry
 } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerKieNodes } from "@nodetool-ai/kie-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
   PythonStdioBridge,
@@ -125,29 +120,15 @@ async function getWorkflowRuntimeEnvironment(
 ): Promise<WorkflowRuntimeEnvironment> {
   if (!workflowRuntimePromise) {
     workflowRuntimePromise = (async () => {
-      const registry = options.registry ?? new NodeRegistry();
-      if (!options.registry) {
-        registry.loadPythonMetadata({
-          roots: options.metadataRoots,
-          maxDepth: options.metadataMaxDepth ?? 8
-        });
-        registerBaseNodes(registry);
-        registerElevenLabsNodes(registry);
-        if (process.env["NODETOOL_ENV"] !== "production") {
-          registerTransformersJsNodes(registry);
-        }
-        registerFalNodes(registry);
-        registerKieNodes(registry);
-        registerReplicateNodes(registry);
-        if (process.env["NODETOOL_ENV"] === "production") {
-          const skippedPrefixes = ["lib.tensorflow.", "transformers."];
-          for (const nodeType of registry.list()) {
-            if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
-              registry.unregister(nodeType);
-            }
-          }
-        }
-      }
+      const registry =
+        options.registry ??
+        (await bootstrapNodeRegistry({
+          ...(options.metadataRoots
+            ? { metadataRoots: options.metadataRoots }
+            : {}),
+          metadataMaxDepth: options.metadataMaxDepth ?? 8,
+          log
+        }));
 
       const pythonBridge = new PythonStdioBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]

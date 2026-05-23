@@ -16,9 +16,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
+import {
+  registerBuiltInNodes,
+  applyProductionNodePolicy
+} from "./node-registry-setup.js";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection
@@ -1183,19 +1184,8 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     roots: metadataRoots,
     maxDepth: options.metadataMaxDepth ?? 8
   });
-  registerBaseNodes(registry);
-  registerElevenLabsNodes(registry);
-  if (process.env["NODETOOL_ENV"] !== "production") {
-    registerTransformersJsNodes(registry);
-  }
-  if (process.env["NODETOOL_ENV"] === "production") {
-    const skippedPrefixes = ["lib.tensorflow.", "transformers."];
-    for (const nodeType of registry.list()) {
-      if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
-        registry.unregister(nodeType);
-      }
-    }
-  }
+  registerBuiltInNodes(registry);
+  applyProductionNodePolicy(registry);
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,

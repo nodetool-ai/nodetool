@@ -15,12 +15,45 @@ import tgpu from "typegpu";
 import type { TgpuBindGroupLayout } from "typegpu";
 import type { AnyWgslStruct, Infer } from "typegpu/data";
 import type {
+  BindingKind,
   IOContract,
   ShaderCategory,
   ShaderKind,
   ShaderSurface,
   UiHint
 } from "./types.js";
+
+/** Host-capability constraints a variant requires (Phase 3 scaffolding). */
+export interface VariantRequirements {
+  /** Requires `texture_external` binding (browser camera/video fast path). */
+  textureExternal?: boolean;
+  /** Requires `shader-f16` feature (half-precision storage). */
+  f16Storage?: boolean;
+}
+
+/**
+ * Alternate `(layout, wgsl, entryPoint, samplers, workgroupSize)` for the
+ * same `ShaderModule`. Added in Phase 3 to handle distinct binding kinds
+ * (e.g. `texture_external` vs `texture_2d` for camera/video) without
+ * spawning duplicate module ids.
+ *
+ * Variants only appear when a concrete second binding kind / capability /
+ * quality split exists; modules without alternatives leave `variants`
+ * undefined and the Executor uses the module's primary layout.
+ */
+export interface ShaderVariant {
+  /** Stable short name (`"external"`, `"f16"`). */
+  readonly name: string;
+  /** Binding kind the variant's main input expects, by input name. */
+  readonly bindingKinds?: Readonly<Record<string, BindingKind>>;
+  /** Required device capabilities. */
+  readonly requires?: VariantRequirements;
+  readonly layout: TgpuBindGroupLayout;
+  readonly wgsl: string;
+  readonly entryPoint: string;
+  readonly samplers?: Readonly<Record<string, GPUSamplerDescriptor>>;
+  readonly workgroupSize?: readonly [number, number, number];
+}
 
 /** Default key, within a module's layout, that holds the params uniform. */
 export const DEFAULT_UNIFORM_BINDING = "params";
@@ -54,6 +87,13 @@ export interface ShaderModule<Schema extends AnyWgslStruct = AnyWgslStruct> {
   readonly workgroupSize: readonly [number, number, number];
 
   readonly io: IOContract;
+  /**
+   * Alternate `(layout, wgsl, ...)` for distinct binding kinds or
+   * capabilities. Resolved by the Executor against bound inputs and
+   * `GPUContext.capabilities`. `undefined` ⇒ the module's primary
+   * `(layout, wgsl, entryPoint, samplers)` is the only variant.
+   */
+  readonly variants?: readonly ShaderVariant[];
 }
 
 /** Authoring input for {@link defineModule}. */
@@ -89,6 +129,31 @@ export interface ShaderModuleSpec<Schema extends AnyWgslStruct> {
   workgroupSize?: readonly [number, number, number];
 
   io: IOContract;
+
+  /**
+   * Alternate-binding variants (Phase 3). Each variant gets its own resolved
+   * WGSL: `defineModule` runs `tgpu.resolve` over `variant.wgsl` with that
+   * variant's layout in scope, so the resolved string in the returned module
+   * already has variant-correct bindings injected.
+   */
+  variants?: ReadonlyArray<{
+    name: string;
+    bindingKinds?: Record<string, BindingKind>;
+    requires?: VariantRequirements;
+    layout: TgpuBindGroupLayout;
+    wgsl: string;
+    externals?: Record<string, object>;
+    entryPoint?: string;
+    samplers?: Record<string, GPUSamplerDescriptor>;
+    workgroupSize?: readonly [number, number, number];
+    /**
+     * Opt out of `tgpu.resolve` for this variant's WGSL. Needed for bindings
+     * TypeGPU's resolver can't inline (e.g. `texture_external`); the variant
+     * supplies fully-formed WGSL with hand-written `@group/@binding` decls.
+     * Defaults to `false` (the primary path runs resolve).
+     */
+    rawWgsl?: boolean;
+  }>;
 }
 
 /**
@@ -115,6 +180,26 @@ export function defineModule<Schema extends AnyWgslStruct>(
     names: "strict"
   });
 
+  const variants = spec.variants?.map<ShaderVariant>((v) => {
+    const variantWgsl = v.rawWgsl
+      ? v.wgsl
+      : tgpu.resolve({
+          template: v.wgsl,
+          externals: { layout: v.layout, ...v.externals },
+          names: "strict"
+        });
+    return Object.freeze({
+      name: v.name,
+      bindingKinds: v.bindingKinds,
+      requires: v.requires,
+      layout: v.layout,
+      wgsl: variantWgsl,
+      entryPoint: v.entryPoint ?? (kind === "compute" ? "main" : "fs_main"),
+      samplers: v.samplers,
+      workgroupSize: v.workgroupSize
+    });
+  });
+
   return Object.freeze({
     id: spec.id,
     version: spec.version,
@@ -130,7 +215,8 @@ export function defineModule<Schema extends AnyWgslStruct>(
     wgsl,
     entryPoint: spec.entryPoint ?? (kind === "compute" ? "main" : "fs_main"),
     workgroupSize: spec.workgroupSize ?? ([1, 1, 1] as const),
-    io: spec.io
+    io: spec.io,
+    variants: variants ? Object.freeze(variants) : undefined
   });
 }
 

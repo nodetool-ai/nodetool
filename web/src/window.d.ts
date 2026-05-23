@@ -486,6 +486,8 @@ declare global {
       off: (channel: string, listener: (...args: unknown[]) => void) => void;
     };
     __UPDATES__?: Record<string, unknown>[];
+    // Note: full `window.api` shape is large; access additional namespaces
+    // (packages, nodePacks, settings, ...) through optional chaining.
     // Debug globals exposed by ApiClient
     isProduction?: boolean;
     isLocalhost?: boolean;

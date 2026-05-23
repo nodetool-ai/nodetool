@@ -195,7 +195,7 @@ export interface NodeStoreState {
   getWorkflow: () => Workflow;
   isComfyWorkflow: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
-  updateWorkflowSetting: (key: string, value: unknown) => void;
+  updateWorkflowSetting: (key: string, value: string | number | boolean | null) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -899,10 +899,11 @@ export const createNodeStore = (
               return;
             }
 
-            const focusedElement = document.activeElement as HTMLElement;
+            const focusedElement = document.activeElement;
             if (
-              focusedElement.classList.contains("MuiInput-input") ||
-              focusedElement.tagName === "TEXTAREA"
+              focusedElement instanceof HTMLElement &&
+              (focusedElement.classList.contains("MuiInput-input") ||
+                focusedElement.tagName === "TEXTAREA")
             ) {
               return;
             }
@@ -1096,11 +1097,11 @@ export const createNodeStore = (
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
           },
-          updateWorkflowSetting: (key: string, value: unknown): void => {
+          updateWorkflowSetting: (key: string, value: string | number | boolean | null): void => {
             const current = get().workflow;
             const settings = {
               ...(current.settings ?? {}),
-              [key]: value as string | number | boolean | null
+              [key]: value
             };
             set({ workflow: { ...current, settings } });
           },
@@ -1268,12 +1269,12 @@ export const createNodeStore = (
               );
             }
 
-            const srcMetadata = useMetadataStore
-              .getState()
-              .getMetadata(srcNode.type as string);
-            const targetMetadata = useMetadataStore
-              .getState()
-              .getMetadata(targetNode.type as string);
+            const srcMetadata = srcNode.type
+              ? useMetadataStore.getState().getMetadata(srcNode.type)
+              : undefined;
+            const targetMetadata = targetNode.type
+              ? useMetadataStore.getState().getMetadata(targetNode.type)
+              : undefined;
 
             // If either node doesn't have metadata (placeholder nodes), allow connection
             if (!srcMetadata || !targetMetadata) {

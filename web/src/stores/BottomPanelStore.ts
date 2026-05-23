@@ -1,7 +1,44 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type BottomPanelView = "trace";
+/**
+ * Bottom panel hosts secondary workflow tools that used to live in PanelRight.
+ * Grouped into:
+ *  - "run":      logs, jobs, sandboxes
+ *  - "workflow": versions, workspace
+ *  - "debug":    trace
+ *
+ * Workflow settings and the agent panel now live in the left panel
+ * (LeftPanelView "settings" / "agent"). The workflow assistant has been
+ * removed entirely.
+ */
+export type BottomPanelView =
+  | "logs"
+  | "jobs"
+  | "sandboxes"
+  | "versions"
+  | "workspace"
+  | "trace";
+
+export type BottomPanelGroup = "run" | "workflow" | "debug";
+
+export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
+  id: BottomPanelGroup;
+  label: string;
+  views: readonly BottomPanelView[];
+}> = [
+  { id: "run", label: "Run", views: ["logs", "jobs", "sandboxes"] },
+  {
+    id: "workflow",
+    label: "Workflow",
+    views: ["versions", "workspace"]
+  },
+  { id: "debug", label: "Debug", views: ["trace"] }
+];
+
+const ALL_BOTTOM_VIEWS: BottomPanelView[] = BOTTOM_PANEL_GROUPS.flatMap(
+  (g) => g.views as BottomPanelView[]
+);
 
 interface PanelState {
   panelSize: number;
@@ -26,10 +63,10 @@ interface ResizePanelState {
   setVisibility: (isVisible: boolean) => void;
 }
 
-const DEFAULT_PANEL_SIZE = 300;
+const DEFAULT_PANEL_SIZE = 320;
 const MIN_DRAG_SIZE = 40;
 const MIN_PANEL_SIZE = 200;
-const MAX_PANEL_SIZE = 600;
+const MAX_PANEL_SIZE = 700;
 
 const createInitialState = (): PanelState => ({
   panelSize: DEFAULT_PANEL_SIZE,
@@ -39,7 +76,7 @@ const createInitialState = (): PanelState => ({
   minHeight: MIN_DRAG_SIZE,
   maxHeight: MAX_PANEL_SIZE,
   defaultHeight: DEFAULT_PANEL_SIZE,
-  activeView: "trace"
+  activeView: "logs"
 });
 
 export const useBottomPanelStore = create<ResizePanelState>()(
@@ -118,7 +155,7 @@ export const useBottomPanelStore = create<ResizePanelState>()(
     }),
     {
       name: "bottom-panel-storage",
-      version: 1,
+      version: 2,
       partialize: (state: ResizePanelState) => ({
         panel: {
           panelSize: state.panel.panelSize,
@@ -129,8 +166,7 @@ export const useBottomPanelStore = create<ResizePanelState>()(
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<ResizePanelState>;
         const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
-        const validViews: BottomPanelView[] = ["trace"];
-        const activeView = validViews.includes(
+        const activeView = ALL_BOTTOM_VIEWS.includes(
           persistedPanel.activeView as BottomPanelView
         )
           ? (persistedPanel.activeView as BottomPanelView)

@@ -36,7 +36,9 @@ const layout = tgpu.bindGroupLayout({
 export const colorGradeV1 = defineModule({
   id: "color.grade",
   version: 1,
-  surface: "internal",
+  // Promoted in Phase 3: param schema is stable across Phase 2 + Batch 1
+  // and is the most-used per-clip color effect in the timeline.
+  surface: "published",
   category: "color",
   kind: "compute",
   params: ColorGradeParams,

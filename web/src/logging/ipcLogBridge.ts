@@ -16,16 +16,6 @@ const toStringSafe = (value: unknown): string => {
   }
 };
 
-const normalizeLevel = (level: string): FrontendLogLevel => {
-  if (level === "error") {
-    return "error";
-  }
-  if (level === "warn") {
-    return "warn";
-  }
-  return "info";
-};
-
 const sendToMain = (level: FrontendLogLevel, source: string, args: unknown[]) => {
   // Only forward errors and warnings to the main process — info/debug/log are
   // noisy and the IPC round-trip is a real bottleneck during normal operation.

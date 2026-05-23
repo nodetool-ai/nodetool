@@ -24,7 +24,9 @@ const layout = tgpu.bindGroupLayout({
 export const vignetteV1 = defineModule({
   id: "filters.vignette",
   version: 1,
-  surface: "internal",
+  // Promoted in Phase 3: (intensity, radius, softness) schema has been stable
+  // since Phase 2 and the falloff math is unchanged.
+  surface: "published",
   category: "filters",
   kind: "compute",
   params: VignetteParams,
