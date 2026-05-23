@@ -4,8 +4,48 @@ import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 
 export interface ExampleWorkflowLoadOptions {
   examplesDir?: string;
+  /** Fallback thumbnail directory when the sibling of examplesDir has no JPGs. */
+  examplesAssetsFallbackDir?: string;
   metadataRoots?: string[];
   metadataMaxDepth?: number;
+}
+
+function directoryHasGalleryThumbnails(dir: string): boolean {
+  if (!existsSync(dir)) {
+    return false;
+  }
+  try {
+    return readdirSync(dir).some((file) => /\.(jpg|jpeg|png)$/i.test(file));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve the directory containing gallery thumbnail JPGs/PNGs for an examples dir.
+ * Prefer the sibling `assets/<package>` layout; fall back to bundled assets when
+ * examples are mounted elsewhere (common in Docker compose overrides).
+ */
+export function deriveExampleAssetsDir(
+  examplesDir: string,
+  fallbackAssetsDir?: string | null
+): string {
+  const derived = nodePath.join(
+    nodePath.dirname(nodePath.dirname(examplesDir)),
+    "assets",
+    nodePath.basename(examplesDir)
+  );
+  if (directoryHasGalleryThumbnails(derived)) {
+    return derived;
+  }
+  if (
+    fallbackAssetsDir &&
+    existsSync(fallbackAssetsDir) &&
+    directoryHasGalleryThumbnails(fallbackAssetsDir)
+  ) {
+    return fallbackAssetsDir;
+  }
+  return derived;
 }
 
 /** Resolve a display name, slug, or filename to an on-disk example JSON path. */

@@ -5,7 +5,8 @@ import { describe, it, expect } from "vitest";
 import {
   loadExampleGraph,
   resolveExampleJsonPath,
-  defaultExamplePackageName
+  defaultExamplePackageName,
+  deriveExampleAssetsDir
 } from "../src/example-workflows.js";
 
 function writeExample(
@@ -65,5 +66,19 @@ describe("example-workflows", () => {
     const examplesDir = path.join(root, "examples", "nodetool-base");
     fs.mkdirSync(examplesDir, { recursive: true });
     expect(defaultExamplePackageName({ examplesDir })).toBe("nodetool-base");
+  });
+
+  it("falls back to bundled assets when examples are mounted elsewhere", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-"));
+    const examplesDir = path.join(root, "workspace", "examples", "nodetool-base");
+    const bundledAssets = path.join(root, "bundled", "assets", "nodetool-base");
+    fs.mkdirSync(examplesDir, { recursive: true });
+    fs.mkdirSync(bundledAssets, { recursive: true });
+    writeExample(examplesDir, "demo.json", { name: "Demo" });
+    fs.writeFileSync(path.join(bundledAssets, "Demo.jpg"), "fake-jpg", "utf8");
+
+    const resolved = deriveExampleAssetsDir(examplesDir, bundledAssets);
+    expect(resolved).toBe(bundledAssets);
+    expect(fs.existsSync(path.join(resolved, "Demo.jpg"))).toBe(true);
   });
 });

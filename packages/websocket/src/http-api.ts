@@ -10,7 +10,8 @@ import nodePath from "node:path";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
   loadExampleGraph,
-  defaultExamplePackageName
+  defaultExamplePackageName,
+  deriveExampleAssetsDir
 } from "./example-workflows.js";
 import {
   createLogger,
@@ -84,8 +85,12 @@ export interface HttpApiOptions {
    * serve thumbnail images at both:
    *   - `/api/workflows/examples/thumbnails/<name>.jpg` (used by WorkflowTile)
    *   - `/api/assets/packages/<package-name>/<name>.jpg` (used by WorkflowCard)
+   *
+   * When examples are overridden (e.g. a Docker volume) but thumbnails remain
+   * bundled with the server, set `examplesAssetsFallbackDir` to that assets path.
    */
   examplesDir?: string;
+  examplesAssetsFallbackDir?: string;
 }
 
 // Lazily created storage handler — recreated if options change
@@ -814,18 +819,6 @@ interface ExampleMetadata {
 }
 
 /**
- * Given an `examplesDir` (e.g. `.../nodetool/examples/nodetool-base`), return
- * the sibling assets directory (`.../nodetool/assets/nodetool-base`).
- */
-function deriveAssetsDir(examplesDir: string): string {
-  return nodePath.join(
-    nodePath.dirname(nodePath.dirname(examplesDir)),
-    "assets",
-    nodePath.basename(examplesDir)
-  );
-}
-
-/**
  * Read example workflow metadata from a directory of JSON files.
  * Returns lightweight objects (no graph data) suitable for the /examples list.
  *
@@ -834,10 +827,15 @@ function deriveAssetsDir(examplesDir: string): string {
  * pointing to `/api/workflows/examples/thumbnails/<name>` is set so the
  * frontend can display the pre-generated JPG thumbnails.
  */
-function buildExamplesFromDir(examplesDir: string): unknown[] {
+function buildExamplesFromDir(
+  examplesDir: string,
+  examplesAssetsFallbackDir?: string
+): unknown[] {
   if (!existsSync(examplesDir)) return [];
-  // Derive the assets directory from the examples directory.
-  const assetsDir = deriveAssetsDir(examplesDir);
+  const assetsDir = deriveExampleAssetsDir(
+    examplesDir,
+    examplesAssetsFallbackDir
+  );
   const now = new Date().toISOString();
   const workflows: unknown[] = [];
   let files: string[];
@@ -906,7 +904,10 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
 function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
   // If a static examples directory is configured, use it directly — no Python needed.
   if (options.examplesDir) {
-    return buildExamplesFromDir(options.examplesDir);
+    return buildExamplesFromDir(
+      options.examplesDir,
+      options.examplesAssetsFallbackDir
+    );
   }
   const loaded = loadPythonPackageMetadata({
     roots: options.metadataRoots,
@@ -1000,7 +1001,10 @@ export async function handleWorkflowExamplesThumbnail(
     return errorResponse(404, "Examples not configured");
   }
   // Derive the assets directory from the examples directory.
-  const assetsDir = deriveAssetsDir(options.examplesDir);
+  const assetsDir = deriveExampleAssetsDir(
+    options.examplesDir,
+    options.examplesAssetsFallbackDir
+  );
   // Prevent path traversal — only allow a plain filename (no slashes).
   const safe = nodePath.basename(filename);
   const safeLower = safe.toLowerCase();

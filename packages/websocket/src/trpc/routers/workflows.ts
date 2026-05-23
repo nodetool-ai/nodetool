@@ -37,6 +37,11 @@ import { WorkflowRunner } from "@nodetool-ai/kernel";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
+import {
+  loadExampleGraph,
+  defaultExamplePackageName,
+  deriveExampleAssetsDir
+} from "../../example-workflows.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -217,17 +222,15 @@ interface ExampleMetadata {
   tags?: string[];
 }
 
-function deriveAssetsDir(examplesDir: string): string {
-  return nodePath.join(
-    nodePath.dirname(nodePath.dirname(examplesDir)),
-    "assets",
-    nodePath.basename(examplesDir)
-  );
-}
-
-function buildExamplesFromDir(examplesDir: string): unknown[] {
+function buildExamplesFromDir(
+  examplesDir: string,
+  examplesAssetsFallbackDir?: string
+): unknown[] {
   if (!existsSync(examplesDir)) return [];
-  const assetsDir = deriveAssetsDir(examplesDir);
+  const assetsDir = deriveExampleAssetsDir(
+    examplesDir,
+    examplesAssetsFallbackDir
+  );
   const now = new Date().toISOString();
   const workflows: unknown[] = [];
   let files: string[];
@@ -292,10 +295,18 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
 }
 
 function buildExampleWorkflows(
-  apiOptions: { examplesDir?: string; metadataRoots?: string[]; metadataMaxDepth?: number }
+  apiOptions: {
+    examplesDir?: string;
+    examplesAssetsFallbackDir?: string;
+    metadataRoots?: string[];
+    metadataMaxDepth?: number;
+  }
 ): unknown[] {
   if (apiOptions.examplesDir) {
-    return buildExamplesFromDir(apiOptions.examplesDir);
+    return buildExamplesFromDir(
+      apiOptions.examplesDir,
+      apiOptions.examplesAssetsFallbackDir
+    );
   }
   const loaded = loadPythonPackageMetadata({
     roots: apiOptions.metadataRoots,

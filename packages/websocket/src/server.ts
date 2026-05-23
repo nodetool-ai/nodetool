@@ -678,6 +678,7 @@ app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
 const _serverDir = dirname(fileURLToPath(import.meta.url));
 const _envExamplesDir = process.env["NODETOOL_BASE_EXAMPLES_DIR"];
 const _bundledExamplesDir = resolve(_serverDir, "examples", "nodetool-base");
+const _bundledAssetsDir = resolve(_serverDir, "assets", "nodetool-base");
 const _monoExamplesDir = resolve(
   _serverDir,
   "..",
@@ -710,6 +711,9 @@ if (_resolvedExamplesDir) {
 const apiOptions: HttpApiOptions = { metadataRoots, registry };
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
+  if (existsSync(_bundledAssetsDir)) {
+    apiOptions.examplesAssetsFallbackDir = _bundledAssetsDir;
+  }
 }
 const staticFolder = process.env["STATIC_FOLDER"];
 const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));

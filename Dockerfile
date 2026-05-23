@@ -61,6 +61,25 @@ COPY turbo.json ./
 
 RUN npm run build:packages
 
+# Bundle template workflows + gallery thumbnails next to the server entry so
+# Docker/Electron-style installs resolve examples without extra volume mounts.
+RUN set -eu; \
+    examples_src="packages/base-nodes/nodetool/examples/nodetool-base"; \
+    assets_src="packages/base-nodes/nodetool/assets/nodetool-base"; \
+    examples_dest="packages/websocket/dist/examples/nodetool-base"; \
+    assets_dest="packages/websocket/dist/assets/nodetool-base"; \
+    mkdir -p "$examples_dest" "$assets_dest"; \
+    if [ -d "$examples_src" ]; then \
+      cp -a "$examples_src/." "$examples_dest/"; \
+    else \
+      echo "Warning: template examples not found at $examples_src"; \
+    fi; \
+    if [ -d "$assets_src" ]; then \
+      cp -a "$assets_src/." "$assets_dest/"; \
+    else \
+      echo "Warning: template thumbnails not found at $assets_src"; \
+    fi
+
 COPY web/ web/
 ARG WEB_BUILD_NODE_OPTIONS=--max-old-space-size=4096
 RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build
