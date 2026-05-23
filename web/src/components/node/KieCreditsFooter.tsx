@@ -1,9 +1,8 @@
 /**
  * KieCreditsFooter
  *
- * A small "KIE credits" chip on selected kie.ai nodes. Clicking opens a popover
- * with the account credit balance (fetched on open) and links to kie.ai pricing
- * and billing.
+ * Pricing chip + popover for kie.ai nodes (list price when known, account
+ * credits on open). Mirrors FalPricingFooter where kie exposes pricing data.
  */
 
 import React, {
@@ -39,17 +38,17 @@ import {
   kieCreditsDetailSuggestsKeysLink,
   type KieCredits,
 } from "../../utils/kieCredits";
+import {
+  formatKieUnitPricingShort,
+  formatKieUnitPricingTooltip,
+  isKieVagueBillingSummary,
+  kiePricingExternalUrl,
+} from "../../utils/formatKieUnitPricing";
 
 export interface KieCreditsFooterProps {
   metadata: NodeMetadata;
-  /** Only render the chip while the parent node is selected (or always in panels). */
   selected: boolean;
-  /**
-   * Canvas chip anchored under the node. `inline`: compact chip for panels.
-   * @default "nodeFooter"
-   */
   variant?: "nodeFooter" | "inline";
-  /** Close the popover when this identity changes (inspector node id). */
   popoverResetDep?: string;
 }
 
@@ -66,6 +65,15 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
     null,
   );
   const menuOpen = Boolean(anchorEl);
+
+  const pricing = metadata.kie_unit_pricing ?? null;
+  const vaguePrice =
+    pricing != null ? isKieVagueBillingSummary(pricing) : false;
+  const tier = pricing
+    ? vaguePrice
+      ? theme.vars.palette.warning
+      : theme.vars.palette.success
+    : theme.vars.palette.info;
 
   const handleClick = useCallback(async (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
@@ -102,7 +110,6 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
     popoverAnchorPrev.current = popoverResetDep;
   }, [popoverResetDep]);
 
-  const tier = theme.vars.palette.info;
   const placement = variant === "inline" ? "bottom-left" : "top-right";
 
   const chipSx = useMemo(
@@ -146,17 +153,29 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
     return null;
   }
 
+  const chipLabel = pricing
+    ? formatKieUnitPricingShort(pricing)
+    : "KIE credits";
+
   return (
     <>
       <EditorButton
         variant="text"
-        className={`node-kie-credits nodrag nopan kie-credits-${variant}`}
+        className={`node-kie-pricing nodrag nopan kie-pricing-${variant}`}
         aria-haspopup="true"
         aria-expanded={menuOpen}
         onClick={handleClick}
         sx={chipSx}
       >
-        KIE credits
+        {pricing?.source === "live" && (
+          <span
+            style={{ marginRight: 3, fontSize: "0.55rem", opacity: 0.85 }}
+            aria-label="live price"
+          >
+            ●
+          </span>
+        )}
+        {chipLabel}
       </EditorButton>
 
       <Popover
@@ -169,42 +188,70 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
           fontSize: "12px",
         }}
       >
+        {pricing ? (
+          <>
+            <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
+              <Caption
+                sx={{
+                  fontWeight: 600,
+                  color: tier.main,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                KIE pricing
+              </Caption>
+              <Text
+                sx={{
+                  fontSize: "12px",
+                  mt: 0.5,
+                  whiteSpace: "pre-line",
+                  color: theme.vars.palette.text.secondary,
+                }}
+              >
+                {formatKieUnitPricingTooltip(pricing)}
+              </Text>
+            </FlexColumn>
+            <Divider />
+          </>
+        ) : (
+          <>
+            <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
+              <Caption
+                sx={{
+                  fontWeight: 600,
+                  color: tier.main,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                kie.ai
+              </Caption>
+              <Text
+                sx={{
+                  fontSize: "12px",
+                  mt: 0.5,
+                  color: theme.vars.palette.text.secondary,
+                }}
+              >
+                No bundled list price for this node. Check kie.ai pricing or run
+                with your API key to see account credits.
+              </Text>
+            </FlexColumn>
+            <Divider />
+          </>
+        )}
+
         <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
           <Caption
             sx={{
               fontWeight: 600,
-              color: tier.main,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
-          >
-            kie.ai account
-          </Caption>
-          <Text
-            sx={{
-              fontSize: "12px",
-              mt: 0.5,
-              whiteSpace: "pre-line",
-              color: theme.vars.palette.text.secondary,
-            }}
-          >
-            Credit balance for your KIE API key. Per-model pricing is listed on
-            kie.ai — there is no per-endpoint pricing API.
-          </Text>
-        </FlexColumn>
-
-        <Divider />
-
-        <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
-          <Caption
-            sx={{
-              fontWeight: 600,
               color: theme.vars.palette.text.secondary,
               textTransform: "uppercase",
               letterSpacing: "0.05em",
             }}
           >
-            Remaining credits
+            Account credits
           </Caption>
           {creditsLoading ? (
             <FlexRow gap={1} align="center" sx={{ mt: 0.5 }}>
@@ -271,7 +318,11 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
           icon={<LaunchIcon sx={{ fontSize: 14 }} />}
           compact
           onClick={() => {
-            window.open(KIE_PRICING_URL, "_blank", "noopener,noreferrer");
+            window.open(
+              pricing ? kiePricingExternalUrl(pricing) : KIE_PRICING_URL,
+              "_blank",
+              "noopener,noreferrer",
+            );
             handleClose();
           }}
         />

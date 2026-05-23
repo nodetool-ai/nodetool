@@ -84,6 +84,14 @@ export default defineConfig(async ({ mode }) => {
           configDir,
           "../packages/fal-nodes/src/generated/fal-unit-pricing.json"
         ),
+        "@nodetool/kie-node-type-pricing": resolve(
+          configDir,
+          "../packages/kie-nodes/src/generated/kie-node-type-pricing.json"
+        ),
+        "@nodetool/kie-unit-pricing-catalog": resolve(
+          configDir,
+          "../packages/kie-nodes/src/generated/kie-unit-pricing.json"
+        ),
       },
     },
     plugins: [

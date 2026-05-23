@@ -11,6 +11,15 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ModuleConfig, NodeConfig } from "./types.js";
 import { generateKieConfigs } from "./generate-configs.js";
+import {
+  fetchKiePricingCatalog,
+} from "@nodetool-ai/kie-nodes/kie-pricing-api";
+import {
+  buildKiePricingBundles,
+  pricingPaths,
+  writeEmptyKiePricingBundles,
+  writeKiePricingBundles,
+} from "./kie-pricing-write.js";
 
 interface ManifestEntry {
   className: string;
@@ -75,6 +84,7 @@ async function main() {
   const moduleArg = args.indexOf("--module");
   const isAll = args.includes("--all");
   const refreshConfigs = args.includes("--refresh-configs");
+  const noPricing = args.includes("--no-pricing");
   const moduleName = moduleArg >= 0 ? args[moduleArg + 1] : null;
 
   if (!isAll && !moduleName) {
@@ -107,6 +117,26 @@ async function main() {
 
   writeFileSync(outputPath, JSON.stringify(manifest, null, 2), "utf8");
   console.log(`\nWrote ${manifest.length} nodes to ${outputPath}`);
+
+  const paths = pricingPaths(outputPath);
+  if (noPricing) {
+    await writeEmptyKiePricingBundles(paths);
+    console.log("Wrote empty KIE pricing bundles (--no-pricing)");
+  } else {
+    try {
+      console.log("Fetching kie.ai model pricing catalog…");
+      const catalog = await fetchKiePricingCatalog();
+      const bundles = buildKiePricingBundles(manifest, catalog, new Date().toISOString());
+      await writeKiePricingBundles(bundles, paths);
+      const matched = Object.keys(bundles.byNodeType.byNodeType).length;
+      console.log(
+        `Wrote KIE pricing bundles (${matched}/${manifest.length} nodes matched, ${Object.keys(catalog).length} models in catalog)`,
+      );
+    } catch (err) {
+      console.warn("KIE pricing fetch failed — writing empty bundles:", err);
+      await writeEmptyKiePricingBundles(paths);
+    }
+  }
 }
 
 main().catch((err) => {
