@@ -9,6 +9,10 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
+  loadExampleGraph,
+  defaultExamplePackageName
+} from "./example-workflows.js";
+import {
   createLogger,
   loadAssetStorageConfig,
   type StorageConfig
@@ -943,32 +947,6 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
   return workflows;
 }
 
-function loadExampleGraph(
-  packageName: string,
-  exampleName: string,
-  options: HttpApiOptions
-): Record<string, unknown> | null {
-  const loaded = loadPythonPackageMetadata({
-    roots: options.metadataRoots,
-    maxDepth: options.metadataMaxDepth
-  });
-  const pkg = loaded.packages.find((p) => p.name === packageName);
-  if (!pkg?.sourceFolder) return null;
-  const examplePath = nodePath.join(
-    pkg.sourceFolder,
-    "nodetool",
-    "examples",
-    packageName,
-    `${exampleName}.json`
-  );
-  try {
-    const raw = readFileSync(examplePath, "utf8");
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
 export async function handleWorkflowExamples(
   request: Request,
   options: HttpApiOptions
@@ -1352,12 +1330,12 @@ export async function handleWorkflowsRoot(
         url.searchParams.get("from_example_package")?.trim() ?? undefined;
       const fromName =
         url.searchParams.get("from_example_name")?.trim() ?? undefined;
-      if (
-        fromPkg &&
-        fromName &&
-        (!body.graph || body.graph.nodes?.length === 0)
-      ) {
-        const example = loadExampleGraph(fromPkg, fromName, options);
+      if (fromName && (!body.graph || body.graph.nodes?.length === 0)) {
+        const packageName =
+          fromPkg ??
+          defaultExamplePackageName(options) ??
+          "nodetool-base";
+        const example = loadExampleGraph(packageName, fromName, options);
         if (example?.graph) {
           body.graph = example.graph as WorkflowRequestBody["graph"];
         }

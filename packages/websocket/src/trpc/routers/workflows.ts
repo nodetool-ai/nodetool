@@ -336,31 +336,6 @@ function buildExampleWorkflows(
   return workflows;
 }
 
-function loadExampleGraph(
-  packageName: string,
-  exampleName: string,
-  apiOptions: { metadataRoots?: string[]; metadataMaxDepth?: number }
-): Record<string, unknown> | null {
-  const loaded = loadPythonPackageMetadata({
-    roots: apiOptions.metadataRoots,
-    maxDepth: apiOptions.metadataMaxDepth
-  });
-  const pkg = loaded.packages.find((p) => p.name === packageName);
-  if (!pkg?.sourceFolder) return null;
-  const examplePath = nodePath.join(
-    pkg.sourceFolder,
-    "nodetool",
-    "examples",
-    packageName,
-    `${exampleName}.json`
-  );
-  try {
-    const raw = readFileSync(examplePath, "utf8");
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
 
 // ── deriveWorkflowName ─────────────────────────────────────────────────────
 
@@ -448,13 +423,13 @@ export const workflowsRouter = router({
       let graph = input.graph;
 
       // Optionally seed from example
-      if (
-        input.from_example_package &&
-        input.from_example_name &&
-        (!graph || graph.nodes?.length === 0)
-      ) {
+      if (input.from_example_name && (!graph || graph.nodes?.length === 0)) {
+        const examplePackage =
+          input.from_example_package ??
+          defaultExamplePackageName(ctx.apiOptions) ??
+          "nodetool-base";
         const example = loadExampleGraph(
-          input.from_example_package,
+          examplePackage,
           input.from_example_name,
           ctx.apiOptions
         );

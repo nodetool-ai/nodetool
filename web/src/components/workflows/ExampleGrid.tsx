@@ -16,6 +16,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import {
+  examplePackageName,
+  exampleSeedRef
+} from "../../utils/exampleWorkflow";
 import SearchBar from "./SearchBar";
 import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
@@ -372,8 +376,8 @@ const TemplateGrid = memo(function TemplateGrid() {
       // Call createWorkflow with the example parameters
       const newWorkflow = await createWorkflow(
         req,
-        workflow.package_name || undefined,
-        workflow.name
+        examplePackageName(workflow),
+        exampleSeedRef(workflow)
       );
       return newWorkflow;
     },
