@@ -29,7 +29,10 @@ const layout = tgpu.bindGroupLayout({
 export const blurGaussianV1 = defineModule({
   id: "filters.blur.gaussian",
   version: 1,
-  surface: "internal",
+  // Promoted in Phase 3: separable gaussian blur with a stable
+  // (radius, sigma, direction) schema; consumed by Phase 2 timeline +
+  // Phase 3 `filters.glow` recipe.
+  surface: "published",
   category: "filters",
   kind: "compute",
   params: BlurParams,
