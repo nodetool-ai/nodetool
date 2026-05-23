@@ -36,6 +36,7 @@ import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
 import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerKieNodes } from "@nodetool-ai/kie-nodes";
+import { registerTopazNodes } from "@nodetool-ai/topaz-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import {
   PythonNodeExecutor,
@@ -138,6 +139,7 @@ async function getWorkflowRuntimeEnvironment(
         }
         registerFalNodes(registry);
         registerKieNodes(registry);
+        registerTopazNodes(registry);
         registerReplicateNodes(registry);
         if (process.env["NODETOOL_ENV"] === "production") {
           const skippedPrefixes = ["lib.tensorflow.", "transformers."];
