@@ -13,7 +13,13 @@ interface PanelHeadlineProps {
 const styles = (theme: Theme) =>
   css({
     padding: ".35em 0 .35em 0",
+    minHeight: "2.25em",
+    boxSizing: "border-box",
 
+    ".headline-actions .MuiIconButton-root": {
+      padding: 2,
+      "& svg": { fontSize: "1rem" }
+    },
     ".headline-title": {
       fontSize: "0.95rem",
       fontWeight: 300,
