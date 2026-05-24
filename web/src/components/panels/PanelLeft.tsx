@@ -8,7 +8,6 @@ import {
 } from "@mui/material";
 import { ToolbarIconButton } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import { useCombo } from "../../stores/KeyPressedStore";
 import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
 import { memo, useCallback } from "react";
@@ -163,7 +162,8 @@ const styles = (
       display: "flex",
       flex: 1,
       height: "100%",
-      overflow: "hidden"
+      overflow: "hidden",
+      padding: isMobile ? 0 : "0 0.75em"
     }
   });
 };
@@ -243,8 +243,7 @@ const PanelContent = memo(function PanelContent({
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          margin: isMobile ? "0" : "0 0.5em"
+          overflow: "hidden"
         }}
       >
         {!isMobile && <PanelHeadline title="Nodes" />}
@@ -263,7 +262,7 @@ const PanelContent = memo(function PanelContent({
           sx={{
             width: "100%",
             height: "100%",
-            margin: isMobile ? "0" : "0 0.5em",
+            
             overflow: "hidden",
             display: "flex",
             flexDirection: "column"
@@ -278,21 +277,28 @@ const PanelContent = memo(function PanelContent({
           sx={{
             width: "100%",
             height: "100%",
-            margin: isMobile ? "0" : "0 0.5em",
+            
             overflow: "hidden",
             display: "flex",
             flexDirection: "column"
           }}
         >
+          {!isMobile && <PanelHeadline title="Favorites" />}
           <ScrollArea fullHeight>
-            <FavoritesTiles showEmpty />
+            <FavoritesTiles showEmpty hideHeader />
           </ScrollArea>
         </Box>
       )}
       {activeView === "assets" && (
         <Box
           className="assets-container"
-          sx={{ width: "100%", height: "100%", margin: isMobile ? "0" : "0 1em" }}
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column"
+          }}
         >
           {!isMobile && (
             <PanelHeadline
@@ -318,7 +324,7 @@ const PanelContent = memo(function PanelContent({
           sx={{
             width: "100%",
             height: "100%",
-            margin: isMobile ? "0" : "0 1em",
+            
             overflow: "hidden",
             display: "flex",
             flexDirection: "column"
@@ -339,6 +345,7 @@ const PanelContent = memo(function PanelContent({
             overflow: "auto"
           }}
         >
+          {!isMobile && <PanelHeadline title="Settings" />}
           <WorkflowForm workflow={currentWorkflow} onClose={closePanel} />
         </Box>
       )}
@@ -353,6 +360,7 @@ const PanelContent = memo(function PanelContent({
             flexDirection: "column"
           }}
         >
+          {!isMobile && <PanelHeadline title="Agent" />}
           <AgentPanel />
         </Box>
       )}
@@ -538,8 +546,6 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  useCombo(["1"], () => handlePanelToggle("workflows"), false);
-  useCombo(["2"], () => handlePanelToggle("assets"), false);
   useAuditCuratedCategories();
 
   const activeView =
@@ -609,6 +615,15 @@ const PanelLeft: React.FC = () => {
             style={{
               width: `${Math.max(panelSize - TOOLBAR_WIDTH, 250)}px`,
               minWidth: "250px"
+            }}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Escape" &&
+                (activeView === "nodes" || activeView === "workflows")
+              ) {
+                e.stopPropagation();
+                setVisibility(false);
+              }
             }}
           >
             <div

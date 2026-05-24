@@ -5,8 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { DragEvent as ReactDragEvent } from "react";
-import { Tooltip, Text, ToolbarIconButton, FlexRow, thinScrollbarStyles } from "../ui_primitives";
-import HistoryIcon from "@mui/icons-material/History";
+import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles } from "../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -292,10 +291,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   return (
     <div css={memoizedStyles}>
       <div className="tiles-header">
-        <FlexRow align="center" gap={0.5}>
-          <HistoryIcon fontSize="small" sx={{ opacity: 0.8 }} />
-          <Text size="normal" weight={600}>Recent Nodes</Text>
-        </FlexRow>
+        <Text size="normal" weight={600}>Recent Nodes</Text>
         <ToolbarIconButton
           icon={<ClearIcon fontSize="small" />}
           tooltip="Clear recent nodes"
