@@ -46,6 +46,9 @@ export {
   colorHsbV1,
   colorExposureV1,
   colorPosterizeV1,
+  colorChannelSplitV1,
+  colorChannelShuffleV1,
+  colorChannelMergeV1,
   blurGaussianV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
@@ -60,10 +63,26 @@ export {
   sourcesSolidV1,
   sourcesLinearGradientV1,
   sourcesCheckerboardV1,
+  sourcesRadialGradientV1,
+  sourcesAngularGradientV1,
+  sourcesDiamondGradientV1,
   mixerAddV1,
+  mixerColorOverlayV1,
+  mixerOutlineV1,
+  mixerShadowComposeV1,
+  mixerDropShadowV1,
   transformMirrorV1,
   transformOffsetV1,
-  transformCropV1
+  transformCropV1,
+  transformPadV1,
+  transformTileV1,
+  transformResizeV1,
+  transformRotate90V1,
+  transformAffineV1,
+  transformCornerPinV1,
+  transformPolarRemapV1,
+  transformDisplaceV1,
+  transformSpherizeV1
 } from "./shaders/index.js";
 
 import { ShaderRegistry } from "./registry.js";

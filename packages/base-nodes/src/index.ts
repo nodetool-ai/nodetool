@@ -761,6 +761,13 @@ import { TEAM_NODES } from "./nodes/team.js";
 import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
 import { LIB_DATETIME_NODES } from "./nodes/lib-datetime.js";
 import { LIB_VALIDATE_NODES } from "./nodes/lib-validate.js";
+import { LIB_IMAGE_EFFECTS_NODES } from "./nodes/lib-image-effects.js";
+import { LIB_IMAGE_KEYER_NODES } from "./nodes/lib-image-keyer.js";
+import { LIB_IMAGE_MASK_NODES } from "./nodes/lib-image-mask.js";
+import { LIB_IMAGE_CHANNEL_NODES } from "./nodes/lib-image-channel.js";
+import { LIB_IMAGE_WARP_NODES } from "./nodes/lib-image-warp.js";
+import { LIB_IMAGE_GENERATORS_NODES } from "./nodes/lib-image-generators.js";
+import { LIB_IMAGE_FILTER_EXTRAS_NODES } from "./nodes/lib-image-filter-extras.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -830,8 +837,23 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...TOOL_AGENT_NODES,
   ...SANDBOX_NODES,
   ...TEAM_NODES,
-  ...LIB_NLP_NODES
+  ...LIB_NLP_NODES,
+  ...LIB_IMAGE_EFFECTS_NODES,
+  ...LIB_IMAGE_KEYER_NODES,
+  ...LIB_IMAGE_MASK_NODES,
+  ...LIB_IMAGE_CHANNEL_NODES,
+  ...LIB_IMAGE_WARP_NODES,
+  ...LIB_IMAGE_GENERATORS_NODES,
+  ...LIB_IMAGE_FILTER_EXTRAS_NODES
 ];
+
+export { LIB_IMAGE_EFFECTS_NODES } from "./nodes/lib-image-effects.js";
+export { LIB_IMAGE_KEYER_NODES } from "./nodes/lib-image-keyer.js";
+export { LIB_IMAGE_MASK_NODES } from "./nodes/lib-image-mask.js";
+export { LIB_IMAGE_CHANNEL_NODES } from "./nodes/lib-image-channel.js";
+export { LIB_IMAGE_WARP_NODES } from "./nodes/lib-image-warp.js";
+export { LIB_IMAGE_GENERATORS_NODES } from "./nodes/lib-image-generators.js";
+export { LIB_IMAGE_FILTER_EXTRAS_NODES } from "./nodes/lib-image-filter-extras.js";
 
 export function registerBaseNodes(registry: NodeRegistry): void {
   for (const nodeClass of ALL_BASE_NODES) {

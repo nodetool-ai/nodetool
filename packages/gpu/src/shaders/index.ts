@@ -19,6 +19,9 @@ import { colorBrightnessContrastV1 } from "./color/brightnessContrast/v1/module.
 import { colorHsbV1 } from "./color/hsb/v1/module.js";
 import { colorExposureV1 } from "./color/exposure/v1/module.js";
 import { colorPosterizeV1 } from "./color/posterize/v1/module.js";
+import { colorChannelSplitV1 } from "./color/channelSplit/v1/module.js";
+import { colorChannelShuffleV1 } from "./color/channelShuffle/v1/module.js";
+import { colorChannelMergeV1 } from "./color/channelMerge/v1/module.js";
 
 import { blurGaussianV1 } from "./filters/blur/gaussian/v1/module.js";
 import { sharpenUnsharpMaskV1 } from "./filters/sharpen/unsharpMask/v1/module.js";
@@ -42,10 +45,23 @@ import { sourcesAngularGradientV1 } from "./sources/angularGradient/v1/module.js
 import { sourcesDiamondGradientV1 } from "./sources/diamondGradient/v1/module.js";
 
 import { mixerAddV1 } from "./mixer/add/v1/module.js";
+import { mixerColorOverlayV1 } from "./mixer/colorOverlay/v1/module.js";
+import { mixerOutlineV1 } from "./mixer/outline/v1/module.js";
+import { mixerShadowComposeV1 } from "./mixer/shadowCompose/v1/module.js";
+import { mixerDropShadowV1 } from "./mixer/dropShadow/v1/module.js";
 
 import { transformMirrorV1 } from "./transform/mirror/v1/module.js";
 import { transformOffsetV1 } from "./transform/offset/v1/module.js";
 import { transformCropV1 } from "./transform/crop/v1/module.js";
+import { transformPadV1 } from "./transform/pad/v1/module.js";
+import { transformTileV1 } from "./transform/tile/v1/module.js";
+import { transformResizeV1 } from "./transform/resize/v1/module.js";
+import { transformRotate90V1 } from "./transform/rotate90/v1/module.js";
+import { transformAffineV1 } from "./transform/affine/v1/module.js";
+import { transformCornerPinV1 } from "./transform/cornerPin/v1/module.js";
+import { transformPolarRemapV1 } from "./transform/polarRemap/v1/module.js";
+import { transformDisplaceV1 } from "./transform/displace/v1/module.js";
+import { transformSpherizeV1 } from "./transform/spherize/v1/module.js";
 
 export {
   passthroughV1,
@@ -55,6 +71,9 @@ export {
   colorHsbV1,
   colorExposureV1,
   colorPosterizeV1,
+  colorChannelSplitV1,
+  colorChannelShuffleV1,
+  colorChannelMergeV1,
   blurGaussianV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
@@ -73,9 +92,22 @@ export {
   sourcesAngularGradientV1,
   sourcesDiamondGradientV1,
   mixerAddV1,
+  mixerColorOverlayV1,
+  mixerOutlineV1,
+  mixerShadowComposeV1,
+  mixerDropShadowV1,
   transformMirrorV1,
   transformOffsetV1,
-  transformCropV1
+  transformCropV1,
+  transformPadV1,
+  transformTileV1,
+  transformResizeV1,
+  transformRotate90V1,
+  transformAffineV1,
+  transformCornerPinV1,
+  transformPolarRemapV1,
+  transformDisplaceV1,
+  transformSpherizeV1
 };
 
 /**
@@ -91,6 +123,9 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorHsbV1,
   colorExposureV1,
   colorPosterizeV1,
+  colorChannelSplitV1,
+  colorChannelShuffleV1,
+  colorChannelMergeV1,
   // filters
   blurGaussianV1,
   sharpenUnsharpMaskV1,
@@ -113,14 +148,29 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   sourcesDiamondGradientV1,
   // mixer
   mixerAddV1,
+  mixerColorOverlayV1,
+  mixerOutlineV1,
+  mixerShadowComposeV1,
   // transform
   transformMirrorV1,
   transformOffsetV1,
-  transformCropV1
+  transformCropV1,
+  transformPadV1,
+  transformTileV1,
+  transformResizeV1,
+  transformRotate90V1,
+  transformAffineV1,
+  transformCornerPinV1,
+  transformPolarRemapV1,
+  transformDisplaceV1,
+  transformSpherizeV1
 ];
 
 /** Every recipe module registered by default. */
-export const ALL_RECIPES: readonly RecipeModule[] = [filtersGlowV1];
+export const ALL_RECIPES: readonly RecipeModule[] = [
+  filtersGlowV1,
+  mixerDropShadowV1
+];
 
 /** Both kinds, in catalog order. The registry's preload set. */
 export const ALL_CATALOG: readonly (ShaderModule | RecipeModule)[] = [
