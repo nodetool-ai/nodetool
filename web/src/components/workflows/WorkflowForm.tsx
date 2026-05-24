@@ -38,8 +38,9 @@ const styles = (theme: Theme) =>
     "&": {
       margin: 0,
       padding: theme.spacing(3),
-      minWidth: "420px",
-      maxWidth: "500px"
+      width: "100%",
+      maxWidth: "500px",
+      boxSizing: "border-box"
     },
     
     // Section grouping

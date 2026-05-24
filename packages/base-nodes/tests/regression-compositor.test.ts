@@ -4,7 +4,7 @@
  * Verifies dynamic `image_N` input collection, positional alignment
  * with `layers[i]`, visibility / zero-opacity filtering, blend modes,
  * mismatched dimensions, corrupt-input handling, and that the output
- * is a non-empty PNG image of the base layer's dimensions.
+ * is a non-empty raw-RGBA image of the base layer's dimensions.
  *
  * `CompositorNode` composites on the GPU (WebGPU/Dawn) with no CPU fallback,
  * so the suite requires a real device and skips when none is available — CI
@@ -81,7 +81,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
     expect(out).toBeDefined();
-    expect(out.data).toBe(""); // empty Uint8Array → empty base64
+    expect((out.data as Uint8Array).length).toBe(0);
   });
 
   it("emits the base layer when only one image input is wired", async () => {

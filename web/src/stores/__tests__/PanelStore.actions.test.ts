@@ -64,8 +64,8 @@ describe("PanelStore — additional actions", () => {
     it("can set to any valid view", () => {
       usePanelStore.getState().setActiveView("history");
       expect(usePanelStore.getState().panel.activeView).toBe("history");
-      usePanelStore.getState().setActiveView("search");
-      expect(usePanelStore.getState().panel.activeView).toBe("search");
+      usePanelStore.getState().setActiveView("nodes");
+      expect(usePanelStore.getState().panel.activeView).toBe("nodes");
     });
   });
 
