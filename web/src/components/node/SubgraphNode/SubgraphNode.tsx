@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -15,6 +15,7 @@ import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
+import { useSubgraphTabsStore } from "../../../stores/SubgraphTabsStore";
 import { SubgraphNodeContent } from "./SubgraphNodeContent";
 
 const TOOLBAR_SHOW_DELAY = 200;
@@ -73,6 +74,22 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     return data.title || metadata.title || "Subgraph";
   }, [metadata, data.title]);
 
+  const openSubgraphTab = useSubgraphTabsStore((state) => state.openTab);
+  const handleDoubleClick = useCallback(() => {
+    const innerGraph = (data.properties?.graph as
+      | { nodes?: unknown[]; edges?: unknown[] }
+      | undefined) ?? { nodes: [], edges: [] };
+    openSubgraphTab({
+      workflowId: workflow_id,
+      nodeId: id,
+      label: headerTitle,
+      initialGraph: {
+        nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
+        edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
+      }
+    });
+  }, [openSubgraphTab, workflow_id, id, headerTitle, data.properties?.graph]);
+
   if (!metadata) {
     return null;
   }
@@ -80,6 +97,7 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   return (
     <Box
       className="subgraph-node"
+      onDoubleClick={handleDoubleClick}
       sx={{
         display: "flex",
         flexDirection: "column",
