@@ -47,6 +47,7 @@ import {
 } from "../node/WorkflowNode";
 import { SubgraphNode, SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import ConstantStringNode from "../node/ConstantStringNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
@@ -224,8 +225,13 @@ const ReactFlowWrapper = ({
 
   const { handleMoveEnd, handleOnMoveStart } = useReactFlowEvents();
 
-  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
-  const workflowExistsLocally = workflowId ? !!getNodeStore(workflowId) : false;
+  // Subscribe directly to `nodeStores[workflowId]` so the component re-renders
+  // when an ephemeral store is registered (e.g. a subgraph tab opening).
+  // Selecting `state.getNodeStore` would return a stable function reference
+  // and miss the store-injection event.
+  const workflowExistsLocally = useWorkflowManager((state) =>
+    workflowId ? !!state.nodeStores[workflowId] : false
+  );
 
   const { isLoading, error } = useWorkflow(workflowId, {
     enabled: !workflowExistsLocally
@@ -696,14 +702,17 @@ const ReactFlowWrapper = ({
     return props;
   }, [settings.panControls]);
 
-  if (isLoading) {
+  // Local stores (subgraph tabs included) bypass the fetch entirely; ignore
+  // any stale loading/error state cached from a previous query for the same
+  // workflowId — those reflect the server fetch which is no longer relevant.
+  if (!workflowExistsLocally && isLoading) {
     return (
       <div className="loading-overlay">
         <LoadingSpinner /> Loading workflow...
       </div>
     );
   }
-  if (error) {
+  if (!workflowExistsLocally && error) {
     return (
       <div className="loading-overlay">
         <Text color="error">
@@ -780,7 +789,7 @@ const ReactFlowWrapper = ({
             properties?: { graph?: { nodes?: unknown[]; edges?: unknown[] } };
           };
           const innerGraph = data.properties?.graph ?? { nodes: [], edges: [] };
-          useSubgraphTabsStore.getState().openTab({
+          const key = useSubgraphTabsStore.getState().openTab({
             workflowId: data.workflow_id ?? "",
             nodeId: node.id,
             label: data.title || "Subgraph",
@@ -789,6 +798,17 @@ const ReactFlowWrapper = ({
               edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
             }
           });
+          const tab = useSubgraphTabsStore.getState().getTab(key);
+          if (tab) {
+            // Register the subgraph store synchronously so the upcoming
+            // SubgraphTabContent → ReactFlowWrapper render sees
+            // workflowExistsLocally === true and skips the 404 fetch for
+            // the synthetic id. SubgraphTabContent's useEffect also
+            // re-registers (idempotent) to survive StrictMode double-mount.
+            workflowManagerStore.setState((state) => ({
+              nodeStores: { ...state.nodeStores, [key]: tab.store }
+            }));
+          }
         }}
         onPaneContextMenu={handlePaneContextMenu}
         onMoveStart={handleOnMoveStart}

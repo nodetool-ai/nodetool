@@ -9,7 +9,10 @@ import KeyboardProvider from "../KeyboardProvider";
 import NodeEditor from "../node_editor/NodeEditor";
 import FloatingToolBar from "../panels/FloatingToolBar";
 import NodeCreateBridge from "./NodeCreateBridge";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import {
+  useWorkflowManager,
+  useWorkflowManagerStore
+} from "../../contexts/WorkflowManagerContext";
 import type { SubgraphTab } from "../../stores/SubgraphTabsStore";
 import type { NodeStoreState } from "../../stores/NodeStore";
 
@@ -26,6 +29,24 @@ const SubgraphTabContent = ({ tab }: SubgraphTabContentProps) => {
   const parentStore = useWorkflowManager(
     (state) => state.nodeStores[tab.workflowId]
   );
+  const workflowManagerStore = useWorkflowManagerStore();
+
+  // Register the subgraph's NodeStore in WorkflowManager.nodeStores so
+  // ReactFlowWrapper's `useWorkflow` short-circuits and skips the
+  // 404 fetch for the synthetic id. The effect re-registers on every
+  // mount — important under React.StrictMode dev double-mounting, where
+  // the cleanup runs between mounts.
+  useEffect(() => {
+    workflowManagerStore.setState((state) => ({
+      nodeStores: { ...state.nodeStores, [tab.key]: tab.store }
+    }));
+    return () => {
+      workflowManagerStore.setState((state) => {
+        const { [tab.key]: _removed, ...rest } = state.nodeStores;
+        return { nodeStores: rest };
+      });
+    };
+  }, [workflowManagerStore, tab.key, tab.store]);
 
   // Mirror subgraph store changes back to the parent SubgraphNode's `graph`
   // property. We subscribe to nodes/edges changes and write the latest snapshot.
@@ -62,15 +83,22 @@ const SubgraphTabContent = ({ tab }: SubgraphTabContentProps) => {
 
   return (
     <Box
+      data-testid="subgraph-tab-content"
+      data-subgraph-key={tab.key}
       sx={{
         overflow: "hidden",
         position: "absolute",
+        top: 0,
+        left: 0,
         width: "100%",
         height: "100%",
         minHeight: 0,
         minWidth: 0,
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
+        // Render above the (still-mounted but invisible) parent workflow
+        // canvases so right-clicks and other events land on this canvas.
+        zIndex: 2
       }}
     >
       <NodeContext.Provider value={tab.store}>

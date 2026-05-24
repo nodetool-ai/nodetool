@@ -170,6 +170,116 @@ test.describe("Subgraph feature", () => {
       undefined,
       { timeout: 5000 }
     );
+
+    // The subgraph tab's canvas must actually mount a ReactFlow viewport —
+    // not the "Workflow not found" error state from a failed useWorkflow
+    // fetch. Wait for the viewport, then assert no error overlay.
+    await page.waitForSelector(".react-flow__viewport", {
+      state: "attached",
+      timeout: 10_000
+    });
+
+    const errorOverlayCount = await page
+      .locator(".loading-overlay")
+      .filter({ hasText: /not found|error/i })
+      .count();
+    expect(errorOverlayCount).toBe(0);
+
+    // ReactFlow should have at least one .react-flow__pane (per active canvas).
+    const paneCount = await page
+      .locator(".react-flow__pane")
+      .count();
+    expect(paneCount).toBeGreaterThan(0);
+  });
+
+  test("subgraph canvas accepts new nodes via pane context menu", async ({
+    page
+  }) => {
+    await gotoEditor(page);
+
+    await openPaneContextMenu(page);
+    await clickAddSubgraph(page);
+    const subgraphNode = page.locator(".subgraph-node").first();
+    await subgraphNode.waitFor({ state: "attached", timeout: 5000 });
+
+    // Open the subgraph in a tab.
+    await page.evaluate(() => {
+      const node = document.querySelector(".subgraph-node");
+      const wrapper = node?.closest(".react-flow__node") as HTMLElement | null;
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      const eventInit = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+        button: 0,
+        buttons: 0,
+        detail: 2
+      };
+      wrapper.dispatchEvent(new MouseEvent("mousedown", eventInit));
+      wrapper.dispatchEvent(new MouseEvent("mouseup", eventInit));
+      wrapper.dispatchEvent(new MouseEvent("click", eventInit));
+      wrapper.dispatchEvent(new MouseEvent("dblclick", eventInit));
+    });
+
+    await page.waitForFunction(
+      () => document.querySelectorAll(".subgraph-tab.active").length > 0,
+      undefined,
+      { timeout: 5000 }
+    );
+    await page.waitForSelector(".react-flow__viewport", {
+      state: "attached",
+      timeout: 10_000
+    });
+
+    // Count React Flow nodes currently in the subgraph canvas only. The
+    // subgraph tab content renders BEFORE the parent canvas boxes in
+    // TabsNodeEditor, so its React Flow viewport is FIRST in DOM order.
+    const initialNodes = await page.evaluate(() => {
+      const subgraphContent = document.querySelector(
+        "[data-testid='subgraph-tab-content']"
+      );
+      return (
+        subgraphContent?.querySelectorAll(".react-flow__node").length ?? 0
+      );
+    });
+
+    // Right-click on the subgraph pane via real mouse. The
+    // SubgraphTabContent Box covers the editor area with zIndex above the
+    // (invisible) parent canvas, so this lands on the subgraph pane.
+    await page.mouse.move(960, 540);
+    await page.mouse.click(960, 540, { button: "right" });
+
+    await page
+      .locator(".pane-context-menu")
+      .first()
+      .waitFor({ state: "visible", timeout: 5000 });
+
+    // Click "Add Input Node" → "String" inside the now-open menu.
+    await page
+      .locator(".pane-context-menu")
+      .getByText("Add Input Node", { exact: false })
+      .first()
+      .click();
+    await page
+      .locator(".pane-submenu")
+      .getByText("String", { exact: true })
+      .first()
+      .click();
+
+    // The node count inside the subgraph canvas should increase by one.
+    await page.waitForFunction(
+      (n) => {
+        const sub = document.querySelector(
+          "[data-testid='subgraph-tab-content']"
+        );
+        return (sub?.querySelectorAll(".react-flow__node").length ?? 0) > n;
+      },
+      initialNodes,
+      { timeout: 5000 }
+    );
   });
 
   test("switches back to parent workflow tab and closes subgraph tab", async ({
