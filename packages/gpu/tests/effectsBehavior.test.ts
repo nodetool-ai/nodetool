@@ -80,7 +80,9 @@ describe.skipIf(!device)("timeline effect behavior (GPU)", () => {
       width,
       height,
       format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      // Timeline FX modules declare `{srgb, premultiplied}` inputs.
+      meta: { colorSpace: "srgb", alpha: "premultiplied" }
     });
     gpu.queue.writeTexture(
       { texture: source.texture },
@@ -93,7 +95,8 @@ describe.skipIf(!device)("timeline effect behavior (GPU)", () => {
       width,
       height,
       format: "rgba8unorm",
-      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC
+      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC,
+      meta: { colorSpace: "srgb", alpha: "premultiplied" }
     });
 
     const encoder = gpu.createCommandEncoder();
