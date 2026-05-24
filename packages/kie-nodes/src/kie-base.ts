@@ -445,7 +445,7 @@ export async function kieExecuteOmniDirect(
   endpoint: string,
   body: Record<string, unknown>,
   responseIdKey: string
-): Promise<{ data: string; items: string[]; taskId: string }> {
+): Promise<KieExecuteResult> {
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),

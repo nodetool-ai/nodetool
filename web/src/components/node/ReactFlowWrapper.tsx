@@ -46,6 +46,7 @@ import {
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
 import { SubgraphNode, SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
+import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import ConstantStringNode from "../node/ConstantStringNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
@@ -771,6 +772,24 @@ const ReactFlowWrapper = ({
         onNodeContextMenu={handleNodeContextMenu}
         onPaneClick={handlePaneClickWithSuppress}
         onNodeClick={handleNodeClick}
+        onNodeDoubleClick={(_event, node) => {
+          if (node.type !== SUBGRAPH_NODE_TYPE) return;
+          const data = node.data as {
+            workflow_id?: string;
+            title?: string;
+            properties?: { graph?: { nodes?: unknown[]; edges?: unknown[] } };
+          };
+          const innerGraph = data.properties?.graph ?? { nodes: [], edges: [] };
+          useSubgraphTabsStore.getState().openTab({
+            workflowId: data.workflow_id ?? "",
+            nodeId: node.id,
+            label: data.title || "Subgraph",
+            initialGraph: {
+              nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
+              edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
+            }
+          });
+        }}
         onPaneContextMenu={handlePaneContextMenu}
         onMoveStart={handleOnMoveStart}
         onDoubleClick={handleDoubleClick}

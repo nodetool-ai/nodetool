@@ -75,20 +75,24 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [metadata, data.title]);
 
   const openSubgraphTab = useSubgraphTabsStore((state) => state.openTab);
-  const handleDoubleClick = useCallback(() => {
-    const innerGraph = (data.properties?.graph as
-      | { nodes?: unknown[]; edges?: unknown[] }
-      | undefined) ?? { nodes: [], edges: [] };
-    openSubgraphTab({
-      workflowId: workflow_id,
-      nodeId: id,
-      label: headerTitle,
-      initialGraph: {
-        nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
-        edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
-      }
-    });
-  }, [openSubgraphTab, workflow_id, id, headerTitle, data.properties?.graph]);
+  const handleDoubleClick = useCallback(
+    (event?: React.MouseEvent) => {
+      event?.stopPropagation();
+      const innerGraph = (data.properties?.graph as
+        | { nodes?: unknown[]; edges?: unknown[] }
+        | undefined) ?? { nodes: [], edges: [] };
+      openSubgraphTab({
+        workflowId: workflow_id,
+        nodeId: id,
+        label: headerTitle,
+        initialGraph: {
+          nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
+          edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
+        }
+      });
+    },
+    [openSubgraphTab, workflow_id, id, headerTitle, data.properties?.graph]
+  );
 
   if (!metadata) {
     return null;

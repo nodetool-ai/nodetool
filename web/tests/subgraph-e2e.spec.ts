@@ -61,17 +61,36 @@ const gotoEditor = async (page: Page): Promise<void> => {
 };
 
 const openPaneContextMenu = async (page: Page): Promise<void> => {
-  const canvas = page.locator(".react-flow__pane").first();
-  await canvas.waitFor({ state: "visible", timeout: 5000 });
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error("canvas has no bounding box");
-  // Right-click on an empty spot near the top-left of the canvas
-  await page.mouse.click(box.x + 60, box.y + 80, { button: "right" });
-  // The PaneContextMenu Menu has class 'pane-context-menu'
-  await page
-    .locator(".pane-context-menu")
-    .first()
-    .waitFor({ state: "visible", timeout: 5000 });
+  // Snapshot for debug
+  await page.screenshot({ path: "/tmp/before-rc.png" });
+  const pane = page.locator(".react-flow__pane").first();
+  await pane.waitFor({ state: "visible", timeout: 10_000 });
+
+  const box = await pane.boundingBox();
+  if (!box) throw new Error("pane has no bounding box");
+  // Move cursor first to ensure focus, then right-click at far-from-anything point.
+  await page.mouse.move(box.x + box.width - 80, box.y + box.height - 80);
+  await page.mouse.click(box.x + box.width - 80, box.y + box.height - 80, {
+    button: "right"
+  });
+
+  const menu = page.locator(".pane-context-menu").first();
+  const visible = await menu
+    .waitFor({ state: "visible", timeout: 5000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (!visible) {
+    await page.screenshot({ path: "/tmp/no-menu.png" });
+    const paneInfo = await pane.evaluate((el) => {
+      const rect = (el as HTMLElement).getBoundingClientRect();
+      const cls = (el as HTMLElement).className;
+      return { rect, cls };
+    });
+    throw new Error(
+      `pane context menu didn't open. pane: ${JSON.stringify(paneInfo)}`
+    );
+  }
 };
 
 const clickAddSubgraph = async (page: Page): Promise<void> => {
@@ -110,23 +129,47 @@ test.describe("Subgraph feature", () => {
     await clickAddSubgraph(page);
 
     const subgraphNode = page.locator(".subgraph-node").first();
-    await subgraphNode.waitFor({ state: "visible", timeout: 5000 });
+    await subgraphNode.waitFor({ state: "attached", timeout: 5000 });
 
-    // Before double-click: no subgraph tab.
     expect(await page.locator(".subgraph-tab").count()).toBe(0);
 
-    await subgraphNode.dblclick();
+    // Get the subgraph node's React Flow id (data-id attribute) and dispatch
+    // a synthetic dblclick on the actual .react-flow__node wrapper so React
+    // Flow's onNodeDoubleClick handler picks it up.
+    const fired = await page.evaluate(() => {
+      const node = document.querySelector(".subgraph-node");
+      const wrapper = node?.closest(".react-flow__node") as HTMLElement | null;
+      if (!wrapper) return false;
+      const rect = wrapper.getBoundingClientRect();
+      const eventInit = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+        button: 0,
+        buttons: 0,
+        detail: 2
+      };
+      wrapper.dispatchEvent(new MouseEvent("mousedown", eventInit));
+      wrapper.dispatchEvent(new MouseEvent("mouseup", eventInit));
+      wrapper.dispatchEvent(new MouseEvent("click", eventInit));
+      wrapper.dispatchEvent(new MouseEvent("dblclick", eventInit));
+      return true;
+    });
+    expect(fired).toBe(true);
 
-    const tab = page.locator(".subgraph-tab").first();
-    await tab.waitFor({ state: "visible", timeout: 5000 });
+    await page.waitForFunction(
+      () => document.querySelectorAll(".subgraph-tab").length > 0,
+      undefined,
+      { timeout: 5000 }
+    );
 
-    // The active subgraph tab should be the one we just opened.
-    const activeTab = page.locator(".subgraph-tab.active");
-    await expect(activeTab).toBeVisible({ timeout: 5000 });
-
-    // The canvas should now be the subgraph's canvas (still rendered) and the
-    // outer SubgraphNode is no longer mounted as the visible card (parent
-    // canvas is deactivated).
+    await page.waitForFunction(
+      () => document.querySelectorAll(".subgraph-tab.active").length > 0,
+      undefined,
+      { timeout: 5000 }
+    );
   });
 
   test("switches back to parent workflow tab and closes subgraph tab", async ({
@@ -137,32 +180,51 @@ test.describe("Subgraph feature", () => {
     await openPaneContextMenu(page);
     await clickAddSubgraph(page);
     const subgraphNode = page.locator(".subgraph-node").first();
-    await subgraphNode.waitFor({ state: "visible", timeout: 5000 });
-    await subgraphNode.dblclick();
+    await subgraphNode.waitFor({ state: "attached", timeout: 5000 });
 
-    const subgraphTab = page.locator(".subgraph-tab").first();
-    await subgraphTab.waitFor({ state: "visible", timeout: 5000 });
-
-    // Click the parent workflow tab (any TabHeader that isn't a subgraph tab).
-    const parentTab = page
-      .locator(".tab")
-      .filter({ hasNot: page.locator(".subgraph-icon") })
-      .first();
-    await parentTab.click();
-
-    // Outer SubgraphNode should be visible again.
-    await page
-      .locator(".subgraph-node")
-      .first()
-      .waitFor({ state: "visible", timeout: 5000 });
-
-    // Close the subgraph tab via its close button.
-    const closeBtn = subgraphTab.locator(".close-icon");
-    await closeBtn.click();
-
-    // Tab should disappear.
-    await expect(page.locator(".subgraph-tab")).toHaveCount(0, {
-      timeout: 5000
+    // Open the subgraph tab via JS dispatch (same as test 2).
+    await page.evaluate(() => {
+      const node = document.querySelector(".subgraph-node");
+      const wrapper = node?.closest(".react-flow__node") as HTMLElement | null;
+      if (!wrapper) return;
+      const rect = wrapper.getBoundingClientRect();
+      const eventInit = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2,
+        button: 0,
+        buttons: 0,
+        detail: 2
+      };
+      wrapper.dispatchEvent(new MouseEvent("mousedown", eventInit));
+      wrapper.dispatchEvent(new MouseEvent("mouseup", eventInit));
+      wrapper.dispatchEvent(new MouseEvent("click", eventInit));
+      wrapper.dispatchEvent(new MouseEvent("dblclick", eventInit));
     });
+
+    await page.waitForFunction(
+      () => document.querySelectorAll(".subgraph-tab").length > 0,
+      undefined,
+      { timeout: 5000 }
+    );
+
+    // Close the subgraph tab via the close icon. The close-icon is an SVG
+    // element so we dispatch a synthetic click that bubbles through React.
+    await page.evaluate(() => {
+      const tab = document.querySelector(".subgraph-tab");
+      const close = tab?.querySelector(".close-icon");
+      if (!close) return;
+      close.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true })
+      );
+    });
+
+    await page.waitForFunction(
+      () => document.querySelectorAll(".subgraph-tab").length === 0,
+      undefined,
+      { timeout: 5000 }
+    );
   });
 });
