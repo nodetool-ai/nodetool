@@ -7,7 +7,6 @@ import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
 import { Box } from "@mui/material";
 import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles } from "../ui_primitives";
-import StarIcon from "@mui/icons-material/Star";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
@@ -26,7 +25,7 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       width: "100%",
       height: "fit-content",
-      padding: "0.5em 1em 0.5em 0.5em",
+      padding: "0 0.5em",
       boxSizing: "border-box"
     },
     ".tiles-header": {
@@ -68,26 +67,25 @@ const tileStyles = (theme: Theme) =>
       cursor: "pointer",
       position: "relative",
       overflow: "hidden",
-      border: "1px solid rgba(255, 255, 255, 0.06)",
+      border: `1px solid ${theme.vars.palette.divider}`,
       transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
       minHeight: "30px",
-      background: "rgba(255, 255, 255, 0.02)",
+      background: theme.vars.palette.background.paper,
       "&::before": {
         content: '""',
         position: "absolute",
         inset: 0,
         borderRadius: "inherit",
-        background:
-          "linear-gradient(180deg, rgba(255,255,255,0.06), transparent 80%)",
+        background: `linear-gradient(180deg, ${theme.vars.palette.action.hover}, transparent 80%)`,
         opacity: 0,
         transition: "opacity 0.3s ease",
         pointerEvents: "none"
       },
       "&:hover": {
         transform: "translateY(-3px)",
-        borderColor: "rgba(255, 255, 255, 0.15)",
-        background: "rgba(255, 255, 255, 0.05)",
-        boxShadow: "0 8px 24px -6px rgba(0, 0, 0, 0.5)",
+        borderColor: theme.vars.palette.primary.main,
+        background: theme.vars.palette.action.hover,
+        boxShadow: `0 8px 24px -6px ${theme.vars.palette.common.black}80`,
         "&::before": {
           opacity: 1
         },
@@ -157,10 +155,13 @@ interface FavoritesTilesProps {
    * in the left sidebar where collapsing to nothing looks broken.
    */
   showEmpty?: boolean;
+  /** Hide the internal star+title header (use when the parent already renders one). */
+  hideHeader?: boolean;
 }
 
 const FavoritesTiles = memo(function FavoritesTiles({
-  showEmpty = false
+  showEmpty = false,
+  hideHeader = false
 }: FavoritesTilesProps = {}) {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
@@ -298,15 +299,13 @@ const FavoritesTiles = memo(function FavoritesTiles({
     }
     return (
       <Box css={memoizedStyles}>
-        <div className="tiles-header">
-          <Text size="normal" weight={600}>
-            <StarIcon
-              fontSize="small"
-              sx={{ opacity: 0.8, color: "warning.main" }}
-            />
-            Favorites
-          </Text>
-        </div>
+        {!hideHeader && (
+          <div className="tiles-header">
+            <Text size="normal" weight={600}>
+              Favorites
+            </Text>
+          </div>
+        )}
         <div className="empty-state">
           No favorites yet. Click the star next to any node to add it here.
         </div>
@@ -316,24 +315,22 @@ const FavoritesTiles = memo(function FavoritesTiles({
 
   return (
     <Box css={memoizedStyles}>
-      <div className="tiles-header">
-        <Text size="normal" weight={600}>
-          <StarIcon
-            fontSize="small"
-            sx={{ opacity: 0.8, color: "warning.main" }}
+      {!hideHeader && (
+        <div className="tiles-header">
+          <Text size="normal" weight={600}>
+            Favorites
+          </Text>
+          <ToolbarIconButton
+            icon={<ClearIcon fontSize="small" />}
+            tooltip="Clear all favorites"
+            tooltipPlacement="top"
+            size="small"
+            className="clear-button"
+            onClick={handleClearFavorites}
+            aria-label="Clear all favorites"
           />
-          Favorites
-        </Text>
-        <ToolbarIconButton
-          icon={<ClearIcon fontSize="small" />}
-          tooltip="Clear all favorites"
-          tooltipPlacement="top"
-          size="small"
-          className="clear-button"
-          onClick={handleClearFavorites}
-          aria-label="Clear all favorites"
-        />
-      </div>
+        </div>
+      )}
       <div className="tiles-container">
         {favorites.map((favorite) => {
           const { nodeType } = favorite;

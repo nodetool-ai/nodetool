@@ -15,7 +15,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       height: "100%",
-      padding: theme.spacing(1),
+      padding: 0,
       boxSizing: "border-box",
       minHeight: 0
     },
