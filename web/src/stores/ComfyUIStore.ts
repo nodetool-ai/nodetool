@@ -27,7 +27,7 @@ function loadBundledObjectInfo(): Promise<ComfyUIObjectInfo | null> {
   return bundledObjectInfoPromise;
 }
 
-export type ComfyBackendType = "local" | "runpod";
+type ComfyBackendType = "local" | "runpod";
 
 interface ComfyUIState {
   // Connection state

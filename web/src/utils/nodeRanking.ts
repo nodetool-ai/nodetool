@@ -27,7 +27,7 @@ const PROVIDER_NAMESPACES = new Set([
 
 type NamespaceClass = "core" | "provider" | "other";
 
-export interface ScoreOptions {
+interface ScoreOptions {
   includeProviderNodes?: boolean;
   namespacePrefix?: string;
   recentNodeTypes?: readonly string[];
@@ -36,7 +36,7 @@ export interface ScoreOptions {
   includeCandidateOnlyMatches?: boolean;
 }
 
-export interface ScoredNode<T extends NodeMetadata = NodeMetadata> {
+interface ScoredNode<T extends NodeMetadata = NodeMetadata> {
   meta: T;
   score: number;
 }
