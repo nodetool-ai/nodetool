@@ -33,6 +33,7 @@ import { InspectorHeaderActionsProvider } from "../contexts/InspectorPropertyHea
 import { canConfigureExposedPlacement } from "../utils/exposedInputs";
 import { useExposedInputToggle } from "../hooks/nodes/useExposedInputToggle";
 import usePropertyValidationStore from "../stores/PropertyValidationStore";
+import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
 
 const styles = (theme: Theme) =>
   css({
@@ -502,7 +503,9 @@ const Inspector: React.FC = () => {
               )}
             </ScrollArea>
           </Box>
-          <div className="bottom"></div>
+          <div className="bottom">
+            <RunSelectedNodesSection />
+          </div>
         </Box>
       </EditorUiProvider>
     );
@@ -715,7 +718,9 @@ const Inspector: React.FC = () => {
             )}
           </ScrollArea>
         </Box>
-        <div className="bottom"></div>
+        <div className="bottom">
+          <RunSelectedNodesSection />
+        </div>
       </Box>
     </EditorUiProvider>
   );

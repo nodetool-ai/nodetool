@@ -6,7 +6,8 @@ jest.mock("../../../contexts/NodeContext", () => ({
 }));
 
 jest.mock("../../../stores/WorkflowRunner", () => ({
-  useWebsocketRunner: jest.fn()
+  useWebsocketRunner: jest.fn(),
+  getWorkflowRunnerStore: jest.fn()
 }));
 
 jest.mock("../../../stores/ResultsStore", () => ({
@@ -20,14 +21,37 @@ jest.mock("../../../stores/NotificationStore", () => ({
 
 
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
-import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
+import {
+  useWebsocketRunner,
+  getWorkflowRunnerStore
+} from "../../../stores/WorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
+const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.Mock;
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
+
+type RunnerState = {
+  state: "idle" | "running" | "error" | "cancelled" | "connecting";
+};
+
+// Minimal stand-in for the Zustand runner store's `.subscribe`. Tests can
+// invoke `emitState(...)` to simulate a transition between runs.
+function makeRunnerStoreMock() {
+  const listeners = new Set<(s: RunnerState) => void>();
+  return {
+    subscribe: (cb: (s: RunnerState) => void) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    emit: (s: RunnerState) => {
+      listeners.forEach((cb) => cb(s));
+    }
+  };
+}
 
 describe("useRunSelectedNodes", () => {
   const mockRun = jest.fn();
@@ -63,9 +87,13 @@ describe("useRunSelectedNodes", () => {
   ];
 
   const defaultWorkflow = { id: "workflow-1", name: "Test Workflow" };
+  let runnerStore: ReturnType<typeof makeRunnerStoreMock>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRun.mockResolvedValue(undefined);
+    runnerStore = makeRunnerStoreMock();
+    mockGetWorkflowRunnerStore.mockReturnValue(runnerStore);
 
     mockGetSelectedNodes.mockReturnValue([nodeA]);
 
@@ -99,11 +127,11 @@ describe("useRunSelectedNodes", () => {
     );
   });
 
-  it("only includes selected nodes in the nodes passed to run", () => {
+  it("only includes selected nodes in the nodes passed to run", async () => {
     const { result } = renderHook(() => useRunSelectedNodes());
 
-    act(() => {
-      result.current.runSelectedNodes();
+    await act(async () => {
+      await result.current.runSelectedNodes();
     });
 
     expect(mockRun).toHaveBeenCalledTimes(1);
@@ -116,14 +144,14 @@ describe("useRunSelectedNodes", () => {
     expect(nodeIds).not.toContain("node-c");
   });
 
-  it("does not include downstream nodes when running selected nodes", () => {
+  it("does not include downstream nodes when running selected nodes", async () => {
     // nodeA is selected, nodeB and nodeC are downstream but not selected
     mockGetSelectedNodes.mockReturnValue([nodeA]);
 
     const { result } = renderHook(() => useRunSelectedNodes());
 
-    act(() => {
-      result.current.runSelectedNodes();
+    await act(async () => {
+      await result.current.runSelectedNodes();
     });
 
     expect(mockRun).toHaveBeenCalledTimes(1);
@@ -135,7 +163,7 @@ describe("useRunSelectedNodes", () => {
     expect(nodeIds).not.toContain("node-c");
   });
 
-  it("does not run when workflow is already running", () => {
+  it("does not run when workflow is already running", async () => {
     mockUseWebsocketRunner.mockImplementation((selector: (state: Record<string, unknown>) => unknown) => {
       const state = { run: mockRun, state: "running" };
       return selector(state);
@@ -143,26 +171,26 @@ describe("useRunSelectedNodes", () => {
 
     const { result } = renderHook(() => useRunSelectedNodes());
 
-    act(() => {
-      result.current.runSelectedNodes();
+    await act(async () => {
+      await result.current.runSelectedNodes();
     });
 
     expect(mockRun).not.toHaveBeenCalled();
   });
 
-  it("does not run when no nodes are selected", () => {
+  it("does not run when no nodes are selected", async () => {
     mockGetSelectedNodes.mockReturnValue([]);
 
     const { result } = renderHook(() => useRunSelectedNodes());
 
-    act(() => {
-      result.current.runSelectedNodes();
+    await act(async () => {
+      await result.current.runSelectedNodes();
     });
 
     expect(mockRun).not.toHaveBeenCalled();
   });
 
-  it("handles multiple selected nodes without duplicating shared downstream nodes", () => {
+  it("handles multiple selected nodes without duplicating shared downstream nodes", async () => {
     const nodeD = {
       id: "node-d",
       type: "nodetool.llm.Chat",
@@ -191,8 +219,8 @@ describe("useRunSelectedNodes", () => {
 
     const { result } = renderHook(() => useRunSelectedNodes());
 
-    act(() => {
-      result.current.runSelectedNodes();
+    await act(async () => {
+      await result.current.runSelectedNodes();
     });
 
     expect(mockRun).toHaveBeenCalledTimes(1);
@@ -209,11 +237,11 @@ describe("useRunSelectedNodes", () => {
     expect(nodeIds.length).toBe(2);
   });
 
-  it("passes selectedNodeIds to run", () => {
+  it("passes selectedNodeIds to run", async () => {
     const { result } = renderHook(() => useRunSelectedNodes());
 
-    act(() => {
-      result.current.runSelectedNodes();
+    await act(async () => {
+      await result.current.runSelectedNodes();
     });
 
     expect(mockRun).toHaveBeenCalledTimes(1);
@@ -224,11 +252,11 @@ describe("useRunSelectedNodes", () => {
     expect(selectedNodeIds.has("node-c")).toBe(false);
   });
 
-  it("shows notification after triggering run", () => {
+  it("shows notification after triggering run", async () => {
     const { result } = renderHook(() => useRunSelectedNodes());
 
-    act(() => {
-      result.current.runSelectedNodes();
+    await act(async () => {
+      await result.current.runSelectedNodes();
     });
 
     expect(mockAddNotification).toHaveBeenCalledWith(
@@ -237,5 +265,75 @@ describe("useRunSelectedNodes", () => {
         alert: false
       })
     );
+  });
+
+  it("runs the subgraph N times sequentially when given runs > 1", async () => {
+    const { result } = renderHook(() => useRunSelectedNodes());
+
+    let sequence: Promise<void> | undefined;
+    await act(async () => {
+      sequence = result.current.runSelectedNodes(3);
+      // First run fires immediately; later runs await idle transitions.
+      await Promise.resolve();
+    });
+
+    // After the first dispatch, the hook is awaiting the runner to settle.
+    expect(mockRun).toHaveBeenCalledTimes(1);
+
+    // Simulate the runner going idle between each run.
+    await act(async () => {
+      runnerStore.emit({ state: "idle" });
+      await Promise.resolve();
+    });
+    expect(mockRun).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      runnerStore.emit({ state: "idle" });
+      await sequence;
+    });
+    expect(mockRun).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops the sequence when the runner reports an error mid-sequence", async () => {
+    const { result } = renderHook(() => useRunSelectedNodes());
+
+    let sequence: Promise<void> | undefined;
+    await act(async () => {
+      sequence = result.current.runSelectedNodes(4);
+      await Promise.resolve();
+    });
+    expect(mockRun).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      runnerStore.emit({ state: "error" });
+      await sequence;
+    });
+
+    // Only the first run was dispatched; the sequence broke on error.
+    expect(mockRun).toHaveBeenCalledTimes(1);
+  });
+
+  it("clamps runs to the supported range [1, 32]", async () => {
+    const { result } = renderHook(() => useRunSelectedNodes());
+
+    let sequence: Promise<void> | undefined;
+    await act(async () => {
+      sequence = result.current.runSelectedNodes(999);
+      await Promise.resolve();
+    });
+
+    // Drain 31 transitions to complete the 32-run sequence (the 32nd run
+    // does not await an idle since it's the last iteration).
+    for (let i = 0; i < 31; i++) {
+      await act(async () => {
+        runnerStore.emit({ state: "idle" });
+        await Promise.resolve();
+      });
+    }
+    await act(async () => {
+      await sequence;
+    });
+
+    expect(mockRun).toHaveBeenCalledTimes(32);
   });
 });
