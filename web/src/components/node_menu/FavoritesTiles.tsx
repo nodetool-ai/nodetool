@@ -8,7 +8,7 @@ import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
 import { Box } from "@mui/material";
 import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
+import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -376,7 +376,7 @@ const FavoritesTiles = memo(function FavoritesTiles({
                 }
               >
                 <ToolbarIconButton
-                  icon={<StarBorderIcon fontSize="small" />}
+                  icon={<CloseIcon fontSize="small" />}
                   tooltip={`Remove ${displayName} from favorites`}
                   size="small"
                   className="unfavorite-btn"

@@ -370,7 +370,6 @@ const PanelContent = memo(function PanelContent({
             flexDirection: "column"
           }}
         >
-          {!isMobile && <PanelHeadline title="Favorites" />}
           <ScrollArea fullHeight>
             <FavoritesTiles showEmpty />
           </ScrollArea>
