@@ -768,6 +768,7 @@ import { LIB_IMAGE_CHANNEL_NODES } from "./nodes/lib-image-channel.js";
 import { LIB_IMAGE_WARP_NODES } from "./nodes/lib-image-warp.js";
 import { LIB_IMAGE_GENERATORS_NODES } from "./nodes/lib-image-generators.js";
 import { LIB_IMAGE_FILTER_EXTRAS_NODES } from "./nodes/lib-image-filter-extras.js";
+import { LIB_IMAGE_COLOR_NODES } from "./nodes/lib-image-color.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -844,7 +845,8 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_IMAGE_CHANNEL_NODES,
   ...LIB_IMAGE_WARP_NODES,
   ...LIB_IMAGE_GENERATORS_NODES,
-  ...LIB_IMAGE_FILTER_EXTRAS_NODES
+  ...LIB_IMAGE_FILTER_EXTRAS_NODES,
+  ...LIB_IMAGE_COLOR_NODES
 ];
 
 export { LIB_IMAGE_EFFECTS_NODES } from "./nodes/lib-image-effects.js";
@@ -854,6 +856,7 @@ export { LIB_IMAGE_CHANNEL_NODES } from "./nodes/lib-image-channel.js";
 export { LIB_IMAGE_WARP_NODES } from "./nodes/lib-image-warp.js";
 export { LIB_IMAGE_GENERATORS_NODES } from "./nodes/lib-image-generators.js";
 export { LIB_IMAGE_FILTER_EXTRAS_NODES } from "./nodes/lib-image-filter-extras.js";
+export { LIB_IMAGE_COLOR_NODES } from "./nodes/lib-image-color.js";
 
 export function registerBaseNodes(registry: NodeRegistry): void {
   for (const nodeClass of ALL_BASE_NODES) {

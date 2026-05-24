@@ -55,6 +55,7 @@ export {
   filtersPixelateV1,
   filtersThresholdV1,
   filtersGlowV1,
+  filtersBlurSeparableV1,
   chromaKeyV1,
   keyerLumaKeyV1,
   maskApplyV1,

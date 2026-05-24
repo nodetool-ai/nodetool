@@ -29,6 +29,7 @@ import { vignetteV1 } from "./filters/vignette/v1/module.js";
 import { filtersPixelateV1 } from "./filters/pixelate/v1/module.js";
 import { filtersThresholdV1 } from "./filters/threshold/v1/module.js";
 import { filtersGlowV1 } from "./filters/glow/v1/module.js";
+import { filtersBlurSeparableV1 } from "./filters/blur/separable/v1/module.js";
 
 import { chromaKeyV1 } from "./keyer/chromaKey/v1/module.js";
 import { keyerLumaKeyV1 } from "./keyer/lumaKey/v1/module.js";
@@ -80,6 +81,7 @@ export {
   filtersPixelateV1,
   filtersThresholdV1,
   filtersGlowV1,
+  filtersBlurSeparableV1,
   chromaKeyV1,
   keyerLumaKeyV1,
   maskApplyV1,
@@ -169,6 +171,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
 /** Every recipe module registered by default. */
 export const ALL_RECIPES: readonly RecipeModule[] = [
   filtersGlowV1,
+  filtersBlurSeparableV1,
   mixerDropShadowV1
 ];
 
