@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Asset } from "./ApiTypes";
 
-export interface FileTab {
+interface FileTab {
   asset: Asset;
 }
 

@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   getApiKey,
   isRefSet,
+  parseCreditsConsumed,
+  reportKieProviderCost,
   uploadImageInput,
   kieExecuteOmniDirect,
   kieExecuteTask
@@ -182,6 +184,36 @@ describe("kieExecuteOmniDirect", () => {
   });
 });
 
+describe("parseCreditsConsumed", () => {
+  it("reads numeric creditsConsumed from recordInfo payload", () => {
+    expect(
+      parseCreditsConsumed({ data: { creditsConsumed: 12, state: "success" } })
+    ).toBe(12);
+  });
+
+  it("parses string creditsConsumed", () => {
+    expect(parseCreditsConsumed({ data: { creditsConsumed: "5.5" } })).toBe(5.5);
+  });
+
+  it("returns undefined when creditsConsumed is missing", () => {
+    expect(parseCreditsConsumed({ data: { state: "success" } })).toBeUndefined();
+  });
+});
+
+describe("reportKieProviderCost", () => {
+  it("calls setProviderCost when credits are present", () => {
+    const setProviderCost = vi.fn();
+    reportKieProviderCost({ setProviderCost }, 7);
+    expect(setProviderCost).toHaveBeenCalledWith("kie", 7, "credits");
+  });
+
+  it("skips when credits are undefined", () => {
+    const setProviderCost = vi.fn();
+    reportKieProviderCost({ setProviderCost }, undefined);
+    expect(setProviderCost).not.toHaveBeenCalled();
+  });
+});
+
 describe("kieExecuteTask poll failure", () => {
   const originalFetch = global.fetch;
 
@@ -208,5 +240,45 @@ describe("kieExecuteTask poll failure", () => {
     await expect(
       kieExecuteTask("key", "gemini-omni-video", { prompt: "test", duration: "8" }, 1, 2)
     ).rejects.toThrow("Task failed: Internal Error");
+  });
+
+  it("returns creditsConsumed from successful poll", async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ code: 200, data: { taskId: "task_ok" } })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 200,
+          data: { state: "success", creditsConsumed: 15 }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 200,
+          data: {
+            resultJson: JSON.stringify({ resultUrls: ["https://example.com/out.png"] })
+          }
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
+      }) as unknown as typeof fetch;
+
+    const result = await kieExecuteTask(
+      "key",
+      "test-model",
+      { prompt: "hello" },
+      1,
+      2
+    );
+
+    expect(result.creditsConsumed).toBe(15);
+    expect(result.taskId).toBe("task_ok");
   });
 });

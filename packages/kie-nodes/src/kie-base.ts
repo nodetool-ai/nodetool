@@ -400,12 +400,52 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
+export type KieExecuteResult = {
+  data: string;
+  items: string[];
+  taskId: string;
+  creditsConsumed?: number;
+};
+
+export function parseCreditsConsumed(
+  statusData: Record<string, unknown>
+): number | undefined {
+  const raw = asRecord(statusData.data)?.creditsConsumed;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return raw;
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
+export function reportKieProviderCost(
+  context: unknown,
+  creditsConsumed: number | undefined
+): void {
+  if (creditsConsumed == null || !Number.isFinite(creditsConsumed)) return;
+  const setter = (context as { setProviderCost?: unknown } | null | undefined)
+    ?.setProviderCost;
+  if (typeof setter === "function") {
+    (setter as (p: string, a: number, u: string) => void).call(
+      context,
+      "kie",
+      creditsConsumed,
+      "credits"
+    );
+  }
+}
+
 export async function kieExecuteOmniDirect(
   apiKey: string,
   endpoint: string,
   body: Record<string, unknown>,
   responseIdKey: string
-): Promise<{ data: string; items: string[]; taskId: string }> {
+): Promise<KieExecuteResult> {
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
@@ -436,7 +476,7 @@ export async function kieExecuteTask(
   submitEndpoint?: string,
   pollEndpoint?: string,
   resultObjectKey?: string
-): Promise<{ data: string; items: string[]; taskId: string }> {
+): Promise<KieExecuteResult> {
   if (submitEndpoint) {
     // Custom submit/poll endpoints (Veo, Runway, etc.)
     const taskId = await submitCustom(apiKey, submitEndpoint, { model, ...input });
@@ -447,19 +487,21 @@ export async function kieExecuteTask(
       pollInterval,
       maxAttempts
     );
+    const creditsConsumed = parseCreditsConsumed(statusData);
     const resultBytes = await downloadCustomResult(statusData);
     const b64 = resultBytes.toString("base64");
-    return { data: b64, items: [b64], taskId };
+    return { data: b64, items: [b64], taskId, creditsConsumed };
   }
   const taskId = await submitTask(apiKey, model, input);
-  await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+  const statusData = await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+  const creditsConsumed = parseCreditsConsumed(statusData);
   if (resultObjectKey) {
     const text = await downloadTextResult(apiKey, taskId, resultObjectKey);
-    return { data: text, items: [text], taskId };
+    return { data: text, items: [text], taskId, creditsConsumed };
   }
   const result = await downloadResult(apiKey, taskId);
   const items = result.items.map((b) => b.toString("base64"));
-  return { data: items[0], items, taskId: result.taskId };
+  return { data: items[0], items, taskId: result.taskId, creditsConsumed };
 }
 
 // Suno music uses different endpoints
@@ -520,9 +562,10 @@ export async function kieExecuteSunoTask(
   pollInterval = 4000,
   maxAttempts = 120,
   endpoint?: string
-): Promise<{ data: string; items: string[]; taskId: string }> {
+): Promise<KieExecuteResult> {
   const taskId = await kieSubmitSuno(apiKey, input, endpoint);
   const pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
+  const creditsConsumed = parseCreditsConsumed(pollResult);
   // Polling response: data.response.sunoData[].audioUrl
   const sunoData = (
     (pollResult.data as Record<string, unknown>)?.response as Record<string, unknown>
@@ -534,7 +577,7 @@ export async function kieExecuteSunoTask(
   if (!dlRes.ok) throw new Error(`Failed to download audio: ${dlRes.status}`);
   const buf = Buffer.from(await dlRes.arrayBuffer());
   const b64 = buf.toString("base64");
-  return { data: b64, items: [b64], taskId };
+  return { data: b64, items: [b64], taskId, creditsConsumed };
 }
 
 export async function kieImageRef(base64: string): Promise<Record<string, unknown>> {

@@ -10,6 +10,7 @@ import {
   kieExecuteTask,
   kieExecuteOmniDirect,
   kieImageRef,
+  reportKieProviderCost,
   uploadAudioInput,
   uploadImageInput,
   uploadVideoInput,
@@ -834,7 +835,7 @@ export class KieAINode extends BaseNode {
       }
     }
 
-    let result: { data: string; taskId: string };
+    let result: Awaited<ReturnType<typeof kieExecuteTask>>;
     if (bundle.execution.mode === "omniDirect") {
       if (!bundle.execution.submitEndpoint || !bundle.execution.responseIdKey) {
         throw new Error(`Omni model ${bundle.modelId} is missing direct endpoint config`);
@@ -854,6 +855,8 @@ export class KieAINode extends BaseNode {
         300
       );
     }
+
+    reportKieProviderCost(context, result.creditsConsumed);
 
     if (bundle.outputType === "text") {
       return { output: result.data };

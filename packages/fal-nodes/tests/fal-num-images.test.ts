@@ -57,51 +57,50 @@ function makeNode() {
   });
 }
 
-describe("FAL num_images", () => {
+describe("FAL single-output image generation", () => {
   beforeEach(() => {
     falSubmit.mockReset();
   });
 
-  it("sends num_images to falSubmit", async () => {
+  it("does not register num_images as a declared property", () => {
+    const NodeClass = makeNode();
+    const props = NodeClass.getDeclaredProperties();
+    expect(props.find((p) => p.name === "num_images")).toBeUndefined();
+  });
+
+  it("forces num_images=1 even when an instance value is set", async () => {
     falSubmit.mockResolvedValue({ images: [{ url: "u1" }] });
 
     const NodeClass = makeNode();
     const instance = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     instance.assign({ prompt: "cat", num_images: 4 });
 
-    for await (const _ of instance.genProcess()) {
-      /* consume */
-    }
+    await instance.process();
 
     expect(falSubmit).toHaveBeenCalledTimes(1);
     const args = falSubmit.mock.calls[0][2] as Record<string, unknown>;
-    expect(args.num_images).toBe(4);
+    expect(args.num_images).toBe(1);
   });
 
-  it("yields one image per item in res.images", async () => {
+  it("process() returns the first image even when the API returns several", async () => {
     falSubmit.mockResolvedValue({
       images: [{ url: "u1" }, { url: "u2" }, { url: "u3" }, { url: "u4" }]
     });
 
     const NodeClass = makeNode();
     const instance = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
-    instance.assign({ prompt: "cat", num_images: 4 });
+    instance.assign({ prompt: "cat" });
 
-    const yields: unknown[] = [];
-    for await (const out of instance.genProcess()) {
-      yields.push(out);
-    }
-    expect(yields).toHaveLength(4);
+    const result = await instance.process();
+    expect(result).toEqual({ output: { type: "image", uri: "u1" } });
   });
 
-  it("marks each generated image as a correlated iteration item", () => {
+  it("does not declare streaming output or iteration correlation", () => {
     const NodeClass = makeNode();
-
-    expect(NodeClass.outputCorrelation).toEqual({
-      output: { kind: "iteration", source: "__execution__" }
-    });
-    expect(NodeClass.toDescriptor("fal").output_correlation).toEqual({
-      output: { kind: "iteration", source: "__execution__" }
-    });
+    expect(
+      (NodeClass as unknown as { isStreamingOutput?: boolean })
+        .isStreamingOutput
+    ).toBeFalsy();
+    expect(NodeClass.outputCorrelation).toBeUndefined();
   });
 });

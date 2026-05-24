@@ -2,8 +2,11 @@
 
 Guidelines for working with code in this repository. These are linter-like rules and build/test instructions — not a code summary.
 
+> **Canonical standards live in [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md).** That document is the single source of truth for enforceable rules and aspirational targets across TypeScript, React, Zustand, MUI, TanStack Query, ReactFlow, Fastify, Drizzle, Zod, Electron security, accessibility, performance, security, observability, error handling, git/PR hygiene, and dependency management. The rules in this file are the area-specific overlay — read both.
+
 ## Quick Navigation
 
+- **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — **Canonical standards for the whole repo (MUST READ).**
 - **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`)
 - **[Web UI](web/src/AGENTS.md)** — React web application
   - [Components](web/src/components/AGENTS.md), [Stores](web/src/stores/AGENTS.md), [Contexts](web/src/contexts/AGENTS.md), [Hooks](web/src/hooks/AGENTS.md), [Utils](web/src/utils/AGENTS.md), [ServerState](web/src/serverState/AGENTS.md), [Lib](web/src/lib/AGENTS.md), [Config](web/src/config/AGENTS.md)
@@ -122,13 +125,19 @@ Before submitting a PR, review for:
 
 ## TypeScript Rules
 
-- Use TypeScript for all new code. Never use `any`.
+> Full standards: [DEVELOPMENT_STANDARDS §1 TypeScript](docs/DEVELOPMENT_STANDARDS.md#1-typescript).
+
+- Use TypeScript for all new code. Never use `any` — prefer `unknown` + narrowing or proper generics.
 - Use `const` by default, `let` when reassignment is needed. Never use `var`.
 - Use strict equality (`===` / `!==`). Exception: `== null` for null/undefined checks.
 - Always use curly braces for control statements.
 - Use `Array.isArray()` to check for arrays, not `typeof`.
 - Throw `Error` objects, not strings.
 - Always add comments for intentionally empty catch blocks.
+- No `// @ts-ignore` — use `// @ts-expect-error <reason>`.
+- No `enum` in new code — use `as const` objects + `keyof typeof` unions.
+- Prefer discriminated unions over optional fields with implicit invariants.
+- Validate untrusted input with Zod at the boundary — see [DEVELOPMENT_STANDARDS §11](docs/DEVELOPMENT_STANDARDS.md#11-zod-validation).
 
 ## React Rules
 
@@ -247,10 +256,32 @@ See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific t
 
 ## Security
 
+> Full standards: [DEVELOPMENT_STANDARDS §16 Security](docs/DEVELOPMENT_STANDARDS.md#16-security) and [§12 Electron Security](docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security).
+
 - Use `DOMPurify.sanitize()` for user input rendered as HTML.
 - Never use `dangerouslySetInnerHTML` with unsanitized input.
 - Use `contextBridge` for Electron IPC — never expose `nodeIntegration`.
-- Validate all IPC inputs.
+- Validate all IPC inputs with Zod before acting on them.
+- No `eval`, `new Function`, or `setTimeout` with string arguments.
+- Secrets never appear in code, logs, or error messages.
+- `npm audit` must pass — high/critical advisories block merge unless waived with rationale.
+
+## Accessibility, Performance, Observability
+
+These three areas have full sections in the central standards doc:
+
+- **[Accessibility (§14)](docs/DEVELOPMENT_STANDARDS.md#14-accessibility-a11y)** — WCAG 2.2 AA target, semantic HTML, keyboard parity, focus management.
+- **[Performance (§15)](docs/DEVELOPMENT_STANDARDS.md#15-performance)** — Bundle and runtime budgets, lazy loading, virtualization.
+- **[Observability (§17)](docs/DEVELOPMENT_STANDARDS.md#17-observability)** — OpenTelemetry spans, structured logs, semantic conventions.
+
+## Git, Commits, Pull Requests
+
+> Full standards: [DEVELOPMENT_STANDARDS §20](docs/DEVELOPMENT_STANDARDS.md#20-git-commits-prs).
+
+- Conventional commits: `feat(scope):`, `fix(scope):`, etc. Subject ≤ 72 chars, imperative mood.
+- One concept per commit. Body explains WHY, not WHAT.
+- Never `--no-verify`. Never rewrite published history.
+- PRs are small (target <400 LOC), self-reviewed, and CI-green before review.
 
 ## Technologies
 

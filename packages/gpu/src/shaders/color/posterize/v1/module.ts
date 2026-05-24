@@ -1,9 +1,10 @@
 /**
  * `color.posterize@1` — quantize each channel to N levels.
  *
- * `levels` clamps to `[2, 32]`. At `levels = 2` the output is binary
- * per channel (eight discrete colors); at the upper end it's nearly
- * passthrough. Fragment, with the canonical mask slot.
+ * `levels` clamps to `[2, 256]`. At `levels = 2` the output is binary
+ * per channel (eight discrete colors); at `levels = 256` it's the full
+ * 8-bit range (effectively passthrough — covers PIL `bits=8` semantics).
+ * Fragment, with the canonical mask slot.
  */
 
 import tgpu from "typegpu";
@@ -37,7 +38,7 @@ export const colorPosterizeV1 = defineModule({
   params: PosterizeParams,
   paramDefaults: { levels: 4 },
   paramUi: {
-    levels: { min: 2, max: 32, step: 1, label: "Levels" }
+    levels: { min: 2, max: 256, step: 1, label: "Levels" }
   },
   layout,
   samplers: { samp: samplerDescriptor },
@@ -46,7 +47,7 @@ export const colorPosterizeV1 = defineModule({
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
-  let n = max(2.0, min(32.0, layout.$.params.levels));
+  let n = max(2.0, min(256.0, layout.$.params.levels));
   let quantized = floor(clamp(src.rgb, vec3f(0.0), vec3f(1.0)) * n) / (n - 1.0);
   let mixed = mix(src.rgb, clamp(quantized, vec3f(0.0), vec3f(1.0)), coverage);
   return vec4f(mixed, src.a);

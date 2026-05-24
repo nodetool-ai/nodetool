@@ -152,6 +152,7 @@ export {
 } from "./nodes/input.js";
 export { OutputNode, PreviewNode, OUTPUT_NODES } from "./nodes/output.js";
 export { WorkflowNode, WORKFLOW_NODES } from "./nodes/workflow.js";
+export { SubgraphNode, SUBGRAPH_NODES } from "./nodes/subgraph.js";
 export {
   GetWorkspaceDirNode,
   ListWorkspaceFilesNode,
@@ -701,6 +702,7 @@ import { EXTENDED_PLACEHOLDER_NODES } from "./nodes/extended-placeholders.js";
 import { INPUT_NODES } from "./nodes/input.js";
 import { OUTPUT_NODES } from "./nodes/output.js";
 import { WORKFLOW_NODES } from "./nodes/workflow.js";
+import { SUBGRAPH_NODES } from "./nodes/subgraph.js";
 import { WORKSPACE_NODES } from "./nodes/workspace.js";
 import { COMPARE_NODES } from "./nodes/compare.js";
 import { DOCUMENT_NODES } from "./nodes/document.js";
@@ -761,6 +763,14 @@ import { TEAM_NODES } from "./nodes/team.js";
 import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
 import { LIB_DATETIME_NODES } from "./nodes/lib-datetime.js";
 import { LIB_VALIDATE_NODES } from "./nodes/lib-validate.js";
+import { LIB_IMAGE_EFFECTS_NODES } from "./nodes/lib-image-effects.js";
+import { LIB_IMAGE_KEYER_NODES } from "./nodes/lib-image-keyer.js";
+import { LIB_IMAGE_MASK_NODES } from "./nodes/lib-image-mask.js";
+import { LIB_IMAGE_CHANNEL_NODES } from "./nodes/lib-image-channel.js";
+import { LIB_IMAGE_WARP_NODES } from "./nodes/lib-image-warp.js";
+import { LIB_IMAGE_GENERATORS_NODES } from "./nodes/lib-image-generators.js";
+import { LIB_IMAGE_FILTER_EXTRAS_NODES } from "./nodes/lib-image-filter-extras.js";
+import { LIB_IMAGE_COLOR_NODES } from "./nodes/lib-image-color.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -771,6 +781,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...INPUT_NODES,
   ...OUTPUT_NODES,
   ...WORKFLOW_NODES,
+  ...SUBGRAPH_NODES,
   ...WORKSPACE_NODES,
   ...COMPARE_NODES,
   ...DOCUMENT_NODES,
@@ -830,8 +841,25 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...TOOL_AGENT_NODES,
   ...SANDBOX_NODES,
   ...TEAM_NODES,
-  ...LIB_NLP_NODES
+  ...LIB_NLP_NODES,
+  ...LIB_IMAGE_EFFECTS_NODES,
+  ...LIB_IMAGE_KEYER_NODES,
+  ...LIB_IMAGE_MASK_NODES,
+  ...LIB_IMAGE_CHANNEL_NODES,
+  ...LIB_IMAGE_WARP_NODES,
+  ...LIB_IMAGE_GENERATORS_NODES,
+  ...LIB_IMAGE_FILTER_EXTRAS_NODES,
+  ...LIB_IMAGE_COLOR_NODES
 ];
+
+export { LIB_IMAGE_EFFECTS_NODES } from "./nodes/lib-image-effects.js";
+export { LIB_IMAGE_KEYER_NODES } from "./nodes/lib-image-keyer.js";
+export { LIB_IMAGE_MASK_NODES } from "./nodes/lib-image-mask.js";
+export { LIB_IMAGE_CHANNEL_NODES } from "./nodes/lib-image-channel.js";
+export { LIB_IMAGE_WARP_NODES } from "./nodes/lib-image-warp.js";
+export { LIB_IMAGE_GENERATORS_NODES } from "./nodes/lib-image-generators.js";
+export { LIB_IMAGE_FILTER_EXTRAS_NODES } from "./nodes/lib-image-filter-extras.js";
+export { LIB_IMAGE_COLOR_NODES } from "./nodes/lib-image-color.js";
 
 export function registerBaseNodes(registry: NodeRegistry): void {
   for (const nodeClass of ALL_BASE_NODES) {
@@ -876,6 +904,29 @@ export function registerBaseNodes(registry: NodeRegistry): void {
               name: "workflow_json",
               type: { type: "dict", type_args: [] },
               default: {}
+            }
+          ],
+          outputs: [],
+          inline_fields: []
+        }
+      });
+      continue;
+    }
+    if (nodeClass.nodeType === "nodetool.workflows.subgraph.Subgraph") {
+      registry.register(nodeClass, {
+        metadata: {
+          title: "Subgraph",
+          description:
+            "Execute an inline sub-graph as an isolated workflow. Inputs/outputs are derived from inner Input/Output nodes.",
+          namespace: "nodetool.workflows.subgraph",
+          node_type: "nodetool.workflows.subgraph.Subgraph",
+          is_dynamic: true,
+          is_streaming_output: true,
+          properties: [
+            {
+              name: "graph",
+              type: { type: "dict", type_args: [] },
+              default: { nodes: [], edges: [] }
             }
           ],
           outputs: [],

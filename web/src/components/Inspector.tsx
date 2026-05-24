@@ -33,6 +33,7 @@ import { InspectorHeaderActionsProvider } from "../contexts/InspectorPropertyHea
 import { canConfigureExposedPlacement } from "../utils/exposedInputs";
 import { useExposedInputToggle } from "../hooks/nodes/useExposedInputToggle";
 import usePropertyValidationStore from "../stores/PropertyValidationStore";
+import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
 
 const styles = (theme: Theme) =>
   css({
@@ -223,7 +224,7 @@ const ValidationErrorBanner: React.FC<ValidationErrorBannerProps> = ({
       }
     }
     return out;
-  });
+  }, isEqual);
 
   const handleScrollToField = useCallback((property: string) => {
     // Find the PropertyField inside the inspector and scroll it into view.
@@ -502,7 +503,9 @@ const Inspector: React.FC = () => {
               )}
             </ScrollArea>
           </Box>
-          <div className="bottom"></div>
+          <div className="bottom">
+            <RunSelectedNodesSection />
+          </div>
         </Box>
       </EditorUiProvider>
     );
@@ -547,6 +550,8 @@ const Inspector: React.FC = () => {
                     metadata={metadata}
                     selected
                     variant="inline"
+                    nodeId={selectedNode.id}
+                    workflowId={selectedNode.data.workflow_id}
                     popoverResetDep={selectedNode.id}
                   />
                 </Box>
@@ -713,7 +718,9 @@ const Inspector: React.FC = () => {
             )}
           </ScrollArea>
         </Box>
-        <div className="bottom"></div>
+        <div className="bottom">
+          <RunSelectedNodesSection />
+        </div>
       </Box>
     </EditorUiProvider>
   );

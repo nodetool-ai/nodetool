@@ -2,7 +2,16 @@ import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import sharp from "sharp";
+import * as d from "typegpu/data";
+import {
+  colorInvertV1,
+  colorPosterizeV1,
+  colorGrayscaleV1,
+  colorSolarizeV1,
+  filtersConvolve3x3V1
+} from "@nodetool-ai/gpu/pool";
 import { decodeImage, toRef, pickImage } from "./lib-image-utils.js";
+import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
 
 type Desc = {
   nodeType: string;
@@ -34,72 +43,122 @@ function createFilterNode(desc: Desc): NodeClass {
         return { output: baseObj ?? {} };
       }
 
-      let img = sharp(baseBytes, { failOn: "none" });
-
-      // Solarize — raw pixel manipulation (NOT sharp.threshold!)
+      // GPU-backed paths first — see lib-image-enhance.ts for the same
+      // pattern. Sharp stays for `Canny` (multi-stage with hysteresis) and
+      // `Expand` (sharp's `extend` adds an out-of-canvas border with a
+      // background colour — not a pixel op).
       if (t.endsWith(".Solarize")) {
-        const threshold = Number((this as any).threshold ?? 128);
-        const { data: raw, info } = await img
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-        for (let i = 0; i < raw.length; i++) {
-          if (raw[i] > threshold) raw[i] = 255 - raw[i];
-        }
-        const out = await sharp(raw, {
-          raw: {
-            width: info.width,
-            height: info.height,
-            channels: info.channels as 1 | 2 | 3 | 4
-          }
-        })
-          .png()
-          .toBuffer();
-        return { output: toRef(out, baseObj) };
+        const threshold = Number((this as any).threshold ?? 128) / 255;
+        const png = await runShaderOnPngBuffer(
+          colorSolarizeV1,
+          { threshold },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       }
-
-      // Posterize — raw pixel manipulation (NOT palette quantization!)
       if (t.endsWith(".Posterize")) {
         const bits = Math.max(
           1,
           Math.min(8, Math.round(Number((this as any).bits ?? 4)))
         );
-        const mask = 0xff << (8 - bits);
-        const { data: raw, info } = await img
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-        for (let i = 0; i < raw.length; i++) {
-          raw[i] = raw[i] & mask;
-        }
-        const out = await sharp(raw, {
-          raw: {
-            width: info.width,
-            height: info.height,
-            channels: info.channels as 1 | 2 | 3 | 4
-          }
-        })
-          .png()
-          .toBuffer();
-        return { output: toRef(out, baseObj) };
+        const png = await runShaderOnPngBuffer(
+          colorPosterizeV1,
+          { levels: Math.pow(2, bits) },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      }
+      if (t.endsWith(".Invert")) {
+        const png = await runShaderOnPngBuffer(
+          colorInvertV1,
+          { amount: 1 },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      }
+      if (t.endsWith(".ConvertToGrayscale")) {
+        const png = await runShaderOnPngBuffer(
+          colorGrayscaleV1,
+          { amount: 1 },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      }
+      if (t.endsWith(".Emboss")) {
+        // PIL `ImageFilter.EMBOSS` kernel: [-1 0 0 / 0 1 0 / 0 0 0] + 128.
+        const png = await runShaderOnPngBuffer(
+          filtersConvolve3x3V1,
+          {
+            row0: d.vec4f(-1, 0, 0, 128 / 255),
+            row1: d.vec4f(0, 1, 0, 0),
+            row2: d.vec4f(0, 0, 0, 1)
+          },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      }
+      if (t.endsWith(".FindEdges")) {
+        const png = await runShaderOnPngBuffer(
+          filtersConvolve3x3V1,
+          {
+            row0: d.vec4f(-1, -1, -1, 0),
+            row1: d.vec4f(-1, 8, -1, 0),
+            row2: d.vec4f(-1, -1, -1, 1)
+          },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      }
+      if (t.endsWith(".Contour")) {
+        // Composite Prewitt-style edge detector. PIL's CONTOUR is a single
+        // 3×3 kernel; this approximates it with a centre-weighted Laplacian
+        // followed by inversion to give a white-background contour image.
+        const png = await runShaderOnPngBuffer(
+          filtersConvolve3x3V1,
+          {
+            row0: d.vec4f(-1, -1, -1, 1),
+            row1: d.vec4f(-1, 9, -1, -1),
+            row2: d.vec4f(-1, -1, -1, 1)
+          },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      }
+      if (t.endsWith(".Smooth")) {
+        // PIL SMOOTH kernel: [1,1,1, 1,5,1, 1,1,1] with scale=13.
+        const png = await runShaderOnPngBuffer(
+          filtersConvolve3x3V1,
+          {
+            row0: d.vec4f(1, 1, 1, 0),
+            row1: d.vec4f(1, 5, 1, 0),
+            row2: d.vec4f(1, 1, 1, 13)
+          },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       }
 
-      // Pipeline-based nodes
-      if (t.endsWith(".Invert")) {
-        img = img.negate();
-      } else if (t.endsWith(".ConvertToGrayscale")) {
-        img = img.grayscale();
-      } else if (t.endsWith(".Emboss")) {
-        img = img.convolve({
-          width: 3,
-          height: 3,
-          kernel: [-2, -1, 0, -1, 1, 1, 0, 1, 2]
-        });
-      } else if (t.endsWith(".FindEdges")) {
-        img = img.convolve({
-          width: 3,
-          height: 3,
-          kernel: [-1, -1, -1, -1, 8, -1, -1, -1, -1]
-        });
-      } else if (t.endsWith(".Canny")) {
+      // Sharp-only paths follow — multi-stage algorithms not yet covered
+      // by the shader catalog.
+      let img = sharp(baseBytes, { failOn: "none" });
+
+      if (t.endsWith(".Canny")) {
         // Proper Canny edge detection
         const lowThreshold = Number((this as any).low_threshold ?? 100);
         const highThreshold = Number((this as any).high_threshold ?? 200);
@@ -222,54 +281,6 @@ function createFilterNode(desc: Desc): NodeClass {
           .png()
           .toBuffer();
         return { output: toRef(out, baseObj) };
-      } else if (t.endsWith(".Contour")) {
-        // Contour filter using Prewitt-like kernel distinct from FindEdges
-        // Combine horizontal and vertical Prewitt for contour detection
-        const { data: rawData, info: rawInfo } = await img
-          .grayscale()
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-        const cw = rawInfo.width;
-        const ch = rawInfo.height;
-        const contourBuf = Buffer.alloc(cw * ch);
-        for (let y = 1; y < ch - 1; y++) {
-          for (let x = 1; x < cw - 1; x++) {
-            // Horizontal Prewitt
-            const gx =
-              -rawData[(y - 1) * cw + (x - 1)] -
-              rawData[y * cw + (x - 1)] -
-              rawData[(y + 1) * cw + (x - 1)] +
-              rawData[(y - 1) * cw + (x + 1)] +
-              rawData[y * cw + (x + 1)] +
-              rawData[(y + 1) * cw + (x + 1)];
-            // Vertical Prewitt
-            const gy =
-              -rawData[(y - 1) * cw + (x - 1)] -
-              rawData[(y - 1) * cw + x] -
-              rawData[(y - 1) * cw + (x + 1)] +
-              rawData[(y + 1) * cw + (x - 1)] +
-              rawData[(y + 1) * cw + x] +
-              rawData[(y + 1) * cw + (x + 1)];
-            contourBuf[y * cw + x] = Math.min(
-              255,
-              Math.round(Math.sqrt(gx * gx + gy * gy))
-            );
-          }
-        }
-        const out = await sharp(contourBuf, {
-          raw: { width: cw, height: ch, channels: 1 }
-        })
-          .png()
-          .toBuffer();
-        return { output: toRef(out, baseObj) };
-      } else if (t.endsWith(".Smooth")) {
-        // PIL SMOOTH kernel: [1,1,1, 1,5,1, 1,1,1] with scale=13
-        img = img.convolve({
-          width: 3,
-          height: 3,
-          kernel: [1, 1, 1, 1, 5, 1, 1, 1, 1],
-          scale: 13
-        });
       } else if (t.endsWith(".Expand")) {
         const border = Number((this as any).border ?? 10);
         const fillVal = Number((this as any).fill ?? 0);

@@ -15,10 +15,13 @@ import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import DataArrayIcon from "@mui/icons-material/DataArray";
 import QueueIcon from "@mui/icons-material/Queue";
 import SouthIcon from "@mui/icons-material/South";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../lib/env";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { useGroupIntoSubgraph } from "../../hooks/nodes/useGroupIntoSubgraph";
+import { useNodes } from "../../contexts/NodeContext";
 
 const NodeContextMenu: React.FC = () => {
   const {
@@ -32,6 +35,21 @@ const NodeContextMenu: React.FC = () => {
   const handleRemoveFromGroup = useCallback(() => {
     removeFromGroup([node as Node<NodeData>]);
   }, [removeFromGroup, node]);
+
+  const groupIntoSubgraph = useGroupIntoSubgraph();
+  const getSelectedNodes = useNodes((s) => s.getSelectedNodes);
+  const handleGroupIntoSubgraph = useCallback(() => {
+    const selected = getSelectedNodes();
+    const ids =
+      selected.length > 0
+        ? selected.map((n) => n.id)
+        : node
+        ? [node.id]
+        : [];
+    if (ids.length === 0) return;
+    groupIntoSubgraph(ids);
+    closeContextMenu();
+  }, [groupIntoSubgraph, getSelectedNodes, node, closeContextMenu]);
 
   const menuItems = [
     conditions.isInGroup && (
@@ -105,6 +123,13 @@ const NodeContextMenu: React.FC = () => {
           ? "Remove the comment from this node"
           : "Add a comment to this node"
       }
+    />,
+    <ContextMenuItem
+      key="group-into-subgraph"
+      onClick={handleGroupIntoSubgraph}
+      label="Group into Subgraph"
+      IconComponent={<AccountTreeIcon />}
+      tooltip="Move the selected nodes into a new subgraph node"
     />,
     conditions.canConvertToInput && (
       <ContextMenuItem

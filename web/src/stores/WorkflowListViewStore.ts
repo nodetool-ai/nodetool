@@ -55,18 +55,27 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
         sortBy: state.sortBy,
         selectedTags: state.selectedTags
       }),
-      merge: (persistedState, currentState) => ({
-        ...currentState,
-        showGraphPreview:
-          (persistedState as Partial<WorkflowListViewState>)?.showGraphPreview ??
-          currentState.showGraphPreview,
-        sortBy:
-          (persistedState as Partial<WorkflowListViewState>)?.sortBy ??
-          currentState.sortBy,
-        selectedTags:
-          (persistedState as Partial<WorkflowListViewState>)?.selectedTags ??
-          currentState.selectedTags,
-      }),
+      merge: (persistedState, currentState) => {
+        if (!persistedState || typeof persistedState !== "object" || Array.isArray(persistedState)) {
+          return currentState;
+        }
+        const p = persistedState as Record<string, unknown>;
+        return {
+          ...currentState,
+          showGraphPreview:
+            typeof p.showGraphPreview === "boolean"
+              ? p.showGraphPreview
+              : currentState.showGraphPreview,
+          sortBy:
+            p.sortBy === "name" || p.sortBy === "date"
+              ? p.sortBy
+              : currentState.sortBy,
+          selectedTags:
+            Array.isArray(p.selectedTags)
+              ? (p.selectedTags as string[])
+              : currentState.selectedTags,
+        };
+      },
     }
   )
 );

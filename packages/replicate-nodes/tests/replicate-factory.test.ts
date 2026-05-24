@@ -119,7 +119,7 @@ describe("Replicate factory argument building", () => {
     });
   });
 
-  it("streams one generative output per Replicate array item", async () => {
+  it("produces a single output per process() call for image-generation nodes", async () => {
     replicateSubmit.mockResolvedValueOnce({ output: ["u1", "u2", "u3"] });
 
     const NodeClass = createReplicateNodeClass({
@@ -136,21 +136,67 @@ describe("Replicate factory argument building", () => {
     });
     const instance = new NodeClass({});
 
-    const outputs: unknown[] = [];
-    for await (const output of instance.genProcess()) {
-      outputs.push(output);
-    }
+    // process() returns a single mapped output — no genProcess fan-out.
+    const result = await instance.process();
+    expect(result).toHaveProperty("output");
+    expect((result as { output: { type: string } }).output.type).toBe("image");
+    expect(NodeClass.outputCorrelation).toBeUndefined();
+    expect(
+      (NodeClass as unknown as { isStreamingOutput?: boolean })
+        .isStreamingOutput
+    ).toBeFalsy();
+  });
 
-    expect(outputs).toEqual([
-      { output: { type: "image", uri: "u1" } },
-      { output: { type: "image", uri: "u2" } },
-      { output: { type: "image", uri: "u3" } }
-    ]);
-    expect(NodeClass.outputCorrelation).toEqual({
-      output: { kind: "iteration", source: "__execution__" }
+  it("does not register num_outputs and forces num_outputs=1 in API args", async () => {
+    replicateSubmit.mockResolvedValueOnce({ output: "u1" });
+
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/model",
+      className: "MultiOutputModel",
+      moduleName: "image.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      inputFields: [
+        {
+          name: "prompt",
+          propType: "str",
+          tsType: "string",
+          default: "",
+          description: "",
+          fieldType: "input",
+          required: true
+        },
+        {
+          name: "num_outputs",
+          propType: "int",
+          tsType: "number",
+          default: 1,
+          description: "",
+          fieldType: "input",
+          required: false,
+          min: 1,
+          max: 4
+        }
+      ],
+      outputFields: [],
+      enums: []
     });
-    expect(NodeClass.toDescriptor("replicate").output_correlation).toEqual({
-      output: { kind: "iteration", source: "__execution__" }
+
+    expect(
+      NodeClass.getDeclaredProperties().find((p) => p.name === "num_outputs")
+    ).toBeUndefined();
+
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).prompt = "cat";
+    (instance as unknown as Record<string, unknown>).num_outputs = 4;
+
+    await instance.process();
+
+    expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
+      prompt: "cat",
+      num_outputs: 1
     });
   });
 

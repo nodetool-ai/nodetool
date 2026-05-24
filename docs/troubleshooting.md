@@ -191,7 +191,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 
 #### Diagnostic Steps
 
-1. **Check collection status** – Verify documents are indexed in ChromaDB/FAISS
+1. **Check collection status** – Verify documents are indexed in SQLite-vec (or your configured backend)
 2. **Inspect embeddings** – Use Preview nodes to see what's being embedded
 3. **Test search directly** – Run search node separately with known queries
 4. **Review chunk size** – Check if documents are split appropriately
@@ -485,7 +485,7 @@ Include these details when asking for help:
 7. **Workflow file** — export the workflow JSON if possible
 
 **Good example:**
-> I'm running NodeTool 1.5.0 on macOS 14.1. When I run the Chat with Docs workflow (attached JSON), I get "Collection not found: docs". I've already run the Index PDFs workflow and can see the collection in ChromaDB. Screenshots attached.
+> I'm running NodeTool 1.5.0 on macOS 14.1. When I run the Chat with Docs workflow (attached JSON), I get "Collection not found: docs". I've already run the Index PDFs workflow and can see the collection in the SQLite-vec store. Screenshots attached.
 
 **Poor example:**
 > Chat with docs doesn't work, help!

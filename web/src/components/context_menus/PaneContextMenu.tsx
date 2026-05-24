@@ -29,6 +29,7 @@ import {
 } from "../../utils/nodeUtils";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { WORKFLOW_NODE_TYPE } from "../node/WorkflowNode";
+import { SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
 import { shallow } from "zustand/shallow";
 
 const PaneContextMenu: React.FC = () => {
@@ -413,6 +414,11 @@ const PaneContextMenu: React.FC = () => {
           onClick={handleCreateNode(WORKFLOW_NODE_TYPE)}
           label="Add Workflow"
           tooltip={"Add a workflow node"}
+        />
+        <ContextMenuItem
+          onClick={handleCreateNode(SUBGRAPH_NODE_TYPE)}
+          label="Add Subgraph"
+          tooltip={"Add an inline subgraph node"}
         />
       </Menu>
       <Menu

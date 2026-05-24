@@ -2,7 +2,14 @@ import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import sharp from "sharp";
+import * as d from "typegpu/data";
+import { sourcesSolidV1 } from "@nodetool-ai/gpu/pool";
 import { decodeImage, toRef, pickImage } from "./lib-image-utils.js";
+import {
+  colorValueToVec4,
+  premultiplyVec4,
+  runShaderOnPngBuffer
+} from "./lib-shader-utils.js";
 
 type Desc = {
   nodeType: string;
@@ -29,26 +36,24 @@ function createDrawNode(desc: Desc): NodeClass {
       const t = desc.nodeType;
 
       if (t === "lib.image.draw.Background") {
-        const width = Number((this as any).width ?? 512);
-        const height = Number((this as any).height ?? 512);
-        const colorVal = (this as any).color ?? "#FFFFFF";
-        const color =
-          colorVal &&
-          typeof colorVal === "object" &&
-          "value" in (colorVal as object)
-            ? String((colorVal as Record<string, unknown>).value)
-            : String(colorVal as string);
-        const buf = await sharp({
-          create: {
-            width: Math.max(1, width),
-            height: Math.max(1, height),
-            channels: 4,
-            background: color
-          }
-        })
-          .png()
-          .toBuffer();
-        return { output: { type: "image", data: buf.toString("base64") } };
+        const width = Math.max(1, Number((this as any).width ?? 512));
+        const height = Math.max(1, Number((this as any).height ?? 512));
+        // Source modules need explicit output dims and a (possibly null)
+        // source — pass an empty input ref so the shader gets the
+        // host-specified dimensions.
+        const [r, g, b, a] = premultiplyVec4(
+          colorValueToVec4((this as any).color ?? "#FFFFFF", [1, 1, 1, 1])
+        );
+        const png = await runShaderOnPngBuffer(
+          sourcesSolidV1,
+          { color: d.vec4f(r, g, b, a) },
+          new Uint8Array(),
+          { outputWidth: width, outputHeight: height },
+          context
+        );
+        return {
+          output: { type: "image", data: Buffer.from(png).toString("base64") }
+        };
       }
 
       if (t === "lib.image.draw.GaussianNoise") {

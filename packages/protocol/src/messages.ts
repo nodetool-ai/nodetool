@@ -134,6 +134,12 @@ export interface ValidationIssue {
   message: string;
 }
 
+export interface ProviderCost {
+  provider: string;
+  amount: number;
+  unit: string;
+}
+
 export interface NodeUpdate {
   type: "node_update";
   node_id: string;
@@ -143,6 +149,8 @@ export interface NodeUpdate {
   error?: string | null;
   result?: Record<string, unknown> | null;
   properties?: Record<string, unknown> | null;
+  /** Actual provider charge for the last completed run (when reported by the node). */
+  provider_cost?: ProviderCost | null;
   workflow_id?: string | null;
 }
 

@@ -20,7 +20,7 @@ export type BottomPanelView =
   | "workspace"
   | "trace";
 
-export type BottomPanelGroup = "run" | "workflow" | "debug";
+type BottomPanelGroup = "run" | "workflow" | "debug";
 
 export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
   id: BottomPanelGroup;

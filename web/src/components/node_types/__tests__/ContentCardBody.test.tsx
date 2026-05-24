@@ -60,14 +60,20 @@ jest.mock("../../node/ImageView", () => {
   };
 });
 
-jest.mock("../../node/NodeHistoryPanel", () => {
+jest.mock("../../assets/AssetViewer", () => {
   const React = require("react");
   return {
     __esModule: true,
     default: ({ open }: { open: boolean }) =>
-      open ? React.createElement("div", { "data-testid": "history-panel" }) : null
+      open ? React.createElement("div", { "data-testid": "asset-viewer" }) : null
   };
 });
+
+let mockRunnerState: "idle" | "running" = "idle";
+jest.mock("../../../stores/WorkflowRunner", () => ({
+  useWebsocketRunner: (selector: (s: { state: string }) => unknown) =>
+    selector({ state: mockRunnerState })
+}));
 
 const workflowId = "workflow-1";
 const nodeId = "node-1";
@@ -123,6 +129,7 @@ describe("ContentCardBody results", () => {
   beforeEach(() => {
     mockAssetHistory = [];
     mockLastJobAssets = [];
+    mockRunnerState = "idle";
     useResultsStore.setState({
       results: {},
       outputResults: {},
@@ -178,48 +185,39 @@ describe("ContentCardBody results", () => {
     expect(rendered[1]).toHaveTextContent("wrapped-2.png");
   });
 
-  it("opens generation history (sourced from assets) without replacing the content view", async () => {
-    mockAssetHistory = [fakeAsset("history-asset-1")];
-    useResultsStore.getState().setOutputResult(workflowId, nodeId, {
-      type: "image",
-      uri: "current.png"
-    });
+  it("shows pagination controls when history has multiple saved assets", async () => {
+    mockAssetHistory = [
+      fakeAsset("history-asset-1", "job-1"),
+      fakeAsset("history-asset-2", "job-2"),
+      fakeAsset("history-asset-3", "job-3")
+    ];
 
     renderContentCard(metadataForOutput("image"));
 
-    expect(screen.getByTestId("image-view")).toHaveTextContent("current.png");
-    await userEvent.click(screen.getByLabelText("Open generation history"));
-    expect(screen.getByTestId("history-panel")).toBeInTheDocument();
-    expect(screen.getByTestId("image-view")).toHaveTextContent("current.png");
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText("Next output"));
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
   });
 
-  it("falls back to every asset from the last job when memory is empty", () => {
-    // No outputResults / results set — simulates a page reload where the
-    // in-memory state is gone but the DB still has the last execution.
-    // All assets from the latest job render so a `num_images=2` run shows
-    // both tiles, not just one.
-    mockLastJobAssets = [
+  it("switches to grid mode and shows every history asset as a thumbnail", async () => {
+    mockAssetHistory = [
       fakeAsset("first", "job-99"),
       fakeAsset("second", "job-99")
     ];
-    mockAssetHistory = mockLastJobAssets;
+    mockLastJobAssets = mockAssetHistory;
 
     renderContentCard(metadataForOutput("image"));
 
-    const rendered = screen.getAllByTestId("image-view");
-    expect(rendered).toHaveLength(2);
-    expect(rendered[0]).toHaveTextContent(
-      "http://localhost/api/storage/first"
-    );
-    expect(rendered[1]).toHaveTextContent(
-      "http://localhost/api/storage/second"
-    );
+    await userEvent.click(screen.getByLabelText("Toggle view mode"));
+    const items = screen.getAllByRole("listitem");
+    expect(items).toHaveLength(2);
   });
 
-  it("prefers live streaming output over the DB fallback during a run", () => {
+  it("shows the live streaming result during a run, even when prior history exists", () => {
     // DB still holds the previous run, but a new run is mid-flight.
     mockLastJobAssets = [fakeAsset("old-run", "job-1")];
     mockAssetHistory = mockLastJobAssets;
+    mockRunnerState = "running";
     useResultsStore.getState().setOutputResult(workflowId, nodeId, {
       type: "image",
       uri: "live-run.png"
@@ -228,7 +226,6 @@ describe("ContentCardBody results", () => {
     renderContentCard(metadataForOutput("image"));
 
     const rendered = screen.getAllByTestId("image-view");
-    expect(rendered).toHaveLength(1);
     expect(rendered[0]).toHaveTextContent("live-run.png");
   });
 

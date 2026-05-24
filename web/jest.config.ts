@@ -96,5 +96,11 @@ export default {
     "!src/index.tsx"
   ],
   coveragePathIgnorePatterns: ["/node_modules/", "/coverage/", "/dist/"],
-  testPathIgnorePatterns: ["/node_modules/", "/dist/", "tests/e2e/", "tests/benchmarks/"]
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "/dist/",
+    "tests/e2e/",
+    "tests/benchmarks/",
+    "tests/subgraph-e2e.spec.ts"
+  ]
 };

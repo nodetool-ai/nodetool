@@ -10,17 +10,17 @@ import { NodeMetadata } from "../stores/ApiTypes";
  *   log( (N - df + 0.5) / (df + 0.5) + 1 )
  */
 
-export interface BM25Field {
+interface BM25Field {
   name: string;
   weight: number;
 }
 
-export interface BM25Doc {
+interface BM25Doc {
   id: string;
   fields: Record<string, string>;
 }
 
-export interface BM25Result {
+interface BM25Result {
   id: string;
   score: number;
 }
@@ -153,7 +153,7 @@ export class BM25Index {
   }
 }
 
-export interface NodeBM25Extras {
+interface NodeBM25Extras {
   /** Cleaned description (first line / body only — no tags or use-cases). */
   description?: string;
   /** Comma-joined tag list, parsed from line 2 of the raw description. */

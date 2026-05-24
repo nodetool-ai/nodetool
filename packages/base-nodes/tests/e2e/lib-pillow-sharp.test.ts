@@ -1,3 +1,8 @@
+// Several `lib.image.*` nodes (filter/enhance/color_grading/draw) now route
+// their pixel pass through the GPU shader pool; tests need a CPU WebGPU
+// device available before importing.
+import "../../../gpu/tests/setup/swiftshaderIcd.js";
+
 import { describe, expect, it } from "vitest";
 import { registerBaseNodes, LIB_PILLOW_NODES } from "../../src/index.js";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
