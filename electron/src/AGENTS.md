@@ -2,6 +2,8 @@
 
 **Navigation**: [Root AGENTS.md](../../AGENTS.md) | [CLAUDE.md](../../CLAUDE.md) → **Electron**
 
+> **Read [docs/DEVELOPMENT_STANDARDS.md §12 Electron Security](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) first.** It is the canonical source for Electron security, IPC, sandboxing, and platform standards. The rules below are the area-specific overlay.
+
 Desktop application wrapping the NodeTool web UI with native capabilities (local file system, SQLite, Python/Conda integration).
 
 ## Prerequisites
@@ -71,13 +73,21 @@ electron/src/
 
 ## Rules
 
-### Security (Critical)
+### Security (Critical — non-negotiable)
 
-- **Always** use `contextBridge` for IPC — never enable `nodeIntegration`.
-- **Always** enable `contextIsolation` on all windows.
-- Validate all IPC inputs in the main process before acting on them.
-- Never pass unsanitized user data to `shell.openExternal` or file system APIs.
-- Never expose Node.js APIs directly to the renderer.
+> See [DEVELOPMENT_STANDARDS §12](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) for the full checklist (CSP, auto-update signing, `setWindowOpenHandler`, sandbox flag, `webSecurity`).
+
+- **`contextIsolation: true`** on every `BrowserWindow`. No exceptions.
+- **`nodeIntegration: false`** on every `BrowserWindow`. No exceptions.
+- **`sandbox: true`** on renderer windows whenever possible.
+- **`webSecurity: true`** — never disable.
+- **Always** use `contextBridge.exposeInMainWorld` for IPC. Never assign to `window` directly.
+- **Validate every IPC input with Zod** in the main process before acting on it. Untrusted renderer is the attacker model.
+- **`shell.openExternal`** only with an allowlisted URL scheme (`https:`, `mailto:`). Never pass user input directly.
+- **`webContents.setWindowOpenHandler`** denies all by default; allow specific URLs only.
+- **No `eval`, no `new Function`** anywhere in main or preload.
+- **Auto-update** must verify code signatures (`electron-updater` with publisher verification).
+- **CSP** is set in production builds. **target**: drop `'unsafe-inline'` for scripts.
 
 ### IPC Communication
 
@@ -85,6 +95,8 @@ electron/src/
 - Use `ipcMain.handle` / `ipcRenderer.invoke` for request-response (async).
 - Use `webContents.send` / `ipcRenderer.on` for main-to-renderer events.
 - Always clean up IPC listeners when windows are destroyed.
+- IPC handlers wrap their body in try/catch and return a discriminated `{ ok: true, data } | { ok: false, error }` — never throw across the IPC boundary.
+- Every IPC handler is span-instrumented for tracing. See [DEVELOPMENT_STANDARDS §17](../../docs/DEVELOPMENT_STANDARDS.md#17-observability).
 
 ### Platform Code
 
