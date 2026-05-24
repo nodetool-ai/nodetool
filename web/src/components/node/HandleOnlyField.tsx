@@ -13,7 +13,7 @@
 import React, { memo, useMemo } from "react";
 import isEqual from "fast-deep-equal";
 import { Handle, Position } from "@xyflow/react";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { css } from "@emotion/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -44,12 +44,11 @@ const HandleOnlyFieldImpl: React.FC<HandleOnlyFieldProps> = ({
   isConnected = false
 }) => {
   const { connectType, connectDirection, connectNodeId } = useConnectionStore(
-    (state) => ({
+    useShallow((state) => ({
       connectType: state.connectType,
       connectDirection: state.connectDirection,
       connectNodeId: state.connectNodeId
-    }),
-    shallow
+    }))
   );
 
   const classConnectable = useMemo(() => {

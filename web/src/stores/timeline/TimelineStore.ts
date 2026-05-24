@@ -285,8 +285,6 @@ export const createTimelineStore = (
   > = {}
 ) =>
   create<TimelineStoreState>()(
-    // @ts-expect-error zundo v2 / zustand v4 types are not fully compatible.
-    // Tracked in https://github.com/charkour/zundo/issues — same pattern as NodeStore.ts.
     temporal(
       (set, get) => ({
         ...emptyState,

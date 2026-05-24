@@ -62,8 +62,8 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
-  const toggleWorkflowPanel = usePanelStore(
-    (state) => () => state.handleViewChange("settings")
+  const handlePanelViewChange = usePanelStore(
+    (state) => state.handleViewChange
   );
 
   const toggleBottomPanel = useBottomPanelStore(
@@ -152,8 +152,8 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   }, [navigate, path]);
 
   const handleEditWorkflow = useCallback(() => {
-    toggleWorkflowPanel();
-  }, [toggleWorkflowPanel]);
+    handlePanelViewChange("settings");
+  }, [handlePanelViewChange]);
 
   const handleToggleNodeMenu = useCallback(() => {
     if (isMenuOpen) {

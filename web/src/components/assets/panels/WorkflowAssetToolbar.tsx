@@ -22,7 +22,7 @@ import { Asset } from "../../../stores/ApiTypes";
 import AssetTypeFilter from "../AssetTypeFilter";
 import { TypeFilterKey } from "../../../utils/formatUtils";
 import isEqual from "fast-deep-equal";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 
 interface WorkflowAssetToolbarProps {
   assets: Asset[];
@@ -89,17 +89,16 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
 }) => {
   const theme = useTheme();
   const { handleSelectAllAssets, handleDeselectAssets } = useAssetSelection(assets);
-  const [viewMode, setViewMode] = useAssetGridStore((state) => [
-    state.viewMode,
-    state.setViewMode
-  ] as const, shallow);
+  const [viewMode, setViewMode] = useAssetGridStore(
+    useShallow((state) => [state.viewMode, state.setViewMode] as const)
+  );
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const setTypeFilter = useAssetGridStore((state) => state.setTypeFilter);
-  const [settings, setAssetItemSize, setAssetsOrder] = useSettingsStore((state) => [
-    state.settings,
-    state.setAssetItemSize,
-    state.setAssetsOrder
-  ] as const, shallow);
+  const [settings, setAssetItemSize, setAssetsOrder] = useSettingsStore(
+    useShallow(
+      (state) => [state.settings, state.setAssetItemSize, state.setAssetsOrder] as const
+    )
+  );
 
   const handleTypeFilterChange = useCallback(
     (next: TypeFilterKey) => setTypeFilter(next),

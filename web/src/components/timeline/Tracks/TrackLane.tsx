@@ -26,6 +26,7 @@ import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
 import { ContextMenu, WarningBanner } from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
@@ -109,13 +110,15 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const theme = useTheme();
 
   // Get only the clip IDs for this track (stable list of ids)
-  const clipIds = useTimelineStore(
+  const clipIds = useStoreWithEqualityFn(
+    useTimelineStore,
     (s) =>
       s.clips
         .filter((c) => c.trackId === track.id)
         .map((c) => c.id),
     // Shallow-compare the resulting string array
-    (a, b) => a.length === b.length && a.every((id, i) => id === b[i])
+    (a: string[], b: string[]) =>
+      a.length === b.length && a.every((id, i) => id === b[i])
   );
 
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);

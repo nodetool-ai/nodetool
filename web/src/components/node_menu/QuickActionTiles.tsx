@@ -26,7 +26,7 @@ import MovieFilterIcon from "@mui/icons-material/MovieFilter";
 import MusicVideoIcon from "@mui/icons-material/MusicVideo";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
@@ -379,10 +379,10 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
-  const { setDragToCreate, setHoveredNode } = useNodeMenuStore((state) => ({
+  const { setDragToCreate, setHoveredNode } = useNodeMenuStore(useShallow((state) => ({
     setDragToCreate: state.setDragToCreate,
     setHoveredNode: state.setHoveredNode
-  }), shallow);
+  })));
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
