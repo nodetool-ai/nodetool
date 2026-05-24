@@ -152,6 +152,7 @@ export {
 } from "./nodes/input.js";
 export { OutputNode, PreviewNode, OUTPUT_NODES } from "./nodes/output.js";
 export { WorkflowNode, WORKFLOW_NODES } from "./nodes/workflow.js";
+export { SubgraphNode, SUBGRAPH_NODES } from "./nodes/subgraph.js";
 export {
   GetWorkspaceDirNode,
   ListWorkspaceFilesNode,
@@ -701,6 +702,7 @@ import { EXTENDED_PLACEHOLDER_NODES } from "./nodes/extended-placeholders.js";
 import { INPUT_NODES } from "./nodes/input.js";
 import { OUTPUT_NODES } from "./nodes/output.js";
 import { WORKFLOW_NODES } from "./nodes/workflow.js";
+import { SUBGRAPH_NODES } from "./nodes/subgraph.js";
 import { WORKSPACE_NODES } from "./nodes/workspace.js";
 import { COMPARE_NODES } from "./nodes/compare.js";
 import { DOCUMENT_NODES } from "./nodes/document.js";
@@ -771,6 +773,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...INPUT_NODES,
   ...OUTPUT_NODES,
   ...WORKFLOW_NODES,
+  ...SUBGRAPH_NODES,
   ...WORKSPACE_NODES,
   ...COMPARE_NODES,
   ...DOCUMENT_NODES,
@@ -876,6 +879,29 @@ export function registerBaseNodes(registry: NodeRegistry): void {
               name: "workflow_json",
               type: { type: "dict", type_args: [] },
               default: {}
+            }
+          ],
+          outputs: [],
+          inline_fields: []
+        }
+      });
+      continue;
+    }
+    if (nodeClass.nodeType === "nodetool.workflows.subgraph.Subgraph") {
+      registry.register(nodeClass, {
+        metadata: {
+          title: "Subgraph",
+          description:
+            "Execute an inline sub-graph as an isolated workflow. Inputs/outputs are derived from inner Input/Output nodes.",
+          namespace: "nodetool.workflows.subgraph",
+          node_type: "nodetool.workflows.subgraph.Subgraph",
+          is_dynamic: true,
+          is_streaming_output: true,
+          properties: [
+            {
+              name: "graph",
+              type: { type: "dict", type_args: [] },
+              default: { nodes: [], edges: [] }
             }
           ],
           outputs: [],
