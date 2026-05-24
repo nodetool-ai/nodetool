@@ -761,6 +761,13 @@ import { TEAM_NODES } from "./nodes/team.js";
 import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
 import { LIB_DATETIME_NODES } from "./nodes/lib-datetime.js";
 import { LIB_VALIDATE_NODES } from "./nodes/lib-validate.js";
+import { SHADER_COLOR_NODES } from "./nodes/lib-shader-color.js";
+import { SHADER_FILTERS_NODES } from "./nodes/lib-shader-filters.js";
+import { SHADER_KEYER_NODES } from "./nodes/lib-shader-keyer.js";
+import { SHADER_MASK_NODES } from "./nodes/lib-shader-mask.js";
+import { SHADER_SOURCES_NODES } from "./nodes/lib-shader-sources.js";
+import { SHADER_MIXER_NODES } from "./nodes/lib-shader-mixer.js";
+import { SHADER_TRANSFORM_NODES } from "./nodes/lib-shader-transform.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -830,8 +837,24 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...TOOL_AGENT_NODES,
   ...SANDBOX_NODES,
   ...TEAM_NODES,
-  ...LIB_NLP_NODES
+  ...LIB_NLP_NODES,
+  // GPU shader pool nodes (server-side Dawn).
+  ...SHADER_COLOR_NODES,
+  ...SHADER_FILTERS_NODES,
+  ...SHADER_KEYER_NODES,
+  ...SHADER_MASK_NODES,
+  ...SHADER_SOURCES_NODES,
+  ...SHADER_MIXER_NODES,
+  ...SHADER_TRANSFORM_NODES
 ];
+
+export { SHADER_COLOR_NODES } from "./nodes/lib-shader-color.js";
+export { SHADER_FILTERS_NODES } from "./nodes/lib-shader-filters.js";
+export { SHADER_KEYER_NODES } from "./nodes/lib-shader-keyer.js";
+export { SHADER_MASK_NODES } from "./nodes/lib-shader-mask.js";
+export { SHADER_SOURCES_NODES } from "./nodes/lib-shader-sources.js";
+export { SHADER_MIXER_NODES } from "./nodes/lib-shader-mixer.js";
+export { SHADER_TRANSFORM_NODES } from "./nodes/lib-shader-transform.js";
 
 export function registerBaseNodes(registry: NodeRegistry): void {
   for (const nodeClass of ALL_BASE_NODES) {
