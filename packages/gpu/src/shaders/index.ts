@@ -67,6 +67,9 @@ import { transformPolarRemapV1 } from "./transform/polarRemap/v1/module.js";
 import { transformDisplaceV1 } from "./transform/displace/v1/module.js";
 import { transformSpherizeV1 } from "./transform/spherize/v1/module.js";
 
+import { alphaStraightToPremulV1 } from "./alpha/straightToPremul/v1/module.js";
+import { alphaPremulToStraightV1 } from "./alpha/premulToStraight/v1/module.js";
+
 export {
   passthroughV1,
   colorGradeV1,
@@ -115,7 +118,9 @@ export {
   transformCornerPinV1,
   transformPolarRemapV1,
   transformDisplaceV1,
-  transformSpherizeV1
+  transformSpherizeV1,
+  alphaStraightToPremulV1,
+  alphaPremulToStraightV1
 };
 
 /**
@@ -174,7 +179,10 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   transformCornerPinV1,
   transformPolarRemapV1,
   transformDisplaceV1,
-  transformSpherizeV1
+  transformSpherizeV1,
+  // alpha
+  alphaStraightToPremulV1,
+  alphaPremulToStraightV1
 ];
 
 /** Every recipe module registered by default. */

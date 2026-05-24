@@ -47,7 +47,8 @@ describe.skipIf(!device)("color.grade compute (GPU)", () => {
       width,
       height,
       format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      meta: { colorSpace: "srgb", alpha: "premultiplied" }
     });
     gpuDevice.queue.writeTexture(
       { texture: source.texture },
