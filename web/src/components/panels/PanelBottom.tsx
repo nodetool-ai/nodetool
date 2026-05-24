@@ -369,13 +369,13 @@ const PanelBottom: React.FC = () => {
     }
   }, [activeView, setActiveView]);
 
-  if (!path.startsWith("/editor")) {
-    return null;
-  }
-
   const handleClose = useCallback(() => {
     setVisibility(false);
   }, [setVisibility]);
+
+  if (!path.startsWith("/editor")) {
+    return null;
+  }
 
   const openHeight = isVisible
     ? Math.min(
