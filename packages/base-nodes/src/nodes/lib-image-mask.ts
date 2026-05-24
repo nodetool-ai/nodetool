@@ -1,6 +1,7 @@
 /**
- * Workflow nodes for `mask.*` modules: derive masks from an image, apply
- * masks to an image, invert a mask. All run via Dawn.
+ * `lib.image.mask.*` — mask manipulation: derive a mask from an image's
+ * channels, apply a mask to an image, invert a mask. Coverage lives in the
+ * alpha channel by convention. GPU-backed.
  */
 
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
@@ -24,10 +25,10 @@ function num(value: unknown, fallback: number): number {
 }
 
 class MaskApplyNode extends BaseNode {
-  static readonly nodeType = "shader.mask.apply";
-  static readonly title = "Mask Apply";
+  static readonly nodeType = "lib.image.mask.Apply";
+  static readonly title = "Apply Mask";
   static readonly description =
-    "Multiply mask coverage (mask.a) into the source's alpha; RGB unchanged (GPU).";
+    "Multiply a coverage mask (read from mask.a) into the source's alpha. RGB unchanged.\n    image, mask, apply, alpha";
   static readonly inputFields = ["image", "mask"];
   static readonly metadataOutputTypes = { output: "image" };
 
@@ -48,10 +49,10 @@ registerDeclaredProperty(MaskApplyNode, "mask", extraImageProp("Mask", "Coverage
 registerDeclaredProperty(MaskApplyNode, "invert", intProp(0, { min: 0, max: 1, label: "Invert mask" }));
 
 class MaskFromImageNode extends BaseNode {
-  static readonly nodeType = "shader.mask.from_image";
+  static readonly nodeType = "lib.image.mask.FromImage";
   static readonly title = "Mask From Image";
   static readonly description =
-    "Derive a mask from an image channel: 0 alpha / 1 luma / 2 R / 3 G / 4 B / 5 max (GPU).";
+    "Derive a mask from an image channel.\n    image, mask, alpha, channel\n\n    Modes: 0 alpha / 1 luminance / 2 R / 3 G / 4 B / 5 max channel.";
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "image" };
 
@@ -68,20 +69,18 @@ class MaskFromImageNode extends BaseNode {
   }
 }
 registerDeclaredProperty(MaskFromImageNode, "image", IMAGE_PROP);
-registerDeclaredProperty(MaskFromImageNode, "mode", intProp(1, { min: 0, max: 5, label: "Mode" }));
+registerDeclaredProperty(MaskFromImageNode, "mode", intProp(1, { min: 0, max: 5, label: "Source channel" }));
 registerDeclaredProperty(MaskFromImageNode, "invert", intProp(0, { min: 0, max: 1, label: "Invert" }));
 
 class MaskInvertNode extends BaseNode {
-  static readonly nodeType = "shader.mask.invert";
-  static readonly title = "Mask Invert";
-  static readonly description = "Invert mask alpha (coverage → 1 − coverage). GPU.";
+  static readonly nodeType = "lib.image.mask.Invert";
+  static readonly title = "Invert Mask";
+  static readonly description = "Invert mask alpha (coverage → 1 − coverage).\n    image, mask, invert, alpha";
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "image" };
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
     const props = this.serialize() as Record<string, unknown>;
-    // The module declares a placeholder `unused` field; pass it to satisfy
-    // the schema even though the WGSL never reads it.
     const output = await runShaderNode(
       maskInvertV1,
       { unused: 0 },
@@ -94,7 +93,7 @@ class MaskInvertNode extends BaseNode {
 }
 registerDeclaredProperty(MaskInvertNode, "image", IMAGE_PROP);
 
-export const SHADER_MASK_NODES: readonly NodeClass[] = [
+export const LIB_IMAGE_MASK_NODES: readonly NodeClass[] = [
   MaskApplyNode,
   MaskFromImageNode,
   MaskInvertNode

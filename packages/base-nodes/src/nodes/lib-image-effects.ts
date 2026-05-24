@@ -1,8 +1,8 @@
 /**
- * Workflow nodes for `mixer.*` modules: add (two-input additive composite),
- * colorOverlay (constant tint), outline (alpha-edge fill), and the
- * dropShadow recipe. The internal `mixer.shadowCompose` helper is not
- * exposed — workflow users compose drop shadows through the recipe node.
+ * `lib.image.effects.*` — single-image layer effects (drop shadow, outline,
+ * colour overlay, glow) plus additive composite. Backed by the GPU shader
+ * pool (Dawn) — shaders are an implementation detail; nodes are organized by
+ * what the user is doing.
  */
 
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
@@ -13,7 +13,8 @@ import {
   mixerAddV1,
   mixerColorOverlayV1,
   mixerOutlineV1,
-  mixerDropShadowV1
+  mixerDropShadowV1,
+  filtersGlowV1
 } from "@nodetool-ai/gpu/pool";
 import {
   IMAGE_PROP,
@@ -35,34 +36,11 @@ function vec4From(value: unknown, fallback: [number, number, number, number]): R
   return d.vec4f(r, g, b, a);
 }
 
-class MixerAddNode extends BaseNode {
-  static readonly nodeType = "shader.mixer.add";
-  static readonly title = "Add";
-  static readonly description = "Additive composite: out = source + over * gain (GPU).";
-  static readonly inputFields = ["image", "over"];
-  static readonly metadataOutputTypes = { output: "image" };
-
-  async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
-    const props = this.serialize() as Record<string, unknown>;
-    const output = await runShaderNode(
-      mixerAddV1,
-      { gain: num(props.gain, 1) },
-      props.image,
-      { extraInputs: { over: props.over } },
-      context
-    );
-    return { output };
-  }
-}
-registerDeclaredProperty(MixerAddNode, "image", IMAGE_PROP);
-registerDeclaredProperty(MixerAddNode, "over", extraImageProp("Over", "Image added on top"));
-registerDeclaredProperty(MixerAddNode, "gain", floatProp(1, { min: 0, max: 4, label: "Gain" }));
-
 class ColorOverlayNode extends BaseNode {
-  static readonly nodeType = "shader.mixer.color_overlay";
+  static readonly nodeType = "lib.image.effects.ColorOverlay";
   static readonly title = "Color Overlay";
   static readonly description =
-    "Tint with a constant colour while preserving source coverage (GPU).";
+    "Tint an image with a constant colour while preserving source coverage.\n    image, overlay, tint, layer effect";
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "image" };
 
@@ -83,16 +61,13 @@ class ColorOverlayNode extends BaseNode {
 }
 registerDeclaredProperty(ColorOverlayNode, "image", IMAGE_PROP);
 registerDeclaredProperty(ColorOverlayNode, "color", colorProp("#ff0000", { label: "Overlay color" }));
-registerDeclaredProperty(
-  ColorOverlayNode,
-  "amount",
-  floatProp(0.5, { min: 0, max: 1, label: "Amount" })
-);
+registerDeclaredProperty(ColorOverlayNode, "amount", floatProp(0.5, { min: 0, max: 1, label: "Amount" }));
 
 class OutlineNode extends BaseNode {
-  static readonly nodeType = "shader.mixer.outline";
+  static readonly nodeType = "lib.image.effects.Outline";
   static readonly title = "Outline";
-  static readonly description = "Flat outline / stroke around the source silhouette (GPU).";
+  static readonly description =
+    "Draw a flat outline / stroke around the source silhouette.\n    image, outline, stroke, edge, layer effect";
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "image" };
 
@@ -102,7 +77,7 @@ class OutlineNode extends BaseNode {
       mixerOutlineV1,
       {
         color: vec4From(props.color, [0, 0, 0, 1]),
-        widthPx: num(props.width_px, 2),
+        widthPx: num(props.width, 2),
         threshold: num(props.threshold, 0.5)
       },
       props.image,
@@ -114,22 +89,14 @@ class OutlineNode extends BaseNode {
 }
 registerDeclaredProperty(OutlineNode, "image", IMAGE_PROP);
 registerDeclaredProperty(OutlineNode, "color", colorProp("#000000", { label: "Outline color" }));
-registerDeclaredProperty(
-  OutlineNode,
-  "width_px",
-  floatProp(2, { min: 0, max: 32, label: "Width (px)" })
-);
-registerDeclaredProperty(
-  OutlineNode,
-  "threshold",
-  floatProp(0.5, { min: 0, max: 1, label: "Alpha threshold" })
-);
+registerDeclaredProperty(OutlineNode, "width", floatProp(2, { min: 0, max: 32, label: "Width (px)" }));
+registerDeclaredProperty(OutlineNode, "threshold", floatProp(0.5, { min: 0, max: 1, label: "Alpha threshold" }));
 
 class DropShadowNode extends BaseNode {
-  static readonly nodeType = "shader.mixer.drop_shadow";
+  static readonly nodeType = "lib.image.effects.DropShadow";
   static readonly title = "Drop Shadow";
   static readonly description =
-    "Drop-shadow layer effect (mask.fromImage → blur H → blur V → composite). GPU recipe.";
+    "Cast a soft drop shadow behind the source silhouette.\n    image, drop shadow, layer effect, blur";
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "image" };
 
@@ -174,10 +141,66 @@ registerDeclaredProperty(
   floatProp(0.6, { min: 0, max: 4, label: "Intensity" })
 );
 
-export const SHADER_MIXER_NODES: readonly NodeClass[] = [
-  MixerAddNode,
+class GlowNode extends BaseNode {
+  static readonly nodeType = "lib.image.effects.Glow";
+  static readonly title = "Glow";
+  static readonly description =
+    "Bloom / glow effect: bright-pass + blur + additive composite over source.\n    image, glow, bloom, layer effect, blur";
+  static readonly inputFields = ["image"];
+  static readonly metadataOutputTypes = { output: "image" };
+
+  async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
+    const props = this.serialize() as Record<string, unknown>;
+    const output = await runRecipeNode(
+      filtersGlowV1,
+      {
+        threshold: num(props.threshold, 0.7),
+        softness: num(props.softness, 0.1),
+        radius: num(props.radius, 8),
+        intensity: num(props.intensity, 1)
+      },
+      props.image,
+      {},
+      context
+    );
+    return { output };
+  }
+}
+registerDeclaredProperty(GlowNode, "image", IMAGE_PROP);
+registerDeclaredProperty(GlowNode, "threshold", floatProp(0.7, { min: 0, max: 1, label: "Threshold" }));
+registerDeclaredProperty(GlowNode, "softness", floatProp(0.1, { min: 0, max: 0.5, label: "Softness" }));
+registerDeclaredProperty(GlowNode, "radius", floatProp(8, { min: 0, max: 40, label: "Radius (px)" }));
+registerDeclaredProperty(GlowNode, "intensity", floatProp(1, { min: 0, max: 4, label: "Intensity" }));
+
+class AddBlendNode extends BaseNode {
+  static readonly nodeType = "lib.image.effects.Add";
+  static readonly title = "Add Blend";
+  static readonly description =
+    "Additive composite of two images: out = source + over × gain.\n    image, add, blend, composite";
+  static readonly inputFields = ["image", "over"];
+  static readonly metadataOutputTypes = { output: "image" };
+
+  async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
+    const props = this.serialize() as Record<string, unknown>;
+    const output = await runShaderNode(
+      mixerAddV1,
+      { gain: num(props.gain, 1) },
+      props.image,
+      { extraInputs: { over: props.over } },
+      context
+    );
+    return { output };
+  }
+}
+registerDeclaredProperty(AddBlendNode, "image", IMAGE_PROP);
+registerDeclaredProperty(AddBlendNode, "over", extraImageProp("Over", "Image added on top of the source"));
+registerDeclaredProperty(AddBlendNode, "gain", floatProp(1, { min: 0, max: 4, label: "Gain" }));
+
+export const LIB_IMAGE_EFFECTS_NODES: readonly NodeClass[] = [
   ColorOverlayNode,
   OutlineNode,
-  DropShadowNode
+  DropShadowNode,
+  GlowNode,
+  AddBlendNode
 ];
-export { MixerAddNode, ColorOverlayNode, OutlineNode, DropShadowNode };
+export { ColorOverlayNode, OutlineNode, DropShadowNode, GlowNode, AddBlendNode };

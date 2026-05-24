@@ -761,13 +761,13 @@ import { TEAM_NODES } from "./nodes/team.js";
 import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
 import { LIB_DATETIME_NODES } from "./nodes/lib-datetime.js";
 import { LIB_VALIDATE_NODES } from "./nodes/lib-validate.js";
-import { SHADER_COLOR_NODES } from "./nodes/lib-shader-color.js";
-import { SHADER_FILTERS_NODES } from "./nodes/lib-shader-filters.js";
-import { SHADER_KEYER_NODES } from "./nodes/lib-shader-keyer.js";
-import { SHADER_MASK_NODES } from "./nodes/lib-shader-mask.js";
-import { SHADER_SOURCES_NODES } from "./nodes/lib-shader-sources.js";
-import { SHADER_MIXER_NODES } from "./nodes/lib-shader-mixer.js";
-import { SHADER_TRANSFORM_NODES } from "./nodes/lib-shader-transform.js";
+import { LIB_IMAGE_EFFECTS_NODES } from "./nodes/lib-image-effects.js";
+import { LIB_IMAGE_KEYER_NODES } from "./nodes/lib-image-keyer.js";
+import { LIB_IMAGE_MASK_NODES } from "./nodes/lib-image-mask.js";
+import { LIB_IMAGE_CHANNEL_NODES } from "./nodes/lib-image-channel.js";
+import { LIB_IMAGE_WARP_NODES } from "./nodes/lib-image-warp.js";
+import { LIB_IMAGE_GENERATORS_NODES } from "./nodes/lib-image-generators.js";
+import { LIB_IMAGE_FILTER_EXTRAS_NODES } from "./nodes/lib-image-filter-extras.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -838,23 +838,22 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SANDBOX_NODES,
   ...TEAM_NODES,
   ...LIB_NLP_NODES,
-  // GPU shader pool nodes (server-side Dawn).
-  ...SHADER_COLOR_NODES,
-  ...SHADER_FILTERS_NODES,
-  ...SHADER_KEYER_NODES,
-  ...SHADER_MASK_NODES,
-  ...SHADER_SOURCES_NODES,
-  ...SHADER_MIXER_NODES,
-  ...SHADER_TRANSFORM_NODES
+  ...LIB_IMAGE_EFFECTS_NODES,
+  ...LIB_IMAGE_KEYER_NODES,
+  ...LIB_IMAGE_MASK_NODES,
+  ...LIB_IMAGE_CHANNEL_NODES,
+  ...LIB_IMAGE_WARP_NODES,
+  ...LIB_IMAGE_GENERATORS_NODES,
+  ...LIB_IMAGE_FILTER_EXTRAS_NODES
 ];
 
-export { SHADER_COLOR_NODES } from "./nodes/lib-shader-color.js";
-export { SHADER_FILTERS_NODES } from "./nodes/lib-shader-filters.js";
-export { SHADER_KEYER_NODES } from "./nodes/lib-shader-keyer.js";
-export { SHADER_MASK_NODES } from "./nodes/lib-shader-mask.js";
-export { SHADER_SOURCES_NODES } from "./nodes/lib-shader-sources.js";
-export { SHADER_MIXER_NODES } from "./nodes/lib-shader-mixer.js";
-export { SHADER_TRANSFORM_NODES } from "./nodes/lib-shader-transform.js";
+export { LIB_IMAGE_EFFECTS_NODES } from "./nodes/lib-image-effects.js";
+export { LIB_IMAGE_KEYER_NODES } from "./nodes/lib-image-keyer.js";
+export { LIB_IMAGE_MASK_NODES } from "./nodes/lib-image-mask.js";
+export { LIB_IMAGE_CHANNEL_NODES } from "./nodes/lib-image-channel.js";
+export { LIB_IMAGE_WARP_NODES } from "./nodes/lib-image-warp.js";
+export { LIB_IMAGE_GENERATORS_NODES } from "./nodes/lib-image-generators.js";
+export { LIB_IMAGE_FILTER_EXTRAS_NODES } from "./nodes/lib-image-filter-extras.js";
 
 export function registerBaseNodes(registry: NodeRegistry): void {
   for (const nodeClass of ALL_BASE_NODES) {
