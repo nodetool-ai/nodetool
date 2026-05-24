@@ -103,7 +103,7 @@ describe("Phase 3 Batch 4 fragment modules", () => {
     expect(mixerColorOverlayV1.paramDefaults.color).toEqual(d.vec4f(1, 0, 0, 1));
   });
 
-  it("mixer.outline default is a 2-pixel black ring at α=0.5", () => {
+  it("mixer.outline default is a 2-pixel opaque-black ring at threshold=0.5", () => {
     expect(mixerOutlineV1.paramDefaults.widthPx).toBe(2);
     expect(mixerOutlineV1.paramDefaults.threshold).toBe(0.5);
     expect(mixerOutlineV1.paramDefaults.color).toEqual(d.vec4f(0, 0, 0, 1));

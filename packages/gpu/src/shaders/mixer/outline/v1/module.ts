@@ -57,6 +57,13 @@ export const mixerOutlineV1 = defineModule({
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let p = layout.$.params;
+  // widthPx <= 0 means "no outline" — pass the source through unchanged,
+  // otherwise the ring samples collapse to a single pixel and the threshold
+  // branch hard-cuts every sub-threshold pixel to transparent black even
+  // when the user asked for zero outline width.
+  if (p.widthPx <= 0.0) {
+    return src;
+  }
   if (src.a > p.threshold) {
     return src;
   }

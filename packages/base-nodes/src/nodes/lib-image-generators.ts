@@ -20,6 +20,7 @@ import {
   colorValueToVec4,
   floatProp,
   intProp,
+  premultiplyVec4,
   runShaderNode
 } from "./lib-shader-utils.js";
 
@@ -28,8 +29,15 @@ function num(value: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/**
+ * Generator shader colour params are declared premultiplied (matches the
+ * pool's between-modules invariant) and the WGSL returns them via
+ * `mix(...)` / direct assignment without re-premultiplying. The colour
+ * picker emits straight alpha, so we premultiply on the boundary —
+ * otherwise translucent gradient stops would brighten the RGB channels.
+ */
 function vec4From(value: unknown, fallback: [number, number, number, number]): ReturnType<typeof d.vec4f> {
-  const [r, g, b, a] = colorValueToVec4(value, fallback);
+  const [r, g, b, a] = premultiplyVec4(colorValueToVec4(value, fallback));
   return d.vec4f(r, g, b, a);
 }
 

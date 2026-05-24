@@ -31,6 +31,26 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { decodeRgba, rawRgbaImageRef } from "./image.js";
 
 let cachedContext: Promise<GPUContext> | null = null;
+// Cache the executor / recipe runner / registry at module scope so the
+// sampler WeakMap inside the executor (and the recipe runner's internal
+// pipeline cache) survives across node invocations. Re-creating them per
+// call defeats those caches.
+const cachedExecutor = createExecutor();
+const cachedRecipeRunner = createRecipeRunner();
+type ShaderRegistry = Awaited<ReturnType<typeof importRegistry>>;
+let cachedRegistry: Promise<ShaderRegistry> | null = null;
+
+async function importRegistry(): Promise<
+  ReturnType<typeof import("@nodetool-ai/gpu/pool")["createDefaultRegistry"]>
+> {
+  const { createDefaultRegistry } = await import("@nodetool-ai/gpu/pool");
+  return createDefaultRegistry();
+}
+
+async function getRegistry(): Promise<ShaderRegistry> {
+  if (!cachedRegistry) cachedRegistry = importRegistry();
+  return cachedRegistry;
+}
 
 async function getContext(): Promise<GPUContext> {
   if (!cachedContext) {
@@ -196,7 +216,6 @@ export async function runShaderNode(
 ): Promise<ImageRef> {
   const device = await getNodeGPUDevice();
   const ctx = await getContext();
-  const executor = createExecutor();
 
   const source = sourceImage
     ? await uploadStraightAlpha(device, sourceImage, context, `${module.id}-source`)
@@ -222,6 +241,18 @@ export async function runShaderNode(
       acquiredExtras.push(uploaded.texture);
     }
   }
+  // Bail out before encoding if any *required* declared input is unbound —
+  // executor.encode would throw "missing required input" otherwise. Mirrors
+  // the source-missing no-op above so a stray null upstream produces an
+  // empty image rather than a hard failure.
+  for (const [name, contract] of Object.entries(module.io.inputs)) {
+    if (contract.optional) continue;
+    if (!inputs[name]) {
+      source?.texture.destroy();
+      for (const t of acquiredExtras) t.destroy();
+      return { type: "image", data: "" };
+    }
+  }
 
   const dims = resolveOutputDims(module, source, opts);
   const output = createLabeledTexture(device, {
@@ -235,7 +266,7 @@ export async function runShaderNode(
   const encoder = device.createCommandEncoder({ label: `${module.id}-encode` });
   if (module.kind === "compute") {
     const [wx, wy] = module.workgroupSize;
-    executor.encode({
+    cachedExecutor.encode({
       ctx,
       module,
       encoder,
@@ -250,7 +281,7 @@ export async function runShaderNode(
       }
     });
   } else {
-    executor.encode({
+    cachedExecutor.encode({
       ctx,
       module,
       encoder,
@@ -280,9 +311,7 @@ export async function runRecipeNode(
 ): Promise<ImageRef> {
   const device = await getNodeGPUDevice();
   const ctx = await getContext();
-  const runner = createRecipeRunner();
-  const { createDefaultRegistry } = await import("@nodetool-ai/gpu/pool");
-  const registry = createDefaultRegistry();
+  const registry = await getRegistry();
 
   const source = sourceImage
     ? await uploadStraightAlpha(device, sourceImage, context, `${recipe.id}-source`)
@@ -305,6 +334,14 @@ export async function runRecipeNode(
       acquiredExtras.push(uploaded.texture);
     }
   }
+  for (const [name, contract] of Object.entries(recipe.io.inputs)) {
+    if (contract.optional) continue;
+    if (!inputs[name]) {
+      source.texture.destroy();
+      for (const t of acquiredExtras) t.destroy();
+      return { type: "image", data: "" };
+    }
+  }
 
   const dims = resolveOutputDims(recipe, source, opts);
   const output = createLabeledTexture(device, {
@@ -316,7 +353,7 @@ export async function runRecipeNode(
   });
 
   const encoder = device.createCommandEncoder({ label: `${recipe.id}-encode` });
-  runner.encode({
+  cachedRecipeRunner.encode({
     ctx,
     module: recipe,
     encoder,
@@ -413,26 +450,66 @@ export function colorProp(
   };
 }
 
-/** Parse a `{ type: "color", value: "#rrggbb" | "#rrggbbaa" }` to a vec4f tuple. */
+/**
+ * Parse a color value to a `[r, g, b, a]` tuple in [0,1].
+ *
+ * Accepted shapes:
+ *   - `{ type: "color", value: "#rrggbb" | "#rrggbbaa" }` — the node-graph
+ *     color prop form
+ *   - `"#rrggbb"` / `"#rrggbbaa"` / `"rrggbb"` — bare hex strings
+ *   - `[r, g, b, a]` / `[r, g, b]` — already-normalized floats in [0,1]
+ *
+ * Returns `fallback` for anything else, including hex strings that fail to
+ * parse (NaN bytes).
+ */
 export function colorValueToVec4(
   color: unknown,
   fallback: [number, number, number, number] = [0, 0, 0, 1]
 ): [number, number, number, number] {
-  if (!color || typeof color !== "object") return fallback;
-  const value = (color as { value?: string }).value;
+  if (Array.isArray(color)) {
+    const [r, g, b, a] = color as unknown[];
+    const out: [number, number, number, number] = [
+      typeof r === "number" ? r : fallback[0],
+      typeof g === "number" ? g : fallback[1],
+      typeof b === "number" ? b : fallback[2],
+      typeof a === "number" ? a : 1
+    ];
+    return out.some((v) => !Number.isFinite(v)) ? fallback : out;
+  }
+  let value: string | undefined;
+  if (typeof color === "string") {
+    value = color;
+  } else if (color && typeof color === "object") {
+    const maybe = (color as { value?: unknown }).value;
+    if (typeof maybe === "string") value = maybe;
+  }
   if (typeof value !== "string") return fallback;
   const hex = value.startsWith("#") ? value.slice(1) : value;
   const parseByte = (s: string): number => parseInt(s, 16) / 255;
+  let parsed: [number, number, number, number] | null = null;
   if (hex.length === 6) {
-    return [parseByte(hex.slice(0, 2)), parseByte(hex.slice(2, 4)), parseByte(hex.slice(4, 6)), 1];
-  }
-  if (hex.length === 8) {
-    return [
+    parsed = [
+      parseByte(hex.slice(0, 2)),
+      parseByte(hex.slice(2, 4)),
+      parseByte(hex.slice(4, 6)),
+      1
+    ];
+  } else if (hex.length === 8) {
+    parsed = [
       parseByte(hex.slice(0, 2)),
       parseByte(hex.slice(2, 4)),
       parseByte(hex.slice(4, 6)),
       parseByte(hex.slice(6, 8))
     ];
   }
-  return fallback;
+  if (!parsed || parsed.some((v) => !Number.isFinite(v))) return fallback;
+  return parsed;
+}
+
+/** Premultiply a straight-alpha `[r,g,b,a]` tuple. */
+export function premultiplyVec4(
+  rgba: [number, number, number, number]
+): [number, number, number, number] {
+  const [r, g, b, a] = rgba;
+  return [r * a, g * a, b * a, a];
 }

@@ -30,6 +30,7 @@ import {
   colorValueToVec4,
   floatProp,
   intProp,
+  premultiplyVec4,
   runShaderNode,
   type RunShaderOptions
 } from "./lib-shader-utils.js";
@@ -42,6 +43,19 @@ function num(value: unknown, fallback: number): number {
 
 function vec4From(value: unknown, fallback: [number, number, number, number]): ReturnType<typeof d.vec4f> {
   const [r, g, b, a] = colorValueToVec4(value, fallback);
+  return d.vec4f(r, g, b, a);
+}
+
+/**
+ * Same as {@link vec4From} but premultiplies the alpha into RGB before
+ * packing. Use when handing a colour to a shader whose param contract
+ * expects premultiplied (e.g. `transform.pad@1`'s `color`).
+ */
+function premultipliedVec4From(
+  value: unknown,
+  fallback: [number, number, number, number]
+): ReturnType<typeof d.vec4f> {
+  const [r, g, b, a] = premultiplyVec4(colorValueToVec4(value, fallback));
   return d.vec4f(r, g, b, a);
 }
 
@@ -115,7 +129,9 @@ class PadNode extends BaseNode {
         top: num(props.top, 0),
         right: num(props.right, 0),
         bottom: num(props.bottom, 0),
-        color: vec4From(props.color, [0, 0, 0, 0])
+        // Shader's `color` is declared premultiplied — the colour picker
+        // emits straight alpha, so we premultiply before handing it over.
+        color: premultipliedVec4From(props.color, [0, 0, 0, 0])
       },
       props.image,
       opts,
