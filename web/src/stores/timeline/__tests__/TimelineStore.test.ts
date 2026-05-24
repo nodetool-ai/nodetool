@@ -992,3 +992,162 @@ describe("TimelineStore — addGeneratedClip", () => {
     });
   });
 });
+
+// ── Direct-gen clips ───────────────────────────────────────────────────────
+
+describe("TimelineStore - addDirectGenClip", () => {
+  it("creates a draft text-to-image clip carrying prompt + model", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    store.setState({ tracks: [track] });
+
+    const clipId = store.getState().addDirectGenClip({
+      trackId: track.id,
+      startMs: 0,
+      prompt: "  a watercolor of a fox  ",
+      provider: "fal",
+      model: "fal-ai/flux/schnell"
+    });
+
+    const clip = store.getState().clips.find((c) => c.id === clipId);
+    expect(clip).toBeDefined();
+    expect(clip?.sourceType).toBe("generated");
+    expect(clip?.bindingKind).toBe("text-to-image");
+    expect(clip?.mediaType).toBe("image");
+    expect(clip?.prompt).toBe("  a watercolor of a fox  "); // raw value preserved
+    expect(clip?.provider).toBe("fal");
+    expect(clip?.model).toBe("fal-ai/flux/schnell");
+    expect(clip?.status).toBe("draft");
+    expect(clip?.versions).toEqual([]);
+    // Name falls back to a truncated trimmed prompt so the clip body is
+    // identifiable in the timeline before a render arrives.
+    expect(clip?.name).toBe("a watercolor of a fox");
+  });
+
+  it("supports image-to-image with sourceClipId", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const sourceClip = makeClip({
+      id: "src",
+      trackId: track.id,
+      mediaType: "image",
+      currentAssetId: "asset-1",
+      sourceType: "generated"
+    });
+    store.setState({ tracks: [track], clips: [sourceClip] });
+
+    const clipId = store.getState().addDirectGenClip({
+      trackId: track.id,
+      startMs: 1000,
+      bindingKind: "image-to-image",
+      prompt: "remix it",
+      provider: "fal",
+      model: "fal-ai/some-model",
+      sourceClipId: "src",
+      strength: 0.7
+    });
+
+    const clip = store.getState().clips.find((c) => c.id === clipId);
+    expect(clip?.bindingKind).toBe("image-to-image");
+    expect(clip?.sourceClipId).toBe("src");
+    expect(clip?.strength).toBe(0.7);
+  });
+});
+
+describe("TimelineStore - setClipPrompt", () => {
+  it("updates prompt without marking stale when the clip is still a draft", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clip = makeClip({
+      trackId: track.id,
+      bindingKind: "text-to-image",
+      prompt: "old",
+      provider: "fal",
+      model: "m",
+      status: "draft"
+    });
+    store.setState({ tracks: [track], clips: [clip] });
+
+    store.getState().setClipPrompt(clip.id, "new");
+    const updated = store.getState().clips[0];
+    expect(updated.prompt).toBe("new");
+    expect(updated.status).toBe("draft");
+  });
+
+  it("marks a rendered clip stale when the prompt changes", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const clip = makeClip({
+      trackId: track.id,
+      bindingKind: "text-to-image",
+      prompt: "old",
+      provider: "fal",
+      model: "m",
+      status: "generated",
+      currentAssetId: "asset-1",
+      lastGeneratedHash: "h1"
+    });
+    store.setState({ tracks: [track], clips: [clip] });
+
+    store.getState().setClipPrompt(clip.id, "new");
+    expect(store.getState().clips[0].status).toBe("stale");
+  });
+});
+
+describe("TimelineStore - regenerateAsCopy", () => {
+  it("clones a clip immediately to the right preserving binding but resetting render state", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const original = makeClip({
+      trackId: track.id,
+      startMs: 1000,
+      durationMs: 3000,
+      bindingKind: "text-to-image",
+      prompt: "a fox",
+      provider: "fal",
+      model: "m",
+      sourceType: "generated",
+      status: "generated",
+      currentAssetId: "asset-1",
+      lastGeneratedHash: "h1",
+      inPointMs: 0,
+      outPointMs: 3000
+    });
+    store.setState({ tracks: [track], clips: [original] });
+
+    const newId = store.getState().regenerateAsCopy(original.id);
+    const clone = store.getState().clips.find((c) => c.id === newId)!;
+
+    // Preserves binding so the user can roll a fresh take.
+    expect(clone.bindingKind).toBe("text-to-image");
+    expect(clone.prompt).toBe("a fox");
+    expect(clone.provider).toBe("fal");
+    expect(clone.model).toBe("m");
+
+    // Placed immediately after the original.
+    expect(clone.startMs).toBe(4000);
+    expect(clone.durationMs).toBe(3000);
+
+    // Render state cleared so generating fills in fresh.
+    expect(clone.status).toBe("draft");
+    expect(clone.currentAssetId).toBeUndefined();
+    expect(clone.lastGeneratedHash).toBeUndefined();
+    expect(clone.inPointMs).toBeUndefined();
+    expect(clone.outPointMs).toBeUndefined();
+    expect(clone.versions).toEqual([]);
+
+    // Original is untouched — the existing render stays visible.
+    const stillOriginal = store
+      .getState()
+      .clips.find((c) => c.id === original.id)!;
+    expect(stillOriginal.currentAssetId).toBe("asset-1");
+    expect(stillOriginal.status).toBe("generated");
+  });
+
+  it("throws when the source clip is not found", () => {
+    const store = mkStore();
+    expect(() => store.getState().regenerateAsCopy("missing")).toThrow(
+      /Clip missing not found/
+    );
+  });
+});

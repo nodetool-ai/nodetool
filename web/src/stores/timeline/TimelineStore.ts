@@ -39,7 +39,8 @@ import type {
   TimelineTrack,
   TimelineClip,
   TimelineMarker,
-  TrackEffect
+  TrackEffect,
+  ClipBindingKind
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
@@ -250,6 +251,76 @@ export interface TimelineStoreState {
     startMs: number,
     opts?: { selectedOutputNodeId?: string; mediaTypeOverride?: "overlay" }
   ) => Promise<string>;
+
+  /**
+   * Create a direct-generation clip (text-to-image / image-to-image) bound
+   * to a provider+model+prompt directly — no workflow. The clip is added
+   * locally; autosave persists it. Returns the id of the new clip.
+   */
+  addDirectGenClip: (opts: {
+    trackId: string;
+    startMs: number;
+    durationMs?: number;
+    mediaType?: "image" | "video" | "audio" | "overlay";
+    bindingKind?:
+      | "text-to-image"
+      | "image-to-image"
+      | "text-to-video"
+      | "text-to-audio";
+    prompt: string;
+    provider?: string;
+    model?: string;
+    voice?: string;
+    sourceClipId?: string | null;
+    width?: number;
+    height?: number;
+    strength?: number;
+    numInferenceSteps?: number;
+    name?: string;
+  }) => string;
+
+  /** Update a direct-gen clip's prompt. Marks the clip stale if already generated. */
+  setClipPrompt: (clipId: string, prompt: string) => void;
+
+  /** Update a direct-gen clip's provider + model. Marks stale if already generated. */
+  setClipDirectGenModel: (
+    clipId: string,
+    provider: string,
+    model: string
+  ) => void;
+
+  /** Update arbitrary direct-gen binding fields on a clip. Marks stale when applicable. */
+  patchClipBinding: (
+    clipId: string,
+    patch: Partial<
+      Pick<
+        TimelineClip,
+        | "bindingKind"
+        | "prompt"
+        | "negativePrompt"
+        | "provider"
+        | "model"
+        | "voice"
+        | "sourceClipId"
+        | "width"
+        | "height"
+        | "strength"
+        | "numInferenceSteps"
+        | "seed"
+      >
+    >
+  ) => void;
+
+  /**
+   * "Regenerate as a new clip" — duplicates the clip immediately to the
+   * right, preserving its full binding (workflow + paramOverrides, OR
+   * direct-gen prompt + model). The new clip starts in `draft` so the
+   * caller can immediately kick off `useGenerateClip(newClipId)`.
+   *
+   * The original clip is left untouched — useful when a clip has been
+   * split and you want a fresh roll without losing the existing render.
+   */
+  regenerateAsCopy: (clipId: string, deltaMs?: number) => string;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
@@ -804,6 +875,111 @@ export const createTimelineStore = (
           }));
 
           return newClip.id;
+        },
+
+        addDirectGenClip: (opts) => {
+          const bindingKind: ClipBindingKind = opts.bindingKind ?? "text-to-image";
+          const mediaType = opts.mediaType ?? "image";
+          const durationMs = opts.durationMs ?? 4000;
+          const trimmedPrompt = opts.prompt.trim();
+          const fallbackName =
+            trimmedPrompt.length > 0
+              ? trimmedPrompt.slice(0, 40)
+              : bindingKind === "image-to-image"
+                ? "Image-to-Image"
+                : bindingKind === "text-to-video"
+                  ? "Text-to-Video"
+                  : bindingKind === "text-to-audio"
+                    ? "Text-to-Audio"
+                    : "Text-to-Image";
+
+          const clip = makeClip({
+            id: createTimeOrderedUuid(),
+            name: opts.name ?? fallbackName,
+            trackId: opts.trackId,
+            startMs: opts.startMs,
+            durationMs,
+            mediaType,
+            sourceType: "generated",
+            bindingKind,
+            prompt: opts.prompt,
+            provider: opts.provider,
+            model: opts.model,
+            voice: opts.voice,
+            sourceClipId: opts.sourceClipId ?? null,
+            width: opts.width,
+            height: opts.height,
+            strength: opts.strength,
+            numInferenceSteps: opts.numInferenceSteps,
+            status: "draft",
+            locked: false,
+            versions: []
+          });
+
+          set((state) => ({ clips: [...state.clips, clip] }));
+          return clip.id;
+        },
+
+        setClipPrompt: (clipId, prompt) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              // Mark stale once a render exists, so the inspector hints "regenerate".
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
+              return { ...c, prompt, status };
+            })
+          })),
+
+        setClipDirectGenModel: (clipId, provider, model) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
+              return { ...c, provider, model, status };
+            })
+          })),
+
+        patchClipBinding: (clipId, patch) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
+              return { ...c, ...patch, status };
+            })
+          })),
+
+        regenerateAsCopy: (clipId, deltaMs = 0) => {
+          let newId: string | undefined;
+          set((state) => {
+            const src = state.clips.find((c) => c.id === clipId);
+            if (!src) return state;
+            const clone = makeClip({
+              ...src,
+              id: createTimeOrderedUuid(),
+              startMs: src.startMs + src.durationMs + deltaMs,
+              // Clone independent overrides / binding so edits diverge.
+              paramOverrides: src.paramOverrides
+                ? structuredClone(src.paramOverrides)
+                : undefined,
+              // Reset render state so it generates fresh.
+              status: "draft",
+              locked: false,
+              currentAssetId: undefined,
+              lastGeneratedHash: undefined,
+              inPointMs: undefined,
+              outPointMs: undefined,
+              versions: []
+            });
+            newId = clone.id;
+            return { clips: [...state.clips, clone] };
+          });
+          if (!newId) {
+            throw new Error(`Clip ${clipId} not found`);
+          }
+          return newId;
         }
       }),
       {

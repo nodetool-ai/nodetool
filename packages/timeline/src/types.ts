@@ -211,6 +211,30 @@ export interface TrackChromaKeyEffect {
   spill: number;
 }
 
+/**
+ * Discriminator for how a generated clip's media is produced.
+ *
+ *   - `"workflow"` (default when absent): runs a NodeTool workflow via
+ *     `WorkflowRunner`. The clip carries `workflowId`, `selectedOutputNodeId`,
+ *     and `paramOverrides`; dependency-hash bookkeeping detects staleness.
+ *   - `"text-to-image"` / `"image-to-image"`: calls the runner's
+ *     `generate_media` RPC directly with a model + prompt. No workflow, no
+ *     param overrides. `sourceClipId` is the input clip for i2i.
+ *   - `"text-to-video"`: calls the runner's `generate_media` RPC with a video
+ *     model + prompt. Returns a single `video/mp4` asset.
+ *   - `"text-to-audio"`: calls the runner's `generate_media` RPC with a TTS
+ *     model + voice + prompt text. Returns a single audio asset (wav/mp3/...).
+ *
+ * Optional in the persisted shape so clips written before this field existed
+ * default to `"workflow"` on load.
+ */
+export type ClipBindingKind =
+  | "workflow"
+  | "text-to-image"
+  | "image-to-image"
+  | "text-to-video"
+  | "text-to-audio";
+
 export interface TimelineClip {
   id: string;
   trackId: string;
@@ -221,10 +245,26 @@ export interface TimelineClip {
   outPointMs?: number;
   mediaType: "image" | "video" | "audio" | "overlay";
   sourceType: "imported" | "generated";
+  /** Defaults to "workflow" when absent on legacy persisted data. */
+  bindingKind?: ClipBindingKind;
   workflowId?: string;
   selectedOutputNodeId?: string;
   /** Heterogeneous per-clip parameter overrides for the associated workflow. */
   paramOverrides?: Record<string, unknown>;
+  // ── Direct-gen fields (text-to-image / image-to-image) ────────────────
+  prompt?: string;
+  negativePrompt?: string;
+  provider?: string;
+  model?: string;
+  /** TTS voice id for `text-to-audio` direct-gen clips. */
+  voice?: string;
+  /** Source clip for image-to-image. Reads the source clip's currentAssetId at submit time. */
+  sourceClipId?: string | null;
+  width?: number;
+  height?: number;
+  strength?: number;
+  numInferenceSteps?: number;
+  seed?: number;
   dependencyHash?: string;
   lastGeneratedHash?: string;
   currentAssetId?: string;

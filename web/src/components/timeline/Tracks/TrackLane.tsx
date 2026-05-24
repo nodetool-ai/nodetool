@@ -475,7 +475,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         <AddClipMenu
           trackId={track.id}
           startMs={addClipState.startMs}
-          mediaTypeOverride={track.type === "overlay" ? "overlay" : undefined}
+          trackType={track.type}
           anchorEl={addClipAnchorEl}
           onClose={handleAddClipClose}
         />
