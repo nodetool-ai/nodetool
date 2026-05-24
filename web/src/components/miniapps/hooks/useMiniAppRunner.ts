@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 
 import {
   Workflow,
@@ -54,7 +55,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     lastRunDuration,
     resetWorkflowState
   } = useMiniAppsStore(
-    (state) => ({
+    useShallow((state) => ({
       results: workflowId ? state.apps[workflowId]?.results ?? EMPTY_RESULTS : EMPTY_RESULTS,
       progress: workflowId ? state.apps[workflowId]?.progress ?? null : null,
       upsertResult: state.upsertResult,
@@ -62,8 +63,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       setLastRunDuration: state.setLastRunDuration,
       lastRunDuration: workflowId ? state.apps[workflowId]?.lastRunDuration ?? null : null,
       resetWorkflowState: state.resetWorkflowState
-    }),
-    shallow
+    }))
   );
 
   useEffect(() => {

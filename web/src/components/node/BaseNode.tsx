@@ -26,7 +26,7 @@ import { NodeErrors } from "./NodeErrors";
 import NodeDependencyWarning from "./NodeDependencyWarning";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore, { hashKey } from "../../stores/ResultsStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { hasNodeError } from "../../stores/ErrorStore";
 import useErrorStore from "../../stores/ErrorStore";
 import ApiKeyValidation from "./ApiKeyValidation";
@@ -450,14 +450,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Single subscription instead of 5 — one listener per node instead of five
   const resultsKey = hashKey(workflow_id, id);
   const { result, chunk, toolCall, planningUpdate, task } = useResultsStore(
-    (state) => ({
+    useShallow((state) => ({
       result: state.outputResults[resultsKey] ?? state.results[resultsKey],
       chunk: state.chunks[resultsKey] as string | undefined,
       toolCall: state.toolCalls[resultsKey],
       planningUpdate: state.planningUpdates[resultsKey],
       task: state.tasks[resultsKey]
-    }),
-    shallow
+    }))
   );
 
   // Optimize: Use memoized selectors that only perform O(E) filter operations when the

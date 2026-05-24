@@ -13,7 +13,7 @@
  */
 
 import { create } from "zustand";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 
 export type TimelineTool = "select" | "cut";
 
@@ -157,13 +157,12 @@ export const useIsClipSelected = (id: string): boolean =>
 /** Returns [selectedClipIds, clearSelection] with shallow equality. */
 export const useSelectionActions = () =>
   useTimelineUIStore(
-    (state) => ({
+    useShallow((state) => ({
       selectedClipIds: state.selectedClipIds,
       selectClip: state.selectClip,
       addToSelection: state.addToSelection,
       clearSelection: state.clearSelection,
       toggleSelection: state.toggleSelection,
       setSelection: state.setSelection
-    }),
-    shallow
+    }))
   );

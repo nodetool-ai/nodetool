@@ -18,7 +18,7 @@
  */
 
 import { create } from "zustand";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { useTimelineStore } from "./TimelineStore";
 import useResultsStore from "../ResultsStore";
 
@@ -295,20 +295,24 @@ export const useFailedCount = (): number =>
  * Returns an array of clip IDs with active (queued/running) jobs.
  */
 export const useGeneratingClipIds = (): string[] =>
-  useTimelineGenerationStore((state) =>
-    Object.keys(state.clipJobs).filter(
-      (id) =>
-        state.clipJobs[id].status === "queued" ||
-        state.clipJobs[id].status === "running"
-    ), shallow
+  useTimelineGenerationStore(
+    useShallow((state) =>
+      Object.keys(state.clipJobs).filter(
+        (id) =>
+          state.clipJobs[id].status === "queued" ||
+          state.clipJobs[id].status === "running"
+      )
+    )
   );
 
 /**
  * Returns an array of clip IDs with failed jobs.
  */
 export const useFailedClipIds = (): string[] =>
-  useTimelineGenerationStore((state) =>
-    Object.keys(state.clipJobs).filter(
-      (id) => state.clipJobs[id].status === "failed"
-    ), shallow
+  useTimelineGenerationStore(
+    useShallow((state) =>
+      Object.keys(state.clipJobs).filter(
+        (id) => state.clipJobs[id].status === "failed"
+      )
+    )
   );

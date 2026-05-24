@@ -33,6 +33,7 @@ import { InspectorHeaderActionsProvider } from "../contexts/InspectorPropertyHea
 import { canConfigureExposedPlacement } from "../utils/exposedInputs";
 import { useExposedInputToggle } from "../hooks/nodes/useExposedInputToggle";
 import usePropertyValidationStore from "../stores/PropertyValidationStore";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
 
 const styles = (theme: Theme) =>
@@ -211,20 +212,24 @@ const ValidationErrorBanner: React.FC<ValidationErrorBannerProps> = ({
   workflowId,
   nodeId
 }) => {
-  const errors = usePropertyValidationStore((state) => {
-    if (!workflowId) return [];
-    const prefix = `${workflowId}:${nodeId}:`;
-    const out: { property: string; message: string }[] = [];
-    for (const k in state.errors) {
-      if (k.startsWith(prefix)) {
-        out.push({
-          property: k.slice(prefix.length),
-          message: state.errors[k as `${string}:${string}:${string}`]
-        });
+  const errors = useStoreWithEqualityFn(
+    usePropertyValidationStore,
+    (state) => {
+      if (!workflowId) return [];
+      const prefix = `${workflowId}:${nodeId}:`;
+      const out: { property: string; message: string }[] = [];
+      for (const k in state.errors) {
+        if (k.startsWith(prefix)) {
+          out.push({
+            property: k.slice(prefix.length),
+            message: state.errors[k as `${string}:${string}:${string}`]
+          });
+        }
       }
-    }
-    return out;
-  }, isEqual);
+      return out;
+    },
+    isEqual
+  );
 
   const handleScrollToField = useCallback((property: string) => {
     // Find the PropertyField inside the inspector and scroll it into view.

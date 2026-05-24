@@ -9,7 +9,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
@@ -435,7 +435,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedInputType,
     selectedOutputType,
     selectedProviderType
-  } = useNodeMenuStore((state) => ({
+  } = useNodeMenuStore(useShallow((state) => ({
     searchTerm: state.searchTerm,
     selectedPath: state.selectedPath,
     searchResults: state.searchResults,
@@ -444,7 +444,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedInputType: state.selectedInputType,
     selectedOutputType: state.selectedOutputType,
     selectedProviderType: state.selectedProviderType
-  }), shallow);
+  })));
 
   const allMetadata = useMetadataStore((state) => state.metadata);
 
