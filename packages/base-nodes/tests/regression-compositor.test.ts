@@ -4,7 +4,7 @@
  * Verifies dynamic `image_N` input collection, positional alignment
  * with `layers[i]`, visibility / zero-opacity filtering, blend modes,
  * mismatched dimensions, corrupt-input handling, and that the output
- * is a non-empty PNG image of the base layer's dimensions.
+ * is a non-empty raw-RGBA image of the base layer's dimensions.
  *
  * `CompositorNode` composites on the GPU (WebGPU/Dawn) with no CPU fallback,
  * so the suite requires a real device and skips when none is available — CI
@@ -12,6 +12,7 @@
  */
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
+import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
 import { CompositorNode } from "../src/index.js";
 
 async function gpuAvailable(): Promise<boolean> {
@@ -67,7 +68,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
     expect(out).toBeDefined();
-    expect(out.data).toBe(""); // empty Uint8Array → empty base64
+    expect((out.data as Uint8Array).length).toBe(0);
   });
 
   it("emits the base layer when only one image input is wired", async () => {
@@ -83,8 +84,8 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     const out = result.output as Record<string, unknown>;
     expect(out.width).toBe(W);
     expect(out.height).toBe(H);
-    expect(typeof out.data).toBe("string");
-    expect((out.data as string).length).toBeGreaterThan(0);
+    expect(out.mimeType).toBe(RAW_RGBA_MIME);
+    expect((out.data as Uint8Array).length).toBe(W * H * 4);
   });
 
   it("composites two layers using 'over' blend with positional layer state", async () => {
@@ -108,10 +109,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
 
     // The composite should mix the red base with the half-opacity blue
     // layer — middle pixel should be neither pure red nor pure blue.
-    const bytes = Buffer.from(out.data as string, "base64");
-    const { data } = await sharp(bytes)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
+    const data = out.data as Uint8Array;
     // Sample centre pixel (RGBA stride = 4 over width W).
     const cx = Math.floor(W / 2);
     const cy = Math.floor(H / 2);
@@ -142,10 +140,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    const bytes = Buffer.from(out.data as string, "base64");
-    const { data } = await sharp(bytes)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
+    const data = out.data as Uint8Array;
     // Centre pixel should remain (approximately) the base green tint.
     const off = (Math.floor(H / 2) * W + Math.floor(W / 2)) * 4;
     expect(data[off]).toBeLessThan(60); // no red bleed
@@ -169,16 +164,13 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    const bytes = Buffer.from(out.data as string, "base64");
-    const { data } = await sharp(bytes)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
+    const data = out.data as Uint8Array;
     // With image_10 fully opaque blue on top, expect blue dominance.
     expect(data[2]).toBeGreaterThan(200);
     expect(data[0]).toBeLessThan(50);
   });
 
-  it("outputs image/png mimeType", async () => {
+  it("outputs raw-rgba mimeType", async () => {
     const W = 4;
     const H = 4;
     const buf = await solidPng(W, H, { r: 128, g: 64, b: 32 });
@@ -189,7 +181,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    expect(out.mimeType).toBe("image/png");
+    expect(out.mimeType).toBe(RAW_RGBA_MIME);
   });
 
   it("handles layers with mismatched dimensions", async () => {
@@ -208,8 +200,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     const out = result.output as Record<string, unknown>;
     expect(out.width).toBe(8);
     expect(out.height).toBe(8);
-    expect(typeof out.data).toBe("string");
-    expect((out.data as string).length).toBeGreaterThan(0);
+    expect((out.data as Uint8Array).length).toBe(8 * 8 * 4);
   });
 
   it("falls through on corrupt image input and keeps prior canvas", async () => {
@@ -227,11 +218,10 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    // Should still return a valid PNG (the base layer) despite the corrupt overlay.
+    // Should still return a valid raw-RGBA image (the base layer) despite the corrupt overlay.
     expect(out.width).toBe(W);
     expect(out.height).toBe(H);
-    expect(typeof out.data).toBe("string");
-    expect((out.data as string).length).toBeGreaterThan(0);
+    expect((out.data as Uint8Array).length).toBe(W * H * 4);
   });
 
   it("supports 'multiply' blend mode", async () => {
@@ -250,10 +240,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    const bytes = Buffer.from(out.data as string, "base64");
-    const { data } = await sharp(bytes)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
+    const data = out.data as Uint8Array;
     const off = (Math.floor(H / 2) * W + Math.floor(W / 2)) * 4;
     // White * Red = Red
     expect(data[off]).toBeGreaterThan(250); // R
@@ -277,10 +264,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    const bytes = Buffer.from(out.data as string, "base64");
-    const { data } = await sharp(bytes)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
+    const data = out.data as Uint8Array;
     const off = (Math.floor(H / 2) * W + Math.floor(W / 2)) * 4;
     expect(data[off]).toBeGreaterThan(120); // R preserved
     expect(data[off + 1]).toBeGreaterThan(120); // G added
