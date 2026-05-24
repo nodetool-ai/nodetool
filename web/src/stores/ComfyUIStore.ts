@@ -215,8 +215,9 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
             `${BASE_URL}/api/comfy/object_info?host=${encodeURIComponent(proxyHost)}`
           );
           if (!resp.ok) {
-            const body = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
-            throw new Error((body as Record<string, string>).error || `HTTP ${resp.status}`);
+            const body = (await resp.json().catch(() => ({}))) as Record<string, unknown>;
+            const errorMsg = typeof body.error === "string" ? body.error : `HTTP ${resp.status}`;
+            throw new Error(errorMsg);
           }
           objectInfo = await resp.json() as ComfyUIObjectInfo;
         }

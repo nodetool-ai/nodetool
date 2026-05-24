@@ -1,6 +1,11 @@
 import { create } from "zustand";
 
-type NodeError = Error | string | null | Record<string, unknown>;
+interface ErrorObject {
+  message?: string;
+  [key: string]: unknown;
+}
+
+type NodeError = Error | string | null | ErrorObject;
 
 type ErrorStore = {
   errors: Record<string, NodeError>;
