@@ -9,6 +9,8 @@ import { getInputKind } from "../utils";
 import { useMiniAppsStore } from "../../../stores/MiniAppsStore";
 import { parseNodeUIProperties } from "../../../stores/nodeUiDefaults";
 
+const EMPTY_INPUT_VALUES: Record<string, unknown> = {};
+
 export const useMiniAppInputs = (selectedWorkflow?: Workflow) => {
   const inputDefinitions = useMemo(() => {
     if (!selectedWorkflow?.graph?.nodes) {
@@ -44,7 +46,7 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow) => {
   const workflowId = selectedWorkflow?.id;
 
   const inputValues = useMiniAppsStore((state) =>
-    workflowId ? state.apps[workflowId]?.inputValues ?? {} : {}
+    workflowId ? state.apps[workflowId]?.inputValues ?? EMPTY_INPUT_VALUES : EMPTY_INPUT_VALUES
   );
   const initializeInputDefaults = useMiniAppsStore(
     (state) => state.initializeInputDefaults

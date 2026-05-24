@@ -550,8 +550,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     return results;
   }, [safeSecrets, lowerSearch]);
 
-  const recommended = matchedProviders.filter((p) => p.meta.category === "recommended");
-  const others = matchedProviders.filter((p) => p.meta.category === "other");
+  const recommended = useMemo(
+    () => matchedProviders.filter((p) => p.meta.category === "recommended"),
+    [matchedProviders]
+  );
+  const others = useMemo(
+    () => matchedProviders.filter((p) => p.meta.category === "other"),
+    [matchedProviders]
+  );
 
   // Also show unconfigured providers from our meta list that aren't in secrets
   const configuredKeys = useMemo(
@@ -568,8 +574,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     );
   }, [configuredKeys, lowerSearch]);
 
-  const unconfiguredRecommended = unconfiguredMeta.filter((p) => p.category === "recommended");
-  const unconfiguredOthers = unconfiguredMeta.filter((p) => p.category === "other");
+  const unconfiguredRecommended = useMemo(
+    () => unconfiguredMeta.filter((p) => p.category === "recommended"),
+    [unconfiguredMeta]
+  );
+  const unconfiguredOthers = useMemo(
+    () => unconfiguredMeta.filter((p) => p.category === "other"),
+    [unconfiguredMeta]
+  );
 
   const handleConnect = useCallback((secret: SecretResponse) => {
     setEditingSecret(secret);
@@ -647,29 +659,35 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     setSecretToDelete(null);
   }, []);
 
-  const allRecommended = [...recommended, ...unconfiguredRecommended.map((meta) => ({
-    secret: {
-      key: meta.key,
-      is_configured: false,
-      description: meta.description,
-      user_id: null,
-      created_at: null,
-      updated_at: null
-    } as SecretResponse,
-    meta
-  }))];
+  const allRecommended = useMemo(
+    () => [...recommended, ...unconfiguredRecommended.map((meta) => ({
+      secret: {
+        key: meta.key,
+        is_configured: false,
+        description: meta.description,
+        user_id: null,
+        created_at: null,
+        updated_at: null
+      } as SecretResponse,
+      meta
+    }))],
+    [recommended, unconfiguredRecommended]
+  );
 
-  const allOthers = [...others, ...unconfiguredOthers.map((meta) => ({
-    secret: {
-      key: meta.key,
-      is_configured: false,
-      description: meta.description,
-      user_id: null,
-      created_at: null,
-      updated_at: null
-    } as SecretResponse,
-    meta
-  }))];
+  const allOthers = useMemo(
+    () => [...others, ...unconfiguredOthers.map((meta) => ({
+      secret: {
+        key: meta.key,
+        is_configured: false,
+        description: meta.description,
+        user_id: null,
+        created_at: null,
+        updated_at: null
+      } as SecretResponse,
+      meta
+    }))],
+    [others, unconfiguredOthers]
+  );
 
   const hasContent = allRecommended.length > 0 || allOthers.length > 0;
 
