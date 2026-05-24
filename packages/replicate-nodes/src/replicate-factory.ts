@@ -153,6 +153,14 @@ async function buildArgs(
     if (field.parentField) continue;
     if (EXCLUDED_FIELDS.has(field.name)) continue;
 
+    // Image-gen nodes always produce a single output — force num_outputs to 1
+    // regardless of any saved value, since the field is no longer exposed.
+    if (field.name === "num_outputs") {
+      const apiName = field.apiParamName ?? field.name;
+      args[apiName] = 1;
+      continue;
+    }
+
     const value = (instance as unknown as Record<string, unknown>)[field.name];
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
@@ -206,19 +214,6 @@ function mapOutput(
   }
 }
 
-function mapStreamingOutputs(
-  spec: ReplicateManifestEntry,
-  output: unknown
-): Record<string, unknown>[] {
-  if (!["image", "video", "audio"].includes(spec.outputType)) {
-    return [mapOutput(spec, output)];
-  }
-  if (!Array.isArray(output) || output.length === 0) {
-    return [mapOutput(spec, output)];
-  }
-  return output.map((item) => mapOutput(spec, item));
-}
-
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
@@ -258,21 +253,6 @@ export function createReplicateNodeClass(
     }
   };
 
-  if (isGenerativeOutput) {
-    Object.defineProperty(ReplicateNodeClass.prototype, "genProcess", {
-      value: async function* (
-        this: BaseNode,
-        context?: Parameters<BaseNode["process"]>[0]
-      ): AsyncGenerator<Record<string, unknown>> {
-        const output = await executePrediction(this, context);
-        for (const item of mapStreamingOutputs(specRef, output)) {
-          yield item;
-        }
-      },
-      configurable: true
-    });
-  }
-
   Object.defineProperty(ReplicateNodeClass, "name", {
     value: spec.className,
     configurable: true
@@ -298,14 +278,6 @@ export function createReplicateNodeClass(
       value: true,
       configurable: true
     });
-    Object.defineProperty(ReplicateNodeClass, "outputCorrelation", {
-      value: { output: { kind: "iteration", source: "__execution__" } },
-      configurable: true
-    });
-    Object.defineProperty(ReplicateNodeClass, "isStreamingOutput", {
-      value: true,
-      configurable: true
-    });
   }
   Object.defineProperty(ReplicateNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType === "dict" ? "any" : spec.outputType },
@@ -323,9 +295,11 @@ export function createReplicateNodeClass(
     configurable: true
   });
 
-  // Register declared properties
+  // Register declared properties. num_outputs is internal-only (pinned to 1)
+  // and not exposed in the UI.
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
+    if (field.name === "num_outputs") continue;
 
     const propOptions: PropOptions = {
       type: field.propType,

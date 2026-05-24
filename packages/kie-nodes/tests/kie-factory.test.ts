@@ -225,7 +225,7 @@ describe("createKieNodeClass omni chaining", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Multi-variant output (num_outputs / native num_images)
+// Single-output image generation
 // ---------------------------------------------------------------------------
 
 const imageSpec: KieManifestEntry = {
@@ -262,147 +262,59 @@ const imageSpecWithNativeNumImages: KieManifestEntry = {
   validation: [{ field: "prompt", rule: "not_empty", message: "Prompt is required" }]
 };
 
-async function consumeAsync<T>(iter: AsyncGenerator<T>): Promise<T[]> {
-  const out: T[] = [];
-  for await (const v of iter) out.push(v);
-  return out;
-}
-
-describe("createKieNodeClass multi-variant", () => {
+describe("createKieNodeClass single-output", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it("registers num_outputs and isStreamingOutput on image nodes without native num_images", () => {
+  it("does not register num_images or num_outputs as declared properties", () => {
+    const a = createKieNodeClass(imageSpec);
+    const b = createKieNodeClass(imageSpecWithNativeNumImages);
+    expect(a.getDeclaredProperties().find((p) => p.name === "num_outputs")).toBeUndefined();
+    expect(a.getDeclaredProperties().find((p) => p.name === "num_images")).toBeUndefined();
+    expect(b.getDeclaredProperties().find((p) => p.name === "num_outputs")).toBeUndefined();
+    expect(b.getDeclaredProperties().find((p) => p.name === "num_images")).toBeUndefined();
+  });
+
+  it("does not declare streaming output or iteration correlation on image nodes", () => {
     const NodeClass = createKieNodeClass(imageSpec);
-    const props = NodeClass.getDeclaredProperties();
-    const numOutputs = props.find((p) => p.name === "num_outputs");
-    expect(numOutputs).toBeDefined();
-    expect(numOutputs!.options).toMatchObject({
-      type: "int",
-      min: 1,
-      max: 8,
-      default: 1
-    });
-    expect((NodeClass as unknown as { isStreamingOutput: boolean }).isStreamingOutput).toBe(true);
-    expect(NodeClass.outputCorrelation).toEqual({
-      output: { kind: "iteration", source: "__execution__" }
-    });
-    expect(NodeClass.toDescriptor("kie").output_correlation).toEqual({
-      output: { kind: "iteration", source: "__execution__" }
-    });
-  });
-
-  it("does not register num_outputs on nodes with native num_images", () => {
-    const NodeClass = createKieNodeClass(imageSpecWithNativeNumImages);
-    const props = NodeClass.getDeclaredProperties();
-    expect(props.find((p) => p.name === "num_outputs")).toBeUndefined();
-    expect(props.find((p) => p.name === "num_images")).toBeDefined();
-    expect((NodeClass as unknown as { isStreamingOutput: boolean }).isStreamingOutput).toBe(true);
-  });
-
-  it("does not register num_outputs or isStreamingOutput on omni or text-output nodes", () => {
-    const NodeClass = createKieNodeClass(audioSpec);
-    const props = NodeClass.getDeclaredProperties();
-    expect(props.find((p) => p.name === "num_outputs")).toBeUndefined();
     expect((NodeClass as unknown as { isStreamingOutput?: boolean }).isStreamingOutput).toBeFalsy();
     expect(NodeClass.outputCorrelation).toBeUndefined();
   });
 
-  it("fans out N parallel kieExecuteTask calls when num_outputs > 1 (no native field)", async () => {
-    vi.mocked(kieExecuteTask).mockImplementation(async () => ({
-      data: "AAAA",
-      items: ["AAAA"],
-      taskId: "t"
-    }));
-
-    const NodeClass = createKieNodeClass(imageSpec);
-    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
-    (node as unknown as Record<string, unknown>).prompt = "a cat";
-    (node as unknown as Record<string, unknown>).num_outputs = 4;
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
-
-    const outputs = await consumeAsync(node.genProcess());
-    expect(outputs).toHaveLength(4);
-    expect(kieExecuteTask).toHaveBeenCalledTimes(4);
-    // num_outputs should NOT be sent to the API
-    for (const call of vi.mocked(kieExecuteTask).mock.calls) {
-      const params = call[2] as Record<string, unknown>;
-      expect(params).not.toHaveProperty("num_outputs");
-      expect(params).toMatchObject({ prompt: "a cat" });
-    }
-    for (const o of outputs) {
-      expect((o as { output: { type: string } }).output.type).toBe("image");
-    }
-  });
-
-  it("clamps num_outputs to [1, 8]", async () => {
-    vi.mocked(kieExecuteTask).mockResolvedValue({
-      data: "AAAA",
-      items: ["AAAA"],
-      taskId: "t"
-    });
-
-    const NodeClass = createKieNodeClass(imageSpec);
-    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
-    (node as unknown as Record<string, unknown>).prompt = "a cat";
-    (node as unknown as Record<string, unknown>).num_outputs = 999;
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
-
-    const outputs = await consumeAsync(node.genProcess());
-    expect(outputs).toHaveLength(8);
-    expect(kieExecuteTask).toHaveBeenCalledTimes(8);
-  });
-
-  it("uses native num_images: single API call yields multiple items", async () => {
+  it("process() returns a single image and calls kieExecuteTask once", async () => {
     vi.mocked(kieExecuteTask).mockResolvedValue({
       data: "AAAA",
       items: ["AAAA", "BBBB", "CCCC"],
       taskId: "t"
     });
 
-    const NodeClass = createKieNodeClass(imageSpecWithNativeNumImages);
+    const NodeClass = createKieNodeClass(imageSpec);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     (node as unknown as Record<string, unknown>).prompt = "a cat";
-    (node as unknown as Record<string, unknown>).num_images = "3";
     node.setDynamic("_secrets", { KIE_API_KEY: "test" });
 
-    const outputs = await consumeAsync(node.genProcess());
-    expect(outputs).toHaveLength(3);
+    const result = await node.process();
+    expect((result as { output: { type: string } }).output.type).toBe("image");
     expect(kieExecuteTask).toHaveBeenCalledTimes(1);
-    const params = vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<string, unknown>;
-    expect(params.num_images).toBe("3");
   });
 
-  it("genProcess yields once at num_outputs=1 and calls kieExecuteTask once", async () => {
+  it("forces num_images=1 when the manifest defines a native num_images field", async () => {
     vi.mocked(kieExecuteTask).mockResolvedValue({
       data: "AAAA",
       items: ["AAAA"],
       taskId: "t"
     });
 
-    const NodeClass = createKieNodeClass(imageSpec);
+    const NodeClass = createKieNodeClass(imageSpecWithNativeNumImages);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     (node as unknown as Record<string, unknown>).prompt = "a cat";
+    // Even if a stale value is set, the factory ignores it and pins to 1.
+    (node as unknown as Record<string, unknown>).num_images = "4";
     node.setDynamic("_secrets", { KIE_API_KEY: "test" });
 
-    const outputs = await consumeAsync(node.genProcess());
-    expect(outputs).toHaveLength(1);
-    expect(kieExecuteTask).toHaveBeenCalledTimes(1);
-  });
-
-  it("propagates errors from fanned-out tasks", async () => {
-    vi.mocked(kieExecuteTask)
-      .mockResolvedValueOnce({ data: "AAAA", items: ["AAAA"], taskId: "t1" })
-      .mockRejectedValueOnce(new Error("boom"))
-      .mockResolvedValueOnce({ data: "CCCC", items: ["CCCC"], taskId: "t3" });
-
-    const NodeClass = createKieNodeClass(imageSpec);
-    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
-    (node as unknown as Record<string, unknown>).prompt = "a cat";
-    (node as unknown as Record<string, unknown>).num_outputs = 3;
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
-
-    await expect(consumeAsync(node.genProcess())).rejects.toThrow("boom");
+    await node.process();
+    const params = vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<string, unknown>;
+    expect(params.num_images).toBe("1");
   });
 });
