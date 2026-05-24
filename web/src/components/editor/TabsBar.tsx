@@ -9,6 +9,7 @@ import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useFileTabsStore } from "../../stores/FileTabsStore";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import { useShallow } from "zustand/react/shallow";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 
@@ -177,9 +178,13 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
     (state) => state.closeOtherFileTabs
   );
 
-  // Subgraph tabs (only those belonging to the current workflow)
-  const subgraphTabs = useSubgraphTabsStore((state) =>
-    state.tabs.filter((t) => t.workflowId === currentWorkflowId)
+  // Subgraph tabs (only those belonging to the current workflow).
+  // `.filter()` produces a fresh array each call — wrap with `useShallow`
+  // so React's snapshot equality in `useSyncExternalStore` stays stable.
+  const subgraphTabs = useSubgraphTabsStore(
+    useShallow((state) =>
+      state.tabs.filter((t) => t.workflowId === currentWorkflowId)
+    )
   );
   const activeSubgraphKey = useSubgraphTabsStore((state) => state.activeKey);
   const setActiveSubgraph = useSubgraphTabsStore((state) => state.setActive);
