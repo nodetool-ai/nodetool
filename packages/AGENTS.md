@@ -2,6 +2,8 @@
 
 **Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) → **TypeScript Backend Packages**
 
+> **Read [docs/DEVELOPMENT_STANDARDS.md](../docs/DEVELOPMENT_STANDARDS.md) first.** It is the canonical source for TypeScript, ES modules, Fastify, Drizzle, Zod, testing, error handling, and security standards. The rules below are the area-specific overlay for `packages/`.
+
 The `packages/` directory contains the TypeScript backend — a set of npm workspace packages that implement the NodeTool workflow runtime, API server, CLI, and supporting libraries.
 
 ## Package Overview
@@ -145,6 +147,8 @@ The `nodetool` command-line interface. See [CLI documentation](../docs/cli.md).
 
 ## Rules
 
+Baseline rules (see [DEVELOPMENT_STANDARDS](../docs/DEVELOPMENT_STANDARDS.md) for the full set):
+
 - All packages use ES modules (`"type": "module"` in package.json).
 - TypeScript strict mode is enabled in all packages.
 - Test files go in `tests/` or `src/__tests__/`.
@@ -153,6 +157,20 @@ The `nodetool` command-line interface. See [CLI documentation](../docs/cli.md).
 - Never import from `dist/` directories in source code.
 - Use Vitest for all package tests (not Jest).
 - Throw `Error` objects, not strings. Comment intentionally empty catch blocks.
+
+Backend-specific standards (full detail in `DEVELOPMENT_STANDARDS.md`):
+
+- **Fastify routes** declare a `schema` for body/query/params/response — unvalidated payloads are bugs. See [§9](../docs/DEVELOPMENT_STANDARDS.md#9-fastify-http--websocket-server).
+- **Drizzle** schemas live in `models/src/schema/`; migrations are generated, not hand-written. No raw SQL when a builder works. See [§10](../docs/DEVELOPMENT_STANDARDS.md#10-drizzle-orm).
+- **Zod** is the canonical validator. Schemas and types are co-located: `export const Foo = z.object({...}); export type Foo = z.infer<typeof Foo>;`. See [§11](../docs/DEVELOPMENT_STANDARDS.md#11-zod-validation).
+- **`AbortController`** is mandatory for cancellable async (LLM calls, fetches, subprocesses). Plumb the signal through.
+- **OpenTelemetry spans** wrap every external call, every workflow step, every IPC handler. Use `gen_ai.*`, `http.*`, `db.*`, `rpc.*` semantic attributes. No PII in spans. See [§17](../docs/DEVELOPMENT_STANDARDS.md#17-observability).
+- **WebSocket** payloads on `/ws` are MsgPack, not JSON. Heartbeats every 30s. Backpressure via `bufferedAmount` checks. See [§13](../docs/DEVELOPMENT_STANDARDS.md#13-websocket-protocol).
+- **No `console.log`** in committed `packages/*/src/`. Use the structured logger.
+- **Native `fetch`** (Node 22) — no `node-fetch`/`axios` in new code without justification.
+- **Errors at boundaries** return discriminated `Result` types when expected; throws are for bugs.
+
+`packages/*` currently has `@typescript-eslint/no-explicit-any` disabled (transitional). **target**: zero `any` in `packages/protocol`, `packages/kernel`, `packages/runtime`, `packages/agents`, `packages/node-sdk`. New code must use `unknown` + narrowing or proper generics.
 
 ## Adding a New Package
 
