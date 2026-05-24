@@ -249,7 +249,7 @@ export type Graph = WorkflowGraph;
 export type TypeName = string;
 
 /** Re-export base metadata shape under its old name */
-export type BaseNodeMetadata = BaseNodeMetadataFromProtocol;
+type BaseNodeMetadata = BaseNodeMetadataFromProtocol;
 
 // ---------------------------------------------------------------------------
 // Local overrides / extensions

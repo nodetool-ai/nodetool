@@ -62,7 +62,7 @@ export type StepToolCall = {
   status?: string | null;
 };
 
-export type AgentExecutionToolCalls = Record<
+type AgentExecutionToolCalls = Record<
   string,
   Record<string, StepToolCall[]>
 >;

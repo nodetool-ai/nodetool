@@ -105,7 +105,7 @@ const uploadAsset = async (
   }
 };
 
-export type AssetQuery = {
+type AssetQuery = {
   cursor?: string;
   workflow_id?: string | null;
   parent_id?: string | null;
@@ -113,7 +113,7 @@ export type AssetQuery = {
   recursive?: boolean;
 };
 
-export type AssetSearchQuery = {
+type AssetSearchQuery = {
   query: string;
   content_type?: string;
   page_size?: number;

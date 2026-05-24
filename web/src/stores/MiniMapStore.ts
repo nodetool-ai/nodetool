@@ -12,7 +12,7 @@ import { persist } from "zustand/middleware";
 /**
  * Determines how nodes are colored in the minimap.
  */
-export type MiniMapColorMode = "default" | "type";
+type MiniMapColorMode = "default" | "type";
 
 interface MiniMapState {
   /** Whether the minimap is visible */
