@@ -8,7 +8,7 @@ import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
 import { Box } from "@mui/material";
 import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
+import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -150,7 +150,18 @@ const tileStyles = (theme: Theme) =>
     }
   });
 
-const FavoritesTiles = memo(function FavoritesTiles() {
+interface FavoritesTilesProps {
+  /**
+   * When true, render an empty-state message instead of returning null
+   * when there are no favorites. Used by the dedicated Favorites panel
+   * in the left sidebar where collapsing to nothing looks broken.
+   */
+  showEmpty?: boolean;
+}
+
+const FavoritesTiles = memo(function FavoritesTiles({
+  showEmpty = false
+}: FavoritesTilesProps = {}) {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
@@ -282,7 +293,25 @@ const FavoritesTiles = memo(function FavoritesTiles() {
   );
 
   if (favorites.length === 0) {
-    return null;
+    if (!showEmpty) {
+      return null;
+    }
+    return (
+      <Box css={memoizedStyles}>
+        <div className="tiles-header">
+          <Text size="normal" weight={600}>
+            <StarIcon
+              fontSize="small"
+              sx={{ opacity: 0.8, color: "warning.main" }}
+            />
+            Favorites
+          </Text>
+        </div>
+        <div className="empty-state">
+          No favorites yet. Click the star next to any node to add it here.
+        </div>
+      </Box>
+    );
   }
 
   return (
@@ -347,7 +376,7 @@ const FavoritesTiles = memo(function FavoritesTiles() {
                 }
               >
                 <ToolbarIconButton
-                  icon={<StarBorderIcon fontSize="small" />}
+                  icon={<CloseIcon fontSize="small" />}
                   tooltip={`Remove ${displayName} from favorites`}
                   size="small"
                   className="unfavorite-btn"

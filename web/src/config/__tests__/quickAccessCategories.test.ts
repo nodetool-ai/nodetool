@@ -24,13 +24,14 @@ const meta = (
   }) as unknown as NodeMetadata;
 
 describe("quickAccessCategories", () => {
-  it("ships six top-level views in order", () => {
+  it("ships seven top-level views in order", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
     expect(ids).toEqual([
       "nodes",
       "workflows",
       "settings",
       "history",
+      "favorites",
       "assets",
       "agent"
     ]);
