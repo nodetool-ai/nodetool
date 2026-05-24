@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { Box } from "@mui/material";
 import { Caption } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
@@ -33,6 +33,11 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
       ? innerGraph.nodes.length
       : 0;
 
+    const visibleProperties = useMemo(
+      () => nodeMetadata.properties.filter((p) => p.name !== "graph"),
+      [nodeMetadata.properties]
+    );
+
     return (
       <Box
         sx={{
@@ -60,18 +65,17 @@ export const SubgraphNodeContent: React.FC<SubgraphNodeContentProps> = memo(
             id={id}
             nodeMetadata={nodeMetadata}
             layout={nodeMetadata.layout}
-            properties={nodeMetadata.properties}
+            properties={visibleProperties}
             nodeType={nodeType}
             data={data}
             showHandle={true}
             editableDynamicInputs={false}
           />
         </Box>
-        {(nodeMetadata.is_dynamic ||
-          nodeMetadata.supports_dynamic_outputs) && (
+        {nodeMetadata.supports_dynamic_outputs && (
           <NodePropertyForm
             id={id}
-            isDynamic={nodeMetadata.is_dynamic}
+            isDynamic={false}
             supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
             dynamicOutputs={data.dynamic_outputs || {}}
             onAddProperty={handleAddProperty}
