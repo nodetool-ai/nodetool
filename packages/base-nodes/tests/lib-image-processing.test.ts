@@ -3,6 +3,12 @@
  * Tests that each node produces valid image output with correct type and non-empty data,
  * and that pixel values actually change where expected.
  */
+// Many `lib-image-*.ts` nodes now run their pixel pass on the GPU shader pool
+// (via Dawn). Importing the SwiftShader ICD shim makes a CPU WebGPU device
+// available in CI; without it Dawn finds no Vulkan driver and the
+// shader-backed branches throw "No WebGPU adapter available".
+import "../../gpu/tests/setup/swiftshaderIcd.js";
+
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import {

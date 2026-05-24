@@ -2,7 +2,15 @@ import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import sharp from "sharp";
+import * as d from "typegpu/data";
+import {
+  colorBrightnessContrastV1,
+  colorHsbV1,
+  sharpenUnsharpMaskV1,
+  filtersConvolve3x3V1
+} from "@nodetool-ai/gpu/pool";
 import { decodeImage, toRef, pickImage } from "./lib-image-utils.js";
+import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
 
 type Desc = {
   nodeType: string;
@@ -35,36 +43,103 @@ function createEnhanceNode(desc: Desc): NodeClass {
         return { output: baseObj ?? {} };
       }
 
-      let img = sharp(baseBytes, { failOn: "none" });
-
+      // GPU-backed paths first — single-pixel ops on the shared shader pool.
+      // Sharp is kept only for ops that need histograms / per-tile work /
+      // sorted neighbourhoods that the published shader catalog doesn't yet
+      // cover (AutoContrast, Equalize, AdaptiveContrast, RankFilter).
       if (t.endsWith(".Brightness")) {
         const factor = Number((this as any).factor ?? 1);
-        img = img.modulate({ brightness: factor });
+        // sharp's `modulate({ brightness })` is a pixel-wise multiply
+        // (`rgb *= factor`). The brightness/contrast shader computes
+        // `(src - 0.5) * contrast + 0.5 + brightness`. Solving for a pure
+        // multiply: `contrast = factor`, `brightness = (factor - 1) * 0.5`
+        // collapses to `factor * src` exactly. One pass, no intermediate
+        // PNG round-trip.
+        const png = await runShaderOnPngBuffer(
+          colorBrightnessContrastV1,
+          { brightness: (factor - 1) * 0.5, contrast: factor },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       } else if (t.endsWith(".Color")) {
         const factor = Number((this as any).factor ?? 1);
-        img = img.modulate({ saturation: factor });
+        const png = await runShaderOnPngBuffer(
+          colorHsbV1,
+          { hue: 0, saturation: factor, brightness: 1 },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       } else if (t.endsWith(".Contrast")) {
         const factor = Number((this as any).factor ?? 1);
-        img = img.linear(factor, -(128 * (factor - 1)));
+        const png = await runShaderOnPngBuffer(
+          colorBrightnessContrastV1,
+          { brightness: 0, contrast: factor },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       } else if (t.endsWith(".Sharpen")) {
-        img = img.convolve({
-          width: 3,
-          height: 3,
-          kernel: [-1, -1, -1, -1, 9, -1, -1, -1, -1]
-        });
-      } else if (t.endsWith(".Sharpness")) {
-        const factor = Number((this as any).factor ?? 1);
-        img = img.sharpen({ sigma: 1, m1: Math.max(0, factor), m2: 0.5 });
-      } else if (t.endsWith(".UnsharpMask")) {
-        const radius = Number((this as any).radius ?? 2);
-        const percent = Number((this as any).percent ?? 150);
-        const threshold = Number((this as any).threshold ?? 3);
-        img = img.sharpen({
-          sigma: Math.max(0.5, radius),
-          m1: percent / 100,
-          m2: threshold
-        });
-      } else if (t.endsWith(".AutoContrast")) {
+        // PIL `ImageFilter.SHARPEN`: 3×3 [-1 -1 -1 / -1 9 -1 / -1 -1 -1].
+        const png = await runShaderOnPngBuffer(
+          filtersConvolve3x3V1,
+          {
+            row0: d.vec4f(-1, -1, -1, 0),
+            row1: d.vec4f(-1, 9, -1, 0),
+            row2: d.vec4f(-1, -1, -1, 1)
+          },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      } else if (t.endsWith(".Sharpness") || t.endsWith(".UnsharpMask")) {
+        const isUnsharp = t.endsWith(".UnsharpMask");
+        const amount = isUnsharp
+          ? Number((this as any).percent ?? 150) / 100
+          : Number((this as any).factor ?? 1);
+        const threshold = isUnsharp
+          ? Number((this as any).threshold ?? 3) / 255
+          : 0;
+        const png = await runShaderOnPngBuffer(
+          sharpenUnsharpMaskV1,
+          { amount: Math.max(0, amount), threshold },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      } else if (t.endsWith(".Detail") || t.endsWith(".EdgeEnhance")) {
+        // PIL `ImageFilter.DETAIL`: 3×3 [0 -1 0 / -1 10 -1 / 0 -1 0] / 6,
+        // and `EDGE_ENHANCE`: same kernel family, slightly weaker.
+        const isDetail = t.endsWith(".Detail");
+        const png = await runShaderOnPngBuffer(
+          filtersConvolve3x3V1,
+          isDetail
+            ? {
+                row0: d.vec4f(0, -1, 0, 0),
+                row1: d.vec4f(-1, 10, -1, 0),
+                row2: d.vec4f(0, -1, 0, 6)
+              }
+            : {
+                row0: d.vec4f(-1, -1, -1, 0),
+                row1: d.vec4f(-1, 10, -1, 0),
+                row2: d.vec4f(-1, -1, -1, 2)
+              },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      }
+
+      let img = sharp(baseBytes, { failOn: "none" });
+
+      if (t.endsWith(".AutoContrast")) {
         // Proper autocontrast with cutoff
         const cutoff = Number((this as any).cutoff ?? 0);
         const { data: raw, info } = await img
@@ -263,8 +338,6 @@ function createEnhanceNode(desc: Desc): NodeClass {
           .png()
           .toBuffer();
         return { output: toRef(out, baseObj) };
-      } else if (t.endsWith(".Detail") || t.endsWith(".EdgeEnhance")) {
-        img = img.sharpen({ sigma: 0.5, m1: 0.5, m2: 0.3 });
       } else if (t.endsWith(".RankFilter")) {
         // Proper rank filter with configurable rank
         const size = Math.max(1, Number((this as any).size ?? 3));

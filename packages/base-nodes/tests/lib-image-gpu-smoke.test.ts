@@ -45,7 +45,22 @@ import {
   DiamondGradientNode,
   CheckerboardNode
 } from "../src/nodes/lib-image-generators.js";
-import { ThresholdNode, PixelateNode } from "../src/nodes/lib-image-filter-extras.js";
+import {
+  ThresholdNode,
+  PixelateNode,
+  GaussianBlurNode,
+  UnsharpMaskNode,
+  VignetteNode
+} from "../src/nodes/lib-image-filter-extras.js";
+import {
+  InvertNode,
+  BrightnessContrastNode,
+  HSBNode,
+  ExposureNode,
+  PosterizeNode,
+  GradeNode,
+  ChannelSplitNode
+} from "../src/nodes/lib-image-color.js";
 
 async function gpuAvailable(): Promise<boolean> {
   try {
@@ -419,5 +434,110 @@ describe.skipIf(!hasGpu)("lib.image.* GPU node smoke", () => {
       cell_size: 4
     });
     expectRawRgba((await node.process()).output, 32, 32);
+  });
+
+  it("lib.image.filter.GaussianBlur (separable recipe) runs", async () => {
+    const png = await solidPng(32, 32);
+    const node = makeNode(GaussianBlurNode, {
+      image: { type: "image", data: png.toString("base64") },
+      radius: 4,
+      sigma: 0
+    });
+    expectRawRgba((await node.process()).output, 32, 32);
+  });
+
+  it("lib.image.filter.UnsharpMask runs", async () => {
+    const png = await solidPng(32, 32);
+    const node = makeNode(UnsharpMaskNode, {
+      image: { type: "image", data: png.toString("base64") },
+      amount: 1.5,
+      threshold: 0
+    });
+    expectRawRgba((await node.process()).output, 32, 32);
+  });
+
+  it("lib.image.filter.Vignette runs", async () => {
+    const png = await solidPng(32, 32);
+    const node = makeNode(VignetteNode, {
+      image: { type: "image", data: png.toString("base64") },
+      intensity: 0.5,
+      radius: 0.9,
+      softness: 0.5
+    });
+    expectRawRgba((await node.process()).output, 32, 32);
+  });
+
+  // ---- color ------------------------------------------------------
+  it("lib.image.color.Invert runs", async () => {
+    const png = await solidPng(16, 16, { r: 200, g: 100, b: 50 });
+    const node = makeNode(InvertNode, {
+      image: { type: "image", data: png.toString("base64") },
+      amount: 1
+    });
+    expectRawRgba((await node.process()).output, 16, 16);
+  });
+
+  it("lib.image.color.BrightnessContrast runs", async () => {
+    const png = await solidPng(16, 16);
+    const node = makeNode(BrightnessContrastNode, {
+      image: { type: "image", data: png.toString("base64") },
+      brightness: 0.1,
+      contrast: 1.2
+    });
+    expectRawRgba((await node.process()).output, 16, 16);
+  });
+
+  it("lib.image.color.HSB runs", async () => {
+    const png = await solidPng(16, 16);
+    const node = makeNode(HSBNode, {
+      image: { type: "image", data: png.toString("base64") },
+      hue: 90,
+      saturation: 1.5,
+      brightness: 1
+    });
+    expectRawRgba((await node.process()).output, 16, 16);
+  });
+
+  it("lib.image.color.Exposure runs", async () => {
+    const png = await solidPng(16, 16);
+    const node = makeNode(ExposureNode, {
+      image: { type: "image", data: png.toString("base64") },
+      stops: 0.5
+    });
+    expectRawRgba((await node.process()).output, 16, 16);
+  });
+
+  it("lib.image.color.Posterize runs", async () => {
+    const png = await solidPng(16, 16);
+    const node = makeNode(PosterizeNode, {
+      image: { type: "image", data: png.toString("base64") },
+      levels: 4
+    });
+    expectRawRgba((await node.process()).output, 16, 16);
+  });
+
+  it("lib.image.color.Grade runs", async () => {
+    const png = await solidPng(16, 16);
+    const node = makeNode(GradeNode, {
+      image: { type: "image", data: png.toString("base64") },
+      brightness: 0.05,
+      contrast: 1.1,
+      saturation: 1.1,
+      hue: 10,
+      temperature: 0.1,
+      tint: -0.05,
+      shadows: 0.1,
+      highlights: -0.1
+    });
+    expectRawRgba((await node.process()).output, 16, 16);
+  });
+
+  it("lib.image.color.ChannelSplit runs", async () => {
+    const png = await solidPng(16, 16, { r: 200, g: 100, b: 50 });
+    const node = makeNode(ChannelSplitNode, {
+      image: { type: "image", data: png.toString("base64") },
+      mode: 0
+    });
+    expectRawRgba((await node.process()).output, 16, 16);
   });
 });

@@ -372,6 +372,79 @@ export async function runRecipeNode(
   return rawRgbaImageRef(rgba, dims.width, dims.height);
 }
 
+/**
+ * Run a shader against an in-memory encoded image buffer (PNG / JPEG /
+ * WebP / raw RGBA — anything `decodeRgba` accepts) and return a PNG
+ * buffer. Used by the legacy sharp-based nodes (lib-image-filter,
+ * lib-image-enhance, lib-image-color-grading, lib-image-draw) so their
+ * pixel-processing path moves to the GPU while their I/O contract (base64
+ * PNG out via `toRef`) stays unchanged. Codec work (decode/encode) stays
+ * on sharp; only the pixel pipeline migrates.
+ */
+export async function runShaderOnPngBuffer(
+  module: ShaderModule,
+  params: Record<string, unknown>,
+  encodedBuffer: Uint8Array,
+  opts: RunShaderOptions = {},
+  context?: ProcessingContext
+): Promise<Uint8Array> {
+  const ref = { type: "image", data: encodedBuffer };
+  const out = await runShaderNode(module, params, ref, opts, context);
+  return pngFromRawRgbaRef(out);
+}
+
+/** Same as {@link runShaderOnPngBuffer} but for {@link RecipeModule}s. */
+export async function runRecipeOnPngBuffer(
+  recipe: RecipeModule,
+  params: Record<string, unknown>,
+  encodedBuffer: Uint8Array,
+  opts: RunShaderOptions = {},
+  context?: ProcessingContext
+): Promise<Uint8Array> {
+  const ref = { type: "image", data: encodedBuffer };
+  const out = await runRecipeNode(recipe, params, ref, opts, context);
+  return pngFromRawRgbaRef(out);
+}
+
+/**
+ * Encode a raw-RGBA `ImageRef` (the format `runShaderNode` returns) into
+ * PNG bytes. If the ref isn't a raw-RGBA image (empty output, already
+ * encoded, …) returns its `data` as a Uint8Array unchanged when possible.
+ *
+ * When the alpha plane is uniformly 255 we drop it before encoding so the
+ * resulting PNG is 3-channel — matching the channel count that the legacy
+ * sharp pipelines (which never explicitly added alpha) produced. Tests that
+ * index raw bytes with `* 3` depend on this.
+ */
+async function pngFromRawRgbaRef(ref: ImageRef): Promise<Uint8Array> {
+  const data = (ref as { data?: unknown }).data;
+  const width = (ref as { width?: number }).width ?? 0;
+  const height = (ref as { height?: number }).height ?? 0;
+  if (!(data instanceof Uint8Array) || width === 0 || height === 0) {
+    if (data instanceof Uint8Array) return data;
+    return new Uint8Array();
+  }
+  const sharpMod = await import("sharp");
+  const sharp = sharpMod.default ?? sharpMod;
+
+  let allOpaque = true;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] !== 255) {
+      allOpaque = false;
+      break;
+    }
+  }
+
+  let pipeline = sharp(Buffer.from(data), {
+    raw: { width, height, channels: 4 }
+  });
+  if (allOpaque) {
+    pipeline = pipeline.removeAlpha();
+  }
+  const png = await pipeline.png().toBuffer();
+  return new Uint8Array(png.buffer, png.byteOffset, png.byteLength);
+}
+
 /* ------------------------------------------------------------------- *
  * Property factories — translate a module's TypeGPU param defaults    *
  * + paramUi hints into the `@prop` PropOptions shape node-sdk expects.*

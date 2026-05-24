@@ -1,22 +1,21 @@
 /**
- * `color.posterize@1` — quantize each channel to N levels.
+ * `color.solarize@1` — invert RGB channels whose value exceeds `threshold`.
  *
- * `levels` clamps to `[2, 256]`. At `levels = 2` the output is binary
- * per channel (eight discrete colors); at `levels = 256` it's the full
- * 8-bit range (effectively passthrough — covers PIL `bits=8` semantics).
- * Fragment, with the canonical mask slot.
+ * Classic PIL `ImageOps.solarize`. Each channel independently: if its value
+ * is greater than `threshold` (0..1), output `1 - v`; otherwise pass through.
+ * Alpha preserved.
  */
 
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
 
-export const PosterizeParams = d.struct({
-  levels: d.f32
+export const SolarizeParams = d.struct({
+  threshold: d.f32
 });
 
 const layout = tgpu.bindGroupLayout({
-  params: { uniform: PosterizeParams },
+  params: { uniform: SolarizeParams },
   source: { texture: "float" },
   mask: { texture: "float" },
   samp: { sampler: "filtering" }
@@ -29,16 +28,16 @@ const samplerDescriptor: GPUSamplerDescriptor = {
   addressModeV: "clamp-to-edge"
 };
 
-export const colorPosterizeV1 = defineModule({
-  id: "color.posterize",
+export const colorSolarizeV1 = defineModule({
+  id: "color.solarize",
   version: 1,
   surface: "internal",
   category: "color",
   kind: "fragment",
-  params: PosterizeParams,
-  paramDefaults: { levels: 4 },
+  params: SolarizeParams,
+  paramDefaults: { threshold: 0.5 },
   paramUi: {
-    levels: { min: 2, max: 256, step: 1, label: "Levels" }
+    threshold: { min: 0, max: 1, step: 0.01, label: "Threshold" }
   },
   layout,
   samplers: { samp: samplerDescriptor },
@@ -47,9 +46,13 @@ export const colorPosterizeV1 = defineModule({
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
-  let n = max(2.0, min(256.0, layout.$.params.levels));
-  let quantized = floor(clamp(src.rgb, vec3f(0.0), vec3f(1.0)) * n) / (n - 1.0);
-  let mixed = mix(src.rgb, clamp(quantized, vec3f(0.0), vec3f(1.0)), coverage);
+  let t = layout.$.params.threshold;
+  let inverted = vec3f(
+    select(src.r, 1.0 - src.r, src.r > t),
+    select(src.g, 1.0 - src.g, src.g > t),
+    select(src.b, 1.0 - src.b, src.b > t)
+  );
+  let mixed = mix(src.rgb, inverted, coverage);
   return vec4f(mixed, src.a);
 }
 `,

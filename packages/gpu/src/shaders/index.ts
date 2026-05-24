@@ -22,13 +22,17 @@ import { colorPosterizeV1 } from "./color/posterize/v1/module.js";
 import { colorChannelSplitV1 } from "./color/channelSplit/v1/module.js";
 import { colorChannelShuffleV1 } from "./color/channelShuffle/v1/module.js";
 import { colorChannelMergeV1 } from "./color/channelMerge/v1/module.js";
+import { colorGrayscaleV1 } from "./color/grayscale/v1/module.js";
+import { colorSolarizeV1 } from "./color/solarize/v1/module.js";
 
 import { blurGaussianV1 } from "./filters/blur/gaussian/v1/module.js";
 import { sharpenUnsharpMaskV1 } from "./filters/sharpen/unsharpMask/v1/module.js";
 import { vignetteV1 } from "./filters/vignette/v1/module.js";
 import { filtersPixelateV1 } from "./filters/pixelate/v1/module.js";
 import { filtersThresholdV1 } from "./filters/threshold/v1/module.js";
+import { filtersConvolve3x3V1 } from "./filters/convolve3x3/v1/module.js";
 import { filtersGlowV1 } from "./filters/glow/v1/module.js";
+import { filtersBlurSeparableV1 } from "./filters/blur/separable/v1/module.js";
 
 import { chromaKeyV1 } from "./keyer/chromaKey/v1/module.js";
 import { keyerLumaKeyV1 } from "./keyer/lumaKey/v1/module.js";
@@ -74,12 +78,16 @@ export {
   colorChannelSplitV1,
   colorChannelShuffleV1,
   colorChannelMergeV1,
+  colorGrayscaleV1,
+  colorSolarizeV1,
   blurGaussianV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
   filtersPixelateV1,
   filtersThresholdV1,
+  filtersConvolve3x3V1,
   filtersGlowV1,
+  filtersBlurSeparableV1,
   chromaKeyV1,
   keyerLumaKeyV1,
   maskApplyV1,
@@ -126,12 +134,15 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorChannelSplitV1,
   colorChannelShuffleV1,
   colorChannelMergeV1,
+  colorGrayscaleV1,
+  colorSolarizeV1,
   // filters
   blurGaussianV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
   filtersPixelateV1,
   filtersThresholdV1,
+  filtersConvolve3x3V1,
   // keyer
   chromaKeyV1,
   keyerLumaKeyV1,
@@ -169,6 +180,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
 /** Every recipe module registered by default. */
 export const ALL_RECIPES: readonly RecipeModule[] = [
   filtersGlowV1,
+  filtersBlurSeparableV1,
   mixerDropShadowV1
 ];
 
