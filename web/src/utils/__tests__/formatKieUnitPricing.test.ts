@@ -50,5 +50,20 @@ describe("formatKieUnitPricingTooltip", () => {
     });
     expect(tooltip).toContain("seedream/4.5-text-to-image");
     expect(tooltip).toContain("USD");
+    expect(tooltip).toMatch(/credits per image/);
+  });
+
+  it("avoids per varies copy for multi-tier models", () => {
+    const tooltip = formatKieUnitPricingTooltip({
+      model_id: "flux-2/flex-image-to-image",
+      unit_price: 14,
+      billing_unit: "varies",
+      currency: "credits",
+      tier_count: 3,
+      usd_price: 0.07,
+    });
+    expect(tooltip).toContain("From 14 credits");
+    expect(tooltip).not.toContain("per varies");
+    expect(tooltip).toContain("Varies by resolution, duration, and quality.");
   });
 });

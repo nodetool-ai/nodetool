@@ -206,6 +206,7 @@ describe("createKieNodeClass omni chaining", () => {
   it("reports credits consumed via processing context", async () => {
     vi.mocked(kieExecuteTask).mockResolvedValue({
       data: Buffer.from("video-bytes").toString("base64"),
+      items: [Buffer.from("video-bytes").toString("base64")],
       taskId: "task_cost",
       creditsConsumed: 9
     });

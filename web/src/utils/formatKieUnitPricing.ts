@@ -16,6 +16,21 @@ function formatCreditAmount(amount: number): string {
   }).format(amount)} credits`;
 }
 
+function formatKiePerUnitLine(
+  p: KieUnitPricing,
+  { vague }: { vague: boolean },
+): string {
+  const amount = formatCreditAmount(p.unit_price);
+  if (vague) {
+    return `From ${amount}`;
+  }
+  const unit = p.billing_unit.trim();
+  if (unit === "" || unit === "run") {
+    return amount;
+  }
+  return `${amount} per ${unit}`;
+}
+
 /** Compact label for node chrome. */
 export function formatKieUnitPricingShort(p: KieUnitPricing): string {
   const base = formatCreditAmount(p.unit_price);
@@ -38,10 +53,7 @@ function formatKiePricingAgeLine(p: KieUnitPricing): string {
 
 export function formatKieUnitPricingTooltip(p: KieUnitPricing): string {
   const vague = isKieVagueBillingSummary(p);
-  const perUnit =
-    p.billing_unit.trim() === "" || p.billing_unit === "run"
-      ? formatCreditAmount(p.unit_price)
-      : `${formatCreditAmount(p.unit_price)} per ${p.billing_unit}`;
+  const perUnit = formatKiePerUnitLine(p, { vague });
   const when = formatKiePricingAgeLine(p);
   const usd =
     p.usd_price != null && Number.isFinite(p.usd_price)
@@ -49,10 +61,8 @@ export function formatKieUnitPricingTooltip(p: KieUnitPricing): string {
       : null;
 
   return [
-    vague ? `${perUnit} (from — see kie.ai for tiers)` : perUnit,
-    vague
-      ? "\nVaries by resolution, duration, and quality.\nView on kie.ai for full pricing.\n"
-      : null,
+    vague ? `${perUnit} (lowest tier — see kie.ai for full pricing)` : perUnit,
+    vague ? "Varies by resolution, duration, and quality." : null,
     usd,
     when,
     `Model: ${p.model_id}`,
