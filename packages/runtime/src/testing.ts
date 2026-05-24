@@ -133,7 +133,7 @@ export function createFakeContext(
   });
 
   context.setProviderResolver((providerId: string) => {
-    let existing = providers.get(providerId);
+    const existing = providers.get(providerId);
     if (existing) return existing;
     const fresh = options.defaultProvider ?? new FakeProvider();
     providers.set(providerId, fresh);
