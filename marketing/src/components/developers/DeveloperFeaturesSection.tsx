@@ -102,7 +102,7 @@ export default function DeveloperFeaturesSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
+            className="mt-4 text-lg text-neutral-400 max-w-2xl mx-auto"
           >
             The same workflows you build on the canvas, callable from a TypeScript SDK and CLI.
             The @nodetool-ai packages aren&apos;t published to npm yet — these
@@ -133,7 +133,7 @@ export default function DeveloperFeaturesSection({
                       {feature.title}
                     </h3>
                   </div>
-                  <p className="text-slate-400">{feature.description}</p>
+                  <p className="text-neutral-400">{feature.description}</p>
                 </div>
                 <div className="md:col-span-3 min-w-0">
                   <CodeBlock code={feature.code} language="typescript" />

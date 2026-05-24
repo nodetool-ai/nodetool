@@ -113,7 +113,7 @@ const Header: React.FC<HeaderProps> = ({ navigation, rightSlot }) => {
           role="button"
           aria-label="Close menu"
           tabIndex={mobileMenuOpen ? 0 : -1}
-          className={`fixed inset-0 z-50 bg-slate-950/90 transition-opacity duration-300 ${
+          className={`fixed inset-0 z-50 bg-neutral-950/90 transition-opacity duration-300 ${
             mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
           onClick={() => setMobileMenuOpen(false)}
@@ -130,7 +130,7 @@ const Header: React.FC<HeaderProps> = ({ navigation, rightSlot }) => {
           role="dialog"
           aria-modal="true"
           aria-label="Mobile navigation menu"
-          className={`fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-gradient-radial from-slate-850 to-gray-950 px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10 transition-transform duration-300 ${
+          className={`fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-gradient-radial from-neutral-850 to-gray-950 px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10 transition-transform duration-300 ${
             mobileMenuOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >

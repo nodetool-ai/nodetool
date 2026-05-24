@@ -51,7 +51,7 @@ export default function NodeMenuSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400 leading-relaxed"
+            className="text-lg text-neutral-400 leading-relaxed"
           >
             Hundreds of ready-to-use components for AI models, data processing, and file operations—plus auto-generated nodes for every Replicate, Fal, and Kie.ai model.
           </motion.p>
@@ -66,7 +66,7 @@ export default function NodeMenuSection({
           className="relative mx-auto max-w-5xl mb-20"
         >
           <Tilt3D>
-            <div className="relative rounded-2xl border border-white/10 bg-slate-900/30 shadow-2xl overflow-hidden group">
+            <div className="relative rounded-2xl border border-white/10 bg-neutral-900/30 shadow-2xl overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-purple-500/5 pointer-events-none" />
               <Image
                 src="/screen_nodemenu.png"

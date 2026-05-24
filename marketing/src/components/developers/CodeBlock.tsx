@@ -106,15 +106,15 @@ function highlightTypescript(code: string): string {
   }
 
   const colorFor: Record<string, string> = {
-    comment: "text-slate-500 italic",
+    comment: "text-neutral-500 italic",
     string: "text-emerald-300",
     number: "text-amber-300",
     keyword: "text-violet-300",
     type: "text-sky-300",
     fn: "text-blue-300",
     decorator: "text-pink-300",
-    ident: "text-slate-200",
-    punct: "text-slate-400",
+    ident: "text-neutral-200",
+    punct: "text-neutral-400",
   };
 
   return tokens
@@ -158,13 +158,13 @@ function highlightBash(code: string): string {
               : `<span class="text-blue-300">${escape(tok)}</span>`
           );
         } else {
-          out.push(`<span class="text-slate-200">${escape(tok)}</span>`);
+          out.push(`<span class="text-neutral-200">${escape(tok)}</span>`);
         }
         if (!/^\s+$/.test(tok)) isFirstWord = false;
       }
       const codeHtml = out.join("");
       const commentHtml = commentPart
-        ? `<span class="text-slate-500 italic">${escape(commentPart)}</span>`
+        ? `<span class="text-neutral-500 italic">${escape(commentPart)}</span>`
         : "";
       return codeHtml + commentHtml;
     })
@@ -183,7 +183,7 @@ export default function CodeBlock({
 
   return (
     <pre
-      className={`rounded-lg bg-slate-950/90 p-4 text-xs overflow-x-auto font-mono border border-slate-800/60 leading-relaxed ${className}`}
+      className={`rounded-lg bg-neutral-950/90 p-4 text-xs overflow-x-auto font-mono border border-neutral-800/60 leading-relaxed ${className}`}
     >
       <code dangerouslySetInnerHTML={{ __html: html }} />
     </pre>

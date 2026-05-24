@@ -1,7 +1,9 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import dynamic from "next/dynamic";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import {
   Cloud,
   Globe,
@@ -12,30 +14,36 @@ import {
   Github,
   ArrowRight,
 } from "lucide-react";
-import SiteHeader from "../../components/SiteHeader";
-import SiteFooter from "../../components/SiteFooter";
-import CloudWaitlist from "../../components/CloudWaitlist";
 
 const ProvidersSection = dynamic(
   () => import("../../components/ProvidersSection"),
-  { ssr: true }
+  { ssr: false }
 );
 const FeaturesSection = dynamic(
   () => import("../../components/FeaturesSection"),
-  { ssr: true }
+  { ssr: false }
 );
 const EditionsCompareSection = dynamic(
   () => import("../../components/EditionsCompareSection"),
-  { ssr: true }
+  { ssr: false }
 );
 const CommunitySection = dynamic(
   () => import("../../components/CommunitySection"),
-  { ssr: true }
+  { ssr: false }
 );
 const ContactSection = dynamic(
   () => import("../../components/ContactSection"),
-  { ssr: true }
+  { ssr: false }
 );
+
+const navigation = [
+  { name: "Home", href: "/" },
+  { name: "Studio", href: "/studio" },
+  { name: "Why Cloud", href: "#why-cloud" },
+  { name: "Providers", href: "#providers" },
+  { name: "Compare", href: "#editions" },
+  { name: "Docs", href: "https://docs.nodetool.ai" },
+] as const;
 
 const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 
@@ -104,9 +112,27 @@ const consPoints = [
 ];
 
 export default function CloudPage() {
+  const [hash, setHash] = useState<string>("");
   const [stars, setStars] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    const update = () => setHash(window.location.hash);
+    update();
+    window.addEventListener("hashchange", update, { passive: true } as any);
+    return () => window.removeEventListener("hashchange", update as any);
+  }, []);
 
   useEffect(() => {
     fetch("https://api.github.com/repos/nodetool-ai/nodetool")
@@ -181,7 +207,134 @@ export default function CloudPage() {
         />
       </div>
 
-      <SiteHeader />
+      {/* Nav */}
+      <header>
+        <nav
+          className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-800/60 bg-glass supports-[backdrop-filter]:bg-glass shadow-[0_1px_0_0_rgba(59,130,246,0.08)]"
+          aria-label="Primary"
+        >
+          <div className={`${sectionContainer} py-2 sm:py-4 lg:py-2`}>
+            <div className="relative flex items-center justify-center gap-6 w-full min-h-[44px] sm:min-h-[64px]">
+              <div className="absolute left-0 flex items-center h-12 sm:h-10">
+                <a href="/" className="group flex items-center gap-2 rounded">
+                  <Image
+                    src="/logo_small.png"
+                    alt="NodeTool"
+                    width={48}
+                    height={48}
+                    priority
+                    sizes="180px"
+                    className="brightness-0 invert transition-all duration-300 group-hover:brightness-100 group-hover:invert-0"
+                  />
+                  <span className="text-xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
+                    nodetool <span className="text-sm font-normal opacity-70">/ cloud</span>
+                  </span>
+                  <span className="ml-1 hidden sm:inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+                    Alpha
+                  </span>
+                </a>
+              </div>
+              <ul className="hidden md:flex items-center gap-2 lg:gap-4 mx-auto rounded-full bg-neutral-900/40 ring-1 ring-white/5 px-2 py-1 border border-neutral-800/50">
+                {navigation.map((item) => {
+                  const active = hash === item.href;
+                  return (
+                    <li key={item.name} className="list-none">
+                      <a
+                        href={item.href}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-full lift ${
+                          active
+                            ? "bg-blue-600/25 text-blue-200 border border-blue-500/40"
+                            : "text-neutral-300 hover:text-blue-200 hover:bg-neutral-800/60"
+                        }`}
+                        aria-current={active ? "page" : undefined}
+                      >
+                        {item.name}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="absolute right-0 flex items-center gap-2 h-full">
+                <button
+                  type="button"
+                  className="md:hidden rounded-md p-2 text-neutral-300 hover:bg-neutral-800/60 transition-colors"
+                  onClick={() => setMobileMenuOpen(true)}
+                  aria-label="Open menu"
+                >
+                  <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+                </button>
+                <a
+                  href="https://github.com/nodetool-ai/nodetool"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg p-1 transition-colors hover:bg-blue-900/20"
+                  aria-label="NodeTool on GitHub"
+                >
+                  <Image
+                    src="/github-mark-white.svg"
+                    alt=""
+                    width={24}
+                    height={24}
+                    role="presentation"
+                  />
+                </a>
+              </div>
+            </div>
+          </div>
+        </nav>
+        {mobileMenuOpen && (
+          <div
+            className="md:hidden fixed inset-0 z-50"
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              type="button"
+              className="absolute inset-0 bg-neutral-950/90"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close menu"
+            />
+            <div className="absolute inset-y-0 right-0 w-full overflow-y-auto bg-gradient-to-b from-neutral-900 to-neutral-950 px-6 py-6 sm:max-w-sm border-l border-neutral-800/60">
+              <div className="flex items-center justify-between">
+                <a href="/" className="flex items-center gap-2">
+                  <Image
+                    src="/logo_small.png"
+                    alt="NodeTool"
+                    width={40}
+                    height={40}
+                    className="brightness-0 invert"
+                  />
+                  <span className="text-lg font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
+                    nodetool / cloud
+                  </span>
+                </a>
+                <button
+                  type="button"
+                  className="rounded-md p-2 text-neutral-300 hover:bg-neutral-800/60 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                </button>
+              </div>
+              <div className="mt-6 flow-root">
+                <div className="space-y-2 py-6">
+                  {navigation.map((item) => (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      className="block px-3 py-3 text-base font-medium text-neutral-200 hover:bg-neutral-800/60 hover:text-white rounded-lg transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
 
       <div
         id="content"
@@ -217,7 +370,7 @@ export default function CloudPage() {
                     in your browser.
                   </span>
                 </h1>
-                <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
+                <p className="mt-6 text-lg text-neutral-300 leading-relaxed max-w-xl">
                   NodeTool Cloud is the hosted version of the same open-source
                   platform. No install, no GPU, no driver setup — just sign in
                   and start building. Bring your own API keys for every cloud
@@ -245,22 +398,16 @@ export default function CloudPage() {
                     Try the Cloud alpha
                     <ArrowRight className="h-4 w-4" />
                   </a>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-neutral-400">
                     Alpha preview · AGPL-3.0 source · BYOK for every provider ·
                     Self-host any time
                   </p>
-                  <div className="mt-5 max-w-md">
-                    <p className="mb-2 text-sm text-slate-300">
-                      Not ready yet? Get notified as Cloud opens up.
-                    </p>
-                    <CloudWaitlist />
-                  </div>
                 </div>
-                <div className="mt-6 inline-flex items-center gap-2 text-sm text-slate-400">
+                <div className="mt-6 inline-flex items-center gap-2 text-sm text-neutral-400">
                   <span>Want to run it locally instead?</span>
                   <a
                     href="/studio"
-                    className="text-blue-300 hover:text-blue-200 underline underline-offset-2 font-medium"
+                    className="text-amber-300 hover:text-amber-200 underline underline-offset-2 font-medium"
                   >
                     Get NodeTool Studio →
                   </a>
@@ -275,7 +422,7 @@ export default function CloudPage() {
                       "radial-gradient(60% 60% at 50% 0%, rgba(59,130,246,0.32), transparent 60%), radial-gradient(50% 60% at 100% 100%, rgba(34,211,238,0.22), transparent 60%), radial-gradient(50% 60% at 0% 100%, rgba(168,85,247,0.22), transparent 60%)",
                   }}
                 />
-                <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
+                <div className="rounded-2xl border border-neutral-700/60 bg-neutral-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
                   <img
                     src="/screen_canvas.png"
                     alt="NodeTool Cloud workflow editor"
@@ -306,7 +453,7 @@ export default function CloudPage() {
               >
                 Zero setup. Anywhere. Always current.
               </h2>
-              <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
+              <p className="mt-4 text-lg text-neutral-400 leading-relaxed max-w-2xl">
                 Cloud removes the install, the GPU, and the upgrade chores —
                 while keeping you in control of your provider keys and your
                 workflows.
@@ -317,7 +464,7 @@ export default function CloudPage() {
               {proPoints.map((p) => (
                 <div
                   key={p.title}
-                  className="group relative h-full flex flex-col p-7 bg-slate-950 hover:bg-slate-900/60 transition-colors"
+                  className="group relative h-full flex flex-col p-7 bg-neutral-950 hover:bg-neutral-900/60 transition-colors"
                 >
                   <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-blue-300">
                     <p.icon className="h-5 w-5" strokeWidth={1.5} />
@@ -325,7 +472,7 @@ export default function CloudPage() {
                   <h3 className="mb-2 text-base font-semibold tracking-tight text-white">
                     {p.title}
                   </h3>
-                  <p className="text-sm leading-relaxed text-slate-400">
+                  <p className="text-sm leading-relaxed text-neutral-400">
                     {p.body}
                   </p>
                 </div>
@@ -347,7 +494,7 @@ export default function CloudPage() {
                   <h2 className="text-2xl md:text-3xl font-bold text-white">
                     You pay providers directly. We never mark up tokens.
                   </h2>
-                  <p className="mt-3 text-slate-300 max-w-2xl">
+                  <p className="mt-3 text-neutral-300 max-w-2xl">
                     Cloud connects to OpenAI, Anthropic, Gemini, Mistral, Groq,
                     Replicate, FAL, ElevenLabs, HuggingFace, and more — using
                     keys you provide. No hidden inference fees, no resold
@@ -366,8 +513,8 @@ export default function CloudPage() {
         >
           <div className={sectionContainer}>
             <header className="mb-10 max-w-3xl">
-              <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                <span className="h-px w-8 bg-slate-500/60" />
+              <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
+                <span className="h-px w-8 bg-neutral-500/60" />
                 Honest tradeoffs
               </div>
               <h2
@@ -376,11 +523,11 @@ export default function CloudPage() {
               >
                 What Cloud doesn&apos;t do.
               </h2>
-              <p className="mt-4 text-base text-slate-400 leading-relaxed max-w-2xl">
+              <p className="mt-4 text-base text-neutral-400 leading-relaxed max-w-2xl">
                 If any of these matter to you, install{" "}
                 <a
                   href="/studio"
-                  className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
+                  className="text-amber-300 hover:text-amber-200 underline underline-offset-2"
                 >
                   NodeTool Studio
                 </a>{" "}
@@ -391,12 +538,12 @@ export default function CloudPage() {
               {consPoints.map((c) => (
                 <div
                   key={c.title}
-                  className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-6"
+                  className="rounded-xl border border-neutral-800/80 bg-neutral-950/60 p-6"
                 >
                   <h3 className="text-base font-semibold text-white mb-2">
                     {c.title}
                   </h3>
-                  <p className="text-sm text-slate-400 leading-relaxed">
+                  <p className="text-sm text-neutral-400 leading-relaxed">
                     {c.body}
                   </p>
                 </div>
@@ -422,12 +569,12 @@ export default function CloudPage() {
         {/* Open source reassurance */}
         <section className="rhythm-section py-16">
           <div className={sectionContainer}>
-            <div className="mx-auto max-w-3xl rounded-2xl border border-slate-800/80 bg-slate-950/60 p-8 text-center">
-              <Github className="mx-auto h-8 w-8 text-slate-300 mb-4" />
+            <div className="mx-auto max-w-3xl rounded-2xl border border-neutral-800/80 bg-neutral-950/60 p-8 text-center">
+              <Github className="mx-auto h-8 w-8 text-neutral-300 mb-4" />
               <h2 className="text-2xl md:text-3xl font-bold text-white">
                 Cloud is just our hosting of open-source code.
               </h2>
-              <p className="mt-4 text-slate-400 leading-relaxed">
+              <p className="mt-4 text-neutral-400 leading-relaxed">
                 Every node, every provider, every line of the runtime that
                 powers Cloud is on GitHub under AGPL-3.0. If you ever want to
                 self-host, the same Docker images, CLI, and websocket server
@@ -438,7 +585,7 @@ export default function CloudPage() {
                 href="https://github.com/nodetool-ai/nodetool"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-100 hover:border-slate-500 hover:bg-slate-800 transition-colors"
+                className="mt-6 inline-flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2 text-sm font-semibold text-neutral-100 hover:border-neutral-500 hover:bg-neutral-800 transition-colors"
               >
                 <Github className="h-4 w-4" />
                 View source on GitHub
@@ -454,7 +601,46 @@ export default function CloudPage() {
         <ContactSection />
       </div>
 
-      <SiteFooter />
+      <footer className="relative border-t border-neutral-800/50 bg-neutral-950 py-10">
+        <div className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-blue-800/40 to-transparent" />
+        <div className={sectionContainer}>
+          <p className="text-center text-sm text-neutral-500">
+            <span className="text-blue-300">
+              Open source today. The future is yours to build.
+            </span>
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-neutral-500">
+            <a href="/" className="hover:text-neutral-300 transition-colors">
+              Home
+            </a>
+            <a href="/studio" className="hover:text-neutral-300 transition-colors">
+              Studio
+            </a>
+            <a
+              href="https://github.com/nodetool-ai/nodetool"
+              className="hover:text-neutral-300 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://discord.gg/WmQTWZRcYE"
+              className="hover:text-neutral-300 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord
+            </a>
+            <a href="/privacy" className="hover:text-neutral-300 transition-colors">
+              Privacy
+            </a>
+            <a href="/terms" className="hover:text-neutral-300 transition-colors">
+              Terms
+            </a>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

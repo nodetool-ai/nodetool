@@ -28,7 +28,7 @@ export default function WorkflowShareBar({ url, title }: WorkflowShareBarProps) 
         href={tweet}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+        className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
       >
         <Twitter className="h-3.5 w-3.5" /> Share
       </a>
@@ -36,14 +36,14 @@ export default function WorkflowShareBar({ url, title }: WorkflowShareBarProps) 
         href={linkedin}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+        className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
       >
         <Linkedin className="h-3.5 w-3.5" /> Post
       </a>
       <button
         type="button"
         onClick={onCopy}
-        className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
+        className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 ring-1 ring-white/10 hover:bg-white/10 hover:text-white"
       >
         <Link2 className="h-3.5 w-3.5" /> Copy link
       </button>

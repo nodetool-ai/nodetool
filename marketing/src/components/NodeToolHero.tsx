@@ -2,11 +2,10 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Download, Play, Code2, KeyRound, Layers } from "lucide-react";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
-import { track } from "../lib/analytics";
 
 export default function NodeToolHero() {
   return (
-    <div className="relative w-full text-slate-200">
+    <div className="relative w-full text-neutral-200">
       {/* Background glows */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-32 left-1/3 h-[28rem] w-[28rem] rounded-full bg-blue-500/15 blur-[120px]" />
@@ -24,7 +23,9 @@ export default function NodeToolHero() {
         >
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-            Free &amp; Open Source
+            Open Source
+            <span className="text-blue-500/60">•</span>
+            BYOK
           </span>
 
           <h1
@@ -38,7 +39,7 @@ export default function NodeToolHero() {
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-neutral-400 md:text-lg">
             One canvas. Every major model from every major provider, called
             with your own keys. Pay providers what they charge — no credits, no
             markup, no curated roster. When the next model ships, swap one node
@@ -52,25 +53,24 @@ export default function NodeToolHero() {
             />
             <a
               href="#demo-video"
-              onClick={() => track("View Demo")}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900/60 px-6 py-3.5 text-sm font-semibold text-neutral-100 transition-all hover:border-neutral-500 hover:bg-neutral-800/60"
             >
               <Play className="h-4 w-4" />
               See it in action
             </a>
           </div>
 
-          <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
+          <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-neutral-400">
             <li className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
               Every model. Your keys. Your canvas.
             </li>
-            <li className="text-slate-700">•</li>
+            <li className="text-neutral-700">•</li>
             <li className="flex items-center gap-1.5">
               <KeyRound className="h-3.5 w-3.5 text-emerald-400" />
               Pay providers directly
             </li>
-            <li className="text-slate-700">•</li>
+            <li className="text-neutral-700">•</li>
             <li className="flex items-center gap-1.5">
               <Code2 className="h-3.5 w-3.5 text-blue-400" />
               Open source, runs anywhere
@@ -93,13 +93,12 @@ export default function NodeToolHero() {
                 "radial-gradient(60% 60% at 50% 0%, rgba(168,85,247,0.35), transparent 60%), radial-gradient(50% 60% at 100% 100%, rgba(244,114,182,0.25), transparent 60%), radial-gradient(50% 60% at 0% 100%, rgba(59,130,246,0.25), transparent 60%)",
             }}
           />
-          <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
+          <div className="rounded-2xl border border-neutral-700/60 bg-neutral-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
             <img
               src="/screen_canvas.png"
               alt="NodeTool canvas: nodes for image, video, and text models wired together"
               className="block w-full rounded-xl"
               loading="eager"
-              decoding="async"
             />
           </div>
         </motion.div>

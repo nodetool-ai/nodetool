@@ -137,7 +137,7 @@ export default function AgentUseCasesSection({
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Agents your studio{" "}
-            <span className="text-white">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400">
               actually ships with.
             </span>
           </motion.h2>
@@ -146,7 +146,7 @@ export default function AgentUseCasesSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400 leading-relaxed"
+            className="text-lg text-neutral-400 leading-relaxed"
           >
             Open one, swap in your style guide, point it at the providers you already pay
             for, and let it run while you direct. Starter workflows live in the{" "}
@@ -179,7 +179,7 @@ export default function AgentUseCasesSection({
               }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-8 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-neutral-900/40 backdrop-blur-sm p-8 transition-all duration-300 hover:bg-neutral-900/60 hover:border-white/10 hover:shadow-2xl">
                   {/* Icon */}
                   <div
                     className={`mb-6 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br ${item.iconBgFrom} ${item.iconBgTo} shadow-lg ring-1 ring-white/10 group-hover:scale-110 transition-transform duration-300`}
@@ -191,13 +191,13 @@ export default function AgentUseCasesSection({
                   <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-amber-200 transition-colors">
                     {item.name}
                   </h3>
-                  <p className="text-slate-400 leading-relaxed mb-4 flex-grow">
+                  <p className="text-neutral-400 leading-relaxed mb-4 flex-grow">
                     {item.description}
                   </p>
 
                   {/* Example */}
                   <div className="mt-auto pt-4 border-t border-white/5">
-                    <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">
+                    <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">
                       Tell the agent
                     </p>
                     <p className="text-sm text-amber-300/80 italic">

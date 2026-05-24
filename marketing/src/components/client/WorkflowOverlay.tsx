@@ -16,7 +16,7 @@ const WorkflowOverlay: React.FC<WorkflowOverlayProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30"
       onClick={(e) => onClose && e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-slate-900 rounded-lg shadow-lg w-4/5 h-4/5 flex flex-col overflow-hidden">
+      <div className="bg-neutral-900 rounded-lg shadow-lg w-4/5 h-4/5 flex flex-col overflow-hidden">
         <div className="p-4 border-b">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold">{workflow.name}</h2>
@@ -43,7 +43,7 @@ const WorkflowOverlay: React.FC<WorkflowOverlayProps> = ({
             )}
           </div>
           {workflow.description && (
-            <p className="mt-2 text-slate-300">{workflow.description}</p>
+            <p className="mt-2 text-neutral-300">{workflow.description}</p>
           )}
         </div>
 

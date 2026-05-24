@@ -81,7 +81,7 @@ const NODES: NodeData[] = [
 
 export default function AgentsGraphHero() {
     return (
-        <div className="min-h-screen w-full bg-[#05050A] text-slate-200 selection:bg-teal-500/30 overflow-x-hidden">
+        <div className="min-h-screen w-full bg-[#05050A] text-neutral-200 selection:bg-teal-500/30 overflow-x-hidden">
 
             {/* Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -111,7 +111,7 @@ export default function AgentsGraphHero() {
                             </span>
                         </h1>
 
-                        <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
+                        <p className="text-lg md:text-xl text-neutral-400 mb-10 leading-relaxed max-w-2xl mx-auto">
                             Drop an agent on the canvas, hand it a brief, and watch it plan the shot,
                             pick the right model, generate variants, and stitch the cut — across Flux,
                             Seedance, Veo, Kling, Suno, and ElevenLabs. You direct, it executes.
@@ -127,11 +127,11 @@ export default function AgentsGraphHero() {
                             </a>
                         </div>
 
-                        <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-400 font-medium">
+                        <div className="mt-8 flex items-center justify-center gap-6 text-sm text-neutral-500 font-medium">
                             <span className="flex items-center gap-2"><Command className="w-4 h-4" /> Open Source</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-700" />
+                            <span className="w-1 h-1 rounded-full bg-neutral-700" />
                             <span>BYOK — pay providers direct</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-700" />
+                            <span className="w-1 h-1 rounded-full bg-neutral-700" />
                             <span>Watch every step</span>
                         </div>
                     </motion.div>
@@ -203,7 +203,7 @@ function GraphVisualization() {
                     rotateY,
                     transformStyle: "preserve-3d",
                 }}
-                className="relative w-full max-w-5xl aspect-[16/8] md:aspect-[16/7] rounded-3xl border border-white/10 bg-slate-900/40 backdrop-blur-xl shadow-2xl"
+                className="relative w-full max-w-5xl aspect-[16/8] md:aspect-[16/7] rounded-3xl border border-white/10 bg-neutral-900/40 backdrop-blur-xl shadow-2xl"
             >
                 {/* Inner Glow Gradient that follows mouse */}
                 <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
@@ -236,7 +236,7 @@ function GraphVisualization() {
                     <div className="h-3 w-3 rounded-full bg-green-500/20 border border-green-500/50" />
                 </div>
 
-                <div className="absolute bottom-6 right-8 text-xs font-mono text-slate-400 uppercase tracking-widest">
+                <div className="absolute bottom-6 right-8 text-xs font-mono text-neutral-500 uppercase tracking-widest">
                     Directing the shot • Step 3/5
                 </div>
 
@@ -400,26 +400,26 @@ function Node({ data, index }: { data: NodeData, index: number }) {
                 </div>
                 <div>
                     <h3 className="text-sm font-semibold text-white leading-tight">{data.title}</h3>
-                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {data.id}</p>
+                    <p className="text-[10px] text-neutral-400 font-mono mt-0.5">ID: {data.id}</p>
                 </div>
             </div>
 
             <div className="space-y-2">
                 {data.meta.map((item, i) => (
                     <div key={i} className="flex justify-between text-xs items-center p-1.5 rounded bg-white/5 border border-white/5">
-                        <span className="text-slate-400">{item.label}</span>
-                        <span className="text-slate-300 font-medium">{item.value}</span>
+                        <span className="text-neutral-500">{item.label}</span>
+                        <span className="text-neutral-300 font-medium">{item.value}</span>
                     </div>
                 ))}
             </div>
 
             {/* Connection Handle: INPUT (Left) */}
-            <div className={`absolute -left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-slate-700 bg-[#0F111A] ring-2 ring-[#0F111A] ${data.inputs ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`absolute -left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-neutral-700 bg-[#0F111A] ring-2 ring-[#0F111A] ${data.inputs ? 'opacity-100' : 'opacity-0'}`}>
                 <div className={`h-full w-full rounded-full ${theme.bg} opacity-50`} />
             </div>
 
             {/* Connection Handle: OUTPUT (Right) */}
-            <div className="absolute -right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-slate-700 bg-[#0F111A] ring-2 ring-[#0F111A]">
+            <div className="absolute -right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-neutral-700 bg-[#0F111A] ring-2 ring-[#0F111A]">
                 <div className={`h-full w-full rounded-full ${theme.bg}`} />
             </div>
         </motion.div>

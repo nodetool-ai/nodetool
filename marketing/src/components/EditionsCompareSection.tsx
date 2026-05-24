@@ -71,7 +71,7 @@ const rows: Row[] = [
   {
     label: "Cost",
     studio: { value: "Free — pay only for the cloud APIs you use", ok: true },
-    cloud: { value: "Free during alpha — you pay only your own API spend (BYOK)", ok: true },
+    cloud: { value: "Subscription + your own API spend (BYOK)", ok: false },
   },
 ];
 
@@ -81,9 +81,9 @@ function Cell({ ok, value }: { ok: boolean; value: string }) {
       {ok ? (
         <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" strokeWidth={2.5} />
       ) : (
-        <X className="h-4 w-4 mt-0.5 shrink-0 text-slate-400" strokeWidth={2.5} />
+        <X className="h-4 w-4 mt-0.5 shrink-0 text-neutral-500" strokeWidth={2.5} />
       )}
-      <span className="text-sm text-slate-300 leading-relaxed">{value}</span>
+      <span className="text-sm text-neutral-300 leading-relaxed">{value}</span>
     </div>
   );
 }
@@ -108,38 +108,38 @@ function EditionHeader({
 
   return (
     <div
-      className={`flex items-center justify-between gap-4 p-5 border-b border-slate-800/60 ${
+      className={`flex items-center justify-between gap-4 p-5 border-b border-neutral-800/60 ${
         highlighted ? `ring-1 ${ringColor}` : ""
       }`}
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-slate-200">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-neutral-200">
           <Icon className="h-5 w-5" strokeWidth={1.75} />
         </div>
         <div>
           <h3 className="text-base font-semibold tracking-tight text-white flex items-center gap-2">
             {title}
             {!isStudio && (
-              <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-200">
+              <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-200">
                 Alpha
               </span>
             )}
             {highlighted && (
               <span
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-200 bg-slate-800/80 border border-slate-700`}
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-200 bg-neutral-800/80 border border-neutral-700`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
                 You are here
               </span>
             )}
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">{tagline}</p>
+          <p className="text-xs text-neutral-400 mt-0.5">{tagline}</p>
         </div>
       </div>
       {isStudio ? (
         <a
           href="/studio"
-          className="hidden sm:inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-blue-200 transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors"
         >
           <Download className="h-3.5 w-3.5" />
           Download Studio
@@ -169,7 +169,7 @@ export default function EditionsCompareSection({
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <header className="mb-12 max-w-3xl">
-          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
+          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
             Two editions, one open-source codebase
           </div>
@@ -183,14 +183,14 @@ export default function EditionsCompareSection({
           >
             Studio runs on your machine.
             <br />
-            <span className="text-slate-300">Cloud runs in your browser.</span>
+            <span className="text-neutral-300">Cloud runs in your browser.</span>
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.05 }}
-            className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
+            className="mt-4 text-lg text-neutral-400 leading-relaxed max-w-2xl"
           >
             Same workflows, same nodes, same providers. Pick the runtime that
             fits how you want to work — and switch any time. Both editions are
@@ -201,10 +201,10 @@ export default function EditionsCompareSection({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Studio card */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 overflow-hidden">
+          <div className="rounded-2xl border border-neutral-800/80 bg-neutral-950/60 overflow-hidden">
             <EditionHeader kind="studio" highlighted={highlight === "studio"} />
             <div className="p-5 space-y-4">
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <p className="text-sm text-neutral-300 leading-relaxed">
                 <strong className="text-white">Best for:</strong> artists with
                 a capable GPU or Apple Silicon, large local model collections,
                 offline work, and anyone who wants every byte on their own
@@ -213,7 +213,7 @@ export default function EditionsCompareSection({
               <ul className="space-y-2.5">
                 {rows.map((r) => (
                   <li key={`s-${r.label}`} className="grid grid-cols-[140px_1fr] gap-3">
-                    <span className="text-xs uppercase tracking-wider text-slate-400 mt-0.5">
+                    <span className="text-xs uppercase tracking-wider text-neutral-500 mt-0.5">
                       {r.label}
                     </span>
                     <Cell ok={r.studio.ok} value={r.studio.value} />
@@ -224,10 +224,10 @@ export default function EditionsCompareSection({
           </div>
 
           {/* Cloud card */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 overflow-hidden">
+          <div className="rounded-2xl border border-neutral-800/80 bg-neutral-950/60 overflow-hidden">
             <EditionHeader kind="cloud" highlighted={highlight === "cloud"} />
             <div className="p-5 space-y-4">
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <p className="text-sm text-neutral-300 leading-relaxed">
                 <strong className="text-white">Best for:</strong> studios and
                 solo artists who want to start in seconds, work from any
                 device, and skip the GPU setup — while still bringing their
@@ -236,7 +236,7 @@ export default function EditionsCompareSection({
               <ul className="space-y-2.5">
                 {rows.map((r) => (
                   <li key={`c-${r.label}`} className="grid grid-cols-[140px_1fr] gap-3">
-                    <span className="text-xs uppercase tracking-wider text-slate-400 mt-0.5">
+                    <span className="text-xs uppercase tracking-wider text-neutral-500 mt-0.5">
                       {r.label}
                     </span>
                     <Cell ok={r.cloud.ok} value={r.cloud.value} />
@@ -247,13 +247,13 @@ export default function EditionsCompareSection({
           </div>
         </div>
 
-        <p className="mt-10 text-sm text-slate-400 text-center max-w-2xl mx-auto">
+        <p className="mt-10 text-sm text-neutral-400 text-center max-w-2xl mx-auto">
           Not sure? Start with{" "}
           <a href="/cloud" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
             Cloud
           </a>{" "}
           to try it in 30 seconds, then move to{" "}
-          <a href="/studio" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
+          <a href="/studio" className="text-amber-300 hover:text-amber-200 underline underline-offset-2">
             Studio
           </a>{" "}
           when you want full local control. Your workflows are portable between

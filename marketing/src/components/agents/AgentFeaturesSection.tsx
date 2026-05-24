@@ -104,7 +104,7 @@ export default function AgentFeaturesSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400 leading-relaxed"
+            className="text-lg text-neutral-400 leading-relaxed"
           >
             Agents are nodes on the same canvas as your image, video, and audio
             workflows — except these nodes have taste, a plan, and the ability to
@@ -131,7 +131,7 @@ export default function AgentFeaturesSection({
               }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-neutral-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-neutral-900/60 hover:border-white/10 hover:shadow-2xl">
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 border
                     ${feature.color === "teal" ? "bg-teal-500/10 border-teal-500/20" : ""}
@@ -157,7 +157,7 @@ export default function AgentFeaturesSection({
                   <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-amber-200 transition-colors">
                     {feature.title}
                   </h3>
-                  <p className="text-sm text-slate-400 leading-relaxed">
+                  <p className="text-sm text-neutral-400 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>

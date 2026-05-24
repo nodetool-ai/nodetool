@@ -49,7 +49,7 @@ export default function WorkflowFilters({ workflows }: WorkflowFiltersProps) {
               className={`rounded-full px-3.5 py-1.5 text-xs font-medium ring-1 transition-colors ${
                 active === c.id
                   ? "bg-blue-500/20 text-blue-200 ring-blue-400/40"
-                  : "bg-slate-900/60 text-slate-400 ring-white/10 hover:text-slate-200 hover:ring-white/20"
+                  : "bg-neutral-900/60 text-neutral-400 ring-white/10 hover:text-neutral-200 hover:ring-white/20"
               }`}
             >
               {c.label}
@@ -61,13 +61,13 @@ export default function WorkflowFilters({ workflows }: WorkflowFiltersProps) {
           placeholder="Search models, providers, use cases…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full max-w-xs rounded-md border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 ring-1 ring-white/5 focus:border-blue-400/50 focus:outline-none focus:ring-blue-400/30"
+          className="w-full max-w-xs rounded-md border border-white/10 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200 placeholder-neutral-500 ring-1 ring-white/5 focus:border-blue-400/50 focus:outline-none focus:ring-blue-400/30"
           aria-label="Search workflows"
         />
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-700/60 bg-slate-900/40 p-12 text-center text-slate-400">
+        <div className="rounded-xl border border-dashed border-neutral-700/60 bg-neutral-900/40 p-12 text-center text-neutral-400">
           No workflows match those filters yet. Try clearing the search or pick a different category.
         </div>
       ) : (

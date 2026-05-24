@@ -51,7 +51,7 @@ export default function ProvidersSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400 leading-relaxed"
+            className="text-lg text-neutral-400 leading-relaxed"
           >
             Bring your own API keys—no markup, no middleman. OpenAI, Anthropic, Gemini, Fal AI,
             Replicate, HuggingFace, OpenRouter, MiniMax, and Kie.ai supported.
@@ -67,7 +67,7 @@ export default function ProvidersSection({
           className="relative mx-auto max-w-5xl mb-20"
         >
           <Tilt3D>
-            <div className="relative rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
+            <div className="relative rounded-xl border border-white/10 bg-neutral-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-purple-500/5 pointer-events-none" />
               <Image
                 src="/screen_llms.png"
@@ -125,7 +125,7 @@ export default function ProvidersSection({
               }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-8 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-neutral-900/40 backdrop-blur-sm p-8 transition-all duration-300 hover:bg-neutral-900/60 hover:border-white/10 hover:shadow-2xl">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${feature.bg} ${feature.border} border`}>
                     <feature.icon className={`w-6 h-6 ${feature.color}`} />
                   </div>
@@ -133,7 +133,7 @@ export default function ProvidersSection({
                   <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-blue-200 transition-colors">
                     {feature.title}
                   </h3>
-                  <p className="text-slate-400 leading-relaxed">
+                  <p className="text-neutral-400 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>

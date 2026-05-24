@@ -116,7 +116,7 @@ export default function AgentIntegrationsSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400 leading-relaxed"
+            className="text-lg text-neutral-400 leading-relaxed"
           >
             The same models the studios use — wired into agents that know when to
             reach for them. Hand your agent a brief and it picks the right tool for
@@ -141,7 +141,7 @@ export default function AgentIntegrationsSection({
                 hidden: { opacity: 0, y: 20 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
               }}
-              className="group relative rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10"
+              className="group relative rounded-2xl border border-white/5 bg-neutral-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-neutral-900/60 hover:border-white/10"
             >
               {/* Category Header */}
               <h3
@@ -172,9 +172,9 @@ export default function AgentIntegrationsSection({
                     {typeof item.icon === "string" ? (
                       <span className="text-lg">{item.icon}</span>
                     ) : (
-                      <item.icon className="w-4 h-4 text-slate-400" />
+                      <item.icon className="w-4 h-4 text-neutral-400" />
                     )}
-                    <span className="text-sm text-slate-300">{item.name}</span>
+                    <span className="text-sm text-neutral-300">{item.name}</span>
                   </div>
                 ))}
               </div>
@@ -188,12 +188,12 @@ export default function AgentIntegrationsSection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-16 rounded-2xl border border-white/10 bg-gradient-to-r from-teal-900/20 via-slate-900/50 to-blue-900/20 p-8 md:p-12 text-center"
+          className="mt-16 rounded-2xl border border-white/10 bg-gradient-to-r from-teal-900/20 via-neutral-900/50 to-blue-900/20 p-8 md:p-12 text-center"
         >
           <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
             Your favorite model isn&apos;t in the list yet?
           </h3>
-          <p className="text-slate-400 mb-6 max-w-2xl mx-auto">
+          <p className="text-neutral-400 mb-6 max-w-2xl mx-auto">
             NodeTool is open source. Wrap any provider as a node, plug in a private
             checkpoint, or drive the canvas from the TypeScript SDK — agents pick it up
             like a first-class tool the moment it lands on the canvas.
@@ -201,7 +201,7 @@ export default function AgentIntegrationsSection({
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="https://docs.nodetool.ai/integrations"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-neutral-300 hover:bg-white/10 hover:text-white transition-all"
             >
               <Braces className="w-5 h-5" />
               Read the docs

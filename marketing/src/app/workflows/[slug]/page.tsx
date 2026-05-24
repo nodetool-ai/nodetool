@@ -98,7 +98,7 @@ export default async function WorkflowDetailPage({
     .slice(0, 3);
 
   return (
-    <main className="min-h-screen bg-[#05050A] text-slate-200">
+    <main className="min-h-screen bg-[#0a0a0a] text-neutral-200">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
@@ -113,10 +113,10 @@ export default async function WorkflowDetailPage({
       </div>
 
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-8">
-        <Link href="/workflows" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-300 hover:text-white">
+        <Link href="/workflows" className="inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-300 hover:text-white">
           <ArrowLeft className="h-4 w-4" /> All workflows
         </Link>
-        <div className="hidden gap-6 text-sm text-slate-400 sm:flex">
+        <div className="hidden gap-6 text-sm text-neutral-400 sm:flex">
           <Link href="/studio" className="hover:text-white">Studio</Link>
           <Link href="/cloud" className="hover:text-white">Cloud</Link>
           <Link href="https://docs.nodetool.ai" className="hover:text-white">Docs</Link>
@@ -133,27 +133,27 @@ export default async function WorkflowDetailPage({
               {wf.tags.slice(0, 4).map((t) => (
                 <span
                   key={t}
-                  className="inline-flex items-center rounded-md bg-white/5 px-2 py-1 text-[11px] font-medium text-slate-400 ring-1 ring-white/10"
+                  className="inline-flex items-center rounded-md bg-white/5 px-2 py-1 text-[11px] font-medium text-neutral-400 ring-1 ring-white/10"
                 >
                   {t}
                 </span>
               ))}
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">{wf.title}</h1>
-            <p className="mt-5 text-lg leading-relaxed text-slate-400">{wf.description}</p>
+            <p className="mt-5 text-lg leading-relaxed text-neutral-400">{wf.description}</p>
 
-            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-400">
+            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-neutral-400">
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-slate-500" /> {wf.runtime}
+                <Clock className="h-4 w-4 text-neutral-500" /> {wf.runtime}
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Layers className="h-4 w-4 text-slate-500" /> {wf.difficulty}
+                <Layers className="h-4 w-4 text-neutral-500" /> {wf.difficulty}
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Cpu className="h-4 w-4 text-slate-500" /> {wf.models.length} models
+                <Cpu className="h-4 w-4 text-neutral-500" /> {wf.models.length} models
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <WorkflowIcon className="h-4 w-4 text-slate-500" /> {wf.preview.nodes.length} nodes
+                <WorkflowIcon className="h-4 w-4 text-neutral-500" /> {wf.preview.nodes.length} nodes
               </span>
             </div>
 
@@ -180,7 +180,7 @@ export default async function WorkflowDetailPage({
             {wf.video ? (
               <WorkflowVideo video={wf.video} title={wf.title} />
             ) : (
-              <div className="aspect-video w-full rounded-2xl bg-slate-900/60 ring-1 ring-white/10 flex items-center justify-center text-slate-500 text-sm">
+              <div className="aspect-video w-full rounded-2xl bg-neutral-900/60 ring-1 ring-white/10 flex items-center justify-center text-neutral-500 text-sm">
                 Demo video coming soon
               </div>
             )}
@@ -193,12 +193,12 @@ export default async function WorkflowDetailPage({
         <div className="mb-4 flex items-end justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-white">The graph</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-neutral-400">
               The actual nodes you&apos;ll see when you open this workflow on the canvas.
             </p>
           </div>
         </div>
-        <div className="h-[480px] w-full overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-950/60 ring-1 ring-white/5">
+        <div className="h-[480px] w-full overflow-hidden rounded-2xl border border-neutral-800/70 bg-neutral-950/60 ring-1 ring-white/5">
           <WorkflowFlowClient
             nodes={wf.preview.nodes}
             edges={wf.preview.edges}
@@ -221,14 +221,14 @@ export default async function WorkflowDetailPage({
                   </span>
                   <div>
                     <h3 className="text-base font-semibold text-white">{step.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-400">{step.detail}</p>
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-400">{step.detail}</p>
                   </div>
                 </li>
               ))}
             </ol>
 
             <h2 className="mt-12 text-2xl font-semibold text-white">What you can build with it</h2>
-            <ul className="mt-4 space-y-2 text-slate-300">
+            <ul className="mt-4 space-y-2 text-neutral-300">
               {wf.useCases.map((u) => (
                 <li key={u} className="flex gap-3">
                   <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-blue-400" />
@@ -239,8 +239,8 @@ export default async function WorkflowDetailPage({
           </div>
 
           <aside className="flex flex-col gap-6">
-            <div className="rounded-2xl border border-slate-800/70 bg-slate-900/40 p-5 ring-1 ring-white/5">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Models</h3>
+            <div className="rounded-2xl border border-neutral-800/70 bg-neutral-900/40 p-5 ring-1 ring-white/5">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Models</h3>
               <div className="mt-3 flex flex-wrap gap-2">
                 {wf.models.map((m) => (
                   <span
@@ -252,8 +252,8 @@ export default async function WorkflowDetailPage({
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-slate-800/70 bg-slate-900/40 p-5 ring-1 ring-white/5">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Providers</h3>
+            <div className="rounded-2xl border border-neutral-800/70 bg-neutral-900/40 p-5 ring-1 ring-white/5">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">Providers</h3>
               <div className="mt-3 flex flex-wrap gap-2">
                 {wf.providers.map((p) => (
                   <span
@@ -264,7 +264,7 @@ export default async function WorkflowDetailPage({
                   </span>
                 ))}
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-slate-500">
+              <p className="mt-3 text-xs leading-relaxed text-neutral-500">
                 Bring your own keys. NodeTool calls providers directly — no credits, no markup.
               </p>
             </div>
@@ -273,7 +273,7 @@ export default async function WorkflowDetailPage({
       </section>
 
       {related.length > 0 ? (
-        <section className="relative z-10 border-t border-slate-800/60 bg-slate-950/40">
+        <section className="relative z-10 border-t border-neutral-800/60 bg-neutral-950/40">
           <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
             <h2 className="text-2xl font-semibold text-white">Related workflows</h2>
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -281,15 +281,15 @@ export default async function WorkflowDetailPage({
                 <Link
                   key={r.slug}
                   href={`/workflows/${r.slug}`}
-                  className="group rounded-xl border border-slate-800/70 bg-slate-900/40 p-5 ring-1 ring-white/5 transition-all hover:border-blue-500/40 hover:ring-blue-400/20"
+                  className="group rounded-xl border border-neutral-800/70 bg-neutral-900/40 p-5 ring-1 ring-white/5 transition-all hover:border-blue-500/40 hover:ring-blue-400/20"
                 >
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-500">
                     {r.category}
                   </span>
                   <h3 className="mt-1 text-base font-semibold text-white group-hover:text-blue-300">
                     {r.title}
                   </h3>
-                  <p className="mt-2 line-clamp-2 text-sm text-slate-400">{r.tagline}</p>
+                  <p className="mt-2 line-clamp-2 text-sm text-neutral-400">{r.tagline}</p>
                 </Link>
               ))}
             </div>

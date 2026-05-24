@@ -77,17 +77,6 @@ export default function Tilt3D({
         transition: "transform 300ms cubic-bezier(.2,.8,.2,1)",
       }}
     >
-      {highlight && !reduced && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-2xl"
-          style={{
-            background:
-              "radial-gradient(40rem 40rem at var(--mx,50%) var(--my,50%), rgba(255,255,255,0.05), transparent 35%)",
-            mixBlendMode: "overlay",
-          }}
-        />
-      )}
       {children}
     </div>
   );

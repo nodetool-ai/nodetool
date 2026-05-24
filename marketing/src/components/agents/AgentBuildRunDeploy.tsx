@@ -22,10 +22,10 @@ export default function AgentBuildRunDeploy() {
 
             <div className="relative mx-auto max-w-6xl w-full z-10">
                 <div className="mb-12 text-center max-w-2xl mx-auto">
-                    <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-4 tracking-tight">
+                    <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-neutral-200 to-neutral-400 mb-4 tracking-tight">
                         Brief it. Direct it. Iterate.
                     </h2>
-                    <p className="text-slate-400 text-lg">
+                    <p className="text-neutral-400 text-lg">
                         Hand your agent a creative brief, watch it pick models and generate
                         variants, then save the winning run as a node you can rerun for the
                         next campaign.
@@ -34,7 +34,7 @@ export default function AgentBuildRunDeploy() {
 
                 {/* Connection Lines (Desktop Only) */}
                 <div className="hidden md:block absolute top-1/2 left-0 w-full -translate-y-1/2 px-12 pointer-events-none z-0">
-                    <div className="relative w-full h-[2px] bg-gradient-to-r from-transparent via-slate-800 to-transparent">
+                    <div className="relative w-full h-[2px] bg-gradient-to-r from-transparent via-neutral-800 to-transparent">
                         {/* Animated flow dots */}
                         <div className="absolute top-1/2 left-0 w-full -translate-y-1/2 overflow-hidden h-4">
                             <div className="w-20 h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent absolute top-1/2 animate-flow-line" />
@@ -152,7 +152,7 @@ function Card({ title, subtitle, children, step, accentColor }: CardProps) {
         <div className="group relative h-full">
             {/* Connector Arrow for Mobile (Between Cards) */}
             {step < 3 && (
-                <div className="md:hidden absolute -bottom-6 left-1/2 -translate-x-1/2 text-slate-700 z-0">
+                <div className="md:hidden absolute -bottom-6 left-1/2 -translate-x-1/2 text-neutral-700 z-0">
                     <ArrowRight className="w-6 h-6 rotate-90" />
                 </div>
             )}
@@ -164,16 +164,6 @@ function Card({ title, subtitle, children, step, accentColor }: CardProps) {
             >
                 {/* Inner Content Container */}
                 <div className="relative h-full rounded-[20px] bg-[#131620]/80 backdrop-blur-xl p-6 lg:p-8 overflow-hidden flex flex-col">
-
-                    {/* Dynamic Glare */}
-                    {!reduced && (
-                        <div
-                            className="pointer-events-none absolute inset-0 z-50 transition-opacity duration-500 group-hover:opacity-100 opacity-0"
-                            style={{
-                                background: `radial-gradient(600px circle at var(--mx) var(--my), rgba(255,255,255,0.06), transparent 40%)`,
-                            }}
-                        />
-                    )}
 
                     {/* Large Watermark Number */}
                     <div className="absolute -right-4 -top-8 text-[120px] font-bold text-white/[0.02] select-none font-mono pointer-events-none group-hover:text-white/[0.04] transition-colors">
@@ -193,7 +183,7 @@ function Card({ title, subtitle, children, step, accentColor }: CardProps) {
                             {step === 3 && <RefreshCw className="w-5 h-5" />}
                             {title}
                         </h3>
-                        <p className="text-slate-400 text-sm leading-relaxed font-medium">
+                        <p className="text-neutral-400 text-sm leading-relaxed font-medium">
                             {subtitle}
                         </p>
                     </div>
@@ -267,17 +257,17 @@ function BuildGraphic() {
             </svg>
 
             {/* Node 1 (Source) */}
-            <div className="absolute left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-xl bg-slate-800 border border-slate-600 flex items-center justify-center shadow-lg shadow-blue-900/20 z-10">
+            <div className="absolute left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-xl bg-neutral-800 border border-neutral-600 flex items-center justify-center shadow-lg shadow-blue-900/20 z-10">
                 <Bot className="w-6 h-6 text-blue-400" />
             </div>
 
             {/* Node 2 (Target Top) */}
-            <div className="absolute right-8 top-[25%] -translate-y-1/2 w-10 h-10 rounded-lg bg-slate-800 border border-blue-500/30 flex items-center justify-center shadow-lg z-10 animate-pulse">
+            <div className="absolute right-8 top-[25%] -translate-y-1/2 w-10 h-10 rounded-lg bg-neutral-800 border border-blue-500/30 flex items-center justify-center shadow-lg z-10 animate-pulse">
                 <MessageSquare className="w-5 h-5 text-blue-300" />
             </div>
 
             {/* Node 3 (Target Bottom) */}
-            <div className="absolute right-8 top-[75%] -translate-y-1/2 w-10 h-10 rounded-lg bg-slate-800 border border-blue-500/30 flex items-center justify-center shadow-lg z-10 animate-pulse delay-75">
+            <div className="absolute right-8 top-[75%] -translate-y-1/2 w-10 h-10 rounded-lg bg-neutral-800 border border-blue-500/30 flex items-center justify-center shadow-lg z-10 animate-pulse delay-75">
                 <Zap className="w-5 h-5 text-yellow-300" />
             </div>
 
@@ -296,17 +286,17 @@ function BuildGraphic() {
  */
 function RunGraphic() {
     return (
-        <div className="w-full max-w-[90%] aspect-[16/10] bg-[#1e293b] rounded-lg border border-slate-700/50 overflow-hidden shadow-2xl relative flex flex-col select-none">
+        <div className="w-full max-w-[90%] aspect-[16/10] bg-[#1e293b] rounded-lg border border-neutral-700/50 overflow-hidden shadow-2xl relative flex flex-col select-none">
             {/* Window Header */}
-            <div className="h-7 bg-slate-900 border-b border-white/5 flex items-center justify-between px-3">
+            <div className="h-7 bg-neutral-900 border-b border-white/5 flex items-center justify-between px-3">
                 <div className="flex gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-slate-700" />
-                    <div className="w-2 h-2 rounded-full bg-slate-700" />
+                    <div className="w-2 h-2 rounded-full bg-neutral-700" />
+                    <div className="w-2 h-2 rounded-full bg-neutral-700" />
                 </div>
-                <div className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">Agent Trace</div>
+                <div className="text-[9px] font-medium text-neutral-500 uppercase tracking-wider">Agent Trace</div>
             </div>
 
-            <div className="flex-1 flex flex-col p-3 font-mono text-[10px] text-slate-400 gap-2 bg-[#0B0C10]">
+            <div className="flex-1 flex flex-col p-3 font-mono text-[10px] text-neutral-400 gap-2 bg-[#0B0C10]">
                 <div className="flex items-start gap-2 animate-[fadeIn_0.5s_ease-out_0.5s_both]">
                     <span className="text-green-400 shrink-0">➜</span>
                     <span>Brief: &quot;Sneaker launch, 9:16, neon noir&quot;</span>
@@ -340,7 +330,7 @@ function DeployGraphic() {
             <div className="absolute w-44 h-44 rounded-full border border-emerald-500/5 animate-[spin_15s_linear_infinite_reverse]" />
 
             {/* Center Core */}
-            <div className="relative z-10 w-16 h-16 rounded-full bg-gradient-to-br from-emerald-900 to-slate-900 border border-emerald-500/50 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+            <div className="relative z-10 w-16 h-16 rounded-full bg-gradient-to-br from-emerald-900 to-neutral-900 border border-emerald-500/50 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.2)]">
                 <Film className="w-8 h-8 text-emerald-400" />
                 {/* Ping Effect */}
                 <div className="absolute inset-0 rounded-full border border-emerald-400 animate-ping opacity-20" />

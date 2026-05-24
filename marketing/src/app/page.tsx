@@ -31,7 +31,7 @@ import { Feature, features } from "./features";
 // Utility: common classes
 // Add a semantic `card` class so we can style shared card media globally
 const cardBase =
-  "card relative rounded-2xl bg-slate-900/60 border border-slate-800/60 ring-1 ring-white/5 backdrop-blur-md shadow-soft";
+  "card relative rounded-2xl bg-neutral-900/60 border border-neutral-800/60 ring-1 ring-white/5 backdrop-blur-md shadow-soft";
 const cardHoverUnified = "lift hover:border-blue-500/50 hover:shadow-strong";
 const cardInnerGlow =
   "pointer-events-none absolute inset-0 rounded-2xl opacity-0 motion-safe:transition-opacity motion-safe:duration-300 group-hover:opacity-100";
@@ -331,7 +331,7 @@ export default function Home() {
                     "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.3) 0%, rgba(59, 130, 246, 0.2) 40%, transparent 70%)",
                 }}
               />
-              <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 p-2 shadow-2xl shadow-amber-900/20 backdrop-blur-sm ring-1 ring-white/5 overflow-hidden">
+              <div className="relative rounded-2xl border border-neutral-700/60 bg-neutral-900/80 p-2 shadow-2xl shadow-amber-900/20 backdrop-blur-sm ring-1 ring-white/5 overflow-hidden">
                 <video
                   src="/demo.mp4"
                   className="w-full h-auto rounded-xl"
@@ -382,19 +382,19 @@ export default function Home() {
         {/* Feature Modal (accessible) */}
         {selectedFeature && (
           <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 backdrop-blur-md"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-950/80 backdrop-blur-md"
             role="dialog"
             aria-modal="true"
             aria-label={selectedFeature.name}
             onClick={() => setSelectedFeature(null)}
           >
             <div
-              className="relative mx-auto max-w-4xl rounded-lg border border-blue-800/50 bg-slate-900 p-4 shadow-2xl shadow-blue-900/30"
+              className="relative mx-auto max-w-4xl rounded-lg border border-blue-800/50 bg-neutral-900 p-4 shadow-2xl shadow-blue-900/30"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 id="feature-close"
-                className={`absolute right-4 top-4 rounded text-slate-300 transition-colors hover:text-white ${focusRingStrong}`}
+                className={`absolute right-4 top-4 rounded text-neutral-300 transition-colors hover:text-white ${focusRingStrong}`}
                 onClick={() => setSelectedFeature(null)}
                 aria-label="Close"
               >
@@ -412,7 +412,7 @@ export default function Home() {
                   className="h-auto w-full rounded-lg"
                 />
               ) : (
-                <div className="p-10 text-center text-slate-300">
+                <div className="p-10 text-center text-neutral-300">
                   No preview available
                 </div>
               )}
@@ -438,7 +438,7 @@ export default function Home() {
             >
               Put every model on one canvas.
             </h2>
-            <p className="mt-4 text-lg text-slate-300">
+            <p className="mt-4 text-lg text-neutral-300">
               Free, open source, and yours to run. Download Studio and build
               your first workflow in minutes.
             </p>
@@ -452,7 +452,7 @@ export default function Home() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => track("Star GitHub")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900/60 px-6 py-3.5 text-sm font-semibold text-neutral-100 transition-all hover:border-neutral-500 hover:bg-neutral-800/60 focus-ring"
               >
                 View on GitHub
               </a>

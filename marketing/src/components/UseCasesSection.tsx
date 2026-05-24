@@ -41,7 +41,7 @@ export default function UseCasesSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400 leading-relaxed"
+            className="text-lg text-neutral-400 leading-relaxed"
           >
             Image, video, audio, text, agents, RAG — all on the same canvas. Wire the models you want, switch when better ones ship.
           </motion.p>
@@ -65,7 +65,7 @@ export default function UseCasesSection({
               }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-neutral-900/40 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:bg-neutral-900/60 hover:border-white/10 hover:shadow-2xl">
                   {/* Image */}
                   <div className="relative h-48 w-full overflow-hidden">
                     <Image
@@ -74,7 +74,7 @@ export default function UseCasesSection({
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/90 via-neutral-900/40 to-transparent" />
                   </div>
 
                   {/* Content */}
@@ -82,14 +82,14 @@ export default function UseCasesSection({
                     <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-blue-200 transition-colors">
                       {item.name}
                     </h3>
-                    <p className="text-slate-400 leading-relaxed flex-grow">
+                    <p className="text-neutral-400 leading-relaxed flex-grow">
                       {item.description}
                     </p>
 
                     {/* Learn More Link */}
                     <a
                       href={item.href}
-                      className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-white transition-colors group/link"
+                      className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-neutral-400 hover:text-white transition-colors group/link"
                     >
                       Learn more
                       <ArrowRightIcon className="h-3.5 w-3.5 transition-transform group-hover/link:translate-x-1" />
@@ -108,7 +108,7 @@ export default function UseCasesSection({
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.4 }}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all hover:scale-105"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-neutral-300 hover:bg-white/10 hover:text-white transition-all hover:scale-105"
           >
             Explore all templates
             <ArrowRightIcon className="h-4 w-4" />

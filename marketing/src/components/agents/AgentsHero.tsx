@@ -16,7 +16,7 @@ import {
 
 export default function AgentsHero() {
   return (
-    <div className="min-h-screen w-full bg-[#05050A] text-slate-200 selection:bg-teal-500/30 overflow-x-hidden">
+    <div className="min-h-screen w-full bg-[#05050A] text-neutral-200 selection:bg-teal-500/30 overflow-x-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-teal-500 opacity-20 blur-[100px]"></div>
@@ -47,7 +47,7 @@ export default function AgentsHero() {
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-neutral-400 mb-10 leading-relaxed max-w-2xl mx-auto">
               Agents are nodes. Wire one into the same canvas as your image,
               video, and text models, hand it an objective, and it picks the
               tools, calls the models, and ships the result to the next node.
@@ -65,21 +65,21 @@ export default function AgentsHero() {
               </a>
               <a
                 href="#use-cases"
-                className="px-8 py-4 rounded-xl font-semibold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex items-center gap-2"
+                className="px-8 py-4 rounded-xl font-semibold text-neutral-300 bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex items-center gap-2"
               >
                 See examples
               </a>
             </div>
 
-            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-400 font-medium">
+            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-neutral-500 font-medium">
               <span className="flex items-center gap-2">
                 <Command className="w-4 h-4" /> Open Source
               </span>
-              <span className="w-1 h-1 rounded-full bg-slate-700" />
+              <span className="w-1 h-1 rounded-full bg-neutral-700" />
               <span className="flex items-center gap-2">
                 <Zap className="w-4 h-4" /> BYOK to every provider
               </span>
-              <span className="w-1 h-1 rounded-full bg-slate-700" />
+              <span className="w-1 h-1 rounded-full bg-neutral-700" />
               <span className="flex items-center gap-2">
                 <Workflow className="w-4 h-4" /> Visual canvas
               </span>
@@ -149,7 +149,7 @@ function AgentVisualization() {
           rotateY,
           transformStyle: "preserve-3d",
         }}
-        className="relative w-full max-w-5xl aspect-[16/8] md:aspect-[16/7] rounded-3xl border border-white/10 bg-slate-900/40 backdrop-blur-xl shadow-2xl"
+        className="relative w-full max-w-5xl aspect-[16/8] md:aspect-[16/7] rounded-3xl border border-white/10 bg-neutral-900/40 backdrop-blur-xl shadow-2xl"
       >
         {/* Inner Glow */}
         <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
@@ -174,7 +174,7 @@ function AgentVisualization() {
           <div className="h-3 w-3 rounded-full bg-green-500/20 border border-green-500/50" />
         </div>
 
-        <div className="absolute bottom-6 right-8 text-xs font-mono text-slate-400 uppercase tracking-widest">
+        <div className="absolute bottom-6 right-8 text-xs font-mono text-neutral-500 uppercase tracking-widest">
           Agent Active • Reasoning...
         </div>
       </motion.div>

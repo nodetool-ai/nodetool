@@ -39,7 +39,7 @@ export default function WorkflowVideo({ video, title }: WorkflowVideoProps) {
         <img src={poster} alt={`${title} demo video`} className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-slate-900 shadow-2xl transition-transform group-hover:scale-110">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-neutral-900 shadow-2xl transition-transform group-hover:scale-110">
             <Play className="h-7 w-7 translate-x-0.5 fill-current" />
           </span>
         </div>

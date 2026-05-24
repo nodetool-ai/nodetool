@@ -18,7 +18,7 @@ export default function ComparisonSection({
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <header className="mb-14 max-w-3xl">
-          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
+          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
             Comparison
           </div>
@@ -37,17 +37,17 @@ export default function ComparisonSection({
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.05 }}
-            className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
+            className="mt-4 text-lg text-neutral-400 leading-relaxed max-w-2xl"
           >
             You&apos;re probably using two or three of these already. Here&apos;s
             what changes when they live on one canvas.
           </motion.p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-neutral-800/60 border border-neutral-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
             competitor="ComfyUI"
-            sentence="ComfyUI is a node editor for diffusion models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away."
+            sentence="ComfyUI is a Stable Diffusion power tool with engineer-first UX. NodeTool is the full creative workspace — image, video, audio, and text on one canvas, with masks, inpaint, outpaint, relight, upscale, and compositing built in."
             reducedMotion={reducedMotion}
             delay={0}
           />
@@ -71,7 +71,7 @@ export default function ComparisonSection({
           whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.15 }}
-          className="relative mt-10 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-8 py-10 md:px-12 md:py-12"
+          className="relative mt-10 rounded-2xl border border-neutral-800/80 bg-neutral-950/40 px-8 py-10 md:px-12 md:py-12"
         >
           {/* Warm corner glow — single, subtle */}
           <div
@@ -85,7 +85,7 @@ export default function ComparisonSection({
 
           <div className="relative grid gap-10 md:grid-cols-[auto,1fr] md:items-start">
             <div className="flex md:block">
-              <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-amber-500/25 bg-slate-950">
+              <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-amber-500/25 bg-neutral-950">
                 <Image
                   src="/logo_small.png"
                   alt=""
@@ -96,22 +96,22 @@ export default function ComparisonSection({
             </div>
 
             <div>
-              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
+              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
                 Where NodeTool fits
               </div>
               <h3 className="text-2xl md:text-3xl font-semibold text-white mb-5 tracking-tight">
                 Every model. Your keys. Your canvas.
               </h3>
-              <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
-                Take Seedance, one of today&apos;s top video models. It&apos;s
-                available on FAL, Replicate, and KIE at different price points.
-                NodeTool lets you pick the cheapest. When the next Veo or Kling
-                ships, you swap one node and you&apos;re on it the same day.
+              <p className="text-neutral-300 leading-relaxed mb-4 text-[1.025rem]">
+                Seedance is the best video model right now. It&apos;s available
+                on FAL, Replicate, and KIE at different price points. NodeTool
+                lets you pick the cheapest. When Veo 4 ships, you swap one node
+                and you&apos;re on it the same day.
               </p>
-              <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                That&apos;s what vendor neutrality actually buys you: the best
-                model at the best price, every week — and no roadmap risk if
-                your favourite tool gets acquired.
+              <p className="text-neutral-400 leading-relaxed text-[1.025rem]">
+                That&apos;s what vendor neutrality actually buys you. No credit
+                markup, no curated roster, no roadmap risk if your favourite
+                tool gets acquired.
               </p>
             </div>
           </div>
@@ -142,15 +142,15 @@ function ComparisonCard({
       whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay }}
-      className="relative bg-slate-950/70 p-8 lg:p-10 flex flex-col"
+      className="relative bg-neutral-950/70 p-8 lg:p-10 flex flex-col"
     >
-      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 mb-6">
-        vs <span className="text-slate-300">{competitor}</span>
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500 mb-6">
+        vs <span className="text-neutral-300">{competitor}</span>
       </div>
 
-      <p className="text-slate-200 leading-relaxed text-[1.025rem]">
+      <p className="text-neutral-200 leading-relaxed text-[1.025rem]">
         {before}
-        <span className="font-semibold text-blue-300">NodeTool</span>
+        <span className="font-semibold text-amber-300">NodeTool</span>
         {after}
       </p>
     </motion.article>

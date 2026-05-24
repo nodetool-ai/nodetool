@@ -40,12 +40,15 @@
 
   html {
     scroll-behavior: smooth;
+    background-color: #0a0a0a;
   }
 
   body {
-    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", 
-      "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", 
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
       "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    background-color: #0a0a0a;
+    color: #e5e5e5;
   }
 
   h2 {
@@ -68,21 +71,21 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-slate-900;
+    @apply bg-neutral-900;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-700 rounded-lg border-2 border-slate-900;
+    @apply bg-neutral-700 rounded-lg border-2 border-neutral-900;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-600;
+    @apply bg-neutral-600;
   }
 
   /* Firefox */
   * {
     scrollbar-width: 16px;
-    scrollbar-color: #334155 #0f172a;
+    scrollbar-color: #404040 #0a0a0a;
   }
 }
 
@@ -142,7 +145,7 @@
 
   .feature-card {
     @apply relative overflow-hidden rounded-xl p-6 backdrop-blur-sm 
-           transition-all duration-500 shadow-lg text-slate-800;
+           transition-all duration-500 shadow-lg text-neutral-800;
     background: linear-gradient(
       135deg,
       rgba(21, 26, 30, 0.15),
@@ -152,11 +155,11 @@
   }
 
   .feature-card dt {
-    @apply text-xl sm:text-2xl font-light leading-snug text-slate-900;
+    @apply text-xl sm:text-2xl font-light leading-snug text-neutral-900;
   }
 
   .feature-card dd {
-    @apply text-[17px] leading-tight text-slate-700;
+    @apply text-[17px] leading-tight text-neutral-700;
   }
 
   .feature-modal {
@@ -176,7 +179,7 @@
 
   .feature-modal-close {
     @apply absolute top-6 right-6 p-2 text-white/80 hover:text-white 
-           bg-slate-900/50 hover:bg-slate-900/70 rounded-full transition-all duration-200
+           bg-neutral-900/50 hover:bg-neutral-900/70 rounded-full transition-all duration-200
            backdrop-blur-sm;
   }
 
@@ -238,7 +241,7 @@
   }
 
   .section-alt .section-subtitle {
-    @apply text-slate-700;
+    @apply text-neutral-700;
   }
 
   .contact-link {
@@ -260,7 +263,7 @@
 
   .tooltip::after {
     @apply absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 
-           text-sm text-white bg-slate-800 rounded shadow-lg
+           text-sm text-white bg-neutral-800 rounded shadow-lg
            opacity-0 transition-opacity duration-200 whitespace-nowrap;
     content: attr(data-tooltip);
   }

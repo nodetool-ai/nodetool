@@ -1,41 +1,50 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import dynamic from "next/dynamic";
-import SiteHeader from "../../components/SiteHeader";
-import SiteFooter from "../../components/SiteFooter";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 const DevelopersHero = dynamic(
   () => import("../../components/developers/DevelopersHero"),
-  { ssr: true }
+  { ssr: false }
 );
 const DeveloperFeaturesSection = dynamic(
   () => import("../../components/developers/DeveloperFeaturesSection"),
-  { ssr: true }
+  { ssr: false }
 );
 const DeveloperCoreSection = dynamic(
   () => import("../../components/developers/DeveloperCoreSection"),
-  { ssr: true }
+  { ssr: false }
 );
 const DeveloperCLISection = dynamic(
   () => import("../../components/developers/DeveloperCLISection"),
-  { ssr: true }
+  { ssr: false }
 );
 const DeveloperIntegrationsSection = dynamic(
   () => import("../../components/developers/DeveloperIntegrationsSection"),
-  { ssr: true }
+  { ssr: false }
 );
 const CommunitySection = dynamic(
   () => import("../../components/CommunitySection"),
-  { ssr: true }
+  { ssr: false }
 );
 const ContactSection = dynamic(
   () => import("../../components/ContactSection"),
-  { ssr: true }
+  { ssr: false }
 );
 
 
+const navigation = [
+  { name: "Home", href: "/" },
+  { name: "Features", href: "#features" },
+  { name: "Core", href: "#core" },
+  { name: "Integrations", href: "#integrations" },
+  { name: "Docs", href: "https://docs.nodetool.ai" },
+] as const;
+
 const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
+const focusRing = "focus-ring";
 
 // Prefer reduced motion hook
 function usePrefersReducedMotion() {
@@ -51,9 +60,21 @@ function usePrefersReducedMotion() {
 }
 
 export default function DevelopersPage() {
+  const [hash, setHash] = useState<string>("");
   const [stars, setStars] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
+
+  // Avoid background scroll while the mobile menu is open.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [mobileMenuOpen]);
 
   // Global section fly-in using IntersectionObserver + CSS transitions
   useEffect(() => {
@@ -81,6 +102,14 @@ export default function DevelopersPage() {
     sections.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
   }, [reducedMotion]);
+
+  // Track hash for navigation
+  useEffect(() => {
+    const update = () => setHash(window.location.hash);
+    update();
+    window.addEventListener("hashchange", update, { passive: true } as EventListenerOptions);
+    return () => window.removeEventListener("hashchange", update as EventListener);
+  }, []);
 
   // Fetch GitHub stars
   useEffect(() => {
@@ -184,7 +213,153 @@ export default function DevelopersPage() {
         </svg>
       </div>
 
-      <SiteHeader />
+      {/* Nav */}
+      <header>
+        <nav
+          className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-800/60 bg-glass supports-[backdrop-filter]:bg-glass shadow-[0_1px_0_0_rgba(139,92,246,0.08)]"
+          aria-label="Primary"
+        >
+          <div className={`${sectionContainer} py-2 sm:py-4 lg:py-2`}>
+            <div className="relative flex items-center justify-center gap-6 w-full min-h-[44px] sm:min-h-[64px]">
+              {/* Logo */}
+              <div className="absolute left-0 flex items-center h-12 sm:h-10">
+                <a href="/" className={`group flex items-center gap-2 rounded`}>
+                  <Image
+                    src="/logo_small.png"
+                    alt="NodeTool"
+                    width={48}
+                    height={48}
+                    priority
+                    sizes="180px"
+                    className="brightness-0 invert transition-all duration-300 group-hover:brightness-100 group-hover:invert-0"
+                  />
+                  <span className="text-xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-300">
+                    nodetool
+                  </span>
+                </a>
+              </div>
+              {/* Navigation */}
+              <ul className="hidden md:flex items-center gap-2 lg:gap-4 mx-auto rounded-full bg-neutral-900/40 ring-1 ring-white/5 px-2 py-1 border border-neutral-800/50">
+                {navigation.map((item) => {
+                  const active = hash === item.href;
+                  return (
+                    <li key={item.name} className="list-none">
+                      <a
+                        href={item.href}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-full lift ${
+                          active
+                            ? "bg-violet-600/25 text-violet-200 border border-violet-500/40"
+                            : "text-neutral-300 hover:text-violet-200 hover:bg-neutral-800/60"
+                        }`}
+                        aria-current={active ? "page" : undefined}
+                      >
+                        {item.name}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+              {/* GitHub */}
+              <div className="absolute right-0 flex items-center gap-2 h-full">
+                {/* Mobile menu button */}
+                <button
+                  type="button"
+                  className="md:hidden rounded-md p-2 text-neutral-300 hover:bg-neutral-800/60 transition-colors"
+                  onClick={() => setMobileMenuOpen(true)}
+                  aria-label="Open menu"
+                >
+                  <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+                </button>
+                <a
+                  href="https://github.com/nodetool-ai/nodetool"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`rounded-lg p-1 transition-colors hover:bg-violet-900/20 ${focusRing}`}
+                  aria-label="NodeTool on GitHub"
+                >
+                  <Image
+                    src="/github-mark-white.svg"
+                    alt=""
+                    width={24}
+                    height={24}
+                    role="presentation"
+                  />
+                </a>
+              </div>
+            </div>
+            {/* Mobile-only persona links */}
+            <div className="md:hidden flex items-center justify-center gap-2 pt-1.5 pb-0.5">
+              <a
+                href="/"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-neutral-300 bg-neutral-900/40 ring-1 ring-white/5 border border-neutral-800/50 hover:text-blue-200 hover:bg-neutral-800/60"
+              >
+                Home
+              </a>
+              <a
+                href="/agents"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-neutral-300 bg-neutral-900/40 ring-1 ring-white/5 border border-neutral-800/50 hover:text-blue-200 hover:bg-neutral-800/60"
+              >
+                Agents
+              </a>
+              <a
+                href="/creatives"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-neutral-300 bg-neutral-900/40 ring-1 ring-white/5 border border-neutral-800/50 hover:text-blue-200 hover:bg-neutral-800/60"
+              >
+                Creatives
+              </a>
+            </div>
+          </div>
+        </nav>
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              className="absolute inset-0 bg-neutral-950/90"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close menu"
+            />
+            <div className="absolute inset-y-0 right-0 w-full overflow-y-auto bg-gradient-to-b from-neutral-900 to-neutral-950 px-6 py-6 sm:max-w-sm border-l border-neutral-800/60">
+              <div className="flex items-center justify-between">
+                <a href="/" className="flex items-center gap-2">
+                  <Image
+                    src="/logo_small.png"
+                    alt="NodeTool"
+                    width={40}
+                    height={40}
+                    className="brightness-0 invert"
+                  />
+                  <span className="text-lg font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-300">
+                    nodetool
+                  </span>
+                </a>
+                <button
+                  type="button"
+                  className="rounded-md p-2 text-neutral-300 hover:bg-neutral-800/60 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                </button>
+              </div>
+              <div className="mt-6 flow-root">
+                <div className="space-y-2 py-6">
+                  {navigation.map((item) => (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      className="block px-3 py-3 text-base font-medium text-neutral-200 hover:bg-neutral-800/60 hover:text-white rounded-lg transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
 
       <div
         id="content"
@@ -219,7 +394,41 @@ export default function DevelopersPage() {
         <ContactSection />
       </div>
 
-      <SiteFooter />
+      {/* Footer */}
+      <footer className="relative border-t border-neutral-800/50 bg-neutral-950 py-10">
+        <div className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-violet-800/40 to-transparent" />
+        <div className={`${sectionContainer}`}>
+          <p className="text-center text-sm text-neutral-500">
+            <span className="text-violet-400">
+              Built with ❤️ by the NodeTool team
+            </span>
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-neutral-500">
+            <a
+              href="https://github.com/nodetool-ai/nodetool"
+              className="hover:text-neutral-300 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://discord.gg/WmQTWZRcYE"
+              className="hover:text-neutral-300 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discord
+            </a>
+            <a href="/privacy" className="hover:text-neutral-300 transition-colors">
+              Privacy
+            </a>
+            <a href="/terms" className="hover:text-neutral-300 transition-colors">
+              Terms
+            </a>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

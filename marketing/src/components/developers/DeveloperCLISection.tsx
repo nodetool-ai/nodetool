@@ -143,7 +143,7 @@ Build, Run, Extend from Code
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
+            className="mt-4 text-lg text-neutral-400 max-w-2xl mx-auto"
           >
             Declare graphs, write custom nodes, and run workflows from code.
             The CLI ships them, the runner streams them. Until the @nodetool-ai
@@ -165,11 +165,11 @@ Build, Run, Extend from Code
             </div>
             <div>
               <h3 className="text-xl font-semibold text-white">Complete DSL Workflow</h3>
-              <p className="text-sm text-slate-400">A complete chat workflow defined in code</p>
+              <p className="text-sm text-neutral-400">A complete chat workflow defined in code</p>
             </div>
           </div>
           <CodeBlock code={dslExampleCode} language="typescript" className="p-5 max-h-[500px] overflow-y-auto" />
-          <div className="mt-4 flex items-center gap-2 text-sm text-slate-400">
+          <div className="mt-4 flex items-center gap-2 text-sm text-neutral-400">
             <Terminal className="h-4 w-4 text-violet-400" />
             <span>Run with: <code className="text-violet-300">nodetool run simple_chat_workflow.ts</code></span>
           </div>
@@ -181,7 +181,7 @@ Build, Run, Extend from Code
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-16 rounded-2xl bg-slate-800/40 p-8 ring-1 ring-slate-700/50"
+          className="mb-16 rounded-2xl bg-neutral-800/40 p-8 ring-1 ring-neutral-700/50"
         >
           <div className="flex items-center gap-3 mb-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10 ring-1 ring-violet-500/20">
@@ -197,10 +197,10 @@ Build, Run, Extend from Code
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: idx * 0.1 }}
-                className="rounded-xl bg-slate-900/60 p-5"
+                className="rounded-xl bg-neutral-900/60 p-5"
               >
                 <h4 className="font-semibold text-white mb-1">{cmd.title}</h4>
-                <p className="text-sm text-slate-400 mb-3">{cmd.description}</p>
+                <p className="text-sm text-neutral-400 mb-3">{cmd.description}</p>
                 <CodeBlock code={cmd.command} language="bash" className="p-3" />
               </motion.div>
             ))}
@@ -216,15 +216,15 @@ Build, Run, Extend from Code
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.15 }}
-              className="rounded-2xl bg-slate-800/40 p-6 ring-1 ring-slate-700/50"
+              className="rounded-2xl bg-neutral-800/40 p-6 ring-1 ring-neutral-700/50"
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-700/50 ring-1 ring-slate-600/50">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-700/50 ring-1 ring-neutral-600/50">
                   <example.icon className={`h-5 w-5 ${example.color}`} />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">{example.title}</h3>
-                  <p className="text-sm text-slate-400">{example.description}</p>
+                  <p className="text-sm text-neutral-400">{example.description}</p>
                 </div>
               </div>
               <CodeBlock code={example.code} language="typescript" className="max-h-[400px] overflow-y-auto" />
@@ -244,7 +244,7 @@ Build, Run, Extend from Code
           <h3 className="text-2xl font-bold text-white mb-3">
             Ready to Get Started?
           </h3>
-          <p className="text-slate-400 max-w-xl mx-auto mb-6">
+          <p className="text-neutral-400 max-w-xl mx-auto mb-6">
             Check out our comprehensive documentation with examples, tutorials, and API
             references to help you build your first AI workflow.
           </p>
@@ -262,7 +262,7 @@ Build, Run, Extend from Code
               href="https://github.com/nodetool-ai/nodetool/tree/main/examples/workflows"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-6 py-3 text-sm font-semibold text-white ring-1 ring-slate-700 transition-all hover:bg-slate-700"
+              className="inline-flex items-center gap-2 rounded-lg bg-neutral-800 px-6 py-3 text-sm font-semibold text-white ring-1 ring-neutral-700 transition-all hover:bg-neutral-700"
             >
               Workflow Examples
             </a>

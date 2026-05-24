@@ -26,7 +26,7 @@ export default function WorkflowsIndexPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#05050A] text-slate-200">
+    <main className="min-h-screen bg-[#0a0a0a] text-neutral-200">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
@@ -39,10 +39,10 @@ export default function WorkflowsIndexPage() {
       </div>
 
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-8">
-        <Link href="/" className="text-sm font-semibold text-slate-300 hover:text-white">
+        <Link href="/" className="text-sm font-semibold text-neutral-300 hover:text-white">
           ← NodeTool
         </Link>
-        <div className="hidden gap-6 text-sm text-slate-400 sm:flex">
+        <div className="hidden gap-6 text-sm text-neutral-400 sm:flex">
           <Link href="/studio" className="hover:text-white">Studio</Link>
           <Link href="/cloud" className="hover:text-white">Cloud</Link>
           <Link href="/agents" className="hover:text-white">Agents</Link>
@@ -61,7 +61,7 @@ export default function WorkflowsIndexPage() {
               Ship in minutes.
             </span>
           </h1>
-          <p className="mt-6 text-lg leading-relaxed text-slate-400">
+          <p className="mt-6 text-lg leading-relaxed text-neutral-400">
             Production-ready NodeTool graphs you can open on the canvas, plug your keys into,
             and ship. Every workflow comes with a fancy preview, a demo video, and one-click
             import into Studio or Cloud.
@@ -73,11 +73,11 @@ export default function WorkflowsIndexPage() {
         <WorkflowFilters workflows={WORKFLOWS} />
       </section>
 
-      <section className="relative z-10 border-t border-slate-800/60 bg-slate-950/40">
+      <section className="relative z-10 border-t border-neutral-800/60 bg-neutral-950/40">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 py-16 text-center lg:flex-row lg:px-8 lg:text-left">
           <div>
             <h2 className="text-2xl font-semibold text-white">Built a workflow worth sharing?</h2>
-            <p className="mt-2 max-w-2xl text-slate-400">
+            <p className="mt-2 max-w-2xl text-neutral-400">
               Submit it to the marketplace. Open-source workflows are credited on the page and
               promoted across our social channels.
             </p>
@@ -86,7 +86,7 @@ export default function WorkflowsIndexPage() {
             href="https://github.com/nodetool-ai/nodetool/discussions"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-xl bg-white px-6 py-3 font-semibold text-slate-900 transition-colors hover:bg-slate-100"
+            className="rounded-xl bg-white px-6 py-3 font-semibold text-neutral-900 transition-colors hover:bg-neutral-100"
           >
             Submit a workflow
           </a>

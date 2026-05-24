@@ -290,6 +290,69 @@ export const WORKFLOWS: WorkflowMarketplaceEntry[] = [
       ],
     },
   },
+  {
+    slug: "storyboard-to-seedance",
+    title: "Storyboard → Seedance Video",
+    tagline:
+      "Turn an 8-panel choreography board into a cinematic Seedance video — same characters, your location, one run.",
+    description:
+      "Sketch the action as a numbered 8-panel storyboard, drop a location reference, and the canvas hands both to Seedance 2.0 as visual references. ChatGPT Images 2.0 generates the choreography diagram and a matching shot-direction sheet; Seedance composes the final video keyed to your scene description.",
+    category: "video",
+    tags: ["storyboard", "seedance", "reference", "choreography", "cinematic"],
+    models: ["ChatGPT Images 2.0", "Seedance 2.0"],
+    providers: ["OpenAI", "FAL"],
+    runtime: "~3-4 min",
+    difficulty: "Intermediate",
+    video: { kind: "youtube", id: "dQw4w9WgXcQ" },
+    ogImage: "/preview.png",
+    steps: [
+      {
+        title: "Choreography diagram",
+        detail:
+          "Prompt ChatGPT Images 2.0 for an 8-panel board — numbered badges, bold titles, dashed motion arrows, consistent characters.",
+      },
+      {
+        title: "Shot direction",
+        detail:
+          "Feed the board plus a location reference into ChatGPT Images Edit to produce a matching shot-direction sheet — camera moves, angles, framing.",
+      },
+      {
+        title: "Scene construction",
+        detail:
+          "Write the location prompt: platform, lighting, mood, atmosphere. The two boards become Seedance's visual references.",
+      },
+      {
+        title: "Render with Seedance",
+        detail:
+          "Seedance 2.0 Reference renders a continuous video that follows the choreography in your chosen location.",
+      },
+    ],
+    useCases: [
+      "Action directors previz-ing fight choreography on location",
+      "Music video teams locking blocking before a shoot day",
+      "Game studios storyboarding cinematics with consistent characters",
+    ],
+    preview: {
+      nodes: [
+        { id: "choreoPrompt", x: 0, y: 0, title: "Choreography Prompt", subtitle: "8 panels, 4×2", icon: "MessageSquare", hue: "sky" },
+        { id: "choreoImg", x: 1, y: 0, title: "ChatGPT Images 2.0", subtitle: "Storyboard board", icon: "LayoutGrid", hue: "blue", badge: "OpenAI" },
+        { id: "shotPrompt", x: 0, y: 2, title: "Shot Direction Prompt", subtitle: "Camera + framing", icon: "MessageSquare", hue: "amber" },
+        { id: "location", x: 0, y: 3, title: "Location Reference", subtitle: "Drone image", icon: "Image", hue: "orange" },
+        { id: "shotImg", x: 1, y: 2, title: "ChatGPT Images Edit", subtitle: "Shot sheet", icon: "Camera", hue: "amber", badge: "OpenAI" },
+        { id: "scenePrompt", x: 2, y: 1, title: "Scene Prompt", subtitle: "Location + mood", icon: "FileText", hue: "emerald" },
+        { id: "seedance", x: 3, y: 1, title: "Seedance 2.0 Reference", subtitle: "Video render", icon: "Film", hue: "rose", badge: "FAL" },
+      ],
+      edges: [
+        { source: "choreoPrompt", target: "choreoImg", animated: true },
+        { source: "shotPrompt", target: "shotImg", animated: true },
+        { source: "location", target: "shotImg", animated: true },
+        { source: "choreoImg", target: "shotImg", animated: true, label: "reference" },
+        { source: "choreoImg", target: "seedance", animated: true, label: "ref A" },
+        { source: "shotImg", target: "seedance", animated: true, label: "ref B" },
+        { source: "scenePrompt", target: "seedance", animated: true },
+      ],
+    },
+  },
 ];
 
 export function getWorkflowBySlug(slug: string): WorkflowMarketplaceEntry | undefined {

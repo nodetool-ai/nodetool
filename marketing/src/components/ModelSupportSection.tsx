@@ -107,7 +107,7 @@ export default function ModelSupportSection({
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5, delay: 0.1 }}
-                        className="text-lg text-slate-400 leading-relaxed"
+                        className="text-lg text-neutral-400 leading-relaxed"
                     >
                         Frontier models from every major provider, called with
                         the keys you already pay for. Swap models the day they
@@ -119,12 +119,12 @@ export default function ModelSupportSection({
                 <div className="mb-10">
                     <div className="flex items-center justify-center gap-3 mb-4">
                         <Sparkles className="w-5 h-5 text-violet-400" />
-                        <span className="text-sm font-medium text-slate-400">Frontier Models</span>
+                        <span className="text-sm font-medium text-neutral-400">Frontier Models</span>
                     </div>
 
                     <div className="relative overflow-hidden">
-                        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-slate-950 to-transparent z-10 pointer-events-none" />
-                        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-slate-950 to-transparent z-10 pointer-events-none" />
+                        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-neutral-950 to-transparent z-10 pointer-events-none" />
+                        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-neutral-950 to-transparent z-10 pointer-events-none" />
 
                         <div className="flex animate-marquee-models hover:[animation-play-state:paused]">
                             {[...frontierModels, ...frontierModels].map((model, idx) => (
@@ -143,12 +143,12 @@ export default function ModelSupportSection({
                 <div className="mb-8">
                     <div className="flex items-center gap-3 mb-4">
                         <Cloud className="w-5 h-5 text-blue-400" />
-                        <span className="text-sm font-medium text-slate-400">Cloud Providers</span>
+                        <span className="text-sm font-medium text-neutral-400">Cloud Providers</span>
                     </div>
 
                     <div className="relative overflow-hidden">
-                        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-slate-950 to-transparent z-10 pointer-events-none" />
-                        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-slate-950 to-transparent z-10 pointer-events-none" />
+                        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-neutral-950 to-transparent z-10 pointer-events-none" />
+                        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-neutral-950 to-transparent z-10 pointer-events-none" />
 
                         <div className="flex animate-marquee hover:[animation-play-state:paused]">
                             {[...cloudProviders, ...cloudProviders].map((provider, idx) => (
@@ -175,12 +175,12 @@ export default function ModelSupportSection({
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <Cpu className="w-5 h-5 text-emerald-400" />
-                        <span className="text-sm font-medium text-slate-400">Local Inference</span>
+                        <span className="text-sm font-medium text-neutral-400">Local Inference</span>
                     </div>
 
                     <div className="relative overflow-hidden">
-                        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-slate-950 to-transparent z-10 pointer-events-none" />
-                        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-slate-950 to-transparent z-10 pointer-events-none" />
+                        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-neutral-950 to-transparent z-10 pointer-events-none" />
+                        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-neutral-950 to-transparent z-10 pointer-events-none" />
 
                         <div className="flex animate-marquee-reverse hover:[animation-play-state:paused]">
                             {[...localEngines, ...localEngines, ...localEngines, ...localEngines].map((engine, idx) => (

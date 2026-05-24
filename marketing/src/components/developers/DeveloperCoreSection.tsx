@@ -18,7 +18,7 @@ const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 
 const installationCodeSource = `git clone https://github.com/nodetool-ai/nodetool
 cd nodetool
-nvm use         # Node 22.22.1 (.nvmrc)
+nvm use         # Node 24.x
 npm install
 npm run build:packages`;
 
@@ -140,7 +140,7 @@ export default function DeveloperCoreSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
+            className="mt-4 text-lg text-neutral-400 max-w-2xl mx-auto"
           >
             Workflows run on an async Node.js runtime. Embed NodeTool as a library, drive it from
             the CLI, or run the same code that powers Studio and Cloud on your own boxes.
@@ -153,8 +153,8 @@ export default function DeveloperCoreSection({
             className="mt-4 flex flex-wrap justify-center gap-2"
           >
             <Image
-              src="https://img.shields.io/badge/Node.js-22.x-339933.svg"
-              alt="Node.js 22.x"
+              src="https://img.shields.io/badge/Node.js-24.x-339933.svg"
+              alt="Node.js 24.x"
               width={105}
               height={20}
               className="h-5 w-auto"
@@ -188,14 +188,14 @@ export default function DeveloperCoreSection({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: idx * 0.05 }}
-              className="flex items-start gap-4 rounded-xl bg-slate-800/40 p-5 ring-1 ring-slate-700/50"
+              className="flex items-start gap-4 rounded-xl bg-neutral-800/40 p-5 ring-1 ring-neutral-700/50"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-700/50 ring-1 ring-slate-600/50">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-700/50 ring-1 ring-neutral-600/50">
                 <feature.icon className={`h-5 w-5 ${feature.color}`} />
               </div>
               <div>
                 <h4 className="font-semibold text-white">{feature.title}</h4>
-                <p className="mt-1 text-sm text-slate-400">{feature.description}</p>
+                <p className="mt-1 text-sm text-neutral-400">{feature.description}</p>
               </div>
             </motion.div>
           ))}
@@ -209,7 +209,7 @@ export default function DeveloperCoreSection({
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="rounded-2xl bg-slate-800/40 p-6 ring-1 ring-slate-700/50"
+            className="rounded-2xl bg-neutral-800/40 p-6 ring-1 ring-neutral-700/50"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10 ring-1 ring-violet-500/20">
@@ -219,16 +219,16 @@ export default function DeveloperCoreSection({
             </div>
             <div className="space-y-3">
               <div>
-                <p className="text-sm text-slate-400 mb-2">npm package:</p>
-                <div className="rounded-lg bg-slate-950/90 p-4 text-xs text-slate-300 font-mono border border-slate-700/50 flex items-center justify-between gap-3">
-                  <code className="language-bash text-slate-400 line-through">npm install @nodetool-ai/kernel</code>
+                <p className="text-sm text-neutral-400 mb-2">npm package:</p>
+                <div className="rounded-lg bg-neutral-950/90 p-4 text-xs text-neutral-300 font-mono border border-neutral-700/50 flex items-center justify-between gap-3">
+                  <code className="language-bash text-neutral-500 line-through">npm install @nodetool-ai/kernel</code>
                   <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-500/30 whitespace-nowrap">
                     coming soon
                   </span>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-slate-400 mb-2">From source (today):</p>
+                <p className="text-sm text-neutral-400 mb-2">From source (today):</p>
                 <CodeBlock code={installationCodeSource} language="bash" />
               </div>
             </div>
@@ -240,23 +240,15 @@ export default function DeveloperCoreSection({
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="rounded-2xl bg-slate-800/40 p-6 ring-1 ring-slate-700/50"
+            className="rounded-2xl bg-neutral-800/40 p-6 ring-1 ring-neutral-700/50"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/20">
                 <Code2 className="h-5 w-5 text-emerald-400" />
               </div>
               <h3 className="text-xl font-semibold text-white">DSL Example</h3>
-              <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-500/30 whitespace-nowrap">
-                API preview
-              </span>
             </div>
             <CodeBlock code={basicUsageCode} language="typescript" />
-            <p className="mt-3 text-xs text-slate-400">
-              The @nodetool-ai packages aren&apos;t on npm yet — these imports
-              work from a source checkout today and will work via npm install
-              once published.
-            </p>
           </motion.div>
         </div>
 
@@ -274,7 +266,7 @@ export default function DeveloperCoreSection({
             </div>
             <div>
               <h3 className="text-xl font-semibold text-white">Why the DSL?</h3>
-              <p className="text-sm text-slate-400">The NodeTool DSL is fundamentally different from imperative code</p>
+              <p className="text-sm text-neutral-400">The NodeTool DSL is fundamentally different from imperative code</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -285,10 +277,10 @@ export default function DeveloperCoreSection({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.3, delay: idx * 0.1 }}
-                className="rounded-xl bg-slate-800/40 p-5 ring-1 ring-slate-700/50"
+                className="rounded-xl bg-neutral-800/40 p-5 ring-1 ring-neutral-700/50"
               >
                 <h4 className="font-semibold text-white mb-2">{point.title}</h4>
-                <p className="text-sm text-slate-400">{point.description}</p>
+                <p className="text-sm text-neutral-400">{point.description}</p>
               </motion.div>
             ))}
           </div>
@@ -306,7 +298,7 @@ export default function DeveloperCoreSection({
             href="https://github.com/nodetool-ai/nodetool-core"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-6 py-3 text-sm font-semibold text-white ring-1 ring-slate-700 transition-all hover:bg-slate-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-neutral-800 px-6 py-3 text-sm font-semibold text-white ring-1 ring-neutral-700 transition-all hover:bg-neutral-700"
           >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
               <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />

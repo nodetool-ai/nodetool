@@ -27,12 +27,12 @@ export default function DeploySection({
           >
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
               Self host <br />
-              <span className="text-white">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
                 on VPS
               </span>
             </h2>
 
-            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+            <p className="text-lg text-neutral-400 mb-8 leading-relaxed">
               Same workflow runs locally or on a remote GPU with no rewrites.
               NodeTool builds the container image and ships it to your provider
               of choice—RunPod, Google Cloud Run, Fly.io, Railway, or your own
@@ -48,9 +48,9 @@ export default function DeploySection({
                   <h3 className="text-white font-semibold">
                     One Command Deploy
                   </h3>
-                  <p className="text-slate-400 text-sm mt-1 leading-relaxed">
+                  <p className="text-neutral-400 text-sm mt-1 leading-relaxed">
                     Simply run{" "}
-                    <code className="bg-slate-800 px-1.5 py-0.5 rounded text-purple-300 text-xs font-mono border border-white/5">
+                    <code className="bg-neutral-800 px-1.5 py-0.5 rounded text-purple-300 text-xs font-mono border border-white/5">
                       nodetool deploy
                     </code>{" "}
                     to push your workflow to the cloud.
@@ -64,7 +64,7 @@ export default function DeploySection({
                 </div>
                 <div>
                   <h3 className="text-white font-semibold">Serverless-Ready</h3>
-                  <p className="text-slate-400 text-sm mt-1 leading-relaxed">
+                  <p className="text-neutral-400 text-sm mt-1 leading-relaxed">
                     Deploy to Google Cloud Run for native scale-to-zero, or to
                     RunPod serverless endpoints—pay only when your workflow
                     runs.
@@ -74,7 +74,7 @@ export default function DeploySection({
             </div>
 
             <div className="mt-10 pt-8 border-t border-white/5">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-4">
                 Supported Providers
               </p>
               <div className="flex gap-8 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
@@ -86,7 +86,7 @@ export default function DeploySection({
                   className="flex items-center gap-2 group"
                 >
                   <Server className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-slate-300 font-medium group-hover:text-white transition-colors">
+                  <span className="text-neutral-300 font-medium group-hover:text-white transition-colors">
                     RunPod
                   </span>
                 </a>
@@ -98,7 +98,7 @@ export default function DeploySection({
                   className="flex items-center gap-2 group"
                 >
                   <Cloud className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-slate-300 font-medium group-hover:text-white transition-colors">
+                  <span className="text-neutral-300 font-medium group-hover:text-white transition-colors">
                     Google Cloud
                   </span>
                 </a>
@@ -115,13 +115,13 @@ export default function DeploySection({
             className="relative hidden lg:block"
           >
             <Tilt3D>
-              <div className="relative rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur-xl p-6 shadow-2xl">
+              <div className="relative rounded-2xl border border-white/10 bg-neutral-900/50 backdrop-blur-xl p-6 shadow-2xl">
                 {/* Mock Terminal Window */}
                 <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-4">
                   <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
                   <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
                   <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-                  <div className="ml-auto text-xs text-slate-400 font-mono">
+                  <div className="ml-auto text-xs text-neutral-500 font-mono">
                     deploy.sh
                   </div>
                 </div>
@@ -130,23 +130,23 @@ export default function DeploySection({
                   <div className="flex gap-2">
                     <span className="text-green-400">➜</span>
                     <span className="text-blue-400">~</span>
-                    <span className="text-slate-300">
+                    <span className="text-neutral-300">
                       nodetool deploy --provider runpod
                     </span>
                   </div>
-                  <div className="text-slate-400 pt-2">
+                  <div className="text-neutral-500 pt-2">
                     [+] Building workflow graph...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
-                  <div className="text-slate-400">
+                  <div className="text-neutral-500">
                     [+] Provisioning GPU instance (RTX 4090)...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
-                  <div className="text-slate-400">
+                  <div className="text-neutral-500">
                     [+] Syncing models (2.4GB)...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
-                  <div className="text-slate-400 pb-2">
+                  <div className="text-neutral-500 pb-2">
                     [+] Configuring endpoint...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
@@ -161,7 +161,7 @@ export default function DeploySection({
 
               {/* Floating Badge */}
               <motion.div
-                className="absolute -right-6 -bottom-6 bg-slate-900/90 backdrop-blur-md border border-purple-500/30 p-4 rounded-xl shadow-xl shadow-purple-900/20"
+                className="absolute -right-6 -bottom-6 bg-neutral-900/90 backdrop-blur-md border border-purple-500/30 p-4 rounded-xl shadow-xl shadow-purple-900/20"
                 animate={{ y: [0, -10, 0] }}
                 transition={{
                   duration: 4,
@@ -175,7 +175,7 @@ export default function DeploySection({
                     <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full animate-ping opacity-75" />
                   </div>
                   <div>
-                    <div className="text-xs text-slate-400">Status</div>
+                    <div className="text-xs text-neutral-400">Status</div>
                     <div className="text-sm font-semibold text-white">
                       Healthy (24ms)
                     </div>

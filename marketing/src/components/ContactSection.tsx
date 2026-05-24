@@ -3,7 +3,6 @@ import React from "react";
 import { motion } from "framer-motion";
 import Tilt3D from "./Tilt3D";
 import { Mail, MapPin, ArrowRight } from "lucide-react";
-import { track } from "../lib/analytics";
 
 export default function ContactSection() {
   return (
@@ -23,7 +22,7 @@ export default function ContactSection() {
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Get in <br />
-            <span className="text-white">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
               touch
             </span>
           </motion.h2>
@@ -33,7 +32,7 @@ export default function ContactSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-300"
+            className="text-lg text-neutral-400"
           >
             Questions, bug reports, feature requests. We&apos;re here to help.
           </motion.p>
@@ -48,8 +47,7 @@ export default function ContactSection() {
               content: (
                 <a
                   href="mailto:hello@nodetool.ai"
-                  onClick={() => track("Contact")}
-                  className="text-xl font-medium text-white hover:text-blue-400 transition-colors flex items-center justify-center focus-ring rounded"
+                  className="text-xl font-medium text-white hover:text-blue-400 transition-colors flex items-center justify-center"
                 >
                   hello@nodetool.ai
                   <ArrowRight className="w-5 h-5 ml-2 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
@@ -62,13 +60,13 @@ export default function ContactSection() {
               description: "Direct contact to the developers.",
               content: (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-center gap-2 text-slate-300">
+                  <div className="flex items-center justify-center gap-2 text-neutral-300">
                     <span>Matthias:</span>
                     <a href="mailto:matti@nodetool.ai" className="text-blue-400 hover:text-blue-300 transition-colors">
                       matti@nodetool.ai
                     </a>
                   </div>
-                  <div className="flex items-center justify-center gap-2 text-slate-300">
+                  <div className="flex items-center justify-center gap-2 text-neutral-300">
                     <span>David:</span>
                     <a href="mailto:david@nodetool.ai" className="text-blue-400 hover:text-blue-300 transition-colors">
                       david@nodetool.ai
@@ -86,7 +84,7 @@ export default function ContactSection() {
               transition={{ delay: i * 0.1 }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col items-center justify-center text-center rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-10 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col items-center justify-center text-center rounded-2xl border border-white/5 bg-neutral-900/40 backdrop-blur-sm p-10 transition-all duration-300 hover:bg-neutral-900/60 hover:border-white/10 hover:shadow-2xl">
                   <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                     <card.icon className="w-8 h-8 text-blue-400" />
                   </div>
@@ -94,7 +92,7 @@ export default function ContactSection() {
                   <h3 className="text-xl font-semibold text-white mb-2">
                     {card.title}
                   </h3>
-                  <p className="text-slate-400 mb-6">
+                  <p className="text-neutral-400 mb-6">
                     {card.description}
                   </p>
                   

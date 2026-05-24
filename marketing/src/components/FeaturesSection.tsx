@@ -47,7 +47,7 @@ export default function FeaturesSection({
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             One canvas <br />
-            <span className="text-white">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
               for the whole craft
             </span>
           </motion.h2>
@@ -57,11 +57,11 @@ export default function FeaturesSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400 leading-relaxed"
+            className="text-lg text-neutral-400 leading-relaxed"
           >
             Image, video, audio, and text on a single node-based canvas — with
-            the editing tools you rely on wired in right next to the model
-            calls.
+            the editing tools you rely on: masks, inpaint, outpaint, relight,
+            upscale, layers, compositing.
           </motion.p>
         </div>
 
@@ -74,25 +74,25 @@ export default function FeaturesSection({
           className="relative mx-auto max-w-5xl mb-20"
         >
           <Tilt3D>
-            <div className="relative rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
+            <div className="relative rounded-xl border border-white/10 bg-neutral-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-purple-500/5 pointer-events-none" />
 
               {/* Browser/Window Chrome */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-slate-900/80">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-neutral-900/80">
                 <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
                 <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-                <div className="ml-4 text-xs text-slate-400 font-medium flex items-center gap-2">
+                <div className="ml-4 text-xs text-neutral-500 font-medium flex items-center gap-2">
                   <MousePointer2 className="w-3 h-3" />
                   Workflow Editor
                 </div>
               </div>
 
               <Image
-                src="/screen_workflow.png"
-                alt="Node workflow turning a campaign brief and product photo into a generated product video"
+                src="/screen_canvas.png"
+                alt="Visual canvas showing a workflow"
                 width={1400}
-                height={892}
+                height={900}
                 className="w-full h-auto opacity-90 transition-opacity group-hover:opacity-100"
                 loading="lazy"
               />
@@ -132,7 +132,7 @@ export default function FeaturesSection({
             {
               title: "Your keys, provider prices",
               description:
-                "Bring your own keys for FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and the rest. The bill comes from the provider, not from us.",
+                "BYOK for FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and the rest. No credits, no markup, no curated roster.",
               icon: Database,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",
@@ -141,7 +141,7 @@ export default function FeaturesSection({
             {
               title: "Image, video, audio, text",
               description:
-                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, Suno — every modality on one canvas, under their real names. No white-label mystery models.",
+                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, Suno — every modality on one canvas, named by their real names.",
               icon: Layers,
               color: "text-orange-400",
               bg: "bg-orange-500/10",
@@ -156,7 +156,7 @@ export default function FeaturesSection({
               }}
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
+                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-neutral-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-neutral-900/60 hover:border-white/10 hover:shadow-2xl">
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${feature.bg} ${feature.border} border`}
                   >
@@ -166,7 +166,7 @@ export default function FeaturesSection({
                   <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-blue-200 transition-colors">
                     {feature.title}
                   </h3>
-                  <p className="text-sm text-slate-400 leading-relaxed">
+                  <p className="text-sm text-neutral-400 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>

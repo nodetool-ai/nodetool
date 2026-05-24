@@ -69,7 +69,7 @@ export const DownloadButtons = () => {
   if (!latestVersion) {
     return (
       <div className="mt-10 flex justify-center">
-        <div className="text-slate-400">Loading latest version...</div>
+        <div className="text-neutral-400">Loading latest version...</div>
       </div>
     );
   }
@@ -96,8 +96,8 @@ export const DownloadButtons = () => {
 
       <div className="mt-6">
         <div className="px-6 py-3 ">
-          <p className="text-sm text-slate-400 text-center">
-            <span className="text-slate-300">Note:</span> Requires Nvidia GPU or
+          <p className="text-sm text-neutral-400 text-center">
+            <span className="text-neutral-300">Note:</span> Requires Nvidia GPU or
             Apple Silicon M1+ and at least 20GB of free space for model
             downloads.
           </p>

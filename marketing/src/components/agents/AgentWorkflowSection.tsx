@@ -65,7 +65,7 @@ export default function AgentWorkflowSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-lg text-slate-400 leading-relaxed"
+          className="text-lg text-neutral-400 leading-relaxed"
         >
           NodeTool agents decompose objectives into dependency graphs,
           execute tasks in parallel, use tools iteratively, and deliver schema-validated output.
@@ -97,7 +97,7 @@ export default function AgentWorkflowSection() {
             >
               {/* Arrow connector for mobile */}
               {index < workflowSteps.length - 1 && (
-                <div className="lg:hidden absolute -bottom-4 left-1/2 -translate-x-1/2 text-slate-600">
+                <div className="lg:hidden absolute -bottom-4 left-1/2 -translate-x-1/2 text-neutral-600">
                   <ArrowRight className="w-5 h-5 rotate-90 md:rotate-0" />
                 </div>
               )}
@@ -105,8 +105,8 @@ export default function AgentWorkflowSection() {
               <div
                 className={`
                 group relative h-full flex flex-col items-center text-center rounded-2xl 
-                border border-white/5 bg-slate-900/40 backdrop-blur-sm p-6
-                transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10
+                border border-white/5 bg-neutral-900/40 backdrop-blur-sm p-6
+                transition-all duration-300 hover:bg-neutral-900/60 hover:border-white/10
               `}
               >
                 {/* Icon */}
@@ -133,7 +133,7 @@ export default function AgentWorkflowSection() {
                 </div>
 
                 {/* Step Number */}
-                <div className="absolute top-4 right-4 text-xs font-mono text-slate-600">
+                <div className="absolute top-4 right-4 text-xs font-mono text-neutral-600">
                   0{index + 1}
                 </div>
 
@@ -141,7 +141,7 @@ export default function AgentWorkflowSection() {
                 <h3 className="text-lg font-semibold text-white mb-2">
                   {step.title}
                 </h3>
-                <p className="text-sm text-slate-400">{step.description}</p>
+                <p className="text-sm text-neutral-400">{step.description}</p>
               </div>
             </motion.div>
           ))}
@@ -184,7 +184,7 @@ export default function AgentWorkflowSection() {
               hidden: { opacity: 0, y: 20 },
               show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
             }}
-            className="relative rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-8 overflow-hidden"
+            className="relative rounded-2xl border border-white/5 bg-neutral-900/40 backdrop-blur-sm p-8 overflow-hidden"
           >
             {/* Background gradient */}
             <div
@@ -195,7 +195,7 @@ export default function AgentWorkflowSection() {
               <h3 className="text-xl font-semibold text-white mb-3">
                 {capability.title}
               </h3>
-              <p className="text-slate-400 leading-relaxed">
+              <p className="text-neutral-400 leading-relaxed">
                 {capability.description}
               </p>
             </div>

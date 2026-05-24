@@ -10,7 +10,7 @@ import {
 } from "@heroicons/react/20/solid";
 
 const cardBase =
-  "card relative rounded-2xl bg-slate-900/60 border border-slate-800/60 ring-1 ring-white/5 backdrop-blur-md shadow-soft";
+  "card relative rounded-2xl bg-neutral-900/60 border border-neutral-800/60 ring-1 ring-white/5 backdrop-blur-md shadow-soft";
 const cardHoverUnified = "lift hover:border-blue-500/50 hover:shadow-strong";
 const cardInnerGlow =
   "pointer-events-none absolute inset-0 rounded-2xl opacity-0 motion-safe:transition-opacity motion-safe:duration-300 group-hover:opacity-100";
@@ -53,7 +53,7 @@ export default function AssetManagerSection() {
         <h3 id="asset-title" className="mt-2 text-3xl font-bold text-white">
           Built-in Asset Manager
         </h3>
-        <p className="section-subtitle mt-4 text-slate-300">
+        <p className="section-subtitle mt-4 text-neutral-300">
           Centralized asset management. Drag files in, use them anywhere.
         </p>
       </div>
@@ -101,7 +101,7 @@ export default function AssetManagerSection() {
                   />
                   {title}
                 </h4>
-                <p className="text-slate-200">{body}</p>
+                <p className="text-neutral-200">{body}</p>
               </div>
             ))}
           </div>
@@ -139,7 +139,7 @@ export default function AssetManagerSection() {
                   aria-hidden="true"
                 />
                 <h5 className="mb-2 text-lg font-medium text-white">{title}</h5>
-                <p className="text-sm text-slate-300">{body}</p>
+                <p className="text-sm text-neutral-300">{body}</p>
               </div>
             </div>
           ))}

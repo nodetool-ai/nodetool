@@ -17,26 +17,27 @@ import "@xyflow/react/dist/style.css";
 import * as Icons from "lucide-react";
 import type { NodeHue, PreviewNode, PreviewEdge } from "@/lib/workflows/types";
 
-const HUE_RING: Record<NodeHue, string> = {
-  sky: "from-sky-500/20 to-sky-500/0 ring-sky-400/30",
-  teal: "from-teal-500/20 to-teal-500/0 ring-teal-400/30",
-  emerald: "from-emerald-500/20 to-emerald-500/0 ring-emerald-400/30",
-  amber: "from-amber-500/20 to-amber-500/0 ring-amber-400/30",
-  rose: "from-rose-500/20 to-rose-500/0 ring-rose-400/30",
-  blue: "from-blue-500/20 to-blue-500/0 ring-blue-400/30",
-  violet: "from-violet-500/20 to-violet-500/0 ring-violet-400/30",
-  orange: "from-orange-500/20 to-orange-500/0 ring-orange-400/30",
+// Port colors mirror the real NodeTool editor's data-type palette
+const HUE_PORT: Record<NodeHue, string> = {
+  sky: "#38bdf8",
+  teal: "#2dd4bf",
+  emerald: "#34d399",
+  amber: "#f59e0b",
+  rose: "#f43f5e",
+  blue: "#60a5fa",
+  violet: "#a78bfa",
+  orange: "#fb923c",
 };
 
-const HUE_DOT: Record<NodeHue, string> = {
-  sky: "text-sky-300 bg-sky-500/10",
-  teal: "text-teal-300 bg-teal-500/10",
-  emerald: "text-emerald-300 bg-emerald-500/10",
-  amber: "text-amber-300 bg-amber-500/10",
-  rose: "text-rose-300 bg-rose-500/10",
-  blue: "text-blue-300 bg-blue-500/10",
-  violet: "text-violet-300 bg-violet-500/10",
-  orange: "text-orange-300 bg-orange-500/10",
+const HUE_ICON: Record<NodeHue, string> = {
+  sky: "text-sky-300",
+  teal: "text-teal-300",
+  emerald: "text-emerald-300",
+  amber: "text-amber-300",
+  rose: "text-rose-300",
+  blue: "text-blue-300",
+  violet: "text-violet-300",
+  orange: "text-orange-300",
 };
 
 type MarketplaceNodeData = {
@@ -52,38 +53,73 @@ function MarketplaceNode({ data }: NodeProps<Node<MarketplaceNodeData>>) {
     ((Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[
       data.iconName
     ] as React.ComponentType<{ className?: string }> | undefined) ?? Icons.Box;
+  const portColor = HUE_PORT[data.hue];
   return (
     <div
-      className={`relative rounded-xl bg-slate-900/80 ring-1 backdrop-blur-md shadow-lg shadow-black/40 px-3 py-2.5 min-w-[170px] max-w-[200px] ring-white/10 hover:ring-white/30 transition-all`}
+      className="relative rounded-md bg-[#262626] ring-1 ring-white/[0.06] shadow-lg shadow-black/60 w-[210px] hover:ring-white/15 transition-colors"
     >
-      <div
-        className={`pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-br opacity-60 ${HUE_RING[data.hue]}`}
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!w-2 !h-2 !bg-slate-400 !border-slate-700"
-      />
-      <div className="relative flex items-center gap-2.5">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${HUE_DOT[data.hue]}`}>
-          <Icon className="h-4 w-4" />
+      {/* Header bar */}
+      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-t-md bg-[#2e2e2e] border-b border-black/40">
+        <Icons.Quote className="h-3 w-3 text-neutral-500 shrink-0" aria-hidden />
+        <div className="truncate text-[12px] font-normal text-neutral-300 flex-1">
+          {data.title}
         </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-2.5 py-2 min-h-[58px] flex items-center gap-2">
+        <Icon className={`h-4 w-4 shrink-0 ${HUE_ICON[data.hue]}`} />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-semibold text-white">{data.title}</div>
           {data.subtitle ? (
-            <div className="truncate text-[11px] text-slate-400">{data.subtitle}</div>
+            <div className="truncate text-[11px] text-neutral-500 leading-tight">
+              {data.subtitle}
+            </div>
+          ) : null}
+          {data.badge ? (
+            <div className="mt-1 inline-flex items-center rounded-sm bg-white/[0.04] px-1 py-[1px] text-[9px] font-medium uppercase tracking-wider text-neutral-400 ring-1 ring-white/[0.06]">
+              {data.badge}
+            </div>
           ) : null}
         </div>
       </div>
-      {data.badge ? (
-        <div className="relative mt-2 inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-300 ring-1 ring-white/10">
-          {data.badge}
-        </div>
-      ) : null}
+
+      {/* Resize bracket — bottom-right corner */}
+      <svg
+        className="pointer-events-none absolute bottom-1 right-1 text-neutral-600"
+        width="8"
+        height="8"
+        viewBox="0 0 8 8"
+        aria-hidden
+      >
+        <path d="M8 1 L8 8 L1 8" stroke="currentColor" strokeWidth="1" fill="none" />
+      </svg>
+
+      {/* Ports — colored rectangles flush to edges, colored by node hue */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          width: 6,
+          height: 12,
+          borderRadius: 1,
+          background: portColor,
+          border: "none",
+          left: -3,
+          top: "65%",
+        }}
+      />
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-2 !h-2 !bg-slate-400 !border-slate-700"
+        style={{
+          width: 6,
+          height: 12,
+          borderRadius: 1,
+          background: portColor,
+          border: "none",
+          right: -3,
+          top: "65%",
+        }}
       />
     </div>
   );
@@ -138,18 +174,19 @@ function WorkflowPreviewFlowInner({
         target: e.target,
         animated: e.animated ?? false,
         label: e.label,
-        labelStyle: { fill: "#94a3b8", fontSize: 10, fontFamily: "var(--font-jetbrains-mono)" },
-        labelBgStyle: { fill: "#0f172a", fillOpacity: 0.8 },
+        labelStyle: { fill: "#a3a3a3", fontSize: 10, fontFamily: "var(--font-jetbrains-mono)" },
+        labelBgStyle: { fill: "#171717", fillOpacity: 0.9 },
         labelBgPadding: [4, 2] as [number, number],
-        style: { stroke: "#475569", strokeWidth: 1.5 },
-        markerEnd: { type: MarkerType.ArrowClosed, color: "#64748b" },
+        style: { stroke: "#d4a64a", strokeWidth: 1.5, opacity: 0.85 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: "#d4a64a" },
       })),
     [edges]
   );
 
   return (
-    <div className={`relative h-full w-full overflow-hidden ${className ?? ""}`}>
+    <div className={`relative h-full w-full overflow-hidden bg-[#0a0a0a] ${className ?? ""}`}>
       <ReactFlow
+        style={{ background: "#0a0a0a" }}
         nodes={rfNodes}
         edges={rfEdges}
         nodeTypes={nodeTypes}
@@ -166,7 +203,7 @@ function WorkflowPreviewFlowInner({
         minZoom={0.3}
         maxZoom={1.6}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1e293b" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#262626" />
       </ReactFlow>
     </div>
   );

@@ -6,9 +6,9 @@ const LAST_UPDATED = "2 May 2026";
 
 export default function ImprintPage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-200">
+    <main className="min-h-screen bg-neutral-950 text-neutral-200">
       <div className="mx-auto max-w-3xl px-6 py-16 lg:px-8">
-        <nav className="mb-10 text-sm text-slate-400">
+        <nav className="mb-10 text-sm text-neutral-400">
           <Link href="/" className="hover:text-white transition-colors">
             ← Back to NodeTool
           </Link>
@@ -18,7 +18,7 @@ export default function ImprintPage() {
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
             Imprint
           </h1>
-          <p className="mt-3 text-sm text-slate-400">
+          <p className="mt-3 text-sm text-neutral-400">
             Last updated: {LAST_UPDATED}
           </p>
         </header>
@@ -119,36 +119,36 @@ export default function ImprintPage() {
             at <a href="mailto:dsa@nodetool.ai">dsa@nodetool.ai</a>.
           </p>
 
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-neutral-400">
             See also our <Link href="/privacy">Privacy Policy</Link> and{" "}
             <Link href="/terms">Terms of Use</Link>.
           </p>
         </article>
       </div>
 
-      <footer className="relative border-t border-slate-800/50 bg-slate-950 py-8">
+      <footer className="relative border-t border-neutral-800/50 bg-neutral-950 py-8">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row text-sm text-slate-400">
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row text-sm text-neutral-500">
             <p>© {new Date().getFullYear()} NodeTool B.V.</p>
             <div className="flex gap-5">
-              <Link href="/" className="hover:text-slate-200 transition-colors">
+              <Link href="/" className="hover:text-neutral-200 transition-colors">
                 Home
               </Link>
               <Link
                 href="/imprint"
-                className="hover:text-slate-200 transition-colors"
+                className="hover:text-neutral-200 transition-colors"
               >
                 Imprint
               </Link>
               <Link
                 href="/privacy"
-                className="hover:text-slate-200 transition-colors"
+                className="hover:text-neutral-200 transition-colors"
               >
                 Privacy
               </Link>
               <Link
                 href="/terms"
-                className="hover:text-slate-200 transition-colors"
+                className="hover:text-neutral-200 transition-colors"
               >
                 Terms
               </Link>

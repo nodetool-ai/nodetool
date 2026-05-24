@@ -36,7 +36,7 @@ export default function OwnershipSection({
 }: OwnershipSectionProps) {
   return (
     <section className="relative py-24 overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-slate-500/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-neutral-500/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-16 text-center max-w-2xl mx-auto">
@@ -48,14 +48,14 @@ export default function OwnershipSection({
             className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Your keys. Your files. <br />
-            <span className="text-slate-300">Your roadmap.</span>
+            <span className="text-neutral-300">Your roadmap.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400 leading-relaxed"
+            className="text-lg text-neutral-400 leading-relaxed"
           >
             Every closed AI tool ends the same way: a price hike, a worse
             roster, or an acquisition that quietly rewrites the roadmap.
@@ -84,15 +84,15 @@ export default function OwnershipSection({
               className="h-full"
             >
               <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col p-8 bg-slate-950 transition-colors duration-300 hover:bg-slate-900/60">
-                  <div className="mb-6 inline-flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-slate-300 transition-colors duration-300 group-hover:text-white group-hover:border-white/20">
+                <div className="group relative h-full flex flex-col p-8 bg-neutral-950 transition-colors duration-300 hover:bg-neutral-900/60">
+                  <div className="mb-6 inline-flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-neutral-300 transition-colors duration-300 group-hover:text-white group-hover:border-white/20">
                     <item.icon className="h-5 w-5" strokeWidth={1.5} />
                   </div>
 
                   <h3 className="mb-3 text-base font-semibold tracking-tight text-white">
                     {item.title}
                   </h3>
-                  <p className="text-sm leading-relaxed text-slate-400">
+                  <p className="text-sm leading-relaxed text-neutral-400">
                     {item.body}
                   </p>
 
