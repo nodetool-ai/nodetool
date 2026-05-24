@@ -146,7 +146,7 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.ListConsumer",
         name: "consumer",
-        propertyTypes: { batches: "list[int]" }
+        propertyTypes: { batches: "list[list[int]]" }
       }
     ];
     const edges: Edge[] = [

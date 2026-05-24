@@ -472,17 +472,25 @@ export class NodeActor {
     const maxBuckets = new Map<string, Map<string, MessageEnvelope[]>>();
     const prefixSticky = new Map<string, Map<string, MessageEnvelope>>();
     const emptySticky = new Map<string, MessageEnvelope>();
-    // For empty-scope multi-edge list inputs, accumulate every envelope
-    // instead of overwriting. Drained as an array when the node fires.
+    // Multi-edge list inputs accumulate every envelope instead of
+    // overwriting; drained as an array when the node fires.
     const emptyListEnvelopes = new Map<string, MessageEnvelope[]>();
+    const prefixListBuckets = new Map<
+      string,
+      Map<string, MessageEnvelope[]>
+    >();
 
     const isListInput = (h: string): boolean => this._listInputHandles.has(h);
 
     for (const h of dataHandles) {
       const cls = handleClass.get(h);
       if (cls === "max") maxBuckets.set(h, new Map());
-      else if (cls === "prefix") prefixSticky.set(h, new Map());
-      else if (cls === "empty" && isListInput(h)) emptyListEnvelopes.set(h, []);
+      else if (cls === "prefix") {
+        prefixSticky.set(h, new Map());
+        if (isListInput(h)) prefixListBuckets.set(h, new Map());
+      } else if (cls === "empty" && isListInput(h)) {
+        emptyListEnvelopes.set(h, []);
+      }
     }
 
     const fired = new Set<string>();
@@ -507,14 +515,18 @@ export class NodeActor {
           // handle to close so we capture the full set.
           if (isListInput(h) && this.inbox.isOpen(h)) return false;
         } else if (cls === "prefix") {
-          // Need a sticky value for the projected parent key.
           const parentScope = handleScope.get(h)!;
-          // Build the parent key by trimming the max-scope key against this
-          // handle's scope. Since handle scope is a prefix of invocation
-          // scope, the parent key is the first parentScope.length entries.
           const parentKey = trimKey(key, parentScope.length);
-          const stickyMap = prefixSticky.get(h)!;
-          if (!stickyMap.has(parentKey)) return false;
+          if (isListInput(h)) {
+            // Multi-edge list at prefix scope: wait for close so every
+            // envelope routed to this parentKey is captured.
+            if (this.inbox.isOpen(h)) return false;
+            const bucket = prefixListBuckets.get(h)!.get(parentKey);
+            if (!bucket || bucket.length === 0) return false;
+          } else {
+            const stickyMap = prefixSticky.get(h)!;
+            if (!stickyMap.has(parentKey)) return false;
+          }
         } else {
           // empty-scope sticky / list
           if (isListInput(h)) {
@@ -558,10 +570,18 @@ export class NodeActor {
         } else if (cls === "prefix") {
           const parentScope = handleScope.get(h)!;
           const parentKey = trimKey(key, parentScope.length);
-          const env = prefixSticky.get(h)!.get(parentKey);
-          if (env) {
-            envelopes.set(h, env);
-            values[h] = env.data;
+          if (isListInput(h)) {
+            const bucket = prefixListBuckets.get(h)!.get(parentKey);
+            if (bucket && bucket.length > 0) {
+              envelopes.set(h, bucket[bucket.length - 1]);
+              values[h] = bucket.map((e) => e.data);
+            }
+          } else {
+            const env = prefixSticky.get(h)!.get(parentKey);
+            if (env) {
+              envelopes.set(h, env);
+              values[h] = env.data;
+            }
           }
         } else {
           if (isListInput(h)) {
@@ -635,7 +655,17 @@ export class NodeActor {
       } else if (cls === "prefix") {
         const parentScope = handleScope.get(handle)!;
         const parentKey = this._projectKey(envelope, parentScope) ?? "";
-        prefixSticky.get(handle)!.set(parentKey, envelope);
+        if (isListInput(handle)) {
+          const handleBuckets = prefixListBuckets.get(handle)!;
+          let bucket = handleBuckets.get(parentKey);
+          if (!bucket) {
+            bucket = [];
+            handleBuckets.set(parentKey, bucket);
+          }
+          bucket.push(envelope);
+        } else {
+          prefixSticky.get(handle)!.set(parentKey, envelope);
+        }
         // Try firing any max-scope keys whose parent matches this parentKey.
         const candidates = enumerateCandidateKeysForParent(
           maxBuckets,
@@ -674,15 +704,27 @@ export class NodeActor {
       let readyOrAllowed = true;
       for (const h of dataHandles) {
         if (handleClass.get(h) === "prefix") {
-          // Use the only sticky entry, if any.
-          const sticky = prefixSticky.get(h)!;
-          if (sticky.size === 0) {
-            // No value arrived; defaults will apply in _executeWithInputs.
-            continue;
+          if (isListInput(h)) {
+            // Aggregate every envelope across all parentKeys.
+            const handleBuckets = prefixListBuckets.get(h)!;
+            const drained: MessageEnvelope[] = [];
+            for (const bucket of handleBuckets.values()) {
+              drained.push(...bucket);
+            }
+            if (drained.length === 0) continue;
+            envelopes.set(h, drained[drained.length - 1]);
+            values[h] = drained.map((e) => e.data);
+          } else {
+            // Use the only sticky entry, if any.
+            const sticky = prefixSticky.get(h)!;
+            if (sticky.size === 0) {
+              // No value arrived; defaults will apply in _executeWithInputs.
+              continue;
+            }
+            const first = sticky.values().next().value as MessageEnvelope;
+            envelopes.set(h, first);
+            values[h] = first.data;
           }
-          const first = sticky.values().next().value as MessageEnvelope;
-          envelopes.set(h, first);
-          values[h] = first.data;
         } else if (isListInput(h)) {
           const envs = emptyListEnvelopes.get(h) ?? [];
           if (envs.length > 0) {
