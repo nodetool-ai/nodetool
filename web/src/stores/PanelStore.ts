@@ -202,8 +202,15 @@ export const usePanelStore = create<ResizePanelState>()(
         }
       }),
       merge: (persistedState, currentState) => {
-        const persisted = (persistedState ?? {}) as Partial<ResizePanelState>;
-        const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
+        if (!persistedState || typeof persistedState !== "object" || Array.isArray(persistedState)) {
+          return currentState;
+        }
+        const persisted = persistedState as Record<string, unknown>;
+        const rawPanel = persisted.panel;
+        if (!rawPanel || typeof rawPanel !== "object" || Array.isArray(rawPanel)) {
+          return currentState;
+        }
+        const persistedPanel = rawPanel as Record<string, unknown>;
         const raw = persistedPanel.activeView as string | undefined;
 
         // Migrate legacy flat-list views: any node-category id now lives
@@ -223,10 +230,10 @@ export const usePanelStore = create<ResizePanelState>()(
 
         const persistedSubcategory = persistedPanel.activeNodeCategory;
         if (
-          persistedSubcategory &&
-          VALID_NODE_CATEGORIES.includes(persistedSubcategory)
+          typeof persistedSubcategory === "string" &&
+          VALID_NODE_CATEGORIES.includes(persistedSubcategory as NodeCategoryId)
         ) {
-          migratedSubcategory = persistedSubcategory;
+          migratedSubcategory = persistedSubcategory as NodeCategoryId;
         }
 
         return {

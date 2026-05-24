@@ -1,16 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, memo } from "react";
-import {
-  Caption,
-  FlexColumn,
-  ToolbarIconButton,
-  NotificationBadge
-} from "../ui_primitives";
-import { useTheme } from "@mui/material/styles";
-import HistoryIcon from "@mui/icons-material/History";
+import React, { memo } from "react";
+import { Caption, FlexColumn } from "../ui_primitives";
 import OutputRenderer from "./OutputRenderer";
-import NodeHistoryPanel from "./NodeHistoryPanel";
-import { useNodeResultHistory } from "../../hooks/nodes/useNodeResultHistory";
 import { typeFor } from "./output";
 
 function resultTypeLabel(value: unknown): string {
@@ -42,33 +33,11 @@ interface ResultOverlayProps {
 }
 
 /**
- * ResultOverlay — renders the current result and offers a button to open
- * the persisted history dialog. The `result` value is already the live
- * (streaming-accumulated) value from `ResultsStore.outputResults`; we no
- * longer keep a parallel session-history copy.
+ * ResultOverlay — renders a node's live (in-memory) output via the generic
+ * OutputRenderer. Persisted history navigation lives in the ContentCardBody
+ * via NodeHistoryViewer; this overlay stays minimal for legacy node types.
  */
-const ResultOverlay: React.FC<ResultOverlayProps> = ({
-  result,
-  nodeId,
-  workflowId,
-  nodeName
-}) => {
-  const theme = useTheme();
-  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-
-  const { historyCount } = useNodeResultHistory(
-    workflowId ?? null,
-    nodeId ?? null
-  );
-
-  const handleOpenHistory = useCallback(() => {
-    setHistoryDialogOpen(true);
-  }, []);
-
-  const handleCloseHistory = useCallback(() => {
-    setHistoryDialogOpen(false);
-  }, []);
-
+const ResultOverlay: React.FC<ResultOverlayProps> = ({ result }) => {
   const unwrapped =
     typeof result === "object" &&
     result !== null &&
@@ -78,8 +47,6 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
       : result;
 
   const typeLabel = resultTypeLabel(unwrapped);
-  const showHistoryButton =
-    nodeId !== undefined && workflowId !== undefined && historyCount > 1;
 
   return (
     <FlexColumn
@@ -93,39 +60,6 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         flex: 1
       }}
     >
-      {showHistoryButton && (
-        <ToolbarIconButton
-          title={`View History (${historyCount})`}
-          size="small"
-          onClick={handleOpenHistory}
-          sx={{
-            position: "absolute",
-            top: 4,
-            right: 8,
-            zIndex: 10,
-            width: 24,
-            height: 24,
-            padding: "4px",
-            borderRadius: "var(--rounded-sm)",
-            opacity: 0.6,
-            transition: "opacity 0.2s ease",
-            backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
-            color: theme.vars.palette.common.white,
-            "&:hover": {
-              opacity: 1,
-              backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
-            },
-            "& svg": {
-              fontSize: 14
-            }
-          }}
-        >
-          <NotificationBadge count={historyCount} color="primary" max={99}>
-            <HistoryIcon />
-          </NotificationBadge>
-        </ToolbarIconButton>
-      )}
-
       <FlexColumn
         className="result-overlay-content"
         fullWidth
@@ -159,16 +93,6 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         )}
         <OutputRenderer value={unwrapped} />
       </FlexColumn>
-
-      {nodeId && workflowId && (
-        <NodeHistoryPanel
-          workflowId={workflowId}
-          nodeId={nodeId}
-          nodeName={nodeName}
-          open={historyDialogOpen}
-          onClose={handleCloseHistory}
-        />
-      )}
     </FlexColumn>
   );
 };

@@ -140,7 +140,7 @@ export const IMAGE_RESOLUTION_TO_PIXELS: Record<ImageResolution, number> = {
   "4K": 4096
 };
 
-export interface ImageGenerationParams {
+interface ImageGenerationParams {
   model: ImageModelValue | null;
   resolution: ImageResolution;
   aspectRatio: string;
@@ -154,7 +154,7 @@ interface VideoModelSelection {
   name: string;
 }
 
-export interface VideoGenerationParams {
+interface VideoGenerationParams {
   model: VideoModelSelection | null;
   resolution: VideoResolution;
   aspectRatio: string;
@@ -185,7 +185,7 @@ interface ImageToVideoGenerationParams {
   numInferenceSteps: number;
 }
 
-export interface MediaGenerationState {
+interface MediaGenerationState {
   mode: MediaMode;
   image: ImageGenerationParams;
   imageEdit: ImageEditParams;

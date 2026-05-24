@@ -72,14 +72,15 @@ describe("FAL_NODES from manifest", () => {
     expect(unique.size).toBe(types.length);
   });
 
-  it("image output nodes have streaming enabled", () => {
+  it("image output nodes produce a single output (no streaming)", () => {
     const imageNodes = FAL_NODES.filter(
       (n) => (n as Record<string, unknown>).metadataOutputTypes &&
         ((n as Record<string, unknown>).metadataOutputTypes as Record<string, string>).output === "image"
     );
     expect(imageNodes.length).toBeGreaterThan(0);
     for (const NodeCls of imageNodes) {
-      expect((NodeCls as Record<string, unknown>).isStreamingOutput).toBe(true);
+      expect((NodeCls as Record<string, unknown>).isStreamingOutput).toBeFalsy();
+      expect((NodeCls as Record<string, unknown>).outputCorrelation).toBeUndefined();
     }
   });
 

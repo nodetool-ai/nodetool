@@ -232,6 +232,15 @@ async function buildParams(
   // Scalar and list[str] fields
   for (const field of spec.fields) {
     if (isAssetType(field.type) || clipUploads.has(field.name)) continue;
+
+    // Image-gen nodes always produce a single output — force the count to 1
+    // regardless of any saved value, since the field is no longer exposed.
+    if (field.name === "num_images") {
+      const paramName = spec.paramNames?.[field.name] ?? field.name;
+      params[paramName] = castValue(1, field.type);
+      continue;
+    }
+
     const value = (instance as unknown as Record<string, unknown>)[field.name];
     const paramName = spec.paramNames?.[field.name] ?? field.name;
     const defLit = field.default ?? defaultForType(field.type);
@@ -323,36 +332,6 @@ async function buildParams(
 // Factory
 // ---------------------------------------------------------------------------
 
-async function* yieldAsAvailable<T>(
-  promises: Array<Promise<T>>
-): AsyncGenerator<T> {
-  type Settled = { i: number; value?: T; error?: unknown };
-  const pending = new Map<number, Promise<Settled>>();
-  promises.forEach((p, i) => {
-    pending.set(
-      i,
-      p.then(
-        (value): Settled => ({ i, value }),
-        (error): Settled => ({ i, error })
-      )
-    );
-  });
-  while (pending.size > 0) {
-    const settled = await Promise.race(pending.values());
-    pending.delete(settled.i);
-    if (settled.error !== undefined) throw settled.error;
-    yield settled.value as T;
-  }
-}
-
-function clampInt(value: unknown, min: number, max: number, fallback: number): number {
-  const n = Math.floor(Number(value));
-  if (!Number.isFinite(n)) return fallback;
-  return Math.max(min, Math.min(max, n));
-}
-
-const MAX_NUM_OUTPUTS = 8;
-
 export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
   const nodeType = `kie.${spec.moduleName}.${spec.className}`;
   const title = spec.title || classNameToTitle(spec.className);
@@ -362,14 +341,6 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
   const isGenerativeOutput = ["image", "audio", "video"].includes(
     spec.outputType
   );
-  // Multi-variant is only available for the standard kieExecuteTask path on
-  // generative outputs — Omni returns IDs and Suno is single-track per call.
-  const supportsMultiOutput =
-    isGenerativeOutput && !spec.useOmniDirect && !spec.useSuno;
-  const nativeNumImagesField = isImageOutput
-    ? spec.fields.find((f) => f.name === "num_images")
-    : undefined;
-  const hasSyntheticNumOutputs = supportsMultiOutput && !nativeNumImagesField;
   const specRef = spec;
 
   const wrapOutput = async (b64: string): Promise<Record<string, unknown>> => {
@@ -439,52 +410,6 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
       reportKieProviderCost(context, result.creditsConsumed);
       return wrapOutput(result.items[0]);
     }
-
-    async *genProcess(
-      context?: Parameters<BaseNode["process"]>[0]
-    ): AsyncGenerator<Record<string, unknown>> {
-      if (!supportsMultiOutput) {
-        yield await this.process(context);
-        return;
-      }
-
-      const n = hasSyntheticNumOutputs
-        ? clampInt(
-            (this as unknown as Record<string, unknown>).num_outputs,
-            1,
-            MAX_NUM_OUTPUTS,
-            1
-          )
-        : clampInt(
-            (this as unknown as Record<string, unknown>).num_images,
-            1,
-            MAX_NUM_OUTPUTS,
-            1
-          );
-
-      if (nativeNumImagesField) {
-        // Single API call — provider returns N results in one task.
-        (this as unknown as Record<string, unknown>).num_images = String(n);
-        const result = await executeTask(this, context);
-        reportKieProviderCost(context, result.creditsConsumed);
-        for (const item of result.items) {
-          yield await wrapOutput(item);
-        }
-        return;
-      }
-
-      if (n <= 1) {
-        yield await this.process(context);
-        return;
-      }
-
-      // Fan out N concurrent tasks; yield each as it completes.
-      const tasks = Array.from({ length: n }, () => executeTask(this, context));
-      for await (const result of yieldAsAvailable(tasks)) {
-        reportKieProviderCost(context, result.creditsConsumed);
-        yield await wrapOutput(result.items[0]);
-      }
-    }
   };
 
   // Static properties
@@ -522,16 +447,6 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     value: { output: spec.outputType },
     configurable: true
   });
-  if (supportsMultiOutput) {
-    Object.defineProperty(KieNodeClass, "outputCorrelation", {
-      value: { output: { kind: "iteration", source: "__execution__" } },
-      configurable: true
-    });
-    Object.defineProperty(KieNodeClass, "isStreamingOutput", {
-      value: true,
-      configurable: true
-    });
-  }
 
   // Compute and set field classification
   const { inlineFields, inputFields } = computeFieldClassification(spec.fields);
@@ -544,8 +459,10 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     configurable: true
   });
 
-  // Register declared properties
+  // Register declared properties — num_images is internal-only (pinned to 1)
+  // and not exposed in the UI.
   for (const field of spec.fields) {
+    if (field.name === "num_images") continue;
     const propOptions: PropOptions = {
       type: field.type === "list[image]" ? "list[image]" : field.type,
       default: field.default ?? defaultForType(field.type)
@@ -557,17 +474,6 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     if (field.max !== undefined) propOptions.max = field.max;
 
     registerDeclaredProperty(KieNodeClass, field.name, propOptions);
-  }
-
-  if (hasSyntheticNumOutputs) {
-    registerDeclaredProperty(KieNodeClass, "num_outputs", {
-      type: "int",
-      default: 1,
-      min: 1,
-      max: MAX_NUM_OUTPUTS,
-      title: "Num Outputs",
-      description: `Number of variants to generate in parallel (1–${MAX_NUM_OUTPUTS}). Each variant is a separate API call and is billed as such.`
-    });
   }
 
   return KieNodeClass as unknown as NodeClass;
