@@ -11,7 +11,6 @@ import { persist } from "zustand/middleware";
  * view + activeNodeCategory pair.
  */
 export type LeftPanelView =
-  | "search"
   | "workflows"
   | "settings"
   | "history"
@@ -22,6 +21,7 @@ export type LeftPanelView =
 export type PanelView = LeftPanelView;
 
 export type NodeCategoryId =
+  | "all"
   | "io"
   | "tools"
   | "image-models"
@@ -62,7 +62,6 @@ const MIN_PANEL_SIZE = DEFAULT_PANEL_SIZE - 100;
 const MAX_PANEL_SIZE = 800;
 
 const VALID_VIEWS: LeftPanelView[] = [
-  "search",
   "workflows",
   "settings",
   "history",
@@ -73,6 +72,7 @@ const VALID_VIEWS: LeftPanelView[] = [
 ];
 
 const VALID_NODE_CATEGORIES: NodeCategoryId[] = [
+  "all",
   "io",
   "tools",
   "image-models",
@@ -93,7 +93,7 @@ const createInitialState = (): PanelState => {
     maxWidth: MAX_PANEL_SIZE,
     defaultWidth: DEFAULT_PANEL_SIZE,
     activeView: "workflows",
-    activeNodeCategory: "io"
+    activeNodeCategory: "all"
   };
 };
 
@@ -194,7 +194,7 @@ export const usePanelStore = create<ResizePanelState>()(
     }),
     {
       name: "left-panel-storage",
-      version: 2,
+      version: 3,
       partialize: (state: ResizePanelState) => ({
         panel: {
           panelSize: state.panel.panelSize,
@@ -223,6 +223,9 @@ export const usePanelStore = create<ResizePanelState>()(
 
         if (raw === "workflowGrid") {
           migratedView = "workflows";
+        } else if (raw === "search") {
+          migratedView = "nodes";
+          migratedSubcategory = "all";
         } else if (raw && VALID_NODE_CATEGORIES.includes(raw as NodeCategoryId)) {
           migratedView = "nodes";
           migratedSubcategory = raw as NodeCategoryId;
