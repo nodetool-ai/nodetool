@@ -24,7 +24,7 @@ description: "NodeTool — the open creative AI workspace. One node canvas for i
 * **Bring your own keys** — Pay OpenAI, Anthropic, Gemini, Replicate, FAL, and ElevenLabs directly. No credit markup, no provider tax.
 * **Ship a workflow as a Mini-App** — Hide the graph, expose just inputs and outputs. Share a link, no install required.
 * **Build agents that drive workflows** — Multi-step planning, tool calling, streaming. Drop them into any pipeline.
-* **Chat with your documents** — Local Chroma, embeddings, RAG. Your data never leaves the machine.
+* **Chat with your documents** — Local SQLite-vec, embeddings, RAG. Your data never leaves the machine.
 * **Iterate visually, not via prompts** — Click a node, change a value, re-run. Watch data flow through every edge.
 
 ## Studio or Cloud

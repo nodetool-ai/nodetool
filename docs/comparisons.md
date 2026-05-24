@@ -52,7 +52,7 @@ One canvas, every model, your keys:
 | **TTS / ASR** | Local: Kokoro, Sesame, Whisper · API: OpenAI, ElevenLabs | Cloud only | ⚠️ Via custom nodes |
 | **LLMs & agents** | Built-in agent nodes, tool calling, streaming, Ollama, MLX | Limited LLM nodes | ⚠️ Via custom nodes |
 | **Diffusion control** | Standard parameters | ❌ Hidden behind presets | ✅ Latents, VAE, samplers, ControlNet |
-| **RAG / vector search** | ✅ Local Chroma | ❌ | ❌ |
+| **RAG / vector search** | ✅ Local SQLite-vec, plus Pinecone & Supabase pgvector | ❌ | ❌ |
 | **Mini-apps from workflows** | ✅ Turn a graph into a simple UI | ⚠️ Share-as-template | ❌ |
 | **Real-time streaming** | ✅ Token-by-token, live progress | ✅ Live preview | ❌ Queue-based execution |
 | **Source available** | ✅ Full source on GitHub | ❌ | ✅ Full source on GitHub |

@@ -63,7 +63,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 
 - [Configuration]({{ site.url }}/configuration): Settings and environment variables.
 - [Storage]({{ site.url }}/storage): Local and S3 storage backends.
-- [Vector Storage]({{ site.url }}/vector-storage): SQLite-vec, ChromaDB, FAISS.
+- [Vector Storage]({{ site.url }}/vector-storage): SQLite-vec (default), Pinecone, Supabase pgvector.
 - [Indexing]({{ site.url }}/indexing): Document ingestion and RAG pipelines.
 - [Collections]({{ site.url }}/collections): Vector collections for RAG.
 - [Asset Management]({{ site.url }}/asset-management): Files, images, datasets.
