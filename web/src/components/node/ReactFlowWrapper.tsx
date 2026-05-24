@@ -45,6 +45,7 @@ import {
   WorkflowNode,
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
+import { SubgraphNode, SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
 import ConstantStringNode from "../node/ConstantStringNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
@@ -390,6 +391,7 @@ const ReactFlowWrapper = ({
       "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
+      [SUBGRAPH_NODE_TYPE]: SubgraphNode,
       [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
