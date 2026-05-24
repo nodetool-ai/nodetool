@@ -15,6 +15,19 @@ import sharp from "sharp";
 import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
 import { CompositorNode } from "../src/index.js";
 
+// CompositorNode emits raw RGBA (mimeType=RAW_RGBA_MIME) as its in-flight
+// format — no eager PNG encode. Tests read `out.data` as a Uint8Array
+// directly, no base64/sharp roundtrip.
+function rgbaBytes(out: Record<string, unknown>): Uint8Array {
+  const data = out.data;
+  if (!(data instanceof Uint8Array)) {
+    throw new Error(
+      `expected raw-RGBA Uint8Array, got ${typeof data} (mimeType=${String(out.mimeType)})`
+    );
+  }
+  return data;
+}
+
 async function gpuAvailable(): Promise<boolean> {
   try {
     const spec = "webgpu";
@@ -85,7 +98,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     expect(out.width).toBe(W);
     expect(out.height).toBe(H);
     expect(out.mimeType).toBe(RAW_RGBA_MIME);
-    expect((out.data as Uint8Array).length).toBe(W * H * 4);
+    expect(rgbaBytes(out).length).toBe(W * H * 4);
   });
 
   it("composites two layers using 'over' blend with positional layer state", async () => {
@@ -109,7 +122,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
 
     // The composite should mix the red base with the half-opacity blue
     // layer — middle pixel should be neither pure red nor pure blue.
-    const data = out.data as Uint8Array;
+    const data = rgbaBytes(out);
     // Sample centre pixel (RGBA stride = 4 over width W).
     const cx = Math.floor(W / 2);
     const cy = Math.floor(H / 2);
@@ -140,7 +153,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    const data = out.data as Uint8Array;
+    const data = rgbaBytes(out);
     // Centre pixel should remain (approximately) the base green tint.
     const off = (Math.floor(H / 2) * W + Math.floor(W / 2)) * 4;
     expect(data[off]).toBeLessThan(60); // no red bleed
@@ -164,13 +177,13 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    const data = out.data as Uint8Array;
+    const data = rgbaBytes(out);
     // With image_10 fully opaque blue on top, expect blue dominance.
     expect(data[2]).toBeGreaterThan(200);
     expect(data[0]).toBeLessThan(50);
   });
 
-  it("outputs raw-rgba mimeType", async () => {
+  it("outputs raw RGBA in-flight format", async () => {
     const W = 4;
     const H = 4;
     const buf = await solidPng(W, H, { r: 128, g: 64, b: 32 });
@@ -182,6 +195,8 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
     expect(out.mimeType).toBe(RAW_RGBA_MIME);
+    expect(out.data).toBeInstanceOf(Uint8Array);
+    expect(rgbaBytes(out).length).toBe(W * H * 4);
   });
 
   it("handles layers with mismatched dimensions", async () => {
@@ -200,7 +215,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     const out = result.output as Record<string, unknown>;
     expect(out.width).toBe(8);
     expect(out.height).toBe(8);
-    expect((out.data as Uint8Array).length).toBe(8 * 8 * 4);
+    expect(rgbaBytes(out).length).toBe(8 * 8 * 4);
   });
 
   it("falls through on corrupt image input and keeps prior canvas", async () => {
@@ -218,10 +233,10 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    // Should still return a valid raw-RGBA image (the base layer) despite the corrupt overlay.
+    // Should still return the base layer as raw RGBA despite the corrupt overlay.
     expect(out.width).toBe(W);
     expect(out.height).toBe(H);
-    expect((out.data as Uint8Array).length).toBe(W * H * 4);
+    expect(rgbaBytes(out).length).toBe(W * H * 4);
   });
 
   it("supports 'multiply' blend mode", async () => {
@@ -240,7 +255,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    const data = out.data as Uint8Array;
+    const data = rgbaBytes(out);
     const off = (Math.floor(H / 2) * W + Math.floor(W / 2)) * 4;
     // White * Red = Red
     expect(data[off]).toBeGreaterThan(250); // R
@@ -264,7 +279,7 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
-    const data = out.data as Uint8Array;
+    const data = rgbaBytes(out);
     const off = (Math.floor(H / 2) * W + Math.floor(W / 2)) * 4;
     expect(data[off]).toBeGreaterThan(120); // R preserved
     expect(data[off + 1]).toBeGreaterThan(120); // G added

@@ -160,6 +160,7 @@ export class TopazProvider extends BaseProvider {
     throw new Error("topaz does not support chat generation");
   }
 
+  // eslint-disable-next-line require-yield
   async *generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
