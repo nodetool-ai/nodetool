@@ -526,7 +526,7 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
   const handleWidthChange = useCallback(
     (_: React.ChangeEvent<HTMLInputElement> | null, value: number) => {
       const w = Math.max(1, Math.round(value));
-      let newRight = left + w;
+      const newRight = left + w;
       let newBottom = bottom;
       if (aspectRatio) {
         const h = Math.round(w / aspectRatio);
@@ -540,7 +540,7 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
   const handleHeightChange = useCallback(
     (_: React.ChangeEvent<HTMLInputElement> | null, value: number) => {
       const h = Math.max(1, Math.round(value));
-      let newBottom = top + h;
+      const newBottom = top + h;
       let newRight = right;
       if (aspectRatio) {
         const w = Math.round(h * aspectRatio);
