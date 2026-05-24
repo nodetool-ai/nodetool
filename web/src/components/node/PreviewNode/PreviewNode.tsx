@@ -28,6 +28,7 @@ import {
   assetsToPreviewValue,
   useNodeResultHistory
 } from "../../../hooks/nodes/useNodeResultHistory";
+import { useNodes } from "../../../contexts/NodeContext";
 
 const styles = (theme: Theme) =>
   css([
@@ -321,6 +322,26 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     );
   });
 
+  // The kernel intentionally skips `output_update` for `nodetool.input.*`
+  // and `nodetool.constant.*` nodes (runner.ts) since the client already
+  // holds their value as a property. Read it directly so previewing those
+  // sources works without a workflow run.
+  const sourcePropertyValue = useNodes((state) => {
+    const sourceNodeId = incomingValueEdge?.source;
+    if (!sourceNodeId) return undefined;
+    const node = state.findNode(sourceNodeId);
+    const type = node?.type;
+    if (
+      !type ||
+      (!type.startsWith("nodetool.input.") &&
+        !type.startsWith("nodetool.constant."))
+    ) {
+      return undefined;
+    }
+    return (node?.data.properties as Record<string, unknown> | undefined)
+      ?.value;
+  }, isEqual);
+
   // DB fallback: when no live value is available (page reload or workflow
   // switch), surface every saved asset from the source's most recent job
   // so the preview reflects the latest workflow execution in full.
@@ -337,8 +358,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     // Show every generation from the latest execution; for streaming
     // outputs (e.g. `num_images=N`) this is the array accumulated under
     // outputResults during the run.
-    () => sourceNodeValue ?? sourceFallbackValue,
-    [sourceNodeValue, sourceFallbackValue]
+    () => sourceNodeValue ?? sourcePropertyValue ?? sourceFallbackValue,
+    [sourceNodeValue, sourcePropertyValue, sourceFallbackValue]
   );
 
   const previewOutput = useMemo(
