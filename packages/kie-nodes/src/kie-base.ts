@@ -407,10 +407,6 @@ export type KieExecuteResult = {
   creditsConsumed?: number;
 };
 
-type ProviderCostReporter = {
-  setProviderCost?: (provider: string, amount: number, unit: string) => void;
-};
-
 export function parseCreditsConsumed(
   statusData: Record<string, unknown>
 ): number | undefined {
@@ -428,15 +424,19 @@ export function parseCreditsConsumed(
 }
 
 export function reportKieProviderCost(
-  context: ProviderCostReporter | undefined,
+  context: unknown,
   creditsConsumed: number | undefined
 ): void {
-  if (
-    context?.setProviderCost &&
-    creditsConsumed != null &&
-    Number.isFinite(creditsConsumed)
-  ) {
-    context.setProviderCost("kie", creditsConsumed, "credits");
+  if (creditsConsumed == null || !Number.isFinite(creditsConsumed)) return;
+  const setter = (context as { setProviderCost?: unknown } | null | undefined)
+    ?.setProviderCost;
+  if (typeof setter === "function") {
+    (setter as (p: string, a: number, u: string) => void).call(
+      context,
+      "kie",
+      creditsConsumed,
+      "credits"
+    );
   }
 }
 
@@ -445,7 +445,7 @@ export async function kieExecuteOmniDirect(
   endpoint: string,
   body: Record<string, unknown>,
   responseIdKey: string
-): Promise<{ data: string; items: string[]; taskId: string }> {
+): Promise<KieExecuteResult> {
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
