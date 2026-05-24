@@ -172,7 +172,13 @@ export class PythonStdioBridge extends EventEmitter {
 
     return new Promise<void>((resolve, reject) => {
       const proc = spawn(candidate.command, args, {
-        stdio: ["pipe", "pipe", "pipe"]
+        stdio: ["pipe", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          TQDM_DISABLE: "1",
+          HF_HUB_DISABLE_PROGRESS_BARS: "1",
+          TRANSFORMERS_VERBOSITY: "error",
+        },
       });
       this._process = proc;
 
@@ -279,10 +285,16 @@ export class PythonStdioBridge extends EventEmitter {
     while (this._readBuffer.length >= 4) {
       const length = this._readBuffer.readUInt32BE(0);
       if (length > MAX_BRIDGE_FRAME_SIZE) {
+        const stderrHint = this.getRecentStderrSummary(6);
+        const desyncHint =
+          "This usually means the Python worker wrote non-protocol data to stdout " +
+          "(for example a library print/progress bar), desynchronizing the msgpack frame stream.";
         this.emit(
           "error",
           new Error(
-            `Incoming Python bridge frame exceeds max size (${length} > ${MAX_BRIDGE_FRAME_SIZE})`
+            `Incoming Python bridge frame exceeds max size (${length} > ${MAX_BRIDGE_FRAME_SIZE}). ` +
+              desyncHint +
+              (stderrHint ? ` Recent stderr: ${stderrHint}` : "")
           )
         );
         this.close();

@@ -113,6 +113,10 @@ function getRuntimeEnvironment(
           if (line.trim()) log.debug(`[python-worker] ${line}`);
         }
       });
+      pythonBridge.on("error", (err: Error) => {
+        log.error(`MCP Python bridge protocol error: ${err.message}`);
+        pythonBridgeReady = false;
+      });
       pythonBridge.on("exit", (code: number) => {
         log.warn(`MCP Python worker exited with code ${code}`);
         pythonBridgeReady = false;

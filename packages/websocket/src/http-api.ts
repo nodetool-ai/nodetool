@@ -161,6 +161,10 @@ async function getWorkflowRuntimeEnvironment(
           if (line.trim()) log.debug(`[python-worker] ${line}`);
         }
       });
+      pythonBridge.on("error", (err: Error) => {
+        log.error(`HTTP API Python bridge protocol error: ${err.message}`);
+        pythonBridgeReady = false;
+      });
       pythonBridge.on("exit", (code: number) => {
         log.warn(`HTTP API Python worker exited with code ${code}`);
         pythonBridgeReady = false;

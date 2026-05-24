@@ -424,6 +424,11 @@ pythonBridge.on("stderr", (msg: string) => {
   }
 });
 
+pythonBridge.on("error", (err: Error) => {
+  log.error(`Python bridge protocol error: ${err.message}`);
+  pythonBridgeReady = false;
+});
+
 pythonBridge.on("exit", (code: number) => {
   log.warn(`Python worker exited with code ${code}`);
   pythonBridgeReady = false;
