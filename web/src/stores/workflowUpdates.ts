@@ -9,7 +9,6 @@ import {
   ToolResultUpdate,
   PlanningUpdate,
   OutputUpdate,
-  PreviewUpdate,
   EdgeUpdate,
   LogUpdate,
   StepResult,
@@ -28,7 +27,6 @@ import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPE
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
-import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
@@ -211,7 +209,6 @@ export type MsgpackData =
   | PlanningUpdate
   | OutputUpdate
   | StepResult
-  | PreviewUpdate
   | EdgeUpdate
   | Notification;
 
@@ -234,7 +231,6 @@ export const handleUpdate = (
   const setProgress = useResultsStore.getState().setProgress;
   const clearProgress = useResultsStore.getState().clearProgress;
   const addChunk = useResultsStore.getState().addChunk;
-  const setPreview = useResultsStore.getState().setPreview;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
@@ -244,7 +240,6 @@ export const handleUpdate = (
   const startExecution = useExecutionTimeStore.getState().startExecution;
   const endExecution = useExecutionTimeStore.getState().endExecution;
   const clearTimings = useExecutionTimeStore.getState().clearTimings;
-  const addToHistory = useNodeResultHistoryStore.getState().addToHistory;
 
 
   if (data.type === "log_update") {
@@ -294,13 +289,6 @@ export const handleUpdate = (
   if (data.type === "tool_result_update") {
     if (data.node_id) {
       setOutputResult(workflow.id, data.node_id, data.result, true);
-
-      addToHistory(workflow.id, data.node_id, {
-        result: data.result,
-        timestamp: Date.now(),
-        jobId: runner.job_id,
-        status: "completed"
-      });
     }
   }
 
@@ -314,14 +302,32 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const normalizedValue = normalizeOutputUpdateValue(data);
+    // eslint-disable-next-line no-console
+    console.log(
+      "[debug:gen] output_update",
+      {
+        nodeId: data.node_id,
+        outputName: data.output_name,
+        outputType: data.output_type,
+        valueIsArray: Array.isArray(data.value),
+        normalizedIsArray: Array.isArray(normalizedValue),
+        normalizedPreview:
+          typeof normalizedValue === "object" && normalizedValue !== null
+            ? Object.keys(normalizedValue as Record<string, unknown>)
+            : typeof normalizedValue
+      }
+    );
     setOutputResult(workflow.id, data.node_id, normalizedValue, true);
-
-    addToHistory(workflow.id, data.node_id, {
-      result: normalizedValue,
-      timestamp: Date.now(),
-      jobId: runner.job_id,
-      status: "completed"
-    });
+    // eslint-disable-next-line no-console
+    console.log(
+      "[debug:gen] outputResults after append",
+      {
+        nodeId: data.node_id,
+        accumulated: useResultsStore
+          .getState()
+          .getOutputResult(workflow.id, data.node_id)
+      }
+    );
 
     appendLog({
       workflowId: workflow.id,
@@ -399,6 +405,13 @@ export const handleUpdate = (
       job.status === "paused"
     ) {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    }
+
+    // Generative nodes auto-save outputs to assets on completion; refresh
+    // the per-node asset cache so history badges/panels update without
+    // waiting for staleTime to elapse.
+    if (job.status === "completed") {
+      queryClient.invalidateQueries({ queryKey: ["assets"] });
     }
 
     switch (job.status) {
@@ -539,10 +552,6 @@ export const handleUpdate = (
     }
   }
 
-  if (data.type === "preview_update") {
-    setPreview(workflow.id, data.node_id, data.value, true);
-  }
-
   if (data.type === "node_update") {
     const update = data;
     const currentState = runnerStore.getState().state;
@@ -607,21 +616,6 @@ export const handleUpdate = (
       // Store result if present
       if (update.result) {
         setResult(workflow.id, update.node_id, update.result);
-
-        // Add to history (persists across runs)
-        // Skip if we've already received streaming outputs via output_update
-        // (those are already added to history individually)
-        const existingOutputResult = useResultsStore
-          .getState()
-          .getOutputResult(workflow.id, update.node_id);
-        if (!existingOutputResult) {
-          addToHistory(workflow.id, update.node_id, {
-            result: update.result,
-            timestamp: Date.now(),
-            jobId: runner.job_id,
-            status: update.status
-          });
-        }
       }
     }
 

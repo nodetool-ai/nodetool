@@ -295,7 +295,6 @@ export const createWorkflowRunnerStore = (
       const clearErrors = useErrorStore.getState().clearErrors;
       const clearEdges = useResultsStore.getState().clearEdges;
       const clearResults = useResultsStore.getState().clearResults;
-      const clearPreviews = useResultsStore.getState().clearPreviews;
       const clearProgress = useResultsStore.getState().clearProgress;
       const clearToolCalls = useResultsStore.getState().clearToolCalls;
       const clearTasks = useResultsStore.getState().clearTasks;
@@ -330,7 +329,6 @@ export const createWorkflowRunnerStore = (
       clearErrors(workflow.id, subgraphNodeIds);
       clearResults(workflow.id, subgraphNodeIds);
       clearOutputResults(workflow.id, subgraphNodeIds);
-      clearPreviews(workflow.id, subgraphNodeIds);
       clearProgress(workflow.id, subgraphNodeIds);
       clearToolCalls(workflow.id, subgraphNodeIds);
       clearTasks(workflow.id, subgraphNodeIds);

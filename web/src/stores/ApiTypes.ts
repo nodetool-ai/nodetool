@@ -66,7 +66,6 @@ import {
   PlanningUpdate,
   PlotlyConfig,
   Prediction,
-  PreviewUpdate,
   Property,
   PropertyTypeMetadata,
   Provider,
@@ -181,7 +180,6 @@ export type { OutputUpdate };
 export type { PlanningUpdate };
 export type { PlotlyConfig };
 export type { Prediction };
-export type { PreviewUpdate };
 export type { Property };
 export type { PropertyTypeMetadata };
 export type { Provider };

@@ -31,7 +31,6 @@ import useResultsStore from "./ResultsStore";
 import useErrorStore from "./ErrorStore";
 import useStatusStore from "./StatusStore";
 import useExecutionTimeStore from "./ExecutionTimeStore";
-import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
 import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
 import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
@@ -691,12 +690,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          useResultsStore.getState().clearTasks(workflowId);
          useResultsStore.getState().clearToolCalls(workflowId);
          useResultsStore.getState().clearPlanningUpdates(workflowId);
-         useResultsStore.getState().clearPreviews(workflowId);
          useResultsStore.getState().clearEdges(workflowId);
          useErrorStore.getState().clearErrors(workflowId);
          useStatusStore.getState().clearStatuses(workflowId);
          useExecutionTimeStore.getState().clearTimings(workflowId);
-         useNodeResultHistoryStore.getState().clearWorkflowHistory(workflowId);
          usePropertyValidationStore.getState().clearWorkflow(workflowId);
 
          const newOpenWorkflows = openWorkflows.filter(

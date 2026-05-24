@@ -1620,9 +1620,17 @@ export class UnifiedWebSocketRunner {
             continue;
           }
 
-          // Only relay output_update for Output-type nodes
+          const meta = this.getNodeMetadata?.(nodeType);
+
+          // Relay output_update for Output-type nodes and for streaming or
+          // auto-saving generative nodes (FAL / Replicate / Kie / …) so the
+          // client receives one event per yielded item — the UI accumulates
+          // and renders each generation as it arrives.
           if (outbound.type === "output_update") {
-            if (!nodeType.includes("Output")) continue;
+            const isStreamingLeaf =
+              Boolean(meta?.is_streaming_output) ||
+              Boolean(meta?.auto_save_asset);
+            if (!nodeType.includes("Output") && !isStreamingLeaf) continue;
             outputUpdateSeen = true;
           }
 
@@ -1630,10 +1638,8 @@ export class UnifiedWebSocketRunner {
           if (
             outbound.type === "node_update" &&
             outbound.status === "completed" &&
-            outbound.result != null &&
-            this.getNodeMetadata
+            outbound.result != null
           ) {
-            const meta = this.getNodeMetadata(nodeType);
             if (meta?.auto_save_asset) {
               try {
                 await autoSaveAssets(

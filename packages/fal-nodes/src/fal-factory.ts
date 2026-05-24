@@ -357,6 +357,10 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       value: { output: "image" },
       configurable: true
     });
+    Object.defineProperty(FalNodeClass, "outputCorrelation", {
+      value: { output: { kind: "iteration", source: "__execution__" } },
+      configurable: true
+    });
     Object.defineProperty(FalNodeClass, "isStreamingOutput", {
       value: true,
       configurable: true

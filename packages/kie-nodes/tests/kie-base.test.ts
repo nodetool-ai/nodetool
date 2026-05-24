@@ -159,6 +159,7 @@ describe("kieExecuteOmniDirect", () => {
 
     expect(result).toEqual({
       data: "ff6af85771af49b08bef5b0aa1cba56b",
+      items: ["ff6af85771af49b08bef5b0aa1cba56b"],
       taskId: ""
     });
   });

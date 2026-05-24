@@ -102,27 +102,6 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         }
       }
 
-      if (data.type === "preview_update") {
-        try {
-          const timestamp = Date.now();
-          const random = Math.random().toString(36).substring(2, 9);
-          const result: MiniAppResult = {
-            id: `${data.node_id}:preview:${timestamp}:${random}`,
-            nodeId: data.node_id,
-            nodeName: "Preview",
-            outputName: "preview",
-            outputType: "image",
-            value: data.value,
-            metadata: {},
-            receivedAt: timestamp
-          };
-
-          upsertResult(workflow.id, result);
-        } catch (error) {
-          console.error("MiniAppRunner: preview_update error:", error);
-        }
-      }
-
       if (data.type === "node_update") {
         if (data.error) {
           const result: MiniAppResult = {

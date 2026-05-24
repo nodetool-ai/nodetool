@@ -206,6 +206,19 @@ function mapOutput(
   }
 }
 
+function mapStreamingOutputs(
+  spec: ReplicateManifestEntry,
+  output: unknown
+): Record<string, unknown>[] {
+  if (!["image", "video", "audio"].includes(spec.outputType)) {
+    return [mapOutput(spec, output)];
+  }
+  if (!Array.isArray(output) || output.length === 0) {
+    return [mapOutput(spec, output)];
+  }
+  return output.map((item) => mapOutput(spec, item));
+}
+
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
@@ -226,16 +239,39 @@ export function createReplicateNodeClass(
   );
   const specRef = spec;
 
+  const executePrediction = async (
+    instance: BaseNode,
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<unknown> => {
+    const apiKey = getReplicateApiKey(instance._secrets);
+    const args = await buildArgs(instance, specRef, apiKey, context);
+    const res = await replicateSubmit(apiKey, specRef.endpointId, args);
+    return res.output;
+  };
+
   const ReplicateNodeClass = class extends BaseNode {
     async process(
       context?: Parameters<BaseNode["process"]>[0]
     ): Promise<Record<string, unknown>> {
-      const apiKey = getReplicateApiKey(this._secrets);
-      const args = await buildArgs(this, specRef, apiKey, context);
-      const res = await replicateSubmit(apiKey, specRef.endpointId, args);
-      return mapOutput(specRef, res.output);
+      const output = await executePrediction(this, context);
+      return mapOutput(specRef, output);
     }
   };
+
+  if (isGenerativeOutput) {
+    Object.defineProperty(ReplicateNodeClass.prototype, "genProcess", {
+      value: async function* (
+        this: BaseNode,
+        context?: Parameters<BaseNode["process"]>[0]
+      ): AsyncGenerator<Record<string, unknown>> {
+        const output = await executePrediction(this, context);
+        for (const item of mapStreamingOutputs(specRef, output)) {
+          yield item;
+        }
+      },
+      configurable: true
+    });
+  }
 
   Object.defineProperty(ReplicateNodeClass, "name", {
     value: spec.className,
@@ -259,6 +295,14 @@ export function createReplicateNodeClass(
   });
   if (isGenerativeOutput) {
     Object.defineProperty(ReplicateNodeClass, "autoSaveAsset", {
+      value: true,
+      configurable: true
+    });
+    Object.defineProperty(ReplicateNodeClass, "outputCorrelation", {
+      value: { output: { kind: "iteration", source: "__execution__" } },
+      configurable: true
+    });
+    Object.defineProperty(ReplicateNodeClass, "isStreamingOutput", {
       value: true,
       configurable: true
     });

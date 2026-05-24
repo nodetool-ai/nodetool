@@ -30,12 +30,13 @@ import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LayersIcon from "@mui/icons-material/Layers";
-import { shallow } from "zustand/shallow";
-
+import HistoryIcon from "@mui/icons-material/History";
 import {
   CheckerDropzone,
   DynamicInputButton,
   FlexRow,
+  NotificationBadge,
+  ToolbarIconButton,
   VideoPlayer
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
@@ -45,12 +46,16 @@ import OutputRenderer from "../node/OutputRenderer";
 import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
 import { useSignedUrl, getMimeTypeFromUri, toUint8Array } from "../node/output";
+import { TextRenderer } from "../node/output/TextRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
-import { editorClassNames } from "../editor_ui";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
 import useResultsStore from "../../stores/ResultsStore";
+import {
+  assetsToPreviewValue,
+  useNodeResultHistory
+} from "../../hooks/nodes/useNodeResultHistory";
 import { useNodes } from "../../contexts/NodeContext";
 
 import {
@@ -64,6 +69,7 @@ import {
   resolveInlineFieldNames
 } from "../../utils/exposedInputs";
 import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
+import NodeHistoryPanel from "../node/NodeHistoryPanel";
 
 const styles = (theme: Theme) =>
   css({
@@ -76,6 +82,12 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(0.5),
       padding: theme.spacing(0.5),
       minHeight: 0
+    },
+    // Text variant inherits the node body color instead of the dark media
+    // backdrop — keeps text content visually flush with the rest of the
+    // node and matches the PreviewNode look.
+    "&[data-content-card-variant=\"text\"] .preview-area": {
+      backgroundColor: "transparent"
     },
     // Preview keeps a minimum strip when the node is resized very small;
     // params (flex-shrink: 0) clip at the bottom via node-content-container.
@@ -99,6 +111,43 @@ const styles = (theme: Theme) =>
         bottom: 0,
         left: `calc(${theme.spacing(-0.5)})`
       },
+      ".image-grid-preview": {
+        width: "100%",
+        height: "100%",
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+        gap: theme.spacing(0.75),
+        padding: theme.spacing(0.75),
+        overflow: "auto",
+        alignContent: "start"
+      },
+      ".image-grid-tile": {
+        aspectRatio: "1 / 1",
+        minHeight: theme.spacing(10),
+        borderRadius: "var(--rounded-sm)",
+        overflow: "hidden"
+      },
+      ".image-grid-tile .image-output": {
+        minHeight: 0,
+        height: "100%"
+      },
+      ".history-button": {
+        position: "absolute",
+        top: theme.spacing(0.5),
+        right: theme.spacing(0.5),
+        zIndex: 20,
+        width: 26,
+        height: 26,
+        padding: theme.spacing(0.25),
+        backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+        color: theme.vars.palette.common.white,
+        "&:hover": {
+          backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
+        },
+        "& svg": {
+          fontSize: 15
+        }
+      },
       "& img": {
         display: "block",
         width: "100%",
@@ -108,16 +157,14 @@ const styles = (theme: Theme) =>
       ".text-preview": {
         width: "100%",
         height: "100%",
-        resize: "none",
-        border: "none",
-        outline: "none",
-        background: theme.vars.palette.grey[900],
-        color: theme.vars.palette.text.primary,
-        fontFamily: theme.fontFamily2,
-        fontSize: theme.fontSizeSmall,
-        padding: theme.spacing(1),
         overflow: "auto",
-        whiteSpace: "pre-wrap"
+        padding: theme.spacing(0.5),
+        background: "transparent",
+        // The inner TextRenderer/MaybeMarkdown brings its own typography
+        // (matches PreviewNode); just give it a scroll container.
+        "& > .output": {
+          height: "100%"
+        }
       },
       ".mask-empty": {
         width: "100%",
@@ -206,27 +253,55 @@ export interface ContentCardBodyProps {
   isOutputNode: boolean;
 }
 
+const EMPTY_PROPERTIES: NonNullable<NodeMetadata["properties"]> = [];
+
 /**
- * Resolve the value to render in the preview area from the cached result.
- * Results may be:
- *   - A primitive / asset-ref directly, OR
- *   - A `{ [outputName]: value }` record for multi/single-output nodes.
- * We prefer the primary output's named slot when the record shape is present.
+ * Resolve the value(s) to render in the preview area from the cached
+ * result. The card surfaces every generation from the latest execution —
+ * for `num_images=N` style nodes that means N tiles in the grid.
+ *
+ * Inputs may be:
+ *   - A primitive / asset-ref directly,
+ *   - A `{ [outputName]: value }` record for multi/single-output nodes, or
+ *   - An array of either of the above accumulated from `output_update`s.
  */
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
 const extractPrimaryValue = (
   result: unknown,
   primaryOutputName: string | undefined
 ): unknown => {
   if (
-    result &&
-    typeof result === "object" &&
-    !Array.isArray(result) &&
+    isRecord(result) &&
     primaryOutputName &&
-    primaryOutputName in (result as Record<string, unknown>)
+    primaryOutputName in result
   ) {
-    return (result as Record<string, unknown>)[primaryOutputName];
+    return result[primaryOutputName];
   }
   return result;
+};
+
+const resolvePreviewValue = (
+  result: unknown,
+  primaryOutputName: string | undefined
+): unknown => {
+  if (!Array.isArray(result)) {
+    return extractPrimaryValue(result, primaryOutputName);
+  }
+
+  // Streamed outputs accumulate into an array; unwrap any record-shaped
+  // items (`{ output: ... }`) and flatten one level so a `num_images=N`
+  // run renders as N tiles, not one.
+  const values = result
+    .flatMap((item) => {
+      const value = extractPrimaryValue(item, primaryOutputName);
+      return Array.isArray(value) ? value : [value];
+    })
+    .filter((value) => value !== undefined && value !== null);
+
+  if (values.length === 0) return undefined;
+  return values.length === 1 ? values[0] : values;
 };
 
 /**
@@ -288,6 +363,12 @@ const useMediaSrc = (
 };
 
 const extractTextValue = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => extractTextValue(item))
+      .filter((item) => item.length > 0)
+      .join("\n");
+  }
   if (typeof value === "string") {
     return value;
   }
@@ -296,30 +377,91 @@ const extractTextValue = (value: unknown): string => {
     if (typeof v.value === "string") {return v.value;}
     if (typeof v.text === "string") {return v.text;}
     if (typeof v.data === "string") {return v.data;}
+    if (v.output !== undefined) {return extractTextValue(v.output);}
   }
   return "";
 };
 
-const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
+type ImagePreviewSource = string | Uint8Array;
+
+const isNumberArray = (value: unknown[]): value is number[] =>
+  value.length > 0 && value.every((item) => typeof item === "number");
+
+const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined => {
   if (typeof value === "string") {
-    return <ImageView source={value} />;
+    return value;
   }
-  if (value && typeof value === "object") {
-    const v = value as { uri?: string; data?: unknown };
-    if (typeof v.uri === "string" && v.uri) {
-      return <ImageView source={v.uri} />;
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return isNumberArray(value) ? new Uint8Array(value) : undefined;
+  }
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  if (typeof value.uri === "string" && value.uri) {
+    return value.uri;
+  }
+  if (typeof value.url === "string" && value.url) {
+    return value.url;
+  }
+
+  const data = value.data;
+  if (typeof data === "string") {
+    return data;
+  }
+  if (data instanceof Uint8Array) {
+    return data;
+  }
+  if (Array.isArray(data) && isNumberArray(data)) {
+    return new Uint8Array(data);
+  }
+  return undefined;
+};
+
+const extractImagePreviewValues = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) {
+    if (isNumberArray(value)) {
+      return [value];
     }
-    if (v.data) {
-      const source =
-        v.data instanceof Uint8Array
-          ? v.data
-          : Array.isArray(v.data)
-            ? new Uint8Array(v.data as number[])
-            : undefined;
-      if (source) {
-        return <ImageView source={source} />;
-      }
+    return value.flatMap((item) => extractImagePreviewValues(item));
+  }
+  if (isRecord(value)) {
+    if (value.output !== undefined) {
+      return extractImagePreviewValues(value.output);
     }
+    if (Array.isArray(value.data) && !isNumberArray(value.data)) {
+      return value.data.flatMap((item) => extractImagePreviewValues(item));
+    }
+  }
+  return imageSourceFromValue(value) ? [value] : [];
+};
+
+const SingleImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
+  const source = imageSourceFromValue(value);
+  if (source) {
+    return <ImageView source={source} />;
+  }
+  return <OutputRenderer value={value} showTextActions={false} />;
+};
+
+const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
+  const images = extractImagePreviewValues(value);
+  if (images.length > 1) {
+    return (
+      <div className="image-grid-preview nodrag nopan">
+        {images.map((item, index) => (
+          <div className="image-grid-tile" key={`image-${index}`}>
+            <SingleImagePreview value={item} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (images.length === 1) {
+    return <SingleImagePreview value={images[0]} />;
   }
   return <OutputRenderer value={value} showTextActions={false} />;
 };
@@ -361,20 +503,16 @@ const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
 };
 
 const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
+  // Render via the same TextRenderer PreviewNode uses (markdown + theme
+  // typography) so the card and the preview node match visually.
   const text = extractTextValue(value);
-  const [isFocused, setIsFocused] = useState(false);
   return (
-    <textarea
-      className={`text-preview nodrag nopan${
-        isFocused ? ` ${editorClassNames.nowheel}` : ""
-      }`}
-      readOnly
-      value={text}
-      spellCheck={false}
+    <div
+      className="text-preview nodrag nopan nowheel"
       aria-label="Generated text"
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-    />
+    >
+      <TextRenderer text={text} showActions={false} />
+    </div>
   );
 };
 
@@ -471,14 +609,46 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [primaryOutput]
   );
 
-  const result = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
+  const result = useResultsStore((state) =>
+    state.getOutputResult(workflowId, id) ?? state.getResult(workflowId, id)
   );
-  const previewValue = useMemo(
-    () => extractPrimaryValue(result, primaryOutput?.name),
-    [result, primaryOutput?.name]
-  );
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const { historyCount, lastJobAssets } = useNodeResultHistory(workflowId, id);
+
+  // Card display reflects every generation from the most recent workflow
+  // execution. During/after a run we read live state; on reload or
+  // workflow switch we fall back to the latest job's saved assets so the
+  // full set is restored from the DB.
+  const previewValue = useMemo(() => {
+    if (result !== undefined) {
+      const resolved = resolvePreviewValue(result, primaryOutput?.name);
+      // eslint-disable-next-line no-console
+      console.log("[debug:gen] ContentCardBody live", {
+        nodeId: id,
+        resultIsArray: Array.isArray(result),
+        resultLength: Array.isArray(result) ? result.length : 1,
+        resolvedIsArray: Array.isArray(resolved),
+        resolvedLength: Array.isArray(resolved) ? resolved.length : 1
+      });
+      return resolved;
+    }
+    const fallback = assetsToPreviewValue(lastJobAssets);
+    // eslint-disable-next-line no-console
+    console.log("[debug:gen] ContentCardBody fallback", {
+      nodeId: id,
+      lastJobAssetsLength: lastJobAssets.length,
+      lastJobIds: lastJobAssets.map((a) => a.job_id),
+      fallbackIsArray: Array.isArray(fallback),
+      fallbackLength: Array.isArray(fallback) ? fallback.length : fallback ? 1 : 0
+    });
+    return fallback;
+  }, [result, primaryOutput?.name, lastJobAssets, id]);
+  const handleOpenHistory = useCallback(() => {
+    setHistoryOpen(true);
+  }, []);
+  const handleCloseHistory = useCallback(() => {
+    setHistoryOpen(false);
+  }, []);
 
   const isDynamic = !!nodeMetadata.is_dynamic;
 
@@ -491,7 +661,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   const useNewLayout =
     nodeMetadata.inline_fields !== undefined ||
     nodeMetadata.input_fields !== undefined;
-  const properties = nodeMetadata.properties ?? [];
+  const properties = nodeMetadata.properties ?? EMPTY_PROPERTIES;
   const inlineFieldNameSet = useMemo(
     () => new Set(resolveInlineFieldNames(nodeMetadata, data)),
     [nodeMetadata, data]
@@ -553,7 +723,30 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             is bounded by the preview — keeps `exposedInputs` handles from
             colliding with inline-field rows below. */}
         <HandleColumn id={id} properties={handleProps} />
+        {historyCount > 0 && (
+          <ToolbarIconButton
+            className="history-button"
+            tooltip={`Generation history (${historyCount})`}
+            tooltipPlacement="left"
+            ariaLabel="Open generation history"
+            onClick={handleOpenHistory}
+          >
+            <NotificationBadge count={historyCount} color="primary" size="small">
+              <HistoryIcon />
+            </NotificationBadge>
+          </ToolbarIconButton>
+        )}
       </div>
+
+      {historyOpen && (
+        <NodeHistoryPanel
+          workflowId={workflowId}
+          nodeId={id}
+          nodeName={nodeMetadata.title}
+          open={true}
+          onClose={handleCloseHistory}
+        />
+      )}
 
       {/* Inline fields: rendered as full editors in normal flow under preview.
           Labels are visible here (no display: none). */}

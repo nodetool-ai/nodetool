@@ -3,15 +3,13 @@
  *
  * Bespoke node bodies (BlurBody, CropBody, …) need to display either
  * the upstream value feeding one of their inputs or the node's own latest
- * output. The runtime stores results in three places:
+ * output. The runtime stores results in two places:
  *
  *   - `outputResults` — bare per-output value (streaming / output_update)
  *   - `results`       — `node_complete` envelope, typically `{ output: x }`
- *   - `previews`      — preview snapshots
  *
- * These hooks query all three in the order PreviewNode uses, unwrap the
- * envelope, and return a single bare value so callers don't reimplement
- * the resolution chain.
+ * These hooks query both, unwrap the envelope, and return a single bare
+ * value so callers don't reimplement the resolution chain.
  */
 import { shallow } from "zustand/shallow";
 import { useMemo } from "react";
@@ -28,8 +26,7 @@ const readAnyStoreValue = (
   nodeId: string
 ): unknown =>
   state.getOutputResult(workflowId, nodeId) ??
-  state.getResult(workflowId, nodeId) ??
-  state.getPreview(workflowId, nodeId);
+  state.getResult(workflowId, nodeId);
 
 /**
  * Resolve a node's own latest output value, bare (envelope unwrapped).
