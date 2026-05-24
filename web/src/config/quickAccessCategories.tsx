@@ -14,6 +14,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import HistoryIcon from "@mui/icons-material/History";
 import GridViewIcon from "@mui/icons-material/GridView";
 import SettingsIcon from "@mui/icons-material/Settings";
+import StarIcon from "@mui/icons-material/Star";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import ImageIcon from "@mui/icons-material/Image";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -119,6 +120,7 @@ export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
   { id: "workflows", label: "Workflows", icon: <GridViewIcon /> },
   { id: "settings", label: "Settings", icon: <SettingsIcon /> },
   { id: "history", label: "History", icon: <HistoryIcon /> },
+  { id: "favorites", label: "Favorites", icon: <StarIcon /> },
   {
     id: "assets",
     label: "Assets",

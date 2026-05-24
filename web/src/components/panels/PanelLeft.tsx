@@ -18,6 +18,7 @@ import WorkflowForm from "../workflows/WorkflowForm";
 import AgentPanel from "./AgentPanel";
 import SidebarSearchPanel from "../node_menu/SidebarSearchPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
+import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import QuickAccessGrid from "../node_menu/QuickAccessGrid";
 
@@ -356,6 +357,23 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && <PanelHeadline title="History" />}
           <HistoryTilesPanel />
+        </Box>
+      )}
+      {activeView === "favorites" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            margin: isMobile ? "0" : "0 0.5em",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          {!isMobile && <PanelHeadline title="Favorites" />}
+          <ScrollArea fullHeight>
+            <FavoritesTiles showEmpty />
+          </ScrollArea>
         </Box>
       )}
       {activeView === "assets" && (
