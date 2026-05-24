@@ -320,7 +320,7 @@ if (update.status === "IN_PROGRESS") {
     throw new Error("fal_ai does not support chat generation");
   }
 
-  async *generateMessages(
+  generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
     throw new Error("fal_ai does not support chat generation");

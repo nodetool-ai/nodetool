@@ -160,7 +160,7 @@ export class TopazProvider extends BaseProvider {
     throw new Error("topaz does not support chat generation");
   }
 
-  async *generateMessages(
+  generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
     throw new Error("topaz does not support chat generation");
