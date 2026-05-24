@@ -275,16 +275,15 @@ describe("createKieNodeClass multi-variant", () => {
 
   it("registers num_outputs and isStreamingOutput on image nodes without native num_images", () => {
     const NodeClass = createKieNodeClass(imageSpec);
-    const props = (NodeClass as any).getDeclaredProperties() as Array<{
-      name: string;
-      options: { type: string; min?: number; max?: number; default?: unknown };
-    }>;
+    const props = NodeClass.getDeclaredProperties();
     const numOutputs = props.find((p) => p.name === "num_outputs");
     expect(numOutputs).toBeDefined();
-    expect(numOutputs!.options.type).toBe("int");
-    expect(numOutputs!.options.min).toBe(1);
-    expect(numOutputs!.options.max).toBe(8);
-    expect(numOutputs!.options.default).toBe(1);
+    expect(numOutputs!.options).toMatchObject({
+      type: "int",
+      min: 1,
+      max: 8,
+      default: 1
+    });
     expect((NodeClass as unknown as { isStreamingOutput: boolean }).isStreamingOutput).toBe(true);
     expect(NodeClass.outputCorrelation).toEqual({
       output: { kind: "iteration", source: "__execution__" }
@@ -296,7 +295,7 @@ describe("createKieNodeClass multi-variant", () => {
 
   it("does not register num_outputs on nodes with native num_images", () => {
     const NodeClass = createKieNodeClass(imageSpecWithNativeNumImages);
-    const props = (NodeClass as any).getDeclaredProperties() as Array<{ name: string }>;
+    const props = NodeClass.getDeclaredProperties();
     expect(props.find((p) => p.name === "num_outputs")).toBeUndefined();
     expect(props.find((p) => p.name === "num_images")).toBeDefined();
     expect((NodeClass as unknown as { isStreamingOutput: boolean }).isStreamingOutput).toBe(true);
@@ -304,7 +303,7 @@ describe("createKieNodeClass multi-variant", () => {
 
   it("does not register num_outputs or isStreamingOutput on omni or text-output nodes", () => {
     const NodeClass = createKieNodeClass(audioSpec);
-    const props = (NodeClass as any).getDeclaredProperties() as Array<{ name: string }>;
+    const props = NodeClass.getDeclaredProperties();
     expect(props.find((p) => p.name === "num_outputs")).toBeUndefined();
     expect((NodeClass as unknown as { isStreamingOutput?: boolean }).isStreamingOutput).toBeFalsy();
     expect(NodeClass.outputCorrelation).toBeUndefined();
