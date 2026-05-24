@@ -16,11 +16,12 @@ import { defineModule } from "../../../../module.js";
 
 export const Convolve3x3Params = d.struct({
   // Weights in row-major order: w00 w01 w02 / w10 w11 w12 / w20 w21 w22.
-  // Packed into three vec4f's for std140-friendly alignment; the trailing
-  // `w` of `row1` carries the centre weight, the trailing `w` of `row2`
-  // carries `divisor`, and the trailing `w` of `row0` carries `offset`.
-  // Keeping the schema tight (3 × vec4f) avoids a vec4f array of length 3
-  // plus stride padding worries.
+  // Packed into three vec4f's for std140-friendly alignment. The kernel
+  // weights live in the first three components of each row (`xyz`); the
+  // trailing `w` of `row0` carries `offset`, `row1.w` is unused, and
+  // `row2.w` carries `divisor` (set to 0 to auto-derive from the kernel
+  // sum). Keeping the schema tight (3 × vec4f) avoids a vec4f array of
+  // length 3 plus its stride padding worries.
   row0: d.vec4f, // [w00, w01, w02, offset]
   row1: d.vec4f, // [w10, w11, w12, _unused]
   row2: d.vec4f  // [w20, w21, w22, divisor]

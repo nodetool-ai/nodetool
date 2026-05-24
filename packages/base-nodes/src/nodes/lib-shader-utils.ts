@@ -373,8 +373,9 @@ export async function runRecipeNode(
 }
 
 /**
- * Run a shader against an already-decoded PNG/JPEG/WebP buffer and return a
- * PNG buffer. Used by the legacy sharp-based nodes (lib-image-filter,
+ * Run a shader against an in-memory encoded image buffer (PNG / JPEG /
+ * WebP / raw RGBA — anything `decodeRgba` accepts) and return a PNG
+ * buffer. Used by the legacy sharp-based nodes (lib-image-filter,
  * lib-image-enhance, lib-image-color-grading, lib-image-draw) so their
  * pixel-processing path moves to the GPU while their I/O contract (base64
  * PNG out via `toRef`) stays unchanged. Codec work (decode/encode) stays

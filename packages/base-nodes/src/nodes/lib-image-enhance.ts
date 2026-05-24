@@ -49,28 +49,20 @@ function createEnhanceNode(desc: Desc): NodeClass {
       // cover (AutoContrast, Equalize, AdaptiveContrast, RankFilter).
       if (t.endsWith(".Brightness")) {
         const factor = Number((this as any).factor ?? 1);
-        // PIL/sharp `modulate({ brightness })` = pixel-wise multiply.
-        // `color.brightnessContrast`'s contrast slot is pixel-wise multiply
-        // around mid-grey; we want bare multiply, so we run with brightness=0
-        // and reuse contrast for the multiply itself.
+        // sharp's `modulate({ brightness })` is a pixel-wise multiply
+        // (`rgb *= factor`). The brightness/contrast shader computes
+        // `(src - 0.5) * contrast + 0.5 + brightness`. Solving for a pure
+        // multiply: `contrast = factor`, `brightness = (factor - 1) * 0.5`
+        // collapses to `factor * src` exactly. One pass, no intermediate
+        // PNG round-trip.
         const png = await runShaderOnPngBuffer(
           colorBrightnessContrastV1,
-          { brightness: 0, contrast: factor },
+          { brightness: (factor - 1) * 0.5, contrast: factor },
           new Uint8Array(baseBytes),
           {},
           context
         );
-        // pixel-multiply re-centres around 0.5 in the brightness/contrast
-        // shader; lift the result by `(factor - 1) * 0.5` to match sharp's
-        // pure-multiply semantic.
-        const png2 = await runShaderOnPngBuffer(
-          colorBrightnessContrastV1,
-          { brightness: ((factor - 1) * 0.5), contrast: 1 },
-          png,
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png2), baseObj) };
+        return { output: toRef(Buffer.from(png), baseObj) };
       } else if (t.endsWith(".Color")) {
         const factor = Number((this as any).factor ?? 1);
         const png = await runShaderOnPngBuffer(
