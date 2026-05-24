@@ -253,6 +253,27 @@ describe("data nodes", () => {
       }).process();
       expect(result.output).toEqual([10, 20, 30]);
     });
+
+    it("extracts from UI dataframe constant format", async () => {
+      const result = await Object.assign(new ExtractColumnNode(), {
+        dataframe: {
+          type: "dataframe",
+          columns: [
+            { name: "name", data_type: "string" },
+            { name: "prompt", data_type: "string" }
+          ],
+          data: [
+            ["contour-topographic", " Contour / Topographic."],
+            ["subway-diagram", " Subway Diagram."]
+          ]
+        },
+        column_name: "prompt"
+      }).process();
+      expect(result.output).toEqual([
+        " Contour / Topographic.",
+        " Subway Diagram."
+      ]);
+    });
   });
 
   // -- AddColumnNode --

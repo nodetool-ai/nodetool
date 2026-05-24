@@ -1154,4 +1154,24 @@ describe("data asRows edge cases", () => {
     const res = await __n403.process();
     expect(res.output).toEqual([{ x: 1 }, { x: 2 }]);
   });
+
+  it("handles UI dataframe columns + matrix data", async () => {
+    const __n404 = new ExtractColumnNode();
+    __n404.assign({
+      dataframe: {
+        type: "dataframe",
+        columns: [
+          { name: "name", data_type: "string" },
+          { name: "prompt", data_type: "string" }
+        ],
+        data: [
+          ["alpha", "first prompt"],
+          ["beta", "second prompt"]
+        ]
+      },
+      column_name: "prompt"
+    });
+    const res = await __n404.process();
+    expect(res.output).toEqual(["first prompt", "second prompt"]);
+  });
 });
