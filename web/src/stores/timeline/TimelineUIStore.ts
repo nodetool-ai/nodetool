@@ -154,7 +154,7 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
 export const useIsClipSelected = (id: string): boolean =>
   useTimelineUIStore((state) => state.selectedClipIds.has(id));
 
-/** Returns [selectedClipIds, clearSelection] with shallow equality. */
+/** Returns selection state and actions with shallow equality. */
 export const useSelectionActions = () =>
   useTimelineUIStore(
     useShallow((state) => ({
