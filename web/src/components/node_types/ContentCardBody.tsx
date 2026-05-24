@@ -30,13 +30,10 @@ import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LayersIcon from "@mui/icons-material/Layers";
-import HistoryIcon from "@mui/icons-material/History";
 import {
   CheckerDropzone,
   DynamicInputButton,
   FlexRow,
-  NotificationBadge,
-  ToolbarIconButton,
   VideoPlayer
 } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
@@ -69,7 +66,7 @@ import {
   resolveInlineFieldNames
 } from "../../utils/exposedInputs";
 import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
-import NodeHistoryPanel from "../node/NodeHistoryPanel";
+import NodeHistoryViewer from "../node/NodeHistoryViewer";
 
 const styles = (theme: Theme) =>
   css({
@@ -130,23 +127,6 @@ const styles = (theme: Theme) =>
       ".image-grid-tile .image-output": {
         minHeight: 0,
         height: "100%"
-      },
-      ".history-button": {
-        position: "absolute",
-        top: theme.spacing(0.5),
-        right: theme.spacing(0.5),
-        zIndex: 20,
-        width: 26,
-        height: 26,
-        padding: theme.spacing(0.25),
-        backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
-        color: theme.vars.palette.common.white,
-        "&:hover": {
-          backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
-        },
-        "& svg": {
-          fontSize: 15
-        }
       },
       "& img": {
         display: "block",
@@ -612,43 +592,26 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   const result = useResultsStore((state) =>
     state.getOutputResult(workflowId, id) ?? state.getResult(workflowId, id)
   );
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const { historyCount, lastJobAssets } = useNodeResultHistory(workflowId, id);
+  const { lastJobAssets } = useNodeResultHistory(workflowId, id);
 
-  // Card display reflects every generation from the most recent workflow
-  // execution. During/after a run we read live state; on reload or
-  // workflow switch we fall back to the latest job's saved assets so the
-  // full set is restored from the DB.
-  const previewValue = useMemo(() => {
-    if (result !== undefined) {
-      const resolved = resolvePreviewValue(result, primaryOutput?.name);
-      // eslint-disable-next-line no-console
-      console.log("[debug:gen] ContentCardBody live", {
-        nodeId: id,
-        resultIsArray: Array.isArray(result),
-        resultLength: Array.isArray(result) ? result.length : 1,
-        resolvedIsArray: Array.isArray(resolved),
-        resolvedLength: Array.isArray(resolved) ? resolved.length : 1
-      });
-      return resolved;
-    }
-    const fallback = assetsToPreviewValue(lastJobAssets);
-    // eslint-disable-next-line no-console
-    console.log("[debug:gen] ContentCardBody fallback", {
-      nodeId: id,
-      lastJobAssetsLength: lastJobAssets.length,
-      lastJobIds: lastJobAssets.map((a) => a.job_id),
-      fallbackIsArray: Array.isArray(fallback),
-      fallbackLength: Array.isArray(fallback) ? fallback.length : fallback ? 1 : 0
-    });
-    return fallback;
-  }, [result, primaryOutput?.name, lastJobAssets, id]);
-  const handleOpenHistory = useCallback(() => {
-    setHistoryOpen(true);
-  }, []);
-  const handleCloseHistory = useCallback(() => {
-    setHistoryOpen(false);
-  }, []);
+  // Resolved live (in-memory) result for the primary output. NodeHistoryViewer
+  // takes this as `liveResult` and shows it during a run; otherwise it shows
+  // the indexed history asset.
+  const liveResolvedResult = useMemo(() => {
+    if (result === undefined) return undefined;
+    return resolvePreviewValue(result, primaryOutput?.name);
+  }, [result, primaryOutput?.name]);
+
+  // Fallback for non-media variants (text/generic) where there's no history
+  // navigator: show the latest job's saved assets when the in-memory result
+  // is gone after a page reload.
+  const fallbackPreviewValue = useMemo(() => {
+    if (result !== undefined) return liveResolvedResult;
+    return assetsToPreviewValue(lastJobAssets);
+  }, [result, liveResolvedResult, lastJobAssets]);
+
+  const MEDIA_VARIANTS = ["image", "image_mask", "video", "audio", "model_3d"];
+  const isMediaVariant = MEDIA_VARIANTS.includes(variant);
 
   const isDynamic = !!nodeMetadata.is_dynamic;
 
@@ -718,35 +681,23 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       data-content-card-variant={variant}
     >
       <div className="preview-area">
-        <PreviewArea variant={variant} value={previewValue} />
+        {isMediaVariant ? (
+          <NodeHistoryViewer
+            workflowId={workflowId}
+            nodeId={id}
+            liveResult={liveResolvedResult}
+            renderSingle={(value) => (
+              <PreviewArea variant={variant} value={value} />
+            )}
+          />
+        ) : (
+          <PreviewArea variant={variant} value={fallbackPreviewValue} />
+        )}
         {/* Handle column lives inside the preview so its vertical extent
             is bounded by the preview — keeps `exposedInputs` handles from
             colliding with inline-field rows below. */}
         <HandleColumn id={id} properties={handleProps} />
-        {historyCount > 0 && (
-          <ToolbarIconButton
-            className="history-button"
-            tooltip={`Generation history (${historyCount})`}
-            tooltipPlacement="left"
-            ariaLabel="Open generation history"
-            onClick={handleOpenHistory}
-          >
-            <NotificationBadge count={historyCount} color="primary" size="small">
-              <HistoryIcon />
-            </NotificationBadge>
-          </ToolbarIconButton>
-        )}
       </div>
-
-      {historyOpen && (
-        <NodeHistoryPanel
-          workflowId={workflowId}
-          nodeId={id}
-          nodeName={nodeMetadata.title}
-          open={true}
-          onClose={handleCloseHistory}
-        />
-      )}
 
       {/* Inline fields: rendered as full editors in normal flow under preview.
           Labels are visible here (no display: none). */}
