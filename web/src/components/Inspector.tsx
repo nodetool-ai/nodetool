@@ -224,7 +224,7 @@ const ValidationErrorBanner: React.FC<ValidationErrorBannerProps> = ({
       }
     }
     return out;
-  });
+  }, isEqual);
 
   const handleScrollToField = useCallback((property: string) => {
     // Find the PropertyField inside the inspector and scroll it into view.

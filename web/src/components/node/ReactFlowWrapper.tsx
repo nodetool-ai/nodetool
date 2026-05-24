@@ -421,22 +421,6 @@ const ReactFlowWrapper = ({
 
   useEffect(() => {
     if (!pendingNodeType) {
-      setGhostPosition(null);
-      return;
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        cancelPlacement();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [pendingNodeType, cancelPlacement]);
-
-  useEffect(() => {
-    if (!pendingNodeType) {
       if (ghostRafRef.current !== null) {
         cancelAnimationFrame(ghostRafRef.current);
         ghostRafRef.current = null;
@@ -444,6 +428,12 @@ const ReactFlowWrapper = ({
       setGhostPosition(null);
       return;
     }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        cancelPlacement();
+      }
+    };
 
     const handleMouseMove = (event: MouseEvent) => {
       const { clientX, clientY } = event;
@@ -455,26 +445,21 @@ const ReactFlowWrapper = ({
       });
     };
 
+    const previousCursor = document.body.style.cursor;
+    document.body.style.cursor = "crosshair";
+
+    window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("mousemove", handleMouseMove);
     return () => {
+      window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousemove", handleMouseMove);
       if (ghostRafRef.current !== null) {
         cancelAnimationFrame(ghostRafRef.current);
         ghostRafRef.current = null;
       }
-    };
-  }, [pendingNodeType]);
-
-  useEffect(() => {
-    if (!pendingNodeType) {
-      return;
-    }
-    const previousCursor = document.body.style.cursor;
-    document.body.style.cursor = "crosshair";
-    return () => {
       document.body.style.cursor = previousCursor;
     };
-  }, [pendingNodeType]);
+  }, [pendingNodeType, cancelPlacement]);
 
   const { isConnectionValid } = useConnectionEvents();
 
