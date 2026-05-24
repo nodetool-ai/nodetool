@@ -3,7 +3,6 @@
 
 import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -19,7 +18,8 @@ import {
   EmptyState,
   FlexColumn,
   LoadingSpinner,
-  Panel
+  Panel,
+  Box
 } from "../../ui_primitives";
 import MiniAppInputsForm from "../../miniapps/components/MiniAppInputsForm";
 import type {

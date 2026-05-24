@@ -4,12 +4,11 @@ import { css } from "@emotion/react";
 import {
   Tabs,
   Tab,
-  Box,
   DialogContent,
   Link
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { CloseButton, Text, Tooltip } from "../../ui_primitives";
+import { CloseButton, Text, Tooltip, Box } from "../../ui_primitives";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";

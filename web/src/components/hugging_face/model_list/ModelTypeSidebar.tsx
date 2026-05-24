@@ -1,12 +1,11 @@
 import React, { useCallback } from "react";
 import {
-  Box,
   List,
   ListItem,
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Chip, Text, ToolbarIconButton } from "../../ui_primitives";
+import { Chip, Text, ToolbarIconButton, Box } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/data_types";
 import { prettifyModelType } from "../../../utils/modelFormatting";

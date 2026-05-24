@@ -3,10 +3,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   useMediaQuery
 } from "@mui/material";
-import { ToolbarIconButton } from "../ui_primitives";
+import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
@@ -306,12 +305,10 @@ const PanelContent = memo(function PanelContent({
   if (activeView === "nodes") {
     const sub = getNodeSubcategory(activeNodeCategory) ?? NODE_SUBCATEGORIES[0];
     return (
-      <Box
+      <FlexColumn
+        fullWidth
+        fullHeight
         sx={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
           overflow: "hidden",
           margin: isMobile ? "0" : "0 0.5em"
         }}
@@ -322,41 +319,37 @@ const PanelContent = memo(function PanelContent({
           onSubcategoryChange={setActiveNodeCategory}
         />
         <QuickAccessGrid category={sub} />
-      </Box>
+      </FlexColumn>
     );
   }
 
   return (
     <>
       {activeView === "search" && (
-        <Box
+        <FlexColumn
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
             margin: isMobile ? "0" : "0 0.5em",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            overflow: "hidden"
           }}
         >
           {!isMobile && <PanelHeadline title="Search nodes" />}
           <SidebarSearchPanel />
-        </Box>
+        </FlexColumn>
       )}
       {activeView === "history" && (
-        <Box
+        <FlexColumn
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
             margin: isMobile ? "0" : "0 0.5em",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            overflow: "hidden"
           }}
         >
           {!isMobile && <PanelHeadline title="History" />}
           <HistoryTilesPanel />
-        </Box>
+        </FlexColumn>
       )}
       {activeView === "assets" && (
         <Box
@@ -382,22 +375,20 @@ const PanelContent = memo(function PanelContent({
         </Box>
       )}
       {activeView === "workflows" && (
-        <Box
+        <FlexColumn
           className="workflow-grid-container"
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
             margin: isMobile ? "0" : "0 1em",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            overflow: "hidden"
           }}
         >
           {!isMobile && <PanelHeadline title="Workflows" />}
           <ScrollArea fullHeight>
             <WorkflowList />
           </ScrollArea>
-        </Box>
+        </FlexColumn>
       )}
       {activeView === "settings" && currentWorkflow && (
         <Box
@@ -412,18 +403,16 @@ const PanelContent = memo(function PanelContent({
         </Box>
       )}
       {activeView === "agent" && (
-        <Box
+        <FlexColumn
           className="agent-panel-container"
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            overflow: "hidden"
           }}
         >
           <AgentPanel />
-        </Box>
+        </FlexColumn>
       )}
     </>
   );
@@ -562,11 +551,9 @@ const MobilePanelLeft: React.FC<{
           </div>
         }
       >
-        <Box
+        <FlexColumn
           sx={{
             height: "65vh",
-            display: "flex",
-            flexDirection: "column",
             overflow: "hidden"
           }}
         >
@@ -580,7 +567,7 @@ const MobilePanelLeft: React.FC<{
               isMobile
             />
           </ContextMenuProvider>
-        </Box>
+        </FlexColumn>
       </MobileBottomSheet>
     </>
   );

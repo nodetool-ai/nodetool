@@ -3,7 +3,6 @@ import React, { memo, useEffect } from "react";
 import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
-  Box,
   ButtonBase,
   Divider,
   IconButton,
@@ -11,6 +10,7 @@ import {
   Stack,
   Typography
 } from "@mui/material";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import RestoreIcon from "@mui/icons-material/Restore";
@@ -120,9 +120,9 @@ function SelectionMenuItem({
         }
       }}
     >
-      <Box sx={{ flex: "0 0 auto", display: "flex", color: "text.secondary" }}>
+      <FlexRow sx={{ flex: "0 0 auto", color: "text.secondary" }}>
         {icon}
-      </Box>
+      </FlexRow>
       <Typography sx={{ flex: 1, fontSize: SKETCH_FONT.md, fontWeight: 500, color: "text.primary" }}>
         {label}
       </Typography>
@@ -464,20 +464,18 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
         }
       }}
     >
-      <Box
+      <FlexColumn
         className="sketch-context-menu__root"
-        sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}
+        gap={1.25}
       >
-        <Box
+        <FlexRow
           className="sketch-context-menu__header"
+          align="center"
+          gap={1}
           sx={{
             flex: "0 0 auto",
             minHeight: CONTEXT_MENU_HEADER_HEIGHT_PX,
             boxSizing: "border-box",
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 1,
             px: 1.25,
             py: 0.5,
             borderRadius: "8px",
@@ -531,13 +529,14 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               my: 0.75
             }}
           />
-          <Box
+          <FlexRow
             className="sketch-context-menu__header-colors"
-            sx={{ flex: "0 0 auto", display: "flex", alignItems: "center" }}
+            align="center"
+            sx={{ flex: "0 0 auto" }}
           >
             {renderColorContext()}
-          </Box>
-        </Box>
+          </FlexRow>
+        </FlexRow>
 
         <Box
           className="sketch-context-menu__body"
@@ -692,16 +691,14 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             )}
           </Stack>
 
-          <Box
+          <FlexColumn
             className="sketch-context-menu__tools-column"
             sx={{
               minWidth: 0,
               alignSelf: "stretch",
               borderRadius: "8px",
               px: 1.15,
-              py: 1.1,
-              display: "flex",
-              flexDirection: "column"
+              py: 1.1
             }}
           >
             <SectionLabel>Tools</SectionLabel>
@@ -744,9 +741,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 </React.Fragment>
               ))}
             </Stack>
-          </Box>
+          </FlexColumn>
         </Box>
-      </Box>
+      </FlexColumn>
       </Popover>
     </>
   );

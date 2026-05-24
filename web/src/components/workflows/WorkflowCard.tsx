@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Box, Fade } from "@mui/material";
-import { Text, Tooltip, LoadingSpinner } from "../ui_primitives";
+import { Fade } from "@mui/material";
+import { Text, Tooltip, LoadingSpinner, Box } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";

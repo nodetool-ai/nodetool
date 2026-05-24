@@ -21,7 +21,6 @@ import {
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   IconButton,
   Menu,
   Slider,
@@ -32,6 +31,7 @@ import {
   MenuItem,
   FormControl
 } from "@mui/material";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -921,13 +921,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
       {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
       <Box className="layer-actions sketch-layers-panel__layer-toolbar">
-        <Box
+        <FlexRow
           className="sketch-layers-panel__add-layers-row"
+          align="center"
+          wrap
+          gap={0.5}
           sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 0.5,
             rowGap: 0.5
           }}
         >
@@ -1127,17 +1126,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               />
             </IconButton>
           </Tooltip>
-        </Box>
+        </FlexRow>
       </Box>
 
       <Divider />
 
       {/* Layer list: cap height (~half viewport) so many layers scroll without stretching the panel */}
-      <Box
+      <FlexColumn
         className="sketch-layers-panel__layer-list-scroll"
         sx={{
-          display: "flex",
-          flexDirection: "column",
           gap: "2px",
           minHeight: 0,
           maxHeight: "50vh",
@@ -1189,20 +1186,19 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             />
           );
         })}
-      </Box>
+      </FlexColumn>
 
       <Divider />
 
       {/* Unified ops toolbar (below the layer list, close to the rows it acts on).
           Grouped left → right: Lifecycle | Combine | Transform | Roles.
           Sub-groups are separated by short vertical dividers for scannability. */}
-      <Box
+      <FlexRow
         className="sketch-layers-panel__layer-ops"
+        align="center"
+        wrap
+        gap={0.25}
         sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 0.25,
           rowGap: 0.5,
           minHeight: 30,
           py: 0.25,
@@ -1427,7 +1423,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </IconButton>
           </Tooltip>
         </Box>
-      </Box>
+      </FlexRow>
 
       {/* ── Merge submenu ── */}
       <Menu

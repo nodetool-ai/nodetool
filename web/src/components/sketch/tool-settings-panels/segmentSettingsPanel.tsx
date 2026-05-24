@@ -1,6 +1,5 @@
 import React, { memo, useEffect } from "react";
 import {
-  Box,
   Button,
   FormControlLabel,
   Slider,
@@ -21,7 +20,7 @@ import {
   LOCAL_SAM3_CAPABILITIES,
   LOCAL_SAM3_MODEL_ID
 } from "../sam";
-import { TextInput } from "../../ui_primitives";
+import { FlexRow, TextInput, Box } from "../../ui_primitives";
 import {
   sketchButtonSmallSx,
   sketchSliderSx,
@@ -423,7 +422,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         </>
       )}
 
-      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: "4px" }}>
+      <FlexRow wrap gap={0.5} sx={{ mt: "4px" }}>
         {!isRunning && !isPreviewing && (
           <>
             {canDownloadLocalSam3 && (
@@ -518,7 +517,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             </Button>
           </>
         )}
-      </Box>
+      </FlexRow>
 
       <Typography
         sx={{

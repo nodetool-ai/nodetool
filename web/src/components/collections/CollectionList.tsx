@@ -1,6 +1,5 @@
 import {
-  Box,
-  List,
+  List
 } from "@mui/material";
 import { memo, useEffect, useCallback, useMemo } from "react";
 import CollectionForm from "./CollectionForm";
@@ -20,7 +19,8 @@ import {
   ListGroup,
   ListItemRow,
   Surface,
-  Text
+  Text,
+  Box
 } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 

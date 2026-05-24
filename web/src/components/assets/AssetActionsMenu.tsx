@@ -2,7 +2,6 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState } from "react";
-import { Box } from "@mui/material";
 import TuneIcon from "@mui/icons-material/Tune";
 import FolderIcon from "@mui/icons-material/Folder";
 import FolderOffIcon from "@mui/icons-material/FolderOff";
@@ -30,7 +29,8 @@ import {
   Popover,
   MenuItemPrimitive,
   SearchInput,
-  FlexRow
+  FlexRow,
+  Box
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
 import isEqual from "fast-deep-equal";
@@ -148,12 +148,11 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
 
   return (
     <Box className="asset-menu" sx={{ width: "100%" }}>
-      <Box
+      <FlexRow
         className="asset-menu-toolbar"
+        align="center"
+        gap={0.25}
         sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.25,
           px: 0.5,
           py: 0.25
         }}
@@ -187,18 +186,17 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
               : undefined
           }}
         >
-          <Box
+          <FlexRow
+            align="center"
+            gap={0.5}
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.5,
               "& .MuiSvgIcon-root": { fontSize: 18 }
             }}
           >
             {TYPE_FILTER_ICONS[typeFilter]}
             <span>{typeFilterLabel}</span>
             <ArrowDropDownIcon />
-          </Box>
+          </FlexRow>
         </ToolbarIconButton>
         <ToolbarIconButton
           tooltip={workflowFilter ? `Workflow: ${activeWorkflowName}` : "Filter by workflow"}
@@ -240,7 +238,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           tooltip="Upload files"
           multiple
         />
-      </Box>
+      </FlexRow>
 
       <Popover
         open={Boolean(typeFilterAnchor)}

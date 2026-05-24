@@ -7,7 +7,6 @@ import React, {
   useState
 } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
 import {
   Text,
   Caption,
@@ -17,6 +16,7 @@ import {
   FlexRow,
   FlexColumn,
   EditorButton,
+  Box
 } from "../ui_primitives";
 import { useParams } from "react-router-dom";
 

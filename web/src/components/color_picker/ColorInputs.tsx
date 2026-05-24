@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { TextField, InputAdornment, Box } from "@mui/material";
+import { TextField, InputAdornment } from "@mui/material";
+import { Box } from "../ui_primitives";
 import { useColorConversion } from "../../hooks/useColorConversion";
 import type { ColorMode } from "../../hooks/useColorConversion";
 

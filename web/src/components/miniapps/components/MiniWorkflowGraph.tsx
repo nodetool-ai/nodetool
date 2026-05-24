@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
-import { Box } from "@mui/material";
-import { Caption, Tooltip } from "../../ui_primitives";
+import { Caption, Tooltip, Box } from "../../ui_primitives";
 import useStatusStore, { hashKey } from "../../../stores/StatusStore";
 import { Workflow } from "../../../stores/ApiTypes";
 

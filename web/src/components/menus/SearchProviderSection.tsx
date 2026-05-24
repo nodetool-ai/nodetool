@@ -5,10 +5,10 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Box,
   Stack,
   Chip
 } from "@mui/material";
+import { FlexRow, Box } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import { TextInput, Text } from "../ui_primitives";
@@ -141,10 +141,9 @@ const SearchProviderSection = memo(function SearchProviderSection({
         </FormControl>
 
         {/* Provider Status */}
-        <Box
+        <FlexRow
+          align="center"
           sx={{
-            display: "flex",
-            alignItems: "center",
             gap: "0.5em",
             marginBottom: "1em",
             padding: "0.75em",
@@ -177,7 +176,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
               ? "✓ Credentials configured"
               : "✗ Missing credentials"}
           </Text>
-        </Box>
+        </FlexRow>
 
         {/* Provider Description */}
         <Text className="description">{config?.description}</Text>

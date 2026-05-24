@@ -1,5 +1,4 @@
 import React, { memo, useCallback } from "react";
-import { Box } from "@mui/material";
 import { Check } from "@mui/icons-material";
 import {
   BORDER_RADIUS,
@@ -7,7 +6,8 @@ import {
   DeleteButton,
   EditorButton,
   LoadingSpinner,
-  Tooltip
+  Tooltip,
+  Box
 } from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 

@@ -6,11 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
 import {
-  Box,
   Button,
   Skeleton
 } from "@mui/material";
-import { Text, Caption } from "../ui_primitives";
+import { Text, Caption, Box } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";

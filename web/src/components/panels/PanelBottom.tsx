@@ -2,12 +2,13 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Drawer } from "@mui/material";
+import { Drawer } from "@mui/material";
 import {
   CloseButton,
   Divider,
   ToolbarIconButton,
-  Tooltip
+  Tooltip,
+  Box
 } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import {

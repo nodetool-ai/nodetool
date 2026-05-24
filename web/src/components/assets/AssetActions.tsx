@@ -14,8 +14,7 @@ import {
   DialogContent,
   DialogTitle,
   Select,
-  MenuItem,
-  Box
+  MenuItem
 } from "@mui/material";
 import { EditorButton } from "../editor_ui";
 
@@ -33,7 +32,7 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { UploadButton, Tooltip, LoadingSpinner } from "../ui_primitives";
+import { UploadButton, Tooltip, LoadingSpinner, Box } from "../ui_primitives";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;

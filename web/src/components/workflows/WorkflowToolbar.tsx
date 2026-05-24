@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState, useMemo } from "react";
-import { Box, Menu, MenuItem } from "@mui/material";
+import { Menu, MenuItem } from "@mui/material";
 import SearchInput from "../search/SearchInput";
-import { ToolbarIconButton, DeleteButton, Tooltip, Chip } from "../ui_primitives";
+import { ToolbarIconButton, DeleteButton, Tooltip, Chip, Box } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";

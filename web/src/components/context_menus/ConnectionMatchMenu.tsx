@@ -2,10 +2,9 @@ import React, { useCallback, memo } from "react";
 import {
   Menu,
   MenuItem,
-  ListItemText,
-  Box
+  ListItemText
 } from "@mui/material";
-import { Caption, Divider, Text } from "../ui_primitives";
+import { Caption, Divider, Text, Box } from "../ui_primitives";
 import { Connection } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
 

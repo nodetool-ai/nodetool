@@ -5,7 +5,6 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
 
 // mui
-import { Box } from "@mui/material";
 
 // components
 import TypeFilterChips from "./TypeFilterChips";
@@ -21,7 +20,7 @@ import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
-import { FlexColumn, FlexRow, Chip } from "../ui_primitives";
+import { FlexColumn, FlexRow, Chip, Box } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
 const treeStyles = (theme: Theme) =>

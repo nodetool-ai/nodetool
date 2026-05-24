@@ -7,8 +7,7 @@
  */
 
 import React, { useMemo } from "react";
-import { Box } from "@mui/material";
-import { Caption, FlexColumn, Surface } from "../ui_primitives";
+import { Caption, FlexColumn, Surface, Box } from "../ui_primitives";
 import { Graph } from "../../stores/ApiTypes";
 
 // Data structure that has graph - can be WorkflowVersion or Workflow

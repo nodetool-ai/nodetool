@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
-import { Box } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, Box } from "../ui_primitives";
 interface VideoViewerProps {
   asset?: Asset;
   url?: string;

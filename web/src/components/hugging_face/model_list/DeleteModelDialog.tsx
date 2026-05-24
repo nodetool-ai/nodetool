@@ -4,10 +4,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Box,
   useTheme
 } from "@mui/material";
-import { Dialog, EditorButton, LoadingSpinner } from "../../ui_primitives";
+import { Dialog, EditorButton, FlexRow, LoadingSpinner } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   isFileExplorerAvailable,
@@ -183,9 +182,9 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
           Delete {modelId}?
         </DialogContentText>
         {isDeleting && (
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+          <FlexRow justify="center" sx={{ mt: 2 }}>
             <LoadingSpinner size="medium" />
-          </Box>
+          </FlexRow>
         )}
       </DialogContent>
       <DialogActions>

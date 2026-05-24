@@ -2,8 +2,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { Menu, Box } from "@mui/material";
-import { EditorButton, Text, Divider } from "../ui_primitives";
+import { Menu } from "@mui/material";
+import { EditorButton, Text, Divider, FlexRow } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -333,11 +333,10 @@ const PaneContextMenu: React.FC = () => {
         />
         {favorites.length > 0 && [
           <Divider key="favorites-divider" />,
-          <Box
+          <FlexRow
             key="favorites-header"
+            align="center"
             sx={{
-              display: "flex",
-              alignItems: "center",
               gap: "0.5em",
               padding: "4px 16px",
               color: "text.secondary",
@@ -351,7 +350,7 @@ const PaneContextMenu: React.FC = () => {
               sx={{ fontSize: "0.85rem", color: "warning.main" }}
             />
             <Text>Favorites</Text>
-          </Box>,
+          </FlexRow>,
           ...favorites.map((favorite) => {
             const displayName = getNodeDisplayName(favorite.nodeType);
             return (

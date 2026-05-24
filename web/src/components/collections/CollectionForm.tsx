@@ -3,7 +3,6 @@ import { css, keyframes } from "@emotion/react";
 import React from "react";
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Box } from "@mui/material";
 import {
   FormField,
   Text,
@@ -11,7 +10,8 @@ import {
   FlexColumn,
   LoadingSpinner,
   TextInput,
-  EditorButton
+  EditorButton,
+  Box
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
