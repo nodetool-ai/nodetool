@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { createFakeContext, stubGlobalFetch } from "../src/testing.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
 
@@ -15,6 +17,23 @@ describe("createFakeContext", () => {
       handle.cleanup();
       expect(fs.existsSync(handle.workspaceDir)).toBe(false);
     }
+  });
+
+  it("cleanup() leaves a caller-supplied workspace dir alone", () => {
+    // Verifies the safety guard: only auto-created temp dirs get removed.
+    // A caller passing their own directory must not have it rm-rf'd.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-own-ws-"));
+    const sentinel = path.join(dir, "do-not-delete.txt");
+    fs.writeFileSync(sentinel, "keep me", "utf8");
+    const handle = createFakeContext({ workspaceDir: dir });
+    try {
+      expect(handle.workspaceDir).toBe(dir);
+    } finally {
+      handle.cleanup();
+    }
+    expect(fs.existsSync(dir)).toBe(true);
+    expect(fs.readFileSync(sentinel, "utf8")).toBe("keep me");
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 
   it("resolves any providerId to a FakeProvider and caches it", async () => {
@@ -48,12 +67,14 @@ describe("createFakeContext", () => {
   it("fetch stub returns 200 with empty body by default", async () => {
     const handle = createFakeContext();
     try {
-      const stub = (handle.context as unknown as { _fetch: typeof fetch })
-        ._fetch;
-      const r = await stub("http://example.invalid/x");
+      // Exercise the stub through the public HTTP helper so the test
+      // doesn't depend on ProcessingContext's private `_fetch` field.
+      const r = await handle.context.httpGet("http://example.invalid/x");
       expect(r.status).toBe(200);
       expect(await r.text()).toBe("");
-      const j = await (await stub("http://example.invalid/api/x")).text();
+      const j = await (
+        await handle.context.httpGet("http://example.invalid/api/x")
+      ).text();
       expect(j).toBe("{}");
     } finally {
       handle.cleanup();
@@ -160,5 +181,32 @@ describe("FakeProvider media capabilities", () => {
     });
     expect(result).toHaveLength(3);
     expect(result[0]).toHaveLength(4);
+  });
+
+  it("tool burst is shared across generateMessage and generateMessages", async () => {
+    const p = new FakeProvider({ toolCallsPerTool: 2 });
+    const tools = [{ name: "add_item" }];
+
+    const first = await p.generateMessage({
+      messages: [],
+      model: "x",
+      tools
+    });
+    expect(first.toolCalls).toHaveLength(2);
+
+    // Second invocation — via the streaming API — must NOT emit another
+    // burst because the counter is shared.
+    const items: unknown[] = [];
+    for await (const item of p.generateMessages({
+      messages: [],
+      model: "x",
+      tools
+    })) {
+      items.push(item);
+    }
+    // Only the default text chunk should arrive (no tool calls).
+    expect(items.every((i) => (i as { type?: string }).type === "chunk")).toBe(
+      true
+    );
   });
 });

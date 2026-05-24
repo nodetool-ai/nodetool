@@ -179,6 +179,7 @@ describe.each(workflows)("workflow $fileName", ({ data, fileName }) => {
     expect(Array.isArray(data.graph.nodes)).toBe(true);
     expect(Array.isArray(data.graph.edges)).toBe(true);
     expect(nodes.length).toBeGreaterThan(0);
+    expect(edges.length).toBeGreaterThan(0);
   });
 
   it("every node has a unique string id and a string type", () => {

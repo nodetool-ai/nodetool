@@ -106,12 +106,17 @@ export interface FakeProviderOptions {
   chunkSize?: number;
   customResponseFn?: CustomResponseFn;
   /**
-   * When set, and the caller passes a non-empty `tools` array without a
-   * preset `toolCalls`/`customResponseFn`/non-default `textResponse`, the
-   * provider emits this many tool calls per declared tool on its FIRST
-   * `generateMessages` invocation, then stops on later ones. This lets
-   * tool-loop-style consumers (e.g. ListGenerator's `add_item` loop)
-   * exit cleanly instead of hanging.
+   * When set, and the caller passes a non-empty `tools` array without
+   * preset `toolCalls` or a `customResponseFn`, the provider emits this
+   * many tool calls per declared tool on its FIRST call to either
+   * `generateMessage` or `generateMessages`, then stops emitting tool
+   * calls on later invocations of either method. The two methods share
+   * the same burst counter so a `generateMessage` followed by a
+   * `generateMessages` (or vice versa) yields one burst total.
+   *
+   * This lets tool-loop-style consumers (e.g. ListGenerator's `add_item`
+   * loop, DataGenerator's `add_row` loop) exit cleanly instead of
+   * hanging.
    *
    * Defaults to 3. Set to 0 to disable.
    */

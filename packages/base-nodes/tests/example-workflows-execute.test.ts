@@ -183,6 +183,7 @@ interface OutcomeSummary {
   status: ExecutionResult["status"];
   errorClass: string | null;
   durationMs: number;
+  errorMessage?: string;
 }
 
 /** Bucket an error message into a small, stable class so the summary is
@@ -249,18 +250,28 @@ describe.each(workflows)(
           fileName,
           status: result.status,
           errorClass: classifyError(result.error),
-          durationMs: result.durationMs
+          durationMs: result.durationMs,
+          errorMessage: result.error
         };
-
-        // Surface the summary in the assertion message so a single test
-        // failure carries the diagnosis.
         const detail = JSON.stringify(summary, null, 2);
+
         expect(
           ["completed", "failed", "errored", "cancelled"].includes(
             result.status
           ),
           `unexpected status: ${detail}`
         ).toBe(true);
+
+        // If the workflow did not complete, the error must fit into one
+        // of the known buckets. An "other" classification means we hit a
+        // failure mode we haven't characterised — that's a regression
+        // worth surfacing rather than swallowing.
+        if (result.status !== "completed") {
+          expect(
+            summary.errorClass,
+            `unclassified failure — add a new error bucket if this is expected:\n${detail}`
+          ).not.toBe("other");
+        }
 
         // A workflow that completed must produce sensible per-output arrays.
         if (result.status === "completed" && result.outputs) {

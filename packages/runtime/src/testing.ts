@@ -99,6 +99,7 @@ function defaultFakeFetch(): (
 export function createFakeContext(
   options: FakeContextOptions = {}
 ): FakeContextHandle {
+  const ownsWorkspaceDir = options.workspaceDir == null;
   const workspaceDir =
     options.workspaceDir ??
     fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-fake-ws-"));
@@ -144,6 +145,10 @@ export function createFakeContext(
     workspaceDir,
     providers,
     cleanup: () => {
+      // Only remove the workspace dir if we created it. When the caller
+      // supplied their own path, leave the directory alone — a stray
+      // `rm -rf` on a caller-owned path would be dangerous.
+      if (!ownsWorkspaceDir) return;
       try {
         fs.rmSync(workspaceDir, { recursive: true, force: true });
       } catch {
