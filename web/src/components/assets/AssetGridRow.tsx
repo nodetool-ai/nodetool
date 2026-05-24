@@ -16,6 +16,17 @@ import {
 } from "../../config/constants";
 import { ExpandCollapseButton } from "../ui_primitives";
 
+const TYPE_LABELS: Record<string, string> = {
+  image: "Images",
+  video: "Videos",
+  audio: "Audio",
+  model_3d: "3D Models",
+  text: "Text",
+  application: "Documents",
+  folder: "Folders",
+  other: "Other"
+};
+
 interface AssetGridRowProps {
   index: number;
   style: React.CSSProperties;
@@ -118,9 +129,11 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     };
     const isExpanded = expandedTypes.has(divider.type);
 
+    const typeLabel = TYPE_LABELS[divider.type] ?? divider.type;
+
     return (
       <Tooltip
-        title={`${isExpanded ? "Collapse" : "Expand"} ${divider.type} files`}
+        title={`${isExpanded ? "Collapse" : "Expand"} ${typeLabel.toLowerCase()}`}
         placement="bottom"
         delay={TOOLTIP_ENTER_DELAY * 2}
         nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
@@ -133,7 +146,8 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
             boxSizing: "border-box",
             display: "flex",
             alignItems: "center",
-            cursor: "pointer"
+            cursor: "pointer",
+            gap: "8px"
           }}
           className="content-type-header"
           onClick={handleToggleExpanded}
@@ -141,38 +155,47 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           <Text
             size="small"
             style={{
-              display: "inline-block",
-              margin: "0 1em 0 .5em",
-              color: theme.vars.palette.grey[200],
-              flexGrow: 1
+              color: theme.vars.palette.grey[300],
+              lineHeight: 1,
+              whiteSpace: "nowrap"
             }}
           >
             {divider.count}
           </Text>
+          <IconForType
+            iconName={divider.type}
+            containerStyle={{
+              borderRadius: "0 0 3px 0",
+              marginLeft: "0",
+              marginTop: "0"
+            }}
+            bgStyle={{
+              backgroundColor: "transparent",
+              width: "15px"
+            }}
+            showTooltip={false}
+          />
+          <Text
+            size="small"
+            weight={600}
+            style={{
+              color: theme.vars.palette.grey[100],
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              lineHeight: 1,
+              whiteSpace: "nowrap"
+            }}
+          >
+            {typeLabel}
+          </Text>
           <div
             className="divider"
             style={{
-              width: "100%",
+              flex: 1,
               height: "2px",
               backgroundColor: colorForType(divider.type)
             }}
           />
-          <span style={{ marginLeft: "8px" }}>
-            <IconForType
-              iconName={divider.type}
-              containerStyle={{
-                borderRadius: "0 0 3px 0",
-                marginLeft: "0.1em",
-                marginTop: "0"
-              }}
-              bgStyle={{
-                backgroundColor: "transparent",
-                width: "15px"
-              }}
-              showTooltip={false}
-            />
-          </span>
-
           <ExpandCollapseButton
             expanded={isExpanded}
             onClick={emptyCallback}

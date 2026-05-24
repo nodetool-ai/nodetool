@@ -67,6 +67,7 @@ let mockWebSocketInstance: MockWebSocket | null = null;
 global.WebSocket = class extends MockWebSocket {
   constructor(url: string) {
     super(url);
+    // oxlint-disable-next-line no-this-alias
     mockWebSocketInstance = this;
   }
 };

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { Asset, AssetWithPath } from "./ApiTypes";
 import { SizeFilterKey, TypeFilterKey } from "../utils/formatUtils";
 
@@ -77,7 +78,9 @@ interface AssetGridState {
   setWorkflowFilter: (workflowId: string | null) => void;
 }
 
-export const useAssetGridStore = create<AssetGridState>((set, get) => ({
+export const useAssetGridStore = create<AssetGridState>()(
+  persist(
+    (set, get) => ({
   assetItemSize: 2,
   sizeFilter: "all",
   typeFilter: "all",
@@ -138,7 +141,7 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   createFolderDialogOpen: false,
   setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),
 
-  foldersVisible: true,
+  foldersVisible: false,
   toggleFoldersVisible: () =>
     set((state) => ({ foldersVisible: !state.foldersVisible })),
   isRenaming: null,
@@ -164,4 +167,19 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   // Workflow filter
   workflowFilter: null,
   setWorkflowFilter: (workflowId) => set({ workflowFilter: workflowId })
-}));
+}),
+    {
+      name: "asset-grid-storage",
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        foldersVisible: state.foldersVisible,
+        viewMode: state.viewMode,
+        typeFilter: state.typeFilter,
+        sizeFilter: state.sizeFilter,
+        assetItemSize: state.assetItemSize,
+        isHorizontal: state.isHorizontal
+      })
+    }
+  )
+);

@@ -320,6 +320,7 @@ if (update.status === "IN_PROGRESS") {
     throw new Error("fal_ai does not support chat generation");
   }
 
+  // eslint-disable-next-line require-yield
   async *generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
