@@ -472,11 +472,17 @@ export class NodeActor {
     const maxBuckets = new Map<string, Map<string, MessageEnvelope[]>>();
     const prefixSticky = new Map<string, Map<string, MessageEnvelope>>();
     const emptySticky = new Map<string, MessageEnvelope>();
+    // For empty-scope multi-edge list inputs, accumulate every envelope
+    // instead of overwriting. Drained as an array when the node fires.
+    const emptyListEnvelopes = new Map<string, MessageEnvelope[]>();
+
+    const isListInput = (h: string): boolean => this._listInputHandles.has(h);
 
     for (const h of dataHandles) {
       const cls = handleClass.get(h);
       if (cls === "max") maxBuckets.set(h, new Map());
       else if (cls === "prefix") prefixSticky.set(h, new Map());
+      else if (cls === "empty" && isListInput(h)) emptyListEnvelopes.set(h, []);
     }
 
     const fired = new Set<string>();
@@ -497,6 +503,9 @@ export class NodeActor {
             }
             return false;
           }
+          // Multi-edge list inputs aggregate every envelope: wait for the
+          // handle to close so we capture the full set.
+          if (isListInput(h) && this.inbox.isOpen(h)) return false;
         } else if (cls === "prefix") {
           // Need a sticky value for the projected parent key.
           const parentScope = handleScope.get(h)!;
@@ -507,8 +516,11 @@ export class NodeActor {
           const stickyMap = prefixSticky.get(h)!;
           if (!stickyMap.has(parentKey)) return false;
         } else {
-          // empty-scope sticky
-          if (!emptySticky.has(h)) {
+          // empty-scope sticky / list
+          if (isListInput(h)) {
+            // Multi-edge list at empty scope: wait for close to aggregate.
+            if (this.inbox.isOpen(h)) return false;
+          } else if (!emptySticky.has(h)) {
             // Allow node properties / dynamic_properties to supply defaults:
             // _executeWithInputs already merges them. So an empty-scope
             // handle without an envelope is treated as "use the node's
@@ -531,10 +543,18 @@ export class NodeActor {
         if (cls === "max") {
           const bucket = maxBuckets.get(h)!.get(key);
           if (!bucket || bucket.length === 0) continue;
-          const env = bucket.shift()!;
-          envelopes.set(h, env);
-          values[h] = env.data;
-          if (bucket.length === 0) maxBuckets.get(h)!.delete(key);
+          if (isListInput(h)) {
+            // Drain every envelope into a list; pick the last for lineage.
+            const drained = bucket.splice(0);
+            envelopes.set(h, drained[drained.length - 1]);
+            values[h] = drained.map((e) => e.data);
+            maxBuckets.get(h)!.delete(key);
+          } else {
+            const env = bucket.shift()!;
+            envelopes.set(h, env);
+            values[h] = env.data;
+            if (bucket.length === 0) maxBuckets.get(h)!.delete(key);
+          }
         } else if (cls === "prefix") {
           const parentScope = handleScope.get(h)!;
           const parentKey = trimKey(key, parentScope.length);
@@ -544,10 +564,18 @@ export class NodeActor {
             values[h] = env.data;
           }
         } else {
-          const env = emptySticky.get(h);
-          if (env) {
-            envelopes.set(h, env);
-            values[h] = env.data;
+          if (isListInput(h)) {
+            const envs = emptyListEnvelopes.get(h) ?? [];
+            if (envs.length > 0) {
+              envelopes.set(h, envs[envs.length - 1]);
+              values[h] = envs.map((e) => e.data);
+            }
+          } else {
+            const env = emptySticky.get(h);
+            if (env) {
+              envelopes.set(h, env);
+              values[h] = env.data;
+            }
           }
         }
       }
@@ -620,12 +648,20 @@ export class NodeActor {
         );
         await tryFire(candidates);
       } else {
-        emptySticky.set(handle, envelope);
+        if (isListInput(handle)) {
+          emptyListEnvelopes.get(handle)!.push(envelope);
+        } else {
+          emptySticky.set(handle, envelope);
+        }
         // Empty-scope arrival can unblock any pending max-scope key.
         const candidates = enumerateAllPendingKeys(maxBuckets);
         await tryFire(candidates);
       }
     }
+
+    // After iteration ends, every handle is closed. Multi-edge list inputs
+    // gated on close are now ready: re-fire any pending max-scope keys.
+    await tryFire(enumerateAllPendingKeys(maxBuckets));
 
     // If the node has no max-scope inputs (all empty / prefix), fire once.
     if (
@@ -647,6 +683,14 @@ export class NodeActor {
           const first = sticky.values().next().value as MessageEnvelope;
           envelopes.set(h, first);
           values[h] = first.data;
+        } else if (isListInput(h)) {
+          const envs = emptyListEnvelopes.get(h) ?? [];
+          if (envs.length > 0) {
+            envelopes.set(h, envs[envs.length - 1]);
+            values[h] = envs.map((e) => e.data);
+          } else if (this.inbox.isOpen(h)) {
+            readyOrAllowed = false;
+          }
         } else {
           const env = emptySticky.get(h);
           if (env) {
