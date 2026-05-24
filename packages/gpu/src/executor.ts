@@ -30,7 +30,10 @@ import {
   FULLSCREEN_VERTEX_ENTRY
 } from "./fullscreenQuad.js";
 import { moduleKey, type ShaderModule, type ShaderVariant } from "./module.js";
+import { alphaPremulToStraightV1 } from "./shaders/alpha/premulToStraight/v1/module.js";
+import { alphaStraightToPremulV1 } from "./shaders/alpha/straightToPremul/v1/module.js";
 import type { LabeledTexture } from "./texture.js";
+import type { AlphaMode } from "./types.js";
 
 export type ExecutorDispatch =
   | { kind: "fragment" }
@@ -188,7 +191,92 @@ export function createExecutor(): Executor {
             `"${bound.meta.bindingKind}", expected one of [${contract.bindingKinds.join(", ")}]`
         );
       }
+      // colorSpace strict-check is deferred until `color/convert/*` modules
+      // land (Phase 3b); without them there is no safe way to auto-bridge a
+      // gamma↔linear mismatch, so failing loud here would just trip recipes
+      // whose internal modules already disagree about color space.
+      // alpha is checked-and-auto-bridged in `convertAlphaIfNeeded`.
     }
+  }
+
+  /**
+   * Phase 3a alpha auto-insert: when a bound input's `meta.alpha` doesn't
+   * match the module's contract, encode an `alpha/convert/*` pass into the
+   * same encoder and substitute the converted texture. Scratch textures used
+   * for the conversion are released after the main dispatch is encoded — the
+   * GPU queue serializes the recorded passes, so the scratch is safe to reuse.
+   */
+  function convertAlphaIfNeeded(
+    args: EncodeArgs<AnyWgslStruct>
+  ): { inputs: Record<string, LabeledTexture>; scratchToRelease: LabeledTexture[] } {
+    const { ctx, module, encoder, inputs } = args;
+    const converted: Record<string, LabeledTexture> = { ...inputs };
+    const scratchToRelease: LabeledTexture[] = [];
+    for (const [name, contract] of Object.entries(module.io.inputs)) {
+      const bound = converted[name];
+      if (!bound) {
+        continue;
+      }
+      if (bound.meta.alpha === contract.alpha) {
+        continue;
+      }
+      const convertModule = pickAlphaConvertModule(
+        bound.meta.alpha,
+        contract.alpha
+      );
+      const scratch = ctx.scratch.acquire({
+        width: bound.width,
+        height: bound.height,
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.STORAGE_BINDING |
+          GPUTextureUsage.COPY_SRC |
+          GPUTextureUsage.COPY_DST,
+        label: `alpha-convert-${module.id}-${name}`,
+        meta: {
+          colorSpace: bound.meta.colorSpace,
+          alpha: contract.alpha,
+          bindingKind: "texture_2d"
+        }
+      });
+      const [wgX, wgY] = convertModule.workgroupSize;
+      // Recursive encode for the convert pass — strict alpha matches by
+      // construction (bound.meta.alpha matches the convertModule's input), so
+      // this won't recurse a second time.
+      encodeInternal({
+        ctx,
+        module: convertModule,
+        encoder,
+        inputs: { source: bound },
+        output: scratch,
+        params: convertModule.paramDefaults,
+        dispatch: {
+          kind: "compute",
+          x: Math.ceil(bound.width / wgX),
+          y: Math.ceil(bound.height / wgY),
+          z: 1
+        }
+      });
+      converted[name] = scratch;
+      scratchToRelease.push(scratch);
+    }
+    return { inputs: converted, scratchToRelease };
+  }
+
+  function pickAlphaConvertModule(
+    from: AlphaMode,
+    to: AlphaMode
+  ): ShaderModule {
+    if (from === "straight" && to === "premultiplied") {
+      return alphaStraightToPremulV1;
+    }
+    if (from === "premultiplied" && to === "straight") {
+      return alphaPremulToStraightV1;
+    }
+    // Both branches of the (from, to) pair are exhausted by the early-return
+    // in convertAlphaIfNeeded when `from === to`; defensive only.
+    throw new Error(`no alpha convert module for ${from} → ${to}`);
   }
 
   function buildBindGroup(
@@ -407,19 +495,37 @@ export function createExecutor(): Executor {
     output.markWritten();
   }
 
+  function encodeInternal<Schema extends AnyWgslStruct>(
+    args: EncodeArgs<Schema>
+  ): void {
+    validateInputs(args.module, args.inputs);
+    const { inputs: maybeConverted, scratchToRelease } = convertAlphaIfNeeded(
+      args as EncodeArgs<AnyWgslStruct>
+    );
+    const effectiveArgs = { ...args, inputs: maybeConverted } as EncodeArgs<Schema>;
+    const resolved = resolveVariant(
+      effectiveArgs.module,
+      effectiveArgs.inputs,
+      effectiveArgs.ctx.capabilities
+    );
+    try {
+      if (effectiveArgs.dispatch.kind === "fragment") {
+        encodeFragment(effectiveArgs, resolved);
+      } else {
+        encodeCompute(effectiveArgs, resolved, effectiveArgs.dispatch);
+      }
+    } finally {
+      // Release after recording — queue ordering keeps the scratch reads
+      // ahead of any future writes from a re-acquire.
+      for (const scratch of scratchToRelease) {
+        effectiveArgs.ctx.scratch.release(scratch);
+      }
+    }
+  }
+
   return {
     encode<Schema extends AnyWgslStruct>(args: EncodeArgs<Schema>): void {
-      validateInputs(args.module, args.inputs);
-      const resolved = resolveVariant(
-        args.module,
-        args.inputs,
-        args.ctx.capabilities
-      );
-      if (args.dispatch.kind === "fragment") {
-        encodeFragment(args, resolved);
-        return;
-      }
-      encodeCompute(args, resolved, args.dispatch);
+      encodeInternal(args);
     }
   };
 }

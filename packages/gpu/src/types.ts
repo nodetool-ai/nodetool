@@ -19,6 +19,7 @@ export type ShaderCategory =
   | "transform"
   | "mixer"
   | "compositor"
+  | "alpha"
   | "_canary";
 
 /**
