@@ -307,6 +307,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           height: virtualizer.getTotalSize(),
           width: "100%",
           position: "relative",
+          flexShrink: 0,
         }}
       >
         {virtualizer.getVirtualItems().map((vi) => {
