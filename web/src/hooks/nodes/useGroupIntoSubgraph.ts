@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useReactFlow, type Edge as RFEdge, type Node as RFNode } from "@xyflow/react";
+import { shallow } from "zustand/shallow";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
@@ -183,7 +184,7 @@ export function useGroupIntoSubgraph() {
       deleteNodes: s.deleteNodes,
       nodes: s.nodes,
       edges: s.edges
-    }));
+    }), shallow);
 
   return useCallback(
     (selectedIds: string[]): { subgraphNodeId: string } | null => {

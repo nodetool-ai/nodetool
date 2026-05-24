@@ -121,6 +121,7 @@ const ReactFlowWrapper = ({
   workflowId,
   active
 }: ReactFlowWrapperProps) => {
+  const workflowManagerStore = useWorkflowManagerStore();
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
   // Combine multiple store subscriptions into a single selector to reduce re-renders
