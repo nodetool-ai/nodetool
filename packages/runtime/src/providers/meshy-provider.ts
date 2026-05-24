@@ -126,6 +126,7 @@ export class MeshyProvider extends BaseProvider {
     throw new Error("meshy does not support chat generation");
   }
 
+  // eslint-disable-next-line require-yield
   async *generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {

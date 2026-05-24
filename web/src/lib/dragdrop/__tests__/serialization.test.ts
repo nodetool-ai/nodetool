@@ -99,7 +99,7 @@ describe("serialization", () => {
       const result = deserializeDragData(mockDataTransfer);
 
       expect(result?.type).toBe("create-node");
-      expect((result?.payload as any).node_type).toBe("new.Node");
+      expect((result!.payload as any).node_type).toBe("new.Node");
     });
 
     it("should fall back to legacy create-node format", () => {
@@ -117,7 +117,7 @@ describe("serialization", () => {
       const result = deserializeDragData(mockDataTransfer);
 
       expect(result?.type).toBe("create-node");
-      expect((result?.payload as any).node_type).toBe("legacy.Node");
+      expect((result!.payload as any).node_type).toBe("legacy.Node");
     });
 
     it("should fall back to legacy asset format", () => {
@@ -135,7 +135,7 @@ describe("serialization", () => {
       const result = deserializeDragData(mockDataTransfer);
 
       expect(result?.type).toBe("asset");
-      expect((result?.payload as any).id).toBe("123");
+      expect((result!.payload as any).id).toBe("123");
     });
 
     it("should fall back to legacy selectedAssetIds format", () => {
