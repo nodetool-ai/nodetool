@@ -2,12 +2,15 @@
  * Vitest setup: make a CPU WebGPU device available so the GPU smoke tests run
  * in CI instead of skipping.
  *
- * Dawn's Vulkan backend needs an installed ICD (driver). CI machines have no
- * GPU and no system Vulkan driver, so `requestAdapter()` returns null and the
- * smoke suites skip. SwiftShader is a CPU Vulkan implementation that Dawn
- * (and Chrome's fallback adapter) runs against; the `electron` and Playwright
- * packages already ship a prebuilt `libvk_swiftshader.so` + ICD manifest. We
- * point the Vulkan loader at it via `VK_ICD_FILENAMES`/`VK_DRIVER_FILES`.
+ * Dawn's Vulkan backend needs an installed ICD (driver). The preferred CI
+ * path is to install `mesa-vulkan-drivers` (provides lavapipe at
+ * `/usr/share/vulkan/icd.d/lvp_icd.x86_64.json`); the Vulkan loader then
+ * picks it up automatically and this shim is a no-op. As a fallback for
+ * environments without a system ICD, we point the loader at Electron's
+ * bundled SwiftShader via `VK_ICD_FILENAMES`/`VK_DRIVER_FILES` — but only if
+ * Electron's binary was actually downloaded (CI sets
+ * `ELECTRON_SKIP_BINARY_DOWNLOAD=1`, so this fallback is mostly useful for
+ * local dev where the binary is present).
  *
  * This runs before each test file imports, so the env vars are set before Dawn
  * calls `vkCreateInstance` (inside the suites' top-level device acquisition).
@@ -16,7 +19,7 @@
  * - Never override an ICD the operator already chose (env already set).
  * - Never force CPU when a real system Vulkan driver is registered — only
  *   register SwiftShader when no `/usr/share/vulkan/icd.d` entry exists, so a
- *   GPU-equipped machine keeps its hardware adapter.
+ *   GPU-equipped machine (or one with lavapipe installed) keeps its adapter.
  * - Test-only. Production (`src/node.ts`) keeps its no-silent-CPU-fallback
  *   contract; this never touches it.
  */
