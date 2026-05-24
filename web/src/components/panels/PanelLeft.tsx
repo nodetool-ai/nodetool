@@ -16,7 +16,6 @@ import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import AgentPanel from "./AgentPanel";
-import SidebarSearchPanel from "../node_menu/SidebarSearchPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import QuickAccessGrid from "../node_menu/QuickAccessGrid";
@@ -30,9 +29,7 @@ import {
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import {
   LEFT_PANEL_TOP_LEVEL,
-  NODE_SUBCATEGORIES,
-  getTopLevelCategory,
-  getNodeSubcategory
+  getTopLevelCategory
 } from "../../config/quickAccessCategories";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
@@ -170,45 +167,6 @@ const styles = (
   });
 };
 
-const nodeSubTabsStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "4px",
-    padding: "6px 8px 8px",
-    borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    "& .node-sub-tab": {
-      padding: "4px 10px",
-      borderRadius: "var(--rounded-md)",
-      color: theme.vars.palette.text.secondary,
-      backgroundColor: "transparent",
-      fontSize: "0.78rem",
-      lineHeight: 1.2,
-      letterSpacing: "0.01em",
-      textTransform: "none",
-      minWidth: "auto",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "6px",
-      cursor: "pointer",
-      border: "none",
-      transition: "background-color 0.15s ease, color 0.15s ease",
-      "& svg": {
-        fontSize: "0.95rem"
-      },
-      "&:hover": {
-        backgroundColor: `${theme.vars.palette.action.hover}66`,
-        color: theme.vars.palette.text.primary
-      },
-      "&.active": {
-        backgroundColor: `${theme.vars.palette.action.selected}66`,
-        color: theme.vars.palette.primary.main,
-        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}44 inset`
-      }
-    }
-  });
-
-
 const VerticalToolbar = memo(function VerticalToolbar({
   activeView,
   onViewChange,
@@ -247,33 +205,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
   );
 });
 
-const NodesSubTabs = memo(function NodesSubTabs({
-  activeSubcategory,
-  onSubcategoryChange
-}: {
-  activeSubcategory: NodeCategoryId;
-  onSubcategoryChange: (id: NodeCategoryId) => void;
-}) {
-  const theme = useTheme();
-  return (
-    <div css={nodeSubTabsStyles(theme)} role="tablist" aria-label="Node categories">
-      {NODE_SUBCATEGORIES.map((sub) => (
-        <button
-          key={sub.id}
-          role="tab"
-          aria-selected={activeSubcategory === sub.id}
-          className={`node-sub-tab ${activeSubcategory === sub.id ? "active" : ""}`}
-          onClick={() => onSubcategoryChange(sub.id)}
-          type="button"
-        >
-          {sub.icon}
-          <span>{sub.label}</span>
-        </button>
-      ))}
-    </div>
-  );
-});
-
 const PanelContent = memo(function PanelContent({
   activeView,
   activeNodeCategory,
@@ -304,7 +235,6 @@ const PanelContent = memo(function PanelContent({
   }, [navigate, handlePanelToggle]);
 
   if (activeView === "nodes") {
-    const sub = getNodeSubcategory(activeNodeCategory) ?? NODE_SUBCATEGORIES[0];
     return (
       <Box
         sx={{
@@ -317,32 +247,16 @@ const PanelContent = memo(function PanelContent({
         }}
       >
         {!isMobile && <PanelHeadline title="Nodes" />}
-        <NodesSubTabs
-          activeSubcategory={sub.id}
+        <QuickAccessGrid
+          activeSubcategory={activeNodeCategory}
           onSubcategoryChange={setActiveNodeCategory}
         />
-        <QuickAccessGrid category={sub} />
       </Box>
     );
   }
 
   return (
     <>
-      {activeView === "search" && (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            margin: isMobile ? "0" : "0 0.5em",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
-          }}
-        >
-          {!isMobile && <PanelHeadline title="Search nodes" />}
-          <SidebarSearchPanel />
-        </Box>
-      )}
       {activeView === "history" && (
         <Box
           sx={{

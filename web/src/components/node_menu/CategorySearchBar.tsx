@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback } from "react";
+import { forwardRef, memo, useCallback } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
@@ -13,9 +13,9 @@ const styles = (theme: Theme) =>
     "&.qa-search": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5, 1),
-      borderRadius: "var(--rounded-sm)",
+      gap: theme.spacing(0.75),
+      padding: theme.spacing(1, 1.25),
+      borderRadius: "var(--rounded-md)",
       background: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
       transition: "border-color 120ms ease",
@@ -32,7 +32,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
-      padding: theme.spacing(0.25, 0.5)
+      padding: theme.spacing(0.5, 0.5)
     },
     "& svg.search-glyph": {
       fontSize: 16,
@@ -50,32 +50,35 @@ interface CategorySearchBarProps {
  * Slim search input shown at the top of a tile-grid category. Filters the
  * grid below by title/node_type/namespace substring. Plan §7.4.
  */
-const CategorySearchBar = memo<CategorySearchBarProps>(
-  ({ value, onChange, placeholder = "Filter..." }) => {
-    const theme = useTheme();
-    const handleClear = useCallback(() => onChange(""), [onChange]);
+const CategorySearchBar = memo(
+  forwardRef<HTMLInputElement, CategorySearchBarProps>(
+    ({ value, onChange, placeholder = "Filter..." }, ref) => {
+      const theme = useTheme();
+      const handleClear = useCallback(() => onChange(""), [onChange]);
 
-    return (
-      <div css={styles(theme)} className="qa-search">
-        <SearchIcon className="search-glyph" />
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          aria-label="Filter category"
-        />
-        {value && (
-          <ToolbarIconButton
-            tabIndex={-1}
-            ariaLabel="Clear filter"
-            onClick={handleClear}
-            icon={<ClearIcon />}
+      return (
+        <div css={styles(theme)} className="qa-search">
+          <SearchIcon className="search-glyph" />
+          <input
+            ref={ref}
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            aria-label="Filter category"
           />
-        )}
-      </div>
-    );
-  }
+          {value && (
+            <ToolbarIconButton
+              tabIndex={-1}
+              ariaLabel="Clear filter"
+              onClick={handleClear}
+              icon={<ClearIcon />}
+            />
+          )}
+        </div>
+      );
+    }
+  )
 );
 
 CategorySearchBar.displayName = "CategorySearchBar";
