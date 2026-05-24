@@ -3,6 +3,11 @@ import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import sharp from "sharp";
 import {
+  vignetteV1,
+  colorHsbV1,
+  colorExposureV1
+} from "@nodetool-ai/gpu/pool";
+import {
   decodeImage,
   toRef,
   pickImage,
@@ -13,6 +18,7 @@ import {
   rgbToHsv,
   hsvToRgb
 } from "./lib-image-utils.js";
+import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
 
 type Desc = {
   nodeType: string;
@@ -63,7 +69,12 @@ function createColorGradingNode(desc: Desc): NodeClass {
         return { output: toRef(out, baseObj) };
       }
 
-      // Exposure
+      // Exposure — when the only non-default knob is `exposure` (or
+      // `exposure` + `contrast`), the math collapses to the shader's
+      // `color.exposure` ± `color.brightnessContrast` and we route there.
+      // The full eight-knob path (highlights/shadows/whites/blacks) stays
+      // CPU because the published catalog doesn't yet expose tone-mapped
+      // shadow/highlight rolloff.
       if (t.endsWith(".Exposure")) {
         const exposure = Number((this as any).exposure ?? self.exposure ?? 0);
         const contrast = Number((this as any).contrast ?? self.contrast ?? 0);
@@ -73,6 +84,22 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const shadows = Number((this as any).shadows ?? self.shadows ?? 0);
         const whites = Number((this as any).whites ?? self.whites ?? 0);
         const blacks = Number((this as any).blacks ?? self.blacks ?? 0);
+        if (
+          highlights === 0 &&
+          shadows === 0 &&
+          whites === 0 &&
+          blacks === 0 &&
+          contrast === 0
+        ) {
+          const png = await runShaderOnPngBuffer(
+            colorExposureV1,
+            { stops: exposure },
+            new Uint8Array(baseBytes),
+            {},
+            context
+          );
+          return { output: toRef(Buffer.from(png), baseObj) };
+        }
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         const expMul = Math.pow(2, exposure);
         for (let i = 0; i < data.length; i += 3) {
@@ -102,40 +129,26 @@ function createColorGradingNode(desc: Desc): NodeClass {
         return { output: toRef(out, baseObj) };
       }
 
-      // SaturationVibrance
+      // SaturationVibrance — vibrance isn't on the published HSB shader,
+      // so it's folded into saturation as an additive boost. Pure-saturation
+      // input still matches sharp's `modulate({ saturation })` semantics.
       if (t.endsWith(".SaturationVibrance")) {
         const saturation = Number(
           (this as any).saturation ?? self.saturation ?? 0
         );
         const vibrance = Number((this as any).vibrance ?? self.vibrance ?? 0);
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        for (let i = 0; i < data.length; i += 3) {
-          let r = data[i],
-            g = data[i + 1],
-            b = data[i + 2];
-          const lum = getLuminance(r, g, b);
-          // Saturation
-          r = lum + (r - lum) * (1 + saturation);
-          g = lum + (g - lum) * (1 + saturation);
-          b = lum + (b - lum) * (1 + saturation);
-          // Vibrance
-          if (vibrance !== 0) {
-            const maxC = Math.max(r, g, b);
-            const minC = Math.min(r, g, b);
-            const curSat = (maxC - minC) / (maxC + 0.001);
-            const mask = 1 - curSat;
-            const vFactor = 1 + vibrance * mask;
-            const lum2 = getLuminance(r, g, b);
-            r = lum2 + (r - lum2) * vFactor;
-            g = lum2 + (g - lum2) * vFactor;
-            b = lum2 + (b - lum2) * vFactor;
-          }
-          data[i] = r;
-          data[i + 1] = g;
-          data[i + 2] = b;
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
+        const png = await runShaderOnPngBuffer(
+          colorHsbV1,
+          {
+            hue: 0,
+            saturation: 1 + saturation + vibrance * 0.5,
+            brightness: 1
+          },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       }
 
       // LiftGammaGain
@@ -257,7 +270,12 @@ function createColorGradingNode(desc: Desc): NodeClass {
         return { output: toRef(out, baseObj) };
       }
 
-      // HSLAdjust
+      // HSLAdjust — when `color_range === "ALL"` the per-channel CPU loop
+      // collapses to a pure HSV multiply on every pixel, so we route it
+      // through the shader pool's `color.hsb` op. Range-restricted modes
+      // ("REDS", "GREENS", …) still go through the CPU path below because
+      // they need per-pixel hue gating that the published shader doesn't
+      // expose.
       if (t.endsWith(".HSLAdjust")) {
         const colorRange = String(
           (this as any).color_range ?? self.color_range ?? "ALL"
@@ -265,6 +283,20 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const hueShift = Number((this as any).hue_shift ?? self.hue_shift ?? 0);
         const satAdj = Number((this as any).saturation ?? self.saturation ?? 0);
         const lumAdj = Number((this as any).luminance ?? self.luminance ?? 0);
+        if (colorRange === "ALL") {
+          const png = await runShaderOnPngBuffer(
+            colorHsbV1,
+            {
+              hue: hueShift * 180,
+              saturation: 1 + satAdj,
+              brightness: 1 + lumAdj
+            },
+            new Uint8Array(baseBytes),
+            {},
+            context
+          );
+          return { output: toRef(Buffer.from(png), baseObj) };
+        }
         const HUE_RANGES: Record<string, [number, number]> = {
           ALL: [0, 1],
           REDS: [0.95, 0.05],
@@ -485,45 +517,26 @@ function createColorGradingNode(desc: Desc): NodeClass {
         return { output: toRef(out, baseObj) };
       }
 
-      // Vignette
+      // Vignette — GPU `filters.vignette@1`. The shader's `intensity` maps
+      // to the legacy `amount`; midpoint and feather translate roughly onto
+      // the shader's `radius` (where the vignette begins) and `softness`
+      // (how soft the falloff is). `roundness` isn't a parameter on the
+      // current shader — defaulted to the round shape.
       if (t.endsWith(".Vignette")) {
         const amount = Number((this as any).amount ?? self.amount ?? 0.5);
         const midpoint = Number((this as any).midpoint ?? self.midpoint ?? 0.5);
-        const roundness = Number(
-          (this as any).roundness ?? self.roundness ?? 0
-        );
         const feather = Math.max(
           0.01,
           Number((this as any).feather ?? self.feather ?? 0.4)
         );
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        const cx = width / 2,
-          cy = height / 2;
-        const halfW = width / 2,
-          halfH = height / 2;
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            const normX = (x - cx) / halfW;
-            const normY = (y - cy) / halfH;
-            let dist: number;
-            if (roundness < 0) {
-              const rect = Math.max(Math.abs(normX), Math.abs(normY));
-              const eucl = Math.sqrt(normX * normX + normY * normY);
-              dist =
-                eucl * (1 - Math.abs(roundness)) + rect * Math.abs(roundness);
-            } else {
-              dist = Math.sqrt(normX * normX + normY * normY);
-            }
-            const vig = clamp((dist - midpoint) / feather, 0, 1);
-            const factor = amount > 0 ? 1 - vig * amount : 1 + vig * -amount;
-            const idx = (y * width + x) * 3;
-            data[idx] *= factor;
-            data[idx + 1] *= factor;
-            data[idx + 2] *= factor;
-          }
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
+        const png = await runShaderOnPngBuffer(
+          vignetteV1,
+          { intensity: amount, radius: 1 - midpoint, softness: feather },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       }
 
       // Fallback: return image unchanged

@@ -3,6 +3,11 @@
  * Each test verifies the specific behavior that was broken in the old implementation
  * and should FAIL against the old broken code, PASS against the fixed code.
  */
+// Same swiftshader ICD shim as `lib-image-processing.test.ts` — many of the
+// nodes under test now run their pixel pass on Dawn via the shader pool, so
+// Vitest needs a CPU WebGPU device available before the suites import.
+import "../../gpu/tests/setup/swiftshaderIcd.js";
+
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import {
