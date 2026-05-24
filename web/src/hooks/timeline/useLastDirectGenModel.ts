@@ -16,7 +16,7 @@
  * The shallow comparator keeps re-renders tight — consumers only re-render
  * when provider or model actually changes, not on every clips-array swap.
  */
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 
 export interface LastDirectGenModel {
@@ -42,16 +42,18 @@ const matchesKind = (
 export const useLastDirectGenModel = (
   kind: DirectGenMediaKind = "image"
 ): LastDirectGenModel =>
-  useTimelineStore((state) => {
-    for (let i = state.clips.length - 1; i >= 0; i--) {
-      const c = state.clips[i];
-      if (matchesKind(c.bindingKind, kind) && c.provider && c.model) {
-        return {
-          provider: c.provider,
-          model: c.model,
-          voice: kind === "audio" ? c.voice : undefined
-        };
+  useTimelineStore(
+    useShallow((state) => {
+      for (let i = state.clips.length - 1; i >= 0; i--) {
+        const c = state.clips[i];
+        if (matchesKind(c.bindingKind, kind) && c.provider && c.model) {
+          return {
+            provider: c.provider,
+            model: c.model,
+            voice: kind === "audio" ? c.voice : undefined
+          };
+        }
       }
-    }
-    return { provider: undefined, model: undefined, voice: undefined };
-  }, shallow);
+      return { provider: undefined, model: undefined, voice: undefined };
+    })
+  );
