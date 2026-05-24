@@ -133,7 +133,8 @@ export class RodinProvider extends BaseProvider {
     throw new Error("rodin does not support chat generation");
   }
 
-  generateMessages(
+  // eslint-disable-next-line require-yield
+  async *generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
     throw new Error("rodin does not support chat generation");
