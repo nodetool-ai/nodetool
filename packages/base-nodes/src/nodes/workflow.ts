@@ -2,8 +2,11 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { WorkflowRunner, Graph } from "@nodetool-ai/kernel";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeDescriptor, Edge, InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
-import { randomUUID } from "node:crypto";
 import { tagAsUniversal } from "../platform-tags.js";
+
+const randomUUID = (): string =>
+  globalThis.crypto?.randomUUID?.() ??
+  `uuid_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 
 /**
  * WorkflowNode – executes a sub-workflow selected by the user.
