@@ -6,19 +6,13 @@ product
 
 ## Users
 
-### Primary: Prosumer / Creator
+NodeTool is built for **creative artists**: designers, illustrators, photographers, video editors, motion artists, audio producers, and the growing community of independent creators working with generative AI.
 
 > When I create AI-generated images, videos, audio, stories, thumbnails, brand assets, or other media across multiple tools and providers, I want to wire models and editing steps into one reusable canvas, so I can produce better creative work faster without juggling tabs, exports, credits, or provider lock-in.
 
 Visual-first. Comfortable with node-based tools (After Effects, TouchDesigner, Blender geometry nodes, Unreal Blueprints) but not necessarily fluent in a terminal or a Python REPL. They live inside the canvas for long sessions, often on a second monitor, iterating on a single workflow for hours. They expect NodeTool to disappear into the work the way Figma or Ableton does.
 
-### Secondary: Technical Builder
-
-> When I build AI workflows, agents, RAG flows, document pipelines, or custom nodes, I want a visual graph that mixes local models, cloud APIs, tools, and code-level extensibility, so I can prototype and operationalize AI workflows without rebuilding orchestration from scratch.
-
-Comfortable in code. Reaches for NodeTool because the graph removes orchestration boilerplate, not because they are avoiding code. Wants to drop down to Python or a custom node when needed. Cares about reproducibility, version control, and running the same workflow locally and on a server.
-
-The two personas share the canvas. We don't bifurcate the UI for them. Creators benefit from the builder's rigor (the graph really runs); builders benefit from the creator's polish (the result is a usable artifact, not a JSON dump).
+Their job-to-be-done is creative output, not infrastructure. The graph is a means to an end, and the end is a finished image, video, audio piece, or campaign asset they are proud of.
 
 ## Product Purpose
 
