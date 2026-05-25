@@ -5,6 +5,7 @@ import { useReactFlow, Edge, Node } from "@xyflow/react";
 import { uuidv4 } from "../../stores/uuidv4";
 import { NodeData } from "../../stores/NodeData";
 import { useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import useSessionStateStore from "../../stores/SessionStateStore";
 import { useClipboardContentPaste } from "./useClipboardContentPaste";
@@ -28,10 +29,10 @@ export const useCopyPaste = () => {
   // async effect scheduling (e.g. rubber-band select then immediately Ctrl+C).
   const nodeStore = useNodeStoreRef();
   const { setClipboardData, setIsClipboardValid } = useSessionStateStore(
-    (state) => ({
+    useShallow((state) => ({
       setClipboardData: state.setClipboardData,
       setIsClipboardValid: state.setIsClipboardValid
-    })
+    }))
   );
 
   const { handleContentPaste, readClipboardContent, readClipboardText } =
