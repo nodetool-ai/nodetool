@@ -4430,18 +4430,19 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Run a one-shot media-generation request (text-to-image or image-to-image)
-   * and return the produced asset ids. Mirrors the image / image_edit
-   * branches of `handleMediaGenerationMessage` but skips the chat-thread
-   * machinery — the caller wants asset ids, not a streamed Message row.
+   * Run a one-shot media-generation request (text-to-image, image-to-image,
+   * text-to-video, or text-to-audio) and return the produced asset ids.
+   * Mirrors the image / image_edit / video / audio branches of
+   * `handleMediaGenerationMessage` but skips the chat-thread machinery —
+   * the caller wants asset ids, not a streamed Message row.
    *
    * Used by the `generate_media` RPC for the sketch editor's direct-gen
-   * layers; the chat-path equivalents stay in `handleMediaGenerationMessage`
-   * for now to avoid touching that long flow in this slice.
+   * image layers and the timeline's direct-gen video / audio clips; the
+   * chat-path equivalents stay in `handleMediaGenerationMessage` for now.
    */
   private async runDirectMediaGeneration(
     req: {
-      mode: "image" | "image_edit";
+      mode: "image" | "image_edit" | "video" | "audio";
       provider: string;
       model: string;
       prompt: string;
@@ -4451,6 +4452,9 @@ export class UnifiedWebSocketRunner {
       strength?: number;
       numInferenceSteps?: number;
       variations?: number;
+      voice?: string;
+      speed?: number;
+      audioFormat?: string;
     }
   ): Promise<{ asset_ids: string[] }> {
     if (!this.resolveProvider) {
@@ -4467,25 +4471,150 @@ export class UnifiedWebSocketRunner {
     const provider = await this.resolveProvider(req.provider, userId);
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
-    const imageModel: ProviderImageModel = {
-      id: req.model,
-      name: req.model,
-      provider: req.provider
-    };
-
-    const storeAsset = async (bytes: Uint8Array): Promise<string> => {
+    const storeAsset = async (
+      bytes: Uint8Array,
+      contentType: string,
+      ext: string
+    ): Promise<string> => {
       const asset = new Asset({
         user_id: userId,
         workflow_id: null,
         name: `${req.mode}_${Date.now()}`,
-        content_type: "image/png",
+        content_type: contentType,
         parent_id: null
       });
-      const fileName = `${asset.id}.png`;
-      await storeAssetWithThumbnail(asset.id, fileName, bytes, "image/png");
+      const fileName = `${asset.id}.${ext}`;
+      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
       asset.size = bytes.length;
       await asset.save();
       return asset.id;
+    };
+
+    if (req.mode === "video") {
+      const videoModel: ProviderVideoModel = {
+        id: req.model,
+        name: req.model,
+        provider: req.provider
+      };
+      const params: TextToVideoParams = {
+        model: videoModel,
+        prompt: req.prompt
+      };
+      const bytes = await provider.textToVideo(params);
+      const assetId = await storeAsset(bytes, "video/mp4", "mp4");
+      return { asset_ids: [assetId] };
+    }
+
+    if (req.mode === "audio") {
+      const supportedFormats = new Set([
+        "mp3",
+        "wav",
+        "flac",
+        "ogg",
+        "aac",
+        "pcm"
+      ]);
+      const requestedFormat =
+        req.audioFormat && supportedFormats.has(req.audioFormat)
+          ? req.audioFormat
+          : null;
+
+      // Prefer providers that return fully-encoded audio (OpenAI, HuggingFace).
+      const encoded = await provider.textToSpeechEncoded({
+        text: req.prompt,
+        model: req.model,
+        voice: req.voice,
+        speed: req.speed,
+        audioFormat: requestedFormat ?? undefined
+      });
+
+      if (encoded) {
+        const mimeToExt: Record<string, string> = {
+          "audio/mpeg": "mp3",
+          "audio/wav": "wav",
+          "audio/ogg": "ogg",
+          "audio/flac": "flac",
+          "audio/aac": "aac"
+        };
+        const ext = mimeToExt[encoded.mimeType] ?? "flac";
+        const assetId = await storeAsset(encoded.data, encoded.mimeType, ext);
+        return { asset_ids: [assetId] };
+      }
+
+      // Streaming-PCM fallback (OpenAI / Gemini), wrap in WAV unless caller
+      // explicitly asked for raw PCM.
+      const pcmChunks: Uint8Array[] = [];
+      let totalBytes = 0;
+      let chunkSampleRate = 24000;
+      for await (const chunk of provider.textToSpeech({
+        text: req.prompt,
+        model: req.model,
+        voice: req.voice,
+        speed: req.speed,
+        audioFormat: requestedFormat ?? undefined
+      })) {
+        if (chunk?.samples) {
+          if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
+          const view = new Uint8Array(
+            chunk.samples.buffer,
+            chunk.samples.byteOffset,
+            chunk.samples.byteLength
+          );
+          const copy = new Uint8Array(view);
+          pcmChunks.push(copy);
+          totalBytes += copy.byteLength;
+        }
+      }
+      const merged = new Uint8Array(totalBytes);
+      let off = 0;
+      for (const c of pcmChunks) {
+        merged.set(c, off);
+        off += c.byteLength;
+      }
+
+      if (requestedFormat === "pcm") {
+        const assetId = await storeAsset(merged, "audio/pcm", "pcm");
+        return { asset_ids: [assetId] };
+      }
+
+      // Wrap raw 16-bit PCM in a WAV container so browsers can play it back.
+      const sampleRate = chunkSampleRate;
+      const numChannels = 1;
+      const bitsPerSample = 16;
+      const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+      const blockAlign = numChannels * (bitsPerSample / 8);
+      const wavHeader = new ArrayBuffer(44);
+      const dv = new DataView(wavHeader);
+      const writeStr = (pos: number, str: string) => {
+        for (let i = 0; i < str.length; i++)
+          dv.setUint8(pos + i, str.charCodeAt(i));
+      };
+      writeStr(0, "RIFF");
+      dv.setUint32(4, 36 + merged.byteLength, true);
+      writeStr(8, "WAVE");
+      writeStr(12, "fmt ");
+      dv.setUint32(16, 16, true);
+      dv.setUint16(20, 1, true);
+      dv.setUint16(22, numChannels, true);
+      dv.setUint32(24, sampleRate, true);
+      dv.setUint32(28, byteRate, true);
+      dv.setUint16(32, blockAlign, true);
+      dv.setUint16(34, bitsPerSample, true);
+      writeStr(36, "data");
+      dv.setUint32(40, merged.byteLength, true);
+
+      const wav = new Uint8Array(44 + merged.byteLength);
+      wav.set(new Uint8Array(wavHeader), 0);
+      wav.set(merged, 44);
+
+      const assetId = await storeAsset(wav, "audio/wav", "wav");
+      return { asset_ids: [assetId] };
+    }
+
+    const imageModel: ProviderImageModel = {
+      id: req.model,
+      name: req.model,
+      provider: req.provider
     };
 
     let images: Uint8Array[];
@@ -4527,7 +4656,7 @@ export class UnifiedWebSocketRunner {
 
     const assetIds: string[] = [];
     for (const bytes of images) {
-      assetIds.push(await storeAsset(bytes));
+      assetIds.push(await storeAsset(bytes, "image/png", "png"));
     }
     return { asset_ids: assetIds };
   }
@@ -4802,8 +4931,14 @@ export class UnifiedWebSocketRunner {
       }
       case "generate_media": {
         const rawMode = data.mode;
-        const mode =
-          rawMode === "image_edit" ? "image_edit" : ("image" as const);
+        const mode: "image" | "image_edit" | "video" | "audio" =
+          rawMode === "image_edit"
+            ? "image_edit"
+            : rawMode === "video"
+              ? "video"
+              : rawMode === "audio"
+                ? "audio"
+                : "image";
         const provider = String(data.provider ?? this.defaultProvider);
         const model = String(data.model ?? this.defaultModel);
         const prompt = String(data.prompt ?? "");
@@ -4827,9 +4962,17 @@ export class UnifiedWebSocketRunner {
           typeof data.variations === "number"
             ? (data.variations as number)
             : undefined;
+        const voice =
+          typeof data.voice === "string" ? (data.voice as string) : undefined;
+        const speed =
+          typeof data.speed === "number" ? (data.speed as number) : undefined;
+        const audioFormat =
+          typeof data.audio_format === "string"
+            ? (data.audio_format as string)
+            : undefined;
         return this.runRpc(command, () =>
           this.runDirectMediaGeneration({
-            mode: mode as "image" | "image_edit",
+            mode,
             provider,
             model,
             prompt,
@@ -4838,7 +4981,10 @@ export class UnifiedWebSocketRunner {
             height,
             strength,
             numInferenceSteps,
-            variations
+            variations,
+            voice,
+            speed,
+            audioFormat
           })
         );
       }

@@ -19,6 +19,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { setFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import type { NodeStore } from "../../stores/NodeStore";
+import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
 import { PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ContextMenus from "../context_menus/ContextMenus";
@@ -281,11 +282,17 @@ const PanelRight: React.FC = () => {
 
   const setVisibility = useRightPanelStore((state) => state.setVisibility);
 
-  const activeNodeStore = useWorkflowManager((state) =>
+  const activeSubgraphTab = useSubgraphTabsStore((state) =>
+    state.activeKey
+      ? state.tabs.find((t) => t.key === state.activeKey)
+      : undefined
+  );
+  const workflowNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
+  const activeNodeStore = activeSubgraphTab?.store ?? workflowNodeStore;
 
   const handleMobileSheetClose = useCallback(
     () => setVisibility(false),

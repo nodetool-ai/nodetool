@@ -33,6 +33,8 @@ import {
 import { useSettingsStore } from "../../stores/SettingsStore";
 import type { NodeStore } from "../../stores/NodeStore";
 import { useFileTabsStore } from "../../stores/FileTabsStore";
+import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import SubgraphTabContent from "./SubgraphTabContent";
 
 const styles = (theme: Theme) =>
   css({
@@ -491,6 +493,16 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     [activeFileTabId, openFileTabs]
   );
 
+  const activeSubgraphKey = useSubgraphTabsStore((state) => state.activeKey);
+  const subgraphTabs = useSubgraphTabsStore((state) => state.tabs);
+  const activeSubgraphTab = useMemo(
+    () =>
+      activeSubgraphKey
+        ? subgraphTabs.find((t) => t.key === activeSubgraphKey)
+        : undefined,
+    [activeSubgraphKey, subgraphTabs]
+  );
+
   return (
     <>
       <div
@@ -528,11 +540,19 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                 <FileTabContent asset={activeFileTab.asset} />
               </FlexColumn>
             )}
+            {activeSubgraphTab && !activeFileTab && (
+              <SubgraphTabContent
+                key={activeSubgraphTab.key}
+                tab={activeSubgraphTab}
+              />
+            )}
             {openWorkflows.map((workflow) => {
               const store = nodeStores[workflow.id];
               if (!store) return null;
               const isActive =
-                workflow.id === currentWorkflowId && !activeFileTab;
+                workflow.id === currentWorkflowId &&
+                !activeFileTab &&
+                !activeSubgraphTab;
               return (
                 <FlexColumn
                   key={workflow.id}

@@ -12,13 +12,19 @@ interface PanelHeadlineProps {
 
 const styles = (theme: Theme) =>
   css({
-    padding: ".5em .5em .5em 0",
+    padding: ".35em 0 .35em 0",
+    minHeight: "2.25em",
+    boxSizing: "border-box",
 
+    ".headline-actions .MuiIconButton-root": {
+      padding: 2,
+      "& svg": { fontSize: "1rem" }
+    },
     ".headline-title": {
-      fontSize: "1rem",
+      fontSize: "0.95rem",
       fontWeight: 300,
       letterSpacing: "0.01em",
-      lineHeight: "1.5em",
+      lineHeight: "1.4em",
       color: theme.vars.palette.text.primary,
       textShadow: `0px 0px 1px ${theme.vars.palette.common.black}${Math.round(0.4 * 255).toString(16).padStart(2, "0")}`,
       margin: 0

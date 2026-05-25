@@ -24,14 +24,23 @@ const meta = (
   }) as unknown as NodeMetadata;
 
 describe("quickAccessCategories", () => {
-  it("ships five top-level views in order", () => {
+  it("ships seven top-level views in order", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
-    expect(ids).toEqual(["search", "workflows", "history", "assets", "nodes"]);
+    expect(ids).toEqual([
+      "nodes",
+      "workflows",
+      "settings",
+      "history",
+      "favorites",
+      "assets",
+      "agent"
+    ]);
   });
 
-  it("ships eight node sub-categories in order", () => {
+  it("ships nine node sub-categories in order, leading with All", () => {
     const ids = NODE_SUBCATEGORIES.map((c) => c.id);
     expect(ids).toEqual([
+      "all",
       "io",
       "tools",
       "image-models",
@@ -41,6 +50,18 @@ describe("quickAccessCategories", () => {
       "agents",
       "control-flow"
     ]);
+  });
+
+  it("\"all\" subcategory accepts every node", () => {
+    const all = [
+      meta("nodetool.image.Resize", "image"),
+      meta("openai.agents.Foo", "str"),
+      meta("nodetool.control.If", "any")
+    ];
+    const out = filterNodesForCategory(getNodeSubcategory("all")!, all);
+    expect(out.map((m) => m.node_type).sort()).toEqual(
+      ["nodetool.control.If", "nodetool.image.Resize", "openai.agents.Foo"]
+    );
   });
 
   it("lookup helpers return the right entries", () => {

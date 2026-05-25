@@ -439,7 +439,6 @@ function classifyDiffusion(
       const crossK = findFirst(keys, "\\.attn2\\.to_k\\.weight$");
       if (crossK && readShapes < maxShapeReads) {
         const shape = getShape(index, crossK);
-        readShapes += 1;
         if (shape && shape.length === 2) {
           const crossDim = shape[1];
           if (crossDim === 768 || crossDim === 1024) {

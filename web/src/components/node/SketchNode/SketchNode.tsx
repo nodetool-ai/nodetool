@@ -59,7 +59,7 @@ import type { Edge } from "@xyflow/react";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import type { Node as FlowNode } from "@xyflow/react";
@@ -550,15 +550,17 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     return connections;
   }, [edges, props.id, exposedInputLayers]);
 
-  const layerInputResults = useResultsStore((state) => {
-    const out: Record<string, unknown> = {};
-    for (const [layerId, connection] of Object.entries(layerInputConnections)) {
-      out[layerId] =
-        state.getOutputResult(props.data.workflow_id, connection.sourceId) ??
-        state.getResult(props.data.workflow_id, connection.sourceId);
-    }
-    return out;
-  }, shallow);
+  const layerInputResults = useResultsStore(
+    useShallow((state) => {
+      const out: Record<string, unknown> = {};
+      for (const [layerId, connection] of Object.entries(layerInputConnections)) {
+        out[layerId] =
+          state.getOutputResult(props.data.workflow_id, connection.sourceId) ??
+          state.getResult(props.data.workflow_id, connection.sourceId);
+      }
+      return out;
+    })
+  );
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 

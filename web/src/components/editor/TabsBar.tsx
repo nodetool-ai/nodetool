@@ -4,9 +4,12 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useCallback, useEffect, useRef, useState } from "react";
 import TabHeader from "./TabHeader";
 import FileTabHeader from "./FileTabHeader";
+import SubgraphTabHeader from "./SubgraphTabHeader";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useFileTabsStore } from "../../stores/FileTabsStore";
+import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import { useShallow } from "zustand/react/shallow";
 import { useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 
@@ -56,6 +59,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
 
   const handleClose = useCallback(
     (workflowId: string) => {
+      useSubgraphTabsStore.getState().closeForWorkflow(workflowId);
       removeWorkflow(workflowId);
       if (currentWorkflowId === workflowId) {
         const remaining = workflows.filter(
@@ -140,6 +144,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
   const handleNavigate = useCallback(
     (id: string) => {
       useFileTabsStore.getState().setActiveFileTab(null);
+      useSubgraphTabsStore.getState().setActive(null);
       navigate(`/editor/${id}`);
     },
     [navigate]
@@ -171,6 +176,26 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
   const closeAllFileTabs = useFileTabsStore((state) => state.closeAllFileTabs);
   const closeOtherFileTabs = useFileTabsStore(
     (state) => state.closeOtherFileTabs
+  );
+
+  // Subgraph tabs (only those belonging to the current workflow).
+  // `.filter()` produces a fresh array each call — wrap with `useShallow`
+  // so React's snapshot equality in `useSyncExternalStore` stays stable.
+  const subgraphTabs = useSubgraphTabsStore(
+    useShallow((state) =>
+      state.tabs.filter((t) => t.workflowId === currentWorkflowId)
+    )
+  );
+  const activeSubgraphKey = useSubgraphTabsStore((state) => state.activeKey);
+  const setActiveSubgraph = useSubgraphTabsStore((state) => state.setActive);
+  const closeSubgraphTab = useSubgraphTabsStore((state) => state.closeTab);
+
+  const handleSubgraphSelect = useCallback(
+    (key: string) => {
+      useFileTabsStore.getState().setActiveFileTab(null);
+      setActiveSubgraph(key);
+    },
+    [setActiveSubgraph]
   );
 
   const handleFileTabSelect = useCallback(
@@ -288,7 +313,9 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
               key={workflow.id}
               workflow={workflow}
               isActive={
-                workflow.id === currentWorkflowId && activeFileTabId === null
+                workflow.id === currentWorkflowId &&
+                activeFileTabId === null &&
+                activeSubgraphKey === null
               }
               isEditing={editingWorkflowId === workflow.id}
               dropTarget={dropTarget}
@@ -306,6 +333,15 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
             />
           );
         })}
+        {subgraphTabs.map((tab) => (
+          <SubgraphTabHeader
+            key={tab.key}
+            tab={tab}
+            isActive={activeSubgraphKey === tab.key}
+            onSelect={handleSubgraphSelect}
+            onClose={closeSubgraphTab}
+          />
+        ))}
         {openFileTabs.map((fileTab) => (
           <FileTabHeader
             key={`file-${fileTab.asset.id}`}

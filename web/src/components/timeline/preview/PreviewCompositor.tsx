@@ -12,7 +12,7 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 
 import type { TimelineClip, TrackEffect } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -187,13 +187,12 @@ export const PreviewCompositor: React.FC = memo(() => {
   const isPlaying = useTimelinePlaybackStore((s) => s.isPlaying);
 
   const { tracks, clips, sequenceWidth, sequenceHeight } = useTimelineStore(
-    (s) => ({
+    useShallow((s) => ({
       tracks: s.tracks,
       clips: s.clips,
       sequenceWidth: s.width,
       sequenceHeight: s.height
-    }),
-    shallow
+    }))
   );
 
   const patchClip = useTimelineStore((s) => s.patchClip);

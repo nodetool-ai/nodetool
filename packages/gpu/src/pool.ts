@@ -86,7 +86,9 @@ export {
   transformCornerPinV1,
   transformPolarRemapV1,
   transformDisplaceV1,
-  transformSpherizeV1
+  transformSpherizeV1,
+  alphaStraightToPremulV1,
+  alphaPremulToStraightV1
 } from "./shaders/index.js";
 
 import { ShaderRegistry } from "./registry.js";

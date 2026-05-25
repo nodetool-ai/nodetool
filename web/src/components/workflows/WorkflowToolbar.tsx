@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState, useMemo } from "react";
 import { Menu, MenuItem } from "@mui/material";
-import SearchInput from "../search/SearchInput";
-import { ToolbarIconButton, DeleteButton, Tooltip, Chip, Box } from "../ui_primitives";
+import { ToolbarIconButton, DeleteButton, Chip, Box } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -12,19 +11,16 @@ import SortIcon from "@mui/icons-material/Sort";
 import ClearIcon from "@mui/icons-material/Clear";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import CheckIcon from "@mui/icons-material/Check";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import AddIcon from "@mui/icons-material/Add";
-import TuneIcon from "@mui/icons-material/Tune";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShowGraphPreview, useWorkflowListViewStore, useSortBy, useSelectedTags, SortBy } from "../../stores/WorkflowListViewStore";
 
 interface WorkflowToolbarProps {
-  setFilterValue: (value: string) => void;
   showCheckboxes: boolean;
   toggleCheckboxes: () => void;
   selectedWorkflowsCount: number;
@@ -32,10 +28,6 @@ interface WorkflowToolbarProps {
   showFavoritesOnly?: boolean;
   onToggleFavorites?: () => void;
   availableTags?: string[];
-  /** When true, only the create button is shown. Other controls collapse. */
-  compact?: boolean;
-  /** When compact, clicking the expand toggle calls this to reveal the full toolbar. */
-  onExpand?: () => void;
 }
 
 const styles = (theme: Theme) =>
@@ -57,8 +49,8 @@ const styles = (theme: Theme) =>
     ".tools .tags-button": {
       fontSize: "0.7em",
       borderColor: `${"var(--palette-primary-main)"}33`,
-      width: "2em",
-      height: "2em",
+      width: "1.5em",
+      height: "1.5em",
       flexShrink: 0,
       marginLeft: "0.5em",
       "&:hover": {
@@ -87,8 +79,8 @@ const styles = (theme: Theme) =>
     ".tools .checkbox-button": {
       fontSize: "0.7em",
       borderColor: `${"var(--palette-primary-main)"}33`,
-      width: "2em",
-      height: "2em",
+      width: "1.5em",
+      height: "1.5em",
       "&:hover": {
         borderColor: "var(--palette-primary-main)"
       },
@@ -102,8 +94,8 @@ const styles = (theme: Theme) =>
     ".tools .favorite-button": {
       fontSize: "0.7em",
       borderColor: `${"var(--palette-primary-main)"}33`,
-      width: "2em",
-      height: "2em",
+      width: "1.5em",
+      height: "1.5em",
       "&:hover": {
         borderColor: "var(--palette-primary-main)"
       },
@@ -124,8 +116,8 @@ const styles = (theme: Theme) =>
     ".tools .preview-toggle-button": {
       fontSize: "0.7em",
       borderColor: `${"var(--palette-primary-main)"}33`,
-      width: "2em",
-      height: "2em",
+      width: "1.5em",
+      height: "1.5em",
       "&:hover": {
         borderColor: "var(--palette-primary-main)"
       },
@@ -224,16 +216,13 @@ const styles = (theme: Theme) =>
   });
 
 const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
-  setFilterValue,
   showCheckboxes,
   toggleCheckboxes,
   selectedWorkflowsCount,
   onBulkDelete,
   showFavoritesOnly = false,
   onToggleFavorites,
-  availableTags = [],
-  compact = false,
-  onExpand
+  availableTags = []
 }) => {
   const theme = useTheme();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
@@ -287,15 +276,6 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     navigate(`/editor/${workflow.id}`);
   }, [navigate, createNewWorkflow, queryClient]);
 
-  const handleSearchChange = useCallback(
-    (newSearchTerm: string) => {
-      setFilterValue(newSearchTerm);
-    },
-    [setFilterValue]
-  );
-
-  // Memoize style objects to prevent new references on each render
-  const flex1Style = useMemo(() => ({ flex: 1 }), []);
   const flexGrow1Style = useMemo(() => ({ flexGrow: 1 }), []);
 
   // Memoize tag handlers to prevent new function references in map()
@@ -312,50 +292,10 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   // Memoize selected tags set for O(1) lookup
   const selectedTagsSet = useMemo(() => new Set(selectedTags), [selectedTags]);
 
-  if (compact) {
-    return (
-      <Box css={styles(theme)}>
-        <div className="tools">
-          <div className="buttons-row">
-            {onExpand && (
-              <ToolbarIconButton
-                icon={<TuneIcon />}
-                tooltip="Show filters"
-                onClick={onExpand}
-                tooltipPlacement="top"
-                className="expand-button"
-                nodrag={false}
-              />
-            )}
-            <div style={flexGrow1Style} />
-            <ToolbarIconButton
-              icon={<AddIcon fontSize="small" />}
-              tooltip="Create new workflow"
-              onClick={handleCreateWorkflow}
-              size="large"
-              tooltipPlacement="top"
-              className="add-button"
-              nodrag={false}
-            />
-          </div>
-        </div>
-      </Box>
-    );
-  }
-
   return (
     <Box css={styles(theme)}>
       <div className="tools">
-        <div className="search-row">
-          <Tooltip title="Search workflows by name" delay={TOOLTIP_ENTER_DELAY}>
-            <div style={flex1Style}>
-              <SearchInput
-                onSearchChange={handleSearchChange}
-                focusSearchInput={false}
-                width="100%"
-              />
-            </div>
-          </Tooltip>
+        <div className="buttons-row">
           {availableTags.length > 0 && (
             <>
               <ToolbarIconButton
@@ -396,9 +336,6 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               </Menu>
             </>
           )}
-        </div>
-
-        <div className="buttons-row">
           {selectedWorkflowsCount > 0 && (
             <DeleteButton
               tooltip={`Delete ${selectedWorkflowsCount} selected workflow${selectedWorkflowsCount > 1 ? "s" : ""}`}

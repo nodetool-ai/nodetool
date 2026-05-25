@@ -12,6 +12,10 @@ import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { colorForType, IconForType } from "../../config/data_types";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import { getProviderKindForNamespace } from "../../utils/nodeProvider";
+import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import FavoriteButton from "../ui_primitives/FavoriteButton";
+import { NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 
 interface SearchResultItemProps {
   node: NodeMetadata;
@@ -216,6 +220,29 @@ const SearchResultItem = memo(
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const providerKind = getProviderKindForNamespace(node.namespace);
       const searchTerm = useNodeMenuStore((state) => state.searchTerm);
+      const isFavorite = useFavoriteNodesStore((state) =>
+        state.isFavorite(node.node_type)
+      );
+      const toggleFavorite = useFavoriteNodesStore(
+        (state) => state.toggleFavorite
+      );
+      const addNotification = useNotificationStore(
+        (state) => state.addNotification
+      );
+
+      const handleFavoriteToggle = useCallback(
+        (next: boolean) => {
+          toggleFavorite(node.node_type);
+          addNotification({
+            type: "info",
+            content: next
+              ? "Node added to favorites"
+              : "Node removed from favorites",
+            timeout: NOTIFICATION_TIMEOUT_SHORT
+          });
+        },
+        [toggleFavorite, addNotification, node.node_type]
+      );
 
       // Parse description and tags - memoize to avoid re-computation on every render
       const { description, tags } = useMemo(
@@ -323,6 +350,11 @@ const SearchResultItem = memo(
             >
               {providerKind === "api" ? "API" : "Local"}
             </span>
+            <FavoriteButton
+              isFavorite={isFavorite}
+              onToggle={handleFavoriteToggle}
+              buttonSize="small"
+            />
           </div>
         );
       }
@@ -400,6 +432,11 @@ const SearchResultItem = memo(
                   matchStyle="primary"
                 />
               </Text>
+              <FavoriteButton
+                isFavorite={isFavorite}
+                onToggle={handleFavoriteToggle}
+                buttonSize="small"
+              />
               <div
                 className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
                 onClick={handleToggleExpand}

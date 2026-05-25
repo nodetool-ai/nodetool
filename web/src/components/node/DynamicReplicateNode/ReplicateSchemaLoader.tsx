@@ -136,6 +136,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
     }, [
       modelInfo,
       data.model_id,
+      data.dynamic_inputs,
       loading,
       error,
       autoLoadAttempted,

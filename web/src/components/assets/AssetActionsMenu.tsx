@@ -5,6 +5,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import TuneIcon from "@mui/icons-material/Tune";
 import FolderIcon from "@mui/icons-material/Folder";
 import FolderOffIcon from "@mui/icons-material/FolderOff";
+import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ImageIcon from "@mui/icons-material/Image";
 import VideocamIcon from "@mui/icons-material/Videocam";
@@ -94,6 +95,9 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
   const toggleFoldersVisible = useAssetGridStore(
     (state) => state.toggleFoldersVisible
   );
+  const setCreateFolderDialogOpen = useAssetGridStore(
+    (state) => state.setCreateFolderDialogOpen
+  );
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const setTypeFilter = useAssetGridStore((state) => state.setTypeFilter);
   const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
@@ -154,7 +158,9 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
         gap={0.25}
         sx={{
           px: 0.5,
-          py: 0.25
+          py: 0.25,
+          "& .MuiIconButton-root": { padding: "4px" },
+          "& .MuiSvgIcon-root": { fontSize: 14 }
         }}
       >
         <ToolbarIconButton
@@ -178,9 +184,9 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           nodrag={false}
           sx={{
             borderRadius: 1,
-            px: 0.75,
-            gap: 0.5,
-            fontSize: theme.fontSizeSmall,
+            px: 0.5,
+            gap: 0.25,
+            fontSize: "0.72rem",
             color: typeFilterActive
               ? "var(--palette-primary-main)"
               : undefined
@@ -205,19 +211,15 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           nodrag={false}
           sx={{
             borderRadius: 1,
-            px: 0.75,
-            gap: 0.5,
-            fontSize: theme.fontSizeSmall,
+            px: 0.5,
+            gap: 0.25,
+            fontSize: "0.72rem",
             color: workflowFilter
               ? "var(--palette-primary-main)"
               : undefined
           }}
         >
-          <FlexRow
-            align="center"
-            gap={0.5}
-            sx={{ "& .MuiSvgIcon-root": { fontSize: 18 } }}
-          >
+          <FlexRow align="center" gap={0.5}>
             <AccountTreeIcon />
             <span
               style={{
@@ -232,6 +234,13 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
             <ArrowDropDownIcon />
           </FlexRow>
         </ToolbarIconButton>
+        <ToolbarIconButton
+          icon={<CreateNewFolderIcon />}
+          tooltip="Create folder"
+          onClick={() => setCreateFolderDialogOpen(true)}
+          tooltipPlacement="top"
+          nodrag={false}
+        />
         <UploadButton
           onFileSelect={(files) => onUploadFiles?.(files)}
           iconVariant="file"
@@ -329,7 +338,6 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
             handleSelectAllAssets={handleSelectAllAssets}
             handleDeselectAssets={handleDeselectAssets}
             maxItemSize={maxItemSize}
-            onUploadFiles={onUploadFiles}
           />
         </Box>
       )}

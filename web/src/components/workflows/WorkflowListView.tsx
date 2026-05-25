@@ -43,7 +43,7 @@ const listStyles = (theme: Theme) =>
     ".workflow": {
       flex: 1,
       height: "100%",
-      padding: "3px 10px 3px 12px",
+      padding: 0,
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
@@ -306,6 +306,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           height: virtualizer.getTotalSize(),
           width: "100%",
           position: "relative",
+          flexShrink: 0,
         }}
       >
         {virtualizer.getVirtualItems().map((vi) => {

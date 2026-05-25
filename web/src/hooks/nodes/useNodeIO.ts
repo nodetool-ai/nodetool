@@ -12,6 +12,7 @@
  * value so callers don't reimplement the resolution chain.
  */
 import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useResultsStore from "../../stores/ResultsStore";
@@ -37,8 +38,7 @@ export const useNodeOutput = (
   nodeId: string
 ): unknown => {
   return useResultsStore(
-    (state) => unwrapOutput(readAnyStoreValue(state, workflowId, nodeId)),
-    shallow
+    useShallow((state) => unwrapOutput(readAnyStoreValue(state, workflowId, nodeId)))
   );
 };
 
@@ -69,7 +69,7 @@ export const useUpstreamValue = (
     shallow
   );
 
-  return useResultsStore((state) => {
+  return useResultsStore(useShallow((state) => {
     if (!upstreamEdge) {
       return constantFallback;
     }
@@ -89,7 +89,7 @@ export const useUpstreamValue = (
       findNode
     );
     return resolved.hasValue ? resolved.value : undefined;
-  }, shallow);
+  }));
 };
 
 /**
@@ -122,7 +122,7 @@ export const useUpstreamValues = (
     return map;
   }, [edges]);
 
-  return useResultsStore((state) => {
+  return useResultsStore(useShallow((state) => {
     const out: Record<string, unknown> = {};
     for (const name of inputNames) {
       const edge = edgeByHandle.get(name);
@@ -147,5 +147,5 @@ export const useUpstreamValues = (
       out[name] = resolved.hasValue ? resolved.value : undefined;
     }
     return out;
-  }, shallow);
+  }));
 };

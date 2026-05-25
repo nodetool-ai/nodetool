@@ -137,7 +137,7 @@ function createEnhanceNode(desc: Desc): NodeClass {
         return { output: toRef(Buffer.from(png), baseObj) };
       }
 
-      let img = sharp(baseBytes, { failOn: "none" });
+      const img = sharp(baseBytes, { failOn: "none" });
 
       if (t.endsWith(".AutoContrast")) {
         // Proper autocontrast with cutoff
