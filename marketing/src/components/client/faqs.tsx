@@ -22,7 +22,7 @@ const faqs = [
   {
     question: "How is this different from ComfyUI?",
     answer:
-      "ComfyUI is a Stable Diffusion power tool with engineer-first UX. NodeTool is the full creative workspace — image, video, audio, and text on one canvas, with the editing tools creatives actually use: masks, inpaint, outpaint, relight, upscale, layers, compositing.",
+      "ComfyUI is a node editor for diffusion models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away.",
   },
   {
     question: "How is this different from Weavy and other closed canvases?",
