@@ -1,13 +1,18 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type { InputMode, OutputCorrelation, Platform } from "@nodetool-ai/protocol";
 import type {
   ProcessingContext,
   StreamingInputs,
   StreamingOutputs
 } from "@nodetool-ai/runtime";
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import {
+  loadNodeFsPromises,
+  loadNodePath
+} from "../lib/node-only-modules.js";
 import Papa from "papaparse";
+import { tagAsServer } from "../platform-tags.js";
+
+const NODE_ONLY: readonly Platform[] = ["node"];
 
 type Row = Record<string, unknown>;
 
@@ -277,6 +282,7 @@ export class SliceDataframeNode extends BaseNode {
 
 export class SaveDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.SaveDataframe";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Save Dataframe";
   static readonly description =
     "Save dataframe in specified folder.\n    csv, folder, save\n\n    Use cases:\n    - Export processed data for external use\n    - Create backups of dataframes";
@@ -328,6 +334,8 @@ export class SaveDataframeNode extends BaseNode {
     const rows = asRows(this.df ?? this.df);
     const folder = String(this.folder ?? this.folder ?? ".");
     const filename = dateName(String(this.name ?? this.name ?? "output.csv"));
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     const full = path.resolve(folder, filename);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, toCsv(rows), "utf8");
@@ -394,6 +402,7 @@ export class LoadCSVURLNode extends BaseNode {
 
 export class LoadCSVFileDataNode extends BaseNode {
   static readonly nodeType = "nodetool.data.LoadCSVFile";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Load CSVFile";
   static readonly description =
     "Load CSV file from file path.\n    csv, dataframe, import";
@@ -415,6 +424,7 @@ export class LoadCSVFileDataNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const file = String(this.file_path ?? this.file_path ?? "");
     if (!file) throw new Error("file_path cannot be empty");
+    const fs = await loadNodeFsPromises();
     const csv = await fs.readFile(file, "utf8");
     return { output: toDataframe(parseCsv(csv)) };
   }
@@ -1114,6 +1124,7 @@ export class ForEachRowNode extends BaseNode {
 
 export class LoadCSVAssetsNode extends BaseNode {
   static readonly nodeType = "nodetool.data.LoadCSVAssets";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Load CSV Assets";
   static readonly description =
     "Load dataframes from an asset folder.\n    load, dataframe, file, import\n\n    Use cases:\n    - Load multiple dataframes from a folder\n    - Process multiple datasets in sequence\n    - Batch import of data files";
@@ -1169,6 +1180,8 @@ export class LoadCSVAssetsNode extends BaseNode {
     name: string;
   }> {
     const folder = String(this.folder ?? this.folder ?? ".");
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     const entries = await fs.readdir(folder, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".csv"))
@@ -1560,6 +1573,7 @@ export class FillNANode extends BaseNode {
 
 export class SaveCSVDataframeFileNode extends BaseNode {
   static readonly nodeType = "nodetool.data.SaveCSVDataframeFile";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Save CSVDataframe File";
   static readonly description =
     "Write a pandas DataFrame to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
@@ -1607,6 +1621,8 @@ export class SaveCSVDataframeFileNode extends BaseNode {
     if (!folder) throw new Error("folder cannot be empty");
     if (!filenameRaw) throw new Error("filename cannot be empty");
     const filename = dateName(filenameRaw);
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     const full = path.resolve(folder, filename);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, toCsv(rows), "utf8");
@@ -1738,7 +1754,7 @@ export class DescribeNode extends BaseNode {
   }
 }
 
-export const DATA_NODES = [
+export const DATA_NODES = tagAsServer([
   SchemaNode,
   FilterDataframeNode,
   SliceDataframeNode,
@@ -1768,4 +1784,4 @@ export const DATA_NODES = [
   SaveCSVDataframeFileNode,
   FilterNoneNode,
   DescribeNode
-] as const;
+]);

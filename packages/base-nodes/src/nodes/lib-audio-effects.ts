@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { tagAsServer } from "../platform-tags.js";
 import {
   audioRefFromWav,
   decodeWav,
@@ -1043,7 +1044,7 @@ export class PhaserNode extends BaseNode {
 
 // ── Export ────────────────────────────────────────────────────────
 
-export const LIB_PEDALBOARD_EXTRA_NODES = [
+export const LIB_PEDALBOARD_EXTRA_NODES = tagAsServer([
   BitcrushNode,
   CompressNode,
   DistortionNode,
@@ -1053,4 +1054,4 @@ export const LIB_PEDALBOARD_EXTRA_NODES = [
   TimeStretchNode,
   NoiseGateNode,
   PhaserNode
-] as const;
+]);

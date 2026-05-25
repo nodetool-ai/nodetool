@@ -10,8 +10,7 @@
  *   them at call sites.
  */
 
-import { promises as fs } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { loadNodeFsPromises } from "./node-only-modules.js";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -58,6 +57,7 @@ export async function audioBytesAsync(
         if (stored !== null) return new Uint8Array(stored);
       }
       if (ref.uri.startsWith("file://")) {
+        const fs = await loadNodeFsPromises();
         return new Uint8Array(await fs.readFile(uriToPath(ref.uri)));
       }
       if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
@@ -75,7 +75,12 @@ export async function audioBytesAsync(
 export function uriToPath(uriOrPath: string): string {
   if (uriOrPath.startsWith("file://")) {
     try {
-      return fileURLToPath(new URL(uriOrPath));
+      // Use the Web-standard URL API instead of node:url's fileURLToPath
+      // so this helper loads in any runtime. On Windows, the pathname
+      // comes back as "/C:/path/foo" — strip the leading slash before
+      // returning a real Windows path.
+      const pathname = decodeURIComponent(new URL(uriOrPath).pathname);
+      return /^\/[A-Za-z]:\//.test(pathname) ? pathname.slice(1) : pathname;
     } catch {
       // Fallback for non-standard URIs like file://C:\path
       return uriOrPath.slice("file://".length);

@@ -2,6 +2,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { audioBytesAsync } from "../lib/audio-wav.js";
+import { tagAsServer } from "../platform-tags.js";
 
 const MEDIA_EXTENSIONS: Record<string, string> = {
   image: ".png",
@@ -198,4 +199,4 @@ export class PreviewNode extends BaseNode {
   }
 }
 
-export const OUTPUT_NODES = [OutputNode, PreviewNode] as const;
+export const OUTPUT_NODES = tagAsServer([OutputNode, PreviewNode]);

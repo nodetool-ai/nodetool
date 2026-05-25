@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { tagAsServer } from "../platform-tags.js";
 import {
   audioRefFromWav,
   decodeWav,
@@ -538,7 +539,7 @@ export class PeakFilterNode extends BaseNode {
   }
 }
 
-export const LIB_AUDIO_DSP_NODES = [
+export const LIB_AUDIO_DSP_NODES = tagAsServer([
   GainNode_,
   DelayNode_,
   HighPassFilterNode,
@@ -546,4 +547,4 @@ export const LIB_AUDIO_DSP_NODES = [
   HighShelfFilterNode,
   LowShelfFilterNode,
   PeakFilterNode
-] as const;
+]);

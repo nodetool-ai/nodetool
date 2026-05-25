@@ -1,8 +1,17 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type {
+  InputMode,
+  OutputCorrelation,
+  Platform
+} from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { tagAsServer } from "../platform-tags.js";
+import {
+  loadNodeFsPromises,
+  loadNodePath
+} from "../lib/node-only-modules.js";
+
+const NODE_ONLY: readonly Platform[] = ["node"];
 import {
   audioBytes,
   audioBytesAsync,
@@ -69,6 +78,7 @@ function hasProviderSupport(
 
 export class LoadAudioAssetsNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.LoadAudioAssets";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Load Audio Assets";
   static readonly description =
     "Load audio files from an asset folder.\n    load, audio, file, import";
@@ -124,6 +134,8 @@ export class LoadAudioAssetsNode extends BaseNode {
           ? uriToPath(raw.uri)
           : "";
     if (!folder) return;
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     let entries;
     try {
       entries = await fs.readdir(folder, { withFileTypes: true });
@@ -156,6 +168,7 @@ export class LoadAudioAssetsNode extends BaseNode {
 
 export class LoadAudioFileNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.LoadAudioFile";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Load Audio File";
   static readonly description =
     "Read an audio file from disk.\n    audio, input, load, file";
@@ -175,6 +188,7 @@ export class LoadAudioFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const p = uriToPath(String(this.path ?? ""));
+    const fs = await loadNodeFsPromises();
     const data = new Uint8Array(await fs.readFile(p));
     return { output: audioRefFromBytes(data, `file://${p}`) };
   }
@@ -182,6 +196,7 @@ export class LoadAudioFileNode extends BaseNode {
 
 export class LoadAudioFolderNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.LoadAudioFolder";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Load Audio Folder";
   static readonly description =
     "Load all audio files from a folder, optionally including subfolders.\n    audio, load, folder, files";
@@ -242,6 +257,7 @@ export class LoadAudioFolderNode extends BaseNode {
 
 export class SaveAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.SaveAudio";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Save Audio Asset";
   static readonly description =
     "Save an audio file to a specified asset folder.\n    audio, folder, name";
@@ -292,6 +308,8 @@ export class SaveAudioNode extends BaseNode {
     const audio = this.audio;
     const folder = String(this.folder ?? ".");
     const name = dateName(String(this.name ?? "audio.wav"));
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });
     await fs.writeFile(full, audioBytes(audio));
@@ -301,6 +319,7 @@ export class SaveAudioNode extends BaseNode {
 
 export class SaveAudioFileNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.SaveAudioFile";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Save Audio File";
   static readonly description =
     "Write an audio file to disk.\n    audio, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second\n\n    Supported formats: mp3, wav, ogg, flac, aac, m4a";
@@ -359,6 +378,8 @@ export class SaveAudioFileNode extends BaseNode {
     const audio = this.audio;
     const folder = String(this.folder ?? ".");
     const fname = dateName(String(this.filename ?? "audio.wav"));
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     const p = path.resolve(folder, fname);
     await fs.mkdir(path.dirname(p), { recursive: true });
     await fs.writeFile(p, audioBytes(audio));
@@ -1289,7 +1310,7 @@ export class GetAudioInfoNode extends BaseNode {
   }
 }
 
-export const AUDIO_NODES = [
+export const AUDIO_NODES = tagAsServer([
   LoadAudioAssetsNode,
   LoadAudioFileNode,
   LoadAudioFolderNode,
@@ -1313,4 +1334,4 @@ export const AUDIO_NODES = [
   TextToSpeechNode,
   ChunkToAudioNode,
   GetAudioInfoNode
-] as const;
+]);

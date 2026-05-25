@@ -1,8 +1,17 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type {
+  InputMode,
+  OutputCorrelation,
+  Platform
+} from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { tagAsServer } from "../platform-tags.js";
+import {
+  loadNodeFsPromises,
+  loadNodePath
+} from "../lib/node-only-modules.js";
+
+const NODE_ONLY: readonly Platform[] = ["node"];
 
 type DocumentRefLike = {
   uri?: string;
@@ -74,6 +83,7 @@ async function readDocumentText(refOrPath: unknown, context?: ProcessingContext)
       const stored = await context.storage.retrieve(refOrPath);
       if (stored !== null) return Buffer.from(stored).toString("utf8");
     }
+    const fs = await loadNodeFsPromises();
     return fs.readFile(toFilePath(refOrPath), "utf8");
   }
   if (refOrPath && typeof refOrPath === "object") {
@@ -89,6 +99,7 @@ async function readDocumentText(refOrPath: unknown, context?: ProcessingContext)
         if (stored !== null) return Buffer.from(stored).toString("utf8");
       }
       if (ref.uri.startsWith("file://") || !ref.uri.startsWith("http")) {
+        const fs = await loadNodeFsPromises();
         return fs.readFile(toFilePath(ref.uri), "utf8");
       }
     }
@@ -98,6 +109,7 @@ async function readDocumentText(refOrPath: unknown, context?: ProcessingContext)
 
 export class LoadDocumentFileNode extends BaseNode {
   static readonly nodeType = "nodetool.document.LoadDocumentFile";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Load Document File";
   static readonly description =
     "Read a document from disk.\n    files, document, read, input, load, file";
@@ -118,6 +130,7 @@ export class LoadDocumentFileNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const p = String(this.path ?? this.path ?? "");
     const full = toFilePath(p);
+    const fs = await loadNodeFsPromises();
     const bytes = new Uint8Array(await fs.readFile(full));
     return {
       output: {
@@ -130,6 +143,7 @@ export class LoadDocumentFileNode extends BaseNode {
 
 export class SaveDocumentFileNode extends BaseNode {
   static readonly nodeType = "nodetool.document.SaveDocumentFile";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Save Document File";
   static readonly description =
     "Write a document to disk.\n    files, document, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
@@ -170,6 +184,8 @@ export class SaveDocumentFileNode extends BaseNode {
     const document = (this.document ?? this.document ?? {}) as DocumentRefLike;
     const p = String((this as any).path ?? "");
     const full = toFilePath(p);
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     await fs.mkdir(path.dirname(full), { recursive: true });
     if (document.data) {
       await fs.writeFile(full, asBytes(document.data));
@@ -186,6 +202,7 @@ export class SaveDocumentFileNode extends BaseNode {
 
 export class ListDocumentsNode extends BaseNode {
   static readonly nodeType = "nodetool.document.ListDocuments";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "List Documents";
   static readonly description =
     "List documents in a directory.\n    files, list, directory";
@@ -251,6 +268,8 @@ export class ListDocumentsNode extends BaseNode {
       ".docx"
     ]);
     const matches = wildcardToRegExp(pattern);
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     const visit = async function* (dir: string): AsyncGenerator<string> {
       const entries = await fs.readdir(dir, { withFileTypes: true });
       for (const entry of entries) {
@@ -1115,7 +1134,7 @@ export class SplitMarkdownNode extends BaseNode {
   }
 }
 
-export const DOCUMENT_NODES = [
+export const DOCUMENT_NODES = tagAsServer([
   LoadDocumentFileNode,
   SaveDocumentFileNode,
   ListDocumentsNode,
@@ -1124,4 +1143,4 @@ export const DOCUMENT_NODES = [
   SplitJSONNode,
   SplitRecursivelyNode,
   SplitMarkdownNode
-] as const;
+]);

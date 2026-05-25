@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { withPage } from "../lib/cdp-page.js";
+import { tagAsServer } from "../platform-tags.js";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
@@ -565,10 +565,10 @@ export class SpiderCrawlLibNode extends BaseNode {
   }
 }
 
-export const LIB_BROWSER_NODES: readonly NodeClass[] = [
+export const LIB_BROWSER_NODES = tagAsServer([
   WebFetchLibNode,
   DownloadFileLibNode,
   BrowserLibNode,
   ScreenshotLibNode,
   SpiderCrawlLibNode
-] as const;
+]);

@@ -1,5 +1,4 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   DockerSandboxProvider,
   SessionStore,
@@ -10,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import { Tool } from "@nodetool-ai/agents";
 import { buildBrowserAgentToolClasses } from "../lib/browser-agent-tools.js";
 import { registerBuiltinAgentToolClasses } from "./agent-tool-hydration.js";
+import { tagAsServer } from "../platform-tags.js";
 
 const DEFAULT_SCOPE_USER = "no-user";
 const DEFAULT_SCOPE_WORKFLOW = "no-workflow";
@@ -505,10 +505,10 @@ export class SandboxFileNode extends BaseNode {
   }
 }
 
-export const SANDBOX_NODES: readonly NodeClass[] = [
+export const SANDBOX_NODES = tagAsServer([
   SandboxShellNode,
   SandboxFileNode
-];
+]);
 
 // Register the full sandbox tool surface into the shared agent-tool registry
 // so a plain AgentNode can pick any sandbox_* tool by name without needing

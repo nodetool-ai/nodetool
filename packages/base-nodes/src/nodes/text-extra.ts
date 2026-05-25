@@ -1,8 +1,14 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { Platform } from "@nodetool-ai/protocol";
 import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { promises as fs } from "node:fs";
-import { extname, join } from "node:path";
+import { tagAsServer } from "../platform-tags.js";
+import {
+  loadNodeFsPromises,
+  loadNodePath
+} from "../lib/node-only-modules.js";
+
+const NODE_ONLY: readonly Platform[] = ["node"];
 
 function flagsFromOpts(opts: {
   dotall?: unknown;
@@ -1686,6 +1692,7 @@ function seededEmbedding(input: string, dims: number = 64): number[] {
 
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "nodetool.text.AutomaticSpeechRecognition";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Automatic Speech Recognition";
   static readonly description =
     "Transcribe audio to text using automatic speech recognition models.\n    audio, speech, recognition, transcription, ASR, whisper";
@@ -1738,6 +1745,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
         if (stored !== null) bytes = new Uint8Array(stored);
       }
       if (bytes.length === 0 && (audio.uri as string).startsWith("file://")) {
+        const fs = await loadNodeFsPromises();
         bytes = new Uint8Array(
           await fs.readFile((audio.uri as string).slice("file://".length))
         );
@@ -1824,6 +1832,7 @@ export class EmbeddingTextNode extends BaseNode {
 
 export class SaveTextFileNode extends BaseNode {
   static readonly nodeType = "nodetool.text.SaveTextFile";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Save Text File";
   static readonly description =
     "Saves input text to a file in the assets folder.\n    text, save, file";
@@ -1860,8 +1869,10 @@ export class SaveTextFileNode extends BaseNode {
     if (!folder) {
       throw new Error("folder cannot be empty");
     }
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     await fs.mkdir(folder, { recursive: true });
-    const fsPath = join(folder, name);
+    const fsPath = path.join(folder, name);
     await fs.writeFile(fsPath, text, "utf-8");
     // The output `uri` is a portable, URI-style path (forward slashes) so
     // downstream nodes and the web UI never have to special-case Windows.
@@ -1872,6 +1883,7 @@ export class SaveTextFileNode extends BaseNode {
 
 export class SaveTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.SaveText";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Save Text";
   static readonly description =
     "Saves input text to a file in the assets folder.\n    text, save, file\n\n    Use cases:\n    - Persisting processed text results\n    - Creating text files for downstream nodes or external use\n    - Archiving text data within the workflow";
@@ -1910,6 +1922,7 @@ export class SaveTextNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const text = String(this.text ?? this.text ?? "");
     const name = String(this.name ?? this.name ?? "output.txt");
+    const fs = await loadNodeFsPromises();
     await fs.writeFile(name, text, "utf-8");
     return { output: { uri: name, data: text } };
   }
@@ -1917,6 +1930,7 @@ export class SaveTextNode extends BaseNode {
 
 export class LoadTextFolderNode extends BaseNode {
   static readonly nodeType = "nodetool.text.LoadTextFolder";
+  static readonly platforms = NODE_ONLY;
   static readonly title = "Load Text Folder";
   static readonly description =
     "Load all text files from a folder, optionally including subfolders.\n    text, load, folder, files";
@@ -1991,11 +2005,13 @@ export class LoadTextFolderNode extends BaseNode {
     if (!folder) {
       throw new Error("folder cannot be empty");
     }
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
 
     const walk = async function* (dir: string): AsyncGenerator<string> {
       const entries = await fs.readdir(dir, { withFileTypes: true });
       for (const entry of entries) {
-        const full = join(dir, entry.name);
+        const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           if (includeSubdirs) {
             yield* walk(full);
@@ -2007,7 +2023,7 @@ export class LoadTextFolderNode extends BaseNode {
     };
 
     for await (const filePath of walk(folder)) {
-      if (!extensions.includes(extname(filePath).toLowerCase())) {
+      if (!extensions.includes(path.extname(filePath).toLowerCase())) {
         continue;
       }
       const text = await fs.readFile(filePath, "utf-8");
@@ -2623,7 +2639,7 @@ export class ToStringNode extends BaseNode {
   }
 }
 
-export const TEXT_EXTRA_NODES = [
+export const TEXT_EXTRA_NODES = tagAsServer([
   SplitTextNode,
   ExtractTextNode,
   ChunkTextNode,
@@ -2675,4 +2691,4 @@ export const TEXT_EXTRA_NODES = [
   TemplateTextNode,
   ReplaceTextNode,
   ToStringNode
-] as const;
+]);
