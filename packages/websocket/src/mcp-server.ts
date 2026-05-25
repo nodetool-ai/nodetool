@@ -8,7 +8,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import {
+  registerAppResource,
+  registerAppTool,
+  RESOURCE_MIME_TYPE
+} from "@modelcontextprotocol/ext-apps/server";
 import { z } from "zod";
+import { getListAssetsAppHtml } from "./mcp-apps/list-assets-app.js";
 import { createLogger } from "@nodetool-ai/config";
 import { Workflow, Job, Asset } from "@nodetool-ai/models";
 import {
@@ -533,53 +539,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
 
   // ── Asset tools ─────────────────────────────────────────────────
 
-  server.tool(
-    "list_assets",
-    "List or search assets with flexible filtering options.",
-    {
-      parent_id: z.string().optional().describe("Filter by parent asset ID"),
-      content_type: z.string().optional().describe("Filter by content type"),
-      limit: z
-        .number()
-        .optional()
-        .default(100)
-        .describe("Maximum number of assets to return"),
-      user_id: z.string().optional().default("1").describe("User ID")
-    },
-    async ({ parent_id, content_type, limit, user_id }) => {
-      try {
-        const opts: {
-          limit: number;
-          parentId?: string;
-          contentType?: string;
-        } = { limit };
-        if (parent_id) opts.parentId = parent_id;
-        if (content_type) opts.contentType = content_type;
-        const [assets, next] = await Asset.paginate(user_id, opts);
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({
-                assets: await Promise.all(assets.map(toAssetResponse)),
-                next: next || null
-              })
-            }
-          ]
-        };
-      } catch (err: unknown) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: String(err) })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
-  );
+  registerListAssetsApp(server);
 
   server.tool(
     "get_asset",
@@ -995,6 +955,88 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
   );
 
   return server;
+}
+
+const LIST_ASSETS_UI_URI = "ui://nodetool/list-assets.html";
+
+/**
+ * Register the `list_assets` tool with an MCP App UI attached.
+ *
+ * Hosts that speak the MCP Apps extension render the gallery view from
+ * `LIST_ASSETS_UI_URI`. Hosts that don't still receive the same JSON
+ * payload in the tool result and can display it as text.
+ */
+function registerListAssetsApp(server: McpServer): void {
+  registerAppTool(
+    server,
+    "list_assets",
+    {
+      description:
+        "List or search assets with flexible filtering options. Renders an inline media gallery (images, video, audio) in App-aware hosts.",
+      inputSchema: {
+        parent_id: z.string().optional().describe("Filter by parent asset ID"),
+        content_type: z.string().optional().describe("Filter by content type"),
+        limit: z
+          .number()
+          .optional()
+          .default(100)
+          .describe("Maximum number of assets to return"),
+        user_id: z.string().optional().default("1").describe("User ID")
+      },
+      _meta: { ui: { resourceUri: LIST_ASSETS_UI_URI } }
+    },
+    async ({ parent_id, content_type, limit, user_id }) => {
+      try {
+        const opts: {
+          limit: number;
+          parentId?: string;
+          contentType?: string;
+        } = { limit };
+        if (parent_id) opts.parentId = parent_id;
+        if (content_type) opts.contentType = content_type;
+        const [assets, next] = await Asset.paginate(user_id, opts);
+        const payload = {
+          assets: await Promise.all(assets.map(toAssetResponse)),
+          next: next || null
+        };
+        return {
+          content: [
+            { type: "text" as const, text: JSON.stringify(payload) }
+          ],
+          structuredContent: payload
+        };
+      } catch (err: unknown) {
+        return {
+          content: [
+            { type: "text" as const, text: JSON.stringify({ error: String(err) }) }
+          ],
+          isError: true
+        };
+      }
+    }
+  );
+
+  registerAppResource(
+    server,
+    "NodeTool Asset Gallery",
+    LIST_ASSETS_UI_URI,
+    {
+      description:
+        "Interactive media gallery for NodeTool assets — images, video, audio and folders."
+    },
+    async () => {
+      const html = await getListAssetsAppHtml();
+      return {
+        contents: [
+          {
+            uri: LIST_ASSETS_UI_URI,
+            mimeType: RESOURCE_MIME_TYPE,
+            text: html
+          }
+        ]
+      };
+    }
+  );
 }
 
 /**
