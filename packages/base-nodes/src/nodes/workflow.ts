@@ -3,7 +3,7 @@ import { WorkflowRunner, Graph } from "@nodetool-ai/kernel";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeDescriptor, Edge, InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { randomUUID } from "node:crypto";
-import { tagAsServer } from "../platform-tags.js";
+import { tagAsUniversal } from "../platform-tags.js";
 
 /**
  * WorkflowNode – executes a sub-workflow selected by the user.
@@ -181,4 +181,4 @@ export class WorkflowNode extends BaseNode {
   }
 }
 
-export const WORKFLOW_NODES = tagAsServer([WorkflowNode]);
+export const WORKFLOW_NODES = tagAsUniversal([WorkflowNode]);

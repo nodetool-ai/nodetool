@@ -106,11 +106,36 @@ const BROWSER_MATCHERS: BrowserMatcher[] = [
   { pattern: /^@nodetool-ai\/gpu(?:\/|$)/, reason: "@nodetool-ai/gpu (WebGPU shader pool)" }
 ];
 
+interface PurityBlocker {
+  pattern: RegExp;
+  reason: string;
+}
+
+/**
+ * Source-level patterns that block a server-portable module from being
+ * promoted to UNIVERSAL. The intent: any module that calls out to the
+ * network or reads env secrets has CORS / secret-exposure concerns in
+ * the browser; only pure-computation modules are auto-promoted.
+ *
+ * We scan the module's source AND its transitively-imported local
+ * sources — a helper that calls fetch demotes its parent.
+ */
+const PURITY_BLOCKERS: PurityBlocker[] = [
+  { pattern: /\bfetch\s*\(/, reason: "fetch() call (browser CORS risk)" },
+  { pattern: /\bprocess\.env\b/, reason: "process.env (not available in browsers)" },
+  {
+    pattern: /\b_secrets\b|\bgetApiKey\b|\bsecretResolver\b/,
+    reason: "secret access (browsers can't hold secrets)"
+  }
+];
+
 interface ModuleReport {
   file: string;
   platforms: readonly Platform[];
   reasons: string[];
   browserClaims: string[];
+  /** Reasons the module was NOT promoted from server to universal. */
+  purityBlockers: string[];
   importedFiles: string[];
 }
 
@@ -129,6 +154,41 @@ function readImports(file: string): ImportSet {
   for (const m of content.matchAll(STATIC_IMPORT_RE)) result.static.add(m[1]);
   for (const m of content.matchAll(DYNAMIC_IMPORT_RE)) result.dynamic.add(m[1]);
   return result;
+}
+
+/**
+ * Strip block/line comments and string literals from a source string so
+ * purity matchers don't fire on documentation or description text that
+ * happens to mention e.g. "fetch()" or "process.env".
+ */
+function stripCommentsAndStrings(src: string): string {
+  // String regexes disallow newlines (JS strings can't span them without
+  // escaping) so an unterminated quote doesn't consume the rest of the
+  // file. Template literals can span newlines.
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
+    .replace(/"(?:[^"\\\n]|\\[\s\S])*"/g, '""')
+    .replace(/'(?:[^'\\\n]|\\[\s\S])*'/g, "''")
+    .replace(/`(?:[^`\\]|\\[\s\S])*`/g, "``");
+}
+
+function findPurityBlockers(files: Iterable<string>): string[] {
+  const hits: string[] = [];
+  for (const file of files) {
+    let src: string;
+    try {
+      src = stripCommentsAndStrings(readFileSync(file, "utf-8"));
+    } catch {
+      continue;
+    }
+    for (const b of PURITY_BLOCKERS) {
+      if (b.pattern.test(src)) {
+        hits.push(`${b.reason} (in ${file.replace(`${SRC_DIR}/`, "")})`);
+      }
+    }
+  }
+  return hits;
 }
 
 function isRelative(spec: string): boolean {
@@ -245,15 +305,46 @@ function classifyFile(entry: string): ModuleReport {
     }
   }
 
-  const platforms = claimsBrowser
-    ? union(serverPlatforms, ["browser"])
-    : serverPlatforms;
+  // Auto-promote to universal: a server-portable module (all 3 server
+  // platforms supported) that contains no fetch / env / secret access
+  // in its source, AND no dynamic imports of Node-only deps that would
+  // throw if executed in a browser.
+  const isServerPortable =
+    serverPlatforms.length === SERVER.length &&
+    SERVER.every((p) => serverPlatforms.includes(p));
+
+  const purityBlockers: string[] = [];
+  if (isServerPortable) {
+    purityBlockers.push(...findPurityBlockers(visited));
+    // Dynamic imports of Node-only deps mean there's a runtime code path
+    // that can't execute in a browser — module loads fine, but functions
+    // throw. Demote out of universal in that case.
+    for (const ext of dynamicExternals) {
+      for (const m of NATIVE_MATCHERS) {
+        if (m.pattern.test(ext) && !m.maxServerPlatforms.includes("workers")) {
+          purityBlockers.push(`dynamic import("${ext}") — Node-only path`);
+          break;
+        }
+      }
+    }
+  }
+  const isPure = isServerPortable && purityBlockers.length === 0;
+
+  let platforms: readonly Platform[];
+  if (isPure) {
+    platforms = union(serverPlatforms, ["browser"]);
+  } else if (claimsBrowser) {
+    platforms = union(serverPlatforms, ["browser"]);
+  } else {
+    platforms = serverPlatforms;
+  }
 
   return {
     file: entry.replace(`${SRC_DIR}/`, ""),
     platforms,
     reasons: [...new Set(reasons)].sort(),
     browserClaims: [...new Set(browserClaims)].sort(),
+    purityBlockers: [...new Set(purityBlockers)].sort(),
     importedFiles: [...visited].map((f) => f.replace(`${SRC_DIR}/`, ""))
   };
 }

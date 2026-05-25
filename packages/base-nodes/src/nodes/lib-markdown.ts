@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsServer } from "../platform-tags.js";
+import { tagAsUniversal } from "../platform-tags.js";
 
 export class ExtractLinksMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.markdown.ExtractLinks";
@@ -251,7 +251,7 @@ export class ExtractTablesMarkdownLibNode extends BaseNode {
   }
 }
 
-export const LIB_MARKDOWN_NODES = tagAsServer([
+export const LIB_MARKDOWN_NODES = tagAsUniversal([
   ExtractLinksMarkdownLibNode,
   ExtractHeadersMarkdownLibNode,
   ExtractBulletListsMarkdownLibNode,

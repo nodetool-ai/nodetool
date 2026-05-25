@@ -17,7 +17,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { runInSandbox } from "@nodetool-ai/agents";
-import { SERVER_PLATFORMS } from "@nodetool-ai/protocol";
+import { ALL_PLATFORMS } from "@nodetool-ai/protocol";
 
 /** JS keywords that cannot be used as variable names. */
 const JS_RESERVED = new Set([
@@ -94,7 +94,7 @@ const STATEMENT_KEYWORDS =
 
 export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
-  static readonly platforms = SERVER_PLATFORMS;
+  static readonly platforms = ALL_PLATFORMS;
   static readonly title = "Code";
   static readonly description =
     "Execute vanilla JavaScript in a sandboxed environment. " +

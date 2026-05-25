@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsServer } from "../platform-tags.js";
+import { tagAsUniversal } from "../platform-tags.js";
 
 type ImageLike = {
   data?: Uint8Array | string;
@@ -127,4 +127,4 @@ export class CompareImagesNode extends BaseNode {
   }
 }
 
-export const COMPARE_NODES = tagAsServer([CompareImagesNode]);
+export const COMPARE_NODES = tagAsUniversal([CompareImagesNode]);

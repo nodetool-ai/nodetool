@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsServer } from "../platform-tags.js";
+import { tagAsUniversal } from "../platform-tags.js";
 
 export const DEFAULT_MAX_LIST_LENGTH = 10_000;
 
@@ -300,7 +300,7 @@ export class RepeatValueNode extends BaseNode {
   }
 }
 
-export const LIST_NODES = tagAsServer([
+export const LIST_NODES = tagAsUniversal([
   RangeNode,
   TileNode,
   RepeatEachNode,

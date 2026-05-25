@@ -1,7 +1,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
-import { tagAsServer } from "../platform-tags.js";
+import { tagAsUniversal } from "../platform-tags.js";
 
 export class IfNode extends BaseNode {
   static readonly nodeType = "nodetool.control.If";
@@ -1336,7 +1336,7 @@ export class CrossNode extends BaseNode {
   }
 }
 
-export const CONTROL_NODES = tagAsServer([
+export const CONTROL_NODES = tagAsUniversal([
   IfNode,
   ForEachNode,
   RepeatCountNode,

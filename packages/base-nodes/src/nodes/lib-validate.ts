@@ -7,7 +7,7 @@
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsServer } from "../platform-tags.js";
+import { tagAsUniversal } from "../platform-tags.js";
 
 // ---------------------------------------------------------------------------
 // Shared validators
@@ -234,7 +234,7 @@ export class SanitizeStringNode extends BaseNode {
   }
 }
 
-export const LIB_VALIDATE_NODES = tagAsServer([
+export const LIB_VALIDATE_NODES = tagAsUniversal([
   ValidateEmailNode,
   ValidateURLNode,
   ValidateIPNode,
