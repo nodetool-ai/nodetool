@@ -130,6 +130,8 @@ export default defineConfig(async ({ mode }) => {
                     )
                   )
                     return "vendor-mui";
+                  if (/[\\/]node_modules[\\/]@mui[\\/]x-/.test(id))
+                    return "vendor-mui-x";
                   if (
                     /[\\/]node_modules[\\/](react-plotly\.js|plotly\.js)[\\/]/.test(id)
                   )
@@ -141,7 +143,7 @@ export default defineConfig(async ({ mode }) => {
                   )
                     return "vendor-three";
                   if (
-                    /[\\/]node_modules[\\/](@monaco-editor[\\/]react|lexical)[\\/]/.test(
+                    /[\\/]node_modules[\\/](@monaco-editor[\\/]react|monaco-editor|lexical|@lexical)[\\/]/.test(
                       id
                     )
                   )
@@ -152,6 +154,54 @@ export default defineConfig(async ({ mode }) => {
                     return "vendor-pdf";
                   if (/[\\/]node_modules[\\/]wavesurfer\.js[\\/]/.test(id))
                     return "vendor-waveform";
+                  // Workflow graph engine + layout
+                  if (
+                    /[\\/]node_modules[\\/](@xyflow|elkjs)[\\/]/.test(id)
+                  )
+                    return "vendor-flow";
+                  // Server state + RPC stack (must stay together — shared runtime)
+                  if (
+                    /[\\/]node_modules[\\/](@tanstack|@trpc|superjson|@msgpack)[\\/]/.test(
+                      id
+                    )
+                  )
+                    return "vendor-query";
+                  // Markdown / unified ecosystem (all must live together — shared
+                  // unified processor state, hast/mdast types, and micromark
+                  // extension registry).
+                  if (
+                    /[\\/]node_modules[\\/](react-markdown|remark-[^\\/]+|rehype-[^\\/]+|micromark[^\\/]*|mdast-util-[^\\/]+|hast-util-[^\\/]+|unified|unist-util-[^\\/]+|vfile[^\\/]*|bail|trough|is-plain-obj|decode-named-character-reference|character-entities[^\\/]*|html-void-elements|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|longest-streak|parse-entities|ccount|escape-string-regexp|markdown-table|github-slugger|stringify-entities|html-url-attributes|dompurify|prismjs|react-syntax-highlighter|refractor)[\\/]/.test(
+                      id
+                    )
+                  )
+                    return "vendor-markdown";
+                  // Data table + spreadsheet/zip libs
+                  if (
+                    /[\\/]node_modules[\\/](tabulator-tables|jszip|papaparse|read-excel-file|xlsx)[\\/]/.test(
+                      id
+                    )
+                  )
+                    return "vendor-data";
+                  // Panel layout
+                  if (/[\\/]node_modules[\\/]dockview[\\/]/.test(id))
+                    return "vendor-dockview";
+                  // Supabase client
+                  if (/[\\/]node_modules[\\/]@supabase[\\/]/.test(id))
+                    return "vendor-supabase";
+                  // Search / command palette / small utilities cluster
+                  if (
+                    /[\\/]node_modules[\\/](cmdk|fuse\.js|chroma-js|zundo|date-fns|uuid|zod|fast-deep-equal|acorn-walk)[\\/]/.test(
+                      id
+                    )
+                  )
+                    return "vendor-utils";
+                  // Static icon set (large SVG payload)
+                  if (/[\\/]node_modules[\\/]@lobehub[\\/]/.test(id))
+                    return "vendor-icons";
+                  // Leave other dependencies unmatched so Rollup can apply
+                  // its default chunking strategy instead of forcing a single
+                  // shared misc vendor chunk.
+                  return;
                 }
               }
             }

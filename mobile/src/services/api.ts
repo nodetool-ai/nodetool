@@ -80,7 +80,7 @@ export interface Thread {
   title: string | null;
   created_at: string | null;
   updated_at: string | null;
-  etag?: string;
+  etag?: string | null;
 }
 
 export interface ThreadList {

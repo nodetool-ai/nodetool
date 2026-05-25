@@ -2,7 +2,6 @@
 import React, { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import ComputerIcon from "@mui/icons-material/Computer";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
@@ -128,15 +127,6 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
             label="Storage used"
             icon={
               <StorageOutlinedIcon
-                sx={{ fontSize: 14, color: theme.vars.palette.text.secondary }}
-              />
-            }
-          />
-          <Stat
-            value="100%"
-            label="Local & private"
-            icon={
-              <LockOutlinedIcon
                 sx={{ fontSize: 14, color: theme.vars.palette.text.secondary }}
               />
             }

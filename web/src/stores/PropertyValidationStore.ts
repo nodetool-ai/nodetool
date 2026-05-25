@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { shallow } from "zustand/shallow";
 
 type Key = `${string}:${string}:${string}`;
 
@@ -9,7 +8,7 @@ const key = (workflowId: string, nodeId: string, property: string): Key =>
 const nodePrefix = (workflowId: string, nodeId: string) =>
   `${workflowId}:${nodeId}:`;
 
-export interface NodeValidationError {
+interface NodeValidationError {
   property: string;
   message: string;
 }
@@ -90,5 +89,4 @@ const usePropertyValidationStore = create<PropertyValidationStore>(
   })
 );
 
-export { shallow };
 export default usePropertyValidationStore;

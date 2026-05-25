@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-25T00:00:00Z",
+  "title": "Design System: NodeTool",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Studio Blue", "canonical": "oklch(64% 0.09 250)", "tonalRamp": ["oklch(20% 0.04 250)", "oklch(28% 0.06 250)", "oklch(36% 0.08 250)", "oklch(46% 0.09 250)", "oklch(56% 0.09 250)", "oklch(64% 0.09 250)", "oklch(74% 0.08 250)", "oklch(86% 0.05 250)"] },
+      "secondary": { "role": "secondary", "displayName": "Stage Magenta", "canonical": "oklch(72% 0.22 330)", "tonalRamp": ["oklch(22% 0.10 330)", "oklch(32% 0.14 330)", "oklch(42% 0.18 330)", "oklch(52% 0.21 330)", "oklch(62% 0.23 330)", "oklch(72% 0.22 330)", "oklch(82% 0.16 330)", "oklch(92% 0.07 330)"] },
+      "attention": { "role": "secondary", "displayName": "Attention Magenta", "canonical": "oklch(68% 0.27 325)", "tonalRamp": ["oklch(22% 0.12 325)", "oklch(32% 0.16 325)", "oklch(42% 0.20 325)", "oklch(52% 0.24 325)", "oklch(60% 0.27 325)", "oklch(68% 0.27 325)", "oklch(80% 0.18 325)", "oklch(92% 0.08 325)"] },
+      "node": { "role": "tertiary", "displayName": "Node Teal", "canonical": "oklch(58% 0.10 195)", "tonalRamp": ["oklch(18% 0.04 195)", "oklch(26% 0.06 195)", "oklch(36% 0.08 195)", "oklch(46% 0.09 195)", "oklch(52% 0.10 195)", "oklch(58% 0.10 195)", "oklch(72% 0.08 195)", "oklch(86% 0.04 195)"] },
+      "error": { "role": "semantic", "displayName": "Error Red", "canonical": "oklch(68% 0.21 25)" },
+      "warning": { "role": "semantic", "displayName": "Warning Amber", "canonical": "oklch(80% 0.14 60)" },
+      "success": { "role": "semantic", "displayName": "Success Green", "canonical": "oklch(85% 0.20 140)" },
+      "info": { "role": "semantic", "displayName": "Info Cyan", "canonical": "oklch(80% 0.13 200)" },
+      "canvas-bg": { "role": "neutral", "displayName": "Canvas Floor", "canonical": "oklch(8% 0.005 250)", "tonalRamp": ["oklch(5% 0.004 250)", "oklch(8% 0.005 250)", "oklch(11% 0.006 250)", "oklch(14% 0.006 250)", "oklch(18% 0.007 250)", "oklch(24% 0.008 250)", "oklch(38% 0.008 250)", "oklch(60% 0.008 250)"] },
+      "app-header": { "role": "neutral", "displayName": "App Header", "canonical": "oklch(9% 0.006 250)" },
+      "surface-paper": { "role": "neutral", "displayName": "Paper", "canonical": "oklch(11% 0.006 250)" },
+      "surface-node": { "role": "neutral", "displayName": "Node Surface", "canonical": "oklch(16% 0.006 250)" },
+      "surface-node-group": { "role": "neutral", "displayName": "Group Surface", "canonical": "oklch(19% 0.006 250)" },
+      "surface-node-header": { "role": "neutral", "displayName": "Node Header", "canonical": "oklch(13% 0.006 250)" },
+      "text-primary": { "role": "neutral", "displayName": "Text Primary", "canonical": "oklch(97% 0.003 250)" },
+      "text-secondary": { "role": "neutral", "displayName": "Text Secondary", "canonical": "oklch(62% 0.012 250)" },
+      "brightest": { "role": "neutral", "displayName": "Brightest", "canonical": "oklch(98% 0.002 250)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page-level titles in settings and onboarding heroes. Rare." },
+      "headline": { "displayName": "Headline", "purpose": "Section headers in dialogs and major panels." },
+      "title": { "displayName": "Title", "purpose": "Card titles, dialog titles, panel headers." },
+      "body": { "displayName": "Body", "purpose": "Default text; inspector field labels, dialog body, descriptions. 65-75ch for prose." },
+      "body-secondary": { "displayName": "Body Secondary", "purpose": "Captions, helper text, metadata rows." },
+      "label": { "displayName": "Label (Eyebrow)", "purpose": "Uppercase eyebrow labels above grouped controls; small role markers." },
+      "mono": { "displayName": "Mono", "purpose": "Code blocks, node IDs, numeric table cells, terminal output." }
+    },
+    "shadows": [
+      { "name": "floating", "value": "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)", "purpose": "Tooltips and small popovers lifting off panels." },
+      { "name": "editor-menu", "value": "0 10px 30px rgba(0,0,0,0.5)", "purpose": "Node context menus and command menus overlaying the canvas." }
+    ],
+    "motion": [
+      { "name": "fast", "value": "120ms ease", "purpose": "Hover micro-interactions, icon state changes, transforms." },
+      { "name": "normal", "value": "200ms ease", "purpose": "Standard UI transitions: color, border, opacity, shadow." },
+      { "name": "slow", "value": "350ms ease", "purpose": "Panel open/close, drawer animations." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "900px" },
+      { "name": "lg", "value": "1280px" },
+      { "name": "xl", "value": "1600px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default primary action in chrome. Studio Blue at rest, magenta-tinted on hover.",
+      "html": "<button class=\"ds-btn-primary\">Generate</button>",
+      "css": ".ds-btn-primary { background: #6690d4; color: #FCFCFC; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500; letter-spacing: 0.005em; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; transition: background-color 150ms ease, color 150ms ease; } .ds-btn-primary:hover { background: #E35BFF; } .ds-btn-primary:focus-visible { outline: 2px solid #E879F9; outline-offset: 2px; } .ds-btn-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Quiet action used for the bulk of chrome buttons. Transparent at rest, tonal lift on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #F7F8F8; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500; padding: 6px 14px; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; } .ds-btn-ghost:hover { background: #1B1D21; border-color: rgba(255,255,255,0.16); } .ds-btn-ghost:focus-visible { outline: 2px solid #6690d4; outline-offset: 2px; }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Pill-shaped tag. Used for model labels, status badges, filter pills.",
+      "html": "<span class=\"ds-chip\">stable-diffusion-xl</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; background: #1B1D21; color: #8A8F98; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.02em; padding: 2px 8px; border-radius: 9999px; }"
+    },
+    {
+      "name": "Provider Pill (Local)",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Provider badge variant. Tints background with provider hue at low opacity.",
+      "html": "<span class=\"ds-pill-local\"><svg width=\"10\" height=\"10\" viewBox=\"0 0 10 10\"><circle cx=\"5\" cy=\"5\" r=\"3\" fill=\"#86EFAC\"/></svg>Local</span>",
+      "css": ".ds-pill-local { display: inline-flex; align-items: center; gap: 6px; background: rgba(134,239,172,0.10); color: #86EFAC; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; padding: 2px 8px 2px 6px; border-radius: 9999px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Inspector / form text field. Hairline border, primary focus, no outer glow.",
+      "html": "<input class=\"ds-input\" placeholder=\"Prompt\" />",
+      "css": ".ds-input { background: #101113; color: #F7F8F8; font-family: 'Inter', sans-serif; font-size: 15px; padding: 6px 8px; border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; outline: none; transition: border-color 150ms ease; } .ds-input::placeholder { color: #8A8F98; } .ds-input:hover { border-color: rgba(255,255,255,0.16); } .ds-input:focus-visible { border-color: #6690d4; }"
+    },
+    {
+      "name": "Node Card",
+      "kind": "card",
+      "refersTo": "card-node",
+      "description": "ReactFlow node body. Header strip in a darker tint, body in node surface, 8px radius.",
+      "html": "<div class=\"ds-node\"><div class=\"ds-node-header\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\"><circle cx=\"6\" cy=\"6\" r=\"4\" fill=\"#029486\"/></svg><span>Image Generator</span></div><div class=\"ds-node-body\"><div class=\"ds-node-row\"><span class=\"ds-node-label\">prompt</span><span class=\"ds-node-value\">a city at dusk</span></div><div class=\"ds-node-row\"><span class=\"ds-node-label\">steps</span><span class=\"ds-node-value\">28</span></div></div></div>",
+      "css": ".ds-node { background: #1B1D21; color: #F7F8F8; border-radius: 8px; overflow: hidden; font-family: 'Inter', sans-serif; width: 220px; box-shadow: none; transition: outline-color 150ms ease; outline: 1px solid transparent; } .ds-node:hover { outline-color: rgba(255,255,255,0.12); } .ds-node-header { display: flex; align-items: center; gap: 6px; background: #141518; padding: 4px 8px; font-size: 12px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: #8A8F98; height: 28px; box-sizing: border-box; } .ds-node-body { padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; } .ds-node-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; } .ds-node-label { color: #8A8F98; } .ds-node-value { color: #F7F8F8; font-family: 'JetBrains Mono', monospace; }"
+    },
+    {
+      "name": "Tooltip",
+      "kind": "custom",
+      "refersTo": "tooltip",
+      "description": "Floating tooltip with blur backdrop, hairline highlight, soft drop.",
+      "html": "<div class=\"ds-tooltip\">Press <span class=\"ds-kbd\">⌘K</span> to open</div>",
+      "css": ".ds-tooltip { display: inline-flex; align-items: center; gap: 6px; background: rgba(12,13,16,0.96); backdrop-filter: blur(8px); color: #F7F8F8; font-family: 'Inter', sans-serif; font-size: 13px; padding: 6px 10px; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04); } .ds-kbd { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Studio at Night",
+    "overview": "NodeTool is a dark studio lit by what you're making. The room recedes; the artifacts glow. The canvas is the floor of the studio; panels and toolbars are quiet metal in slightly lifted tones; the only saturated color in a resting workflow is the node-teal of the running graph and the magenta of the user's current selection. The system is dense without being cramped: Inter at 15px body with a tight 1.125 scale ratio means a node inspector can show twenty fields without feeling like a wall. The eight-step radius scale reserves the larger radii for dialogs and assets, keeping working surfaces at 4-8px so the canvas reads as precision instrumentation, not a card grid.",
+    "keyCharacteristics": [
+      "Dark by default; the canvas is the floor, panels are lifted tonal layers.",
+      "Two saturated accents only (Studio Blue, Stage Magenta); canvas-teal belongs to nodes, not chrome.",
+      "Inter for everything UI; JetBrains Mono for code, IDs, and numeric data.",
+      "Tight rounded scale; 4-8px on working surfaces, 12-20px reserved for dialogs and asset cards.",
+      "Tonal layering for depth; shadows reserved for floating chrome."
+    ],
+    "rules": [
+      { "name": "The Two-Accent Rule", "body": "Chrome uses Studio Blue and Stage Magenta only. Node Teal, Input Slate, Output Plum, and the semantic colors belong to the canvas and the running workflow.", "section": "colors" },
+      { "name": "The Canvas-Wins Rule", "body": "When a generated artifact renders, the surrounding chrome desaturates: panels stay neutral, accents pause. The artifact is the only saturated thing on screen.", "section": "colors" },
+      { "name": "The Tinted-Near-Black Rule", "body": "Never #000. Surface neutrals are tinted toward warm-cool gray. Pure black flattens the tonal hierarchy.", "section": "colors" },
+      { "name": "The One-Family Rule", "body": "Inter for chrome; JetBrains Mono for content that is itself code or numeric. Never mix a third family.", "section": "typography" },
+      { "name": "The Fixed-rem Rule", "body": "Type sizes are fixed (rem/em), not fluid. A node inspector at 15px reads the same in a 320px-wide panel as in a 600px-wide one.", "section": "typography" },
+      { "name": "The Tight-Tracking Rule", "body": "Headings tighten tracking (-0.01em to -0.02em); body stays neutral; uppercase labels open up to 0.04em.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Panels, cards, nodes, and inputs cast no shadow at rest. If a surface is gaining shadow on hover, it is wrong; use a tonal change instead.", "section": "elevation" },
+      { "name": "The Lift-When-Floating Rule", "body": "Anything that visually leaves the page (tooltip, popover, menu, dialog) gets shadow. The shadow's job is 'I am not part of the page beneath me', not 'I am important'.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use the four-tier tonal ladder (#0A0B0D → #101113 → #1B1D21 → #22252A) for depth. Lifting via tone, not shadow.",
+      "Do reserve primary blue and attention magenta for chrome actions and emphasis only.",
+      "Do keep node working surfaces at rounded.node (8px); buttons at 4-6px; dialogs at 20px. The radius scale is meaningful.",
+      "Do use ui_primitives/ components for every chrome element. Raw MUI imports outside ui_primitives/ and editor_ui/ are out of spec.",
+      "Do pair every semantic color (error/warning/success/info) with an icon or shape; color is never the only signal.",
+      "Do use JetBrains Mono for code, IDs, timestamps, and numeric table cells; everything else is Inter.",
+      "Do respect prefers-reduced-motion. Standard transitions are 120-200ms; panel/drawer is 350ms.",
+      "Do allow density. Inspectors, node libraries, and asset grids can carry a lot; earn it with rhythm of varied spacing and the type scale."
+    ],
+    "donts": [
+      "Don't ship a generic SaaS dashboard: no hero-metric tiles, no cream-card grids, no gradient CTAs, no identical card-grids of 'features'.",
+      "Don't drift into n8n / Zapier / enterprise no-code styling.",
+      "Don't drift into ComfyUI developer-raw (unstyled controls, debug-color overlays, no hierarchy).",
+      "Don't drift into Notion / Apple minimalism (sterile whitespace, thin grays, no personality).",
+      "Don't use #000 or #fff anywhere. All neutrals are tinted.",
+      "Don't use a side-stripe border (border-left > 1px) on cards, list items, callouts, or alerts.",
+      "Don't use gradient text (background-clip: text). Solid colors; emphasis via weight or size.",
+      "Don't use glassmorphism decoratively. The one allowed blur is the tooltip surface.",
+      "Don't use box-shadow on resting surfaces. Shadow appears only on floating chrome.",
+      "Don't use a display or serif font in UI labels, buttons, or data.",
+      "Don't use fluid type (clamp) in product chrome; fixed rem only.",
+      "Don't use em dashes in UI copy. Commas, colons, semicolons, periods, or parentheses.",
+      "Don't reach for a modal as the first thought. Exhaust inline and progressive disclosure first.",
+      "Don't wrap everything in a card. Nested cards are always wrong."
+    ]
+  }
+}

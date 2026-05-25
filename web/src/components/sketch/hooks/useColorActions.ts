@@ -61,7 +61,7 @@ export function useColorActions({
   // ─── Eyedropper event (tool = eyedropper) ────────────────────────
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
+      const detail = (e as CustomEvent<{ color?: string }>).detail;
       if (detail?.color) {
         const fg = useSketchStore.getState().foregroundColor;
         const merged = mergeRgbHexIntoColor(detail.color, fg);

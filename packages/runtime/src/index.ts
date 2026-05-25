@@ -72,6 +72,7 @@ export {
   encodeRawImageRef
 } from "./image-codec.js";
 export { PythonNodeExecutor } from "./python-node-executor.js";
+export { logPythonWorkerStderr } from "./python-worker-stderr.js";
 export {
   type NodeExecutor,
   type StreamingInputs,

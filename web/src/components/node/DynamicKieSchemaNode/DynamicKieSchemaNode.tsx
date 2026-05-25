@@ -123,8 +123,6 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultButton={false}
           showInputsButton={false}
-          onShowResults={() => {}}
-          onShowInputs={() => {}}
         />
         <Box sx={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)" }}>
           <KieSchemaLoader nodeId={id} data={data} />
@@ -156,7 +154,6 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultOverlay={false}
           result={result}
-          onShowInputs={() => {}}
         />
       </FlexColumn>
     </FlexColumn>

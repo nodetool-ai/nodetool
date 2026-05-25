@@ -79,7 +79,7 @@ const NAMESPACE_ICONS: Record<string, IconEntry> = {
 
 const FALLBACK_ENTRY: MuiEntry = { kind: "mui", Component: ApiIcon };
 
-export const HOME_ENTRY: MuiEntry = { kind: "mui", Component: HomeIcon };
+const HOME_ENTRY: MuiEntry = { kind: "mui", Component: HomeIcon };
 
 const iconBoxStyles = css({
   display: "inline-flex",

@@ -1,11 +1,7 @@
 import { memo, useEffect } from "react";
 import isEqual from "fast-deep-equal";
 import { useNodes } from "../../../contexts/NodeContext";
-import {
-  extractDynamicIO,
-  INPUT_TYPE_MAP,
-  OUTPUT_TYPE_MAP
-} from "../WorkflowNode";
+import { extractDynamicIO } from "../WorkflowNode";
 import type { NodeData } from "../../../stores/NodeData";
 import type { Workflow } from "../../../stores/ApiTypes";
 
@@ -63,5 +59,3 @@ export const SubgraphSync = memo(({ nodeId, data }: SubgraphSyncProps) => {
 });
 
 SubgraphSync.displayName = "SubgraphSync";
-
-export { INPUT_TYPE_MAP, OUTPUT_TYPE_MAP };

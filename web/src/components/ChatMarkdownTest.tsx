@@ -3,8 +3,8 @@ import React, { useState, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, Tabs, Tab } from "@mui/material";
-import { Box } from "./ui_primitives";
+import { Tabs, Tab } from "@mui/material";
+import { Box, Text, Caption } from "./ui_primitives";
 import ChatMarkdown from "./chat/message/ChatMarkdown";
 import { createStyles } from "./chat/thread/ChatThreadView.styles";
 
@@ -166,12 +166,11 @@ const ChatMarkdownTest: React.FC = () => {
     label: string
   ) => (
     <Box sx={{ mb: 3 }}>
-      <Typography
-        variant="caption"
+      <Caption
         sx={{ color: "text.secondary", mb: 0.5, display: "block" }}
       >
         {label}
-      </Typography>
+      </Caption>
       {/* Simulate the chat message list container */}
       <div css={chatStyles.chatMessagesList} className="chat-messages-list">
         <div
@@ -200,14 +199,14 @@ const ChatMarkdownTest: React.FC = () => {
   return (
     <div css={pageStyles(theme)}>
       <div css={containerStyles}>
-        <Typography variant="h4" sx={{ mb: 2 }}>
+        <Text size="bigger" weight={600} sx={{ mb: 2 }}>
           Chat Markdown Test
-        </Typography>
-        <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+        </Text>
+        <Text size="small" sx={{ color: "text.secondary", mb: 2 }}>
           This page tests how different markdown content types render inside the
           chat view. Tables should scroll horizontally and never push the chat
           container wider. The layout should stay consistent like ChatGPT.
-        </Typography>
+        </Text>
 
         <Tabs
           value={activeTab}

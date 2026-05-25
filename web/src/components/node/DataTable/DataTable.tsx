@@ -36,7 +36,7 @@ export type DataframeCellValue = string | number | boolean | null | undefined;
 /**
  * Row data for list-style tables (array-based)
  */
-export type ListTableRow = DataframeCellValue[];
+type ListTableRow = DataframeCellValue[];
 
 /**
  * Row data for dict-style tables (object-based with rownum)
@@ -54,7 +54,7 @@ export type TableDataChange = DictTableRow[] | Record<string, DictTableRow>;
 /**
  * Tabulator filter type for column filtering
  */
-export interface TabulatorFilter {
+interface TabulatorFilter {
   field: string;
   type: string;
   value: string | number | boolean;
@@ -63,12 +63,12 @@ export interface TabulatorFilter {
 /**
  * Array of tabulator filters for multi-column filtering
  */
-export type TabulatorFilterArray = TabulatorFilter[][];
+type TabulatorFilterArray = TabulatorFilter[][];
 
 /**
  * Formatter for datetime columns
  */
-export const datetimeFormatter: Formatter = (cell) => {
+const datetimeFormatter: Formatter = (cell) => {
   const value = cell.getValue();
   const date = typeof value === "string" ? parseISO(value) : new Date(value);
   if (isValid(date)) {

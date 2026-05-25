@@ -10,6 +10,34 @@ import path from "node:path";
 import Papa from "papaparse";
 
 type Row = Record<string, unknown>;
+
+function columnName(col: unknown): string {
+  if (col && typeof col === "object" && "name" in col) {
+    const name = (col as { name?: unknown }).name;
+    if (typeof name === "string") return name;
+    return String(name ?? "");
+  }
+  return String(col);
+}
+
+function rowsFromColumnData(columns: unknown[], data: unknown[][]): Row[] {
+  const names = columns.map(columnName).filter((name) => name.length > 0);
+  if (names.length === 0) return [];
+
+  return data.map((row) => {
+    const record: Row = {};
+    names.forEach((name, index) => {
+      record[name] = row[index] ?? null;
+    });
+    return record;
+  });
+}
+
+function isArrayMatrix(data: unknown[]): data is unknown[][] {
+  if (data.length === 0) return true;
+  return data.every((row) => Array.isArray(row));
+}
+
 function asRows(value: unknown): Row[] {
   if (Array.isArray(value)) {
     return value
@@ -19,8 +47,15 @@ function asRows(value: unknown): Row[] {
       .map((x) => ({ ...x }));
   }
   if (value && typeof value === "object") {
-    const obj = value as { rows?: unknown; data?: unknown };
+    const obj = value as { rows?: unknown; data?: unknown; columns?: unknown };
     if (Array.isArray(obj.rows)) return asRows(obj.rows);
+    if (
+      Array.isArray(obj.columns) &&
+      Array.isArray(obj.data) &&
+      isArrayMatrix(obj.data)
+    ) {
+      return rowsFromColumnData(obj.columns, obj.data);
+    }
     if (Array.isArray(obj.data)) return asRows(obj.data);
   }
   return [];

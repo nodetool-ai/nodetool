@@ -286,6 +286,7 @@ export class PythonNodeExecutor {
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     const { fields, blobs, secrets } = await this.prepareExecution(inputs, context);
+    log.info("Python node executor calling bridge", { nodeType: this.nodeType });
     const result = await this.bridge.execute(
       this.nodeType,
       fields,
