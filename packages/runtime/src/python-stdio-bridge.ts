@@ -480,7 +480,7 @@ export class PythonStdioBridge extends EventEmitter {
     const timeoutMs =
       this._options.executeTimeoutMs ?? DEFAULT_EXECUTE_TIMEOUT_MS;
 
-    log.info("Python bridge execute dispatched", { nodeType, requestId });
+    log.debug("Python bridge execute dispatched", { nodeType, requestId });
 
     const executePromise = new Promise<ExecuteResult>((resolve, reject) => {
       this._pending.set(requestId, { resolve, reject, onProgress });
