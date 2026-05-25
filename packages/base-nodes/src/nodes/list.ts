@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { tagAsPortable } from "../platform-tags.js";
 
 export const DEFAULT_MAX_LIST_LENGTH = 10_000;
 
@@ -299,9 +300,9 @@ export class RepeatValueNode extends BaseNode {
   }
 }
 
-export const LIST_NODES = [
+export const LIST_NODES = tagAsPortable([
   RangeNode,
   TileNode,
   RepeatEachNode,
   RepeatValueNode
-] as const;
+]);

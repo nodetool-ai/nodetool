@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { tagAsPortable } from "../platform-tags.js";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
@@ -280,7 +280,7 @@ function parseHeaders(input: unknown): Record<string, string> {
 // Export
 // ---------------------------------------------------------------------------
 
-export const LIB_HTTP_NODES: readonly NodeClass[] = [
+export const LIB_HTTP_NODES = tagAsPortable([
   HttpGetTextNode,
   HttpGetJsonNode,
   HttpGetBytesNode,
@@ -288,4 +288,4 @@ export const LIB_HTTP_NODES: readonly NodeClass[] = [
   HttpPutNode,
   HttpPatchNode,
   HttpDeleteNode
-] as const;
+]);

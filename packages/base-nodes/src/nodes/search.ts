@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { tagAsPortable } from "../platform-tags.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -653,7 +653,7 @@ export class GoogleShoppingNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
-export const SEARCH_NODES: readonly NodeClass[] = [
+export const SEARCH_NODES = tagAsPortable([
   GoogleSearchNode,
   GoogleNewsNode,
   GoogleImagesNode,
@@ -662,4 +662,4 @@ export const SEARCH_NODES: readonly NodeClass[] = [
   GoogleLensNode,
   GoogleMapsNode,
   GoogleShoppingNode
-];
+]);

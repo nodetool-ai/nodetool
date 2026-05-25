@@ -6,6 +6,7 @@
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { tagAsPortable } from "../platform-tags.js";
 import {
   getDefaultVectorProvider,
   OllamaEmbeddingFunction,
@@ -1126,7 +1127,7 @@ export class HybridSearchNode extends BaseNode {
 // Export
 // ---------------------------------------------------------------------------
 
-export const VECTOR_NODES: readonly NodeClass[] = [
+export const VECTOR_NODES = tagAsPortable([
   CollectionNode as unknown as NodeClass,
   CountNode as unknown as NodeClass,
   GetDocumentsNode as unknown as NodeClass,
@@ -1140,4 +1141,4 @@ export const VECTOR_NODES: readonly NodeClass[] = [
   QueryTextNode as unknown as NodeClass,
   RemoveOverlapNode as unknown as NodeClass,
   HybridSearchNode as unknown as NodeClass
-];
+]);

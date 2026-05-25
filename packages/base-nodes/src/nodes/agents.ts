@@ -19,6 +19,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { MultiModeAgent, Tool as AgentTool } from "@nodetool-ai/agents";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
+import { tagAsPortable } from "../platform-tags.js";
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
@@ -3121,11 +3122,11 @@ export class AgentStepNode extends BaseNode {
   }
 }
 
-export const AGENT_NODES = [
+export const AGENT_NODES = tagAsPortable([
   SummarizerNode,
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
   AgentNode,
   AgentStepNode
-] as const;
+]);

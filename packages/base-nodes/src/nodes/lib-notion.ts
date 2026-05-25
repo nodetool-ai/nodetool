@@ -1,6 +1,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import { tagAsPortable } from "../platform-tags.js";
 
 function notionHeaders(token: string): Record<string, string> {
   return {
@@ -741,11 +742,11 @@ export class NotionQueryDatabaseLibNode extends BaseNode {
 // Export
 // ---------------------------------------------------------------------------
 
-export const LIB_NOTION_NODES: readonly NodeClass[] = [
+export const LIB_NOTION_NODES = tagAsPortable([
   NotionSearchLibNode as unknown as NodeClass,
   NotionGetPageLibNode as unknown as NodeClass,
   NotionGetPageContentLibNode as unknown as NodeClass,
   NotionCreatePageLibNode as unknown as NodeClass,
   NotionUpdatePageLibNode as unknown as NodeClass,
   NotionQueryDatabaseLibNode as unknown as NodeClass
-];
+]);

@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { convert } from "html-to-text";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
+import { tagAsPortable } from "../platform-tags.js";
 
 export class BaseUrlLibNode extends BaseNode {
   static readonly nodeType = "lib.html.BaseUrl";
@@ -421,7 +422,7 @@ export class WebsiteContentExtractorLibNode extends BaseNode {
   }
 }
 
-export const LIB_BEAUTIFULSOUP_NODES = [
+export const LIB_BEAUTIFULSOUP_NODES = tagAsPortable([
   BaseUrlLibNode,
   ExtractLinksLibNode,
   ExtractImagesLibNode,
@@ -430,4 +431,4 @@ export const LIB_BEAUTIFULSOUP_NODES = [
   ExtractMetadataLibNode,
   HTMLToTextLibNode,
   WebsiteContentExtractorLibNode
-] as const;
+]);

@@ -7,6 +7,7 @@
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { tagAsPortable } from "../platform-tags.js";
 
 // ---------------------------------------------------------------------------
 // Constants / helpers
@@ -462,10 +463,10 @@ export class DateStartEndNode extends BaseNode {
   }
 }
 
-export const LIB_DATETIME_NODES = [
+export const LIB_DATETIME_NODES = tagAsPortable([
   DateNowNode,
   FormatDateNode,
   DateAddNode,
   DateDiffNode,
   DateStartEndNode
-] as const;
+]);

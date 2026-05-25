@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { tagAsPortable } from "../platform-tags.js";
 
 // Constants
 const DEFAULT_PAGE_FUNCTION =
@@ -725,7 +725,7 @@ export class ApifyLinkedInScraperNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
-export const APIFY_NODES: readonly NodeClass[] = [
+export const APIFY_NODES = tagAsPortable([
   ApifyWebScraperNode,
   ApifyGoogleSearchScraperNode,
   ApifyInstagramScraperNode,
@@ -733,4 +733,4 @@ export const APIFY_NODES: readonly NodeClass[] = [
   ApifyYouTubeScraperNode,
   ApifyTwitterScraperNode,
   ApifyLinkedInScraperNode
-] as const;
+]);

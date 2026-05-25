@@ -8,6 +8,7 @@ import type {
   OutputCorrelation
 } from "@nodetool-ai/protocol";
 import { randomUUID } from "node:crypto";
+import { tagAsPortable } from "../platform-tags.js";
 
 /**
  * SubgraphNode – executes an inline sub-graph embedded in the same workflow.
@@ -166,4 +167,4 @@ export class SubgraphNode extends BaseNode {
   }
 }
 
-export const SUBGRAPH_NODES = [SubgraphNode] as const;
+export const SUBGRAPH_NODES = tagAsPortable([SubgraphNode]);

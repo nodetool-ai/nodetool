@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import { tagAsPortable } from "../platform-tags.js";
 
 // ── Discord Nodes ───────────────────────────────────────────────────────────
 
@@ -496,9 +496,9 @@ export class TelegramSendMessage extends BaseNode {
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
-export const MESSAGING_NODES: readonly NodeClass[] = [
+export const MESSAGING_NODES = tagAsPortable([
   DiscordBotTrigger,
   DiscordSendMessage,
   TelegramBotTrigger,
   TelegramSendMessage
-];
+]);

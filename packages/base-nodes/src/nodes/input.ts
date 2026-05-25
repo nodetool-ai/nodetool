@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import { tagAsPortable } from "../platform-tags.js";
 
 export class FloatInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FloatInput";
@@ -1553,7 +1554,7 @@ export class MessageDeconstructorNode extends BaseNode {
   }
 }
 
-export const INPUT_NODES = [
+export const INPUT_NODES = tagAsPortable([
   FloatInputNode,
   BooleanInputNode,
   IntegerInputNode,
@@ -1587,4 +1588,4 @@ export const INPUT_NODES = [
   MessageInputNode,
   MessageListInputNode,
   MessageDeconstructorNode
-] as const;
+]);

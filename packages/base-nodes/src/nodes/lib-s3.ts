@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import { tagAsPortable } from "../platform-tags.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getS3Client(
@@ -572,7 +572,7 @@ export class S3GetPresignedUrlLibNode extends BaseNode {
 // Export
 // ---------------------------------------------------------------------------
 
-export const LIB_S3_NODES: readonly NodeClass[] = [
+export const LIB_S3_NODES = tagAsPortable([
   S3ListBucketsLibNode,
   S3ListObjectsLibNode,
   S3GetObjectLibNode,
@@ -580,4 +580,4 @@ export const LIB_S3_NODES: readonly NodeClass[] = [
   S3DeleteObjectLibNode,
   S3CopyObjectLibNode,
   S3GetPresignedUrlLibNode
-] as const;
+]);

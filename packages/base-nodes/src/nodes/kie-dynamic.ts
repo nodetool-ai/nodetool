@@ -3,7 +3,6 @@
  */
 import { parse as parseYaml } from "yaml";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   getApiKey,
   isRefSet,
@@ -17,6 +16,7 @@ import {
   buildVideoClipsFromRefs
 } from "@nodetool-ai/kie-nodes";
 import type { TypeMetadata } from "@nodetool-ai/node-sdk";
+import { tagAsPortable } from "../platform-tags.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -869,4 +869,4 @@ export class KieAINode extends BaseNode {
   }
 }
 
-export const KIE_DYNAMIC_NODES: readonly NodeClass[] = [KieAINode];
+export const KIE_DYNAMIC_NODES = tagAsPortable([KieAINode]);

@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { tagAsPortable } from "../platform-tags.js";
 
 type FilterOp =
   | "eq"
@@ -488,11 +489,11 @@ export class RPCLibNode extends BaseNode {
   }
 }
 
-export const LIB_SUPABASE_NODES: readonly NodeClass[] = [
+export const LIB_SUPABASE_NODES = tagAsPortable([
   SelectLibNode as unknown as NodeClass,
   InsertLibNode as unknown as NodeClass,
   UpdateLibNode as unknown as NodeClass,
   DeleteLibNode as unknown as NodeClass,
   UpsertLibNode as unknown as NodeClass,
   RPCLibNode as unknown as NodeClass
-];
+]);
