@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type NodePlacementSource = "quickAction" | "nodeMenu" | "unknown";
+type NodePlacementSource = "quickAction" | "nodeMenu" | "unknown";
 
 type NodePlacementState = {
   pendingNodeType: string | null;
