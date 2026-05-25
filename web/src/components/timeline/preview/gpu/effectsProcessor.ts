@@ -12,6 +12,8 @@ import {
   createGPUContextFromDevice,
   createExecutor,
   createLabeledTexture,
+  LabeledTexture,
+  alphaStraightToPremulV1,
   colorGradeV1,
   blurGaussianV1,
   sharpenUnsharpMaskV1,
@@ -20,7 +22,6 @@ import {
   type GPUContext,
   type Executor,
   type ExecutorDispatch,
-  type LabeledTexture,
   type ShaderModule
 } from "@nodetool-ai/gpu/pool";
 import * as d from "typegpu/data";
@@ -136,13 +137,31 @@ export class WebGPUEffectsProcessor {
       label: `preview-effects-${poolKey}`
     });
 
-    // Seed: copy source → textures[0]
-    encoder.copyTextureToTexture(
-      { texture: source },
-      { texture: pool.textures[0].texture },
-      { width, height }
-    );
-    pool.textures[0].markWritten();
+    // Seed: source arrives straight-alpha (uploaded with `premultipliedAlpha:
+    // false`), the FX pool's contract is premultiplied. Convert once at the
+    // boundary instead of relabeling via a raw copy.
+    const sourceLabeled = new LabeledTexture(source, {
+      label: `preview-effects-${poolKey}-src`,
+      format: "rgba8unorm",
+      width,
+      height,
+      meta: { colorSpace: "srgb", alpha: "straight", bindingKind: "texture_2d" }
+    });
+    const [seedWgX, seedWgY] = alphaStraightToPremulV1.workgroupSize;
+    this.executor.encode({
+      ctx: this.ctx,
+      module: alphaStraightToPremulV1,
+      encoder,
+      inputs: { source: sourceLabeled },
+      output: pool.textures[0],
+      params: alphaStraightToPremulV1.paramDefaults,
+      dispatch: {
+        kind: "compute",
+        x: Math.ceil(width / seedWgX),
+        y: Math.ceil(height / seedWgY),
+        z: 1
+      }
+    });
     pool.currentIndex = 0;
 
     if (chromaKeyActive && chromaKey) {
