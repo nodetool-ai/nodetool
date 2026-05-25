@@ -3,10 +3,9 @@ import { useTheme } from "@mui/material/styles";
 import {
   Popover,
   DialogTitle,
-  DialogContent,
-  TextField
+  DialogContent
 } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { EditorButton, TextInput } from "../ui_primitives";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { AssetList } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -158,7 +157,7 @@ const FolderProperty = (props: PropertyProps) => {
           {"Create Folder"}
         </DialogTitle>
         <DialogContent className="dialog-content">
-          <TextField
+          <TextInput
             className="input-field"
             inputRef={inputRef}
             placeholder="Folder Name"
