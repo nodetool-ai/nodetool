@@ -76,6 +76,16 @@ export async function* runWorkflow(
   opts: RunWorkflowOptions
 ): AsyncGenerator<ProcessingMessage, RunResult, void> {
   const jobId = opts.jobId ?? generateJobId();
+  if (opts.signal?.aborted) {
+    const message: ProcessingMessage = {
+      type: "job_update",
+      status: "cancelled",
+      job_id: jobId,
+      workflow_id: opts.workflowId ?? null
+    };
+    return { outputs: {}, messages: [message], status: "cancelled" };
+  }
+
   const context =
     opts.context ??
     new ProcessingContext({
@@ -101,17 +111,15 @@ export async function* runWorkflow(
 
   const queue: ProcessingMessage[] = [];
   let wake: (() => void) | null = null;
-  const tap = context as unknown as {
-    emit: (m: ProcessingMessage) => void;
-  };
-  const origEmit = tap.emit.bind(context);
-  tap.emit = (m) => {
-    origEmit(m);
-    queue.push(m);
+  const wakeQueue = (): void => {
     const w = wake;
     wake = null;
     w?.();
   };
+  const unsubscribe = context.addMessageListener((message) => {
+    queue.push(message);
+    wakeQueue();
+  });
 
   const request: RunJobRequest = {
     job_id: jobId,
@@ -133,22 +141,30 @@ export async function* runWorkflow(
     })
     .finally(() => {
       finished = true;
-      const w = wake;
-      wake = null;
-      w?.();
+      wakeQueue();
     });
 
-  const onAbort = (): void => {
-    const w = wake;
-    wake = null;
-    w?.();
+  let cancelRequested = false;
+  const cancelRun = (): void => {
+    if (cancelRequested) {
+      wakeQueue();
+      return;
+    }
+    cancelRequested = true;
+    if (!finished) {
+      runner.cancel();
+    }
+    wakeQueue();
   };
-  opts.signal?.addEventListener("abort", onAbort, { once: true });
+  opts.signal?.addEventListener("abort", cancelRun, { once: true });
 
   try {
     while (!finished || queue.length > 0) {
       if (queue.length === 0) {
-        if (opts.signal?.aborted) break;
+        if (opts.signal?.aborted) {
+          cancelRun();
+          break;
+        }
         await new Promise<void>((resolve) => {
           wake = resolve;
         });
@@ -159,8 +175,8 @@ export async function* runWorkflow(
     }
     await runPromise;
   } finally {
-    opts.signal?.removeEventListener("abort", onAbort);
-    tap.emit = origEmit;
+    opts.signal?.removeEventListener("abort", cancelRun);
+    unsubscribe();
   }
 
   if (runError) throw runError;

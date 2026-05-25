@@ -728,8 +728,8 @@ export class ProcessingContext {
   /** Latest edge status by edge id. */
   private _edgeStatuses = new Map<string, ProcessingMessage>();
 
-  /** Optional message listener (for real-time streaming). */
-  private _onMessage: ((msg: ProcessingMessage) => void) | null = null;
+  /** Message listeners (for real-time streaming). */
+  private _messageListeners = new Set<(msg: ProcessingMessage) => void>();
 
   /** Cache adapter. */
   readonly cache: CacheAdapter;
@@ -836,7 +836,9 @@ export class ProcessingContext {
     this.cache = opts.cache ?? new MemoryCache();
     this.storage = opts.storage ?? null;
     this.workspaceStorage = opts.workspaceStorage ?? null;
-    this._onMessage = opts.onMessage ?? null;
+    if (opts.onMessage) {
+      this._messageListeners.add(opts.onMessage);
+    }
     this._variables = { ...(opts.variables ?? {}) };
     const env: Record<string, string> = {};
     for (const [k, v] of Object.entries(process.env)) {
@@ -861,13 +863,15 @@ export class ProcessingContext {
       cache: this.cache,
       storage: this.storage,
       workspaceStorage: this.workspaceStorage,
-      onMessage: this._onMessage ?? undefined,
       variables: { ...this._variables },
       environment: { ...this.environment },
       fetchFn: this._fetch,
       secretResolver: this._secretResolver ?? undefined,
       tempUrlResolver: this._tempUrlResolver ?? undefined
     });
+    for (const listener of this._messageListeners) {
+      next.addMessageListener(listener);
+    }
     next._providerResolver = this._providerResolver;
     next._modelInterfaces = this._modelInterfaces;
     next._sendControlEvent = this._sendControlEvent;
@@ -1138,9 +1142,16 @@ export class ProcessingContext {
   // Message queue API
   // -----------------------------------------------------------------------
 
+  addMessageListener(listener: (msg: ProcessingMessage) => void): () => void {
+    this._messageListeners.add(listener);
+    return () => {
+      this._messageListeners.delete(listener);
+    };
+  }
+
   /**
    * Emit a processing message.
-   * Appended to the internal queue and forwarded to listener if set.
+   * Appended to the internal queue and forwarded to listeners if set.
    */
   emit(msg: ProcessingMessage): void {
     this._messages.push(msg);
@@ -1151,8 +1162,8 @@ export class ProcessingContext {
     if (msg.type === "edge_update" && msg.edge_id) {
       this._edgeStatuses.set(msg.edge_id, msg);
     }
-    if (this._onMessage) {
-      this._onMessage(msg);
+    for (const listener of this._messageListeners) {
+      listener(msg);
     }
   }
 
