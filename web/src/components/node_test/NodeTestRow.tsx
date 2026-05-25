@@ -1,17 +1,14 @@
 import React, { memo, useCallback, useState } from "react";
 import {
-  IconButton,
-  Chip,
   DialogTitle,
   DialogContent
 } from "@mui/material";
-import { Text, FlexRow } from "../ui_primitives";
+import { Text, FlexRow, ToolbarIconButton, Chip, Dialog } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CloseIcon from "@mui/icons-material/Close";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeTestResult } from "./useNodeTestRunner";
 import OutputRenderer from "../node/OutputRenderer";
-import { Dialog } from "../ui_primitives";
 
 const STATUS_COLORS: Record<
   string,
@@ -66,7 +63,7 @@ function NodeTestRowInner({
         }}
         onClick={handleRowClick}
       >
-        <IconButton
+        <ToolbarIconButton
           size="small"
           aria-label="Run test"
           onClick={(e) => {
@@ -75,9 +72,8 @@ function NodeTestRowInner({
           }}
           disabled={status === "running" || status === "queued"}
           sx={{ width: 32, height: 32 }}
-        >
-          <PlayArrowIcon fontSize="small" />
-        </IconButton>
+          icon={<PlayArrowIcon fontSize="small" />}
+        />
 
         <Text
           size="small"
@@ -190,9 +186,12 @@ function NodeTestRowInner({
                   color={STATUS_COLORS[status]}
                 />
               )}
-              <IconButton size="small" onClick={handleClose} aria-label="Close dialog">
-                <CloseIcon fontSize="small" />
-              </IconButton>
+              <ToolbarIconButton
+                size="small"
+                onClick={handleClose}
+                aria-label="Close dialog"
+                icon={<CloseIcon fontSize="small" />}
+              />
             </FlexRow>
           </DialogTitle>
           <DialogContent sx={{ minHeight: 200 }}>

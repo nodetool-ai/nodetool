@@ -11,10 +11,9 @@ import NodeItem from "./NodeItem";
 import {
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  Checkbox
+  AccordionDetails
 } from "@mui/material";
-import { Tooltip, Text, Box } from "../ui_primitives";
+import { Tooltip, Text, Box, Checkbox } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SearchResultGroup } from "../../utils/nodeSearch";

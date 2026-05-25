@@ -6,14 +6,11 @@ import {
   Tabs,
   Tab,
   Switch,
-  Typography,
-  Paper,
   Stack,
   Dialog,
   DialogTitle,
   DialogContent,
-  FormControlLabel,
-  Chip
+  FormControlLabel
 } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 
@@ -69,7 +66,10 @@ import {
   UndoRedoButtons,
   ConfirmButton,
   HelpButton,
-  Box
+  Box,
+  Text,
+  Surface,
+  Chip
 } from "./ui_primitives";
 
 // Additional icons
@@ -242,7 +242,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
   const renderActionButtons = () => (
     <div className="component-grid">
       {/* Copy Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">CopyButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -259,10 +259,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <CopyButton value="Text" buttonSize="large" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Close Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">CloseButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -280,10 +280,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <CloseButton onClick={() => {}} buttonSize="large" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Delete Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">DeleteButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -296,10 +296,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <DeleteButton onClick={() => {}} tooltip="Remove" iconVariant="outline" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Download Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">DownloadButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -319,10 +319,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <DownloadButton onClick={() => {}} isLoading />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Upload Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">UploadButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -339,10 +339,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <UploadButton onFileSelect={() => {}} label="Upload Files" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Edit Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">EditButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -355,10 +355,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <EditButton onClick={() => {}} tooltip="Rename" iconVariant="rename" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Settings Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">SettingsButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -372,10 +372,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <SettingsButton onClick={() => {}} tooltip="More" iconVariant="moreHoriz" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Toolbar Icon Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">ToolbarIconButton</span>
         </div>
@@ -396,14 +396,14 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <ToolbarIconButton icon={<SaveIcon />} tooltip="Active" active onClick={() => {}} />
           </div>
         </div>
-      </Paper>
+      </Surface>
     </div>
   );
 
   const renderControlButtons = () => (
     <div className="component-grid">
       {/* Playback Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">PlaybackButton</span>
         </div>
@@ -432,10 +432,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <PlaybackButton state="stopped" buttonSize="large" onPlay={() => {}} />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Expand/Collapse Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">ExpandCollapseButton</span>
         </div>
@@ -450,10 +450,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <ExpandCollapseButton expanded={expanded} iconVariant="chevron" onClick={() => setExpanded(!expanded)} />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* View Mode Toggle */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">ViewModeToggle</span>
         </div>
@@ -483,10 +483,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <span className="demo-value">{sortMode}</span>
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Refresh Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">RefreshButton</span>
         </div>
@@ -504,10 +504,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <RefreshButton onClick={() => {}} isLoading />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Selection Controls */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">SelectionControls</span>
         </div>
@@ -532,14 +532,14 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             />
           </div>
         </div>
-      </Paper>
+      </Surface>
     </div>
   );
 
   const renderDialogActions = () => (
     <div className="component-grid">
       {/* Dialog Action Buttons */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">DialogActionButtons</span>
         </div>
@@ -553,10 +553,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             </EditorButton>
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Nav Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">NavButton</span>
         </div>
@@ -574,7 +574,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <NavButton icon={<PlayArrowIcon />} label="Active" active onClick={() => {}} />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Dialogs */}
       <Dialog open={showDialog} onClose={() => setShowDialog(false)}>
@@ -605,7 +605,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
   const renderInputControls = () => (
     <div className="component-grid">
       {/* Node TextField */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">NodeTextField</span>
         </div>
@@ -634,10 +634,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Node Switch */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">NodeSwitch</span>
         </div>
@@ -648,10 +648,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <span className="demo-value">{switchValue ? "on" : "off"}</span>
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Node Slider */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">NodeSlider</span>
         </div>
@@ -666,10 +666,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <span className="demo-value">{sliderValue}</span>
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Editor Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">EditorButton</span>
         </div>
@@ -680,14 +680,14 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <EditorButton variant="outlined">Outlined</EditorButton>
           </div>
         </div>
-      </Paper>
+      </Surface>
     </div>
   );
 
   const renderFabs = () => (
     <div className="component-grid">
       {/* Create FAB */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">CreateFab</span>
         </div>
@@ -705,10 +705,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <CreateFab onClick={() => {}} label="Add Item" fabColor="secondary" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Run Workflow Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">RunWorkflowButton</span>
         </div>
@@ -741,14 +741,14 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             />
           </div>
         </div>
-      </Paper>
+      </Surface>
     </div>
   );
 
   const renderDisplayFeedback = () => (
     <div className="component-grid">
       {/* Zoom Controls */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">ZoomControls</span>
           <Chip label="New" size="small" color="primary" />
@@ -763,10 +763,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <ZoomControls zoom={zoom} onZoomChange={setZoom} showValue={false} />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Favorite Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">FavoriteButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -785,10 +785,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <FavoriteButton isFavorite={true} onToggle={() => {}} buttonSize="large" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Empty State */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">EmptyState</span>
           <Chip label="New" size="small" color="primary" />
@@ -801,10 +801,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             onAction={() => {}}
           />
         </div>
-      </Paper>
+      </Surface>
 
       {/* Loading Spinner */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">LoadingSpinner</span>
           <Chip label="New" size="small" color="primary" />
@@ -825,10 +825,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <LoadingSpinner variant="circular" size="small" text="Loading..." />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Progress Bar */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">ProgressBar</span>
           <Chip label="New" size="small" color="primary" />
@@ -841,10 +841,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <ProgressBar value={progress} showValue={false} color="secondary" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* External Link */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">ExternalLink</span>
           <Chip label="New" size="small" color="primary" />
@@ -863,10 +863,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <ExternalLink href="https://example.com" iconVariant="launch">Launch app</ExternalLink>
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Status Indicator */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">StatusIndicator</span>
           <Chip label="New" size="small" color="primary" />
@@ -882,10 +882,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <StatusIndicator status="pending" label="Pending" pulse />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Tag Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">TagButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -902,10 +902,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <TagButton label="Tag" variant="chip" onClick={() => {}} />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Theme Toggle Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">ThemeToggleButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -924,14 +924,14 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <ThemeToggleButton variant="labeled" />
           </div>
         </div>
-      </Paper>
+      </Surface>
     </div>
   );
 
   const renderNavigationLayout = () => (
     <div className="component-grid">
       {/* Search Input */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">SearchInput</span>
           <Chip label="New" size="small" color="primary" />
@@ -949,10 +949,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <span className="demo-value">{searchValue || "(empty)"}</span>
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Breadcrumbs */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">Breadcrumbs</span>
           <Chip label="New" size="small" color="primary" />
@@ -980,10 +980,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Info Tooltip */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">InfoTooltip</span>
           <Chip label="New" size="small" color="primary" />
@@ -1004,10 +1004,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Warning Banner */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">WarningBanner</span>
           <Chip label="New" size="small" color="primary" />
@@ -1032,10 +1032,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             compact
           />
         </div>
-      </Paper>
+      </Surface>
 
       {/* Notification Badge */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">NotificationBadge</span>
           <Chip label="New" size="small" color="primary" />
@@ -1057,10 +1057,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             </NotificationBadge>
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Undo/Redo Buttons */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">UndoRedoButtons</span>
           <Chip label="New" size="small" color="primary" />
@@ -1086,10 +1086,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Confirm Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">ConfirmButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -1108,10 +1108,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <ConfirmButton onClick={() => {}} color="success" />
           </div>
         </div>
-      </Paper>
+      </Surface>
 
       {/* Help Button */}
-      <Paper className="component-card" elevation={0}>
+      <Surface className="component-card" elevation={0}>
         <div className="card-header">
           <span className="card-title">HelpButton</span>
           <Chip label="New" size="small" color="primary" />
@@ -1125,7 +1125,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
             <HelpButton onClick={() => {}} iconVariant="liveHelp" />
           </div>
         </div>
-      </Paper>
+      </Surface>
     </div>
   );
 
@@ -1158,12 +1158,12 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
           <div className="header-title">
             <div className="logo-accent">NT</div>
             <div>
-              <Typography variant="h4" fontWeight={700} color="text.primary">
+              <Text size="bigger" weight={700} color="text.primary">
                 UI Primitives
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </Text>
+              <Text size="small" color="secondary">
                 Component Library & Design System
-              </Typography>
+              </Text>
             </div>
           </div>
           <Stack direction="row" alignItems="center" spacing={2}>
@@ -1185,7 +1185,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
       {/* Main Content */}
       <div className="main-content">
         {/* Tabs */}
-        <Paper className="tabs-container" elevation={0}>
+        <Surface className="tabs-container" elevation={0}>
           <Tabs
             value={activeTab}
             onChange={(_, v) => setActiveTab(v)}
@@ -1206,7 +1206,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
               />
             ))}
           </Tabs>
-        </Paper>
+        </Surface>
 
         {/* Content */}
         {renderContent()}

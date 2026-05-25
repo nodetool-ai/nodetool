@@ -5,11 +5,8 @@ import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import {
-  Button,
-  Skeleton
-} from "@mui/material";
-import { Text, Caption, Box } from "../ui_primitives";
+import { Skeleton } from "@mui/material";
+import { Text, Caption, Box, EditorButton } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";
@@ -610,15 +607,14 @@ const WorkspaceTree: React.FC = () => {
 
       {selectedFilePath && !selectedFilePath.includes("/loading") && (
         <div className="tree-actions">
-          <Button
+          <EditorButton
             className="open-folder-button"
-            size="small"
             variant="outlined"
             startIcon={<FolderOpenIcon />}
             onClick={handleOpenInFolder}
           >
             Open in Folder
-          </Button>
+          </EditorButton>
         </div>
       )}
 
@@ -634,14 +630,13 @@ const WorkspaceTree: React.FC = () => {
             <Caption color="secondary">
               Select a workspace above or create one
             </Caption>
-            <Button
-              size="small"
+            <EditorButton
               startIcon={<AddIcon />}
               onClick={handleManageWorkspace}
               sx={{ mt: 1 }}
             >
               Create Workspace
-            </Button>
+            </EditorButton>
           </div>
         ) : isLoadingFiles ? (
           <div className="skeleton-tree">

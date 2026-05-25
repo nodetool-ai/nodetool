@@ -7,8 +7,7 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  FormControlLabel,
-  Checkbox
+  FormControlLabel
 } from "@mui/material";
 import React, { useCallback, useState, memo } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -27,6 +26,7 @@ import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import {
   Box,
+  Checkbox,
   Chip,
   EditorButton,
   FlexColumn,
