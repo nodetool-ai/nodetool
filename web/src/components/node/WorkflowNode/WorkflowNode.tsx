@@ -116,8 +116,6 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         showResultButton={false}
         showInputsButton={false}
-        onShowResults={() => {}}
-        onShowInputs={() => {}}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={statusValue} />
