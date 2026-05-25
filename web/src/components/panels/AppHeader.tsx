@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Toolbar, Box, useMediaQuery } from "@mui/material";
+import { Toolbar, useMediaQuery } from "@mui/material";
 import { EditorButton } from "../editor_ui";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -13,11 +13,12 @@ import RightSideButtons from "./RightSideButtons";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { FlexRow, Tooltip } from "../ui_primitives";
+import { FlexRow, Tooltip, Box } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import { isProduction } from "../../lib/env";
 import { trpcClient } from "../../trpc/client";
+import { useShallow } from "zustand/react/shallow";
 
 const workspacesEnabled = !isProduction;
 
@@ -146,11 +147,19 @@ const styles = (theme: Theme) =>
 // Mode pills component - segmented control for Editor, Chat, Dashboard
 const ModePills = memo(function ModePills({ currentPath }: { currentPath: string }) {
   const navigate = useNavigate();
-  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
-  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
-  const lastUsedThreadId = useGlobalChatStore((state) => state.lastUsedThreadId);
-  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
-  const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const { currentWorkflowId, createNewWorkflow } = useWorkflowManager(
+    useShallow((state) => ({
+      currentWorkflowId: state.currentWorkflowId,
+      createNewWorkflow: state.createNew
+    }))
+  );
+  const { lastUsedThreadId, createNewThread, switchThread } = useGlobalChatStore(
+    useShallow((state) => ({
+      lastUsedThreadId: state.lastUsedThreadId,
+      createNewThread: state.createNewThread,
+      switchThread: state.switchThread
+    }))
+  );
 
   // Determine active mode - only modes are active, not other routes
   const isEditorActive = currentPath.startsWith("/editor");

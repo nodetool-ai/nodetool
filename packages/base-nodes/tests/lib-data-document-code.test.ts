@@ -14,7 +14,6 @@ import {
   MergeDataframeNode,
   AppendDataframeNode,
   JoinDataframeNode,
-  RowIteratorNode,
   FindRowNode,
   SortByColumnNode,
   DropDuplicatesNode,
@@ -254,6 +253,27 @@ describe("data nodes", () => {
       }).process();
       expect(result.output).toEqual([10, 20, 30]);
     });
+
+    it("extracts from UI dataframe constant format", async () => {
+      const result = await Object.assign(new ExtractColumnNode(), {
+        dataframe: {
+          type: "dataframe",
+          columns: [
+            { name: "name", data_type: "string" },
+            { name: "prompt", data_type: "string" }
+          ],
+          data: [
+            ["contour-topographic", " Contour / Topographic."],
+            ["subway-diagram", " Subway Diagram."]
+          ]
+        },
+        column_name: "prompt"
+      }).process();
+      expect(result.output).toEqual([
+        " Contour / Topographic.",
+        " Subway Diagram."
+      ]);
+    });
   });
 
   // -- AddColumnNode --
@@ -340,19 +360,6 @@ describe("data nodes", () => {
       const out = result.output as DF;
       expect(out.rows).toHaveLength(1);
       expect(out.rows[0]).toEqual({ id: 1, name: "Alice", score: 90 });
-    });
-  });
-
-  // -- RowIteratorNode --
-  describe("RowIteratorNode", () => {
-    it("yields each row with index", async () => {
-      const node = new RowIteratorNode();
-      Object.assign(node, { dataframe: df([{ v: "a" }, { v: "b" }]) });
-      const items = await collectGen(node.genProcess());
-      expect(items).toEqual([
-        { dict: { v: "a" }, index: 0 },
-        { dict: { v: "b" }, index: 1 }
-      ]);
     });
   });
 

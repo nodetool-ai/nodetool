@@ -2,12 +2,9 @@
 import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import {
-  Box
-} from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CodeIcon from "@mui/icons-material/Code";
-import { RefreshButton, LoadingSpinner, Text, ToolbarIconButton } from "../ui_primitives";
+import { RefreshButton, LoadingSpinner, Text, ToolbarIconButton, Box } from "../ui_primitives";
 import { BASE_URL, UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { injectRuntimeConfig } from "./utils/extractHtml";
 import type { Theme } from "@mui/material/styles";

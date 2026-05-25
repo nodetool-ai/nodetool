@@ -33,7 +33,7 @@ NodeTool is organized into distinct packages, each responsible for a specific la
 |---------|---------|
 | **@nodetool-ai/deploy** | Deployment automation for self-hosted, RunPod, and GCP Cloud Run |
 | **@nodetool-ai/storage** | Asset storage backends (local filesystem, S3, Supabase) |
-| **@nodetool-ai/vectorstore** | Vector database integration (Chroma) for RAG workflows |
+| **@nodetool-ai/vectorstore** | Vector database integration (SQLite-vec, Pinecone, Supabase pgvector) for RAG workflows |
 | **@nodetool-ai/cli** | Command-line interface for workflow execution, deployment, and package management |
 | **@nodetool-ai/base-nodes** | Core node implementations and dynamic node generation |
 

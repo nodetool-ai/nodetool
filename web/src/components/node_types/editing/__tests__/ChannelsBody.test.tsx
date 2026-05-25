@@ -70,7 +70,6 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
 const stubStore = (overrides: Record<string, unknown> = {}) => ({
   getOutputResult: () => null,
   getResult: () => null,
-  getPreview: () => null,
   ...overrides
 });
 

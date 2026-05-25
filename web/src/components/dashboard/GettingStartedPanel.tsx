@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo } from "react";
-import { Box } from "@mui/material";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { css, keyframes } from "@emotion/react";
@@ -13,7 +12,7 @@ import {
 } from "../../stores/OnboardingStore";
 import { ONBOARDING_STEPS } from "../onboarding/steps";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { BORDER_RADIUS, EditorButton } from "../ui_primitives";
+import { BORDER_RADIUS, EditorButton, Box } from "../ui_primitives";
 
 const EDITOR_ROUTE_PREFIX = "/editor/";
 

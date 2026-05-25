@@ -55,18 +55,38 @@ export const getIsElectronDetails = (): ElectronDetectionDetails => {
 export const isElectron = getIsElectronDetails().isElectron;
 
 /**
+ * Whether a DOM node is a text-editing target (native inputs, rich text, Monaco).
+ */
+export const isEditableElement = (
+  node: Element | null | undefined
+): boolean => {
+  if (!(node instanceof HTMLElement)) {
+    return false;
+  }
+  if (node instanceof HTMLInputElement) {
+    return true;
+  }
+  if (node instanceof HTMLTextAreaElement) {
+    return true;
+  }
+  if (node.isContentEditable) {
+    return true;
+  }
+  if (node.closest(".monaco-editor") !== null) {
+    return true;
+  }
+  if (node.classList.contains("editor-placeholder")) {
+    return true;
+  }
+  return false;
+};
+
+/**
  * Checks if the currently focused element is a text input.
- * This includes <input>, <textarea>, and elements with contentEditable.
  * Useful for determining whether to use native paste or custom paste behavior.
- * 
+ *
  * @returns true if the active element is a text input
  */
-export const isTextInputActive = (): boolean => {
-  const activeElement = document.activeElement;
-  return (
-    activeElement instanceof HTMLInputElement ||
-    activeElement instanceof HTMLTextAreaElement ||
-    (activeElement as HTMLElement)?.isContentEditable === true
-  );
-};
+export const isTextInputActive = (): boolean =>
+  isEditableElement(document.activeElement);
 

@@ -201,6 +201,14 @@ describe("Layer Tree Helpers", () => {
     expect(isLayerCompositeVisible(layers, child, child.id)).toBe(true);
   });
 
+  it("isLayerCompositeVisible treats isolated raster as composite-visible even when self hidden", () => {
+    const layers = makeLayers();
+    const child = layers.find((l) => l.id === "child1")!;
+    child.visible = false;
+    expect(isLayerCompositeVisible(layers, child, null)).toBe(false);
+    expect(isLayerCompositeVisible(layers, child, child.id)).toBe(true);
+  });
+
   it("getAncestorGroupOpacityProduct multiplies ancestor group opacities", () => {
     const layers = makeLayers();
     const group = layers.find((l) => l.id === "group1")!;

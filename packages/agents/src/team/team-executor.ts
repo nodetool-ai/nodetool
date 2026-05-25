@@ -379,69 +379,11 @@ export class TeamExecutor {
       t.toProviderTool()
     );
 
-    // Check if agentic provider (handles tool loop internally)
-    const isAgentic =
-      (agent.provider as unknown as Record<string, unknown>).provider ===
-      "claude_agent";
-
-    if (isAgentic) {
-      yield* this.runAgenticIteration(agent, allTools, providerTools);
-    } else {
-      yield* this.runStandardIteration(agent, allTools, providerTools);
-    }
+    yield* this.runStandardIteration(agent, allTools, providerTools);
   }
 
   /**
-   * Agentic provider: single call with onToolCall handles the full loop.
-   */
-  private async *runAgenticIteration(
-    agent: AgentState,
-    allTools: Tool[],
-    providerTools: ProviderTool[]
-  ): AsyncGenerator<TeamEvent> {
-    const onToolCall = async (
-      name: string,
-      args: Record<string, unknown>
-    ): Promise<string> => {
-      const tool = allTools.find((t) => t.name === name);
-      if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
-      try {
-        const result = await tool.process(this.context, args);
-        return typeof result === "string"
-          ? result
-          : JSON.stringify(result ?? null);
-      } catch (e) {
-        return JSON.stringify({ error: String(e) });
-      }
-    };
-
-    const response = await agent.provider.generateMessageTraced({
-      messages: agent.history,
-      model: agent.identity.model,
-      tools: providerTools,
-      onToolCall
-    });
-
-    if (response.content) {
-      const event: TeamEvent = {
-        type: "chunk",
-        agentId: agent.identity.id,
-        content: String(response.content),
-        timestamp: Date.now()
-      };
-      this.events.push(event);
-      yield event;
-    }
-
-    agent.history.push({
-      role: "assistant",
-      content: response.content,
-      toolCalls: response.toolCalls ?? undefined
-    });
-  }
-
-  /**
-   * Standard provider: request-response loop with explicit tool execution.
+   * Request-response loop with explicit tool execution.
    */
   private async *runStandardIteration(
     agent: AgentState,

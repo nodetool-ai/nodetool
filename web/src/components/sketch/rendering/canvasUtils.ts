@@ -5,6 +5,7 @@
  * checkerboard and pixel-grid drawing helpers used across the sketch editor.
  */
 
+import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
 import type { BlendMode } from "../types";
 
 // ─── Dirty-rect types ────────────────────────────────────────────────────────
@@ -33,32 +34,7 @@ export interface BlurTempCanvases {
 export function blendModeToComposite(
   mode: BlendMode
 ): GlobalCompositeOperation {
-  switch (mode) {
-    case "multiply":
-      return "multiply";
-    case "screen":
-      return "screen";
-    case "overlay":
-      return "overlay";
-    case "darken":
-      return "darken";
-    case "lighten":
-      return "lighten";
-    case "color-dodge":
-      return "color-dodge";
-    case "color-burn":
-      return "color-burn";
-    case "hard-light":
-      return "hard-light";
-    case "soft-light":
-      return "soft-light";
-    case "difference":
-      return "difference";
-    case "exclusion":
-      return "exclusion";
-    default:
-      return "source-over";
-  }
+  return blendModeToCanvasOp(mode) as GlobalCompositeOperation;
 }
 
 // ─── Checkerboard ────────────────────────────────────────────────────────────

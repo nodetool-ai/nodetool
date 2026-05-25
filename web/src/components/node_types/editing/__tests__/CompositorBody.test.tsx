@@ -131,7 +131,7 @@ describe("LayerRow", () => {
   const baseProps: LayerRowProps = {
     index: 0,
     propertyKey: "image_0",
-    state: { opacity: 1, blend_mode: "over", visible: true },
+    state: { opacity: 1, blend_mode: "normal", visible: true },
     onOpacityChange: jest.fn(),
     onOpacityComplete: jest.fn(),
     onBlendChange: jest.fn(),

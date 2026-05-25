@@ -20,6 +20,8 @@ import {
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
+import { TopBarPrompt } from "./TopBarPrompt";
+
 const styles = (theme: Theme) =>
   css({
     height: 48,
@@ -102,6 +104,9 @@ export const TopBar: React.FC<TopBarProps> = memo(
             <Caption className="save-status">{saveStatus}</Caption>
           )}
         </FlexRow>
+
+        {/* Center: quick-prompt generation bar */}
+        <TopBarPrompt />
 
         {/* Right: activity slot + Render All */}
         <FlexRow gap={1} align="center">

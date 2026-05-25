@@ -5,10 +5,10 @@ import { z } from "zod";
 export const threadResponse = z.object({
   id: z.string(),
   user_id: z.string(),
-  title: z.string(),
+  title: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
-  etag: z.string()
+  etag: z.string().nullable().optional()
 });
 export type ThreadResponse = z.infer<typeof threadResponse>;
 

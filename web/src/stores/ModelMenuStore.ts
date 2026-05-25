@@ -7,10 +7,10 @@ import type {
   ASRModel,
   VideoModel
 } from "./ApiTypes";
-import Fuse from "fuse.js";
 import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
 import { useSecrets } from "../hooks/useSecrets";
+import { rankModels } from "../utils/modelRanking";
 
 type SidebarTab = "favorites" | "recent";
 
@@ -110,68 +110,23 @@ export const computeProvidersList = <TModel extends ModelSelectorModel>(
   return list;
 };
 
+export interface FilterModelsOptions {
+  recentKeys?: readonly string[];
+  favoriteKeys?: Iterable<string>;
+}
+
 export const filterModelsList = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
   selectedProvider: string | null,
   search: string,
-  enabledProviders: EnabledProvidersMap | undefined
+  enabledProviders: EnabledProvidersMap | undefined,
+  options: FilterModelsOptions = {}
 ): TModel[] => {
-  let list = models ?? [];
-
-  if (selectedProvider) {
-    if (/gemini|google/i.test(selectedProvider)) {
-      list = list.filter((m) => /gemini|google/i.test(m.provider || ""));
-    } else {
-      list = list.filter((m) => m.provider === selectedProvider);
-    }
-  }
-  if (!selectedProvider) {
-    // Filter by enabled providers: missing key means enabled (default true)
-    // Only filter out if explicitly set to false
-    list = list.filter((m) => {
-      const providerKey = String(m.provider || "");
-      const isEnabled = enabledProviders?.[providerKey] !== false;
-      return isEnabled;
-    });
-  }
-  const term = search.trim();
-  if (term.length > 0) {
-    list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
-    const normalize = (s: string) =>
-      s
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, " ")
-        .trim();
-    const makeIndexText = (m: TModel) =>
-      normalize(`${m.name || ""} ${m.id || ""} ${m.provider || ""}`);
-    const tokens = normalize(term).split(/\s+/).filter(Boolean);
-
-    const tokenMatches = list.filter((m) => {
-      const text = makeIndexText(m);
-      return tokens.every((t) => text.includes(t));
-    });
-
-    const fuse = new Fuse(list, {
-      keys: ["name", "id", "provider"],
-      threshold: 0.3,
-      ignoreLocation: true,
-      distance: 1000,
-      minMatchCharLength: 1
-    });
-    const fuseItems = fuse.search(term).map((r) => r.item);
-
-    const merged: TModel[] = [...tokenMatches];
-    for (const it of fuseItems) {
-      if (!merged.includes(it)) {merged.push(it);}
-    }
-    return merged;
-  }
-
-  // Sort alphabetically by name (or id as fallback) when not searching
-  return [...list].sort((a, b) => {
-    const nameA = (a.path || a.name || a.id || "").toLowerCase();
-    const nameB = (b.path || b.name || b.id || "").toLowerCase();
-    return nameA.localeCompare(nameB);
+  return rankModels<TModel>(models, search, {
+    selectedProvider,
+    enabledProviders,
+    recentKeys: options.recentKeys,
+    favoriteKeys: options.favoriteKeys
   });
 };
 
@@ -180,10 +135,21 @@ export type ModelMenuStoreHook<TModel extends ModelSelectorModel> = <Selected>(
   equalityFn?: (left: Selected, right: Selected) => boolean
 ) => Selected;
 
+export interface ModelMenuData<TModel extends ModelSelectorModel> {
+  models: TModel[] | undefined;
+  providers: string[];
+  filteredModels: TModel[];
+  favoriteModels: TModel[];
+  recentModels: TModel[];
+  totalCount: number;
+  filteredCount: number;
+  totalActiveCount: number;
+}
+
 export const useModelMenuData = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
   storeHook: ModelMenuStoreHook<TModel>
-) => {
+): ModelMenuData<TModel> => {
   const { isApiKeySet } = useSecrets();
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);
@@ -193,9 +159,25 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
 
   const providers = React.useMemo(() => computeProvidersList(models), [models]);
 
+  const recentKeys = React.useMemo(
+    () => recentsList.map((r) => `${r.provider}:${r.id}`),
+    [recentsList]
+  );
+
   const filteredModels = React.useMemo(
-    () => filterModelsList(models, selectedProvider, search, enabledProviders),
-    [models, selectedProvider, search, enabledProviders]
+    () =>
+      filterModelsList(models, selectedProvider, search, enabledProviders, {
+        recentKeys,
+        favoriteKeys: favoritesSet
+      }),
+    [
+      models,
+      selectedProvider,
+      search,
+      enabledProviders,
+      recentKeys,
+      favoritesSet
+    ]
   );
 
   const recentModels = React.useMemo(() => {

@@ -12,7 +12,11 @@ import ContentCardBody from "../node_types/ContentCardBody";
 import { getBespokeBody } from "../node_types/editing/bespokeRegistry";
 import HandleColumn from "./HandleColumn";
 import { isSnippetCodeNode } from "./codeNodeUi";
-import { resolveExposedInputNames } from "../../utils/exposedInputs";
+import {
+  resolveExposedInputNames,
+  resolveInlineFieldNames
+} from "../../utils/exposedInputs";
+import ExposedLabeledInputs from "./ExposedLabeledInputs";
 
 interface NodeContentProps {
   id: string;
@@ -102,7 +106,7 @@ const arePropsEqual = (
     }
   }
 
-  // Compare exposedInputs (affects which props render as handles)
+  // Compare exposed input placements (affects node-body handles / labeled rows)
   const prevExposed = prevProps.data.exposedInputs || [];
   const nextExposed = nextProps.data.exposedInputs || [];
   if (prevExposed.length !== nextExposed.length) {
@@ -110,6 +114,26 @@ const arePropsEqual = (
   }
   for (let i = 0; i < prevExposed.length; i++) {
     if (prevExposed[i] !== nextExposed[i]) {
+      return false;
+    }
+  }
+  const prevLabeled = prevProps.data.exposedInputsLabeled || [];
+  const nextLabeled = nextProps.data.exposedInputsLabeled || [];
+  if (prevLabeled.length !== nextLabeled.length) {
+    return false;
+  }
+  for (let i = 0; i < prevLabeled.length; i++) {
+    if (prevLabeled[i] !== nextLabeled[i]) {
+      return false;
+    }
+  }
+  const prevHidden = prevProps.data.exposedInputsHidden || [];
+  const nextHidden = nextProps.data.exposedInputsHidden || [];
+  if (prevHidden.length !== nextHidden.length) {
+    return false;
+  }
+  for (let i = 0; i < prevHidden.length; i++) {
+    if (prevHidden[i] !== nextHidden[i]) {
       return false;
     }
   }
@@ -179,18 +203,35 @@ const NodeContent: React.FC<NodeContentProps> = ({
   //       → generic body (this component's default layout)
   // Utility nodes (control flow, constants, etc.) intentionally never appear
   // in either registry and stay on the generic body forever.
+  const allProperties = nodeMetadata.properties ?? [];
   const BespokeBody = getBespokeBody(nodeMetadata);
   if (BespokeBody) {
     return (
-      <BespokeBody
-        id={id}
-        nodeType={nodeType}
-        nodeMetadata={nodeMetadata}
-        data={data}
-        workflowId={workflowId}
-        status={status}
-        isOutputNode={isOutputNode}
-      />
+      <FlexColumn
+        fullWidth
+        fullHeight
+        sx={{
+          position: "relative",
+          minHeight: 0
+        }}
+      >
+        <BespokeBody
+          id={id}
+          nodeType={nodeType}
+          nodeMetadata={nodeMetadata}
+          data={data}
+          workflowId={workflowId}
+          status={status}
+          isOutputNode={isOutputNode}
+        />
+        <ExposedLabeledInputs
+          id={id}
+          nodeMetadata={nodeMetadata}
+          nodeType={nodeType}
+          data={data}
+          properties={allProperties}
+        />
+      </FlexColumn>
     );
   }
   if (isContentCardNode(nodeMetadata)) {
@@ -213,13 +254,10 @@ const NodeContent: React.FC<NodeContentProps> = ({
   //   default       → Inspector only (hidden in node body)
   // Code nodes in snippet mode hide their `code` property from the inline
   // list — the snippet editor itself replaces that editor surface.
-  let inlineFieldNames = nodeMetadata.inline_fields ?? [];
-  if (isSnippetCodeNode(nodeType, data)) {
-    inlineFieldNames = inlineFieldNames.filter((n) => n !== "code");
-  }
-  // Input fields = metadata input_fields ∪ user-promoted exposedInputs.
+  const inlineFieldNames = resolveInlineFieldNames(nodeMetadata, data).filter(
+    (n) => !(isSnippetCodeNode(nodeType, data) && n === "code")
+  );
   const inputFieldNames = resolveExposedInputNames(nodeMetadata, data);
-  const allProperties = nodeMetadata.properties ?? [];
   const inlineProperties = allProperties.filter((p) =>
     inlineFieldNames.includes(p.name)
   );
@@ -244,6 +282,13 @@ const NodeContent: React.FC<NodeContentProps> = ({
         properties={inlineProperties}
         nodeType={nodeType}
         data={data}
+      />
+      <ExposedLabeledInputs
+        id={id}
+        nodeMetadata={nodeMetadata}
+        nodeType={nodeType}
+        data={data}
+        properties={allProperties}
       />
       {(nodeMetadata?.is_dynamic || nodeMetadata?.supports_dynamic_outputs) && (
         <NodePropertyForm

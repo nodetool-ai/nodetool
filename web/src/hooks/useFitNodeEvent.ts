@@ -8,7 +8,7 @@ import { NodeData } from "../stores/NodeData";
  * Hook to listen for custom "nodetool:fit-node" events and fit the view to the specified node.
  * This allows components outside the ReactFlowProvider to trigger node focusing.
  */
-export const useFitNodeEvent = () => {
+export const useFitNodeEvent = (): void => {
   const findNode = useNodes((state) => state.findNode);
   const fitView = useFitView();
 

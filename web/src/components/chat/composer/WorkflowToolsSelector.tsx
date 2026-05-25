@@ -10,20 +10,18 @@ import React, {
   useLayoutEffect
 } from "react";
 import {
-  Box,
-  Checkbox,
   Popover,
   PopoverOrigin
 } from "@mui/material";
 import { EditorButton } from "../../editor_ui";
-import { Chip } from "../../ui_primitives";
+import { Chip, Box } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { Schema } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useWorkflowTools } from "../../../serverState/useWorkflowTools";
 import { useTheme } from "@mui/material/styles";
 import SearchInput from "../../search/SearchInput";
-import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, LoadingSpinner } from "../../ui_primitives";
+import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, LoadingSpinner, Checkbox } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 360;

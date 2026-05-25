@@ -4,6 +4,7 @@ import { app } from "electron";
 import { logMessage } from "./logger";
 import * as fs from "fs";
 import { readSettings, updateSetting } from "./settings";
+import { getSystemDataPath } from "./systemPaths";
 
 // Base paths
 const resourcesPath: string = process.resourcesPath;
@@ -178,31 +179,6 @@ const getLlamaServerPath = (): string => {
 interface ProcessEnv {
   [key: string]: string;
 }
-
-/**
- * Returns the system data path matching Python's get_system_data_path() function
- * This ensures logs are stored in the same location as the Python backend expects
- * @param filename - The filename or subdirectory to append
- * @returns {string} The full path to the data directory
- */
-const getSystemDataPath = (filename: string): string => {
-  const homeDir = os.homedir();
-
-  switch (process.platform) {
-    case "darwin":
-    case "linux":
-      return path.join(homeDir, ".local", "share", "nodetool", filename);
-    case "win32": {
-      const localAppData = process.env.LOCALAPPDATA;
-      if (localAppData) {
-        return path.join(localAppData, "nodetool", filename);
-      }
-      return path.join("data", filename);
-    }
-    default:
-      return path.join("data", filename);
-  }
-};
 
 /**
  * Returns the default assets directory.

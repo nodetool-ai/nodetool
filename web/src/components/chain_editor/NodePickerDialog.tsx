@@ -8,7 +8,8 @@ import { css } from "@emotion/react";
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, InputAdornment } from "@mui/material";
+import { InputAdornment } from "@mui/material";
+import { Box } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Dialog } from "../ui_primitives/Dialog";
@@ -132,7 +133,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
     count: searchResults.length,
     getScrollElement: () => listScrollRef.current,
     estimateSize: () => ROW_HEIGHT,
-    overscan: 8,
+    overscan: theme.virtualScroll.overscan.small,
   });
 
   return (

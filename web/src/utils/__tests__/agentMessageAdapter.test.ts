@@ -26,6 +26,9 @@ interface AgentMessage {
       arguments: string;
     };
   }>;
+  event?: unknown;
+  event_type?: string;
+  agent_execution_id?: string;
 }
 
 describe("agentMessageAdapter", () => {
@@ -54,7 +57,7 @@ describe("agentMessageAdapter", () => {
         expect(result?.role).toBe("assistant");
         expect(result?.thread_id).toBe("test-session-1");
         expect(result?.provider).toBe("anthropic");
-        expect(result?.model).toBe("claude-agent");
+        expect(result?.model).toBe("agent");
         expect(result?.content).toEqual([
           { type: "text", text: "Hello, world!" },
           { type: "text", text: " How are you?" },
@@ -356,7 +359,7 @@ describe("agentMessageAdapter", () => {
         expect(result).toBeNull();
       });
 
-      it("returns null for stream_event messages", () => {
+      it("returns null for stream_event messages without execution event data", () => {
         const msg: AgentMessage = {
           type: "stream_event",
           uuid: "test-uuid-11",
@@ -367,6 +370,30 @@ describe("agentMessageAdapter", () => {
         const result = agentMessageToNodeToolMessage(msg);
 
         expect(result).toBeNull();
+      });
+
+      it("converts stream_event execution updates", () => {
+        const msg: AgentMessage = {
+          type: "stream_event",
+          uuid: "test-uuid-12",
+          session_id: "test-session-12",
+          event_type: "planning_update",
+          agent_execution_id: "graph-planner-test",
+          event: {
+            type: "planning_update",
+            phase: "generation",
+            status: "running",
+            content: "Building workflow graph..."
+          }
+        };
+
+        const result = agentMessageToNodeToolMessage(msg);
+
+        expect(result).not.toBeNull();
+        expect(result?.role).toBe("agent_execution");
+        expect(result?.agent_execution_id).toBe("graph-planner-test");
+        expect(result?.execution_event_type).toBe("planning_update");
+        expect(result?.content).toEqual(msg.event);
       });
     });
 

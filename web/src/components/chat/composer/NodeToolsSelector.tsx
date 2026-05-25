@@ -9,7 +9,6 @@ import React, {
   useLayoutEffect
 } from "react";
 import {
-  Box,
   Popover,
   PopoverOrigin
 } from "@mui/material";
@@ -24,7 +23,7 @@ import { IconForType } from "../../../config/data_types";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
-import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, LoadingSpinner, ToolbarIconButton, EditorButton, Chip } from "../../ui_primitives";
+import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, LoadingSpinner, ToolbarIconButton, EditorButton, Chip, Box } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 680;

@@ -130,11 +130,15 @@ async function pollUntilDone(
     if (state === "failed" || state === "fail") {
       const msg =
         (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
-      throw new Error(`Kie task failed: ${msg}`);
+      throw new Error(`Kie task failed: ${msg} (taskId: ${taskId})`);
     }
     await new Promise((r) => setTimeout(r, pollInterval));
   }
-  throw new Error(`Kie task timed out after ${maxAttempts * pollInterval}ms`);
+  const timeoutSeconds = (maxAttempts * pollInterval) / 1000;
+  throw new Error(
+    `Kie task timed out after ${timeoutSeconds}s (taskId: ${taskId}). ` +
+      "The job may still complete on KIE — check recordInfo or the KIE dashboard."
+  );
 }
 
 async function downloadResultBytes(

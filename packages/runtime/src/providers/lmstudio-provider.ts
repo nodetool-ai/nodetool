@@ -18,10 +18,19 @@ export class LMStudioProvider extends OpenAIProvider {
   private _lmstudioBaseURL: string;
 
   constructor(
-    secrets: { LMSTUDIO_API_KEY?: string } = {},
+    secrets: { LMSTUDIO_API_KEY?: string; LMSTUDIO_API_URL?: string } = {},
     options: LMStudioProviderOptions = {}
   ) {
-    const baseURL = options.baseURL ?? "http://127.0.0.1:1234";
+    // Precedence: explicit options.baseURL > secret/env LMSTUDIO_API_URL > default.
+    // The provider registry passes resolved settings (secret store, then env) as
+    // the `secrets` arg, so honoring `secrets.LMSTUDIO_API_URL` is what lets
+    // users override the port via API Keys / settings.
+    const rawBaseURL =
+      options.baseURL ??
+      secrets.LMSTUDIO_API_URL ??
+      process.env["LMSTUDIO_API_URL"] ??
+      "http://127.0.0.1:1234";
+    const baseURL = rawBaseURL.replace(/\/+$/, "");
     const apiKey = secrets.LMSTUDIO_API_KEY ?? "lm-studio";
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 

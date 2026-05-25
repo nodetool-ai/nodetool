@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { BLEND_MODE_TUPLE } from "@nodetool-ai/gpu";
+
+const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 
 // ── Shared sub-schemas ───────────────────────────────────────────────────────
 
@@ -145,6 +148,58 @@ export const timelineTrack = z.object({
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
 
+// ── Per-clip placement, transitions, and GPU effects ─────────────────────────
+
+export const clipTransform = z.object({
+  position: z.object({ x: z.number(), y: z.number() }),
+  scale: z.object({ x: z.number(), y: z.number() }),
+  rotation: z.number(),
+  anchor: z.object({ x: z.number(), y: z.number() })
+});
+export type ClipTransform = z.infer<typeof clipTransform>;
+
+export const clipTransition = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("crossfade"), durationMs: z.number() })
+]);
+export type ClipTransition = z.infer<typeof clipTransition>;
+
+export const clipColorEffect = z.object({
+  id: z.string(),
+  type: z.literal("color"),
+  enabled: z.boolean(),
+  brightness: z.number().optional(),
+  contrast: z.number().optional(),
+  saturation: z.number().optional(),
+  hue: z.number().optional(),
+  temperature: z.number().optional(),
+  tint: z.number().optional(),
+  shadows: z.number().optional(),
+  highlights: z.number().optional()
+});
+
+export const clipBlurEffect = z.object({
+  id: z.string(),
+  type: z.literal("blur"),
+  enabled: z.boolean(),
+  radius: z.number(),
+  sigma: z.number().optional()
+});
+
+export const clipEffect = z.discriminatedUnion("type", [
+  clipColorEffect,
+  clipBlurEffect
+]);
+export type ClipEffect = z.infer<typeof clipEffect>;
+
+export const clipBindingKind = z.enum([
+  "workflow",
+  "text-to-image",
+  "image-to-image",
+  "text-to-video",
+  "text-to-audio"
+]);
+export type ClipBindingKind = z.infer<typeof clipBindingKind>;
+
 export const timelineClip = z
   .object({
     id: z.string(),
@@ -156,9 +211,22 @@ export const timelineClip = z
     outPointMs: z.number().optional(),
     mediaType: z.enum(["image", "video", "audio", "overlay"]),
     sourceType: z.enum(["imported", "generated"]),
+    bindingKind: clipBindingKind.optional(),
     workflowId: z.string().optional(),
     selectedOutputNodeId: z.string().optional(),
     paramOverrides: z.record(z.string(), z.unknown()).optional(),
+    prompt: z.string().optional(),
+    negativePrompt: z.string().optional(),
+    provider: z.string().optional(),
+    model: z.string().optional(),
+    /** TTS voice id for `text-to-audio` direct-gen clips. */
+    voice: z.string().optional(),
+    sourceClipId: z.string().nullable().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    strength: z.number().optional(),
+    numInferenceSteps: z.number().optional(),
+    seed: z.number().optional(),
     dependencyHash: z.string().optional(),
     lastGeneratedHash: z.string().optional(),
     currentAssetId: z.string().optional(),
@@ -179,14 +247,16 @@ export const timelineClip = z
     hidden: z.boolean().optional(),
     versions: z.array(clipVersion),
     opacity: z.number().optional(),
-    blendMode: z
-      .enum(["normal", "screen", "multiply", "add", "overlay"])
-      .optional(),
+    blendMode: blendModeEnum.optional(),
     speedMultiplier: z.number().optional(),
     speedBaked: z.boolean().optional(),
     volumeDb: z.number().optional(),
     fadeInMs: z.number().optional(),
-    fadeOutMs: z.number().optional()
+    fadeOutMs: z.number().optional(),
+    transform: clipTransform.optional(),
+    borderRadius: z.number().optional(),
+    effects: z.array(clipEffect).optional(),
+    transitionIn: clipTransition.optional()
   });
 export type TimelineClip = z.infer<typeof timelineClip>;
 

@@ -11,6 +11,18 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { HighlightText } from "../ui_primitives/HighlightText";
+import {
+  formatFalUnitPricingShort,
+  formatFalUnitPricingTooltip,
+  isFalVagueBillingSummary
+} from "../../utils/formatFalUnitPricing";
+import KieCreditsFooter from "../node/KieCreditsFooter";
+import { isKieNodeMetadata } from "../../utils/isKieNode";
+import {
+  formatKieUnitPricingShort,
+  formatKieUnitPricingTooltip,
+  isKieVagueBillingSummary,
+} from "../../utils/formatKieUnitPricing";
 import isEqual from "fast-deep-equal";
 
 interface NodeInfoProps {
@@ -238,6 +250,60 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       </Text>
 
       <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
+
+      {nodeMetadata.fal_unit_pricing && (
+        <Tooltip
+          delay={TOOLTIP_ENTER_DELAY}
+          placement="top-start"
+          title={
+            <Text sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+              {formatFalUnitPricingTooltip(nodeMetadata.fal_unit_pricing)}
+            </Text>
+          }
+        >
+          <Text
+            sx={{
+              fontSize: theme.fontSizeSmall,
+              color: isFalVagueBillingSummary(nodeMetadata.fal_unit_pricing)
+                ? theme.vars.palette.warning.main
+                : theme.vars.palette.success.main,
+              fontWeight: 600,
+              cursor: "default"
+            }}
+          >
+            FAL: {formatFalUnitPricingShort(nodeMetadata.fal_unit_pricing)}
+          </Text>
+        </Tooltip>
+      )}
+
+      {isKieNodeMetadata(nodeMetadata) && nodeMetadata.kie_unit_pricing && (
+        <Tooltip
+          delay={TOOLTIP_ENTER_DELAY}
+          placement="top-start"
+          title={
+            <Text sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+              {formatKieUnitPricingTooltip(nodeMetadata.kie_unit_pricing)}
+            </Text>
+          }
+        >
+          <Text
+            sx={{
+              fontSize: theme.fontSizeSmall,
+              color: isKieVagueBillingSummary(nodeMetadata.kie_unit_pricing)
+                ? theme.vars.palette.warning.main
+                : theme.vars.palette.success.main,
+              fontWeight: 600,
+              cursor: "default",
+            }}
+          >
+            KIE: {formatKieUnitPricingShort(nodeMetadata.kie_unit_pricing)}
+          </Text>
+        </Tooltip>
+      )}
+
+      {isKieNodeMetadata(nodeMetadata) && !nodeMetadata.kie_unit_pricing && (
+        <KieCreditsFooter metadata={nodeMetadata} selected variant="inline" />
+      )}
 
       {showConnections && (
         <div className="inputs-outputs">

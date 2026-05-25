@@ -13,7 +13,7 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { FlexRow } from "../ui_primitives";
 import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
@@ -262,7 +262,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
           />
         )}
         {/* Canvas info bar */}
-        <Box
+        <FlexRow
           className="sketch-canvas__info-bar"
           sx={{
             position: "absolute",
@@ -277,7 +277,6 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
             fontFamily: SKETCH_FONT.familyMono,
             pointerEvents: "none",
             zIndex: 5,
-            display: "flex",
             gap: "12px"
           }}
         >
@@ -288,7 +287,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
               {cursorDocPos.x}, {cursorDocPos.y}
             </span>
           )}
-        </Box>
+        </FlexRow>
       </div>
     );
   }

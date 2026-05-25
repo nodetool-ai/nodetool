@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useCallback } from "react";
-import { Box } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, Box } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
@@ -44,11 +43,11 @@ const listStyles = (theme: Theme) =>
     ".workflow": {
       flex: 1,
       height: "100%",
-      padding: "6px 10px 6px 12px",
+      padding: 0,
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      margin: "0 0 6px",
+      margin: "0 0 2px",
       width: "100%",
       cursor: "pointer",
       outline: "none",
@@ -90,10 +89,13 @@ const listStyles = (theme: Theme) =>
       justifyContent: "center",
       position: "relative"
     },
+    ".workflow:not(.with-preview):not(.hide-date) .preview-container": {
+      paddingRight: "84px"
+    },
     ".name": {
       fontSize: theme.fontSizeSmall,
-      fontWeight: 500,
-      lineHeight: "2.35em",
+      fontWeight: 400,
+      lineHeight: 1.35,
       color: theme.vars.palette.grey[0],
       userSelect: "none",
       flex: "1",
@@ -109,11 +111,14 @@ const listStyles = (theme: Theme) =>
       position: "absolute",
       top: "50%",
       transform: "translateY(-50%)",
-      right: "0.85em",
+      right: "0.75em",
       display: "flex",
       alignItems: "center",
+      justifyContent: "flex-start",
       gap: "4px",
-      padding: "2px 0 2px 8px",
+      width: "76px",
+      flexShrink: 0,
+      padding: "0",
       background: `linear-gradient(to right, transparent, rgb(${theme.vars.palette.background.defaultChannel} / 0.94) 18px)`
     },
     ".favorite-indicator": {
@@ -123,15 +128,14 @@ const listStyles = (theme: Theme) =>
       opacity: 0
     },
     ".date": {
-      color: theme.vars.palette.grey[300],
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
-      wordSpacing: "-0.1em",
-      lineHeight: "2em",
-      minWidth: "80px",
+      width: "100%",
+      fontWeight: 400,
+      lineHeight: 1.1,
       userSelect: "none",
-      textAlign: "right",
-      letterSpacing: "0.04em"
+      textAlign: "left",
+      letterSpacing: "0.02em",
+      textTransform: "uppercase",
+      whiteSpace: "nowrap"
     },
     ".duplicate-button svg": {
       transform: "scale(0.7)"
@@ -183,17 +187,21 @@ const listStyles = (theme: Theme) =>
       borderRadius: "var(--rounded-sm)",
       padding: "2px 6px"
     },
+    ".date-header-row": {
+      width: "100%",
+      padding: "0 12px 4px 0",
+      alignItems: "flex-end",
+      borderBottom: "1px solid var(--palette-divider)"
+    },
     ".date-header": {
-      padding: "10px 12px 6px",
-      color: theme.vars.palette.grey[200],
-      backgroundColor: "transparent",
-      fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
-      fontWeight: 600,
+      flexShrink: 0,
+      padding: 0,
+      lineHeight: 1.1,
       textAlign: "right",
+      letterSpacing: "0.02em",
       textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
+      whiteSpace: "nowrap"
     }
   });
 
@@ -219,8 +227,8 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   const sortBy = useSortBy();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const WORKFLOW_HEIGHT = showGraphPreview ? 280 : 36;
-  const HEADER_HEIGHT = 32;
+  const WORKFLOW_HEIGHT = showGraphPreview ? 280 : 28;
+  const HEADER_HEIGHT = 16;
 
   // Group workflows by date and create a flat list with headers
   const flatList = useMemo(() => {
@@ -264,7 +272,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     getScrollElement: () => containerRef.current,
     estimateSize: (index) =>
       flatList[index]?.type === "header" ? HEADER_HEIGHT : WORKFLOW_HEIGHT,
-    overscan: 4,
+    overscan: theme.virtualScroll.overscan.normal,
     getItemKey: (index) => {
       const item = flatList[index];
       return item.type === "header"
@@ -298,6 +306,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           height: virtualizer.getTotalSize(),
           width: "100%",
           position: "relative",
+          flexShrink: 0,
         }}
       >
         {virtualizer.getVirtualItems().map((vi) => {
@@ -313,8 +322,14 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           };
           if (item.type === "header") {
             return (
-              <div key={vi.key} style={itemStyle}>
-                <Text className="date-header" sx={{ width: "100%" }}>
+              <div key={vi.key} className="date-header-row" style={itemStyle}>
+                <Text
+                  className="date-header"
+                  size="small"
+                  color="secondary"
+                  weight={300}
+                  sx={{ lineHeight: 1.1, textTransform: "uppercase", textAlign: "right", width: "100%" }}
+                >
                   {item.label}
                 </Text>
               </div>

@@ -30,9 +30,18 @@ export const CONTENT_CARD_REGISTRY: ReadonlySet<string> = new Set([
   // First-party generators (base-nodes)
   "nodetool.image.TextToImage",
   "nodetool.image.ImageToImage",
+  "nodetool.image.Upscale",
+  "nodetool.image.RemoveBackground",
+  "nodetool.image.Relight",
+  "nodetool.image.Vectorize",
   "nodetool.video.TextToVideo",
   "nodetool.video.ImageToVideo",
+  "nodetool.video.VideoToVideo",
+  "nodetool.video.LipSync",
   "nodetool.audio.TextToSpeech",
+  "nodetool.audio.AudioMixer",
+  "nodetool.audio.Concat",
+  "nodetool.video.Concat",
   "nodetool.text.AutomaticSpeechRecognition",
 
   // Provider image/video/audio nodes
@@ -128,17 +137,17 @@ export const isContentCardNode = (
  * (plan §6.3). Resolved from the node's primary output via
  * `getContentCardDefaultSize`. Single source of truth for content-card sizes.
  */
-// Heights include ~120 px of vertical space below the preview for the inline
-// prompt/parameter field(s) that most generator nodes expose. Users can resize
-// further; these are just the comfortable defaults.
+// Heights are sized for the preview area only; prompt/text inputs now render
+// as left-edge handles (see classifyFields), so we no longer pad for an inline
+// editor row. Users can resize further; these are just the comfortable defaults.
 export const CONTENT_CARD_SIZES = {
-  image: { width: 280, height: 400 },
-  image_mask: { width: 280, height: 400 },
-  video: { width: 320, height: 340 },
-  text: { width: 320, height: 320 },
-  audio: { width: 320, height: 240 },
-  model_3d: { width: 280, height: 400 },
-  generic: { width: 280, height: 400 }
+  image: { width: 280, height: 280 },
+  image_mask: { width: 280, height: 280 },
+  video: { width: 320, height: 220 },
+  text: { width: 320, height: 220 },
+  audio: { width: 320, height: 160 },
+  model_3d: { width: 280, height: 280 },
+  generic: { width: 280, height: 280 }
 } as const;
 
 /**
@@ -226,6 +235,23 @@ export const getContentCardDefaultSize = (
 };
 
 /**
+ * Prompt/template nodes that substitute `{{variables}}` — their dynamic-input
+ * button reads "+ Add variable". This is the prompt-templating subset of
+ * `CONTENT_CARD_REGISTRY` above; keep the two in sync.
+ */
+const PROMPT_TEMPLATE_NODES = new Set<string>([
+  "nodetool.agents.Agent",
+  "nodetool.agents.Summarizer",
+  "nodetool.agents.Extractor",
+  "nodetool.agents.Classifier",
+  "nodetool.text.Concat",
+  "nodetool.data.Describe",
+  "anthropic.agents.ClaudeAgent",
+  "openai.agents.RealtimeAgent",
+  "mistral.text.ChatComplete"
+]);
+
+/**
  * Human label for the `DynamicInputButton` shown in a content card.
  * Picked from primary-output variant — image generators say
  * "+ Add another image input", text/prompt nodes say "+ Add variable", etc.
@@ -237,14 +263,7 @@ export const getContentCardDefaultSize = (
 export const getDynamicInputLabel = (metadata: NodeMetadata): string => {
   const t = metadata.node_type ?? "";
   // Template-style nodes use {{variable}} substitution — say "variable".
-  // (Only nodes also matched by `isContentCardNode` show this button — keep
-  // this list in sync with the explicit allow-set above.)
-  if (
-    t === "nodetool.agents.Agent" ||
-    t === "anthropic.agents.ClaudeAgent" ||
-    t === "openai.agents.RealtimeAgent" ||
-    t === "nodetool.text.Concat"
-  ) {
+  if (PROMPT_TEMPLATE_NODES.has(t)) {
     return "variable";
   }
   const variant = getContentCardVariant(getPrimaryOutput(metadata));

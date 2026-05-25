@@ -1,16 +1,21 @@
 import React, { useMemo, useCallback, useRef, useState } from "react";
 import {
-  Box,
-  TextField,
-  Button,
-  IconButton,
-  Chip,
   ToggleButtonGroup,
   ToggleButton
 } from "@mui/material";
-import { Text } from "../ui_primitives";
+import {
+  Text,
+  FlexRow,
+  FlexColumn,
+  Box,
+  TextInput,
+  EditorButton,
+  ToolbarIconButton,
+  Chip
+} from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import { useTheme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -27,6 +32,7 @@ const NODE_ROW_HEIGHT = 48;
 type StatusFilter = "all" | "passed" | "failed" | "idle";
 
 function NodeTestPage() {
+  const theme = useTheme();
   const metadata = useMetadataStore((s) => s.metadata);
   const {
     results,
@@ -133,7 +139,7 @@ function NodeTestPage() {
       flatRows[index]?.type === "namespace"
         ? NAMESPACE_ROW_HEIGHT
         : NODE_ROW_HEIGHT,
-    overscan: 8,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => {
       const row = flatRows[index];
       return row.type === "namespace"
@@ -143,21 +149,20 @@ function NodeTestPage() {
   });
 
   return (
-    <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <Box
+    <FlexColumn sx={{ height: "100vh" }}>
+      <FlexRow
+        gap={2}
+        padding={2}
+        align="center"
+        wrap
         sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          p: 2,
           borderBottom: "1px solid",
-          borderColor: "divider",
-          flexWrap: "wrap"
+          borderColor: "divider"
         }}
       >
         <Text size="normal" weight={600}>Node Integration Tests</Text>
 
-        <TextField
+        <TextInput
           size="small"
           placeholder="Search nodes..."
           value={search}
@@ -165,7 +170,7 @@ function NodeTestPage() {
           sx={{ width: 250 }}
         />
 
-        <TextField
+        <TextInput
           size="small"
           type="number"
           label="Concurrency"
@@ -177,16 +182,16 @@ function NodeTestPage() {
           inputProps={{ min: 1, max: 50 }}
         />
 
-        <Button
+        <EditorButton
           variant="contained"
           startIcon={<PlayArrowIcon />}
           onClick={handleRunAll}
           size="small"
         >
           Run All ({stats.total})
-        </Button>
+        </EditorButton>
 
-        <Button
+        <EditorButton
           variant="outlined"
           startIcon={<StopIcon />}
           onClick={stopAll}
@@ -194,11 +199,11 @@ function NodeTestPage() {
           color="warning"
         >
           Stop All
-        </Button>
+        </EditorButton>
 
-        <Button size="small" onClick={clearResults}>
+        <EditorButton size="small" onClick={clearResults}>
           Clear
-        </Button>
+        </EditorButton>
 
         <ToggleButtonGroup
           size="small"
@@ -222,7 +227,7 @@ function NodeTestPage() {
         {stats.queued > 0 && (
           <Chip label={`Queued: ${stats.queued}`} color="info" size="small" />
         )}
-      </Box>
+      </FlexRow>
 
       <Box sx={{ flex: 1, overflow: "hidden" }}>
         <div
@@ -248,31 +253,29 @@ function NodeTestPage() {
               };
               if (row.type === "namespace") {
                 return (
-                  <Box
+                  <FlexRow
                     key={vi.key}
                     style={itemStyle}
+                    gap={1}
+                    align="center"
                     sx={{
-                      display: "flex",
-                      alignItems: "center",
                       px: 1,
-                      gap: 1,
                       bgcolor: "background.paper",
                       borderBottom: "1px solid",
                       borderColor: "divider"
                     }}
                   >
-                    <IconButton
+                    <ToolbarIconButton
                       size="small"
                       onClick={() => handleRunNamespace(row.namespace)}
-                      title={`Run all ${row.nodeCount} nodes in ${row.namespace}`}
-                    >
-                      <PlayArrowIcon fontSize="small" />
-                    </IconButton>
+                      tooltip={`Run all ${row.nodeCount} nodes in ${row.namespace}`}
+                      icon={<PlayArrowIcon fontSize="small" />}
+                    />
                     <Text size="small" weight={700}>
                       {row.namespace}
                     </Text>
                     <Chip label={row.nodeCount} size="small" />
-                  </Box>
+                  </FlexRow>
                 );
               }
               return (
@@ -288,7 +291,7 @@ function NodeTestPage() {
           </div>
         </div>
       </Box>
-    </Box>
+    </FlexColumn>
   );
 }
 

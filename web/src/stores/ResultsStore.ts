@@ -1,11 +1,12 @@
 /** ResultsStore manages workflow execution results and streaming data. */
 
 import { create } from "zustand";
-import { PlanningUpdate, Task, ToolCallUpdate } from "./ApiTypes";
+import { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "./ApiTypes";
 
 type ResultsStore = {
   results: Record<string, unknown>;
   outputResults: Record<string, unknown>;
+  providerCosts: Record<string, ProviderCost>;
   resultsVersion: number;
   progress: Record<string, { progress: number; total: number; chunk?: string }>;
   edges: Record<string, { status: string; counter?: number }>;
@@ -13,7 +14,6 @@ type ResultsStore = {
   tasks: Record<string, Task>;
   toolCalls: Record<string, ToolCallUpdate>;
   planningUpdates: Record<string, PlanningUpdate>;
-  previews: Record<string, unknown>;
   deleteResult: (workflowId: string, nodeId: string) => void;
   clearResults: (workflowId: string, nodeIds?: Set<string>) => void;
   clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => void;
@@ -22,7 +22,6 @@ type ResultsStore = {
   clearTasks: (workflowId: string, nodeIds?: Set<string>) => void;
   clearChunks: (workflowId: string, nodeIds?: Set<string>) => void;
   clearPlanningUpdates: (workflowId: string, nodeIds?: Set<string>) => void;
-  clearPreviews: (workflowId: string, nodeIds?: Set<string>) => void;
   clearEdges: (workflowId: string, edgeIds?: Set<string>) => void;
   setEdge: (
     workflowId: string,
@@ -34,13 +33,6 @@ type ResultsStore = {
     workflowId: string,
     edgeId: string
   ) => { status: string; counter?: number } | undefined;
-  setPreview: (
-    workflowId: string,
-    nodeId: string,
-    preview: unknown,
-    append?: boolean
-  ) => void;
-  getPreview: (workflowId: string, nodeId: string) => unknown;
   setResult: (
     workflowId: string,
     nodeId: string,
@@ -48,6 +40,15 @@ type ResultsStore = {
     append?: boolean
   ) => void;
   getResult: (workflowId: string, nodeId: string) => unknown;
+  getProviderCost: (
+    workflowId: string,
+    nodeId: string
+  ) => ProviderCost | undefined;
+  setProviderCost: (
+    workflowId: string,
+    nodeId: string,
+    cost: ProviderCost
+  ) => void;
   getOutputResult: (workflowId: string, nodeId: string) => unknown;
   setOutputResult: (
     workflowId: string,
@@ -129,6 +130,7 @@ const filterRecord = <T>(
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
   outputResults: {},
+  providerCosts: {},
   resultsVersion: 0,
   progress: {},
   chunks: {},
@@ -136,7 +138,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   toolCalls: {},
   edges: {},
   planningUpdates: {},
-  previews: {},
   clearEdges: (workflowId: string, edgeIds?: Set<string>) => {
     set((state) => ({
       edges: filterRecord(state.edges, workflowId, edgeIds)
@@ -157,46 +158,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         [hashKey(workflowId, nodeId)]: planningUpdate
       }
     }));
-  },
-  /**
-   * Set the preview for a node.
-   * The preview is stored in the previews map.
-   */
-  setPreview: (
-    workflowId: string,
-    nodeId: string,
-    preview: unknown,
-    append?: boolean
-  ) => {
-    const key = hashKey(workflowId, nodeId);
-    set((state) => {
-      const currentPreview = state.previews[key];
-      if (currentPreview === undefined || !append) {
-        return {
-          previews: { ...state.previews, [key]: preview }
-        };
-      } else {
-        let newPreview;
-        if (Array.isArray(currentPreview)) {
-          newPreview = [...currentPreview, preview];
-        } else {
-          newPreview = [currentPreview, preview];
-        }
-        return {
-          previews: {
-            ...state.previews,
-            [key]: newPreview
-          }
-        };
-      }
-    });
-  },
-  /**
-   * Get the preview for a node.
-   * The preview is stored in the previews map.
-   */
-  getPreview: (workflowId: string, nodeId: string) => {
-    return get().previews[hashKey(workflowId, nodeId)];
   },
   /**
    * Get the planning update for a node.
@@ -293,7 +254,8 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    */
   clearResults: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      results: filterRecord(state.results, workflowId, nodeIds)
+      results: filterRecord(state.results, workflowId, nodeIds),
+      providerCosts: filterRecord(state.providerCosts, workflowId, nodeIds)
     }));
   },
   clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => {
@@ -307,14 +269,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   clearProgress: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
       progress: filterRecord(state.progress, workflowId, nodeIds)
-    }));
-  },
-  /**
-   * Clear the previews for a workflow.
-   */
-  clearPreviews: (workflowId: string, nodeIds?: Set<string>) => {
-    set((state) => ({
-      previews: filterRecord(state.previews, workflowId, nodeIds)
     }));
   },
   /**
@@ -402,6 +356,19 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const results = get().results;
     const key = hashKey(workflowId, nodeId);
     return results[key];
+  },
+
+  setProviderCost: (workflowId: string, nodeId: string, cost: ProviderCost) => {
+    set((state) => ({
+      providerCosts: {
+        ...state.providerCosts,
+        [hashKey(workflowId, nodeId)]: cost
+      }
+    }));
+  },
+
+  getProviderCost: (workflowId: string, nodeId: string) => {
+    return get().providerCosts[hashKey(workflowId, nodeId)];
   },
 
   /**

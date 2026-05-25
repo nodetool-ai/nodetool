@@ -51,7 +51,7 @@ export class ChatComplete extends BaseNode {
     output: "str"
   };
   static readonly inlineFields = [];
-  static readonly inputFields: string[] = ["prompt"];
+  static readonly inputFields: string[] = ["prompt", "system_prompt"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
   static readonly exposeAsTool = true;
 

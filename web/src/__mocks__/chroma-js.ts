@@ -109,9 +109,21 @@ const chromaMock = jest.fn((color: string) => {
     }),
     rgba: jest.fn(() => [...rgbaValues, 1]),
   };
-}) as any;
+});
 
-chromaMock.mix = jest.fn((color1: any, color2: any, amount: number, _mode?: string) => ({
+interface ChromaColorLike {
+  hex?: () => string;
+}
+
+interface ChromaMockFn {
+  (color: string): Record<string, jest.Mock>;
+  mix: jest.Mock;
+  scale: jest.Mock;
+}
+
+const typedMock = chromaMock as unknown as ChromaMockFn;
+
+typedMock.mix = jest.fn((color1: ChromaColorLike, color2: ChromaColorLike, amount: number, _mode?: string) => ({
   hex: jest.fn(() => {
     // Simulate color blending for simulateOpacity tests
     if (amount === 0.5) {
@@ -136,7 +148,7 @@ chromaMock.mix = jest.fn((color1: any, color2: any, amount: number, _mode?: stri
   }),
 }));
 
-chromaMock.scale = jest.fn((_colors: string[]) => ({
+typedMock.scale = jest.fn((_colors: string[]) => ({
   mode: jest.fn((_m: string) => ({
     colors: jest.fn((n: number) => {
       const result = [];
@@ -148,4 +160,4 @@ chromaMock.scale = jest.fn((_colors: string[]) => ({
   })),
 }));
 
-export default chromaMock;
+export default typedMock;

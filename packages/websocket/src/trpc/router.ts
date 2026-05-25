@@ -9,6 +9,7 @@ import { mcpConfigRouter } from "./routers/mcp-config.js";
 import { messagesRouter } from "./routers/messages.js";
 import { modelsRouter } from "./routers/models.js";
 import { nodesRouter } from "./routers/nodes.js";
+import { packsRouter } from "./routers/packs.js";
 import { sandboxesRouter } from "./routers/sandboxes.js";
 import { settingsRouter } from "./routers/settings.js";
 import { skillsRouter, fontsRouter } from "./routers/skills.js";
@@ -34,6 +35,7 @@ export const appRouter = router({
   messages: messagesRouter,
   models: modelsRouter,
   nodes: nodesRouter,
+  packs: packsRouter,
   sandboxes: sandboxesRouter,
   settings: settingsRouter,
   sketch: sketchRouter,

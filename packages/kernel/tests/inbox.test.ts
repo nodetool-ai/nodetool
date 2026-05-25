@@ -223,7 +223,7 @@ describe("NodeInbox – envelope metadata", () => {
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);
 
-    await inbox.put("a", "data", { key: "value" });
+    await inbox.put("a", "data", { metadata: { key: "value" } });
     inbox.markSourceDone("a");
 
     const envelopes = [];

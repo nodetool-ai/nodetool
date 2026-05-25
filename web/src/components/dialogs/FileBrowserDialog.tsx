@@ -624,7 +624,7 @@ function FileBrowserDialog({
     count: filteredFiles.length,
     getScrollElement: () => fileListScrollRef.current,
     estimateSize: () => 32,
-    overscan: 12,
+    overscan: theme.virtualScroll.overscan.normal,
     getItemKey: (index) => filteredFiles[index]?.path ?? index,
   });
 

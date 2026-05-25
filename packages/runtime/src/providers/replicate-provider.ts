@@ -16,7 +16,13 @@ import type {
   TextToImageParams,
   TTSModel,
   VideoModel,
-  TextToVideoParams
+  TextToVideoParams,
+  UpscaleImageParams,
+  RemoveBackgroundParams,
+  RelightImageParams,
+  VectorizeImageParams,
+  VideoToVideoParams,
+  LipSyncParams
 } from "./types.js";
 import { loadImageModels, loadVideoModels } from "./manifest-models.js";
 
@@ -551,6 +557,98 @@ export class ReplicateProvider extends BaseProvider {
       { input }
     );
     return this._fetchOutputBytes(output);
+  }
+
+  private dataUri(bytes: Uint8Array, mimeType: string): string {
+    return `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
+  }
+
+  private async runWithInput(
+    modelId: string,
+    input: Record<string, unknown>
+  ): Promise<Uint8Array> {
+    const output = await this._client.run(
+      modelId as `${string}/${string}`,
+      { input }
+    );
+    return this._fetchOutputBytes(output);
+  }
+
+  override async upscaleImage(
+    image: Uint8Array,
+    params: UpscaleImageParams
+  ): Promise<Uint8Array> {
+    const input: Record<string, unknown> = {
+      image: this.dataUri(image, "image/png")
+    };
+    if (params.scale != null) input.scale = params.scale;
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.creativity != null) input.creativity = params.creativity;
+    if (params.seed != null) input.seed = params.seed;
+    log.debug("upscaleImage", { model: params.model.id });
+    return this.runWithInput(params.model.id, input);
+  }
+
+  override async removeBackground(
+    image: Uint8Array,
+    params: RemoveBackgroundParams
+  ): Promise<Uint8Array> {
+    log.debug("removeBackground", { model: params.model.id });
+    return this.runWithInput(params.model.id, {
+      image: this.dataUri(image, "image/png")
+    });
+  }
+
+  override async relightImage(
+    image: Uint8Array,
+    params: RelightImageParams
+  ): Promise<Uint8Array> {
+    const input: Record<string, unknown> = {
+      image: this.dataUri(image, "image/png")
+    };
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.seed != null) input.seed = params.seed;
+    log.debug("relightImage", { model: params.model.id });
+    return this.runWithInput(params.model.id, input);
+  }
+
+  override async vectorizeImage(
+    image: Uint8Array,
+    params: VectorizeImageParams
+  ): Promise<Uint8Array> {
+    log.debug("vectorizeImage", { model: params.model.id });
+    return this.runWithInput(params.model.id, {
+      image: this.dataUri(image, "image/png")
+    });
+  }
+
+  override async videoToVideo(
+    video: Uint8Array,
+    params: VideoToVideoParams
+  ): Promise<Uint8Array> {
+    const input: Record<string, unknown> = {
+      video: this.dataUri(video, "video/mp4")
+    };
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.strength != null) input.strength = params.strength;
+    if (params.seed != null) input.seed = params.seed;
+    log.debug("videoToVideo", { model: params.model.id });
+    return this.runWithInput(params.model.id, input);
+  }
+
+  override async lipSync(
+    video: Uint8Array,
+    params: LipSyncParams
+  ): Promise<Uint8Array> {
+    const input: Record<string, unknown> = {
+      video: this.dataUri(video, "video/mp4"),
+      audio: this.dataUri(params.audio, "audio/mpeg")
+    };
+    if (params.seed != null) input.seed = params.seed;
+    log.debug("lipSync", { model: params.model.id });
+    return this.runWithInput(params.model.id, input);
   }
 
   async *textToSpeech(args: {

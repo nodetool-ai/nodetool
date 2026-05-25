@@ -4,10 +4,9 @@
 
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
-import { Box } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { alpha, useTheme } from "@mui/material/styles";
-import { Text } from "../ui_primitives";
+import { FlexRow, Text, Box } from "../ui_primitives";
 import { SKETCH_FONT } from "./sketchStyles";
 
 export interface SketchToolIconLabelProps {
@@ -67,8 +66,10 @@ function SketchToolIconLabel({
   ) : null;
 
   const iconWell = (
-    <Box
+    <FlexRow
       className="sketch-tool-icon-label__well"
+      align="center"
+      justify="center"
       sx={{
         flex: row ? "0 0 auto" : undefined,
         width: row ? 34 : "100%",
@@ -76,16 +77,13 @@ function SketchToolIconLabel({
         minHeight: row ? undefined : compact ? 30 : 38,
         borderRadius: "2px",
         backgroundColor: alpha(theme.palette.common.black, 0.22),
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         boxSizing: "border-box",
         color: "primary.light",
         lineHeight: 0
       }}
     >
       {icon}
-    </Box>
+    </FlexRow>
   );
 
   return (

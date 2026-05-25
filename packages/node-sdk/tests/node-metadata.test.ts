@@ -60,6 +60,52 @@ describe("getNodeMetadata", () => {
     expect(meta.is_streaming_output).toBe(true);
   });
 
+  it("includes correlation metadata", () => {
+    class CorrelatedNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.Correlated";
+      static readonly title = "Correlated";
+      static readonly description = "Has correlation metadata";
+      static readonly inputMode = "stream" as const;
+      static readonly outputCorrelation = {
+        output: { kind: "forward", source: "input" }
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(CorrelatedNode);
+    expect(meta.input_mode).toBe("stream");
+    expect(meta.output_correlation).toEqual({
+      output: { kind: "forward", source: "input" }
+    });
+  });
+
+  it("throws on invalid correlation metadata", () => {
+    class BadAggregateNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.BadAggregate";
+      static readonly title = "Bad Aggregate";
+      static readonly description = "Aggregate on a buffered node — rejected";
+      static readonly inputMode = "buffered" as const;
+      static readonly outputCorrelation = {
+        output: {
+          kind: "aggregate",
+          source: "input",
+          collapse: "innermost"
+        }
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    expect(() => getNodeMetadata(BadAggregateNode)).toThrow(
+      /aggregate output .* is not allowed on buffered nodes/
+    );
+  });
+
   it("infers string types from defaults", () => {
     const meta = getNodeMetadata(StringConcat);
     const propA = meta.properties.find((p) => p.name === "a");
@@ -671,5 +717,46 @@ describe("getNodeMetadata – outputTypes support", () => {
     expect(meta.outputs).toHaveLength(1);
     expect(meta.outputs[0].stream).toBeUndefined();
     expect(meta.is_streaming_output).toBe(true);
+  });
+
+  it("auto-derives is_streaming_output when genProcess is overridden", () => {
+    class AutoStreamingNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.AutoStreaming";
+      static readonly title = "Auto Streaming";
+      static readonly description = "";
+      static readonly outputTypes = { value: "int" };
+
+      async process() {
+        return {};
+      }
+
+      async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+        yield { value: 1 };
+        yield { value: 2 };
+      }
+    }
+
+    const meta = getNodeMetadata(
+      AutoStreamingNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.is_streaming_output).toBe(true);
+  });
+
+  it("leaves is_streaming_output false when neither flag nor genProcess override is set", () => {
+    class NonStreamingNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.NonStreaming";
+      static readonly title = "Non Streaming";
+      static readonly description = "";
+      static readonly outputTypes = { value: "int" };
+
+      async process() {
+        return { value: 1 };
+      }
+    }
+
+    const meta = getNodeMetadata(
+      NonStreamingNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.is_streaming_output).toBe(false);
   });
 });

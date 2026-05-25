@@ -1,10 +1,43 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type {
+  ProcessingContext,
+  StreamingInputs,
+  StreamingOutputs
+} from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import Papa from "papaparse";
 
 type Row = Record<string, unknown>;
+
+function columnName(col: unknown): string {
+  if (col && typeof col === "object" && "name" in col) {
+    const name = (col as { name?: unknown }).name;
+    if (typeof name === "string") return name;
+    return String(name ?? "");
+  }
+  return String(col);
+}
+
+function rowsFromColumnData(columns: unknown[], data: unknown[][]): Row[] {
+  const names = columns.map(columnName).filter((name) => name.length > 0);
+  if (names.length === 0) return [];
+
+  return data.map((row) => {
+    const record: Row = {};
+    names.forEach((name, index) => {
+      record[name] = row[index] ?? null;
+    });
+    return record;
+  });
+}
+
+function isArrayMatrix(data: unknown[]): data is unknown[][] {
+  if (data.length === 0) return true;
+  return data.every((row) => Array.isArray(row));
+}
+
 function asRows(value: unknown): Row[] {
   if (Array.isArray(value)) {
     return value
@@ -14,8 +47,15 @@ function asRows(value: unknown): Row[] {
       .map((x) => ({ ...x }));
   }
   if (value && typeof value === "object") {
-    const obj = value as { rows?: unknown; data?: unknown };
+    const obj = value as { rows?: unknown; data?: unknown; columns?: unknown };
     if (Array.isArray(obj.rows)) return asRows(obj.rows);
+    if (
+      Array.isArray(obj.columns) &&
+      Array.isArray(obj.data) &&
+      isArrayMatrix(obj.data)
+    ) {
+      return rowsFromColumnData(obj.columns, obj.data);
+    }
     if (Array.isArray(obj.data)) return asRows(obj.data);
   }
   return [];
@@ -861,45 +901,6 @@ export class JoinDataframeNode extends BaseNode {
   }
 }
 
-export class RowIteratorNode extends BaseNode {
-  static readonly nodeType = "nodetool.data.RowIterator";
-  static readonly title = "Row Iterator";
-  static readonly description = "Iterate over rows of a dataframe.";
-  static readonly inlineFields = [];
-  static readonly inputFields = ["dataframe"];
-  static readonly metadataOutputTypes = {
-    dict: "dict",
-    index: "any"
-  };
-
-  static readonly isStreamingOutput = true;
-  @prop({
-    type: "dataframe",
-    default: {
-      type: "dataframe",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      columns: null
-    },
-    title: "Dataframe",
-    description: "The input dataframe."
-  })
-  declare dataframe: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    return {};
-  }
-
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    for (const [index, row] of rows.entries()) {
-      yield { dict: row, index };
-    }
-  }
-}
-
 export class FindRowNode extends BaseNode {
   static readonly nodeType = "nodetool.data.FindRow";
   static readonly title = "Find Row";
@@ -1078,7 +1079,12 @@ export class ForEachRowNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    row: { kind: "iteration", source: "dataframe", group: "items" },
+    index: { kind: "iteration", source: "dataframe", group: "items" }
+  };
+
   @prop({
     type: "dataframe",
     default: {
@@ -1121,7 +1127,14 @@ export class LoadCSVAssetsNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    dataframe: { kind: "iteration", source: "folder", group: "items" },
+    name: { kind: "iteration", source: "folder", group: "items" },
+    dataframes: { kind: "single", source: "folder" },
+    names: { kind: "single", source: "folder" }
+  };
+
   @prop({
     type: "folder",
     default: {
@@ -1613,7 +1626,11 @@ export class FilterNoneNode extends BaseNode {
   };
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" }
+  };
+
   @prop({
     type: "any",
     default: [],
@@ -1622,8 +1639,26 @@ export class FilterNoneNode extends BaseNode {
   })
   declare value: any;
 
+  // Streaming filter: forwards non-null items and drops null/undefined.
+  // `outputs.drop` emits `lineage_done` for the dropped key so downstream
+  // joins (Zip/Cross) don't wait on a key that will never arrive.
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    for await (const env of inputs.streamWithEnvelope("value")) {
+      if (env.data == null) {
+        await outputs.drop("output", env);
+      } else {
+        await outputs.forward("output", env);
+      }
+    }
+  }
+
+  // Kept for direct (non-actor) invocation and existing buffered-style unit
+  // tests. The kernel selects `run()` when `inputMode === "stream"`.
   async process(): Promise<Record<string, unknown>> {
-    const value = this.value ?? this.value ?? null;
+    const value = this.value ?? null;
     if (value == null) {
       return {};
     }
@@ -1720,7 +1755,6 @@ export const DATA_NODES = [
   MergeDataframeNode,
   AppendDataframeNode,
   JoinDataframeNode,
-  RowIteratorNode,
   FindRowNode,
   SortByColumnNode,
   DropDuplicatesNode,

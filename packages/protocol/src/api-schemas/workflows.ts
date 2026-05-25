@@ -70,8 +70,7 @@ export const graphNode = z
     data: z.unknown().optional(),
     ui_properties: z.unknown().optional(),
     dynamic_properties: z.record(z.string(), z.unknown()).optional(),
-    dynamic_outputs: z.record(z.string(), z.unknown()).optional(),
-    sync_mode: z.string().optional()
+    dynamic_outputs: z.record(z.string(), z.unknown()).optional()
   })
   .passthrough();
 

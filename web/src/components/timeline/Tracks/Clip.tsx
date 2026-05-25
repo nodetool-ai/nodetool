@@ -17,7 +17,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LockIcon from "@mui/icons-material/Lock";
@@ -131,6 +131,61 @@ const waveformStyles = css({
   width: "100%",
   height: "100%"
 });
+
+// Travelling-shimmer overlay for clips that are queued or actively
+// generating. A bright diagonal highlight sweeps across the clip body; a
+// soft outline pulse reinforces that the clip is "alive" even on very
+// narrow widths where the shimmer is hard to see.
+const shimmerSweep = keyframes`
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+`;
+
+const outlinePulse = keyframes`
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.9; }
+`;
+
+const generatingOverlayStyles = (theme: Theme) =>
+  css({
+    position: "absolute",
+    inset: 0,
+    pointerEvents: "none",
+    zIndex: 3,
+    overflow: "hidden",
+    borderRadius: 4,
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      width: "60%",
+      background: `linear-gradient(
+        100deg,
+        transparent 0%,
+        ${theme.vars.palette.primary.light} 50%,
+        transparent 100%
+      )`,
+      opacity: 0.85,
+      mixBlendMode: "screen",
+      filter: "blur(2px)",
+      animation: `${shimmerSweep} 1.2s linear infinite`,
+      willChange: "transform"
+    },
+    "&::after": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      borderRadius: "inherit",
+      boxShadow: `inset 0 0 0 2px ${theme.vars.palette.primary.light}`,
+      animation: `${outlinePulse} 1.4s ease-in-out infinite`
+    },
+    "@media (prefers-reduced-motion: reduce)": {
+      "&::before": { animation: "none", opacity: 0.25 },
+      "&::after": { animation: "none", opacity: 0.5 }
+    }
+  });
 
 interface WaveformCanvasProps {
   url: string | undefined;
@@ -832,16 +887,30 @@ const ClipBody: React.FC<ClipBodyProps> = ({
         </div>
       )}
 
-      {derivedStatus !== "draft" && (
-        <div css={statusBadgeStyles}>
-          <StatusIndicator
-            status={statusInfo.status}
-            pulse={statusInfo.pulse}
-            tooltip={statusInfo.label}
-            size="small"
-          />
-        </div>
+      {(derivedStatus === "queued" || derivedStatus === "generating") && (
+        <div
+          css={generatingOverlayStyles(theme)}
+          aria-hidden
+          data-testid={`clip-generating-${clipId}`}
+        />
       )}
+
+      {/* The badge surfaces lifecycle state for generated clips. Once a
+       *  clip has settled into "generated" it doesn't need a permanent green
+       *  dot, and imported clips have no lifecycle at all — so we render
+       *  only while something interesting is happening. */}
+      {clip.sourceType === "generated" &&
+        derivedStatus !== "draft" &&
+        derivedStatus !== "generated" && (
+          <div css={statusBadgeStyles}>
+            <StatusIndicator
+              status={statusInfo.status}
+              pulse={statusInfo.pulse}
+              tooltip={statusInfo.label}
+              size="small"
+            />
+          </div>
+        )}
 
       <div css={clipNameStyles(theme)}>{clip.name}</div>
     </div>

@@ -5,6 +5,8 @@ import type { KieDocsEntry } from "./schema-fetcher.js";
 type JsonRecord = Record<string, unknown>;
 type MediaKind = "image" | "audio" | "video";
 
+const GEMINI_OMNI_MODULE: ModuleConfig["moduleName"] = "video";
+
 const IMAGE_REF = {
   type: "image" as const,
   uri: "",
@@ -83,6 +85,37 @@ function fieldNameForUrl(paramName: string, kind: MediaKind, isList: boolean): s
   return paramName.replace(/_url$/, "");
 }
 
+function isGeminiOmniDoc(entry: KieDocsEntry): boolean {
+  return /gemini-omni/i.test(`${entry.title} ${entry.url}`);
+}
+
+function isOmniDirectPath(path: string): boolean {
+  return /^\/api\/v1\/omni\/.+\/create$/.test(path);
+}
+
+function omniModelIdFromPath(path: string): string | null {
+  if (path === "/api/v1/omni/audio/create") {
+    return "gemini-omni-audio";
+  }
+  if (path === "/api/v1/omni/character/create") {
+    return "gemini-omni-character";
+  }
+  return null;
+}
+
+function classNameForModelId(modelId: string, fallback: string): string {
+  if (modelId === "gemini-omni-audio") {
+    return "GeminiOmniAudio";
+  }
+  if (modelId === "gemini-omni-character") {
+    return "GeminiOmniCharacter";
+  }
+  if (modelId === "gemini-omni-video") {
+    return "GeminiOmniVideo";
+  }
+  return toPascalCase(fallback);
+}
+
 function moduleFromCategory(category: string): ModuleConfig["moduleName"] | null {
   const lower = category.toLowerCase().replace(/\s+/g, " ");
   if (lower.includes("video models")) {
@@ -107,6 +140,16 @@ function outputTypeForModule(moduleName: ModuleConfig["moduleName"]): NodeConfig
   return "image";
 }
 
+function outputTypeForModelId(modelId: string, moduleName: ModuleConfig["moduleName"]): NodeConfig["outputType"] {
+  if (modelId === "gemini-omni-audio" || modelId === "gemini-omni-character") {
+    return "text";
+  }
+  if (modelId === "gemini-omni-video") {
+    return "video";
+  }
+  return outputTypeForModule(moduleName);
+}
+
 function defaultForMedia(kind: MediaKind): unknown {
   if (kind === "audio") {
     return AUDIO_REF;
@@ -118,6 +161,16 @@ function defaultForMedia(kind: MediaKind): unknown {
 }
 
 function inferMediaKind(name: string, schema: JsonRecord): MediaKind | null {
+  const lowerName = name.toLowerCase();
+  if (/image_urls?|^images?$|_image/.test(lowerName)) {
+    return "image";
+  }
+  if (/video_urls?|video_list|_video/.test(lowerName)) {
+    return "video";
+  }
+  if (/audio_urls?|_audio/.test(lowerName)) {
+    return "audio";
+  }
   const text = `${name} ${String(schema.description ?? "")}`.toLowerCase();
   if (/\baudio\b|mp3|wav|aac|ogg|mpeg/.test(text)) {
     return "audio";
@@ -129,6 +182,15 @@ function inferMediaKind(name: string, schema: JsonRecord): MediaKind | null {
     return "image";
   }
   return null;
+}
+
+function isVideoClipSchema(schema: JsonRecord): boolean {
+  const items = asRecord(schema.items);
+  if (!items) {
+    return false;
+  }
+  const props = asRecord(items.properties);
+  return !!(props?.url && (props.start !== undefined || props.ends !== undefined));
 }
 
 function cleanDescription(value: unknown): string {
@@ -191,7 +253,7 @@ function coerceDefault(schema: JsonRecord, type: FieldDef["type"]): unknown {
   if (type === "image" || type === "audio" || type === "video") {
     return defaultForMedia(type);
   }
-  if (type.startsWith("list[")) {
+  if (type.startsWith("list[") || type === "video_clip_list") {
     return [];
   }
   if (schema.default !== undefined) {
@@ -224,7 +286,48 @@ function mapField(paramName: string, schema: JsonRecord, required: boolean): {
     isArray &&
     (sourceName.endsWith("_urls") || itemSchema.format === "uri" || cleanDescription(schema.description).includes("asset://"));
   const isUrl = schemaType === "string" && (sourceName.endsWith("_url") || schema.format === "uri");
-  const mediaKind = (isUrl || isUrlArray) ? inferMediaKind(sourceName, schema) : null;
+  const isIdArray =
+    isArray &&
+    sourceName.endsWith("_ids") &&
+    String(itemSchema.type ?? "string") === "string" &&
+    itemSchema.format !== "uri";
+
+  if (isIdArray) {
+    const field: FieldDef = {
+      name: sourceName,
+      type: "list[str]",
+      default: [],
+      title: toTitle(sourceName),
+      description: cleanDescription(schema.description),
+      required
+    };
+    applyBounds(field, schema);
+    return { field };
+  }
+
+  if (isArray && (sourceName === "video_list" || isVideoClipSchema(schema))) {
+    const field: FieldDef = {
+      name: "video_list",
+      type: "video_clip_list",
+      default: [],
+      title: "Video List",
+      description: cleanDescription(schema.description),
+      required
+    };
+    applyBounds(field, schema);
+    return {
+      field,
+      upload: {
+        field: "video_list",
+        kind: "video",
+        isList: true,
+        isVideoClip: true,
+        paramName: "video_list"
+      }
+    };
+  }
+
+  const mediaKind = isUrl || isUrlArray ? inferMediaKind(sourceName, schema) : null;
 
   if (mediaKind) {
     const fieldName = fieldNameForUrl(sourceName, mediaKind, isUrlArray);
@@ -288,11 +391,31 @@ function extractOpenApi(markdown: string): JsonRecord | null {
   return asRecord(parsed) ?? null;
 }
 
-function firstPostOperation(openApi: JsonRecord): { path: string; operation: JsonRecord } | null {
+function firstPostOperation(
+  openApi: JsonRecord,
+  entry: KieDocsEntry
+): { path: string; operation: JsonRecord } | null {
   const paths = asRecord(openApi.paths);
   if (!paths) {
     return null;
   }
+
+  if (/gemini-omni-audio/i.test(`${entry.title} ${entry.url}`)) {
+    const omni = asRecord(paths["/api/v1/omni/audio/create"]);
+    const omniPost = asRecord(omni?.post);
+    if (omniPost) {
+      return { path: "/api/v1/omni/audio/create", operation: omniPost };
+    }
+  }
+
+  if (/gemini-omni-character/i.test(`${entry.title} ${entry.url}`)) {
+    const omni = asRecord(paths["/api/v1/omni/character/create"]);
+    const omniPost = asRecord(omni?.post);
+    if (omniPost) {
+      return { path: "/api/v1/omni/character/create", operation: omniPost };
+    }
+  }
+
   const createTask = asRecord(paths["/api/v1/jobs/createTask"]);
   const createTaskPost = asRecord(createTask?.post);
   if (createTaskPost) {
@@ -331,7 +454,11 @@ function modelIdFromSchema(schema: JsonRecord): string | null {
 
 export class KieSchemaParser {
   parse(markdown: string, entry: KieDocsEntry): NodeConfig | null {
-    const moduleName = moduleFromCategory(entry.category);
+    const omniDoc = isGeminiOmniDoc(entry);
+    let moduleName = moduleFromCategory(entry.category);
+    if (!moduleName && omniDoc) {
+      moduleName = GEMINI_OMNI_MODULE;
+    }
     if (!moduleName) {
       return null;
     }
@@ -339,7 +466,7 @@ export class KieSchemaParser {
     if (!openApi) {
       return null;
     }
-    const post = firstPostOperation(openApi);
+    const post = firstPostOperation(openApi, entry);
     if (!post) {
       return null;
     }
@@ -348,11 +475,14 @@ export class KieSchemaParser {
       return null;
     }
     const isCreateTask = post.path === "/api/v1/jobs/createTask";
-    if (!isCreateTask && moduleName !== "audio") {
+    const useOmniDirect = isOmniDirectPath(post.path);
+    if (!isCreateTask && moduleName !== "audio" && !useOmniDirect) {
       return null;
     }
     const input = isCreateTask ? inputSchema(schema) : schema;
-    const modelId = isCreateTask ? modelIdFromSchema(schema) : String(post.operation.operationId ?? post.path.replace(/^\//, ""));
+    const modelId =
+      (isCreateTask ? modelIdFromSchema(schema) : omniModelIdFromPath(post.path)) ??
+      String(post.operation.operationId ?? post.path.replace(/^\//, ""));
     if (!input) {
       return null;
     }
@@ -387,8 +517,11 @@ export class KieSchemaParser {
       }
     }
 
-    const outputType = outputTypeForModule(moduleName);
-    const className = toPascalCase(String(post.operation.operationId ?? entry.title));
+    const outputType = outputTypeForModelId(modelId, moduleName);
+    const className = classNameForModelId(
+      modelId,
+      String(post.operation.operationId ?? entry.title)
+    );
     const description = `${entry.title} via Kie.ai.\n\n    kie, ${moduleName}, ai\n\n    ${entry.summary || cleanDescription(post.operation.summary)}`;
     const validation = fields
       .filter((field) => field.required && (field.type === "str" || field.type === "enum"))
@@ -398,14 +531,26 @@ export class KieSchemaParser {
         message: `${field.title ?? field.name} is required`
       }));
 
+    const omniModule =
+      modelId.startsWith("gemini-omni-") ? GEMINI_OMNI_MODULE : undefined;
+
     return {
       className,
       modelId,
       title: entry.title,
       description,
       outputType,
-      ...(moduleName === "audio" && !isCreateTask
+      ...(omniModule ? { moduleName: omniModule } : {}),
+      ...(moduleName === "audio" && !isCreateTask && !useOmniDirect
         ? { useSuno: true, sunoEndpoint: post.path }
+        : {}),
+      ...(useOmniDirect
+        ? {
+            useOmniDirect: true,
+            submitEndpoint: post.path,
+            responseIdKey:
+              post.path === "/api/v1/omni/audio/create" ? "audioId" : "characterId"
+          }
         : {}),
       fields,
       ...(uploads.length ? { uploads } : {}),

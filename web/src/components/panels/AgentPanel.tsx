@@ -49,31 +49,20 @@ import {
 } from "../ui_primitives";
 
 const PROVIDER_LABELS: Record<AgentProvider, string> = {
-  claude: "Claude",
-  codex: "Codex",
-  opencode: "OpenCode",
   pi: "Pi",
   llm: "LLM"
 };
 
-const ALL_PROVIDERS: AgentProvider[] = [
-  "claude",
-  "codex",
-  "opencode",
-  "pi",
-  "llm"
-];
+const ALL_PROVIDERS: AgentProvider[] = ["pi", "llm"];
 
 function isAgentProvider(value: string): value is AgentProvider {
   return (ALL_PROVIDERS as string[]).includes(value);
 }
 
 import { useQuery } from "@tanstack/react-query";
-import { isLocalhost, isProduction } from "../../lib/env";
+import { isProduction } from "../../lib/env";
 import { getIsElectronDetails } from "../../utils/browser";
 import { trpcClient } from "../../trpc/client";
-import { useNavigate } from "react-router-dom";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { getAgentSocketClient } from "../../lib/agent/AgentSocketClient";
 
 const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
@@ -210,30 +199,6 @@ const toolbarStyles = (theme: Theme) =>
     flexShrink: 0
   });
 
-const mcpWarningStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "4px 8px",
-    fontSize: theme.fontSizeSmaller,
-    fontFamily: theme.fontFamily2,
-    color: theme.vars.palette.warning.main,
-    backgroundColor: `${theme.vars.palette.warning.main}0c`,
-    borderBottom: `1px solid ${theme.vars.palette.warning.main}33`,
-    flexShrink: 0,
-    cursor: "pointer",
-    transition: "background-color 0.15s ease",
-    "&:hover": {
-      backgroundColor: `${theme.vars.palette.warning.main}18`
-    },
-    "& svg": {
-      fontSize: "14px",
-      flexShrink: 0
-    }
-  });
-
-
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
   const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
   return workspaces as WorkspaceResponse[];
@@ -251,7 +216,7 @@ const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
 const AgentPanel: React.FC = () => {
   const theme = useTheme();
   const [newSessionDialogOpen, setNewSessionDialogOpen] = useState(false);
-  const [draftProvider, setDraftProvider] = useState<AgentProvider>("claude");
+  const [draftProvider, setDraftProvider] = useState<AgentProvider>("llm");
   const [draftWorkspaceId, setDraftWorkspaceId] = useState<string | null>(null);
   const [draftWorkspacePath, setDraftWorkspacePath] = useState<string | null>(null);
   const [draftModel, setDraftModel] = useState<string>("");
@@ -338,35 +303,6 @@ const AgentPanel: React.FC = () => {
     enabled: workspacesEnabled
   });
 
-  const { data: mcpStatus } = useQuery({
-    queryKey: ["mcp-status"],
-    queryFn: async () => {
-      try {
-        return await trpcClient.mcpConfig.status.query();
-      } catch {
-        return null;
-      }
-    },
-    enabled: isLocalhost,
-    refetchOnWindowFocus: false,
-    staleTime: 60_000
-  });
-
-  const mcpInstalledForProvider = useMemo(() => {
-    // The LLM provider runs in-process and doesn't need an MCP install on
-    // the host — its tools are dispatched directly over the agent socket.
-    if (provider === "llm") return true;
-    if (!mcpStatus?.targets) return true;
-    const entry = mcpStatus.targets.find((t) => t.target === provider);
-    return entry?.installed ?? true;
-  }, [mcpStatus, provider]);
-
-  const navigate = useNavigate();
-  const openSettingsApiKeys = useCallback(
-    () => navigate("/settings?tab=1"),
-    [navigate]
-  );
-
   const hasRunningSession = Boolean(sessionId);
   const isLlmProvider = provider === "llm";
   const isDraftLlmProvider = draftProvider === "llm";
@@ -388,9 +324,9 @@ const AgentPanel: React.FC = () => {
   }, [workspaces, workspaceId, setWorkspaceContext]);
 
   useEffect(() => {
-    // The harness providers' model lists depend on the workspace (e.g. Claude
-    // Code reads `~/.config`). The "llm" provider aggregates from registered
-    // chat providers and ignores the workspace, so we don't gate on it.
+    // The Pi harness provider's model list depends on the workspace. The
+    // "llm" provider aggregates from registered chat providers and ignores
+    // the workspace, so we don't gate on it.
     const isLlm = draftProvider === "llm";
     if (!newSessionDialogOpen || (!isLlm && !draftWorkspacePath)) {
       setDraftModels([]);
@@ -864,26 +800,6 @@ const AgentPanel: React.FC = () => {
           ))}
         </Menu>
       </div>
-
-      {isLocalhost && !mcpInstalledForProvider && (
-        <div
-          css={mcpWarningStyles(theme)}
-          onClick={openSettingsApiKeys}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") openSettingsApiKeys();
-          }}
-        >
-          <WarningAmberIcon />
-          <span>
-            MCP not installed for {PROVIDER_LABELS[provider]}.{" "}
-            <span style={{ textDecoration: "underline" }}>
-              Configure in Settings
-            </span>
-          </span>
-        </div>
-      )}
 
       <Dialog
         open={newSessionDialogOpen}

@@ -76,8 +76,6 @@ export interface MiniAppProgress {
   total: number;
 }
 
-export type RunnerMessage = { type?: string } & Record<string, unknown>;
-
 export type MiniAppInputValues = Record<
   string,
   | unknown

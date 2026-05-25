@@ -242,14 +242,16 @@ export const useVibeCodingStore = create<VibeCodingState>()(
         return { sessions: activeSessions };
       },
       migrate: (persistedState, _version) => {
-        if (!persistedState || typeof persistedState !== "object") {
+        if (!persistedState || typeof persistedState !== "object" || Array.isArray(persistedState)) {
           return { sessions: {} };
         }
         const state = persistedState as Record<string, unknown>;
-        if (state.sessions === null || typeof state.sessions !== "object") {
-          state.sessions = {};
-        }
-        return state;
+        return {
+          sessions:
+            state.sessions && typeof state.sessions === "object" && !Array.isArray(state.sessions)
+              ? (state.sessions as Record<string, VibeCodingSession>)
+              : {}
+        };
       }
     }
   )

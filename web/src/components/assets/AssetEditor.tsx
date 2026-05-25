@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -10,6 +10,10 @@ import { useAssetById } from "../../serverState/useAssetById";
 import { BASE_URL } from "../../stores/BASE_URL";
 import type { Asset } from "../../stores/ApiTypes";
 import { ImageEditor } from "../node/image_editor";
+
+import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
+
+const Model3DEditor = React.lazy(() => import("../model_editor/Model3DEditor"));
 
 /**
  * Normalize API media URLs for use in <img> / canvas loaders.
@@ -108,8 +112,8 @@ const AssetEditor: React.FC = () => {
         if (!loading && !asset) {
             return "Asset not found";
         }
-        if (asset && !asset.content_type?.startsWith("image/")) {
-            return "Asset is not an image";
+        if (asset && !asset.content_type?.startsWith("image/") && !isEditableModel3DAsset(asset)) {
+            return "Asset is not an editable image or 3D model";
         }
         if (asset && asset.content_type?.startsWith("image/")) {
             const src = resolveImageEditorSource(asset);
@@ -121,12 +125,26 @@ const AssetEditor: React.FC = () => {
                 return "This image has no download URL (get_url). Cannot open the editor.";
             }
         }
+        if (asset && isEditableModel3DAsset(asset) && !resolvePublicMediaUrl(asset.get_url)) {
+            console.error(
+                "[AssetEditor] 3D model asset has no get_url; cannot load the editor.",
+                asset.id
+            );
+            return "This 3D model has no download URL (get_url). Cannot open the editor.";
+        }
         return null;
     }, [assetId, asset, loading, queryError]);
 
     const imageEditorUrl = useMemo(
         () => (asset && asset.content_type?.startsWith("image/") ? resolveImageEditorSource(asset) : null),
         [asset]
+    );
+
+    const is3DModel = useMemo(() => (asset ? isEditableModel3DAsset(asset) : false), [asset]);
+
+    const model3DUrl = useMemo(
+        () => (asset && is3DModel ? resolvePublicMediaUrl(asset.get_url) : null),
+        [asset, is3DModel]
     );
 
     // Handle close: go back when possible; deep links / first history entry cannot use -1
@@ -139,9 +157,9 @@ const AssetEditor: React.FC = () => {
         navigate(-1);
     }, [navigate]);
 
-    // Handle save
-    const handleSave = useCallback(
-        async (_editedImageUrl: string, blob: Blob) => {
+    // Persist an edited blob back to the asset and navigate away on success.
+    const persistBlob = useCallback(
+        async (blob: Blob) => {
             if (!asset) {
                 return;
             }
@@ -149,38 +167,40 @@ const AssetEditor: React.FC = () => {
             setIsSaving(true);
 
             try {
-                console.info(`[AssetEditor] Saving edited image for asset: ${asset.id}`);
+                console.info(`[AssetEditor] Saving edited content for asset: ${asset.id}`);
 
-                // Convert blob to base64
                 const base64Data = await blobToBase64(blob);
 
-                // Update the asset with the new image data
                 await updateAsset({
                     id: asset.id,
                     data: base64Data,
                     data_encoding: "base64"
                 });
 
-                // Invalidate cache to refresh the asset display
                 invalidateQueries(["asset", asset.id]);
                 if (asset.parent_id) {
                     invalidateQueries(["assets", { parent_id: asset.parent_id }]);
                 }
 
                 console.info(
-                    `[AssetEditor] Successfully saved edited image for asset: ${asset.id}`
+                    `[AssetEditor] Successfully saved edited content for asset: ${asset.id}`
                 );
 
-                // Navigate back after successful save
                 navigate(-1);
             } catch (err) {
-                console.error("[AssetEditor] Failed to save edited image:", err);
+                console.error("[AssetEditor] Failed to save edited content:", err);
                 // Keep the editor open on error
             } finally {
                 setIsSaving(false);
             }
         },
         [asset, updateAsset, invalidateQueries, navigate]
+    );
+
+    // ImageEditor passes (editedImageUrl, blob); only the blob is persisted.
+    const handleSaveImage = useCallback(
+        (_editedImageUrl: string, blob: Blob) => persistBlob(blob),
+        [persistBlob]
     );
 
     // Loading state
@@ -224,10 +244,26 @@ const AssetEditor: React.FC = () => {
             {imageEditorUrl ? (
                 <ImageEditor
                     imageUrl={imageEditorUrl}
-                    onSave={handleSave}
+                    onSave={handleSaveImage}
                     onClose={handleClose}
                     title={`Edit: ${asset.name || "Image"}`}
                     />
+            ) : null}
+            {model3DUrl ? (
+                <Suspense
+                    fallback={
+                        <FlexColumn fullWidth fullHeight align="center" justify="center">
+                            <LoadingSpinner />
+                        </FlexColumn>
+                    }
+                >
+                    <Model3DEditor
+                        url={model3DUrl}
+                        name={asset.name}
+                        onSave={persistBlob}
+                        onClose={handleClose}
+                    />
+                </Suspense>
             ) : null}
             {isSaving && (
                 <FlexColumn

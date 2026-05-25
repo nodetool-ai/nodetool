@@ -15,7 +15,17 @@
  * Readback (flatten / mask export) goes through Canvas2DRuntime helpers.
  */
 
-import type { SketchRuntime, ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "./types";
+import { blendModeGpuId } from "@nodetool-ai/gpu";
+import {
+  FULLSCREEN_QUAD_VERTEX,
+  WebGPULayerCompositor
+} from "@nodetool-ai/gpu/webgpu";
+import type {
+  SketchRuntime,
+  ActiveStrokeInfo,
+  DirtyRect,
+  ResolvedLayerBitmap
+} from "./types";
 import {
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
@@ -34,31 +44,10 @@ import {
   type SelectionCombineOp
 } from "../selection";
 import {
-  FULLSCREEN_QUAD_VERTEX,
   CHECKERBOARD_FRAGMENT,
-  LAYER_COMPOSITE_FRAGMENT,
-  BLEND_COMPOSITE_FRAGMENT,
-  BLIT_FRAGMENT,
   SELECTION_ANTS_FRAGMENT,
   MASK_BLUR_FRAGMENT
 } from "./shaders";
-
-// ─── Blend mode ID mapping (must match shader switch cases) ──────────────
-
-const BLEND_MODE_ID: Record<string, number> = {
-  "normal": 0,
-  "multiply": 1,
-  "screen": 2,
-  "overlay": 3,
-  "darken": 4,
-  "lighten": 5,
-  "color-dodge": 6,
-  "color-burn": 7,
-  "hard-light": 8,
-  "soft-light": 9,
-  "difference": 10,
-  "exclusion": 11
-};
 
 /** Hardware source-over blend for normal blend mode (fast path). */
 const SOURCE_OVER_BLEND: GPUBlendState = {
@@ -107,31 +96,20 @@ export class WebGPURuntime implements SketchRuntime {
   // ── Pipelines ────────────────────────────────────────────────────────
   private checkerboardPipeline: GPURenderPipeline | null = null;
   private checkerboardBindGroupLayout: GPUBindGroupLayout | null = null;
-  private layerPipeline: GPURenderPipeline | null = null;
-  private layerBindGroupLayout: GPUBindGroupLayout | null = null;
-  /** Pipeline for non-normal blend modes (shader-based compositing). */
-  private blendPipeline: GPURenderPipeline | null = null;
-  private blendBindGroupLayout: GPUBindGroupLayout | null = null;
-  /** Pipeline for blitting composite texture → swap chain. */
-  private blitPipeline: GPURenderPipeline | null = null;
-  private blitBindGroupLayout: GPUBindGroupLayout | null = null;
   private selectionAntsPipeline: GPURenderPipeline | null = null;
   private selectionMaskOverlayPipeline: GPURenderPipeline | null = null;
   private selectionAntsBindGroupLayout: GPUBindGroupLayout | null = null;
   /** Which selection visualization to render in pass 4. Driven by store state. */
   private selectionPreviewMode: "ants" | "mask" = "ants";
 
-  // ── Intermediate compositing textures (ping-pong pair) ─────────────
+  // ── Shared layer-compositing engine ────────────────────────────────
   /**
-   * Two textures that alternate between "read" (source for blend shader)
-   * and "write" (render target). After each layer, the roles swap.
-   * This avoids reading and writing the same texture in one pass.
+   * Owns the blend + blit pipelines and the ping-pong accumulation
+   * textures. Sketch supplies `nearest` filtering for pixel-exact paint and
+   * drives it with one blend pass per visible layer. Shared with the
+   * timeline preview via @nodetool-ai/gpu/webgpu.
    */
-  private pingPongA: GPUTexture | null = null;
-  private pingPongB: GPUTexture | null = null;
-  /** Cached size of the ping-pong textures. */
-  private pingPongWidth = 0;
-  private pingPongHeight = 0;
+  private compositor: WebGPULayerCompositor | null = null;
 
   // ── Layer textures ───────────────────────────────────────────────────
   private layerTextures = new Map<string, GPUTexture>();
@@ -314,132 +292,14 @@ export class WebGPURuntime implements SketchRuntime {
       primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
     });
 
-    // ── Layer composite (normal blend — hardware source-over) ──────────
-    const layerModule = device.createShaderModule({
-      label: "layer-composite-frag",
-      code: FULLSCREEN_QUAD_VERTEX + LAYER_COMPOSITE_FRAGMENT
-    });
-
-    this.layerBindGroupLayout = device.createBindGroupLayout({
-      label: "layer-bgl",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform" }
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" }
-        }
-      ]
-    });
-
-    this.layerPipeline = device.createRenderPipeline({
-      label: "layer-pipeline",
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [this.layerBindGroupLayout]
-      }),
-      vertex: {
-        module: layerModule,
-        entryPoint: "vs_main"
-      },
-      fragment: {
-        module: layerModule,
-        entryPoint: "fs_layer",
-        targets: [
-          {
-            format: this.presentationFormat,
-            blend: SOURCE_OVER_BLEND
-          }
-        ]
-      },
-      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
-    });
-
-    // ── Blend composite (non-normal blend modes — shader compositing) ──
-    const blendModule = device.createShaderModule({
-      label: "blend-composite-frag",
-      code: FULLSCREEN_QUAD_VERTEX + BLEND_COMPOSITE_FRAGMENT
-    });
-
-    this.blendBindGroupLayout = device.createBindGroupLayout({
-      label: "blend-bgl",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform" }
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" }
-        },
-        {
-          binding: 2,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" }
-        }
-      ]
-    });
-
-    this.blendPipeline = device.createRenderPipeline({
-      label: "blend-pipeline",
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [this.blendBindGroupLayout]
-      }),
-      vertex: {
-        module: blendModule,
-        entryPoint: "vs_main"
-      },
-      fragment: {
-        module: blendModule,
-        entryPoint: "fs_blend",
-        targets: [
-          {
-            // No hardware blending — shader handles full compositing
-            format: this.presentationFormat
-          }
-        ]
-      },
-      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
-    });
-
-    // ── Blit (composite texture → swap chain) ──────────────────────────
-    const blitModule = device.createShaderModule({
-      label: "blit-frag",
-      code: FULLSCREEN_QUAD_VERTEX + BLIT_FRAGMENT
-    });
-
-    this.blitBindGroupLayout = device.createBindGroupLayout({
-      label: "blit-bgl",
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" }
-        }
-      ]
-    });
-
-    this.blitPipeline = device.createRenderPipeline({
-      label: "blit-pipeline",
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [this.blitBindGroupLayout]
-      }),
-      vertex: {
-        module: blitModule,
-        entryPoint: "vs_main"
-      },
-      fragment: {
-        module: blitModule,
-        entryPoint: "fs_blit",
-        targets: [{ format: this.presentationFormat }]
-      },
-      primitive: { topology: "triangle-strip", stripIndexFormat: undefined }
-    });
+    // ── Layer compositing (blend + blit + ping-pong) ──────────────────
+    // Shared engine, nearest filtering for pixel-exact paint.
+    this.compositor = new WebGPULayerCompositor(
+      device,
+      this.presentationFormat,
+      "nearest",
+      "sketch"
+    );
 
     // ── Selection marching ants ────────────────────────────────────────
     const antsModule = device.createShaderModule({
@@ -635,7 +495,7 @@ export class WebGPURuntime implements SketchRuntime {
     this.configuredCanvasPixelHeight = h;
 
     // Recreate intermediate compositing textures at the new size
-    this.ensureCompositeTextures(w, h);
+    this.compositor?.ensureSize(w, h);
   }
 
   private configureSelectionAntsContext(): GPUTextureView | null {
@@ -666,49 +526,6 @@ export class WebGPURuntime implements SketchRuntime {
     this.configuredSelectionAntsPixelWidth = w;
     this.configuredSelectionAntsPixelHeight = h;
     return ctx.getCurrentTexture().createView();
-  }
-
-  /**
-   * Ensure ping-pong compositing textures exist at the given size.
-   * Both textures need identical usages since they alternate roles.
-   */
-  private ensureCompositeTextures(width: number, height: number): void {
-    if (
-      this.pingPongA &&
-      this.pingPongWidth === width &&
-      this.pingPongHeight === height
-    ) {
-      return;
-    }
-    const safeW = Math.max(1, width);
-    const safeH = Math.max(1, height);
-
-    // Destroy old textures
-    this.pingPongA?.destroy();
-    this.pingPongB?.destroy();
-
-    const usage =
-      GPUTextureUsage.RENDER_ATTACHMENT |
-      GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_SRC |
-      GPUTextureUsage.COPY_DST;
-
-    this.pingPongA = this.device.createTexture({
-      label: "ping-pong-A",
-      size: { width: safeW, height: safeH },
-      format: this.presentationFormat,
-      usage
-    });
-
-    this.pingPongB = this.device.createTexture({
-      label: "ping-pong-B",
-      size: { width: safeW, height: safeH },
-      format: this.presentationFormat,
-      usage
-    });
-
-    this.pingPongWidth = width;
-    this.pingPongHeight = height;
   }
 
   // ─── Layer texture management ────────────────────────────────────────
@@ -1438,7 +1255,12 @@ export class WebGPURuntime implements SketchRuntime {
     }
 
     this.configureContext(targetCanvas);
-    if (!this.context || !this.pingPongA || !this.pingPongB) {
+    if (!this.context || !this.compositor) {
+      return;
+    }
+    const pingPongA = this.compositor.textureA;
+    const pingPongB = this.compositor.textureB;
+    if (!pingPongA || !pingPongB) {
       return;
     }
 
@@ -1457,8 +1279,8 @@ export class WebGPURuntime implements SketchRuntime {
     const fullH = targetCanvas.height;
 
     // Ping-pong state: readTex is the current composite, writeTex is the target.
-    let readTex = this.pingPongA;
-    let writeTex = this.pingPongB;
+    let readTex = pingPongA;
+    let writeTex = pingPongB;
 
     // ── Pass 1: Checkerboard → readTex ────────────────────────────────
     {
@@ -1500,6 +1322,7 @@ export class WebGPURuntime implements SketchRuntime {
     }
 
     // ── Pass 2: Layer compositing (ping-pong) ─────────────────────────
+    this.compositor.beginFrame();
     const mergeTex =
       activeStroke != null ? this.uploadStrokeMergePreview(activeStroke) : null;
 
@@ -1547,7 +1370,7 @@ export class WebGPURuntime implements SketchRuntime {
         doc.layers, layer, isolatedLayerId
       );
       const finalOpacity = layer.opacity * opacityScale;
-      const blendModeId = BLEND_MODE_ID[layer.blendMode || "normal"] ?? 0;
+      const blendModeId = blendModeGpuId(layer.blendMode);
 
       // Compute inverse affine transform: screen pixel → layer texel.
       // Quad transforms aren't affine, so the shader can't sample them
@@ -1577,10 +1400,14 @@ export class WebGPURuntime implements SketchRuntime {
       }
 
       // Render blend pass: reads readTex (dst) + srcTex (layer) → writes writeTex
-      this.renderBlendPass(
-        encoder, readTex, writeTex, srcTex,
-        finalOpacity, blendModeId, fullW, fullH, invAffine
-      );
+      this.compositor.renderBlendPass(encoder, readTex, writeTex, {
+        source: srcTex,
+        opacity: finalOpacity,
+        blendModeId,
+        canvasW: fullW,
+        canvasH: fullH,
+        invAffine
+      });
 
       // Swap ping-pong roles
       const tmp = readTex;
@@ -1589,29 +1416,7 @@ export class WebGPURuntime implements SketchRuntime {
     }
 
     // ── Pass 3: Blit readTex → swap chain ─────────────────────────────
-    if (this.blitPipeline && this.blitBindGroupLayout) {
-      const pass = encoder.beginRenderPass({
-        colorAttachments: [
-          {
-            view: swapChainView,
-            loadOp: "clear",
-            storeOp: "store"
-          }
-        ]
-      });
-
-      const bindGroup = device.createBindGroup({
-        layout: this.blitBindGroupLayout,
-        entries: [
-          { binding: 0, resource: readTex.createView() }
-        ]
-      });
-
-      pass.setPipeline(this.blitPipeline);
-      pass.setBindGroup(0, bindGroup);
-      pass.draw(4);
-      pass.end();
-    }
+    this.compositor.blit(encoder, readTex, swapChainView);
 
     // Pass 4: marching ants overlay (fullscreen, samples GPU mask texture).
     let selectionAntsActive = false;
@@ -1648,65 +1453,6 @@ export class WebGPURuntime implements SketchRuntime {
     if (selectionAntsActive && this.selectionPreviewMode === "ants") {
       this.onNeedsRedraw?.();
     }
-  }
-
-  // ─── Ping-pong blend pass ───────────────────────────────────────────
-
-  /**
-   * Render one layer blend pass. Reads `readTex` (current composite) and
-   * `srcTex` (layer), writes the blended result to `writeTex`.
-   * The shader writes every pixel (fullscreen quad), so loadOp is irrelevant.
-   */
-  private renderBlendPass(
-    encoder: GPUCommandEncoder,
-    readTex: GPUTexture,
-    writeTex: GPUTexture,
-    srcTex: GPUTexture,
-    opacity: number,
-    blendModeId: number,
-    canvasW: number,
-    canvasH: number,
-    invAffine: InverseAffine
-  ): void {
-    if (!this.blendPipeline || !this.blendBindGroupLayout) {
-      return;
-    }
-
-    // Uniforms: params0 + invRow0 + invRow1 = 3 × vec4f = 48 bytes
-    const uniformData = new Float32Array([
-      opacity, blendModeId, canvasW, canvasH,
-      invAffine.a, invAffine.b, invAffine.tx, 0.0,
-      invAffine.c, invAffine.d, invAffine.ty, 0.0
-    ]);
-    const uniformBuffer = this.device.createBuffer({
-      size: uniformData.byteLength,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-    });
-    this.device.queue.writeBuffer(uniformBuffer, 0, uniformData);
-
-    const bindGroup = this.device.createBindGroup({
-      layout: this.blendBindGroupLayout,
-      entries: [
-        { binding: 0, resource: { buffer: uniformBuffer } },
-        { binding: 1, resource: srcTex.createView() },
-        { binding: 2, resource: readTex.createView() }
-      ]
-    });
-
-    const pass = encoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: writeTex.createView(),
-          loadOp: "clear",
-          storeOp: "store"
-        }
-      ]
-    });
-
-    pass.setPipeline(this.blendPipeline);
-    pass.setBindGroup(0, bindGroup);
-    pass.draw(4);
-    pass.end();
   }
 
   // ─── Inverse affine transform computation ───────────────────────────
@@ -2130,10 +1876,8 @@ export class WebGPURuntime implements SketchRuntime {
     this.maskTexture?.destroy();
     this.maskTexture = null;
     this.currentSelection = null;
-    this.pingPongA?.destroy();
-    this.pingPongA = null;
-    this.pingPongB?.destroy();
-    this.pingPongB = null;
+    this.compositor?.dispose();
+    this.compositor = null;
     this.fxTempTexture?.destroy();
     this.fxTempTexture = null;
     this.fxTempCanvas = null;

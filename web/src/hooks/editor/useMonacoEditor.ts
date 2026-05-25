@@ -35,6 +35,8 @@ export type MonacoEditorResult = {
   MonacoEditor: MonacoComponent | null;
   /** Error message if Monaco failed to load */
   monacoLoadError: string | null;
+  /** True while the Monaco bundle is being fetched */
+  isMonacoLoading: boolean;
   /** Function to load Monaco editor if not already loaded */
   loadMonacoIfNeeded: () => Promise<void>;
   /** Reference to the Monaco editor instance */
@@ -70,6 +72,7 @@ export function useMonacoEditor(): MonacoEditorResult {
     null
   );
   const [monacoLoadError, setMonacoLoadError] = useState<string | null>(null);
+  const [isMonacoLoading, setIsMonacoLoading] = useState(false);
 
   const monacoRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   // Use refs to track loading state without causing callback recreation
@@ -86,6 +89,7 @@ export function useMonacoEditor(): MonacoEditorResult {
       return;
     }
     isLoadingRef.current = true;
+    setIsMonacoLoading(true);
     try {
       // Configure loader to use local monaco-editor instead of CDN
       await configureMonacoLoader();
@@ -96,6 +100,7 @@ export function useMonacoEditor(): MonacoEditorResult {
       setMonacoLoadError("Failed to load code editor");
     } finally {
       isLoadingRef.current = false;
+      setIsMonacoLoading(false);
     }
   }, []); // No dependencies - callback is now stable
 
@@ -120,6 +125,7 @@ export function useMonacoEditor(): MonacoEditorResult {
   return {
     MonacoEditor,
     monacoLoadError,
+    isMonacoLoading,
     loadMonacoIfNeeded,
     monacoRef,
     monacoOnMount,

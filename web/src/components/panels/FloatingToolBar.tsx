@@ -5,11 +5,10 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect } from "react";
 import {
   Fab,
-  Box,
   useMediaQuery,
-  Menu,
+  Menu
 } from "@mui/material";
-import { Tooltip, FlexRow } from "../ui_primitives";
+import { Tooltip, FlexRow, Box } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
@@ -32,7 +31,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import LinearScaleIcon from "@mui/icons-material/LinearScale";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -44,6 +42,7 @@ import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
+import { useShallow } from "zustand/react/shallow";
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -368,34 +367,41 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isSuspended
   } = useFloatingToolbarActions();
 
-  const isRightPanelVisible = useRightPanelStore((state) => state.panel.isVisible);
-  const rightPanelSize = useRightPanelStore((state) => state.panel.panelSize);
-  const bottomPanelVisible = useBottomPanelStore(
-    (state) => state.panel.isVisible
+  const { bottomPanelVisible, bottomPanelSize } = useBottomPanelStore(
+    useShallow((state) => ({
+      bottomPanelVisible: state.panel.isVisible,
+      bottomPanelSize: state.panel.panelSize
+    }))
   );
-  const bottomPanelSize = useBottomPanelStore((state) => state.panel.panelSize);
 
   const toolbarPosition = useFloatingToolbarPosition(
-    isRightPanelVisible,
-    rightPanelSize,
     bottomPanelVisible,
-    bottomPanelSize,
-    isMobile
+    bottomPanelSize
   );
 
-  const instantUpdate = useSettingsStore((state) => state.settings.instantUpdate);
-  const setInstantUpdate = useSettingsStore((state) => state.setInstantUpdate);
-  const editorViewMode = useSettingsStore((state) => state.settings.editorViewMode);
-  const setEditorViewMode = useSettingsStore((state) => state.setEditorViewMode);
+  const { instantUpdate, setInstantUpdate, editorViewMode, setEditorViewMode } =
+    useSettingsStore(
+      useShallow((state) => ({
+        instantUpdate: state.settings.instantUpdate,
+        setInstantUpdate: state.setInstantUpdate,
+        editorViewMode: state.settings.editorViewMode,
+        setEditorViewMode: state.setEditorViewMode
+      }))
+    );
 
   const isMiniMapVisible = useMiniMapStore((state) => state.visible);
 
   const workflow = useNodes((state) => state.workflow);
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
-  const comfyIsConnected = useComfyUIStore((state) => state.isConnected);
-  const comfyIsConnecting = useComfyUIStore((state) => state.isConnecting);
-  const comfyConnectionError = useComfyUIStore((state) => state.connectionError);
-  const comfyBaseUrl = useComfyUIStore((state) => state.baseUrl);
+  const { comfyIsConnected, comfyIsConnecting, comfyConnectionError, comfyBaseUrl } =
+    useComfyUIStore(
+      useShallow((state) => ({
+        comfyIsConnected: state.isConnected,
+        comfyIsConnecting: state.isConnecting,
+        comfyConnectionError: state.connectionError,
+        comfyBaseUrl: state.baseUrl
+      }))
+    );
 
   // Auto-connect to ComfyUI when a comfy workflow is loaded (once per workflow)
   useEffect(() => {

@@ -10,7 +10,8 @@
  *     (rendered as a handle-only port; wired from upstream).
  *   - Short-text properties (`str`, `text`) whose name matches a small set
  *     of "user types this directly" keys (prompt, query, code, url, ...)
- *     -> `inlineFields` (rendered as a full inline editor row).
+ *     -> `inputFields` as well, so the prompt/text fields are exposed as
+ *     handles on the node body. The editor is reached via the Inspector.
  *   - Everything else -> Inspector only.
  *
  * Callers pre-normalize their field shape (lowercasing propType, skipping
@@ -28,7 +29,8 @@ const ASSET_PROP_TYPES: ReadonlySet<string> = new Set([
   "tensor",
   "list[image]",
   "list[video]",
-  "list[audio]"
+  "list[audio]",
+  "video_clip_list"
 ]);
 
 const TEXT_PROP_TYPES: ReadonlySet<string> = new Set(["str", "text"]);
@@ -69,7 +71,7 @@ export function classifyFields(
       TEXT_PROP_TYPES.has(field.propType) &&
       INLINE_TEXT_FIELD_NAMES.has(field.name)
     ) {
-      inlineFields.push(field.name);
+      inputFields.push(field.name);
     }
   }
 

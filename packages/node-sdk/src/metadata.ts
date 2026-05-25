@@ -2,7 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
-import type { Platform } from "@nodetool-ai/protocol";
+import type {
+  InputMode,
+  OutputCorrelation,
+  Platform
+} from "@nodetool-ai/protocol";
 
 export interface TypeMetadata {
   type: string;
@@ -60,7 +64,11 @@ export interface NodeMetadata {
   is_dynamic?: boolean;
   is_streaming_input?: boolean;
   is_streaming_output?: boolean;
+  input_mode?: InputMode;
+  output_correlation?: Record<string, OutputCorrelation>;
   is_controlled?: boolean;
+  /** §7 — Zip/Cross nodes opt out of the incomparable-scope check. */
+  is_join_node?: boolean;
   expose_as_tool?: boolean;
   supports_dynamic_outputs?: boolean;
   auto_save_asset?: boolean;

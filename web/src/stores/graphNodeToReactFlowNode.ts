@@ -7,6 +7,10 @@ import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 import { NODE_COLLAPSED_STRIP_HEIGHT_PX } from "./collapseNodeLayout";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
   node: GraphNode
@@ -18,13 +22,12 @@ export function graphNodeToReactFlowNode(
 
   // Debug: warn if node.data contains a stale workflow_id
   if (
-    node.data &&
-    typeof node.data === "object" &&
+    isRecord(node.data) &&
     "workflow_id" in node.data
   ) {
     console.warn(
       `[graphNodeToReactFlowNode] Node ${node.id} has stale workflow_id in data:`,
-      (node.data as Record<string, unknown>).workflow_id,
+      node.data.workflow_id,
       "will use:",
       workflow.id
     );
@@ -81,10 +84,7 @@ export function graphNodeToReactFlowNode(
     data: {
       properties: (() => {
         const raw = node.data;
-        const props: Record<string, unknown> =
-          raw && typeof raw === "object" && !Array.isArray(raw)
-            ? (raw as Record<string, unknown>)
-            : {};
+        const props: Record<string, unknown> = isRecord(raw) ? raw : {};
         const meta = useMetadataStore.getState().getMetadata(node.type);
         if (meta?.properties) {
           return applyDefaultModels(props, meta.properties);
@@ -93,7 +93,6 @@ export function graphNodeToReactFlowNode(
       })(),
       dynamic_properties: node.dynamic_properties ?? {},
       dynamic_outputs: node.dynamic_outputs || {},
-      sync_mode: node.sync_mode,
       selectable,
       collapsed: isCollapsed,
       bypassed: isBypassed,

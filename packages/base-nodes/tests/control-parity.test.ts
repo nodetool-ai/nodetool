@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { WorkflowRunner, Graph } from "@nodetool-ai/kernel";
+import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 import {
   registerBaseNodes,
@@ -51,6 +51,33 @@ async function runWorkflow(
   return makeRunner(makeRegistry()).run(
     { job_id: `control-parity-${Date.now()}`, params },
     { nodes, edges }
+  );
+}
+
+// Mirror the production execution path: hydrate the raw graph against the
+// registry so per-output `output_correlation` and per-input `input_mode`
+// metadata are populated before the correlation scheduler runs. `runner.run`
+// does not hydrate on its own (production does this in
+// unified-websocket-runner.hydrateGraph before calling run); passing raw
+// descriptors leaves buffered control nodes (If, Reroute) without the
+// iteration tokens the lineage-keyed scheduler needs to fire per stream item,
+// collapsing a stream to its last value. See docs/correlation-design.md §1.
+async function runWorkflowHydrated(
+  nodes: NodeDescriptor[],
+  edges: Edge[],
+  params: Record<string, unknown> = {}
+) {
+  const registry = makeRegistry();
+  const graph = await Graph.loadFromDict(
+    { nodes, edges },
+    { resolver: createGraphNodeTypeResolver(registry) }
+  );
+  return makeRunner(registry).run(
+    { job_id: `control-parity-${Date.now()}`, params },
+    {
+      nodes: [...graph.nodes] as NodeDescriptor[],
+      edges: [...graph.edges] as Edge[]
+    }
   );
 }
 
@@ -152,7 +179,7 @@ describe("control parity: If node", () => {
   });
 
   it("passes an entire generated stream through the true branch", async () => {
-    const result = await runWorkflow(
+    const result = await runWorkflowHydrated(
       [
         {
           id: "src",
@@ -160,7 +187,7 @@ describe("control parity: If node", () => {
           is_streaming_output: true,
           properties: { input_list: [0, 1, 2] }
         },
-        { id: "if", type: IfNode.nodeType, is_streaming_output: true, sync_mode: "on_any" as const, properties: { condition: true } },
+        { id: "if", type: IfNode.nodeType, properties: { condition: true } },
         { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
         { id: "out", type: OutputNode.nodeType, name: "passed" }
       ],
@@ -190,8 +217,16 @@ describe("control parity: If node", () => {
     expect(result.outputs.passed).toEqual([[0, 1, 2]]);
   });
 
-  it("zips condition and value streams and routes each item to the matching branch", async () => {
-    const result = await runWorkflow(
+  // The old `sync_mode: "zip_all"` model paired the `condition` and `value`
+  // streams by FIFO arrival order. The correlation redesign removed that knob
+  // because FIFO joins are non-deterministic when branches have different
+  // latency (docs/correlation-design.md §"current design fails", point 1).
+  // Feeding a buffered node two independent iteration sources is now a
+  // graph-load rejection: the user must declare the join explicitly with Zip
+  // or Cross (§3-4). These two tests assert the rejection that replaces the
+  // removed FIFO `zip_all`/`on_any` behavior.
+  it("rejects feeding two independent streams into one buffered If without a join", async () => {
+    const result = await runWorkflowHydrated(
       [
         {
           id: "cond",
@@ -205,7 +240,7 @@ describe("control parity: If node", () => {
           is_streaming_output: true,
           properties: { input_list: ["A", "B", "C"] }
         },
-        { id: "if", type: IfNode.nodeType, sync_mode: "zip_all" },
+        { id: "if", type: IfNode.nodeType },
         { id: "true_out", type: OutputNode.nodeType, name: "true_sink" },
         { id: "false_out", type: OutputNode.nodeType, name: "false_sink" }
       ],
@@ -237,16 +272,13 @@ describe("control parity: If node", () => {
       ]
     );
 
-    const trueValues = outputUpdatesForNode(result, "true_out");
-    const falseValues = outputUpdatesForNode(result, "false_out");
-
-    expect(result.status).toBe("completed");
-    expect(trueValues).toEqual(["A", "B", null]);
-    expect(falseValues).toEqual([null, null, "C"]);
+    expect(result.status).toBe("failed");
+    expect(result.error).toMatch(/independent iteration sources/);
+    expect(result.error).toMatch(/Zip or Cross/);
   });
 
-  it("zip_all halts when one streaming input EOSs early and drops unmatched trailing values", async () => {
-    const result = await runWorkflow(
+  it("rejects the join regardless of relative stream lengths", async () => {
+    const result = await runWorkflowHydrated(
       [
         {
           id: "cond",
@@ -260,7 +292,7 @@ describe("control parity: If node", () => {
           is_streaming_output: true,
           properties: { input_list: ["A", "B", "C"] }
         },
-        { id: "if", type: IfNode.nodeType, sync_mode: "zip_all" },
+        { id: "if", type: IfNode.nodeType },
         { id: "true_out", type: OutputNode.nodeType, name: "true_sink" },
         { id: "false_out", type: OutputNode.nodeType, name: "false_sink" }
       ],
@@ -292,11 +324,8 @@ describe("control parity: If node", () => {
       ]
     );
 
-    expect(result.status).toBe("completed");
-    // After cond EOSs (2 items) and val has C left, zip_all stops.
-    // Use sync_mode: "on_any" if you want broadcast/fan-out semantics.
-    expect(outputUpdatesForNode(result, "true_out")).toEqual(["A", null]);
-    expect(outputUpdatesForNode(result, "false_out")).toEqual([null, "B"]);
+    expect(result.status).toBe("failed");
+    expect(result.error).toMatch(/independent iteration sources/);
   });
 });
 
@@ -405,7 +434,7 @@ describe("control parity: Collect node", () => {
 
 describe("control parity: Reroute node", () => {
   it("passes an entire generated stream through unchanged", async () => {
-    const result = await runWorkflow(
+    const result = await runWorkflowHydrated(
       [
         {
           id: "src",
@@ -413,7 +442,7 @@ describe("control parity: Reroute node", () => {
           is_streaming_output: true,
           properties: { input_list: [0, 1, 2] }
         },
-        { id: "reroute", type: RerouteNode.nodeType, is_streaming_output: true, sync_mode: "on_any" as const },
+        { id: "reroute", type: RerouteNode.nodeType },
         { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
         { id: "out", type: OutputNode.nodeType, name: "items" }
       ],

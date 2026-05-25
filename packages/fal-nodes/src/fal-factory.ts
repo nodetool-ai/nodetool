@@ -9,6 +9,7 @@
 import {
   BaseNode,
   classifyFields,
+  classNameToTitle,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
@@ -48,10 +49,6 @@ export interface FalManifestEntry {
     min?: number;
     max?: number;
   }>;
-}
-
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
 }
 
 function isAssetPropType(propType: string): boolean {
@@ -148,6 +145,15 @@ async function buildArgs(
 
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
+
+    // Image-gen nodes always produce a single output — force num_images to 1
+    // regardless of any saved value, since the field is no longer exposed.
+    if (field.name === "num_images") {
+      const apiName = field.apiParamName ?? field.name;
+      args[apiName] = 1;
+      continue;
+    }
+
     const value = (instance as unknown as Record<string, unknown>)[field.name];
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
@@ -272,7 +278,7 @@ function mapOutput(
 
 export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
   const nodeType = `fal.${spec.moduleName}.${spec.className}`;
-  const title = toTitle(spec.className);
+  const title = classNameToTitle(spec.className);
   const descFirstLine = spec.docstring || `${spec.className} node`;
   const descSecondLine =
     spec.tags.length > 0 ? spec.tags.join(", ") : "fal, ai";
@@ -286,7 +292,6 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     "model_3d"
   ].includes(spec.outputType);
 
-  // Capture spec in closure for process/genProcess
   const endpointId = spec.endpointId;
   const specRef = spec;
 
@@ -294,36 +299,24 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     async process(
       context?: ProcessingContext
     ): Promise<Record<string, unknown>> {
-      if (isImageOutput) return {};
       const apiKey = getFalApiKey(this._secrets);
       const args = await buildArgs(this, specRef, apiKey, context);
       const res = await falSubmit(apiKey, endpointId, args);
-      return mapOutput(specRef, res);
-    }
-
-    async *genProcess(
-      context?: ProcessingContext
-    ): AsyncGenerator<Record<string, unknown>> {
-      if (!isImageOutput) {
-        yield await this.process(context);
-        return;
-      }
-      const apiKey = getFalApiKey(this._secrets);
-      const args = await buildArgs(this, specRef, apiKey, context);
-      const res = await falSubmit(apiKey, endpointId, args);
-      const images = res.images as Array<{
-        url: string;
-        width?: number;
-        height?: number;
-        content_type?: string;
-      }>;
-      if (images?.length) {
-        for (const img of images) {
-          yield { output: falImageToRef(img) };
+      if (isImageOutput) {
+        const images = res.images as
+          | Array<{
+              url: string;
+              width?: number;
+              height?: number;
+              content_type?: string;
+            }>
+          | undefined;
+        if (images?.length) {
+          return { output: falImageToRef(images[0]) };
         }
-      } else {
-        yield mapOutput(specRef, res);
+        return mapOutput(specRef, res);
       }
+      return mapOutput(specRef, res);
     }
   };
 
@@ -360,26 +353,14 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       value: { output: "image" },
       configurable: true
     });
-    Object.defineProperty(FalNodeClass, "isStreamingOutput", {
-      value: true,
-      configurable: true
-    });
   } else if (spec.outputType === "audio") {
     Object.defineProperty(FalNodeClass, "metadataOutputTypes", {
       value: { output: "audio" },
       configurable: true
     });
-    Object.defineProperty(FalNodeClass, "isStreamingOutput", {
-      value: true,
-      configurable: true
-    });
   } else if (spec.outputType === "video") {
     Object.defineProperty(FalNodeClass, "metadataOutputTypes", {
       value: { output: "video" },
-      configurable: true
-    });
-    Object.defineProperty(FalNodeClass, "isStreamingOutput", {
-      value: true,
       configurable: true
     });
   } else if (spec.outputType === "model_3d") {
@@ -430,9 +411,11 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     configurable: true
   });
 
-  // Register declared properties (equivalent to @prop decorator)
+  // Register declared properties (equivalent to @prop decorator).
+  // num_images is internal-only (pinned to 1) and not exposed in the UI.
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
+    if (field.name === "num_images") continue;
 
     const propOptions: PropOptions = {
       type: field.propType,

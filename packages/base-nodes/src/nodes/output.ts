@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { audioBytesAsync } from "../lib/audio-wav.js";
 
@@ -115,7 +116,11 @@ export class OutputNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["value"];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" }
+  };
+
   @prop({
     type: "str",
     default: "",
@@ -186,23 +191,9 @@ export class PreviewNode extends BaseNode {
     return context.normalizeOutputValue(value);
   }
 
-  private emitPreview(value: unknown, context?: ProcessingContext): void {
-    if (!context || typeof context.emit !== "function") return;
-    const nodeId = String(
-      this.__node_id ?? this.name ?? this.__node_name ?? ""
-    );
-    context.emit({
-      type: "preview_update",
-      node_id: nodeId,
-      value
-    });
-  }
-
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const value = this.value ?? null;
-
     const normalized = await this.normalize(value, context);
-    this.emitPreview(normalized, context);
     return { output: normalized };
   }
 }

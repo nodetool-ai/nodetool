@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { FlexColumn, Box } from "../../ui_primitives";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
 import { NodeErrors } from "../NodeErrors";
@@ -90,12 +90,10 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }
 
   return (
-    <Box
+    <FlexColumn
       className="dynamic-fal-schema-node"
+      fullHeight
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
         minHeight: 100,
         padding: "0 !important",
         border: `1px solid ${FAL_HEADER_COLOR}40`,
@@ -128,8 +126,6 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultButton={false}
           showInputsButton={false}
-          onShowResults={() => {}}
-          onShowInputs={() => {}}
           externalLink={data.endpoint_id ? `https://fal.ai/models/${data.endpoint_id}` : undefined}
           externalLinkTitle="View on fal.ai"
         />
@@ -144,16 +140,12 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         status={statusValue}
       />
-      <Box
+      <FlexColumn
         className="node-content-container"
+        fullWidth
         sx={{
           flex: "1 1 auto",
-          minHeight: 120,
-          width: "100%",
-          overflow: "visible",
-          display: "flex",
-          flexDirection: "column",
-          clipPath: "inset(0 -20px)"
+          minHeight: 120
         }}
       >
         <DynamicFalSchemaContent
@@ -167,10 +159,9 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultOverlay={false}
           result={result}
-          onShowInputs={() => {}}
         />
-      </Box>
-    </Box>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getNodeMetadata } from "@nodetool-ai/node-sdk";
+import { getNodeMetadata, hasStreamingOutput } from "@nodetool-ai/node-sdk";
 import {
   SummarizerNode,
   CreateThreadNode,
@@ -443,7 +443,7 @@ describe("ClassifierNode", () => {
 describe("AgentNode", () => {
   it("has correct static metadata", () => {
     expect(AgentNode.nodeType).toBe("nodetool.agents.Agent");
-    expect(AgentNode.isStreamingOutput).toBe(true);
+    expect(hasStreamingOutput(AgentNode)).toBe(true);
   });
 
   it("defaults", () => {
@@ -1114,7 +1114,7 @@ describe("DataGeneratorNode", () => {
     expect(DataGeneratorNode.nodeType).toBe(
       "nodetool.generators.DataGenerator"
     );
-    expect(DataGeneratorNode.isStreamingOutput).toBe(true);
+    expect(hasStreamingOutput(DataGeneratorNode)).toBe(true);
   });
 
   it("defaults", () => {
@@ -1324,7 +1324,7 @@ describe("ListGeneratorNode", () => {
     expect(ListGeneratorNode.nodeType).toBe(
       "nodetool.generators.ListGenerator"
     );
-    expect(ListGeneratorNode.isStreamingOutput).toBe(true);
+    expect(hasStreamingOutput(ListGeneratorNode)).toBe(true);
   });
 
   it("defaults", () => {

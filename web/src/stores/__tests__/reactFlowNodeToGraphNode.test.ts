@@ -14,7 +14,6 @@ describe("reactFlowNodeToGraphNode", () => {
     properties: { text: "Hello" },
     dynamic_properties: {},
     dynamic_outputs: {},
-    sync_mode: "on_any",
     selectable: true,
     collapsed: false,
     bypassed: false,
@@ -128,7 +127,6 @@ describe("reactFlowNodeToGraphNode", () => {
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: {},
-          sync_mode: "on_any",
           workflow_id: "workflow-1",
         },
       });
@@ -145,7 +143,6 @@ describe("reactFlowNodeToGraphNode", () => {
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: {},
-          sync_mode: "on_any",
           workflow_id: "workflow-1",
         },
       });
@@ -162,7 +159,6 @@ describe("reactFlowNodeToGraphNode", () => {
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: {},
-          sync_mode: "on_any",
           workflow_id: "workflow-1",
         },
       });
@@ -191,7 +187,6 @@ describe("reactFlowNodeToGraphNode", () => {
           selectable: true,
           dynamic_properties: { dynamicProp: "value" },
           dynamic_outputs: {},
-          sync_mode: "on_any",
           workflow_id: "workflow-1",
         },
       });
@@ -232,7 +227,6 @@ describe("reactFlowNodeToGraphNode", () => {
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: { output1: { type: "text" } } as any,
-          sync_mode: "on_any",
           workflow_id: "workflow-1",
         },
       });
@@ -254,63 +248,6 @@ describe("reactFlowNodeToGraphNode", () => {
       expect(result.dynamic_outputs).toEqual({});
     });
 
-    it("copies sync_mode from node data with default", () => {
-      const reactFlowNode = createMockReactFlowNode({
-        data: createMockNodeData({
-          sync_mode: "on_all",
-        }),
-      });
-
-      const result = reactFlowNodeToGraphNode(reactFlowNode);
-
-      expect(result.sync_mode).toBe("on_all");
-    });
-
-    it("uses on_any as default sync_mode", () => {
-      const reactFlowNode = createMockReactFlowNode({
-        data: createMockNodeData({
-          sync_mode: undefined as any,
-        }),
-      });
-
-      const result = reactFlowNodeToGraphNode(reactFlowNode);
-
-      expect(result.sync_mode).toBe("on_any");
-    });
-
-    it("defaults sync_mode to 'on_any' when not provided", () => {
-      const node = createMockReactFlowNode({
-        data: {
-          properties: {},
-          selectable: true,
-          dynamic_properties: {},
-          dynamic_outputs: {},
-          sync_mode: undefined,
-          workflow_id: "workflow-1",
-        },
-      });
-
-      const result = reactFlowNodeToGraphNode(node);
-
-      expect(result.sync_mode).toBe("on_any");
-    });
-
-    it("maps sync_mode when provided", () => {
-      const node = createMockReactFlowNode({
-        data: {
-          properties: {},
-          selectable: true,
-          dynamic_properties: {},
-          dynamic_outputs: {},
-          sync_mode: "on_change",
-          workflow_id: "workflow-1",
-        },
-      });
-
-      const result = reactFlowNodeToGraphNode(node);
-
-      expect(result.sync_mode).toBe("on_change");
-    });
   });
 
   describe("ui_properties construction", () => {
@@ -432,7 +369,6 @@ describe("reactFlowNodeToGraphNode", () => {
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: {},
-          sync_mode: "on_any",
           workflow_id: "workflow-1",
           title: "My Node",
         },
@@ -462,7 +398,6 @@ describe("reactFlowNodeToGraphNode", () => {
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: {},
-          sync_mode: "on_any",
           workflow_id: "workflow-1",
           color: "#ff0000",
         },
@@ -508,7 +443,6 @@ describe("reactFlowNodeToGraphNode", () => {
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: {},
-          sync_mode: "on_any",
           workflow_id: "workflow-1",
           bypassed: true,
         },
@@ -526,7 +460,6 @@ describe("reactFlowNodeToGraphNode", () => {
           selectable: true,
           dynamic_properties: {},
           dynamic_outputs: {},
-          sync_mode: "on_any",
           workflow_id: "workflow-1",
           bypassed: undefined,
         },

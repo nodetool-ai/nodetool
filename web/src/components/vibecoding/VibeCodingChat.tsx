@@ -2,8 +2,7 @@
 import React, { useCallback, useMemo, memo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { Text, Caption, Chip } from "../ui_primitives";
+import { Text, Caption, Chip, FlexColumn, Box } from "../ui_primitives";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { Message, Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
@@ -236,15 +235,13 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
   // Build welcome placeholder
   const welcomePlaceholder = useMemo(
     () => (
-      <Box
+      <FlexColumn
+        align="center"
+        justify="center"
+        fullHeight
+        padding={4}
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          textAlign: "center",
-          p: 4
+          textAlign: "center"
         }}
       >
         <AutoFixHighIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
@@ -260,7 +257,7 @@ const VibeCodingChat: React.FC<VibeCodingChatProps> = ({
           like: &quot;Create a modern dark-themed interface with a gradient
           background&quot;
         </Text>
-      </Box>
+      </FlexColumn>
     ),
     []
   );

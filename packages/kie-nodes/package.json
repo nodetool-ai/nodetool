@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').cpSync('src/kie-manifest.json', 'dist/kie-manifest.json')\"",
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"const fs=require('node:fs'); fs.cpSync('src/kie-manifest.json','dist/kie-manifest.json'); if (fs.existsSync('src/generated')) fs.cpSync('src/generated','dist/generated',{recursive:true});\"",
     "test": "vitest run",
     "lint": "tsc --noEmit"
   },
@@ -24,7 +24,13 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./kie-manifest.json": "./dist/kie-manifest.json"
+    "./kie-manifest.json": "./dist/kie-manifest.json",
+    "./kie-pricing-api": {
+      "nodetool-dev": "./src/kie-pricing-api.ts",
+      "types": "./dist/kie-pricing-api.d.ts",
+      "import": "./dist/kie-pricing-api.js",
+      "default": "./dist/kie-pricing-api.js"
+    }
   },
   "license": "MIT",
   "repository": {

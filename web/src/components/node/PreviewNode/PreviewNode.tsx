@@ -24,6 +24,11 @@ import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { NODE_COLLAPSED_LAYOUT } from "../../../styles/collapsedNodeTokens";
+import {
+  assetsToPreviewValue,
+  useNodeResultHistory
+} from "../../../hooks/nodes/useNodeResultHistory";
+import { useNodes } from "../../../contexts/NodeContext";
 
 const styles = (theme: Theme) =>
   css([
@@ -113,15 +118,16 @@ const styles = (theme: Theme) =>
         {
           height: "fit-content !important"
         },
-      // header
+      // header — keep full hit target; stack above NodeOutputs' right column (z-index 3)
       ".node-header": {
+        position: "relative",
+        zIndex: 4,
         width: "100%",
         minHeight: "unset",
         top: 0,
         left: 0,
         margin: 0,
-        padding: "1.25em .5em 0",
-        height: "1em",
+        padding: 0,
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {
@@ -232,19 +238,6 @@ const getOutputFromResult = (result: unknown): unknown => {
   return result;
 };
 
-const isEditorGraphSnapshot = (value: unknown): boolean => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-
-  const candidate = value as {
-    nodes?: unknown;
-    edges?: unknown;
-  };
-
-  return Array.isArray(candidate.nodes) && Array.isArray(candidate.edges);
-};
-
 const getCopySource = (value: unknown): unknown => {
   if (value === null || value === undefined) {
     return value;
@@ -307,10 +300,6 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const nodeMetadata = getMetadata(props.type);
   const { getEdges } = useReactFlow();
 
-  const result = useResultsStore((state) =>
-    state.getPreview(props.data.workflow_id, props.id)
-  );
-
   const incomingValueEdge = useMemo(
     () =>
       getEdges().find(
@@ -319,30 +308,59 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     [getEdges, props.id]
   );
 
+  // The connected source node's accumulated output is the single source.
+  // PreviewNode no longer emits a redundant `preview_update` for itself —
+  // the runner's `output_update` for the source already carries the value.
   const sourceNodeValue = useResultsStore((state) => {
     const sourceNodeId = incomingValueEdge?.source;
     if (!sourceNodeId) {
       return undefined;
     }
-
     return (
       state.getOutputResult(props.data.workflow_id, sourceNodeId) ??
-      state.getResult(props.data.workflow_id, sourceNodeId) ??
-      state.getPreview(props.data.workflow_id, sourceNodeId)
+      state.getResult(props.data.workflow_id, sourceNodeId)
     );
   });
 
-  const displayResult = useMemo(() => {
-    if (result === undefined) {
-      return sourceNodeValue;
+  // The kernel intentionally skips `output_update` for `nodetool.input.*`
+  // and `nodetool.constant.*` nodes (runner.ts) since the client already
+  // holds their value as a property. Read it directly so previewing those
+  // sources works without a workflow run.
+  const sourcePropertyValue = useNodes((state) => {
+    const sourceNodeId = incomingValueEdge?.source;
+    if (!sourceNodeId) return undefined;
+    const node = state.findNode(sourceNodeId);
+    const type = node?.type;
+    if (
+      !type ||
+      (!type.startsWith("nodetool.input.") &&
+        !type.startsWith("nodetool.constant."))
+    ) {
+      return undefined;
     }
+    return (node?.data.properties as Record<string, unknown> | undefined)
+      ?.value;
+  }, isEqual);
 
-    if (isEditorGraphSnapshot(result) && sourceNodeValue !== undefined) {
-      return sourceNodeValue;
-    }
+  // DB fallback: when no live value is available (page reload or workflow
+  // switch), surface every saved asset from the source's most recent job
+  // so the preview reflects the latest workflow execution in full.
+  const { lastJobAssets: sourceLastJobAssets } = useNodeResultHistory(
+    props.data.workflow_id,
+    incomingValueEdge?.source ?? null
+  );
+  const sourceFallbackValue = useMemo(
+    () => assetsToPreviewValue(sourceLastJobAssets),
+    [sourceLastJobAssets]
+  );
 
-    return result;
-  }, [result, sourceNodeValue]);
+  const displayResult = useMemo(
+    // Show every generation from the latest execution; for streaming
+    // outputs (e.g. `num_images=N`) this is the array accumulated under
+    // outputResults during the run.
+    () => sourceNodeValue ?? sourcePropertyValue ?? sourceFallbackValue,
+    [sourceNodeValue, sourcePropertyValue, sourceFallbackValue]
+  );
 
   const previewOutput = useMemo(
     () => getOutputFromResult(displayResult),

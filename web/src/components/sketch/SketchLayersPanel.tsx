@@ -21,7 +21,6 @@ import {
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   IconButton,
   Menu,
   Slider,
@@ -32,13 +31,24 @@ import {
   MenuItem,
   FormControl
 } from "@mui/material";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import TrashIconSvg from "../../icons/trash.svg?react";
 const DeleteIcon = TrashIconSvg as React.FC<React.SVGProps<SVGSVGElement>>;
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import GradientIcon from "@mui/icons-material/Gradient";
+const MaskIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="1em"
+    height="1em"
+    fill="currentColor"
+    {...props}
+  >
+    <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm2 0v14h14V5H5zm7 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10z" />
+  </svg>
+);
 import CallMergeIcon from "@mui/icons-material/CallMerge";
 import LockIcon from "@mui/icons-material/Lock";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -911,13 +921,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
       {/* Add layers (row 1) + layer ops (row 2), left-aligned for predictable icon positions */}
       <Box className="layer-actions sketch-layers-panel__layer-toolbar">
-        <Box
+        <FlexRow
           className="sketch-layers-panel__add-layers-row"
+          align="center"
+          wrap
+          gap={0.5}
           sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 0.5,
             rowGap: 0.5
           }}
         >
@@ -1117,17 +1126,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               />
             </IconButton>
           </Tooltip>
-        </Box>
+        </FlexRow>
       </Box>
 
       <Divider />
 
       {/* Layer list: cap height (~half viewport) so many layers scroll without stretching the panel */}
-      <Box
+      <FlexColumn
         className="sketch-layers-panel__layer-list-scroll"
         sx={{
-          display: "flex",
-          flexDirection: "column",
           gap: "2px",
           minHeight: 0,
           maxHeight: "50vh",
@@ -1179,20 +1186,19 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             />
           );
         })}
-      </Box>
+      </FlexColumn>
 
       <Divider />
 
       {/* Unified ops toolbar (below the layer list, close to the rows it acts on).
           Grouped left → right: Lifecycle | Combine | Transform | Roles.
           Sub-groups are separated by short vertical dividers for scannability. */}
-      <Box
+      <FlexRow
         className="sketch-layers-panel__layer-ops"
+        align="center"
+        wrap
+        gap={0.25}
         sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 0.25,
           rowGap: 0.5,
           minHeight: 30,
           py: 0.25,
@@ -1391,7 +1397,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
               color={maskLayerId === activeLayerId ? "warning" : "default"}
             >
-              <GradientIcon sx={{ fontSize: "1.125rem" }} />
+              <MaskIcon style={{ width: "1.125rem", height: "1.125rem" }} />
             </IconButton>
           </Tooltip>
           <Tooltip
@@ -1417,7 +1423,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             </IconButton>
           </Tooltip>
         </Box>
-      </Box>
+      </FlexRow>
 
       {/* ── Merge submenu ── */}
       <Menu

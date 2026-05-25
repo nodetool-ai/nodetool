@@ -1,0 +1,5541 @@
+{
+  "schemaVersion": 1,
+  "writtenAt": "2026-05-17T22:25:00.943Z",
+  "prices": {
+    "fal-ai/ultrashape": {
+      "unit_price": 0.15,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/sam-3/3d-align": {
+      "unit_price": 0.02,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/meshy/v5/retexture": {
+      "unit_price": 0.3,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/meshy/v5/remesh": {
+      "unit_price": 0.2,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-part": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/voice-changer": {
+      "unit_price": 0.3,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/nova-sr": {
+      "unit_price": 0.0001,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/deepfilternet3": {
+      "unit_price": 0.001,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sam-audio/separate": {
+      "unit_price": 0.05,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/sam-audio/span-separate": {
+      "unit_price": 0.05,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/demucs": {
+      "unit_price": 0.0007,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/stable-audio-25/audio-to-audio": {
+      "unit_price": 0.2,
+      "billing_unit": "audios",
+      "currency": "USD"
+    },
+    "fal-ai/ffmpeg-api/merge-audios": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/create-voice": {
+      "unit_price": 0.007,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/audio-understanding": {
+      "unit_price": 0.01,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/stable-audio-25/inpaint": {
+      "unit_price": 0.2,
+      "billing_unit": "audios",
+      "currency": "USD"
+    },
+    "fal-ai/ace-step/audio-outpaint": {
+      "unit_price": 0.0002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ace-step/audio-inpaint": {
+      "unit_price": 0.0002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ace-step/audio-to-audio": {
+      "unit_price": 0.0002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/dia-tts/voice-clone": {
+      "unit_price": 0.04,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/audio-isolation": {
+      "unit_price": 0.1,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/nemotron/asr": {
+      "unit_price": 0.0008,
+      "billing_unit": "input seconds",
+      "currency": "USD"
+    },
+    "fal-ai/silero-vad": {
+      "unit_price": 0.00001,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "nvidia/nemotron-3-nano-omni/audio": {
+      "unit_price": 0.01,
+      "billing_unit": "1000 tokens",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/audio-to-video/lora": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/audio-to-video/lora": {
+      "unit_price": 0.002,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/audio-to-video": {
+      "unit_price": 0.0008,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/audio-to-video": {
+      "unit_price": 0.0018,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/dubbing": {
+      "unit_price": 0.9,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-multi-avatar/image-audio-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-single-avatar/image-audio-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-single-avatar/audio-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "argil/avatars/audio-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-14b/speech-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/stable-avatar": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/echomimic-v3": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "veed/avatars/audio-to-video": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux/schnell/redux": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux/dev/redux": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1/redux": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2/edit": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2/remix": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v3/edit": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1/fill": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1/canny": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1/depth": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "bria/eraser": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "bria/replace-background": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/clarity-upscaler": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/recraft/v3/image-to-image": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/kolors/image-to-image": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/birefnet": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/codeformer": {
+      "unit_price": 0.0021,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-image/v3/instruct/edit": {
+      "unit_price": 0.00167,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-max/edit": {
+      "unit_price": 0.075,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-2511": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-2511/lora": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-2511-multiple-angles": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-2509": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-2509-lora": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-layered": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-layered/lora": {
+      "unit_price": 0.06,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/4b/base/edit": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/4b/base/edit/lora": {
+      "unit_price": 0.016,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/9b/base/edit": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/9b/base/edit/lora": {
+      "unit_price": 0.02,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/4b/edit": {
+      "unit_price": 0.009,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/9b/edit": {
+      "unit_price": 0.011,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/flash/edit": {
+      "unit_price": 0.00167,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/turbo/edit": {
+      "unit_price": 0.00167,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-max/edit": {
+      "unit_price": 0.07,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-flex/edit": {
+      "unit_price": 0.05,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/virtual-tryon": {
+      "unit_price": 0.021,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/multiple-angles": {
+      "unit_price": 0.021,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/face-to-full-portrait": {
+      "unit_price": 0.021,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/add-background": {
+      "unit_price": 0.021,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/edit": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/add_object_by_text": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/erase_by_text": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/replace_object_by_text": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/blend": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/colorize": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/restore": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/restyle": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/relight": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/reseason": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/rewrite_text": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/sketch_to_colored_image": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/glm-image/image-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/gpt-image-1.5/edit": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/turbo/image-to-image": {
+      "unit_price": 0.005,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/turbo/image-to-image/lora": {
+      "unit_price": 0.0085,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/turbo/inpaint": {
+      "unit_price": 0.01,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/turbo/inpaint/lora": {
+      "unit_price": 0.0115,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/turbo/controlnet": {
+      "unit_price": 0.0065,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/turbo/controlnet/lora": {
+      "unit_price": 0.01,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "wan/v2.6/image-to-image": {
+      "unit_price": 0.00007,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/stepx-edit2": {
+      "unit_price": 0.2,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-image/edit": {
+      "unit_price": 0.15,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedream/v4.5/edit": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q2/reference-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/kling-image/o1": {
+      "unit_price": 0.028,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/kling-image/o3/image-to-image": {
+      "unit_price": 0.028,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/lighting-restoration": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/moondream3-preview/segment": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/apartment-staging": {
+      "unit_price": 0.021,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "clarityai/crystal-upscaler": {
+      "unit_price": 0.016,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/chrono-edit-lora": {
+      "unit_price": 0.02,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/chrono-edit-lora-gallery/paintbrush": {
+      "unit_price": 0.00007,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/chrono-edit-lora-gallery/upscaler": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/sam-3/image-rle": {
+      "unit_price": 0.005,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/sam-3/image": {
+      "unit_price": 0.005,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/gemini-3-pro-image-preview/edit": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/nano-banana-pro/edit": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/multiple-angles": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/shirt-design": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/remove-lighting": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/remove-element": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/next-scene": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/integrate-product": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/group-photo": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/face-to-full-portrait": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora-gallery/add-background": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/reve/fast/remix": {
+      "unit_price": 0.01,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/reve/fast/edit": {
+      "unit_price": 0.01,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/outpaint": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-vision-upscaler": {
+      "unit_price": 0.1,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/emu-3.5-image/edit-image": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/chrono-edit": {
+      "unit_price": 0.01,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/gpt-image-1-mini/edit": {
+      "unit_price": 1,
+      "billing_unit": "credits",
+      "currency": "USD"
+    },
+    "fal-ai/reve/remix": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/reve/edit": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image2pixel": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/dreamomni2/edit": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-lora": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/lucidflux": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit/image-to-image": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/wan-25-preview/image-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/seedvr/upscale/image": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/product-holding": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/product-photography": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/virtual-try-on": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/texture-transform": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/relighting": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/style-transfer": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/photo-restoration": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/portrait-enhance": {
+      "unit_price": 0.4,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/photography-effects": {
+      "unit_price": 0.4,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/perspective": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/object-removal": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/headshot-photo": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/hair-change": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/expression-change": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/city-teleport": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/age-modify": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-apps-v2/makeup-application": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit/inpaint": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/srpo/image-to-image": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-lora": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/reference-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedream/v4/edit": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/image-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/uso": {
+      "unit_price": 0.1,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/gemini-25-flash-image/edit": {
+      "unit_price": 0.0398,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image/image-to-image": {
+      "unit_price": 0.02,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "bria/reimagine/3.2": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/nano-banana/edit": {
+      "unit_price": 0.0398,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/character/edit": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/character": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/character/remix": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-krea-lora/inpainting": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-krea-lora/image-to-image": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/krea/image-to-image": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/krea/redux": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-kontext-lora/inpaint": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan_world": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/retouch": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/hidream-e1-1": {
+      "unit_price": 0.06,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/rife": {
+      "unit_price": 0.0013,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/film": {
+      "unit_price": 0.0013,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/bria/reimagine": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/realism": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/vignette": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/solarize": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/sharpen": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/parabolize": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/grain": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/dodge-burn": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/dissolve": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/desaturate": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/color-tint": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/color-correction": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/chromatic-aberration": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing/blur": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/youtube-thumbnails": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/topaz/upscale/image": {
+      "unit_price": 0.01,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/broccoli-haircut": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/wojak-style": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/plushie-style": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-kontext-lora": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/fashn/tryon/v1.6": {
+      "unit_price": 0.075,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/chain-of-zoom": {
+      "unit_price": 0.025,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/pasd": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/object-removal/bbox": {
+      "unit_price": 0.006,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/object-removal/mask": {
+      "unit_price": 0.006,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/object-removal": {
+      "unit_price": 0.006,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/recraft/vectorize": {
+      "unit_price": 0.01,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ffmpeg-api/extract-frame": {
+      "unit_price": 0.0002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/luma-photon/flash/modify": {
+      "unit_price": 0.005,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/luma-photon/modify": {
+      "unit_price": 0.019,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/reframe": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/baby-version": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/luma-photon/flash/reframe": {
+      "unit_price": 0.005,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/luma-photon/reframe": {
+      "unit_price": 0.019,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/schnell/redux": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/dev/redux": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/dev/image-to-image": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/text-removal": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/photo-restoration": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/weather-effect": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/time-of-day": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/style-transfer": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/scene-composition": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/professional-photo": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/object-removal": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/hair-change": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/face-enhancement": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/expression-change": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/color-correction": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/cartoonify": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/background-change": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/image-editing/age-progression": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/kontext/max/multi": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/kontext/multi": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/kontext/max": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-kontext/dev": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/bagel/edit": {
+      "unit_price": 0.1,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "smoretalk-ai/rembg-enhance": {
+      "unit_price": 0.006,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/recraft/upscale/creative": {
+      "unit_price": 0.25,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/recraft/upscale/crisp": {
+      "unit_price": 0.004,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/image-01/subject-reference": {
+      "unit_price": 0.01,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/hidream-i1-full/image-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v3/reframe": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v3/replace-background": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v3/remix": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/step1x-edit": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/image2svg": {
+      "unit_price": 0.005,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/uno": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/gpt-image-1/edit-image": {
+      "unit_price": 1,
+      "billing_unit": "credits",
+      "currency": "USD"
+    },
+    "rundiffusion-fal/juggernaut-flux-lora/inpainting": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fashn/tryon/v1.5": {
+      "unit_price": 0.075,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/plushify": {
+      "unit_price": 0.1,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/instant-character": {
+      "unit_price": 0.1,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/cartoonify": {
+      "unit_price": 0.1,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/finegrain-eraser/mask": {
+      "unit_price": 0.045,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/finegrain-eraser/bbox": {
+      "unit_price": 0.045,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/finegrain-eraser": {
+      "unit_price": 0.045,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/star-vector": {
+      "unit_price": 0.1,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ghiblify": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/thera": {
+      "unit_price": 0.0021,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/mix-dehaze-net": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/gemini-flash-edit": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/gemini-flash-edit/multi": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/invisible-watermark": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "rundiffusion-fal/juggernaut-flux/base/image-to-image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "rundiffusion-fal/juggernaut-flux/pro/image-to-image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/docres/dewarp": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/docres": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/swin2sr": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2a/remix": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2a/turbo/remix": {
+      "unit_price": 0.025,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/evf-sam": {
+      "unit_price": 0.005,
+      "billing_unit": "1",
+      "currency": "USD"
+    },
+    "fal-ai/ddcolor": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/sam2/auto-segment": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/drct-super-resolution": {
+      "unit_price": 0.0045,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/nafnet/deblur": {
+      "unit_price": 0.0225,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/nafnet/denoise": {
+      "unit_price": 0.0225,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/post-processing": {
+      "unit_price": 0.001,
+      "billing_unit": "1",
+      "currency": "USD"
+    },
+    "fal-ai/flowedit": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ben/v2/image": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-control-lora-canny/image-to-image": {
+      "unit_price": 0.04,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-control-lora-depth/image-to-image": {
+      "unit_price": 0.04,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/upscale": {
+      "unit_price": 0.06,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/kling/v1-5/kolors-virtual-try-on": {
+      "unit_price": 0.07,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/flux-lora-canny": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1/fill-finetuned": {
+      "unit_price": 0.06,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/moondream-next/detection": {
+      "unit_price": 0.0011,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/bria/eraser": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/bria/expand": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/bria/genfill": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/bria/product-shot": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/bria/background/remove": {
+      "unit_price": 0.018,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/bria/background/replace": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/flux-lora-fill": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/cat-vton": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/leffa/pose-transfer": {
+      "unit_price": 0.1,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/leffa/virtual-tryon": {
+      "unit_price": 0.1,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2/turbo/edit": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2/turbo/remix": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1.1/redux": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-lora-depth": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1.1-ultra/redux": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/iclight-v2": {
+      "unit_price": 0.1,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-differential-diffusion": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pulid": {
+      "unit_price": 0.0333,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/birefnet/v2": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/live-portrait/image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-general/rf-inversion": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/hed": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/depth-anything/v2": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/scribble": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/mlsd": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/sam": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/midas": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/teed": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/lineart": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/zoe": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/image-preprocessors/pidi": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sam2/image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-general/inpainting": {
+      "unit_price": 0.075,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-general/image-to-image": {
+      "unit_price": 0.075,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-general/differential-diffusion": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-lora/image-to-image": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/sdxl-controlnet-union/inpainting": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sdxl-controlnet-union/image-to-image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/era-3d": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/dense-region-caption": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/referring-expression-segmentation": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/object-detection": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/open-vocabulary-detection": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/caption-to-phrase-grounding": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/region-proposal": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/ocr-with-region": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/region-to-segmentation": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/stable-diffusion-v3-medium/image-to-image": {
+      "unit_price": 0.035,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/dwpose": {
+      "unit_price": 0.0006,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sd15-depth-controlnet": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/omni-zero": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ip-adapter-face-id": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/lora/inpaint": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/lora/image-to-image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-sdxl/image-to-image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-sdxl/inpainting": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/face-to-sticker": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/photomaker": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/creative-upscaler": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/playground-v25/image-to-image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-lightning-sdxl/image-to-image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-lightning-sdxl/inpainting": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/playground-v25/inpainting": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-lcm-diffusion/inpainting": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-lcm-diffusion/image-to-image": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/retoucher": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/imageutils/depth": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/imageutils/marigold-depth": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pulid": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-sdxl-controlnet-canny/image-to-image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-sdxl-controlnet-canny/inpainting": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/lcm-sd15-i2i": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/inpaint": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/esrgan": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/imageutils/rembg": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/nano-banana-2/edit": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-pro/edit": {
+      "unit_price": 0.03,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "openai/gpt-image-2/edit": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedream/v5/lite/edit": {
+      "unit_price": 0.035,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/trellis-2": {
+      "unit_price": 0.05,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d-v3/sketch-to-3d": {
+      "unit_price": 0.015,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d-v3/image-to-3d": {
+      "unit_price": 0.015,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/sam-3/3d-body": {
+      "unit_price": 0.02,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/sam-3/3d-objects": {
+      "unit_price": 0.02,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/omnipart": {
+      "unit_price": 0.2,
+      "billing_unit": "requests",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seed3d/image-to-3d": {
+      "unit_price": 0.011,
+      "billing_unit": "1000 tokens",
+      "currency": "USD"
+    },
+    "fal-ai/meshy/v5/multi-image-to-3d": {
+      "unit_price": 0.4,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/meshy/v6-preview/image-to-3d": {
+      "unit_price": 0.8,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hyper3d/rodin/v2": {
+      "unit_price": 0.4,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/pshuman": {
+      "unit_price": 0.75,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan_world/image-to-world": {
+      "unit_price": 0.3,
+      "billing_unit": "requests",
+      "currency": "USD"
+    },
+    "tripo3d/tripo/v2.5/multiview-to-3d": {
+      "unit_price": 0.00007,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d-v21": {
+      "unit_price": 0.3,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/trellis/multi": {
+      "unit_price": 0.02,
+      "billing_unit": "",
+      "currency": "USD"
+    },
+    "tripo3d/tripo/v2.5/image-to-3d": {
+      "unit_price": 0.00007,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d/v2/multi-view": {
+      "unit_price": 0.017,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d/v2/mini": {
+      "unit_price": 0.1,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d/v2/turbo": {
+      "unit_price": 0.14,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d/v2/mini/turbo": {
+      "unit_price": 0.08,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d/v2": {
+      "unit_price": 0.16,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d/v2/multi-view/turbo": {
+      "unit_price": 0.015,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hyper3d/rodin": {
+      "unit_price": 0.4,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/trellis": {
+      "unit_price": 0.02,
+      "billing_unit": "",
+      "currency": "USD"
+    },
+    "fal-ai/triposr": {
+      "unit_price": 0.07,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/meshy/v6/multi-image-to-3d": {
+      "unit_price": 0.4,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/bagel/understand": {
+      "unit_price": 0.05,
+      "billing_unit": "requests",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5.6/image-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine/image-to-video": {
+      "unit_price": 0.5,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/amt-interpolation/frame-interpolation": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ai-avatar": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ai-avatar/single-text": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ai-avatar/multi-text": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ai-avatar/multi": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedance/v1.5/pro/image-to-video": {
+      "unit_price": 1.2,
+      "billing_unit": "1m tokens",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedance/v1/pro/fast/image-to-video": {
+      "unit_price": 1,
+      "billing_unit": "1m tokens",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedance/v1/lite/reference-to-video": {
+      "unit_price": 1.8,
+      "billing_unit": "1m tokens",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/video-stylize": {
+      "unit_price": 0.23,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/omnihuman/v1.5": {
+      "unit_price": 0.16,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/cogvideox-5b/image-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/stable-video": {
+      "unit_price": 0.075,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video/image-to-video": {
+      "unit_price": 0.02,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1/standard/image-to-video": {
+      "unit_price": 0.045,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5.6/transition": {
+      "unit_price": 0.15,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q2/reference-to-video/pro": {
+      "unit_price": 0.1,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "wan/v2.6/image-to-video/flash": {
+      "unit_price": 0.05,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "wan/v2.6/image-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/image-to-video": {
+      "unit_price": 0.0018,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/image-to-video/lora": {
+      "unit_price": 0.002,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/image-to-video": {
+      "unit_price": 0.0008,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/image-to-video/lora": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/wan-move": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kandinsky5-pro/image-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/live-avatar": {
+      "unit_price": 0.01,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video-v1.5/image-to-video": {
+      "unit_price": 0.075,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o1/standard/image-to-video": {
+      "unit_price": 0.084,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o1/standard/reference-to-video": {
+      "unit_price": 0.084,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/standard/image-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/pro/image-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/standard/reference-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/pro/reference-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v2.6/pro/image-to-video": {
+      "unit_price": 0.07,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/ai-avatar/v2/standard": {
+      "unit_price": 0.0562,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/ai-avatar/v2/pro": {
+      "unit_price": 0.115,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/creatify/aurora": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5.5/effects": {
+      "unit_price": 0.05,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5.5/transition": {
+      "unit_price": 0.05,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5.5/image-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o1/image-to-video": {
+      "unit_price": 0.112,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o1/reference-to-video": {
+      "unit_price": 0.112,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2/image-to-video/fast": {
+      "unit_price": 0.04,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2/image-to-video": {
+      "unit_price": 0.06,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "bytedance/lynx": {
+      "unit_price": 0.6,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/swap": {
+      "unit_price": 0.05,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v2.2/pikaframes": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-video/image-to-video/720p": {
+      "unit_price": 0.04,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-video/image-to-video/480p": {
+      "unit_price": 0.025,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-video/distilled/image-to-video/720p": {
+      "unit_price": 0.01,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-video/distilled/image-to-video/480p": {
+      "unit_price": 0.005,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/hailuo-2.3-fast/standard/image-to-video": {
+      "unit_price": 0.19,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/hailuo-2.3/standard/image-to-video": {
+      "unit_price": 0.28,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/hailuo-2.3-fast/pro/image-to-video": {
+      "unit_price": 0.33,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q2/image-to-video/turbo": {
+      "unit_price": 0.05,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q2/image-to-video/pro": {
+      "unit_price": 0.05,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v2.5-turbo/standard/image-to-video": {
+      "unit_price": 0.042,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3.1/fast/first-last-frame-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3.1/first-last-frame-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3.1/reference-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3.1/fast/image-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3.1/image-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sora-2/image-to-video/pro": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sora-2/image-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ovi/image-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "veed/fabric-1.0/fast": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "veed/fabric-1.0": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1/standard/ai-avatar": {
+      "unit_price": 0.0562,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1/pro/ai-avatar": {
+      "unit_price": 0.115,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "decart/lucy-14b/image-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-ati": {
+      "unit_price": 0.15,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5/transition": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5/effects": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5/image-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "moonvalley/marey/i2v": {
+      "unit_price": 1.5,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/image-to-video/lora": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/hailuo-02-fast/image-to-video": {
+      "unit_price": 0.017,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3/image-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/image-to-video/turbo": {
+      "unit_price": 0.1,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-5b/image-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/image-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/omnihuman": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltxv-13b-098-distilled/image-to-video": {
+      "unit_price": 0.02,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3/fast/image-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q1/reference-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "credits",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/hailuo-02/pro/image-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedance/v1/lite/image-to-video": {
+      "unit_price": 1,
+      "billing_unit": "1m tokens",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-avatar": {
+      "unit_price": 0.4,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v2.1/pro/image-to-video": {
+      "unit_price": 0.098,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-portrait": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.6/standard/elements": {
+      "unit_price": 0.056,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.6/pro/elements": {
+      "unit_price": 0.098,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-13b-distilled/image-to-video": {
+      "unit_price": 0.04,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-13b-dev/image-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-lora/image-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4.5/transition": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4.5/image-to-video/fast": {
+      "unit_price": 0.1,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4.5/effects": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-custom": {
+      "unit_price": 0.8,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/framepack/f1": {
+      "unit_price": 0.0333,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q1/start-end-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "credits",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q1/image-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "credits",
+      "currency": "USD"
+    },
+    "fal-ai/magi/image-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4/effects": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/magi-distilled/image-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/framepack/flf2v": {
+      "unit_price": 0.0333,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-flf2v": {
+      "unit_price": 0.4,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/framepack": {
+      "unit_price": 0.0333,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4/image-to-video/fast": {
+      "unit_price": 0.1,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4/image-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v3.5/effects": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v3.5/transition": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine/ray-2-flash/image-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v1.5/pikaffects": {
+      "unit_price": 0.465,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v2.1/image-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v2.2/image-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v2.2/pikascenes": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v2/turbo/image-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/image-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/reference-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/start-end-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/template-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "",
+      "currency": "USD"
+    },
+    "fal-ai/wan-i2v-lora": {
+      "unit_price": 0.75,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video-image-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/video-01-director/image-to-video": {
+      "unit_price": 0.5,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/skyreels-i2v": {
+      "unit_price": 0.3,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine/ray-2/image-to-video": {
+      "unit_price": 0.5,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video-img2vid-lora": {
+      "unit_price": 0.3,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v3.5/image-to-video/fast": {
+      "unit_price": 0.1,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v3.5/image-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/video-01-subject-reference": {
+      "unit_price": 0.5,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.6/standard/image-to-video": {
+      "unit_price": 0.056,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sadtalker/reference": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/video-01-live/image-to-video": {
+      "unit_price": 0.5,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.5/pro/image-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/live-portrait": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/musetalk": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sadtalker": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-svd-lcm": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v3/standard/image-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v3/pro/image-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "bytedance/seedance-2.0/image-to-video": {
+      "unit_price": 0.014,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "bytedance/seedance-2.0/reference-to-video": {
+      "unit_price": 0.014,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "bytedance/seedance-2.0/fast/image-to-video": {
+      "unit_price": 0.0112,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "bytedance/seedance-2.0/fast/reference-to-video": {
+      "unit_price": 0.0112,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "alibaba/happy-horse/image-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "alibaba/happy-horse/reference-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/4k/image-to-video": {
+      "unit_price": 0.42,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/4k/reference-to-video": {
+      "unit_price": 0.42,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v3/4k/image-to-video": {
+      "unit_price": 0.42,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/lyra-2/zoom": {
+      "unit_price": 0.1,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sora-2/characters": {
+      "unit_price": 0,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/c1/reference-to-video": {
+      "unit_price": 0.005,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/c1/transition": {
+      "unit_price": 0.005,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v6/image-to-video": {
+      "unit_price": 0.005,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ffmpeg-api/loudnorm": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ffmpeg-api/waveform": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ffmpeg-api/metadata": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "openrouter/router": {
+      "unit_price": 0.01,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "openrouter/router/openai/v1/chat/completions": {
+      "unit_price": 0.01,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-3-guard": {
+      "unit_price": 0.002,
+      "billing_unit": "1000 tokens",
+      "currency": "USD"
+    },
+    "openrouter/router/openai/v1/responses": {
+      "unit_price": 0.01,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "openrouter/router/openai/v1/embeddings": {
+      "unit_price": 0.01,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/video-prompt-generator": {
+      "unit_price": 0.001,
+      "billing_unit": "1",
+      "currency": "USD"
+    },
+    "nvidia/nemotron-3-nano-omni": {
+      "unit_price": 0.01,
+      "billing_unit": "1000 tokens",
+      "currency": "USD"
+    },
+    "resemble-ai/chatterboxhd/speech-to-speech": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/chatterbox/speech-to-speech": {
+      "unit_price": 0.015,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/speech-to-text": {
+      "unit_price": 0.03,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/speech-to-text/scribe-v2": {
+      "unit_price": 0.008,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/smart-turn": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/speech-to-text/stream": {
+      "unit_price": 0.0008,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/speech-to-text/turbo/stream": {
+      "unit_price": 0.0008,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/whisper": {
+      "unit_price": 0.0008,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wizper": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/cohere-transcribe": {
+      "unit_price": 0.00006944444,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-motion/fast": {
+      "unit_price": 0.06,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-motion": {
+      "unit_price": 0.08,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan3d-v3/text-to-3d": {
+      "unit_price": 0.015,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/meshy/v6-preview/text-to-3d": {
+      "unit_price": 0.8,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/ace-step/prompt-to-audio": {
+      "unit_price": 0.0002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ace-step": {
+      "unit_price": 0.0002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/csm-1b": {
+      "unit_price": 0.03,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/diffrhythm": {
+      "unit_price": 0.01,
+      "billing_unit": "10 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/tts/multilingual-v2": {
+      "unit_price": 0.1,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/text-to-dialogue/eleven-v3": {
+      "unit_price": 0.1,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/sound-effects/v2": {
+      "unit_price": 0.002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/tts/eleven-v3": {
+      "unit_price": 0.1,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/music": {
+      "unit_price": 0.8,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/f5-tts": {
+      "unit_price": 0.05,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/stable-audio": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax-music/v2": {
+      "unit_price": 0.03,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "beatoven/sound-effect-generation": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "beatoven/music-generation": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax-music/v1.5": {
+      "unit_price": 0.03,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/stable-audio-25/text-to-audio": {
+      "unit_price": 0.2,
+      "billing_unit": "audios",
+      "currency": "USD"
+    },
+    "fal-ai/lyria2": {
+      "unit_price": 0.1,
+      "billing_unit": "30 seconds",
+      "currency": "USD"
+    },
+    "cassetteai/sound-effects-generator": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "cassetteai/music-generator": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro/hindi": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro/british-english": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro/american-english": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/zonos": {
+      "unit_price": 0.05,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro/italian": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro/brazilian-portuguese": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro/french": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro/japanese": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro/mandarin-chinese": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/kokoro/spanish": {
+      "unit_price": 0.02,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/yue": {
+      "unit_price": 0.05,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/mmaudio-v2/text-to-audio": {
+      "unit_price": 0.001,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax-music": {
+      "unit_price": 0.035,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/minimax-music/v2.5": {
+      "unit_price": 0.15,
+      "billing_unit": "audios",
+      "currency": "USD"
+    },
+    "fal-ai/minimax-music/v2.6": {
+      "unit_price": 0.15,
+      "billing_unit": "audios",
+      "currency": "USD"
+    },
+    "fal-ai/flux/dev": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux/schnell": {
+      "unit_price": 0.003,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1.1": {
+      "unit_price": 0.04,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1.1-ultra": {
+      "unit_price": 0.06,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-lora": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2/turbo": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/recraft-v3": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/stable-diffusion-v35-large": {
+      "unit_price": 0.065,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/new": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/turbo": {
+      "unit_price": 0.008,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/flash": {
+      "unit_price": 0.00167,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v3": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/omnigen-v1": {
+      "unit_price": 0.1,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/sana": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-image/v3/instruct/text-to-image": {
+      "unit_price": 0.09,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-max/text-to-image": {
+      "unit_price": 0.075,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-2512": {
+      "unit_price": 0.02,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-2512/lora": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/base": {
+      "unit_price": 0.01,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/base/lora": {
+      "unit_price": 0.012,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/turbo": {
+      "unit_price": 0.005,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/z-image/turbo/lora": {
+      "unit_price": 0.0085,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/4b": {
+      "unit_price": 0.009,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/4b/base": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/4b/base/lora": {
+      "unit_price": 0.016,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/9b": {
+      "unit_price": 0.011,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/9b/base": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2/klein/9b/base/lora": {
+      "unit_price": 0.02,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-max": {
+      "unit_price": 0.07,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/glm-image": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/gpt-image-1.5": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "wan/v2.6/text-to-image": {
+      "unit_price": 0.00007,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-image": {
+      "unit_price": 0.13,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedream/v4.5/text-to-image": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q2/text-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "imagineart/imagineart-1.5-pro-preview/text-to-image": {
+      "unit_price": 0.00007,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "bria/fibo-lite/generate": {
+      "unit_price": 0.036,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ovis-image": {
+      "unit_price": 0.012,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/sepia-vintage": {
+      "unit_price": 0.021,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/satellite-view-style": {
+      "unit_price": 0.021,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/realism": {
+      "unit_price": 0.021,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/hdr-style": {
+      "unit_price": 0.021,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/digital-comic-art": {
+      "unit_price": 0.021,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-lora-gallery/ballpoint-pen-sketch": {
+      "unit_price": 0.021,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-flex": {
+      "unit_price": 0.05,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/gemini-3-pro-image-preview": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/nano-banana-pro": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "imagineart/imagineart-1.5-preview/text-to-image": {
+      "unit_price": 0.00007,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/emu-3.5-image/text-to-image": {
+      "unit_price": 0.15,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo/generate": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/piflow": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/gpt-image-1-mini": {
+      "unit_price": 1,
+      "billing_unit": "credits",
+      "currency": "USD"
+    },
+    "fal-ai/reve/text-to-image": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-image/v3/text-to-image": {
+      "unit_price": 0.1,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/wan-25-preview/text-to-image": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/srpo": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-image/v2.1/text-to-image": {
+      "unit_price": 0.1,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedream/v4/text-to-image": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/gemini-25-flash-image": {
+      "unit_price": 0.0398,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/nano-banana": {
+      "unit_price": 0.0398,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/dreamina/v3.1/text-to-image": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/text-to-image/lora": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-5b/text-to-image": {
+      "unit_price": 0.016,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/text-to-image": {
+      "unit_price": 0.025,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image": {
+      "unit_price": 0.02,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-krea-lora": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/krea": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/sky-raccoon": {
+      "unit_price": 0.06,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-kontext-lora/text-to-image": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/omnigen-v2": {
+      "unit_price": 0.15,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedream/v3/text-to-image": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/schnell": {
+      "unit_price": 0.003,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-1/dev": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/kontext/max/text-to-image": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/kontext/text-to-image": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/bagel": {
+      "unit_price": 0.1,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/imagen4/preview/ultra": {
+      "unit_price": 0.06,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/dreamo": {
+      "unit_price": 0.05,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-lora/stream": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/image-01": {
+      "unit_price": 0.01,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/pony-v7": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/f-lite/standard": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/f-lite/texture": {
+      "unit_price": 0.025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/gpt-image-1/text-to-image": {
+      "unit_price": 1,
+      "billing_unit": "credits",
+      "currency": "USD"
+    },
+    "fal-ai/sana/v1.5/1.6b": {
+      "unit_price": 0.0075,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/sana/v1.5/4.8b": {
+      "unit_price": 0.01,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/sana/sprint": {
+      "unit_price": 0.0025,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "rundiffusion-fal/juggernaut-flux-lora": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "rundiffusion-fal/juggernaut-flux/base": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "rundiffusion-fal/juggernaut-flux/lightning": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "rundiffusion-fal/juggernaut-flux/pro": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "rundiffusion-fal/rundiffusion-photo-flux": {
+      "unit_price": 0.045,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/cogview4": {
+      "unit_price": 0.1,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2a": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/v2a/turbo": {
+      "unit_price": 0.025,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-control-lora-canny": {
+      "unit_price": 0.04,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-control-lora-depth": {
+      "unit_price": 0.04,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/imagen3/fast": {
+      "unit_price": 0.025,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/imagen3": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/lumina-image/v2": {
+      "unit_price": 0.075,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/janus": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-pro/v1.1-ultra-finetuned": {
+      "unit_price": 0.07,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/switti": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/switti/512": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/bria/text-to-image/base": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/bria/text-to-image/fast": {
+      "unit_price": 0.028,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/bria/text-to-image/hd": {
+      "unit_price": 0.04,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/recraft-20b": {
+      "unit_price": 0.0219,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/luma-photon/flash": {
+      "unit_price": 0.005,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/aura-flow": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/stable-diffusion-v35-medium": {
+      "unit_price": 0.02,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/flux-lora/inpainting": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/stable-diffusion-v3-medium": {
+      "unit_price": 0.035,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/fooocus/upscale-or-vary": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixart-sigma": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flux-subject": {
+      "unit_price": 0.04,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/sdxl-controlnet-union": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kolors": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/stable-cascade": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-sdxl": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/stable-cascade/sote-diffusion": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/lightning-models": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/playground-v25": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/realistic-vision": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/dreamshaper": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/stable-diffusion-v15": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/layer-diffusion": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-lightning-sdxl": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-fooocus-sdxl/image-to-image": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-sdxl-controlnet-canny": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-lcm-diffusion": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-fooocus-sdxl": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/illusion-diffusion": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fooocus/image-prompt": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fooocus/inpaint": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/lcm": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-image/o3/text-to-image": {
+      "unit_price": 0.028,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/fooocus": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/lora": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ernie-image": {
+      "unit_price": 0.03,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ernie-image/lora": {
+      "unit_price": 0.035,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ernie-image/lora/turbo": {
+      "unit_price": 0.015,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ernie-image/turbo": {
+      "unit_price": 0.01,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/nucleus-image": {
+      "unit_price": 0.01,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/nano-banana-2": {
+      "unit_price": 0.08,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-pro": {
+      "unit_price": 0.03,
+      "billing_unit": "processed megapixels",
+      "currency": "USD"
+    },
+    "openai/gpt-image-2": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "imagineart/imagineart-2.0-preview/text-to-image": {
+      "unit_price": 0.00007,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/custom-models/generate": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "bria/fibo-edit/edit/structured_instruction": {
+      "unit_price": 0.01,
+      "billing_unit": "requests",
+      "currency": "USD"
+    },
+    "bria/fibo-lite/generate/structured_prompt": {
+      "unit_price": 0.008,
+      "billing_unit": "requests",
+      "currency": "USD"
+    },
+    "bria/fibo/generate/structured_prompt": {
+      "unit_price": 0.01,
+      "billing_unit": "requests",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-3-tts/text-to-speech/1.7b": {
+      "unit_price": 0.09,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-3-tts/text-to-speech/0.6b": {
+      "unit_price": 0.07,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-3-tts/voice-design/1.7b": {
+      "unit_price": 0.09,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/vibevoice/0.5b": {
+      "unit_price": 0.02,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/speech-2.6-hd": {
+      "unit_price": 0.1,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/speech-2.6-turbo": {
+      "unit_price": 0.06,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/maya/batch": {
+      "unit_price": 0.002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/maya/stream": {
+      "unit_price": 0.002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/index-tts-2/text-to-speech": {
+      "unit_price": 0.002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1/tts": {
+      "unit_price": 0.007,
+      "billing_unit": "generations",
+      "currency": "USD"
+    },
+    "fal-ai/chatterbox/text-to-speech/multilingual": {
+      "unit_price": 0.025,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/vibevoice/7b": {
+      "unit_price": 0.04,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/vibevoice": {
+      "unit_price": 0.04,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/preview/speech-2.5-hd": {
+      "unit_price": 0.1,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/preview/speech-2.5-turbo": {
+      "unit_price": 0.06,
+      "billing_unit": "1000 characters ",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/voice-design": {
+      "unit_price": 3,
+      "billing_unit": "cloned voices",
+      "currency": "USD"
+    },
+    "resemble-ai/chatterboxhd/text-to-speech": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/chatterbox/text-to-speech": {
+      "unit_price": 0.025,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/voice-clone": {
+      "unit_price": 1.5,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/speech-02-turbo": {
+      "unit_price": 0.06,
+      "billing_unit": "1000 characters ",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/speech-02-hd": {
+      "unit_price": 0.1,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/dia-tts": {
+      "unit_price": 0.04,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/orpheus-tts": {
+      "unit_price": 0.05,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/elevenlabs/tts/turbo-v2.5": {
+      "unit_price": 0.05,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/gemini-3.1-flash-tts": {
+      "unit_price": 0.15,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video": {
+      "unit_price": 0.4,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/cogvideox-5b": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/fast-animatediff/text-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-animatediff/turbo/text-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/animatediff-sparsectrl-lcm": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "veed/avatars/text-to-video": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "argil/avatars/text-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedance/v1.5/pro/text-to-video": {
+      "unit_price": 1.2,
+      "billing_unit": "1m tokens",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video": {
+      "unit_price": 1,
+      "billing_unit": "1m tokens",
+      "currency": "USD"
+    },
+    "veed/fabric-1.0/text": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video": {
+      "unit_price": 0.02,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1/standard/text-to-video": {
+      "unit_price": 0.045,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/mochi-v1": {
+      "unit_price": 0.4,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/t2v-turbo": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine": {
+      "unit_price": 0.5,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/luma-photon": {
+      "unit_price": 0.019,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5.6/text-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/text-to-video/lora": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/text-to-video": {
+      "unit_price": 0.0008,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/text-to-video/lora": {
+      "unit_price": 0.002,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/text-to-video": {
+      "unit_price": 0.0018,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/kandinsky5-pro/text-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "wan/v2.6/text-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v2.6/pro/text-to-video": {
+      "unit_price": 0.07,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5.5/text-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2/text-to-video/fast": {
+      "unit_price": 0.04,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2/text-to-video": {
+      "unit_price": 0.06,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video-v1.5/text-to-video": {
+      "unit_price": 0.075,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/infinity-star/text-to-video": {
+      "unit_price": 0.07,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/sana-video": {
+      "unit_price": 0.15,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-video/text-to-video/720p": {
+      "unit_price": 0.04,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-video/text-to-video/480p": {
+      "unit_price": 0.025,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-video/distilled/text-to-video/720p": {
+      "unit_price": 0.01,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/longcat-video/distilled/text-to-video/480p": {
+      "unit_price": 0.005,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/hailuo-2.3/standard/text-to-video": {
+      "unit_price": 0.28,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/hailuo-2.3/pro/text-to-video": {
+      "unit_price": 0.49,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q2/text-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/krea-wan-14b/text-to-video": {
+      "unit_price": 0.025,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-alpha": {
+      "unit_price": 0.04,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kandinsky5/text-to-video/distill": {
+      "unit_price": 0.05,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kandinsky5/text-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/veo3.1/fast": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3.1": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sora-2/text-to-video/pro": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sora-2/text-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ovi": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/wan-25-preview/text-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v5/text-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/infinitalk/single-text": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "moonvalley/marey/t2v": {
+      "unit_price": 1.5,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/text-to-video/lora": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-5b/text-to-video/distill": {
+      "unit_price": 0.08,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-5b/text-to-video/fast-wan": {
+      "unit_price": 0.025,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/text-to-video/turbo": {
+      "unit_price": 0.1,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-5b/text-to-video": {
+      "unit_price": 0.15,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/text-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltxv-13b-098-distilled": {
+      "unit_price": 0.02,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/hailuo-02/pro/text-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedance/v1/pro/text-to-video": {
+      "unit_price": 2.5,
+      "billing_unit": "1m tokens",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance/seedance/v1/lite/text-to-video": {
+      "unit_price": 1,
+      "billing_unit": "1m tokens",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v2.1/master/text-to-video": {
+      "unit_price": 0.28,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-13b-dev": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-13b-distilled": {
+      "unit_price": 0.04,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4.5/text-to-video/fast": {
+      "unit_price": 0.1,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4.5/text-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q1/text-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "credits",
+      "currency": "USD"
+    },
+    "fal-ai/magi": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/magi-distilled": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4/text-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v4/text-to-video/fast": {
+      "unit_price": 0.1,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/lipsync/audio-to-video": {
+      "unit_price": 0.014,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/lipsync/text-to-video": {
+      "unit_price": 0.014,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/wan-t2v-lora": {
+      "unit_price": 0.75,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine/ray-2-flash": {
+      "unit_price": 0.2,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v2.1/text-to-video": {
+      "unit_price": 0.4,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v2.2/text-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v2/turbo/text-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/wan-pro/text-to-video": {
+      "unit_price": 0.8,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.6/pro/effects": {
+      "unit_price": 0.098,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.6/standard/effects": {
+      "unit_price": 0.056,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.5/pro/effects": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1/standard/effects": {
+      "unit_price": 0.045,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-v095": {
+      "unit_price": 0.04,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.6/pro/text-to-video": {
+      "unit_price": 0.098,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-t2v": {
+      "unit_price": 0.4,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/veo2": {
+      "unit_price": 0.5,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/video-01-director": {
+      "unit_price": 0.5,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v3.5/text-to-video": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/v3.5/text-to-video/fast": {
+      "unit_price": 0.1,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine/ray-2": {
+      "unit_price": 0.5,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video-lora": {
+      "unit_price": 0.4,
+      "billing_unit": "",
+      "currency": "USD"
+    },
+    "fal-ai/transpixar": {
+      "unit_price": 0.4,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.6/standard/text-to-video": {
+      "unit_price": 0.056,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/video-01-live": {
+      "unit_price": 0.5,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v1.5/pro/text-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-svd/text-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-svd-lcm/text-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/minimax/video-01": {
+      "unit_price": 0.5,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v3/standard/text-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v3/pro/text-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/standard/text-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/pro/text-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "bytedance/seedance-2.0/text-to-video": {
+      "unit_price": 0.014,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "bytedance/seedance-2.0/fast/text-to-video": {
+      "unit_price": 0.0112,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "alibaba/happy-horse/text-to-video": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/4k/text-to-video": {
+      "unit_price": 0.42,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v3/4k/text-to-video": {
+      "unit_price": 0.42,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/heygen/v3/video-agent": {
+      "unit_price": 0.034,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/z-image-base-trainer": {
+      "unit_price": 0.00085,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/z-image-turbo-trainer-v2": {
+      "unit_price": 0.00085,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-klein-9b-base-trainer/edit": {
+      "unit_price": 0.008,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-klein-9b-base-trainer": {
+      "unit_price": 0.0086,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-klein-4b-base-trainer": {
+      "unit_price": 0.005,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-klein-4b-base-trainer/edit": {
+      "unit_price": 0.0046,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-2512-trainer-v2": {
+      "unit_price": 0.00095,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-trainer-v2/edit": {
+      "unit_price": 0.0226,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-trainer-v2": {
+      "unit_price": 0.0255,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/ltx2-video-trainer": {
+      "unit_price": 0.0048,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-2512-trainer": {
+      "unit_price": 0.0015,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-2511-trainer": {
+      "unit_price": 0.004,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-layered-trainer": {
+      "unit_price": 0.00425,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/z-image-trainer": {
+      "unit_price": 0.00226,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-trainer/edit": {
+      "unit_price": 0.009,
+      "billing_unit": "train units",
+      "currency": "USD"
+    },
+    "fal-ai/flux-2-trainer": {
+      "unit_price": 0.008,
+      "billing_unit": "train units",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-plus-trainer": {
+      "unit_price": 0.004,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-edit-trainer": {
+      "unit_price": 0.004,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-image-trainer": {
+      "unit_price": 0.002,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/wan-22-image-trainer": {
+      "unit_price": 0.0045,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/wan-trainer/t2v": {
+      "unit_price": 0.005,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/wan-trainer/t2v-14b": {
+      "unit_price": 0.005,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/wan-trainer/i2v-720p": {
+      "unit_price": 0.005,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/wan-trainer/flf2v-720p": {
+      "unit_price": 0.005,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-trainer": {
+      "unit_price": 0.002,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/recraft/v3/create-style": {
+      "unit_price": 0.04,
+      "billing_unit": "trainings",
+      "currency": "USD"
+    },
+    "fal-ai/turbo-flux-trainer": {
+      "unit_price": 0.0024,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/wan-trainer": {
+      "unit_price": 0.005,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video-lora-training": {
+      "unit_price": 0.005,
+      "billing_unit": "steps",
+      "currency": "USD"
+    },
+    "fal-ai/ideogram/custom-models": {
+      "unit_price": 40,
+      "billing_unit": "trainings",
+      "currency": "USD"
+    },
+    "fal-ai/ernie-image-trainer": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/workflow-utilities/interleave-video": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-3-tts/clone-voice/1.7b": {
+      "unit_price": 0.0008,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/qwen-3-tts/clone-voice/0.6b": {
+      "unit_price": 0.0007,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "openrouter/router/audio": {
+      "unit_price": 0.01,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/sam-audio/visual-separate": {
+      "unit_price": 0.05,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "mirelo-ai/sfx-v1.5/video-to-audio": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/video-to-audio": {
+      "unit_price": 0.035,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "mirelo-ai/sfx-v1/video-to-audio": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "openrouter/router/video/enterprise": {
+      "unit_price": 0.01,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "openrouter/router/video": {
+      "unit_price": 0.01,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "nvidia/nemotron-3-nano-omni/video": {
+      "unit_price": 0.006,
+      "billing_unit": "1000 tokens",
+      "currency": "USD"
+    },
+    "fal-ai/amt-interpolation": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-animatediff/video-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/fast-animatediff/turbo/video-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/auto-caption": {
+      "unit_price": 0.1,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ben/v2/video": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/birefnet/v2/video": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/cogvideox-5b/video-to-video": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video/video-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/video-upscaler": {
+      "unit_price": 0.0008,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ccsr": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/video-to-video/lora": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/video-to-video": {
+      "unit_price": 0.0008,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/video-to-video/lora": {
+      "unit_price": 0.002,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/video-to-video": {
+      "unit_price": 0.0018,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/extend-video/lora": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/distilled/extend-video": {
+      "unit_price": 0.0008,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/extend-video/lora": {
+      "unit_price": 0.002,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2-19b/extend-video": {
+      "unit_price": 0.0018,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "bria/video/erase/keypoints": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "bria/video/erase/prompt": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "bria/video/erase/mask": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/lightx/relight": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/lightx/recamera": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v2.6/standard/motion-control": {
+      "unit_price": 0.07,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/v2.6/pro/motion-control": {
+      "unit_price": 0.112,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "decart/lucy-restyle": {
+      "unit_price": 0.01,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/scail": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "clarityai/crystal-video-upscaler": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "wan/v2.6/reference-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3.1/fast/extend-video": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/veo3.1/extend-video": {
+      "unit_price": 0.4,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o1/standard/video-to-video/reference": {
+      "unit_price": 0.126,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o1/standard/video-to-video/edit": {
+      "unit_price": 0.126,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/standard/video-to-video/reference": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/standard/video-to-video/edit": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/pro/video-to-video/reference": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o3/pro/video-to-video/edit": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/steady-dancer": {
+      "unit_price": 0.1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/one-to-all-animation/1.3b": {
+      "unit_price": 0.03,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/one-to-all-animation/14b": {
+      "unit_price": 0.06,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vision-enhancer": {
+      "unit_price": 0.06,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sync-lipsync/react-1": {
+      "unit_price": 10,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "veed/video-background-removal/fast": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o1/video-to-video/edit": {
+      "unit_price": 0.168,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/kling-video/o1/video-to-video/reference": {
+      "unit_price": 0.168,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "veed/video-background-removal": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "veed/video-background-removal/green-screen": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2/retake-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "decart/lucy-edit/fast": {
+      "unit_price": 0.04,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sam-3/video-rle": {
+      "unit_price": 0.005,
+      "billing_unit": "16 frames",
+      "currency": "USD"
+    },
+    "fal-ai/sam-3/video": {
+      "unit_price": 0.005,
+      "billing_unit": "16 frames",
+      "currency": "USD"
+    },
+    "fal-ai/editto": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/flashvsr/upscale/video": {
+      "unit_price": 0.0005,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/workflow-utilities/auto-subtitle": {
+      "unit_price": 0.03,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/bytedance-upscaler/upscale/video": {
+      "unit_price": 0.0072,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/video-as-prompt": {
+      "unit_price": 1,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/vidu/q2/video-extension/pro": {
+      "unit_price": 0.075,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "mirelo-ai/sfx-v1.5/video-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/krea-wan-14b/video-to-video": {
+      "unit_price": 0.025,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sora-2/video-to-video/remix": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vace-apps/long-reframe": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/infinitalk/video-to-video": {
+      "unit_price": 0.3,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/seedvr/upscale/video": {
+      "unit_price": 0.001,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vace-apps/video-edit": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-14b/animate/replace": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-14b/animate/move": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "decart/lucy-edit/pro": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "decart/lucy-edit/dev": {
+      "unit_price": 0.03,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-22-vace-fun-a14b/reframe": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-22-vace-fun-a14b/outpainting": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-22-vace-fun-a14b/inpainting": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-22-vace-fun-a14b/depth": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-22-vace-fun-a14b/pose": {
+      "unit_price": 0.15,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video-foley": {
+      "unit_price": 0.1,
+      "billing_unit": "10 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sync-lipsync/v2/pro": {
+      "unit_price": 5,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/wan-fun-control": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "bria/video/increase-resolution": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/infinitalk": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "mirelo-ai/sfx-v1/video-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "moonvalley/marey/pose-transfer": {
+      "unit_price": 2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "moonvalley/marey/motion-transfer": {
+      "unit_price": 2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ffmpeg-api/merge-videos": {
+      "unit_price": 0.00017,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan/v2.2-a14b/video-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltxv-13b-098-distilled/extend": {
+      "unit_price": 0.02,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/rife/video": {
+      "unit_price": 0.0013,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/film/video": {
+      "unit_price": 0.0013,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine/ray-2-flash/modify": {
+      "unit_price": 0.12,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltxv-13b-098-distilled/multiconditioning": {
+      "unit_price": 0.02,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/sound-effects": {
+      "unit_price": 0.1,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/thinksound/audio": {
+      "unit_price": 0.001,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/thinksound": {
+      "unit_price": 0.001,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/extend/fast": {
+      "unit_price": 0.1,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/extend": {
+      "unit_price": 0.05,
+      "billing_unit": "video segments",
+      "currency": "USD"
+    },
+    "fal-ai/pixverse/lipsync": {
+      "unit_price": 0.04,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine/ray-2/modify": {
+      "unit_price": 0.35,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vace-14b/reframe": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vace-14b/outpainting": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vace-14b/inpainting": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vace-14b/pose": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vace-14b/depth": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/dwpose/video": {
+      "unit_price": 0.0006,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ffmpeg-api/merge-audio-video": {
+      "unit_price": 0.0002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine/ray-2-flash/reframe": {
+      "unit_price": 0.06,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/luma-dream-machine/ray-2/reframe": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "veed/lipsync": {
+      "unit_price": 0.000575,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vace-14b": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-13b-distilled/extend": {
+      "unit_price": 0.04,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-13b-distilled/multiconditioning": {
+      "unit_price": 0.04,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-13b-dev/multiconditioning": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-13b-dev/extend": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-lora/multiconditioning": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/magi/extend-video": {
+      "unit_price": 0.2,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/magi-distilled/extend-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/wan-vace": {
+      "unit_price": 0.2,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "cassetteai/video-sound-effects-generator": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sync-lipsync/v2": {
+      "unit_price": 3,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/latentsync": {
+      "unit_price": 0.005,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/pika/v2/pikadditions": {
+      "unit_price": 0.465,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-v095/extend": {
+      "unit_price": 0.04,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-video-v095/multiconditioning": {
+      "unit_price": 0.04,
+      "billing_unit": "videos",
+      "currency": "USD"
+    },
+    "fal-ai/topaz/upscale/video": {
+      "unit_price": 0.01,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/hunyuan-video-lora/video-to-video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ffmpeg-api/compose": {
+      "unit_price": 0.0002,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sync-lipsync": {
+      "unit_price": 0.7,
+      "billing_unit": "minutes",
+      "currency": "USD"
+    },
+    "fal-ai/dubbing": {
+      "unit_price": 1,
+      "billing_unit": "minute of video ",
+      "currency": "USD"
+    },
+    "fal-ai/controlnext": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sam2/video": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "alibaba/happy-horse/video-edit": {
+      "unit_price": 0.14,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/heygen/v3/lipsync/speed": {
+      "unit_price": 0.05,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/heygen/v3/lipsync/precision": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2.3-22b/distilled/reference-video-to-video": {
+      "unit_price": 0.001205,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2.3-22b/distilled/reference-video-to-video/lora": {
+      "unit_price": 0.001405,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2.3-22b/reference-video-to-video": {
+      "unit_price": 0.001605,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/ltx-2.3-22b/reference-video-to-video/lora": {
+      "unit_price": 0.001805,
+      "billing_unit": "megapixels",
+      "currency": "USD"
+    },
+    "fal-ai/void-video-inpainting": {
+      "unit_price": 0.05,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/arbiter/image/text": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/arbiter/image/image": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/arbiter/image": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/region-to-description": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/ocr": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/more-detailed-caption": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/region-to-category": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/caption": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/florence-2-large/detailed-caption": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sam-3/image/embed": {
+      "unit_price": 0.005,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "openrouter/router/vision": {
+      "unit_price": 0.01,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/moondream3-preview/detect": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/moondream3-preview/point": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/moondream3-preview/query": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/moondream3-preview/caption": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "perceptron/isaac-01/openai/v1/chat/completions": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "perceptron/isaac-01": {
+      "unit_price": 1,
+      "billing_unit": "units",
+      "currency": "USD"
+    },
+    "fal-ai/x-ailab/nsfw": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/video-understanding": {
+      "unit_price": 0.01,
+      "billing_unit": "5 seconds",
+      "currency": "USD"
+    },
+    "fal-ai/moondream2/visual-query": {
+      "unit_price": 0.01,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/moondream2": {
+      "unit_price": 0.01,
+      "billing_unit": "1000 characters",
+      "currency": "USD"
+    },
+    "fal-ai/moondream2/point-object-detection": {
+      "unit_price": 0.02,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/moondream2/object-detection": {
+      "unit_price": 0.02,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/got-ocr/v2": {
+      "unit_price": 0.05,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/moondream-next/batch": {
+      "unit_price": 0.0011,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sa2va/4b/video": {
+      "unit_price": 0.04,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sa2va/8b/video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/sa2va/4b/image": {
+      "unit_price": 0.02,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/sa2va/8b/image": {
+      "unit_price": 0.04,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/moondream-next": {
+      "unit_price": 0.0011,
+      "billing_unit": "seconds",
+      "currency": "USD"
+    },
+    "fal-ai/imageutils/nsfw": {
+      "unit_price": 0.001,
+      "billing_unit": "images",
+      "currency": "USD"
+    },
+    "fal-ai/moondream/batched": {
+      "unit_price": 0.00111,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "fal-ai/llava-next": {
+      "unit_price": 0.00125,
+      "billing_unit": "compute seconds",
+      "currency": "USD"
+    },
+    "nvidia/nemotron-3-nano-omni/vision": {
+      "unit_price": 0.006,
+      "billing_unit": "1000 tokens",
+      "currency": "USD"
+    }
+  }
+}

@@ -1,18 +1,14 @@
 import React, { memo, useCallback, useState } from "react";
 import {
-  IconButton,
-  Chip,
-  Box,
   DialogTitle,
   DialogContent
 } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, FlexRow, ToolbarIconButton, Chip, Dialog } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CloseIcon from "@mui/icons-material/Close";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeTestResult } from "./useNodeTestRunner";
 import OutputRenderer from "../node/OutputRenderer";
-import { Dialog } from "../ui_primitives";
 
 const STATUS_COLORS: Record<
   string,
@@ -56,19 +52,18 @@ function NodeTestRowInner({
 
   return (
     <div style={{ ...style, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-      <Box
+      <FlexRow
+        gap={1}
+        align="center"
         sx={{
-          display: "flex",
-          alignItems: "center",
           height: 48,
           px: 1,
-          gap: 1,
           cursor: hasOutput ? "pointer" : "default",
           "&:hover": { bgcolor: "action.hover" }
         }}
         onClick={handleRowClick}
       >
-        <IconButton
+        <ToolbarIconButton
           size="small"
           aria-label="Run test"
           onClick={(e) => {
@@ -77,9 +72,8 @@ function NodeTestRowInner({
           }}
           disabled={status === "running" || status === "queued"}
           sx={{ width: 32, height: 32 }}
-        >
-          <PlayArrowIcon fontSize="small" />
-        </IconButton>
+          icon={<PlayArrowIcon fontSize="small" />}
+        />
 
         <Text
           size="small"
@@ -162,7 +156,7 @@ function NodeTestRowInner({
                 })()
               : ""}
         </Text>
-      </Box>
+      </FlexRow>
 
       {modalOpen && hasOutput && (
         <Dialog open={modalOpen} onClose={handleClose} maxWidth="md" fullWidth>
@@ -184,7 +178,7 @@ function NodeTestRowInner({
                 {metadata.node_type}
               </Text>
             </span>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FlexRow gap={1} align="center">
               {result?.durationMs && (
                 <Chip
                   label={`${result.durationMs}ms`}
@@ -192,10 +186,13 @@ function NodeTestRowInner({
                   color={STATUS_COLORS[status]}
                 />
               )}
-              <IconButton size="small" onClick={handleClose} aria-label="Close dialog">
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Box>
+              <ToolbarIconButton
+                size="small"
+                onClick={handleClose}
+                aria-label="Close dialog"
+                icon={<CloseIcon fontSize="small" />}
+              />
+            </FlexRow>
           </DialogTitle>
           <DialogContent sx={{ minHeight: 200 }}>
             {result?.error ? (

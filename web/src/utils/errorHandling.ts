@@ -2,7 +2,6 @@ export class AppError extends Error {
   constructor(message: string, public detail?: string) {
     super(message);
     this.name = "AppError";
-    this.detail = detail;
   }
 }
 

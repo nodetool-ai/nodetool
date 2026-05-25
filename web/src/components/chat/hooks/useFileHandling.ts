@@ -124,8 +124,8 @@ export const useFileHandling = () => {
     [addNotification]
   );
 
-  const removeFile = useCallback((index: number) => {
-    setDroppedFiles((files) => files.filter((_, i) => i !== index));
+  const removeFile = useCallback((id: string) => {
+    setDroppedFiles((files) => files.filter((f) => f.id !== id));
   }, []);
 
   const clearFiles = useCallback(() => {

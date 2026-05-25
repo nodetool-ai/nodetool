@@ -4,8 +4,9 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
 import { useCombo } from "../../stores/KeyPressedStore";
-import { Box, useMediaQuery } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
+import { useShallow } from "zustand/react/shallow";
 import Help from "../content/Help/Help";
 import SettingsButton from "../menus/SettingsButton";
 import SystemStatsDisplay from "./SystemStats";
@@ -13,7 +14,7 @@ import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 import { isProduction } from "../../lib/env";
 import { ThemeToggleButton } from "../ui_primitives/ThemeToggleButton";
-import { HelpButton } from "../ui_primitives";
+import { HelpButton, Box } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -39,11 +40,15 @@ const styles = (theme: Theme) =>
 const RightSideButtons: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const helpOpen = useAppHeaderStore((state) => state.helpOpen);
-  const handleCloseHelp = useAppHeaderStore((state) => state.handleCloseHelp);
-  const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
-
-  const setHelpIndex = useAppHeaderStore((state) => state.setHelpIndex);
+  const { helpOpen, handleCloseHelp, handleOpenHelp, setHelpIndex } =
+    useAppHeaderStore(
+      useShallow((state) => ({
+        helpOpen: state.helpOpen,
+        handleCloseHelp: state.handleCloseHelp,
+        handleOpenHelp: state.handleOpenHelp,
+        setHelpIndex: state.setHelpIndex
+      }))
+    );
 
   const handleHelpClick = useCallback(() => {
     handleOpenHelp();

@@ -9,7 +9,7 @@ export type GraphNode = Node;
 export type GraphEdge = Edge;
 export type InlineGraph = WorkflowGraph;
 
-export interface InlineGraphJobOptions {
+interface InlineGraphJobOptions {
   graph: InlineGraph;
   params?: Record<string, unknown>;
   signal?: AbortSignal;
@@ -17,21 +17,10 @@ export interface InlineGraphJobOptions {
 }
 
 /** Result shape consumed by sketch `WebSocketNodeExecutor`. */
-export interface InlineGraphJobResult {
+interface InlineGraphJobResult {
   success: boolean;
   outputs: Record<string, unknown>;
   error?: string;
-}
-
-function normalizeGraph(graph: InlineGraph): WorkflowGraph {
-  return {
-    nodes: graph.nodes.map((node) => ({
-      ...node,
-      sync_mode:
-        typeof node.sync_mode === "string" ? node.sync_mode : "on_any"
-    })),
-    edges: graph.edges
-  };
 }
 
 function mergeOutputsRecord(
@@ -67,7 +56,6 @@ export async function runInlineGraphJob(
     user_id = session?.user?.id ?? "";
   }
 
-  const normalized = normalizeGraph(graph);
   const outputs: Record<string, unknown> = {};
   let settled = false;
 
@@ -193,7 +181,7 @@ export async function runInlineGraphJob(
         api_url: BASE_URL,
         params,
         explicit_types: false,
-        graph: normalized
+        graph
       }
     });
   } catch (err) {

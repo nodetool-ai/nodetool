@@ -432,7 +432,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
         listWidth,
         expandedKeys.has(rowKeys[index])
       ),
-    overscan: 5,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => rowKeys[index] ?? index,
   });
 

@@ -99,7 +99,7 @@ export const ACTION_REGISTRY: readonly ActionMeta[] = [
   { id: "tool-pencil", label: "Pencil", displayGroup: "Tools" },
   { id: "tool-eraser", label: "Eraser", displayGroup: "Tools" },
   { id: "tool-fill", label: "Fill", displayGroup: "Tools" },
-  { id: "tool-eyedropper", label: "Eyedropper", displayGroup: "Tools" },
+  { id: "tool-eyedropper", label: "Color Picker", displayGroup: "Tools" },
   { id: "tool-blur", label: "Blur", displayGroup: "Tools" },
   { id: "tool-clone-stamp", label: "Clone Stamp", displayGroup: "Tools" },
   { id: "tool-adjust", label: "Adjustments", displayGroup: "Tools" },

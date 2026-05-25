@@ -1,7 +1,7 @@
 /**
  * AgentTransport — abstract bridge between the agent runtime and a renderer.
  *
- * The agent runtime (Claude/Codex/OpenCode SDKs) needs to:
+ * The agent runtime (Pi SDK, in-house LLM) needs to:
  *   1. Stream agent messages back to the renderer.
  *   2. Ask the renderer for the available frontend-tool manifest.
  *   3. Ask the renderer to execute a frontend tool and await its result.

@@ -13,9 +13,11 @@ export interface FieldDef {
     | "image"
     | "audio"
     | "video"
+    | "list[str]"
     | "list[image]"
     | "list[video]"
-    | "list[audio]";
+    | "list[audio]"
+    | "video_clip_list";
   default?: unknown;
   title?: string;
   description?: string;
@@ -31,6 +33,8 @@ export interface NodeConfig {
   title: string;
   description: string;
   outputType: "image" | "audio" | "video" | "text";
+  /** Override module for manifest routing (e.g. Omni text nodes in video module). */
+  moduleName?: ModuleConfig["moduleName"];
   /** Polling interval in ms. Default: 2000 (image), 4000 (suno), 8000 (video). */
   pollInterval?: number;
   /** Max poll attempts. Default: 200 (image), 120 (suno), 450 (video). */
@@ -39,6 +43,13 @@ export interface NodeConfig {
   useSuno?: boolean;
   /** Optional Suno submit endpoint for direct Suno APIs. */
   sunoEndpoint?: string;
+  /** Sync omni endpoint, e.g. /api/v1/omni/audio/create */
+  useOmniDirect?: boolean;
+  submitEndpoint?: string;
+  /** Key on response.data for sync omni path, e.g. audioId */
+  responseIdKey?: string;
+  /** Extract this key from resultJson.resultObject (createTask polled text path) */
+  resultObjectKey?: string;
   /** Fields beyond the standard timeout_seconds. */
   fields: FieldDef[];
   /** Fields that need uploadImageInput/uploadAudioInput/uploadVideoInput. */
@@ -47,6 +58,8 @@ export interface NodeConfig {
     kind: "image" | "audio" | "video";
     /** If true, field is a list and each item is uploaded. */
     isList?: boolean;
+    /** Build video_list clip objects { url, start, ends } instead of URL arrays. */
+    isVideoClip?: boolean;
     /** Parameter name in the API payload. Default: field + "_url". */
     paramName?: string;
     /**

@@ -47,7 +47,6 @@ export class ExtractLinksLibNode extends BaseNode {
 
   static readonly inlineFields = ["base_url"];
   static readonly inputFields = ["html"];
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "",
@@ -117,7 +116,6 @@ export class ExtractImagesLibNode extends BaseNode {
 
   static readonly inlineFields = ["base_url"];
   static readonly inputFields = ["html"];
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "",
@@ -181,7 +179,6 @@ export class ExtractAudioLibNode extends BaseNode {
 
   static readonly inlineFields = ["base_url"];
   static readonly inputFields = ["html"];
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "",
@@ -247,7 +244,6 @@ export class ExtractVideosLibNode extends BaseNode {
 
   static readonly inlineFields = ["base_url"];
   static readonly inputFields = ["html"];
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "",

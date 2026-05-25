@@ -63,6 +63,14 @@ jest.mock("../TimelineAssetPanel", () => ({
     React.createElement("div", { "data-testid": "timeline-asset-panel" }, "Assets")
 }));
 
+// TopBarPrompt pulls in ImageModelSelect → useImageModelsByProvider, which
+// calls TanStack Query. The editor shell tests don't render a
+// QueryClientProvider, so swap it for a no-op.
+jest.mock("../TopBarPrompt", () => ({
+  TopBarPrompt: () =>
+    React.createElement("div", { "data-testid": "topbar-prompt" }, "Prompt")
+}));
+
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   useTimeline,

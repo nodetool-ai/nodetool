@@ -67,12 +67,24 @@ export {
   BRIDGE_PROTOCOL_VERSION,
   MIN_NODETOOL_CORE_VERSION
 } from "@nodetool-ai/protocol/bridge-protocol";
+export {
+  encodeRawRgbaToPng,
+  encodeRawImageRef
+} from "./image-codec.js";
 export { PythonNodeExecutor } from "./python-node-executor.js";
+export { logPythonWorkerStderr } from "./python-worker-stderr.js";
 export {
   type NodeExecutor,
   type StreamingInputs,
-  type StreamingOutputs
+  type StreamingOutputs,
+  type MessageEnvelopeLike
 } from "./node-executor.js";
+export {
+  createFakeContext,
+  stubGlobalFetch,
+  type FakeContextHandle,
+  type FakeContextOptions
+} from "./testing.js";
 export { executeComfy } from "./comfy-executor.js";
 export type {
   ComfyExecutorResult,

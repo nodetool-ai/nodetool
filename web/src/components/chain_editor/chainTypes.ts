@@ -113,7 +113,6 @@ export function chainToGraph(
       position: { x: 0, y: index * 200 },
       width: 280,
     },
-    sync_mode: "zip_all",
   }));
 
   const edges: Edge[] = connections.map((c, i) => ({

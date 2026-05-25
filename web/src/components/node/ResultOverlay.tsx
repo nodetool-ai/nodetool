@@ -1,16 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useCallback, memo } from "react";
-import { Caption, FlexColumn, Divider, ToolbarIconButton, NotificationBadge } from "../ui_primitives";
-import { useTheme } from "@mui/material/styles";
-import HistoryIcon from "@mui/icons-material/History";
+import React, { memo } from "react";
+import { Caption, FlexColumn } from "../ui_primitives";
 import OutputRenderer from "./OutputRenderer";
-import NodeHistoryPanel from "./NodeHistoryPanel";
-import { useNodeResultHistoryStore, EMPTY_HISTORY } from "../../stores/NodeResultHistoryStore";
 import { typeFor } from "./output";
 
-/**
- * Returns a short display label for the result type.
- */
 function resultTypeLabel(value: unknown): string {
   if (value === null || value === undefined) return "";
   const type = typeFor(value);
@@ -40,34 +33,20 @@ interface ResultOverlayProps {
 }
 
 /**
- * ResultOverlay component displays the node's result output.
- * Shows accumulated session results and provides access to full history.
+ * ResultOverlay — renders a node's live (in-memory) output via the generic
+ * OutputRenderer. Persisted history navigation lives in the ContentCardBody
+ * via NodeHistoryViewer; this overlay stays minimal for legacy node types.
  */
-const ResultOverlay: React.FC<ResultOverlayProps> = ({
-  result,
-  nodeId,
-  workflowId,
-  nodeName
-}) => {
-  const theme = useTheme();
-  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+const ResultOverlay: React.FC<ResultOverlayProps> = ({ result }) => {
+  const unwrapped =
+    typeof result === "object" &&
+    result !== null &&
+    "output" in result &&
+    (result as Record<string, unknown>).output !== undefined
+      ? (result as Record<string, unknown>).output
+      : result;
 
-  // Get session history for this node
-  const sessionHistory = useNodeResultHistoryStore((state) =>
-    workflowId && nodeId ? state.getHistory(workflowId, nodeId) : EMPTY_HISTORY
-  );
-
-  const handleOpenHistory = useCallback(() => {
-    setHistoryDialogOpen(true);
-  }, []);
-
-  const handleCloseHistory = useCallback(() => {
-    setHistoryDialogOpen(false);
-  }, []);
-
-  // If we have session history, display all results from the current session
-  const hasSessionHistory = sessionHistory.length > 0;
-  const resultsToDisplay = hasSessionHistory ? sessionHistory : [{ result, timestamp: Date.now(), status: "completed", jobId: null }];
+  const typeLabel = resultTypeLabel(unwrapped);
 
   return (
     <FlexColumn
@@ -81,45 +60,6 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
         flex: 1
       }}
     >
-      {/* History button - visible when multiple results exist */}
-      {hasSessionHistory && sessionHistory.length > 1 && nodeId && workflowId && (
-        <ToolbarIconButton
-          title={`View History (${sessionHistory.length})`}
-          size="small"
-          onClick={handleOpenHistory}
-          sx={{
-            position: "absolute",
-            top: 4,
-            right: 8,
-            zIndex: 10,
-            width: 24,
-            height: 24,
-            padding: "4px",
-            borderRadius: "var(--rounded-sm)",
-            opacity: 0.6,
-            transition: "opacity 0.2s ease",
-            backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
-            color: theme.vars.palette.common.white,
-            "&:hover": {
-              opacity: 1,
-              backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
-            },
-            "& svg": {
-              fontSize: 14
-            }
-          }}
-        >
-          <NotificationBadge
-            count={sessionHistory.length}
-            color="primary"
-            max={99}
-          >
-            <HistoryIcon />
-          </NotificationBadge>
-        </ToolbarIconButton>
-      )}
-
-      {/* Render accumulated session results */}
       <FlexColumn
         className="result-overlay-content"
         fullWidth
@@ -135,63 +75,32 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
           }
         }}
       >
-        {resultsToDisplay.map((item, index) => {
-          const unwrapped =
-            typeof item.result === "object" &&
-            item.result !== null &&
-            "output" in item.result &&
-            (item.result as Record<string, unknown>).output !== undefined
-              ? (item.result as Record<string, unknown>).output
-              : item.result;
-          const typeLabel = index === 0 ? resultTypeLabel(unwrapped) : "";
-          return (
-            <div key={`result-${item.timestamp}-${index}`}>
-              {index === 0 && typeLabel && (
-                <Caption
-                  size="tiny"
-                  sx={{
-                    display: "block",
-                    px: 1,
-                    pt: 0.5,
-                    fontWeight: 500,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    opacity: 0.7
-                  }}
-                >
-                  {typeLabel}
-                </Caption>
-              )}
-              {index > 0 && (
-                <Divider sx={{ my: 1 }}>
-                  <Caption>
-                    Result {resultsToDisplay.length - index}
-                  </Caption>
-                </Divider>
-              )}
-              <OutputRenderer value={unwrapped} />
-            </div>
-          );
-        })}
+        {typeLabel && (
+          <Caption
+            size="tiny"
+            sx={{
+              display: "block",
+              px: 1,
+              pt: 0.5,
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              opacity: 0.7
+            }}
+          >
+            {typeLabel}
+          </Caption>
+        )}
+        <OutputRenderer value={unwrapped} />
       </FlexColumn>
-
-      {/* History Dialog */}
-      {nodeId && workflowId && (
-        <NodeHistoryPanel
-          workflowId={workflowId}
-          nodeId={nodeId}
-          nodeName={nodeName}
-          open={historyDialogOpen}
-          onClose={handleCloseHistory}
-        />
-      )}
     </FlexColumn>
   );
 };
 
-// Memoize component to prevent unnecessary re-renders when parent components update
-// ResultOverlay is used frequently in node outputs and should only re-render when result data changes
-const arePropsEqual = (prevProps: ResultOverlayProps, nextProps: ResultOverlayProps) => {
+const arePropsEqual = (
+  prevProps: ResultOverlayProps,
+  nextProps: ResultOverlayProps
+) => {
   return (
     prevProps.result === nextProps.result &&
     prevProps.nodeId === nextProps.nodeId &&

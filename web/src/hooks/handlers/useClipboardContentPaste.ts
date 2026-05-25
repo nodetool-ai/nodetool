@@ -74,7 +74,7 @@ export const useClipboardContentPaste = () => {
   const { uploadAsset } = useAssetUpload();
   const addNotification = useNotificationStore((state) => state.addNotification);
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
-  const { user } = useAuth((auth) => ({ user: auth.user }));
+  const user = useAuth((auth) => auth.user);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   /**

@@ -17,6 +17,7 @@ export interface PythonNodeMetadata {
   properties: NodeMetadataProperty[];
   outputs: NodeMetadataOutput[];
   required_settings: string[];
+  recommended_models?: unknown[];
   is_streaming_output?: boolean;
   is_streaming_input?: boolean;
   is_dynamic?: boolean;
@@ -41,6 +42,8 @@ export interface PythonBridgeOptions {
   workerArgs?: string[];
   autoRestart?: boolean;
   startupTimeoutMs?: number;
+  /** Max time to wait for a single node execute (0 = no timeout). */
+  executeTimeoutMs?: number;
 }
 
 export type StreamCallback = (chunk: Record<string, unknown>) => void;

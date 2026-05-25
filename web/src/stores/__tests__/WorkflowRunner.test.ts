@@ -40,7 +40,6 @@ jest.mock("../ResultsStore", () => ({
     getState: jest.fn().mockReturnValue({
       clearEdges: jest.fn(),
       clearResults: jest.fn(),
-      clearPreviews: jest.fn(),
       clearProgress: jest.fn(),
       clearToolCalls: jest.fn(),
       clearTasks: jest.fn(),

@@ -246,15 +246,11 @@ export class ImageGenerationNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "imagen-3.0-generate-002",
+    default: "imagen-4.0-generate-001",
     title: "Model",
     description: "The image generation model to use",
     values: [
-      "gemini-2.0-flash-preview-image-generation",
-      "gemini-2.5-flash-image-preview",
-      "gemini-3-pro-image-preview",
-      "imagen-3.0-generate-001",
-      "imagen-3.0-generate-002",
+      "gemini-3.1-flash-image-preview",
       "imagen-4.0-generate-001"
     ]
   })
@@ -277,7 +273,7 @@ export class ImageGenerationNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
-    const model = String(this.model ?? "imagen-3.0-generate-002");
+    const model = String(this.model ?? "imagen-4.0-generate-001");
     const image = (this.image ?? {}) as Record<string, unknown>;
 
     if (!prompt) throw new Error("The input prompt cannot be empty.");
@@ -353,7 +349,7 @@ export class ImageGenerationNode extends BaseNode {
       throw new Error("No image bytes returned in response");
     }
 
-    // Imagen models use the generateImages endpoint
+    // Imagen models use the generateImages endpoint.
     const url = `${GEMINI_API_BASE}/models/${model}:generateImages?key=${apiKey}`;
     const body = {
       prompt,
@@ -810,7 +806,7 @@ export class TranscribeGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.audio.Transcribe";
   static readonly title = "Transcribe";
   static readonly inlineFields: string[] = [];
-  static readonly inputFields = ["audio"];
+  static readonly inputFields = ["audio", "prompt"];
   static readonly description =
     "Transcribe audio to text using Google's Gemini models.\n    google, transcription, speech-to-text, audio, whisper, ai\n\n    This node converts audio input into text using Google's multimodal Gemini models.\n    Supports various audio formats and provides accurate speech-to-text transcription.\n\n    Use cases:\n    - Convert recorded audio to text\n    - Transcribe podcasts and interviews\n    - Generate subtitles from audio tracks\n    - Create meeting notes from audio recordings\n    - Analyze speech content in audio files";
   static readonly metadataOutputTypes = {

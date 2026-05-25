@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { Text, TextInput } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, TextInput, Box } from "../../ui_primitives";
 import {
   getShortcutTooltip,
   SHORTCUT_CATEGORIES,
@@ -57,10 +56,8 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
   }, [search, shortcuts]);
 
   return (
-    <Box
+    <FlexColumn
       sx={{
-        display: "flex",
-        flexDirection: "column",
         minHeight: 0,
         ...rootSx
       }}
@@ -101,12 +98,12 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
                   cat.charAt(0).toUpperCase() + cat.slice(1)}
               </Text>
               {list.map((s) => (
-                <Box
+                <FlexRow
                   key={s.slug}
                   className="help-item"
-                  sx={{ display: "flex", alignItems: "center" }}
+                  align="center"
                 >
-                  <Text sx={{ minWidth: 160 }}>{s.title}</Text>
+                  <Text sx={{ minWidth: 200 }}>{s.title}</Text>
                   <Box sx={{ minWidth: 200 }}>
                     {getShortcutTooltip(s.slug, undefined, "combo", false, catalog)}
                   </Box>
@@ -121,12 +118,12 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
                       {s.description}
                     </Text>
                   ) : null}
-                </Box>
+                </FlexRow>
               ))}
             </Box>
           );
         })}
       </Box>
-    </Box>
+    </FlexColumn>
   );
 };

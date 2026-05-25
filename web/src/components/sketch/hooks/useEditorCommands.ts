@@ -29,6 +29,8 @@ import { getToolHandler } from "../tools";
 import type { SegmentTool } from "../tools/SegmentTool";
 import { useSketchStore } from "../state";
 import { buildSelectionOutsideStrokeMask } from "../selection";
+import { useMenuHandler } from "../../../hooks/useIpcRenderer";
+import type { MenuEventData } from "../../../window";
 import type { useCanvasActions } from "./useCanvasActions";
 import type { useLayerActions } from "./useLayerActions";
 import type { useColorActions } from "./useColorActions";
@@ -209,6 +211,33 @@ export function useEditorCommands({
     canvasActions.prepareSelectionFreeTransform?.();
     sessionStore.setActiveTool("transform" as SketchTool);
   }, [canvasActions, sessionStore]);
+
+  // ─── Electron menu IPC interception ────────────────────────────────
+  // Native menu accelerators (CmdOrCtrl+A, CmdOrCtrl+D) are consumed by the
+  // OS before reaching the renderer's keydown handlers. When the sketch
+  // editor is mounted, we route those menu events to sketch actions
+  // (select-all / deselect) instead of the node-editor defaults.
+  const handleSketchMenuEvent = useCallback(
+    (data: MenuEventData) => {
+      if (suspendKeyboardShortcuts) {
+        return;
+      }
+      switch (data.type) {
+        case "selectAll":
+          useSketchStore.getState().selectAll();
+          break;
+        case "duplicate":
+          // In sketch, Ctrl+D = deselect (Photoshop convention) rather
+          // than the node-editor "duplicate".
+          useSketchStore.getState().setSelection(null);
+          break;
+        default:
+          break;
+      }
+    },
+    [suspendKeyboardShortcuts]
+  );
+  useMenuHandler(handleSketchMenuEvent);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({

@@ -257,7 +257,6 @@ export class SpiderCrawlLibNode extends BaseNode {
 
   static readonly inlineFields = ["start_url"];
   static readonly inputFields = [];
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "",

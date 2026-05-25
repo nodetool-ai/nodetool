@@ -6,13 +6,9 @@ import {
   Asset as ProtocolAsset,
   AssetList,
   AssetRef,
-  AssetUpdateRequest,
   ASRModel,
   AudioRef,
   CalendarEvent,
-  ChartConfig,
-  ChartData,
-  ChartSeries,
   Chunk,
   CollectionCreate,
   CollectionList,
@@ -40,17 +36,12 @@ import {
   LanguageModel,
   LlamaModel,
   LogUpdate,
-  MediaGenerationMode,
-  MediaGenerationRequest,
   Message,
   MessageAudioContent,
   MessageCreateRequest,
   MessageDocumentContent,
   MessageImageContent,
-  MessageImageUrlContent,
-  MessageList,
   MessageTextContent,
-  MessageThoughtContent,
   MessageVideoContent,
   Model3DRef,
   ModelPack,
@@ -59,22 +50,19 @@ import {
   NodeProgress,
   NodeUpdate,
   Notification,
+  ProviderCost,
   NPArray,
   OutputSlot,
   OutputUpdate,
   PlanningUpdate,
   PlotlyConfig,
   Prediction,
-  PreviewUpdate,
   Property,
   PropertyTypeMetadata,
   Provider,
   ProviderInfo,
   RepoPath,
-  ResourceChangeMessage,
-  ResourceLimits,
   RunJobRequest,
-  RunStateInfo,
   SecretResponse,
   SettingWithValue,
   SettingsResponse,
@@ -109,11 +97,7 @@ import {
   WorkflowVersion,
   WorkflowVersionList,
   WorkflowVersionSaveType,
-  WorkspaceCreateRequest,
-  WorkspaceFileInfo,
-  WorkspaceListResponse,
-  WorkspaceResponse,
-  WorkspaceUpdateRequest
+  WorkspaceResponse
 } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
@@ -122,13 +106,9 @@ import {
 
 export type { AssetList };
 export type { AssetRef };
-export type { AssetUpdateRequest };
 export type { ASRModel };
 export type { AudioRef };
 export type { CalendarEvent };
-export type { ChartConfig };
-export type { ChartData };
-export type { ChartSeries };
 export type { CollectionCreate };
 export type { CollectionList };
 export type { CollectionResponse };
@@ -156,17 +136,12 @@ export type { JobUpdate };
 export type { LanguageModel };
 export type { LlamaModel };
 export type { LogUpdate };
-export type { MediaGenerationMode };
-export type { MediaGenerationRequest };
 export type { Message };
 export type { MessageAudioContent };
 export type { MessageCreateRequest };
 export type { MessageDocumentContent };
 export type { MessageImageContent };
-export type { MessageImageUrlContent };
-export type { MessageList };
 export type { MessageTextContent };
-export type { MessageThoughtContent };
 export type { MessageVideoContent };
 export type { Model3DRef };
 export type { ModelPack };
@@ -180,16 +155,13 @@ export type { OutputUpdate };
 export type { PlanningUpdate };
 export type { PlotlyConfig };
 export type { Prediction };
-export type { PreviewUpdate };
 export type { Property };
 export type { PropertyTypeMetadata };
 export type { Provider };
+export type { ProviderCost };
 export type { ProviderInfo };
 export type { RepoPath };
-export type { ResourceChangeMessage };
-export type { ResourceLimits };
 export type { RunJobRequest };
-export type { RunStateInfo };
 export type { SecretResponse };
 export type { SettingWithValue };
 export type { SettingsResponse };
@@ -223,11 +195,7 @@ export type { WorkflowToolList };
 export type { WorkflowVersion };
 export type { WorkflowVersionList };
 export type { WorkflowVersionSaveType };
-export type { WorkspaceCreateRequest };
-export type { WorkspaceFileInfo };
-export type { WorkspaceListResponse };
 export type { WorkspaceResponse };
-export type { WorkspaceUpdateRequest };
 
 // ---------------------------------------------------------------------------
 // Aliases for backward compatibility
@@ -249,7 +217,7 @@ export type Graph = WorkflowGraph;
 export type TypeName = string;
 
 /** Re-export base metadata shape under its old name */
-export type BaseNodeMetadata = BaseNodeMetadataFromProtocol;
+type BaseNodeMetadata = BaseNodeMetadataFromProtocol;
 
 // ---------------------------------------------------------------------------
 // Local overrides / extensions
@@ -265,6 +233,33 @@ export interface Asset extends ProtocolAsset {
 export interface UnifiedModel extends ProtocolUnifiedModel {}
 
 /** Frontend-enriched node metadata (search info, runtime hints, etc.) */
+/**
+ * FAL.ai list price on generated FAL nodes — frontend-enriched shape adds
+ * `source` (live vs. bundle vs. backend) and `checked_at` ISO timestamp on
+ * top of the transport-only protocol shape.
+ */
+export interface FalUnitPricing {
+  endpoint_id: string;
+  unit_price: number;
+  billing_unit: string;
+  currency: string;
+  source?: "live" | "bundle";
+  checked_at?: string | null;
+}
+
+/** kie.ai list price on generated KIE nodes — frontend-enriched shape. */
+export interface KieUnitPricing {
+  model_id: string;
+  unit_price: number;
+  billing_unit: string;
+  currency: "credits";
+  usd_price?: number;
+  tier_count?: number;
+  pricing_url?: string;
+  source?: "live" | "bundle";
+  checked_at?: string | null;
+}
+
 export interface NodeMetadata extends BaseNodeMetadata {
   searchInfo?: {
     score?: number;
@@ -284,6 +279,10 @@ export interface NodeMetadata extends BaseNodeMetadata {
    * Populated by the backend from node metadata; used to show install prompts.
    */
   required_runtimes?: string[];
+  /** FAL.ai unit pricing from generated TS nodes / metadata index. */
+  fal_unit_pricing?: FalUnitPricing | null;
+  /** kie.ai unit pricing from generated KIE nodes / metadata index. */
+  kie_unit_pricing?: KieUnitPricing | null;
   /**
    * Marks a node as generative — its outputs should be auto-saved as assets
    * by the backend, and the UI uses this flag to auto-show the result preview

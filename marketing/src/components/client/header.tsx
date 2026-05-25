@@ -70,12 +70,14 @@ const Header: React.FC<HeaderProps> = ({ navigation, rightSlot }) => {
         <div className="flex lg:flex-1">
           <Link href="/" className="-m-1.5 p-1.5">
             <span className="sr-only">nodetool</span>
-            {/* <img
-              className="col-span-2 max-h-12 w-full object-contain lg:col-span-1"
+            <Image
+              className="max-h-12 w-auto object-contain"
               src="/logo_small.png"
-              width="64"
-              height="64"
-            /> */}
+              width={64}
+              height={64}
+              alt="nodetool"
+              priority
+            />
           </Link>
         </div>
         <div className="flex lg:hidden">

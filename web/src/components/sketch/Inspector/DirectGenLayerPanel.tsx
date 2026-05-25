@@ -11,7 +11,6 @@
 
 import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Button } from "@mui/material";
 import type { Layer } from "../types";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
 import {
@@ -22,6 +21,7 @@ import {
   Text,
   TextInput
 } from "../../ui_primitives";
+import { EditorButton } from "../../editor_ui";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../../stores/ApiTypes";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
@@ -108,16 +108,16 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           ))}
 
         {isRunning ? (
-          <Button
+          <EditorButton
             size="small"
             variant="outlined"
             color="warning"
             onClick={() => cancel(layer.id)}
           >
             Cancel
-          </Button>
+          </EditorButton>
         ) : (
-          <Button
+          <EditorButton
             size="small"
             variant="contained"
             disabled={!canGenerate}
@@ -125,7 +125,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
             data-testid="direct-gen-generate"
           >
             Generate
-          </Button>
+          </EditorButton>
         )}
         {binding.status === "failed" && (
           <Text size="small" sx={{ color: theme.vars.palette.error.main }}>

@@ -8,14 +8,13 @@ import {
   Card,
   CardContent,
   CardActions,
-  Box,
   Collapse,
   LinearProgress,
   List,
   ListItem,
   ListItemText
 } from "@mui/material";
-import { Text, Caption, EditorButton, ToolbarIconButton, Chip } from "../ui_primitives";
+import { Text, Caption, EditorButton, ToolbarIconButton, Chip, Box } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";

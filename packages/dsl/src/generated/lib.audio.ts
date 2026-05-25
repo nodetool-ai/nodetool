@@ -13,8 +13,8 @@ export interface GainOutputs {
   output: AudioRef;
 }
 
-export function gain(inputs: GainInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GainOutputs, "output"> {
-  return createNode("lib.audio.Gain", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function gain(inputs: GainInputs): DslNode<GainOutputs, "output"> {
+  return createNode("lib.audio.Gain", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Delay — lib.audio.Delay
@@ -29,8 +29,8 @@ export interface DelayOutputs {
   output: AudioRef;
 }
 
-export function delay(inputs: DelayInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DelayOutputs, "output"> {
-  return createNode("lib.audio.Delay", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function delay(inputs: DelayInputs): DslNode<DelayOutputs, "output"> {
+  return createNode("lib.audio.Delay", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // High Pass Filter — lib.audio.HighPassFilter
@@ -43,8 +43,8 @@ export interface HighPassFilterOutputs {
   output: AudioRef;
 }
 
-export function highPassFilter(inputs: HighPassFilterInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<HighPassFilterOutputs, "output"> {
-  return createNode("lib.audio.HighPassFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function highPassFilter(inputs: HighPassFilterInputs): DslNode<HighPassFilterOutputs, "output"> {
+  return createNode("lib.audio.HighPassFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Low Pass Filter — lib.audio.LowPassFilter
@@ -57,8 +57,8 @@ export interface LowPassFilterOutputs {
   output: AudioRef;
 }
 
-export function lowPassFilter(inputs: LowPassFilterInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LowPassFilterOutputs, "output"> {
-  return createNode("lib.audio.LowPassFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function lowPassFilter(inputs: LowPassFilterInputs): DslNode<LowPassFilterOutputs, "output"> {
+  return createNode("lib.audio.LowPassFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // High Shelf Filter — lib.audio.HighShelfFilter
@@ -72,8 +72,8 @@ export interface HighShelfFilterOutputs {
   output: AudioRef;
 }
 
-export function highShelfFilter(inputs: HighShelfFilterInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<HighShelfFilterOutputs, "output"> {
-  return createNode("lib.audio.HighShelfFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function highShelfFilter(inputs: HighShelfFilterInputs): DslNode<HighShelfFilterOutputs, "output"> {
+  return createNode("lib.audio.HighShelfFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Low Shelf Filter — lib.audio.LowShelfFilter
@@ -87,8 +87,8 @@ export interface LowShelfFilterOutputs {
   output: AudioRef;
 }
 
-export function lowShelfFilter(inputs: LowShelfFilterInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LowShelfFilterOutputs, "output"> {
-  return createNode("lib.audio.LowShelfFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function lowShelfFilter(inputs: LowShelfFilterInputs): DslNode<LowShelfFilterOutputs, "output"> {
+  return createNode("lib.audio.LowShelfFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Peak Filter — lib.audio.PeakFilter
@@ -102,8 +102,8 @@ export interface PeakFilterOutputs {
   output: AudioRef;
 }
 
-export function peakFilter(inputs: PeakFilterInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PeakFilterOutputs, "output"> {
-  return createNode("lib.audio.PeakFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function peakFilter(inputs: PeakFilterInputs): DslNode<PeakFilterOutputs, "output"> {
+  return createNode("lib.audio.PeakFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Bitcrush — lib.audio.Bitcrush
@@ -117,8 +117,8 @@ export interface BitcrushOutputs {
   output: AudioRef;
 }
 
-export function bitcrush(inputs: BitcrushInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BitcrushOutputs, "output"> {
-  return createNode("lib.audio.Bitcrush", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function bitcrush(inputs: BitcrushInputs): DslNode<BitcrushOutputs, "output"> {
+  return createNode("lib.audio.Bitcrush", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Compress — lib.audio.Compress
@@ -134,8 +134,8 @@ export interface CompressOutputs {
   output: AudioRef;
 }
 
-export function compress(inputs: CompressInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CompressOutputs, "output"> {
-  return createNode("lib.audio.Compress", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function compress(inputs: CompressInputs): DslNode<CompressOutputs, "output"> {
+  return createNode("lib.audio.Compress", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Distortion — lib.audio.Distortion
@@ -148,8 +148,8 @@ export interface DistortionOutputs {
   output: AudioRef;
 }
 
-export function distortion(inputs: DistortionInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DistortionOutputs, "output"> {
-  return createNode("lib.audio.Distortion", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function distortion(inputs: DistortionInputs): DslNode<DistortionOutputs, "output"> {
+  return createNode("lib.audio.Distortion", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Limiter — lib.audio.Limiter
@@ -163,8 +163,8 @@ export interface LimiterOutputs {
   output: AudioRef;
 }
 
-export function limiter(inputs: LimiterInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LimiterOutputs, "output"> {
-  return createNode("lib.audio.Limiter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function limiter(inputs: LimiterInputs): DslNode<LimiterOutputs, "output"> {
+  return createNode("lib.audio.Limiter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Reverb — lib.audio.Reverb
@@ -180,8 +180,8 @@ export interface ReverbOutputs {
   output: AudioRef;
 }
 
-export function reverb(inputs: ReverbInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ReverbOutputs, "output"> {
-  return createNode("lib.audio.Reverb", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function reverb(inputs: ReverbInputs): DslNode<ReverbOutputs, "output"> {
+  return createNode("lib.audio.Reverb", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Pitch Shift — lib.audio.PitchShift
@@ -194,8 +194,8 @@ export interface PitchShiftOutputs {
   output: AudioRef;
 }
 
-export function pitchShift(inputs: PitchShiftInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PitchShiftOutputs, "output"> {
-  return createNode("lib.audio.PitchShift", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function pitchShift(inputs: PitchShiftInputs): DslNode<PitchShiftOutputs, "output"> {
+  return createNode("lib.audio.PitchShift", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Time Stretch — lib.audio.TimeStretch
@@ -208,8 +208,8 @@ export interface TimeStretchOutputs {
   output: AudioRef;
 }
 
-export function timeStretch(inputs: TimeStretchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TimeStretchOutputs, "output"> {
-  return createNode("lib.audio.TimeStretch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function timeStretch(inputs: TimeStretchInputs): DslNode<TimeStretchOutputs, "output"> {
+  return createNode("lib.audio.TimeStretch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Noise Gate — lib.audio.NoiseGate
@@ -224,8 +224,8 @@ export interface NoiseGateOutputs {
   output: AudioRef;
 }
 
-export function noiseGate(inputs: NoiseGateInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<NoiseGateOutputs, "output"> {
-  return createNode("lib.audio.NoiseGate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function noiseGate(inputs: NoiseGateInputs): DslNode<NoiseGateOutputs, "output"> {
+  return createNode("lib.audio.NoiseGate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Phaser — lib.audio.Phaser
@@ -242,6 +242,6 @@ export interface PhaserOutputs {
   output: AudioRef;
 }
 
-export function phaser(inputs: PhaserInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PhaserOutputs, "output"> {
-  return createNode("lib.audio.Phaser", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function phaser(inputs: PhaserInputs): DslNode<PhaserOutputs, "output"> {
+  return createNode("lib.audio.Phaser", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

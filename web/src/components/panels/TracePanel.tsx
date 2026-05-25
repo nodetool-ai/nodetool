@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea, Text, FlexRow, Chip } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -157,13 +157,14 @@ const TraceRow = memo(function TraceRow({
 }: {
   event: TraceEvent;
   expanded: boolean;
-  onToggle: () => void;
+  onToggle: (id: string) => void;
 }) {
+  const handleClick = useCallback(() => onToggle(event.id), [onToggle, event.id]);
   return (
     <>
       <div
         className={`trace-row ${expanded ? "expanded" : ""}`}
-        onClick={onToggle}
+        onClick={handleClick}
       >
         <span className="trace-time">{formatRelativeTime(event.relativeMs)}</span>
         <span className="trace-icon">{EVENT_ICONS[event.type]}</span>
@@ -214,8 +215,15 @@ const TracePanel: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [exportJSON]);
 
+  const copyValue = useMemo(
+    () => (events.length > 0 ? exportJSON() : ""),
+    [events, exportJSON]
+  );
+
+  const cssStyles = useMemo(() => styles(theme), [theme]);
+
   return (
-    <div css={styles(theme)}>
+    <div css={cssStyles}>
       <div className="trace-toolbar">
         <FlexRow align="center" gap={1}>
           <Text size="small" weight={500}>
@@ -225,7 +233,7 @@ const TracePanel: React.FC = () => {
         </FlexRow>
         <FlexRow gap={0.5}>
           <CopyButton
-            value={events.length > 0 ? exportJSON() : ""}
+            value={copyValue}
             tooltip="Copy to clipboard"
             disabled={events.length === 0}
             nodrag={false}
@@ -258,7 +266,7 @@ const TracePanel: React.FC = () => {
               key={event.id}
               event={event}
               expanded={expandedIds.has(event.id)}
-              onToggle={() => handleToggle(event.id)}
+              onToggle={handleToggle}
             />
           ))
         )}

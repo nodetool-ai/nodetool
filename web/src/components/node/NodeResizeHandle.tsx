@@ -5,7 +5,7 @@ import type { OnResize } from "@xyflow/system";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { Box } from "../ui_primitives";
 import { memo } from "react";
 
 interface NodeResizeHandleProps {

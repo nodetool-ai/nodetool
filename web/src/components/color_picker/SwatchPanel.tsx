@@ -5,7 +5,6 @@ import { useShallow } from "zustand/react/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   Menu,
   MenuItem
 } from "@mui/material";
@@ -14,7 +13,8 @@ import {
   Tooltip,
   FlexRow,
   FlexColumn,
-  EditorButton
+  EditorButton,
+  Box
 } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";

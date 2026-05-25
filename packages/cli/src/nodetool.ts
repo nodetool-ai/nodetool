@@ -25,7 +25,7 @@ import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import { initDb, Workflow, Secret, getSecret } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
-import { getDefaultDbPath } from "@nodetool-ai/config";
+import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
@@ -33,7 +33,11 @@ import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
 import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
-import { ProcessingContext, initTelemetry } from "@nodetool-ai/runtime";
+import {
+  ProcessingContext,
+  FileStorageAdapter,
+  initTelemetry
+} from "@nodetool-ai/runtime";
 import { registerPackageCommands } from "./commands/package.js";
 import {
   registerDeployCommands,
@@ -452,11 +456,15 @@ workflows
 
         // Create processing context with secret resolver
         const jobId = `job-${Date.now()}`;
+        // Resolve asset URIs (e.g. /api/storage/<key>) against the local
+        // assets directory, so workflows referencing stored assets run the
+        // same decode path the server does.
         const context = new ProcessingContext({
           jobId,
           workflowId,
           userId: "1",
-          secretResolver: getSecret
+          secretResolver: getSecret,
+          storage: new FileStorageAdapter(getDefaultAssetsPath())
         });
 
         // Run workflow

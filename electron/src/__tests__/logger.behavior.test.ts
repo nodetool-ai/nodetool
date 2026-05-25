@@ -42,7 +42,7 @@ describe('logger.logMessage', () => {
       .mockImplementation((relativePath: string) =>
         path.join('/mock/system', relativePath),
       );
-    jest.doMock('../config', () => ({
+    jest.doMock('../systemPaths', () => ({
       getSystemDataPath: getSystemDataPathMock,
     }));
 
@@ -92,7 +92,7 @@ describe('logger.logMessage', () => {
       .mockImplementation((relativePath: string) =>
         path.join('/mock/system', relativePath),
       );
-    jest.doMock('../config', () => ({
+    jest.doMock('../systemPaths', () => ({
       getSystemDataPath: getSystemDataPathMock,
     }));
 

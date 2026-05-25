@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { shallow } from "zustand/shallow";
 
 type Key = `${string}:${string}:${string}`;
 
@@ -8,6 +7,11 @@ const key = (workflowId: string, nodeId: string, property: string): Key =>
 
 const nodePrefix = (workflowId: string, nodeId: string) =>
   `${workflowId}:${nodeId}:`;
+
+interface NodeValidationError {
+  property: string;
+  message: string;
+}
 
 type PropertyValidationStore = {
   errors: Record<Key, string>;
@@ -26,6 +30,10 @@ type PropertyValidationStore = {
     nodeId: string,
     property: string
   ) => string | undefined;
+  getNodeErrors: (
+    workflowId: string,
+    nodeId: string
+  ) => NodeValidationError[];
 };
 
 const usePropertyValidationStore = create<PropertyValidationStore>(
@@ -66,9 +74,19 @@ const usePropertyValidationStore = create<PropertyValidationStore>(
       });
     },
     getError: (workflowId, nodeId, property) =>
-      get().errors[key(workflowId, nodeId, property)]
+      get().errors[key(workflowId, nodeId, property)],
+    getNodeErrors: (workflowId, nodeId) => {
+      const prefix = nodePrefix(workflowId, nodeId);
+      const out: NodeValidationError[] = [];
+      const errors = get().errors;
+      for (const k in errors) {
+        if (k.startsWith(prefix)) {
+          out.push({ property: k.slice(prefix.length), message: errors[k as Key] });
+        }
+      }
+      return out;
+    }
   })
 );
 
-export { shallow };
 export default usePropertyValidationStore;

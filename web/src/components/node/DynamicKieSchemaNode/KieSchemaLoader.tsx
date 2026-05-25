@@ -1,6 +1,5 @@
 import React, { useCallback, useState, memo } from "react";
-import { Box } from "@mui/material";
-import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton } from "../../ui_primitives";
+import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";

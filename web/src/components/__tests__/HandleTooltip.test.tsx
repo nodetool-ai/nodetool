@@ -4,6 +4,7 @@
 
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { HandleTooltip } from '../HandleTooltip';
+import { NodeSelectionContext } from '../node/NodeSelectionContext';
 import { TypeMetadata } from '../../stores/ApiTypes';
 import useConnectionStore from '../../stores/ConnectionStore';
 
@@ -208,10 +209,10 @@ describe('HandleTooltip', () => {
 
       render(<HandleTooltip {...defaultProps} />);
 
-      const wrapper = screen.getByRole('button');
+      const handle = screen.getByTestId('test-child');
 
       act(() => {
-        fireEvent.mouseEnter(wrapper);
+        fireEvent.mouseEnter(handle);
       });
 
       act(() => {
@@ -237,10 +238,10 @@ describe('HandleTooltip', () => {
 
       render(<HandleTooltip {...defaultProps} />);
 
-      const wrapper = screen.getByRole('button');
+      const handle = screen.getByTestId('test-child');
 
       act(() => {
-        fireEvent.mouseEnter(wrapper);
+        fireEvent.mouseEnter(handle);
         jest.advanceTimersByTime(1500);
       });
 
@@ -309,6 +310,21 @@ describe('HandleTooltip', () => {
       });
     });
 
+    it('should hide collect input info when tooltip is shown without hover', async () => {
+      const props = { ...defaultProps, isCollectInput: true };
+
+      render(
+        <NodeSelectionContext.Provider value={true}>
+          <HandleTooltip {...props} />
+        </NodeSelectionContext.Provider>
+      );
+
+      await waitFor(() => {
+        expect(document.querySelector('.handle-tooltip-name')).toBeInTheDocument();
+        expect(document.querySelector('.handle-tooltip-info')).not.toBeInTheDocument();
+      });
+    });
+
     it('should display parameter name in tooltip', async () => {
       render(<HandleTooltip {...defaultProps} />);
 
@@ -321,8 +337,35 @@ describe('HandleTooltip', () => {
       await waitFor(() => {
         const tooltipName = document.querySelector('.handle-tooltip-name');
         expect(tooltipName).toHaveTextContent('Test Param');
-        expect(document.querySelector('.handle-tooltip-type')).toBeNull();
+        const tooltipType = document.querySelector('.handle-tooltip-type');
+        expect(tooltipType).toHaveTextContent('string');
       });
+    });
+  });
+
+  describe('Connect-time label', () => {
+    it('shows the name (no type) on compatible handles while connecting', () => {
+      mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+        selector({ connecting: true, isReconnecting: false })
+      );
+
+      render(<HandleTooltip {...defaultProps} className="is-connectable" />);
+
+      const tooltip = document.querySelector('.handle-tooltip');
+      expect(tooltip).toBeInTheDocument();
+      expect(tooltip).toHaveClass('connecting');
+      expect(document.querySelector('.handle-tooltip-name')).toHaveTextContent('Test Param');
+      expect(document.querySelector('.handle-tooltip-type')).toBeNull();
+    });
+
+    it('does not show a tooltip on incompatible handles while connecting', () => {
+      mockUseConnectionStore.mockImplementation((selector: (state: { connecting: boolean; isReconnecting: boolean }) => unknown) =>
+        selector({ connecting: true, isReconnecting: false })
+      );
+
+      render(<HandleTooltip {...defaultProps} className="not-connectable" />);
+
+      expect(document.querySelector('.handle-tooltip')).not.toBeInTheDocument();
     });
   });
 

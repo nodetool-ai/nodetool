@@ -1,5 +1,7 @@
 import React, { memo, useState } from "react";
-import { Box, Typography, Slider, Button } from "@mui/material";
+import { Slider } from "@mui/material";
+import { Box, Text } from "../../ui_primitives";
+import { EditorButton } from "../../editor_ui";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {
@@ -55,7 +57,7 @@ const AdvancedToggleButton: React.FC<{
   open: boolean;
   onToggle: () => void;
 }> = ({ open, onToggle }) => (
-  <Button
+  <EditorButton
     size="small"
     variant="text"
     onClick={onToggle}
@@ -73,7 +75,7 @@ const AdvancedToggleButton: React.FC<{
     startIcon={open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
   >
     Advanced
-  </Button>
+  </EditorButton>
 );
 
 interface BrushSettingsPanelProps {
@@ -129,10 +131,26 @@ interface StrokeAssistSettingsPanelProps<T extends StrokeAssistToolSettings> {
 const STROKE_ASSIST_PRESETS: Array<{
   value: Exclude<StrokeAssistPreset, "custom">;
   label: string;
+  tooltip: string;
 }> = [
-  { value: "smooth", label: "Smooth" },
-  { value: "lazy", label: "Lazy" },
-  { value: "inking", label: "Ink" }
+  {
+    value: "smooth",
+    label: "Smooth",
+    tooltip:
+      "Rolling-average stabilizer. Filters jitter while the tip keeps following the cursor — good for general drawing."
+  },
+  {
+    value: "lazy",
+    label: "Lazy",
+    tooltip:
+      "Rope/leash. Tip stays still until the cursor exceeds a dead-zone radius, then trails behind in a straight line. Best for slow, deliberate inking."
+  },
+  {
+    value: "inking",
+    label: "Ink",
+    tooltip:
+      "Lazy leash + 45° angle snap. Long strokes lock to nearest 45° direction — for clean axis-aligned linework."
+  }
 ];
 
 const STROKE_ASSIST_ANGLE_OPTIONS = [15, 30, 45, 90];
@@ -214,17 +232,27 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         }}
         sx={{ flexWrap: "wrap" }}
       >
-        <SketchModeOption value="off">Off</SketchModeOption>
-        {STROKE_ASSIST_PRESETS.map(({ value, label }) => (
-          <SketchModeOption key={value} value={value}>
+        <SketchModeOption
+          value="off"
+          title="No stroke assist. Tip follows the raw pointer."
+        >
+          Off
+        </SketchModeOption>
+        {STROKE_ASSIST_PRESETS.map(({ value, label, tooltip }) => (
+          <SketchModeOption key={value} value={value} title={tooltip}>
             {label}
           </SketchModeOption>
         ))}
-        <SketchModeOption value="custom">Custom</SketchModeOption>
+        <SketchModeOption
+          value="custom"
+          title="Tune algorithm, strength and angle snap manually."
+        >
+          Custom
+        </SketchModeOption>
       </SketchModeToggle>
       {assistOn && (
         <Box className="setting-row">
-          <Typography className="setting-label">Strength</Typography>
+          <Text className="setting-label">Strength</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -234,9 +262,9 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
             value={assist.strength}
             onChange={(_, v) => updateAssist({ strength: v as number })}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(assist.strength * 100)}%
-          </Typography>
+          </Text>
         </Box>
       )}
       {uiPreset === "custom" && (
@@ -252,8 +280,18 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
             }
           }}
         >
-          <SketchModeOption value="stabilizer">Stabilizer</SketchModeOption>
-          <SketchModeOption value="lazy">Drag</SketchModeOption>
+          <SketchModeOption
+            value="stabilizer"
+            title="Rolling-average smoothing — tip follows the cursor along a low-pass-filtered path."
+          >
+            Stabilizer
+          </SketchModeOption>
+          <SketchModeOption
+            value="lazy"
+            title="Leash drag — tip stays put inside a dead-zone, then trails the cursor along a straight line."
+          >
+            Drag
+          </SketchModeOption>
         </SketchModeToggle>
       )}
       <SketchModeToggle
@@ -267,16 +305,22 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
         }}
         sx={{ flexWrap: "wrap" }}
       >
-        <SketchModeOption value="off">Free</SketchModeOption>
+        <SketchModeOption value="off" title="No angle snap.">
+          Free
+        </SketchModeOption>
         {STROKE_ASSIST_ANGLE_OPTIONS.map((angle) => (
-          <SketchModeOption key={angle} value={angle}>
+          <SketchModeOption
+            key={angle}
+            value={angle}
+            title={`Snap stroke direction to nearest ${angle}°.`}
+          >
             {angle}°
           </SketchModeOption>
         ))}
       </SketchModeToggle>
       {snapOn && (
         <Box className="setting-row">
-          <Typography className="setting-label">Snap</Typography>
+          <Text className="setting-label">Snap</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -286,9 +330,9 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
             value={assist.snapStrength}
             onChange={(_, v) => updateAssist({ snapStrength: v as number })}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(assist.snapStrength * 100)}%
-          </Typography>
+          </Text>
         </Box>
       )}
     </SettingGroup>
@@ -333,7 +377,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
         {!omitPaintSliders && (
           <>
             <Box className="setting-row setting-row--wide">
-              <Typography className="setting-label">Size</Typography>
+              <Text className="setting-label">Size</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -342,10 +386,10 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
                 value={settings.size}
                 onChange={(_, v) => onChange({ size: v as number })}
               />
-              <Typography className="setting-value">{settings.size}</Typography>
+              <Text className="setting-value">{settings.size}</Text>
             </Box>
             <Box className="setting-row">
-              <Typography className="setting-label">Opacity</Typography>
+              <Text className="setting-label">Opacity</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -355,14 +399,14 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
                 value={settings.opacity}
                 onChange={(_, v) => onChange({ opacity: v as number })}
               />
-              <Typography className="setting-value">
+              <Text className="setting-value">
                 {Math.round(settings.opacity * 100)}%
-              </Typography>
+              </Text>
             </Box>
           </>
         )}
         <Box className="setting-row">
-          <Typography className="setting-label">Hard</Typography>
+          <Text className="setting-label">Hard</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -372,14 +416,14 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
             value={settings.hardness}
             onChange={(_, v) => onChange({ hardness: v as number })}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(settings.hardness * 100)}%
-          </Typography>
+          </Text>
         </Box>
         {(settings.brushType === "round" || settings.brushType === "soft") && (
           <>
             <Box className="setting-row">
-              <Typography className="setting-label">Round</Typography>
+              <Text className="setting-label">Round</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -389,12 +433,12 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
                 value={settings.roundness ?? 1.0}
                 onChange={(_, v) => onChange({ roundness: v as number })}
               />
-              <Typography className="setting-value">
+              <Text className="setting-value">
                 {Math.round((settings.roundness ?? 1.0) * 100)}%
-              </Typography>
+              </Text>
             </Box>
             <Box className="setting-row">
-              <Typography className="setting-label">Angle</Typography>
+              <Text className="setting-label">Angle</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -404,9 +448,9 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
                 value={settings.angle ?? 0}
                 onChange={(_, v) => onChange({ angle: v as number })}
               />
-              <Typography className="setting-value">
+              <Text className="setting-value">
                 {settings.angle ?? 0}°
-              </Typography>
+              </Text>
             </Box>
           </>
         )}
@@ -438,13 +482,36 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
   omitStrokeAssist = false
 }: PencilSettingsPanelProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const pixelMode: "pixel" | "soft" =
+    (settings.pixelPerfect ?? true) ? "pixel" : "soft";
   return (
     <>
       <SettingGroup>
+        <SketchModeToggle
+          value={pixelMode}
+          onChange={(_, v) => {
+            if (v) {
+              onChange({ pixelPerfect: v === "pixel" });
+            }
+          }}
+        >
+          <SketchModeOption
+            value="pixel"
+            title="Pixel-art mode. Each dab is a crisp N×N square centered on the pixel under the cursor."
+          >
+            Pixel
+          </SketchModeOption>
+          <SketchModeOption
+            value="soft"
+            title="Soft mode. Antialiased circular dabs — feels like a small brush."
+          >
+            Soft
+          </SketchModeOption>
+        </SketchModeToggle>
         {!omitPaintSliders && (
           <>
             <Box className="setting-row setting-row--wide">
-              <Typography className="setting-label">Size</Typography>
+              <Text className="setting-label">Size</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -453,10 +520,10 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
                 value={settings.size}
                 onChange={(_, v) => onChange({ size: v as number })}
               />
-              <Typography className="setting-value">{settings.size}</Typography>
+              <Text className="setting-value">{settings.size}</Text>
             </Box>
             <Box className="setting-row">
-              <Typography className="setting-label">Opacity</Typography>
+              <Text className="setting-label">Opacity</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -466,9 +533,9 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
                 value={settings.opacity}
                 onChange={(_, v) => onChange({ opacity: v as number })}
               />
-              <Typography className="setting-value">
+              <Text className="setting-value">
                 {Math.round(settings.opacity * 100)}%
-              </Typography>
+              </Text>
             </Box>
           </>
         )}
@@ -527,13 +594,23 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
             }
           }}
         >
-          <SketchModeOption value="brush">Brush</SketchModeOption>
-          <SketchModeOption value="pencil">Pencil</SketchModeOption>
+          <SketchModeOption
+            value="brush"
+            title="Erase with the current brush stamp (soft / hard / spray follow brush settings)."
+          >
+            Brush
+          </SketchModeOption>
+          <SketchModeOption
+            value="pencil"
+            title="Erase with crisp pencil dabs — follows the pencil tool's Pixel/Soft toggle."
+          >
+            Pencil
+          </SketchModeOption>
         </SketchModeToggle>
       </SettingGroup>
       <SettingGroup>
         <Box className="setting-row setting-row--wide">
-          <Typography className="setting-label">Size</Typography>
+          <Text className="setting-label">Size</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -542,10 +619,10 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
             value={settings.size}
             onChange={(_, v) => onChange({ size: v as number })}
           />
-          <Typography className="setting-value">{settings.size}</Typography>
+          <Text className="setting-value">{settings.size}</Text>
         </Box>
         <Box className="setting-row">
-          <Typography className="setting-label">Opacity</Typography>
+          <Text className="setting-label">Opacity</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -555,12 +632,12 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
             value={settings.opacity}
             onChange={(_, v) => onChange({ opacity: v as number })}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(settings.opacity * 100)}%
-          </Typography>
+          </Text>
         </Box>
         <Box className="setting-row">
-          <Typography className="setting-label">Stabilize</Typography>
+          <Text className="setting-label">Stabilize</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -572,14 +649,14 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
             }
             onChange={(_, v) => setStabilizerStrength(v as number)}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(
               (assist.mode === "stabilizer"
                 ? assist.strength
                 : settings.stabilizer ?? 0) * 100
             )}
             %
-          </Typography>
+          </Text>
         </Box>
       </SettingGroup>
     </>

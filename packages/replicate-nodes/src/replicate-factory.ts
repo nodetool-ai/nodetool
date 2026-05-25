@@ -9,6 +9,7 @@
 import {
   BaseNode,
   classifyFields,
+  classNameToTitle,
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
@@ -61,10 +62,6 @@ export interface ReplicateManifestEntry {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
-}
 
 function isAssetPropType(propType: string): boolean {
   return [
@@ -156,6 +153,14 @@ async function buildArgs(
     if (field.parentField) continue;
     if (EXCLUDED_FIELDS.has(field.name)) continue;
 
+    // Image-gen nodes always produce a single output — force num_outputs to 1
+    // regardless of any saved value, since the field is no longer exposed.
+    if (field.name === "num_outputs") {
+      const apiName = field.apiParamName ?? field.name;
+      args[apiName] = 1;
+      continue;
+    }
+
     const value = (instance as unknown as Record<string, unknown>)[field.name];
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
@@ -218,7 +223,7 @@ export function createReplicateNodeClass(
 ): NodeClass {
   const moduleId = spec.moduleName.replace(/-/g, ".");
   const nodeType = `replicate.${moduleId}.${spec.className}`;
-  const title = toTitle(spec.className);
+  const title = classNameToTitle(spec.className);
   const descFirstLine = spec.docstring || `${spec.className} node`;
   const descSecondLine =
     spec.tags.length > 0 ? spec.tags.join(", ") : "replicate, ai";
@@ -229,14 +234,22 @@ export function createReplicateNodeClass(
   );
   const specRef = spec;
 
+  const executePrediction = async (
+    instance: BaseNode,
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<unknown> => {
+    const apiKey = getReplicateApiKey(instance._secrets);
+    const args = await buildArgs(instance, specRef, apiKey, context);
+    const res = await replicateSubmit(apiKey, specRef.endpointId, args);
+    return res.output;
+  };
+
   const ReplicateNodeClass = class extends BaseNode {
     async process(
       context?: Parameters<BaseNode["process"]>[0]
     ): Promise<Record<string, unknown>> {
-      const apiKey = getReplicateApiKey(this._secrets);
-      const args = await buildArgs(this, specRef, apiKey, context);
-      const res = await replicateSubmit(apiKey, specRef.endpointId, args);
-      return mapOutput(specRef, res.output);
+      const output = await executePrediction(this, context);
+      return mapOutput(specRef, output);
     }
   };
 
@@ -282,9 +295,11 @@ export function createReplicateNodeClass(
     configurable: true
   });
 
-  // Register declared properties
+  // Register declared properties. num_outputs is internal-only (pinned to 1)
+  // and not exposed in the UI.
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
+    if (field.name === "num_outputs") continue;
 
     const propOptions: PropOptions = {
       type: field.propType,

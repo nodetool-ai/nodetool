@@ -5,18 +5,19 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  Checkbox,
-  Box,
   Menu,
   MenuItem
 } from "@mui/material";
 import {
   Caption,
+  Checkbox,
   Divider,
   EditorButton,
   FlexColumn,
+  FlexRow,
   LoadingSpinner,
-  Tooltip
+  Tooltip,
+  Box
 } from "../ui_primitives";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -164,9 +165,7 @@ const providerIconMap: Record<string, string> = {
   // Anthropic / Claude
   anthropic: anthropicIcon,
   claude: claudeColorIcon,
-  claude_agent: claudeColorIcon,
-  "claude-agent": claudeColorIcon,
-  
+
   // Google / Gemini
   google: geminiColorIcon,
   gemini: geminiColorIcon,
@@ -714,7 +713,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             }
 
             return (
-              <Box className="model-menu__provider-badges" sx={{ display: "flex", gap: 0.5 }}>
+              <FlexRow className="model-menu__provider-badges" gap={0.5}>
                 {badges.map((b) => {
                   const tooltipTitle =
                     b.label === "HF"
@@ -753,7 +752,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     </Tooltip>
                   );
                 })}
-              </Box>
+              </FlexRow>
             );
           };
           return (
@@ -785,8 +784,10 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     placement="right"
                   >
                     <FlexColumn align="center" gap={0.25} sx={{ py: 0.25 }}>
-                      <Box
+                      <FlexRow
                         className="model-menu__provider-icon-circle"
+                        align="center"
+                        justify="center"
                         sx={{
                           width: 36,
                           height: 36,
@@ -798,9 +799,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                 ? "action.selected"
                                 : "transparent",
                           border: `1px solid ${selected === p ? "transparent" : theme.vars.palette.divider}`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
                           fontWeight: 700,
                           fontSize: "0.8rem",
                           color:
@@ -837,7 +835,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           }
                           return getProviderFallbackLabel(p);
                         })()}
-                      </Box>
+                      </FlexRow>
                       <Caption
                         sx={{
                           display: "-webkit-box",
@@ -860,17 +858,14 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     <ListItemText
                       className="model-menu__provider-label"
                       primary={
-                        <Box className="model-menu__provider-label-content" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <FlexRow className="model-menu__provider-label-content" gap={1} align="center">
                           {(() => {
                             const iconUrl = getProviderIconUrl(p);
                             // Check if using HuggingFace logo (either base HF or unknown sub-provider)
                             // In this case, don't invert in dark mode since HF logo has good contrast
                             const isHFLogo = iconUrl === huggingfaceColorIcon;
                             return (
-                              <Box className="model-menu__provider-inline-icon" sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                              <FlexRow className="model-menu__provider-inline-icon" align="center" justify="center" sx={{
                                 width: 28,
                                 height: 28,
                                 flexShrink: 0,
@@ -903,13 +898,13 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                     {getProviderFallbackLabel(p)}
                                   </Box>
                                 )}
-                              </Box>
+                              </FlexRow>
                             );
                           })()}
                           <span className="model-menu__provider-name">
                             {providerLabel}
                           </span>
-                        </Box>
+                        </FlexRow>
                       }
                       slotProps={{
                         primary: {
@@ -920,14 +915,11 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       }}
                     />
                     {!hasKey && (
-                      <Box
+                      <FlexRow
                         className="model-menu__provider-missing-key"
-                        sx={{
-                          mr: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.5
-                        }}
+                        gap={0.5}
+                        align="center"
+                        sx={{ mr: 1 }}
                         onClick={handleStopPropagation}
                       >
                         <Tooltip className="model-menu__provider-missing-key-tooltip" title="API key required">
@@ -955,16 +947,13 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             Add key
                           </EditorButton>
                         </Tooltip>
-                      </Box>
+                      </FlexRow>
                     )}
-                    <Box
+                    <FlexRow
                       className="model-menu__provider-actions"
-                      sx={{
-                        ml: "auto",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.5
-                      }}
+                      gap={0.5}
+                      align="center"
+                      sx={{ ml: "auto" }}
                       onClick={handleStopPropagation}
                     >
                       {renderBadges()}
@@ -993,7 +982,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           />
                         </Box>
                       </Tooltip>
-                    </Box>
+                    </FlexRow>
                   </>
                 )}
               </ListItemButton>

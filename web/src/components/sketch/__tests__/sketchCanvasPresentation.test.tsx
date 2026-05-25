@@ -18,7 +18,8 @@ import { TransformTool } from "../tools/TransformTool";
 jest.mock("@mui/material/styles", () => ({
   ...jest.requireActual("@mui/material/styles"),
   useTheme: () => ({
-    vars: { palette: { grey: { 800: "#424242" } } }
+    vars: { palette: { grey: { 800: "#424242" } } },
+    spacing: (n: number) => `${n * 8}px`
   })
 }));
 
@@ -82,6 +83,10 @@ describe("cursorStyleForTool", () => {
 
   it('returns "crosshair" for crop tool', () => {
     expect(cursorStyleForTool("crop")).toBe("crosshair");
+  });
+
+  it('returns "crosshair" for color picker / eyedropper tool', () => {
+    expect(cursorStyleForTool("eyedropper")).toBe("crosshair");
   });
 
   it('returns "crosshair" for select tool', () => {

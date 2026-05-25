@@ -2,10 +2,10 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState } from "react";
-import { Box } from "@mui/material";
 import TuneIcon from "@mui/icons-material/Tune";
 import FolderIcon from "@mui/icons-material/Folder";
 import FolderOffIcon from "@mui/icons-material/FolderOff";
+import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ImageIcon from "@mui/icons-material/Image";
 import VideocamIcon from "@mui/icons-material/Videocam";
@@ -30,7 +30,8 @@ import {
   Popover,
   MenuItemPrimitive,
   SearchInput,
-  FlexRow
+  FlexRow,
+  Box
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
 import isEqual from "fast-deep-equal";
@@ -94,6 +95,9 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
   const toggleFoldersVisible = useAssetGridStore(
     (state) => state.toggleFoldersVisible
   );
+  const setCreateFolderDialogOpen = useAssetGridStore(
+    (state) => state.setCreateFolderDialogOpen
+  );
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const setTypeFilter = useAssetGridStore((state) => state.setTypeFilter);
   const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
@@ -148,14 +152,15 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
 
   return (
     <Box className="asset-menu" sx={{ width: "100%" }}>
-      <Box
+      <FlexRow
         className="asset-menu-toolbar"
+        align="center"
+        gap={0.25}
         sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0.25,
           px: 0.5,
-          py: 0.25
+          py: 0.25,
+          "& .MuiIconButton-root": { padding: "4px" },
+          "& .MuiSvgIcon-root": { fontSize: 14 }
         }}
       >
         <ToolbarIconButton
@@ -179,26 +184,25 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           nodrag={false}
           sx={{
             borderRadius: 1,
-            px: 0.75,
-            gap: 0.5,
-            fontSize: theme.fontSizeSmall,
+            px: 0.5,
+            gap: 0.25,
+            fontSize: "0.72rem",
             color: typeFilterActive
               ? "var(--palette-primary-main)"
               : undefined
           }}
         >
-          <Box
+          <FlexRow
+            align="center"
+            gap={0.5}
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.5,
               "& .MuiSvgIcon-root": { fontSize: 18 }
             }}
           >
             {TYPE_FILTER_ICONS[typeFilter]}
             <span>{typeFilterLabel}</span>
             <ArrowDropDownIcon />
-          </Box>
+          </FlexRow>
         </ToolbarIconButton>
         <ToolbarIconButton
           tooltip={workflowFilter ? `Workflow: ${activeWorkflowName}` : "Filter by workflow"}
@@ -207,19 +211,15 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           nodrag={false}
           sx={{
             borderRadius: 1,
-            px: 0.75,
-            gap: 0.5,
-            fontSize: theme.fontSizeSmall,
+            px: 0.5,
+            gap: 0.25,
+            fontSize: "0.72rem",
             color: workflowFilter
               ? "var(--palette-primary-main)"
               : undefined
           }}
         >
-          <FlexRow
-            align="center"
-            gap={0.5}
-            sx={{ "& .MuiSvgIcon-root": { fontSize: 18 } }}
-          >
+          <FlexRow align="center" gap={0.5}>
             <AccountTreeIcon />
             <span
               style={{
@@ -234,13 +234,20 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
             <ArrowDropDownIcon />
           </FlexRow>
         </ToolbarIconButton>
+        <ToolbarIconButton
+          icon={<CreateNewFolderIcon />}
+          tooltip="Create folder"
+          onClick={() => setCreateFolderDialogOpen(true)}
+          tooltipPlacement="top"
+          nodrag={false}
+        />
         <UploadButton
           onFileSelect={(files) => onUploadFiles?.(files)}
           iconVariant="file"
           tooltip="Upload files"
           multiple
         />
-      </Box>
+      </FlexRow>
 
       <Popover
         open={Boolean(typeFilterAnchor)}
@@ -331,7 +338,6 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
             handleSelectAllAssets={handleSelectAllAssets}
             handleDeselectAssets={handleDeselectAssets}
             maxItemSize={maxItemSize}
-            onUploadFiles={onUploadFiles}
           />
         </Box>
       )}

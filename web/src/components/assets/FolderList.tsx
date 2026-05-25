@@ -3,9 +3,9 @@ import { css } from "@emotion/react";
 import {
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  Box
+  AccordionDetails
 } from "@mui/material";
+import { Box } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
 import FolderItem from "./FolderItem";

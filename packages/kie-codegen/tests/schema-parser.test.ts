@@ -144,6 +144,135 @@ describe("KieSchemaFetcher", () => {
   });
 });
 
+const geminiOmniVideoDocs = `# Gemini Omni Video
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/jobs/createTask:
+    post:
+      operationId: gemini-omni-video
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  enum:
+                    - gemini-omni-video
+                input:
+                  type: object
+                  required:
+                    - prompt
+                    - duration
+                  properties:
+                    prompt:
+                      type: string
+                    image_urls:
+                      type: array
+                      items:
+                        type: string
+                        format: uri
+                    audio_ids:
+                      type: array
+                      items:
+                        type: string
+                    character_ids:
+                      type: array
+                      items:
+                        type: string
+                    video_list:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - url
+                          - start
+                          - ends
+                        properties:
+                          url:
+                            type: string
+                            format: uri
+                          start:
+                            type: number
+                          ends:
+                            type: number
+                    duration:
+                      type: string
+                      enum:
+                        - "4"
+                        - "8"
+                    aspect_ratio:
+                      type: string
+\`\`\`
+`;
+
+const geminiOmniAudioDocs = `# Gemini Omni Audio
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/omni/audio/create:
+    post:
+      operationId: gemini-omni-audio-create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                audio_id:
+                  type: string
+                  enum:
+                    - achernar
+                    - charon
+                name:
+                  type: string
+                voice_description:
+                  type: string
+                example_dialogue:
+                  type: string
+\`\`\`
+`;
+
+const geminiOmniCharacterDocs = `# Gemini Omni Character
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/omni/character/create:
+    post:
+      operationId: gemini-omni-character-create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - descriptions
+                - image_urls
+              properties:
+                character_name:
+                  type: string
+                descriptions:
+                  type: string
+                image_urls:
+                  type: array
+                  maxItems: 1
+                  items:
+                    type: string
+                    format: uri
+                audio_ids:
+                  type: array
+                  items:
+                    type: string
+\`\`\`
+`;
+
 describe("KieSchemaParser", () => {
   it("maps KIE OpenAPI media URL fields to AssetRef handles", () => {
     const parser = new KieSchemaParser();
@@ -224,5 +353,96 @@ describe("KieSchemaParser", () => {
       ])
     });
     expect(node?.fields.some((field) => field.name === "callBackUrl")).toBe(false);
+  });
+
+  it("maps gemini omni video ID and clip fields", () => {
+    const parser = new KieSchemaParser();
+    const node = parser.parse(geminiOmniVideoDocs, {
+      category: "Video Models > Gemini",
+      title: "gemini-omni-video",
+      url: "https://docs.kie.ai/market/gemini-omni-video.md",
+      summary: "Create Task"
+    });
+
+    expect(node).toMatchObject({
+      className: "GeminiOmniVideo",
+      modelId: "gemini-omni-video",
+      outputType: "video",
+      moduleName: "video",
+      fields: expect.arrayContaining([
+        expect.objectContaining({ name: "audio_ids", type: "list[str]" }),
+        expect.objectContaining({ name: "character_ids", type: "list[str]" }),
+        expect.objectContaining({ name: "video_list", type: "video_clip_list" })
+      ]),
+      uploads: expect.arrayContaining([
+        expect.objectContaining({
+          field: "video_list",
+          kind: "video",
+          isVideoClip: true,
+          paramName: "video_list"
+        })
+      ])
+    });
+  });
+
+  it("maps gemini omni audio direct endpoint to text output", () => {
+    const parser = new KieSchemaParser();
+    const node = parser.parse(geminiOmniAudioDocs, {
+      category: "Video Models > Gemini",
+      title: "gemini-omni-audio",
+      url: "https://docs.kie.ai/market/gemini-omni-audio.md",
+      summary: "Create voice profile"
+    });
+
+    expect(node).toMatchObject({
+      className: "GeminiOmniAudio",
+      modelId: "gemini-omni-audio",
+      outputType: "text",
+      moduleName: "video",
+      useOmniDirect: true,
+      submitEndpoint: "/api/v1/omni/audio/create",
+      responseIdKey: "audioId",
+      fields: expect.arrayContaining([
+        expect.objectContaining({
+          name: "audio_id",
+          type: "enum",
+          values: ["achernar", "charon"]
+        }),
+        expect.objectContaining({ name: "name", type: "str", required: true })
+      ])
+    });
+  });
+
+  it("maps gemini omni character direct endpoint to text output", () => {
+    const parser = new KieSchemaParser();
+    const node = parser.parse(geminiOmniCharacterDocs, {
+      category: "Video Models > Gemini",
+      title: "gemini-omni-character",
+      url: "https://docs.kie.ai/market/gemini-omni-character.md",
+      summary: "Create character profile"
+    });
+
+    expect(node).toMatchObject({
+      className: "GeminiOmniCharacter",
+      modelId: "gemini-omni-character",
+      outputType: "text",
+      moduleName: "video",
+      useOmniDirect: true,
+      submitEndpoint: "/api/v1/omni/character/create",
+      responseIdKey: "characterId",
+      fields: expect.arrayContaining([
+        expect.objectContaining({ name: "descriptions", type: "str", required: true }),
+        expect.objectContaining({ name: "images", type: "list[image]" }),
+        expect.objectContaining({ name: "audio_ids", type: "list[str]" })
+      ]),
+      uploads: expect.arrayContaining([
+        expect.objectContaining({
+          field: "images",
+          kind: "image",
+          isList: true,
+          paramName: "image_urls"
+        })
+      ])
+    });
   });
 });

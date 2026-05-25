@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, memo, useRef, useState } from "react";
 import { shallow } from "zustand/shallow";
 //mui
-import { Box, InputAdornment, Menu, TextField } from "@mui/material";
+import { InputAdornment, Menu, TextField } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Divider, Text, ToolbarIconButton } from "../ui_primitives";
+import { Divider, Text, ToolbarIconButton, Box } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 //icons
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -34,13 +34,15 @@ const OutputContextMenu: React.FC = () => {
     menuPosition,
     closeContextMenu,
     type: sourceType,
-    handleId: sourceHandle
+    handleId: sourceHandle,
+    payload
   } = useContextMenuStore((state) => ({
     nodeId: state.nodeId,
     menuPosition: state.menuPosition,
     closeContextMenu: state.closeContextMenu,
     type: state.type,
-    handleId: state.handleId
+    handleId: state.handleId,
+    payload: state.payload
   }), shallow);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -305,7 +307,7 @@ const OutputContextMenu: React.FC = () => {
     getScrollElement: () => scrollRef.current,
     estimateSize: () => NODE_ROW_HEIGHT,
     initialRect: { height: 160, width: 320 },
-    overscan: 12,
+    overscan: theme.virtualScroll.overscan.normal,
     getItemKey: (index) => rankedConnectableNodes[index]?.node_type ?? index
   });
 
@@ -362,14 +364,23 @@ const OutputContextMenu: React.FC = () => {
       if (!menuPosition) {
         return;
       }
+      const anchorPosition =
+        (payload as { dropPosition?: { x: number; y: number } } | null)
+          ?.dropPosition ?? menuPosition;
       const property = getPreferredConnectableInput(metadata);
       if (!property) {
         return;
       }
-      createNodeWithEdge(metadata, menuPosition, "connectable", property.name);
+      createNodeWithEdge(metadata, anchorPosition, "connectable", property.name);
       closeContextMenu();
     },
-    [closeContextMenu, createNodeWithEdge, getPreferredConnectableInput, menuPosition]
+    [
+      closeContextMenu,
+      createNodeWithEdge,
+      getPreferredConnectableInput,
+      menuPosition,
+      payload
+    ]
   );
 
   useEffect(() => {

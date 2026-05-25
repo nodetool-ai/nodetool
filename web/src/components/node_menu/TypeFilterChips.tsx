@@ -4,17 +4,16 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { IconForType } from "../../config/data_types";
 import {
   Autocomplete,
-  Box,
   Menu,
   TextField
 } from "@mui/material";
-import { Tooltip, Text, Chip, EditorButton } from "../ui_primitives";
+import { Tooltip, Text, Chip, EditorButton, Box } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import useMetadataStore from "../../stores/MetadataStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 
 interface TypeFilterChipsProps {
   selectedInputType: string;
@@ -214,11 +213,10 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
   }) => {
     const theme = useTheme();
     const { selectedProviderType, setSelectedProviderType } = useNodeMenuStore(
-      (state) => ({
+      useShallow((state) => ({
         selectedProviderType: state.selectedProviderType,
         setSelectedProviderType: state.setSelectedProviderType
-      }),
-      shallow
+      }))
     );
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
     const metadata = useMetadataStore((state) => state.metadata);

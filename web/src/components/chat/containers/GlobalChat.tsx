@@ -39,45 +39,83 @@ const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
 
-  // Split selectors to minimize re-renders - group by update frequency
-  // Frequently updated values (messages, status, progress)
-  const status = useGlobalChatStore((state) => state.status);
-  const progress = useGlobalChatStore((state) => state.progress);
-  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
-  const error = useGlobalChatStore((state) => state.error);
-  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
-
-  // Thread management (changes on thread switch)
-  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
-  const threads = useGlobalChatStore((state) => state.threads);
-  const threadsLoaded = useGlobalChatStore((state) => state.threadsLoaded);
-  const messageCache = useGlobalChatStore((state) => state.messageCache);
-  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
-
-  // Actions (stable references)
-  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
-  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
-  const switchThread = useGlobalChatStore((state) => state.switchThread);
-  const fetchThread = useGlobalChatStore((state) => state.fetchThread);
-  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
-  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
-  const connect = useGlobalChatStore((state) => state.connect);
-  const disconnect = useGlobalChatStore((state) => state.disconnect);
-
-  // Agent mode and settings (change less frequently)
-  const agentMode = useGlobalChatStore((state) => state.agentMode);
-  const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
-  const agentPlanner = useGlobalChatStore((state) => state.agentPlanner);
-  const setAgentPlanner = useGlobalChatStore(
-    (state) => state.setAgentPlanner
+  const {
+    status,
+    progress,
+    statusMessage,
+    error,
+    currentLogUpdate
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      status: state.status,
+      progress: state.progress,
+      statusMessage: state.statusMessage,
+      error: state.error,
+      currentLogUpdate: state.currentLogUpdate
+    }))
   );
 
-  // Task updates (change during execution)
-  const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
-  const currentTaskUpdate = useGlobalChatStore((state) => state.currentTaskUpdate);
-  const currentTaskUpdateThreadId = useGlobalChatStore((state) => state.currentTaskUpdateThreadId);
-  const lastTaskUpdatesByThread = useGlobalChatStore((state) => state.lastTaskUpdatesByThread);
-  const workflowId = useGlobalChatStore((state) => state.workflowId);
+  const {
+    currentThreadId,
+    threads,
+    threadsLoaded,
+    messageCache,
+    getCurrentMessagesSync
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      currentThreadId: state.currentThreadId,
+      threads: state.threads,
+      threadsLoaded: state.threadsLoaded,
+      messageCache: state.messageCache,
+      getCurrentMessagesSync: state.getCurrentMessagesSync
+    }))
+  );
+
+  const {
+    sendMessage,
+    createNewThread,
+    switchThread,
+    fetchThread,
+    stopGeneration,
+    deleteThread,
+    connect,
+    disconnect
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      sendMessage: state.sendMessage,
+      createNewThread: state.createNewThread,
+      switchThread: state.switchThread,
+      fetchThread: state.fetchThread,
+      stopGeneration: state.stopGeneration,
+      deleteThread: state.deleteThread,
+      connect: state.connect,
+      disconnect: state.disconnect
+    }))
+  );
+
+  const {
+    agentMode,
+    setAgentMode,
+    agentPlanner,
+    setAgentPlanner,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    currentTaskUpdateThreadId,
+    lastTaskUpdatesByThread,
+    workflowId
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      agentMode: state.agentMode,
+      setAgentMode: state.setAgentMode,
+      agentPlanner: state.agentPlanner,
+      setAgentPlanner: state.setAgentPlanner,
+      currentPlanningUpdate: state.currentPlanningUpdate,
+      currentTaskUpdate: state.currentTaskUpdate,
+      currentTaskUpdateThreadId: state.currentTaskUpdateThreadId,
+      lastTaskUpdatesByThread: state.lastTaskUpdatesByThread,
+      workflowId: state.workflowId
+    }))
+  );
 
   // Get connection state from WebSocket manager directly
   const [_connectionState, setConnectionState] = useState(
@@ -645,6 +683,7 @@ const GlobalChat: React.FC = () => {
               currentLogUpdate={currentLogUpdate}
               workflowId={workflowId}
               noMessagesPlaceholder={welcomePlaceholder}
+              useExternalComposer
             />
           </FlexColumn>
         </FlexRow>

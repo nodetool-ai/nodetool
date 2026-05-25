@@ -10,7 +10,6 @@ const baseData = (): NodeData => ({
   properties: {},
   dynamic_properties: {},
   dynamic_outputs: {},
-  sync_mode: "on_any",
   selectable: true,
   collapsed: false,
   bypassed: false,

@@ -15,8 +15,8 @@ export interface ExecutePythonOutputs {
   stderr: string;
 }
 
-export function executePython(inputs: ExecutePythonInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExecutePythonOutputs> {
-  return createNode("nodetool.code.ExecutePython", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function executePython(inputs: ExecutePythonInputs): DslNode<ExecutePythonOutputs> {
+  return createNode("nodetool.code.ExecutePython", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
 }
 
 // Execute Java Script — nodetool.code.ExecuteJavaScript
@@ -32,8 +32,8 @@ export interface ExecuteJavaScriptOutputs {
   stderr: string;
 }
 
-export function executeJavaScript(inputs: ExecuteJavaScriptInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExecuteJavaScriptOutputs> {
-  return createNode("nodetool.code.ExecuteJavaScript", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function executeJavaScript(inputs: ExecuteJavaScriptInputs): DslNode<ExecuteJavaScriptOutputs> {
+  return createNode("nodetool.code.ExecuteJavaScript", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Execute Bash — nodetool.code.ExecuteBash
@@ -49,8 +49,8 @@ export interface ExecuteBashOutputs {
   stderr: string;
 }
 
-export function executeBash(inputs: ExecuteBashInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExecuteBashOutputs> {
-  return createNode("nodetool.code.ExecuteBash", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function executeBash(inputs: ExecuteBashInputs): DslNode<ExecuteBashOutputs> {
+  return createNode("nodetool.code.ExecuteBash", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
 }
 
 // Execute Ruby — nodetool.code.ExecuteRuby
@@ -66,8 +66,8 @@ export interface ExecuteRubyOutputs {
   stderr: string;
 }
 
-export function executeRuby(inputs: ExecuteRubyInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExecuteRubyOutputs> {
-  return createNode("nodetool.code.ExecuteRuby", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function executeRuby(inputs: ExecuteRubyInputs): DslNode<ExecuteRubyOutputs> {
+  return createNode("nodetool.code.ExecuteRuby", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
 }
 
 // Execute Lua — nodetool.code.ExecuteLua
@@ -84,8 +84,8 @@ export interface ExecuteLuaOutputs {
   stderr: string;
 }
 
-export function executeLua(inputs: ExecuteLuaInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExecuteLuaOutputs> {
-  return createNode("nodetool.code.ExecuteLua", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function executeLua(inputs: ExecuteLuaInputs): DslNode<ExecuteLuaOutputs> {
+  return createNode("nodetool.code.ExecuteLua", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
 }
 
 // Execute Command — nodetool.code.ExecuteCommand
@@ -101,8 +101,8 @@ export interface ExecuteCommandOutputs {
   stderr: string;
 }
 
-export function executeCommand(inputs: ExecuteCommandInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExecuteCommandOutputs> {
-  return createNode("nodetool.code.ExecuteCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function executeCommand(inputs: ExecuteCommandInputs): DslNode<ExecuteCommandOutputs> {
+  return createNode("nodetool.code.ExecuteCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], streaming: true });
 }
 
 // Run Python Command — nodetool.code.RunPythonCommand
@@ -115,8 +115,8 @@ export interface RunPythonCommandOutputs {
   stderr: string;
 }
 
-export function runPythonCommand(inputs: RunPythonCommandInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunPythonCommandOutputs> {
-  return createNode("nodetool.code.RunPythonCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runPythonCommand(inputs: RunPythonCommandInputs): DslNode<RunPythonCommandOutputs> {
+  return createNode("nodetool.code.RunPythonCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Java Script Command — nodetool.code.RunJavaScriptCommand
@@ -129,8 +129,8 @@ export interface RunJavaScriptCommandOutputs {
   stderr: string;
 }
 
-export function runJavaScriptCommand(inputs: RunJavaScriptCommandInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunJavaScriptCommandOutputs> {
-  return createNode("nodetool.code.RunJavaScriptCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runJavaScriptCommand(inputs: RunJavaScriptCommandInputs): DslNode<RunJavaScriptCommandOutputs> {
+  return createNode("nodetool.code.RunJavaScriptCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Bash Command — nodetool.code.RunBashCommand
@@ -143,8 +143,8 @@ export interface RunBashCommandOutputs {
   stderr: string;
 }
 
-export function runBashCommand(inputs: RunBashCommandInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunBashCommandOutputs> {
-  return createNode("nodetool.code.RunBashCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runBashCommand(inputs: RunBashCommandInputs): DslNode<RunBashCommandOutputs> {
+  return createNode("nodetool.code.RunBashCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Ruby Command — nodetool.code.RunRubyCommand
@@ -157,8 +157,8 @@ export interface RunRubyCommandOutputs {
   stderr: string;
 }
 
-export function runRubyCommand(inputs: RunRubyCommandInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunRubyCommandOutputs> {
-  return createNode("nodetool.code.RunRubyCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runRubyCommand(inputs: RunRubyCommandInputs): DslNode<RunRubyCommandOutputs> {
+  return createNode("nodetool.code.RunRubyCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Lua Command — nodetool.code.RunLuaCommand
@@ -173,8 +173,8 @@ export interface RunLuaCommandOutputs {
   stderr: string;
 }
 
-export function runLuaCommand(inputs: RunLuaCommandInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunLuaCommandOutputs> {
-  return createNode("nodetool.code.RunLuaCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runLuaCommand(inputs: RunLuaCommandInputs): DslNode<RunLuaCommandOutputs> {
+  return createNode("nodetool.code.RunLuaCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Lua Command Docker — nodetool.code.RunLuaCommandDocker
@@ -189,8 +189,8 @@ export interface RunLuaCommandDockerOutputs {
   stderr: string;
 }
 
-export function runLuaCommandDocker(inputs: RunLuaCommandDockerInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunLuaCommandDockerOutputs> {
-  return createNode("nodetool.code.RunLuaCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runLuaCommandDocker(inputs: RunLuaCommandDockerInputs): DslNode<RunLuaCommandDockerOutputs> {
+  return createNode("nodetool.code.RunLuaCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Shell Command — nodetool.code.RunShellCommand
@@ -203,8 +203,8 @@ export interface RunShellCommandOutputs {
   stderr: string;
 }
 
-export function runShellCommand(inputs: RunShellCommandInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunShellCommandOutputs> {
-  return createNode("nodetool.code.RunShellCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runShellCommand(inputs: RunShellCommandInputs): DslNode<RunShellCommandOutputs> {
+  return createNode("nodetool.code.RunShellCommand", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Python Command Docker — nodetool.code.RunPythonCommandDocker
@@ -218,8 +218,8 @@ export interface RunPythonCommandDockerOutputs {
   stderr: string;
 }
 
-export function runPythonCommandDocker(inputs: RunPythonCommandDockerInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunPythonCommandDockerOutputs> {
-  return createNode("nodetool.code.RunPythonCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runPythonCommandDocker(inputs: RunPythonCommandDockerInputs): DslNode<RunPythonCommandDockerOutputs> {
+  return createNode("nodetool.code.RunPythonCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Java Script Command Docker — nodetool.code.RunJavaScriptCommandDocker
@@ -233,8 +233,8 @@ export interface RunJavaScriptCommandDockerOutputs {
   stderr: string;
 }
 
-export function runJavaScriptCommandDocker(inputs: RunJavaScriptCommandDockerInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunJavaScriptCommandDockerOutputs> {
-  return createNode("nodetool.code.RunJavaScriptCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runJavaScriptCommandDocker(inputs: RunJavaScriptCommandDockerInputs): DslNode<RunJavaScriptCommandDockerOutputs> {
+  return createNode("nodetool.code.RunJavaScriptCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Bash Command Docker — nodetool.code.RunBashCommandDocker
@@ -248,8 +248,8 @@ export interface RunBashCommandDockerOutputs {
   stderr: string;
 }
 
-export function runBashCommandDocker(inputs: RunBashCommandDockerInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunBashCommandDockerOutputs> {
-  return createNode("nodetool.code.RunBashCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runBashCommandDocker(inputs: RunBashCommandDockerInputs): DslNode<RunBashCommandDockerOutputs> {
+  return createNode("nodetool.code.RunBashCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Ruby Command Docker — nodetool.code.RunRubyCommandDocker
@@ -263,8 +263,8 @@ export interface RunRubyCommandDockerOutputs {
   stderr: string;
 }
 
-export function runRubyCommandDocker(inputs: RunRubyCommandDockerInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunRubyCommandDockerOutputs> {
-  return createNode("nodetool.code.RunRubyCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runRubyCommandDocker(inputs: RunRubyCommandDockerInputs): DslNode<RunRubyCommandDockerOutputs> {
+  return createNode("nodetool.code.RunRubyCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Run Shell Command Docker — nodetool.code.RunShellCommandDocker
@@ -278,8 +278,8 @@ export interface RunShellCommandDockerOutputs {
   stderr: string;
 }
 
-export function runShellCommandDocker(inputs: RunShellCommandDockerInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RunShellCommandDockerOutputs> {
-  return createNode("nodetool.code.RunShellCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function runShellCommandDocker(inputs: RunShellCommandDockerInputs): DslNode<RunShellCommandDockerOutputs> {
+  return createNode("nodetool.code.RunShellCommandDocker", inputs as Record<string, unknown>, { outputNames: ["stdout", "stderr"] });
 }
 
 // Code — nodetool.code.Code
@@ -291,6 +291,6 @@ export interface CodeInputs {
 export interface CodeOutputs {
 }
 
-export function code(inputs: CodeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CodeOutputs> {
-  return createNode("nodetool.code.Code", inputs as Record<string, unknown>, { outputNames: [], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function code(inputs: CodeInputs): DslNode<CodeOutputs> {
+  return createNode("nodetool.code.Code", inputs as Record<string, unknown>, { outputNames: [], streaming: true });
 }

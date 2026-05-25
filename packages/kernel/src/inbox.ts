@@ -12,6 +12,13 @@
  */
 
 import { randomUUID } from "crypto";
+import type {
+  CorrelationLineage,
+  LineageDone,
+  LineageScopeClosed
+} from "@nodetool-ai/protocol";
+import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
+import { tryProjectLineageKey, type Scope } from "./correlation-analysis.js";
 
 // ---------------------------------------------------------------------------
 // MessageEnvelope
@@ -22,17 +29,27 @@ export interface MessageEnvelope {
   metadata: Record<string, unknown>;
   timestamp: number; // epoch ms
   event_id: string;
+  correlation_lineage: CorrelationLineage;
+  source_edge_id: string;
+}
+
+export interface PutOptions {
+  metadata?: Record<string, unknown>;
+  correlation_lineage?: CorrelationLineage;
+  source_edge_id?: string;
 }
 
 function makeEnvelope(
   data: unknown,
-  metadata: Record<string, unknown> = {}
+  opts: PutOptions = {}
 ): MessageEnvelope {
   return {
     data,
-    metadata,
+    metadata: opts.metadata ?? {},
     timestamp: Date.now(),
-    event_id: randomUUID()
+    event_id: randomUUID(),
+    correlation_lineage: opts.correlation_lineage ?? EMPTY_LINEAGE,
+    source_edge_id: opts.source_edge_id ?? ""
   };
 }
 
@@ -73,6 +90,14 @@ export class NodeInbox {
   /** Optional per-handle buffer capacity. */
   private _bufferLimit: number | null;
 
+  /**
+   * Pending-key safety limits. Default to conservative finite values so the
+   * correlated scheduler cannot accumulate unbounded buckets when an upstream
+   * close is missing. Hitting either is a terminal execution error. §6.
+   */
+  private _maxPendingKeys: number;
+  private _maxPendingMessagesPerKey: number;
+
   /** Flag: inbox is closed (no more data accepted). */
   private _closed = false;
 
@@ -82,8 +107,46 @@ export class NodeInbox {
   /** Waiters: producers blocking when buffer is full. */
   private _putWaiters: Array<Deferred<void>> = [];
 
-  constructor(bufferLimit: number | null = null) {
+  /**
+   * Per-(source_edge_id, projected lineage key) record of `lineage_done`
+   * signals. The projection is canonical (root=index in scope order) so
+   * lookup is unaffected by JavaScript object property order. §6.
+   */
+  private _doneByEdge = new Map<string, Set<string>>();
+
+  /**
+   * Per-(source_edge_id, parent lineage key) → set of closed root ids.
+   * Used by `lineage_scope_closed`. §6.
+   */
+  private _closedByEdge = new Map<string, Map<string, Set<string>>>();
+
+  /**
+   * Per-handle set of source edge ids that have ever emitted a signal we
+   * recorded. Lets the actor query "did any contributor announce a
+   * close/done?" without scanning every edge.
+   */
+  private _signalEdgesByHandle = new Map<string, Set<string>>();
+
+  constructor(
+    bufferLimit: number | null = null,
+    opts: {
+      maxPendingKeys?: number;
+      maxPendingMessagesPerKey?: number;
+    } = {}
+  ) {
     this._bufferLimit = bufferLimit;
+    this._maxPendingKeys = opts.maxPendingKeys ?? 10_000;
+    this._maxPendingMessagesPerKey = opts.maxPendingMessagesPerKey ?? 10_000;
+  }
+
+  /** Configured pending-key limit (read by the actor for diagnostics). */
+  get maxPendingKeys(): number {
+    return this._maxPendingKeys;
+  }
+
+  /** Configured per-key message limit. */
+  get maxPendingMessagesPerKey(): number {
+    return this._maxPendingMessagesPerKey;
   }
 
   // -----------------------------------------------------------------------
@@ -109,7 +172,7 @@ export class NodeInbox {
   async put(
     handle: string,
     item: unknown,
-    metadata: Record<string, unknown> = {}
+    opts: PutOptions = {}
   ): Promise<void> {
     if (this._closed) return;
 
@@ -132,7 +195,7 @@ export class NodeInbox {
       if (this._closed) return;
     }
 
-    const envelope = makeEnvelope(item, metadata);
+    const envelope = makeEnvelope(item, opts);
     this._buffers.get(handle)!.push(envelope);
     this._arrival.push(handle);
     this._notifyWaiters();
@@ -149,6 +212,105 @@ export class NodeInbox {
       this._arrival.unshift(handle);
       this._notifyWaiters();
     }
+  }
+
+  /**
+   * Record a `lineage_done` signal: this source edge will not produce a value
+   * for `signal.lineage` on `signal.output`.
+   *
+   * The lineage is canonicalized against the supplied static scope so lookups
+   * are order-independent. If `scope` is empty the lineage projects to the
+   * empty key, which matches "source edge done at the root scope".
+   *
+   * `handle` is the inbox's target handle for the edge. The actor uses this
+   * to decide which firings to drop or propagate.
+   */
+  signalLineageDone(
+    handle: string,
+    signal: LineageDone,
+    scope: Scope
+  ): void {
+    const key = tryProjectLineageKey(signal.lineage, scope);
+    const finalKey = key ?? "";
+    let set = this._doneByEdge.get(signal.source_edge_id);
+    if (!set) {
+      set = new Set();
+      this._doneByEdge.set(signal.source_edge_id, set);
+    }
+    set.add(finalKey);
+    this._registerSignalEdge(handle, signal.source_edge_id);
+    this._notifyWaiters();
+  }
+
+  /**
+   * Record a `lineage_scope_closed` signal: this source edge will not produce
+   * any more descendants for `signal.closed_root` under
+   * `signal.parent_lineage` on `signal.output`.
+   *
+   * Like `signalLineageDone`, the parent lineage is canonicalized using the
+   * supplied static parent scope.
+   */
+  signalLineageScopeClosed(
+    handle: string,
+    signal: LineageScopeClosed,
+    parentScope: Scope
+  ): void {
+    const key = tryProjectLineageKey(signal.parent_lineage, parentScope);
+    const finalKey = key ?? "";
+    let perEdge = this._closedByEdge.get(signal.source_edge_id);
+    if (!perEdge) {
+      perEdge = new Map();
+      this._closedByEdge.set(signal.source_edge_id, perEdge);
+    }
+    let roots = perEdge.get(finalKey);
+    if (!roots) {
+      roots = new Set();
+      perEdge.set(finalKey, roots);
+    }
+    roots.add(signal.closed_root);
+    this._registerSignalEdge(handle, signal.source_edge_id);
+    this._notifyWaiters();
+  }
+
+  /**
+   * True if the given source edge has emitted `lineage_done` for `lineageKey`.
+   * `lineageKey` is the canonical projection produced by `projectLineageKey`.
+   */
+  isEdgeDoneFor(sourceEdgeId: string, lineageKey: string): boolean {
+    return this._doneByEdge.get(sourceEdgeId)?.has(lineageKey) ?? false;
+  }
+
+  /**
+   * True if `closed_root` has been closed under `parentKey` for the given
+   * source edge.
+   */
+  isScopeClosedFor(
+    sourceEdgeId: string,
+    parentKey: string,
+    closedRoot: string
+  ): boolean {
+    return (
+      this._closedByEdge.get(sourceEdgeId)?.get(parentKey)?.has(closedRoot) ??
+      false
+    );
+  }
+
+  /**
+   * Source edge ids that have emitted at least one lineage signal targeting
+   * `handle`. Used by the close-barrier machinery to enumerate contributors
+   * that have already announced something.
+   */
+  signalEdgesForHandle(handle: string): ReadonlySet<string> {
+    return this._signalEdgesByHandle.get(handle) ?? new Set<string>();
+  }
+
+  private _registerSignalEdge(handle: string, edgeId: string): void {
+    let set = this._signalEdgesByHandle.get(handle);
+    if (!set) {
+      set = new Set();
+      this._signalEdgesByHandle.set(handle, set);
+    }
+    set.add(edgeId);
   }
 
   /**

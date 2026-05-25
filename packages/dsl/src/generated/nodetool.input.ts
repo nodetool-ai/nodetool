@@ -16,8 +16,8 @@ export interface FloatInputOutputs {
   output: number;
 }
 
-export function floatInput(inputs: FloatInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FloatInputOutputs, "output"> {
-  return createNode("nodetool.input.FloatInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function floatInput(inputs: FloatInputInputs): DslNode<FloatInputOutputs, "output"> {
+  return createNode("nodetool.input.FloatInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Boolean Input — nodetool.input.BooleanInput
@@ -31,8 +31,8 @@ export interface BooleanInputOutputs {
   output: boolean;
 }
 
-export function booleanInput(inputs: BooleanInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BooleanInputOutputs, "output"> {
-  return createNode("nodetool.input.BooleanInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function booleanInput(inputs: BooleanInputInputs): DslNode<BooleanInputOutputs, "output"> {
+  return createNode("nodetool.input.BooleanInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Integer Input — nodetool.input.IntegerInput
@@ -48,8 +48,8 @@ export interface IntegerInputOutputs {
   output: number;
 }
 
-export function integerInput(inputs: IntegerInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IntegerInputOutputs, "output"> {
-  return createNode("nodetool.input.IntegerInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function integerInput(inputs: IntegerInputInputs): DslNode<IntegerInputOutputs, "output"> {
+  return createNode("nodetool.input.IntegerInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // String Input — nodetool.input.StringInput
@@ -65,8 +65,8 @@ export interface StringInputOutputs {
   output: string;
 }
 
-export function stringInput(inputs: StringInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<StringInputOutputs, "output"> {
-  return createNode("nodetool.input.StringInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function stringInput(inputs: StringInputInputs): DslNode<StringInputOutputs, "output"> {
+  return createNode("nodetool.input.StringInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Select Input — nodetool.input.SelectInput
@@ -82,8 +82,8 @@ export interface SelectInputOutputs {
   output: string;
 }
 
-export function selectInput(inputs: SelectInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SelectInputOutputs, "output"> {
-  return createNode("nodetool.input.SelectInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function selectInput(inputs: SelectInputInputs): DslNode<SelectInputOutputs, "output"> {
+  return createNode("nodetool.input.SelectInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // String List Input — nodetool.input.StringListInput
@@ -97,8 +97,8 @@ export interface StringListInputOutputs {
   output: string[];
 }
 
-export function stringListInput(inputs: StringListInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<StringListInputOutputs, "output"> {
-  return createNode("nodetool.input.StringListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function stringListInput(inputs: StringListInputInputs): DslNode<StringListInputOutputs, "output"> {
+  return createNode("nodetool.input.StringListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Folder Path Input — nodetool.input.FolderPathInput
@@ -112,8 +112,8 @@ export interface FolderPathInputOutputs {
   output: string;
 }
 
-export function folderPathInput(inputs: FolderPathInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FolderPathInputOutputs, "output"> {
-  return createNode("nodetool.input.FolderPathInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function folderPathInput(inputs: FolderPathInputInputs): DslNode<FolderPathInputOutputs, "output"> {
+  return createNode("nodetool.input.FolderPathInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Hugging Face Model Input — nodetool.input.HuggingFaceModelInput
@@ -127,8 +127,8 @@ export interface HuggingFaceModelInputOutputs {
   output: unknown;
 }
 
-export function huggingFaceModelInput(inputs: HuggingFaceModelInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<HuggingFaceModelInputOutputs, "output"> {
-  return createNode("nodetool.input.HuggingFaceModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function huggingFaceModelInput(inputs: HuggingFaceModelInputInputs): DslNode<HuggingFaceModelInputOutputs, "output"> {
+  return createNode("nodetool.input.HuggingFaceModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Color Input — nodetool.input.ColorInput
@@ -142,8 +142,8 @@ export interface ColorInputOutputs {
   output: unknown;
 }
 
-export function colorInput(inputs: ColorInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ColorInputOutputs, "output"> {
-  return createNode("nodetool.input.ColorInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function colorInput(inputs: ColorInputInputs): DslNode<ColorInputOutputs, "output"> {
+  return createNode("nodetool.input.ColorInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Image Size Input — nodetool.input.ImageSizeInput
@@ -157,8 +157,8 @@ export interface ImageSizeInputOutputs {
   output: unknown;
 }
 
-export function imageSizeInput(inputs: ImageSizeInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageSizeInputOutputs, "output"> {
-  return createNode("nodetool.input.ImageSizeInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function imageSizeInput(inputs: ImageSizeInputInputs): DslNode<ImageSizeInputOutputs, "output"> {
+  return createNode("nodetool.input.ImageSizeInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Language Model Input — nodetool.input.LanguageModelInput
@@ -172,8 +172,8 @@ export interface LanguageModelInputOutputs {
   output: unknown;
 }
 
-export function languageModelInput(inputs: LanguageModelInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<LanguageModelInputOutputs, "output"> {
-  return createNode("nodetool.input.LanguageModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function languageModelInput(inputs: LanguageModelInputInputs): DslNode<LanguageModelInputOutputs, "output"> {
+  return createNode("nodetool.input.LanguageModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Image Model Input — nodetool.input.ImageModelInput
@@ -187,8 +187,8 @@ export interface ImageModelInputOutputs {
   output: unknown;
 }
 
-export function imageModelInput(inputs: ImageModelInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageModelInputOutputs, "output"> {
-  return createNode("nodetool.input.ImageModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function imageModelInput(inputs: ImageModelInputInputs): DslNode<ImageModelInputOutputs, "output"> {
+  return createNode("nodetool.input.ImageModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Video Model Input — nodetool.input.VideoModelInput
@@ -202,8 +202,8 @@ export interface VideoModelInputOutputs {
   output: unknown;
 }
 
-export function videoModelInput(inputs: VideoModelInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<VideoModelInputOutputs, "output"> {
-  return createNode("nodetool.input.VideoModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function videoModelInput(inputs: VideoModelInputInputs): DslNode<VideoModelInputOutputs, "output"> {
+  return createNode("nodetool.input.VideoModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // TTSModel Input — nodetool.input.TTSModelInput
@@ -217,8 +217,8 @@ export interface TTSModelInputOutputs {
   output: unknown;
 }
 
-export function ttsModelInput(inputs: TTSModelInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TTSModelInputOutputs, "output"> {
-  return createNode("nodetool.input.TTSModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function ttsModelInput(inputs: TTSModelInputInputs): DslNode<TTSModelInputOutputs, "output"> {
+  return createNode("nodetool.input.TTSModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // ASRModel Input — nodetool.input.ASRModelInput
@@ -232,8 +232,8 @@ export interface ASRModelInputOutputs {
   output: unknown;
 }
 
-export function asrModelInput(inputs: ASRModelInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ASRModelInputOutputs, "output"> {
-  return createNode("nodetool.input.ASRModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function asrModelInput(inputs: ASRModelInputInputs): DslNode<ASRModelInputOutputs, "output"> {
+  return createNode("nodetool.input.ASRModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Embedding Model Input — nodetool.input.EmbeddingModelInput
@@ -247,8 +247,8 @@ export interface EmbeddingModelInputOutputs {
   output: unknown;
 }
 
-export function embeddingModelInput(inputs: EmbeddingModelInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<EmbeddingModelInputOutputs, "output"> {
-  return createNode("nodetool.input.EmbeddingModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function embeddingModelInput(inputs: EmbeddingModelInputInputs): DslNode<EmbeddingModelInputOutputs, "output"> {
+  return createNode("nodetool.input.EmbeddingModelInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Dataframe Input — nodetool.input.DataframeInput
@@ -262,8 +262,8 @@ export interface DataframeInputOutputs {
   output: DataframeRef;
 }
 
-export function dataframeInput(inputs: DataframeInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DataframeInputOutputs, "output"> {
-  return createNode("nodetool.input.DataframeInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function dataframeInput(inputs: DataframeInputInputs): DslNode<DataframeInputOutputs, "output"> {
+  return createNode("nodetool.input.DataframeInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Document Input — nodetool.input.DocumentInput
@@ -277,8 +277,8 @@ export interface DocumentInputOutputs {
   output: unknown;
 }
 
-export function documentInput(inputs: DocumentInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DocumentInputOutputs, "output"> {
-  return createNode("nodetool.input.DocumentInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function documentInput(inputs: DocumentInputInputs): DslNode<DocumentInputOutputs, "output"> {
+  return createNode("nodetool.input.DocumentInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Image Input — nodetool.input.ImageInput
@@ -292,8 +292,8 @@ export interface ImageInputOutputs {
   output: ImageRef;
 }
 
-export function imageInput(inputs: ImageInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageInputOutputs, "output"> {
-  return createNode("nodetool.input.ImageInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function imageInput(inputs: ImageInputInputs): DslNode<ImageInputOutputs, "output"> {
+  return createNode("nodetool.input.ImageInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Image List Input — nodetool.input.ImageListInput
@@ -307,8 +307,8 @@ export interface ImageListInputOutputs {
   output: ImageRef[];
 }
 
-export function imageListInput(inputs: ImageListInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ImageListInputOutputs, "output"> {
-  return createNode("nodetool.input.ImageListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function imageListInput(inputs: ImageListInputInputs): DslNode<ImageListInputOutputs, "output"> {
+  return createNode("nodetool.input.ImageListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Video List Input — nodetool.input.VideoListInput
@@ -322,8 +322,8 @@ export interface VideoListInputOutputs {
   output: VideoRef[];
 }
 
-export function videoListInput(inputs: VideoListInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<VideoListInputOutputs, "output"> {
-  return createNode("nodetool.input.VideoListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function videoListInput(inputs: VideoListInputInputs): DslNode<VideoListInputOutputs, "output"> {
+  return createNode("nodetool.input.VideoListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Audio List Input — nodetool.input.AudioListInput
@@ -337,8 +337,8 @@ export interface AudioListInputOutputs {
   output: AudioRef[];
 }
 
-export function audioListInput(inputs: AudioListInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AudioListInputOutputs, "output"> {
-  return createNode("nodetool.input.AudioListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function audioListInput(inputs: AudioListInputInputs): DslNode<AudioListInputOutputs, "output"> {
+  return createNode("nodetool.input.AudioListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Text List Input — nodetool.input.TextListInput
@@ -352,8 +352,8 @@ export interface TextListInputOutputs {
   output: string[];
 }
 
-export function textListInput(inputs: TextListInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<TextListInputOutputs, "output"> {
-  return createNode("nodetool.input.TextListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function textListInput(inputs: TextListInputInputs): DslNode<TextListInputOutputs, "output"> {
+  return createNode("nodetool.input.TextListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Video Input — nodetool.input.VideoInput
@@ -367,8 +367,8 @@ export interface VideoInputOutputs {
   output: VideoRef;
 }
 
-export function videoInput(inputs: VideoInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<VideoInputOutputs, "output"> {
-  return createNode("nodetool.input.VideoInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function videoInput(inputs: VideoInputInputs): DslNode<VideoInputOutputs, "output"> {
+  return createNode("nodetool.input.VideoInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Audio Input — nodetool.input.AudioInput
@@ -382,8 +382,8 @@ export interface AudioInputOutputs {
   output: AudioRef;
 }
 
-export function audioInput(inputs: AudioInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AudioInputOutputs, "output"> {
-  return createNode("nodetool.input.AudioInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function audioInput(inputs: AudioInputInputs): DslNode<AudioInputOutputs, "output"> {
+  return createNode("nodetool.input.AudioInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Model 3D Input — nodetool.input.Model3DInput
@@ -397,8 +397,8 @@ export interface Model3DInputOutputs {
   output: unknown;
 }
 
-export function model3DInput(inputs: Model3DInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<Model3DInputOutputs, "output"> {
-  return createNode("nodetool.input.Model3DInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function model3DInput(inputs: Model3DInputInputs): DslNode<Model3DInputOutputs, "output"> {
+  return createNode("nodetool.input.Model3DInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Realtime Audio Input — nodetool.input.RealtimeAudioInput
@@ -412,8 +412,8 @@ export interface RealtimeAudioInputOutputs {
   chunk: unknown;
 }
 
-export function realtimeAudioInput(inputs: RealtimeAudioInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RealtimeAudioInputOutputs, "chunk"> {
-  return createNode("nodetool.input.RealtimeAudioInput", inputs as Record<string, unknown>, { outputNames: ["chunk"], defaultOutput: "chunk", streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function realtimeAudioInput(inputs: RealtimeAudioInputInputs): DslNode<RealtimeAudioInputOutputs, "chunk"> {
+  return createNode("nodetool.input.RealtimeAudioInput", inputs as Record<string, unknown>, { outputNames: ["chunk"], defaultOutput: "chunk", streaming: true });
 }
 
 // Asset Folder Input — nodetool.input.AssetFolderInput
@@ -427,8 +427,8 @@ export interface AssetFolderInputOutputs {
   output: FolderRef;
 }
 
-export function assetFolderInput(inputs: AssetFolderInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AssetFolderInputOutputs, "output"> {
-  return createNode("nodetool.input.AssetFolderInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function assetFolderInput(inputs: AssetFolderInputInputs): DslNode<AssetFolderInputOutputs, "output"> {
+  return createNode("nodetool.input.AssetFolderInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // File Path Input — nodetool.input.FilePathInput
@@ -442,8 +442,8 @@ export interface FilePathInputOutputs {
   output: string;
 }
 
-export function filePathInput(inputs: FilePathInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FilePathInputOutputs, "output"> {
-  return createNode("nodetool.input.FilePathInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function filePathInput(inputs: FilePathInputInputs): DslNode<FilePathInputOutputs, "output"> {
+  return createNode("nodetool.input.FilePathInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Document File Input — nodetool.input.DocumentFileInput
@@ -458,8 +458,8 @@ export interface DocumentFileInputOutputs {
   path: string;
 }
 
-export function documentFileInput(inputs: DocumentFileInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DocumentFileInputOutputs> {
-  return createNode("nodetool.input.DocumentFileInput", inputs as Record<string, unknown>, { outputNames: ["document", "path"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function documentFileInput(inputs: DocumentFileInputInputs): DslNode<DocumentFileInputOutputs> {
+  return createNode("nodetool.input.DocumentFileInput", inputs as Record<string, unknown>, { outputNames: ["document", "path"] });
 }
 
 // Message Input — nodetool.input.MessageInput
@@ -473,8 +473,8 @@ export interface MessageInputOutputs {
   output: unknown;
 }
 
-export function messageInput(inputs: MessageInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MessageInputOutputs, "output"> {
-  return createNode("nodetool.input.MessageInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function messageInput(inputs: MessageInputInputs): DslNode<MessageInputOutputs, "output"> {
+  return createNode("nodetool.input.MessageInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Message List Input — nodetool.input.MessageListInput
@@ -488,8 +488,8 @@ export interface MessageListInputOutputs {
   output: unknown[];
 }
 
-export function messageListInput(inputs: MessageListInputInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MessageListInputOutputs, "output"> {
-  return createNode("nodetool.input.MessageListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function messageListInput(inputs: MessageListInputInputs): DslNode<MessageListInputOutputs, "output"> {
+  return createNode("nodetool.input.MessageListInput", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Message Deconstructor — nodetool.input.MessageDeconstructor
@@ -507,6 +507,6 @@ export interface MessageDeconstructorOutputs {
   model: unknown;
 }
 
-export function messageDeconstructor(inputs: MessageDeconstructorInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MessageDeconstructorOutputs> {
-  return createNode("nodetool.input.MessageDeconstructor", inputs as Record<string, unknown>, { outputNames: ["id", "thread_id", "role", "text", "image", "audio", "model"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function messageDeconstructor(inputs: MessageDeconstructorInputs): DslNode<MessageDeconstructorOutputs> {
+  return createNode("nodetool.input.MessageDeconstructor", inputs as Record<string, unknown>, { outputNames: ["id", "thread_id", "role", "text", "image", "audio", "model"] });
 }

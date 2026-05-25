@@ -20,18 +20,13 @@ import {
   getPostgresDatabaseUrl,
   loadEnvironment
 } from "@nodetool-ai/config";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerKieNodes } from "@nodetool-ai/kie-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   initTelemetry,
-  PythonStdioBridge
+  PythonStdioBridge,
+  logPythonWorkerStderr
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import {
@@ -70,7 +65,16 @@ import oauthRoutes from "./routes/oauth.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
-import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
+import falCreditsRoute from "./routes/fal-credits.js";
+import falPricingRoute from "./routes/fal-pricing.js";
+import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
+import kieCreditsRoute from "./routes/kie-credits.js";
+import kiePricingRoute from "./routes/kie-pricing.js";
+import {
+  agentSocketRoute,
+  getAgentRuntime,
+  setLlmAgentGraphPlannerRegistry
+} from "./agent/index.js";
 
 // @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
 // resolves to false inside Electron utilityProcess (process.type === "utility"),
@@ -367,32 +371,15 @@ log.info(`Metadata roots detected [${startupMs()}]`, {
 // Node registry
 // ---------------------------------------------------------------------------
 
-const registry = new NodeRegistry();
-registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
-log.info(`Python metadata loaded [${startupMs()}]`);
-registerBaseNodes(registry);
-registerElevenLabsNodes(registry);
-if (process.env["NODETOOL_ENV"] !== "production") {
-  registerTransformersJsNodes(registry);
-}
-registerFalNodes(registry);
-registerKieNodes(registry);
-registerReplicateNodes(registry);
+const registry = await bootstrapNodeRegistry({
+  metadataRoots,
+  log
+});
+log.info(`Node registry ready [${startupMs()}]`);
+setLlmAgentGraphPlannerRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
 }
-// In production, unregister optional JS-only nodes that require on-demand npm packages.
-if (process.env["NODETOOL_ENV"] === "production") {
-  const skippedPrefixes = ["lib.tensorflow.", "transformers.", "vector."];
-  for (const nodeType of registry.list()) {
-    if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
-      if (registry.unregister(nodeType)) {
-        log.info(`Unregistered ${nodeType} in production`);
-      }
-    }
-  }
-}
-log.info(`Node registry ready [${startupMs()}]`);
 
 // ---------------------------------------------------------------------------
 // Python bridge
@@ -434,8 +421,13 @@ function logPythonBridgeDiagnostics(context: string): void {
 
 pythonBridge.on("stderr", (msg: string) => {
   for (const line of msg.split("\n")) {
-    if (line.trim()) log.debug(`[python-worker] ${line}`);
+    logPythonWorkerStderr(line, log);
   }
+});
+
+pythonBridge.on("error", (err: Error) => {
+  log.error(`Python bridge protocol error: ${err.message}`);
+  pythonBridgeReady = false;
 });
 
 pythonBridge.on("exit", (code: number) => {
@@ -671,6 +663,7 @@ app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
 const _serverDir = dirname(fileURLToPath(import.meta.url));
 const _envExamplesDir = process.env["NODETOOL_BASE_EXAMPLES_DIR"];
 const _bundledExamplesDir = resolve(_serverDir, "examples", "nodetool-base");
+const _bundledAssetsDir = resolve(_serverDir, "assets", "nodetool-base");
 const _monoExamplesDir = resolve(
   _serverDir,
   "..",
@@ -703,6 +696,9 @@ if (_resolvedExamplesDir) {
 const apiOptions: HttpApiOptions = { metadataRoots, registry };
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
+  if (existsSync(_bundledAssetsDir)) {
+    apiOptions.examplesAssetsFallbackDir = _bundledAssetsDir;
+  }
 }
 const staticFolder = process.env["STATIC_FOLDER"];
 const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
@@ -771,7 +767,7 @@ await app.register(websocketPlugin, {
         ...(nodeMeta as unknown as NodeMetadata),
         namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
         layout: "default",
-        recommended_models: [],
+        recommended_models: nodeMeta.recommended_models ?? [],
         required_settings: nodeMeta.required_settings ?? [],
         is_dynamic: nodeMeta.is_dynamic ?? false,
         is_streaming_output: nodeMeta.is_streaming_output ?? false,
@@ -842,6 +838,11 @@ await app.register(oauthRoutes, routeOpts);
 await app.register(workspaceRoutes, routeOpts);
 await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
+await app.register(falCreditsRoute);
+await app.register(falPricingRoute);
+await app.register(falPricingEstimateRoute);
+await app.register(kieCreditsRoute);
+await app.register(kiePricingRoute);
 // MCP endpoints are only available in local/dev mode — not in production.
 // The configuration endpoints moved to the tRPC `mcpConfig` router; the
 // `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.
@@ -1030,7 +1031,7 @@ if (pythonBridge.hasPython()) {
           ...(nodeMeta as unknown as NodeMetadata),
           namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
           layout: "default",
-          recommended_models: [],
+          recommended_models: nodeMeta.recommended_models ?? [],
           required_settings: nodeMeta.required_settings ?? [],
           is_dynamic: nodeMeta.is_dynamic ?? false,
           is_streaming_output: nodeMeta.is_streaming_output ?? false,

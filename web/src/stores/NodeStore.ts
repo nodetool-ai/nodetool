@@ -195,7 +195,7 @@ export interface NodeStoreState {
   getWorkflow: () => Workflow;
   isComfyWorkflow: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
-  updateWorkflowSetting: (key: string, value: unknown) => void;
+  updateWorkflowSetting: (key: string, value: string | number | boolean | null) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -289,7 +289,6 @@ export const createNodeStore = (
   state?: Partial<NodeStoreState>
 ): NodeStore =>
   create<NodeStoreState>()(
-    // @ts-expect-error Types are not fully compatible between zundo v2 and zustand v4
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
@@ -354,6 +353,9 @@ export const createNodeStore = (
         let lastNodesForGetSelection: Node<NodeData>[] | null = null;
         let lastEdgesForGetSelection: Edge[] | null = null;
         let lastSelection: NodeSelection = { nodes: [], edges: [] };
+        let lastNodesForComfy: Node<NodeData>[] | null = null;
+        let lastWorkflowForComfy: WorkflowAttributes | null = null;
+        let lastIsComfy = false;
 
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
@@ -896,10 +898,11 @@ export const createNodeStore = (
               return;
             }
 
-            const focusedElement = document.activeElement as HTMLElement;
+            const focusedElement = document.activeElement;
             if (
-              focusedElement.classList.contains("MuiInput-input") ||
-              focusedElement.tagName === "TEXTAREA"
+              focusedElement instanceof HTMLElement &&
+              (focusedElement.classList.contains("MuiInput-input") ||
+                focusedElement.tagName === "TEXTAREA")
             ) {
               return;
             }
@@ -1070,26 +1073,34 @@ export const createNodeStore = (
             };
           },
           isComfyWorkflow: (): boolean => {
-            const settings = get().workflow.settings as
+            const nodes = get().nodes;
+            const workflow = get().workflow;
+            if (nodes === lastNodesForComfy && workflow === lastWorkflowForComfy) {
+              return lastIsComfy;
+            }
+            lastNodesForComfy = nodes;
+            lastWorkflowForComfy = workflow;
+            const settings = workflow.settings as
               | Record<string, unknown>
               | undefined;
             if (settings?.[COMFY_WORKFLOW_FLAG] === true) {
+              lastIsComfy = true;
               return true;
             }
-
-            return get().nodes.some(
+            lastIsComfy = nodes.some(
               (node) =>
                 typeof node.type === "string" && node.type.startsWith("comfy.")
             );
+            return lastIsComfy;
           },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
           },
-          updateWorkflowSetting: (key: string, value: unknown): void => {
+          updateWorkflowSetting: (key: string, value: string | number | boolean | null): void => {
             const current = get().workflow;
             const settings = {
               ...(current.settings ?? {}),
-              [key]: value as string | number | boolean | null
+              [key]: value
             };
             set({ workflow: { ...current, settings } });
           },
@@ -1257,12 +1268,12 @@ export const createNodeStore = (
               );
             }
 
-            const srcMetadata = useMetadataStore
-              .getState()
-              .getMetadata(srcNode.type as string);
-            const targetMetadata = useMetadataStore
-              .getState()
-              .getMetadata(targetNode.type as string);
+            const srcMetadata = srcNode.type
+              ? useMetadataStore.getState().getMetadata(srcNode.type)
+              : undefined;
+            const targetMetadata = targetNode.type
+              ? useMetadataStore.getState().getMetadata(targetNode.type)
+              : undefined;
 
             // If either node doesn't have metadata (placeholder nodes), allow connection
             if (!srcMetadata || !targetMetadata) {
@@ -1370,6 +1381,12 @@ export const createNodeStore = (
             const isModel3DConstantNode =
               metadata.node_type === "nodetool.constant.Model3D";
             const isContentCard = isContentCardNode(metadata);
+            // Agent-style content cards use {{variable}} templating, not
+            // media preview — they should size like regular nodes (auto
+            // height) instead of inheriting the text variant's 320×220.
+            const isAgentStyle =
+              metadata.node_type === "nodetool.agents.Agent" ||
+              metadata.node_type === "openai.agents.RealtimeAgent";
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
@@ -1377,6 +1394,8 @@ export const createNodeStore = (
               defaultStyle = { width: 450, height: 350 };
             } else if (isModel3DConstantNode) {
               defaultStyle = { width: 320, height: 320 };
+            } else if (isAgentStyle) {
+              defaultStyle = { width: DEFAULT_NODE_WIDTH };
             } else if (isContentCard) {
               defaultStyle = getContentCardDefaultSize(metadata);
             } else {

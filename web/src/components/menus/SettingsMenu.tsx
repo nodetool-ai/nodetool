@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Tabs,
   Tab,
-  Box,
   useMediaQuery
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -19,7 +18,9 @@ import {
   SelectField,
   Text,
   Tooltip,
-  EditorButton
+  EditorButton,
+  FlexColumn,
+  Box
 } from "../ui_primitives";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -42,6 +43,7 @@ import WorkspacesManager from "../workspaces/WorkspacesManager";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
+import PackagesMenu from "./PackagesMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -50,6 +52,49 @@ import { settingsStyles } from "./settingsMenuStyles";
 
 const workspacesEnabled = !isProduction;
 const aboutTabIndex = workspacesEnabled ? 5 : 4;
+const packagesTabIndex = aboutTabIndex + 1;
+
+const UPDATE_CHANNEL_OPTIONS = [
+  { value: "latest", label: "Stable" },
+  { value: "nightly", label: "Nightly" }
+] as const;
+
+const CLOSE_BEHAVIOR_OPTIONS = [
+  { value: "ask", label: "Ask Every Time" },
+  { value: "quit", label: "Quit Application" },
+  { value: "background", label: "Keep Running in Background" }
+] as const;
+
+const PAN_CONTROLS_OPTIONS = [
+  { value: "LMB", label: "Pan with LMB" },
+  { value: "RMB", label: "Pan with RMB" }
+] as const;
+
+const SELECTION_MODE_OPTIONS = [
+  { value: "full", label: "Full" },
+  { value: "partial", label: "Partial" }
+] as const;
+
+const AUTOSAVE_INTERVAL_OPTIONS = [
+  { value: 1, label: "1 minute" },
+  { value: 5, label: "5 minutes" },
+  { value: 10, label: "10 minutes" },
+  { value: 15, label: "15 minutes" },
+  { value: 30, label: "30 minutes" },
+  { value: 60, label: "60 minutes" }
+] as const;
+
+const MAX_VERSIONS_OPTIONS = [
+  { value: 10, label: "10 versions" },
+  { value: 25, label: "25 versions" },
+  { value: 50, label: "50 versions" },
+  { value: 100, label: "100 versions" }
+] as const;
+
+const TIME_FORMAT_OPTIONS = [
+  { value: "12h", label: "12h" },
+  { value: "24h", label: "24h" }
+] as const;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -92,6 +137,9 @@ function SettingsPage() {
       case 4:
         return "Workspaces and project organization.";
       default:
+        if (tab === packagesTabIndex) {
+          return "Discover, trust, and install third-party node packs.";
+        }
         return "Manage API keys, providers, and editor preferences.";
     }
   };
@@ -99,7 +147,7 @@ function SettingsPage() {
   const settingsTab = useMemo(() => {
     const raw = Number(searchParams.get("tab") ?? 0);
     if (Number.isNaN(raw)) return 0;
-    const bounded = Math.min(5, Math.max(0, raw));
+    const bounded = Math.min(packagesTabIndex, Math.max(0, raw));
     if (!workspacesEnabled && bounded === 5) {
       return aboutTabIndex;
     }
@@ -443,13 +491,11 @@ function SettingsPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <Box
+    <FlexColumn
       className={`settings-page${isMobile ? " settings-page--mobile" : ""}`}
       sx={{
         flex: 1,
         minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
         backgroundColor: theme.vars.palette.background.default
       }}
     >
@@ -488,6 +534,7 @@ function SettingsPage() {
                 <Tab label="Collections" id="settings-tab-3" />
                 {workspacesEnabled && <Tab label="Workspaces" id="settings-tab-4" />}
                 <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
+                <Tab label="Packages" id={`settings-tab-${packagesTabIndex}`} />
               </Tabs>
             </div>
 
@@ -512,7 +559,10 @@ function SettingsPage() {
 
               <div
                 className={`settings-content${
-                  settingsTab === 2 || settingsTab === 3 || (settingsTab === 4 && workspacesEnabled)
+                  settingsTab === 2 ||
+                  settingsTab === 3 ||
+                  (settingsTab === 4 && workspacesEnabled) ||
+                  settingsTab === packagesTabIndex
                     ? " settings-content--full"
                     : ""
                 }${settingsTab === 1 ? " settings-content--api-keys" : ""}`}
@@ -574,10 +624,7 @@ function SettingsPage() {
                           value={updateChannel}
                           variant="standard"
                           onChange={handleUpdateChannelChange}
-                          options={[
-                            { value: "latest", label: "Stable" },
-                            { value: "nightly", label: "Nightly" }
-                          ]}
+                          options={UPDATE_CHANNEL_OPTIONS}
                         />
                         <Text className="description">
                           Stable follows full releases. Nightly follows prerelease nightly builds.
@@ -597,14 +644,7 @@ function SettingsPage() {
                               v as "ask" | "quit" | "background"
                             )
                           }
-                          options={[
-                            { value: "ask", label: "Ask Every Time" },
-                            { value: "quit", label: "Quit Application" },
-                            {
-                              value: "background",
-                              label: "Keep Running in Background"
-                            }
-                          ]}
+                          options={CLOSE_BEHAVIOR_OPTIONS}
                         />
                         <Text className="description">
                           Choose what happens when you close the main window.
@@ -630,10 +670,7 @@ function SettingsPage() {
                         value={settings.panControls}
                         variant="standard"
                         onChange={handlePanControlsChange}
-                        options={[
-                          { value: "LMB", label: "Pan with LMB" },
-                          { value: "RMB", label: "Pan with RMB" }
-                        ]}
+                        options={PAN_CONTROLS_OPTIONS}
                       />
                       <div className="description">
                         <Text>
@@ -653,10 +690,7 @@ function SettingsPage() {
                         value={settings.selectionMode}
                         variant="standard"
                         onChange={handleSelectionModeChange}
-                        options={[
-                          { value: "full", label: "Full" },
-                          { value: "partial", label: "Partial" }
-                        ]}
+                        options={SELECTION_MODE_OPTIONS}
                       />
                       <Text className="description">
                         When drawing a selection box for node selections:
@@ -729,14 +763,7 @@ function SettingsPage() {
                             intervalMinutes: Number(v)
                           })
                         }
-                        options={[
-                          { value: 1, label: "1 minute" },
-                          { value: 5, label: "5 minutes" },
-                          { value: 10, label: "10 minutes" },
-                          { value: 15, label: "15 minutes" },
-                          { value: 30, label: "30 minutes" },
-                          { value: 60, label: "60 minutes" }
-                        ]}
+                        options={AUTOSAVE_INTERVAL_OPTIONS}
                         disabled={!settings.autosave?.enabled}
                         description="How often to automatically save your workflow."
                       />
@@ -780,12 +807,7 @@ function SettingsPage() {
                             maxVersionsPerWorkflow: Number(v)
                           })
                         }
-                        options={[
-                          { value: 10, label: "10 versions" },
-                          { value: 25, label: "25 versions" },
-                          { value: 50, label: "50 versions" },
-                          { value: 100, label: "100 versions" }
-                        ]}
+                        options={MAX_VERSIONS_OPTIONS}
                         description="Maximum number of versions to keep per workflow."
                       />
                     </div>
@@ -801,10 +823,7 @@ function SettingsPage() {
                         value={settings.timeFormat}
                         variant="standard"
                         onChange={handleTimeFormatChange}
-                        options={[
-                          { value: "12h", label: "12h" },
-                          { value: "24h", label: "24h" }
-                        ]}
+                        options={TIME_FORMAT_OPTIONS}
                         description="Display time in 12h or 24h format."
                       />
                     </div>
@@ -965,6 +984,11 @@ function SettingsPage() {
                 <TabPanel value={settingsTab} index={aboutTabIndex}>
                   <AboutMenu />
                 </TabPanel>
+
+                {/* Packages */}
+                <TabPanel value={settingsTab} index={packagesTabIndex}>
+                  <PackagesMenu />
+                </TabPanel>
               </div>
 
               {settingsTab === 1 && !isMobile && (
@@ -973,7 +997,7 @@ function SettingsPage() {
             </div>
           </div>
       </Box>
-    </Box>
+    </FlexColumn>
   );
 }
 

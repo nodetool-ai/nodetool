@@ -35,7 +35,6 @@ import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
-import { rejectAgenticProvider } from "./reject-agentic-provider.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -883,8 +882,6 @@ export class StepExecutor {
       step: { id: this.step.id, instructions: this.step.instructions },
       event: TaskUpdateEvent.StepStarted
     } satisfies TaskUpdate;
-
-    rejectAgenticProvider(this.provider, "StepExecutor.execute");
 
     // --- Standard multi-iteration loop ---
     while (!this.step.completed && this.iterations < this.maxIterations) {

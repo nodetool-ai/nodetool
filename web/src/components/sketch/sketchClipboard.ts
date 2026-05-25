@@ -38,24 +38,32 @@ export function multiplyImageDataAlphaBySelectionMask(
 export async function readSystemClipboardImageCanvas(): Promise<HTMLCanvasElement | null> {
   try {
     const items = await navigator.clipboard.read();
-    for (const item of items) {
+
+    // Process all clipboard items concurrently instead of awaiting sequentially.
+    // This dramatically speeds up pasting if early items are slow or fail to read.
+    const promises = items.map(async (item) => {
       const imageType = item.types.find((t) => t.startsWith("image/"));
-      if (imageType) {
-        const blob = await item.getType(imageType);
-        const bitmap = await createImageBitmap(blob);
-        const tmp = window.document.createElement("canvas");
-        tmp.width = bitmap.width;
-        tmp.height = bitmap.height;
-        const ctx = tmp.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(bitmap, 0, 0);
-        }
-        bitmap.close();
-        return tmp;
+      if (!imageType) {
+        throw new Error("Not an image type");
       }
-    }
+
+      const blob = await item.getType(imageType);
+      const bitmap = await createImageBitmap(blob);
+      const tmp = window.document.createElement("canvas");
+      tmp.width = bitmap.width;
+      tmp.height = bitmap.height;
+      const ctx = tmp.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(bitmap, 0, 0);
+      }
+      bitmap.close();
+      return tmp;
+    });
+
+    return await Promise.any(promises);
   } catch {
-    // System clipboard read may fail (permissions, non-HTTPS, etc.).
+    // System clipboard read may fail (permissions, non-HTTPS, etc.)
+    // or Promise.any threw an AggregateError if no item resolved to an image.
   }
   return null;
 }

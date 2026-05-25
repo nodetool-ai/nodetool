@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 export class SendEmailLibNode extends BaseNode {
   static readonly nodeType = "lib.mail.SendEmail";
@@ -159,14 +160,25 @@ export class GmailSearchLibNode extends BaseNode {
     message_ids: "list"
   };
   static readonly inlineFields = ["from_address", "subject"];
-  static readonly inputFields = [];
+  static readonly inputFields = ["text"];
   static readonly requiredSettings = [
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"
   ];
   static readonly exposeAsTool = true;
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    email: { kind: "iteration", source: "__execution__", group: "items" },
+    message_id: { kind: "iteration", source: "__execution__", group: "items" },
+    subject: { kind: "iteration", source: "__execution__", group: "items" },
+    sender: { kind: "iteration", source: "__execution__", group: "items" },
+    date: { kind: "iteration", source: "__execution__", group: "items" },
+    body: { kind: "iteration", source: "__execution__", group: "items" },
+    emails: { kind: "single", source: "__execution__" },
+    message_ids: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: "",

@@ -2,13 +2,16 @@ import { memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useImageModelMenuStore } from "../../stores/ModelMenuStore";
-import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
+import {
+  useImageModelsByProvider,
+  type ImageModelTask
+} from "../../hooks/useModelsByProvider";
 
 export interface ImageModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: ImageModel) => void;
-  task?: "text_to_image" | "image_to_image";
+  task?: ImageModelTask;
   anchorEl?: HTMLElement | null;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];

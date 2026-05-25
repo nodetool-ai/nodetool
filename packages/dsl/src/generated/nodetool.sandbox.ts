@@ -16,8 +16,8 @@ export interface SandboxShellOutputs {
   timed_out: boolean;
 }
 
-export function sandboxShell(inputs: SandboxShellInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SandboxShellOutputs> {
-  return createNode("nodetool.sandbox.SandboxShell", inputs as Record<string, unknown>, { outputNames: ["output", "running", "exit_code", "timed_out"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function sandboxShell(inputs: SandboxShellInputs): DslNode<SandboxShellOutputs> {
+  return createNode("nodetool.sandbox.SandboxShell", inputs as Record<string, unknown>, { outputNames: ["output", "running", "exit_code", "timed_out"] });
 }
 
 // SandboxFile — nodetool.sandbox.SandboxFile
@@ -31,6 +31,6 @@ export interface SandboxFileOutputs {
   output: Record<string, unknown>;
 }
 
-export function sandboxFile(inputs: SandboxFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SandboxFileOutputs, "output"> {
-  return createNode("nodetool.sandbox.SandboxFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function sandboxFile(inputs: SandboxFileInputs): DslNode<SandboxFileOutputs, "output"> {
+  return createNode("nodetool.sandbox.SandboxFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

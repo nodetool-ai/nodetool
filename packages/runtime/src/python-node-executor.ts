@@ -1,4 +1,6 @@
 import type { ProcessingContext } from "./context.js";
+import { isRawRgbaImage } from "@nodetool-ai/protocol";
+import { encodeRawRgbaToPng } from "./image-codec.js";
 import type {
   ExecuteInputBlobs,
   ExecuteResult,
@@ -132,6 +134,11 @@ async function loadMediaRefBytes(
   value: MediaRefValue,
   context?: ProcessingContext
 ): Promise<Uint8Array | null> {
+  // Raw in-flight RGBA → encode to PNG; Python expects a real image.
+  if (isRawRgbaImage(value)) {
+    return encodeRawRgbaToPng(value.data, value.width, value.height);
+  }
+
   // Inline base64 data takes priority over uri
   const data = (value as Record<string, unknown>).data;
   if (typeof data === "string" && data.length > 0) {
@@ -279,6 +286,7 @@ export class PythonNodeExecutor {
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     const { fields, blobs, secrets } = await this.prepareExecution(inputs, context);
+    log.info("Python node executor calling bridge", { nodeType: this.nodeType });
     const result = await this.bridge.execute(
       this.nodeType,
       fields,

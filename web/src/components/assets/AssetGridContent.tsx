@@ -310,7 +310,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     count: rowCount,
     getScrollElement: () => listScrollRef.current,
     estimateSize: getRowHeight,
-    overscan: 4,
+    overscan: theme.virtualScroll.overscan.gridRow,
   });
 
   useEffect(() => {
