@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 function decodeEntities(value: string): string {
   return value
@@ -169,7 +169,7 @@ export class ExtractFeedMetadataLibNode extends BaseNode {
   }
 }
 
-export const LIB_RSS_NODES = tagAsPortable([
+export const LIB_RSS_NODES = tagAsServer([
   FetchRSSFeedLibNode,
   ExtractFeedMetadataLibNode
 ]);

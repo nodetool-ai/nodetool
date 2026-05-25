@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import { tagAsServer } from "../platform-tags.js";
 
 export class SendEmailLibNode extends BaseNode {
   static readonly nodeType = "lib.mail.SendEmail";
@@ -508,9 +508,9 @@ export class MoveToArchiveLibNode extends BaseNode {
   }
 }
 
-export const LIB_MAIL_NODES: readonly NodeClass[] = [
+export const LIB_MAIL_NODES = tagAsServer([
   SendEmailLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
   MoveToArchiveLibNode
-] as const;
+]);

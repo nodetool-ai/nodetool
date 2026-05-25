@@ -1,7 +1,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { Message, ProcessingContext, ToolCall } from "@nodetool-ai/runtime";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 import {
   isChunkItem,
   isToolCallItem,
@@ -1117,7 +1117,7 @@ Output only SVG markup, no explanations or markdown fences.`;
   }
 }
 
-export const GENERATOR_NODES = tagAsPortable([
+export const GENERATOR_NODES = tagAsServer([
   StructuredOutputGeneratorNode,
   DataGeneratorNode,
   ListGeneratorNode,

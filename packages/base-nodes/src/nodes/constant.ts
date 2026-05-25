@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 export class ConstantBaseNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Constant";
@@ -818,7 +818,7 @@ export class ConstantVideoModelNode extends BaseNode {
   }
 }
 
-export const CONSTANT_NODES = tagAsPortable([
+export const CONSTANT_NODES = tagAsServer([
   ConstantBaseNode,
   ConstantBoolNode,
   ConstantIntegerNode,

@@ -17,6 +17,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { tagAsHybrid } from "../platform-tags.js";
 
 type ImageRefLike = {
   uri?: string;
@@ -2635,7 +2636,7 @@ export class VectorizeImageNode extends BaseNode {
   }
 }
 
-export const IMAGE_NODES = [
+export const IMAGE_NODES = tagAsHybrid([
   LoadImageFileNode,
   LoadImageFolderNode,
   SaveImageFileImageNode,
@@ -2662,4 +2663,4 @@ export const IMAGE_NODES = [
   RemoveBackgroundNode,
   RelightImageNode,
   VectorizeImageNode
-] as const;
+]);

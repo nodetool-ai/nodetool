@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 import {
   PythonDockerRunner,
   JavaScriptDockerRunner,
@@ -994,7 +994,7 @@ export class RunShellCommandDockerNode extends RunCommandNode {
 // Export list (same order as before for compatibility)
 // ---------------------------------------------------------------------------
 
-export const CODE_NODES = tagAsPortable([
+export const CODE_NODES = tagAsServer([
   ExecutePythonNode,
   ExecuteJavaScriptNode,
   ExecuteBashNode,

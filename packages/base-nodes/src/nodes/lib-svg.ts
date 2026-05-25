@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { tagAsServer } from "../platform-tags.js";
 
 type SvgElementLike = {
   name: string;
@@ -1085,7 +1086,7 @@ export class ClipPathLibNode extends BaseNode {
   }
 }
 
-export const LIB_SVG_NODES = [
+export const LIB_SVG_NODES = tagAsServer([
   RectLibNode,
   CircleLibNode,
   EllipseLibNode,
@@ -1100,4 +1101,4 @@ export const LIB_SVG_NODES = [
   GradientLibNode,
   TransformLibNode,
   ClipPathLibNode
-] as const;
+]);

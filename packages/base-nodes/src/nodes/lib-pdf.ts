@@ -8,6 +8,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ParseResult } from "@llamaindex/liteparse";
+import { tagAsServer } from "../platform-tags.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -1193,7 +1194,7 @@ export class PdfExtractOcrNode extends BaseNode {
 // Export
 // ---------------------------------------------------------------------------
 
-export const LIB_PDF_NODES = [
+export const LIB_PDF_NODES = tagAsServer([
   PdfPageCountNode,
   PdfExtractTextNode,
   PdfExtractMarkdownNode,
@@ -1205,4 +1206,4 @@ export const LIB_PDF_NODES = [
   PdfToppmNode,
   PdfSearchTextNode,
   PdfExtractOcrNode
-] as const;
+]);

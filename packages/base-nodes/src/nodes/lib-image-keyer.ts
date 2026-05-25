@@ -4,10 +4,11 @@
  */
 
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
-import type { NodeClass, ImageRef } from "@nodetool-ai/node-sdk";
+import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import * as d from "typegpu/data";
 import { chromaKeyV1, keyerLumaKeyV1 } from "@nodetool-ai/gpu/pool";
+import { tagAsHybrid } from "../platform-tags.js";
 import {
   IMAGE_PROP,
   colorProp,
@@ -82,5 +83,5 @@ registerDeclaredProperty(LumaKeyNode, "low", floatProp(0, { min: 0, max: 1, labe
 registerDeclaredProperty(LumaKeyNode, "high", floatProp(1, { min: 0, max: 1, label: "High" }));
 registerDeclaredProperty(LumaKeyNode, "softness", floatProp(0.05, { min: 0, max: 0.5, label: "Softness" }));
 
-export const LIB_IMAGE_KEYER_NODES: readonly NodeClass[] = [ChromaKeyNode, LumaKeyNode];
+export const LIB_IMAGE_KEYER_NODES = tagAsHybrid([ChromaKeyNode, LumaKeyNode]);
 export { ChromaKeyNode, LumaKeyNode };

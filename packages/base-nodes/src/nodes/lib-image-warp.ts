@@ -10,7 +10,7 @@
  */
 
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
-import type { NodeClass, ImageRef } from "@nodetool-ai/node-sdk";
+import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import * as d from "typegpu/data";
 import {
@@ -35,6 +35,7 @@ import {
   type RunShaderOptions
 } from "./lib-shader-utils.js";
 import { decodeRgba } from "./image.js";
+import { tagAsHybrid } from "../platform-tags.js";
 
 function num(value: unknown, fallback: number): number {
   const n = Number(value);
@@ -359,7 +360,7 @@ registerDeclaredProperty(
   floatProp(0.5, { min: -1, max: 1, label: "Amount", notes: "negative pinches" })
 );
 
-export const LIB_IMAGE_WARP_NODES: readonly NodeClass[] = [
+export const LIB_IMAGE_WARP_NODES = tagAsHybrid([
   OffsetNode,
   PadNode,
   TileNode,
@@ -368,7 +369,7 @@ export const LIB_IMAGE_WARP_NODES: readonly NodeClass[] = [
   PolarRemapNode,
   DisplaceNode,
   SpherizeNode
-];
+]);
 
 export {
   OffsetNode,

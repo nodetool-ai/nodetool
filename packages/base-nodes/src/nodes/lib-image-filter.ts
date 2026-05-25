@@ -12,6 +12,7 @@ import {
 } from "@nodetool-ai/gpu/pool";
 import { decodeImage, toRef, pickImage } from "./lib-image-utils.js";
 import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
+import { tagAsHybrid } from "../platform-tags.js";
 
 type Desc = {
   nodeType: string;
@@ -655,5 +656,4 @@ const DESCRIPTORS: readonly Desc[] = [
   }
 ];
 
-export const LIB_IMAGE_FILTER_NODES: readonly NodeClass[] =
-  DESCRIPTORS.map(createFilterNode);
+export const LIB_IMAGE_FILTER_NODES: readonly NodeClass[] = tagAsHybrid(DESCRIPTORS.map(createFilterNode));

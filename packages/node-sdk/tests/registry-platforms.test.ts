@@ -41,11 +41,24 @@ class WorkersOnly extends BaseNode {
   }
 }
 
+class WebGpuHybrid extends BaseNode {
+  static readonly nodeType = "test.platform.WebGpuHybrid";
+  static readonly title = "WebGpuHybrid";
+  static readonly description =
+    "Node + browser (no V8 isolates) — typical WebGPU shader node";
+  static readonly platforms: readonly Platform[] = ["node", "browser"];
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+}
+
 function makeRegistry(): NodeRegistry {
   const r = new NodeRegistry();
   r.register(PortableNode);
   r.register(NodeOnly);
   r.register(WorkersOnly);
+  r.register(WebGpuHybrid);
   return r;
 }
 
@@ -54,22 +67,26 @@ describe("NodeRegistry.forPlatform", () => {
     const r = makeRegistry();
 
     const node = r.forPlatform("node").list().sort();
-    expect(node).toEqual([
-      PortableNode.nodeType,
-      NodeOnly.nodeType
-    ].sort());
+    expect(node).toEqual(
+      [
+        PortableNode.nodeType,
+        NodeOnly.nodeType,
+        WebGpuHybrid.nodeType
+      ].sort()
+    );
 
     const workers = r.forPlatform("workers").list().sort();
-    expect(workers).toEqual([
-      PortableNode.nodeType,
-      WorkersOnly.nodeType
-    ].sort());
+    expect(workers).toEqual(
+      [PortableNode.nodeType, WorkersOnly.nodeType].sort()
+    );
 
     const edge = r.forPlatform("edge").list().sort();
-    expect(edge).toEqual([
-      PortableNode.nodeType,
-      WorkersOnly.nodeType
-    ].sort());
+    expect(edge).toEqual(
+      [PortableNode.nodeType, WorkersOnly.nodeType].sort()
+    );
+
+    const browser = r.forPlatform("browser").list().sort();
+    expect(browser).toEqual([WebGpuHybrid.nodeType].sort());
   });
 
   it("preserves metadata on the filtered registry", () => {
@@ -85,7 +102,8 @@ describe("NodeRegistry.forPlatform", () => {
       [
         PortableNode.nodeType,
         NodeOnly.nodeType,
-        WorkersOnly.nodeType
+        WorkersOnly.nodeType,
+        WebGpuHybrid.nodeType
       ].sort()
     );
   });

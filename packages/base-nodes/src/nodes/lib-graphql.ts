@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 const TIMEOUT = 30000;
 
@@ -368,7 +368,7 @@ export class GraphQLBatchQueryLibNode extends BaseNode {
 // Export
 // ---------------------------------------------------------------------------
 
-export const LIB_GRAPHQL_NODES = tagAsPortable([
+export const LIB_GRAPHQL_NODES = tagAsServer([
   GraphQLQueryLibNode,
   GraphQLQueryWithAuthLibNode,
   GraphQLIntrospectionLibNode,

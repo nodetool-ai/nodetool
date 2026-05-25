@@ -26,7 +26,7 @@ import {
   type Tool
 } from "@nodetool-ai/agents";
 import { resolveBuiltinAgentTool } from "./agent-tool-hydration.js";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 // ─── AgentNode ───
 
@@ -357,4 +357,4 @@ export class TeamLeadNode extends BaseNode {
   }
 }
 
-export const TEAM_NODES = tagAsPortable([TeamAgentNode, TeamLeadNode]);
+export const TEAM_NODES = tagAsServer([TeamAgentNode, TeamLeadNode]);

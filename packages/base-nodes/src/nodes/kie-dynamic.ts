@@ -16,7 +16,7 @@ import {
   buildVideoClipsFromRefs
 } from "@nodetool-ai/kie-nodes";
 import type { TypeMetadata } from "@nodetool-ai/node-sdk";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -869,4 +869,4 @@ export class KieAINode extends BaseNode {
   }
 }
 
-export const KIE_DYNAMIC_NODES = tagAsPortable([KieAINode]);
+export const KIE_DYNAMIC_NODES = tagAsServer([KieAINode]);

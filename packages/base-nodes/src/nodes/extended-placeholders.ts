@@ -1,6 +1,6 @@
 import { BaseNode } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 export function titleFromNodeType(nodeType: string): string {
   const parts = nodeType.split(".");
@@ -23,7 +23,7 @@ export function makePlaceholderNode(nodeType: string): NodeClass {
   return PlaceholderNode as unknown as NodeClass;
 }
 
-export const EXTENDED_PLACEHOLDER_NODE_TYPES = tagAsPortable([]);
+export const EXTENDED_PLACEHOLDER_NODE_TYPES = tagAsServer([]);
 
 export const EXTENDED_PLACEHOLDER_NODES: NodeClass[] =
   EXTENDED_PLACEHOLDER_NODE_TYPES.map((nodeType) =>

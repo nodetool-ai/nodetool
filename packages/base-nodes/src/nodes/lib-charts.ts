@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { tagAsServer } from "../platform-tags.js";
 
 export class ChartRendererLibNode extends BaseNode {
   static readonly nodeType = "lib.charts.ChartRenderer";
@@ -261,6 +261,6 @@ export class ChartRendererLibNode extends BaseNode {
   }
 }
 
-export const LIB_SEABORN_NODES: readonly NodeClass[] = [
+export const LIB_SEABORN_NODES = tagAsServer([
   ChartRendererLibNode
-] as const;
+]);

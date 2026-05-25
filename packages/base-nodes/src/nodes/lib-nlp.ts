@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 export class SentimentAnalysisLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.SentimentAnalysis";
@@ -431,7 +431,7 @@ export class PhoneticMatchLibNode extends BaseNode {
   }
 }
 
-export const LIB_NLP_NODES = tagAsPortable([
+export const LIB_NLP_NODES = tagAsServer([
   SentimentAnalysisLibNode,
   TokenizeLibNode,
   StemLibNode,

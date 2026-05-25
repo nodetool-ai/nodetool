@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 const TWILIO_TIMEOUT = 30000;
 
@@ -518,7 +518,7 @@ export class TwilioLookupLibNode extends BaseNode {
   }
 }
 
-export const LIB_TWILIO_NODES = tagAsPortable([
+export const LIB_TWILIO_NODES = tagAsServer([
   TwilioSendSMSLibNode,
   TwilioSendWhatsAppLibNode,
   TwilioGetMessagesLibNode,

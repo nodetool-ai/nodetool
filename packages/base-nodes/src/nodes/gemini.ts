@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -1010,7 +1010,7 @@ function writeString(view: DataView, offset: number, str: string): void {
 
 // ── Exports ─────────────────────────────────────────────────────────────────
 
-export const GEMINI_NODES = tagAsPortable([
+export const GEMINI_NODES = tagAsServer([
   GroundedSearchNode,
   EmbeddingNode,
   ImageGenerationNode,

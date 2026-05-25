@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 type ImageRefLike = { data?: string | Uint8Array; uri?: string };
 
@@ -496,7 +496,7 @@ export class OCR extends BaseNode {
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
-export const MISTRAL_NODES = tagAsPortable([
+export const MISTRAL_NODES = tagAsServer([
   ChatComplete,
   CodeComplete,
   Embedding,

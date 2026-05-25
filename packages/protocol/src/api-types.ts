@@ -602,7 +602,7 @@ export interface NodeMetadata {
    * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
    * Platform type. Absent or empty values are treated as ["node"].
    */
-  platforms?: readonly ("node" | "workers" | "edge")[];
+  platforms?: readonly ("node" | "workers" | "edge" | "browser")[];
 }
 
 export interface IndexResponse {

@@ -4,7 +4,7 @@ import type {
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 
@@ -1404,7 +1404,7 @@ export class RealtimeTranscriptionNode extends BaseNode {
 // ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
-export const OPENAI_NODES = tagAsPortable([
+export const OPENAI_NODES = tagAsServer([
   EmbeddingNode,
   WebSearchNode,
   ModerationNode,

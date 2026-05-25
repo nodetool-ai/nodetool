@@ -10,6 +10,7 @@ import {
   premultiplyVec4,
   runShaderOnPngBuffer
 } from "./lib-shader-utils.js";
+import { tagAsHybrid } from "../platform-tags.js";
 
 type Desc = {
   nodeType: string;
@@ -459,5 +460,4 @@ const DESCRIPTORS: readonly Desc[] = [
   }
 ] as const;
 
-export const LIB_IMAGE_DRAW_NODES: readonly NodeClass[] =
-  DESCRIPTORS.map(createDrawNode);
+export const LIB_IMAGE_DRAW_NODES: readonly NodeClass[] = tagAsHybrid(DESCRIPTORS.map(createDrawNode));

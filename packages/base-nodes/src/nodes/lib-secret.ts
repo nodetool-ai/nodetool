@@ -1,6 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsPortable } from "../platform-tags.js";
+import { tagAsServer } from "../platform-tags.js";
 
 export class GetSecretLibNode extends BaseNode {
   static readonly nodeType = "lib.secret.GetSecret";
@@ -42,4 +42,4 @@ export class GetSecretLibNode extends BaseNode {
   }
 }
 
-export const LIB_SECRET_NODES = tagAsPortable([GetSecretLibNode]);
+export const LIB_SECRET_NODES = tagAsServer([GetSecretLibNode]);
