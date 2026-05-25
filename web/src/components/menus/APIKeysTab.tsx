@@ -55,7 +55,7 @@ interface ProviderMeta {
   category: "recommended" | "other";
   tag?: string;
   docsUrl: string;
-  icon: string;
+  icon?: string;
   /** Mono (single-color black) icon — needs inversion in dark mode to be visible. */
   mono?: boolean;
 }
@@ -182,6 +182,13 @@ const PROVIDER_META: ProviderMeta[] = [
     mono: true
   },
   {
+    key: "TOPAZ_API_KEY",
+    name: "Topaz",
+    description: "Topaz Labs image and video enhancement.",
+    category: "other",
+    docsUrl: "https://developer.topazlabs.com/"
+  },
+  {
     key: "KIMI_API_KEY",
     name: "Kimi",
     description: "Moonshot AI models via Kimi API.",
@@ -261,19 +268,25 @@ const ProviderCard = memo(function ProviderCard({
           marginTop: "2px"
         }}
       >
-        <Box
-          component="img"
-          src={meta.icon}
-          alt={meta.name}
-          sx={{
-            width: 28,
-            height: 28,
-            objectFit: "contain",
-            ...(meta.mono && theme.applyStyles("dark", {
-              filter: "invert(1)"
-            }))
-          }}
-        />
+        {meta.icon ? (
+          <Box
+            component="img"
+            src={meta.icon}
+            alt={meta.name}
+            sx={{
+              width: 28,
+              height: 28,
+              objectFit: "contain",
+              ...(meta.mono && theme.applyStyles("dark", {
+                filter: "invert(1)"
+              }))
+            }}
+          />
+        ) : (
+          <Text size="medium" weight={700}>
+            {meta.name.charAt(0)}
+          </Text>
+        )}
       </FlexRow>
 
       {/* Info */}
