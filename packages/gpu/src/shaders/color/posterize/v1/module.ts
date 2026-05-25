@@ -48,9 +48,14 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
   let n = max(2.0, min(256.0, layout.$.params.levels));
-  let quantized = floor(clamp(src.rgb, vec3f(0.0), vec3f(1.0)) * n) / (n - 1.0);
-  let mixed = mix(src.rgb, clamp(quantized, vec3f(0.0), vec3f(1.0)), coverage);
-  return vec4f(mixed, src.a);
+  // Quantize the underlying straight color, not the premultiplied RGB; on
+  // partial-alpha pixels the premultiplied form has rgb <= a, so quantizing
+  // before un-premultiplying snaps to the wrong bin and can push rgb > a.
+  let safeA = max(src.a, 1.0 / 255.0);
+  let straight = src.rgb / safeA;
+  let quantized = floor(clamp(straight, vec3f(0.0), vec3f(1.0)) * n) / (n - 1.0);
+  let mixedStraight = mix(straight, clamp(quantized, vec3f(0.0), vec3f(1.0)), coverage);
+  return vec4f(mixedStraight * src.a, src.a);
 }
 `,
   io: {

@@ -38,7 +38,9 @@ export const blurGaussianV1 = defineModule({
   params: BlurParams,
   paramDefaults: { radius: 0, sigma: 0, direction: d.vec2f(1, 0) },
   paramUi: {
-    radius: { min: 0, max: 40, step: 0.5, label: "Radius", notes: "pixels" },
+    // Capped at 20 to match the shader's `kernelRadius = min(radius, 20)`
+    // cap; advertising a higher max silently truncated requests above 20.
+    radius: { min: 0, max: 20, step: 0.5, label: "Radius", notes: "pixels" },
     sigma: { min: 0, max: 16, step: 0.1, label: "Sigma" },
     direction: { label: "Direction", notes: "(1,0) horizontal, (0,1) vertical" }
   },
@@ -63,7 +65,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   }
 
   let kernelRadius = i32(min(blur.radius, 20.0));
-  let sigma = max(blur.sigma, blur.radius / 3.0);
+  // Honor an explicit positive sigma. Only fall back to radius/3 when the
+  // caller leaves sigma unset (<= 0); the previous max(sigma, radius/3)
+  // silently raised any explicit sigma smaller than radius/3.
+  let sigma = select(blur.sigma, blur.radius / 3.0, blur.sigma <= 0.0);
 
   var colorSum = vec4<f32>(0.0);
   var weightSum: f32 = 0.0;
@@ -86,13 +91,16 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   io: {
     inputs: {
       source: {
-        colorSpace: "srgb",
+        // Aligned with the `filters.blur.gaussianSeparable` and `filters.glow`
+        // recipes that route through this module; the blur math itself is
+        // colour-space agnostic (a normalized weighted sum).
+        colorSpace: "linear",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "srgb",
+      colorSpace: "linear",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"
