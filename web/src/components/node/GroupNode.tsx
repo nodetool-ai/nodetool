@@ -336,10 +336,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     );
 
     // Filter edges that connect nodes within this group
+    const groupNodeIds = new Set(groupNodes.map((n) => n.id));
     const groupEdges = edges.filter(
       (edge) =>
-        groupNodes.find((node) => node.id === edge.source) &&
-        groupNodes.find((node) => node.id === edge.target)
+        groupNodeIds.has(edge.source) &&
+        groupNodeIds.has(edge.target)
     );
 
     run({}, workflow, groupNodes, groupEdges);

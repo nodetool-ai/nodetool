@@ -48,9 +48,15 @@ export const colorInvertV1 = defineModule({
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
-  let inverted = vec3f(1.0) - src.rgb;
-  let mixed = mix(src.rgb, inverted, coverage * layout.$.params.amount);
-  return vec4f(mixed, src.a);
+  // Input is premultiplied. Invert in straight space then re-premultiply so
+  // the output stays valid premul (rgb <= a). The naive (1 - rgb) form
+  // produced rgb > a on partially transparent pixels (e.g. transparent black
+  // (0,0,0,0) inverted to (1,1,1,0), an invalid premul "white").
+  let safeA = max(src.a, 1.0 / 255.0);
+  let straight = src.rgb / safeA;
+  let invertedStraight = vec3f(1.0) - straight;
+  let mixedStraight = mix(straight, invertedStraight, coverage * layout.$.params.amount);
+  return vec4f(mixedStraight * src.a, src.a);
 }
 `,
   io: {
