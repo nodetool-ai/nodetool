@@ -326,8 +326,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         <div className="toolbar-section">
           <Text className="section-title">Tools</Text>
           <div className="tools-grid">
-            <Tooltip title="Select / Pan (V)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Select / Pan (V)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "select" ? "active" : ""}`}
                 onClick={handleSelectTool("select")}
                 size="small"
@@ -335,9 +336,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <PanToolIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Crop (C)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Crop (C)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "crop" ? "active" : ""}`}
                 onClick={handleSelectTool("crop")}
                 size="small"
@@ -345,9 +346,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <CropIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Draw / Paint (B)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Draw / Paint (B)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "draw" ? "active" : ""}`}
                 onClick={handleSelectTool("draw")}
                 size="small"
@@ -355,9 +356,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <BrushIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Erase (E)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Erase (E)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "erase" ? "active" : ""}`}
                 onClick={handleSelectTool("erase")}
                 size="small"
@@ -365,9 +366,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <AutoFixHighIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Fill (G)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Fill (G)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "fill" ? "active" : ""}`}
                 onClick={handleSelectTool("fill")}
                 size="small"
@@ -375,9 +376,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <FormatColorFillIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Text (T)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Text (T)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "text" ? "active" : ""}`}
                 onClick={handleSelectTool("text")}
                 size="small"
@@ -385,9 +386,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <TextFieldsIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Rectangle (R)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Rectangle (R)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "rectangle" ? "active" : ""}`}
                 onClick={handleSelectTool("rectangle")}
                 size="small"
@@ -395,9 +396,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <RectangleOutlinedIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Ellipse (O)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Ellipse (O)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "ellipse" ? "active" : ""}`}
                 onClick={handleSelectTool("ellipse")}
                 size="small"
@@ -405,9 +406,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <CircleOutlinedIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Line (L)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Line (L)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "line" ? "active" : ""}`}
                 onClick={handleSelectTool("line")}
                 size="small"
@@ -415,9 +416,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <RemoveIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Arrow (A)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Arrow (A)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "arrow" ? "active" : ""}`}
                 onClick={handleSelectTool("arrow")}
                 size="small"
@@ -425,43 +426,42 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <ArrowRightAltIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Rectangle Select (M)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Rectangle Select (M)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "marquee-rect" ? "active" : ""}`}
                 onClick={handleSelectTool("marquee-rect")}
                 size="small"
               >
                 <HighlightAltIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Ellipse Select" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Ellipse Select"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "marquee-ellipse" ? "active" : ""}`}
                 onClick={handleSelectTool("marquee-ellipse")}
                 size="small"
               >
                 <SelectAllIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Lasso Select" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Lasso Select"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "lasso" ? "active" : ""}`}
                 onClick={handleSelectTool("lasso")}
                 size="small"
               >
                 <GestureIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Magic Wand (W)" placement="top">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Magic Wand (W)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "magic-wand" ? "active" : ""}`}
                 onClick={handleSelectTool("magic-wand")}
                 size="small"
               >
                 <AutoFixNormalIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
           </div>
         </div>
 
@@ -567,15 +567,14 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </div>
 
             <div className="actions-row" style={{ marginTop: "8px" }}>
-              <Tooltip title="Select All (Ctrl+A)">
-                <ToolbarIconButton
+              <ToolbarIconButton
+                  tooltip="Select All (Ctrl+A)"
                   className="action-button"
                   onClick={() => onAction("select-all")}
                   size="small"
                 >
                   <SelectAllIcon fontSize="small" />
                 </ToolbarIconButton>
-              </Tooltip>
               <Tooltip title="Deselect (Ctrl+D)">
                 <span>
                   <ToolbarIconButton
@@ -834,8 +833,8 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         <div className="toolbar-section">
           <Text className="section-title">Transform</Text>
           <div className="actions-row">
-            <Tooltip title="Rotate 90° CCW">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Rotate 90° CCW"
                 className="action-button"
                 onClick={handleRotateCCW}
                 size="small"
@@ -843,9 +842,8 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <Rotate90DegreesCcwIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Rotate 90° CW">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Rotate 90° CW"
                 className="action-button"
                 onClick={handleRotateCW}
                 size="small"
@@ -853,9 +851,8 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <Rotate90DegreesCwIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Flip Horizontal">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Flip Horizontal"
                 className="action-button"
                 onClick={handleFlipH}
                 size="small"
@@ -863,9 +860,8 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <FlipIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
-            <Tooltip title="Flip Vertical">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Flip Vertical"
                 className="action-button"
                 onClick={handleFlipV}
                 size="small"
@@ -873,7 +869,6 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <FlipIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
           </div>
         </div>
 
@@ -951,8 +946,8 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             >
               <ZoomInIcon fontSize="small" />
             </ToolbarIconButton>
-            <Tooltip title="Reset Zoom">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Reset Zoom"
                 className="action-button"
                 onClick={handleZoomReset}
                 size="small"
@@ -960,7 +955,6 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <RestartAltIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
           </div>
         </div>
 
@@ -994,8 +988,8 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 </ToolbarIconButton>
               </span>
             </Tooltip>
-            <Tooltip title="Reset to Original">
-              <ToolbarIconButton
+            <ToolbarIconButton
+                tooltip="Reset to Original"
                 className="action-button"
                 onClick={handleReset}
                 size="small"
@@ -1003,7 +997,6 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               >
                 <RestartAltIcon fontSize="small" />
               </ToolbarIconButton>
-            </Tooltip>
           </div>
         </div>
       </div>
