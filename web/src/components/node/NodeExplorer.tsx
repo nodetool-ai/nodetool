@@ -4,10 +4,9 @@ import React, { useCallback, useMemo, useState, memo } from "react";
 import {
   List,
   ListItem,
-  ListItemButton,
-  TextField
+  ListItemButton
 } from "@mui/material";
-import { Text, Chip, EditorButton } from "../ui_primitives";
+import { Text, Chip, EditorButton, TextInput } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
@@ -297,7 +296,7 @@ const NodeExplorer: React.FC = () => {
           />
         }
       />
-      <TextField
+      <TextInput
         className="filter-input"
         size="medium"
         placeholder="Filter by name, type, or node id"

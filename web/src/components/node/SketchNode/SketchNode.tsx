@@ -22,8 +22,7 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Typography } from "@mui/material";
-import { Box } from "../../ui_primitives";
+import { Box, Text } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -1203,9 +1202,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                     </div>
                   </>
                 ) : (
-                  <Typography className="hint">
+                  <Text className="hint">
                     Click to open image editor
-                  </Typography>
+                  </Text>
                 )}
               </div>
             </div>

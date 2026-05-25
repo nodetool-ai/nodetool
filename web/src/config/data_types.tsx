@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
-import { Tooltip } from "@mui/material";
+import { Tooltip } from "../components/ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { memo } from "react";
 import isEqual from "fast-deep-equal";
