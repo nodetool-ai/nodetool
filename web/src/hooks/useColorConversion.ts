@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   RGB,
   HSL,
@@ -68,9 +68,11 @@ export function useColorConversion(
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  useEffect(() => {
+  const prevInputRef = useRef({ color, alpha });
+  if (color !== prevInputRef.current.color || alpha !== prevInputRef.current.alpha) {
+    prevInputRef.current = { color, alpha };
     setState(computeAllFormats(color, alpha));
-  }, [color, alpha]);
+  }
 
   const handleHexChange = useCallback(
     (value: string) => {

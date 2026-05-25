@@ -5,12 +5,12 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  Checkbox,
   Menu,
   MenuItem
 } from "@mui/material";
 import {
   Caption,
+  Checkbox,
   Divider,
   EditorButton,
   FlexColumn,
