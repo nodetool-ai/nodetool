@@ -11,7 +11,6 @@ import React, {
   useRef,
   useState
 } from "react";
-import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PortalRecents from "./PortalRecents";
 import PortalSearchResults from "./PortalSearchResults";
@@ -27,7 +26,7 @@ import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
 import AppHeader from "../panels/AppHeader";
 import ComposerSlot from "../chat/composer/ComposerSlot";
 import SchoolIcon from "@mui/icons-material/School";
-import { BORDER_RADIUS } from "../ui_primitives";
+import { BORDER_RADIUS, Box } from "../ui_primitives";
 
 const KNOWN_PROVIDER_KEYS = [
   "OPENAI_API_KEY",

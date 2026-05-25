@@ -1,5 +1,4 @@
 import React, { useCallback } from "react";
-import { Box } from "@mui/material";
 import {
   Text,
   FlexRow,
@@ -8,7 +7,8 @@ import {
   ToolbarIconButton,
   NodeSlider,
   NodeSelect,
-  NodeMenuItem
+  NodeMenuItem,
+  Box
 } from "../../ui_primitives";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";

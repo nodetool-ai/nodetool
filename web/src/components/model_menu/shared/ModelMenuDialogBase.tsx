@@ -5,14 +5,13 @@ import { isProduction } from "../../../lib/env";
 import {
   Popover,
   PopoverOrigin,
-  Box,
   ListItemText,
   ListItemIcon,
   List,
   ListItemButton,
   Collapse
 } from "@mui/material";
-import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton } from "../../ui_primitives";
+import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton, FlexRow, FlexColumn, Box } from "../../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
@@ -229,19 +228,18 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       }}
     >
       {/* Compact Header */}
-      <Box
+      <FlexRow
+        gap={2}
+        align="center"
         sx={{
           p: 1.5,
           pl: 2,
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
           flexShrink: 0,
           background: theme.vars.palette.background.paper // No transparency
         }}
       >
-        <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 2 }}>
+        <FlexRow gap={2} align="center" sx={{ flex: 1 }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <SearchInput
               onSearchChange={setSearch}
@@ -261,18 +259,17 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             nodrag={false}
           />
           <ModelFiltersBar />
-        </Box>
-      </Box>
+        </FlexRow>
+      </FlexRow>
 
       {/* Status Banner - shows loading progress and errors */}
       <Collapse in={!!(isLoading || isFetching || (providerErrors && providerErrors.length > 0))}>
-        <Box
+        <FlexRow
+          gap={1}
+          align="center"
           sx={{
             px: 2,
             py: 0.75,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
             borderBottom: `1px solid ${theme.vars.palette.divider}`,
             bgcolor: providerErrors && providerErrors.length > 0
               ? theme.vars.palette.warning.main + "15"
@@ -305,27 +302,25 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 </Box>
               }
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "help" }}>
+              <FlexRow gap={0.5} align="center" sx={{ cursor: "help" }}>
                 <WarningAmberIcon sx={{ fontSize: 16, color: "warning.main" }} />
                 <Caption sx={{ color: "warning.main" }}>
                   {providerErrors.length} provider{providerErrors.length > 1 ? "s" : ""} failed to load
                 </Caption>
-              </Box>
+              </FlexRow>
             </Tooltip>
           )}
-        </Box>
+        </FlexRow>
       </Collapse>
 
       {/* Main Content Grid */}
-      <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <FlexRow sx={{ flex: 1, overflow: "hidden" }}>
         {/* Left Sidebar: Navigation */}
-        <Box
+        <FlexColumn
           sx={{
             width: isIconOnly ? 88 : 200,
             flexShrink: 0,
             borderRight: `1px solid ${theme.vars.palette.divider}`,
-            display: "flex",
-            flexDirection: "column",
             bgcolor: theme.vars.palette.background.default,
             alignItems: isIconOnly ? "center" : "stretch"
           }}
@@ -356,7 +351,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             >
               {isIconOnly ? (
                 <Tooltip title="Favorites" placement="right">
-                  <Box
+                  <FlexRow
+                    align="center"
+                    justify="center"
                     sx={{
                       width: 36,
                       height: 36,
@@ -365,10 +362,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                         customView === "favorites"
                           ? "primary.main"
                           : "action.selected",
-                      border: `1px solid ${customView === "favorites" ? "transparent" : theme.vars.palette.divider}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
+                      border: `1px solid ${customView === "favorites" ? "transparent" : theme.vars.palette.divider}`
                     }}
                   >
                     <StarIcon
@@ -381,16 +375,15 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                             : "text.primary"
                       }}
                     />
-                  </Box>
+                  </FlexRow>
                 </Tooltip>
               ) : (
                 <>
                   <ListItemIcon sx={{ minWidth: 36 }}>
-                    <Box
+                    <FlexRow
+                      align="center"
+                      justify="center"
                       sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
                         width: 28,
                         height: 28,
                         borderRadius: "var(--rounded-sm)",
@@ -407,7 +400,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                               : "text.secondary"
                         }}
                       />
-                    </Box>
+                    </FlexRow>
                   </ListItemIcon>
                   <ListItemText
                     primary="Favorites"
@@ -434,7 +427,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             >
               {isIconOnly ? (
                 <Tooltip title="Recent" placement="right">
-                  <Box
+                  <FlexRow
+                    align="center"
+                    justify="center"
                     sx={{
                       width: 36,
                       height: 36,
@@ -443,10 +438,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                         customView === "recent"
                           ? "primary.main"
                           : "action.selected",
-                      border: `1px solid ${customView === "recent" ? "transparent" : theme.vars.palette.divider}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
+                      border: `1px solid ${customView === "recent" ? "transparent" : theme.vars.palette.divider}`
                     }}
                   >
                     <HistoryIcon
@@ -459,16 +451,15 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                             : "text.primary"
                       }}
                     />
-                  </Box>
+                  </FlexRow>
                 </Tooltip>
               ) : (
                 <>
                   <ListItemIcon sx={{ minWidth: 36 }}>
-                    <Box
+                    <FlexRow
+                      align="center"
+                      justify="center"
                       sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
                         width: 28,
                         height: 28,
                         borderRadius: "var(--rounded-sm)",
@@ -485,7 +476,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                               : "text.secondary"
                         }}
                       />
-                    </Box>
+                    </FlexRow>
                   </ListItemIcon>
                   <ListItemText
                     primary="Recent"
@@ -514,7 +505,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               >
                 {isIconOnly ? (
                   <Tooltip title="Recommended downloads" placement="right">
-                    <Box
+                    <FlexRow
+                      align="center"
+                      justify="center"
                       sx={{
                         width: 36,
                         height: 36,
@@ -523,10 +516,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                           customView === "downloads"
                             ? "primary.main"
                             : "action.selected",
-                        border: `1px solid ${customView === "downloads" ? "transparent" : theme.vars.palette.divider}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
+                        border: `1px solid ${customView === "downloads" ? "transparent" : theme.vars.palette.divider}`
                       }}
                     >
                       <DownloadIcon
@@ -539,16 +529,15 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                               : "text.primary"
                         }}
                       />
-                    </Box>
+                    </FlexRow>
                   </Tooltip>
                 ) : (
                   <>
                     <ListItemIcon sx={{ minWidth: 36 }}>
-                      <Box
+                      <FlexRow
+                        align="center"
+                        justify="center"
                         sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
                           width: 28,
                           height: 28,
                           borderRadius: "var(--rounded-sm)",
@@ -565,7 +554,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                                 : "text.secondary"
                           }}
                         />
-                      </Box>
+                      </FlexRow>
                     </ListItemIcon>
                     <ListItemText
                       primary="Downloads"
@@ -615,14 +604,12 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               iconOnly={isIconOnly}
             />
           </Box>
-        </Box>
+        </FlexColumn>
 
         {/* Center: Model List */}
-        <Box
+        <FlexColumn
           sx={{
             flex: 1,
-            display: "flex",
-            flexDirection: "column",
             minWidth: 0,
             bgcolor: "background.paper"
           }}
@@ -645,8 +632,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             )}
           </Box>
           {/* Footer removed */}
-        </Box>
-      </Box>
+        </FlexColumn>
+      </FlexRow>
     </Popover>
   );
 }

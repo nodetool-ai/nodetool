@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, useMediaQuery } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
@@ -23,7 +23,7 @@ import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
 import { PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ContextMenus from "../context_menus/ContextMenus";
-import { MobileBottomSheet } from "../ui_primitives";
+import { MobileBottomSheet, FlexColumn } from "../ui_primitives";
 
 const HEADER_AREA_HEIGHT = 77;
 
@@ -323,16 +323,14 @@ const PanelRight: React.FC = () => {
           title="Inspector"
           ariaLabel="Inspector panel"
         >
-          <Box
+          <FlexColumn
             sx={{
               height: "65vh",
-              display: "flex",
-              flexDirection: "column",
               overflow: "hidden"
             }}
           >
             {inspectorBody}
-          </Box>
+          </FlexColumn>
         </MobileBottomSheet>
       </>
     );

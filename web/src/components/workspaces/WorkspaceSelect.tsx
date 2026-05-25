@@ -6,10 +6,9 @@ import {
   Select,
   MenuItem,
   CircularProgress,
-  Box,
   Divider
 } from "@mui/material";
-import { Text, Caption, FlexRow } from "../ui_primitives";
+import { Text, Caption, FlexRow, Box } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";

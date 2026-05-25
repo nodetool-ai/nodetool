@@ -1,6 +1,5 @@
 import React, { useMemo, useCallback, useRef, useState } from "react";
 import {
-  Box,
   TextField,
   Button,
   IconButton,
@@ -8,7 +7,7 @@ import {
   ToggleButtonGroup,
   ToggleButton
 } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, FlexRow, FlexColumn, Box } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { useTheme } from "@mui/material/styles";
@@ -145,16 +144,15 @@ function NodeTestPage() {
   });
 
   return (
-    <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <Box
+    <FlexColumn sx={{ height: "100vh" }}>
+      <FlexRow
+        gap={2}
+        padding={2}
+        align="center"
+        wrap
         sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          p: 2,
           borderBottom: "1px solid",
-          borderColor: "divider",
-          flexWrap: "wrap"
+          borderColor: "divider"
         }}
       >
         <Text size="normal" weight={600}>Node Integration Tests</Text>
@@ -224,7 +222,7 @@ function NodeTestPage() {
         {stats.queued > 0 && (
           <Chip label={`Queued: ${stats.queued}`} color="info" size="small" />
         )}
-      </Box>
+      </FlexRow>
 
       <Box sx={{ flex: 1, overflow: "hidden" }}>
         <div
@@ -250,14 +248,13 @@ function NodeTestPage() {
               };
               if (row.type === "namespace") {
                 return (
-                  <Box
+                  <FlexRow
                     key={vi.key}
                     style={itemStyle}
+                    gap={1}
+                    align="center"
                     sx={{
-                      display: "flex",
-                      alignItems: "center",
                       px: 1,
-                      gap: 1,
                       bgcolor: "background.paper",
                       borderBottom: "1px solid",
                       borderColor: "divider"
@@ -274,7 +271,7 @@ function NodeTestPage() {
                       {row.namespace}
                     </Text>
                     <Chip label={row.nodeCount} size="small" />
-                  </Box>
+                  </FlexRow>
                 );
               }
               return (
@@ -290,7 +287,7 @@ function NodeTestPage() {
           </div>
         </div>
       </Box>
-    </Box>
+    </FlexColumn>
   );
 }
 

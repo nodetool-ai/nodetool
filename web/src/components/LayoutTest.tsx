@@ -5,7 +5,6 @@ import { useColorScheme, useTheme } from "@mui/material/styles";
 import {
   Tabs,
   Tab,
-  Box,
   Switch,
   Typography,
   Paper,
@@ -69,7 +68,8 @@ import {
   NotificationBadge,
   UndoRedoButtons,
   ConfirmButton,
-  HelpButton
+  HelpButton,
+  Box
 } from "./ui_primitives";
 
 // Additional icons

@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { useState } from "react";
 import { useRouteError } from "react-router-dom";
-import { Box, ThemeProvider } from "@mui/material";
-import { CopyButton, Text, EditorButton } from "./components/ui_primitives";
+import { ThemeProvider } from "@mui/material";
+import { CopyButton, Text, EditorButton, Box } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 

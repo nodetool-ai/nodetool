@@ -3,13 +3,12 @@ import React, { useCallback, useEffect, useMemo, memo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import {
-  Box,
   DialogContentText,
   Snackbar
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { AlertBanner, CloseButton, Dialog, EditorButton, Text, Tooltip } from "../ui_primitives";
+import { AlertBanner, CloseButton, Dialog, EditorButton, Text, Tooltip, Box } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import { trpcClient } from "../../trpc/client";

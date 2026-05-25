@@ -13,7 +13,6 @@
 import React, { memo, useState, useRef, useCallback, useEffect } from "react";
 import {
   Popover,
-  Box,
   Typography,
   ToggleButtonGroup,
   ToggleButton,
@@ -23,6 +22,7 @@ import {
   IconButton,
   Tooltip
 } from "@mui/material";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   ColorMode,
@@ -192,7 +192,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         }
       }}
     >
-      <Box className="color-picker__header" sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", minHeight: "22px", mt: `-${SKETCH_SPACING.md}`, mr: `-${SKETCH_SPACING.md}`, mb: SKETCH_SPACING.xs }}>
+      <FlexRow className="color-picker__header" align="center" justify="flex-end" sx={{ minHeight: "22px", mt: `-${SKETCH_SPACING.md}`, mr: `-${SKETCH_SPACING.md}`, mb: SKETCH_SPACING.xs }}>
         <Tooltip title="Cancel — keep previous color" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
           <IconButton
             size="small"
@@ -203,7 +203,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
             <CloseIcon sx={{ fontSize: "16px" }} />
           </IconButton>
         </Tooltip>
-      </Box>
+      </FlexRow>
 
       {/* SV gradient square */}
       <Box
@@ -281,7 +281,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
 
       {/* Opacity slider */}
       <Box className="color-picker__opacity" sx={{ px: SKETCH_SPACING.sm }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: SKETCH_SPACING.md }}>
+        <FlexRow align="center" sx={{ gap: SKETCH_SPACING.md }}>
           <Typography sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "24px" }}>A</Typography>
           <Slider
             value={Math.round(a * 100)}
@@ -313,14 +313,14 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           <Typography sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "28px", textAlign: "right" }}>
             {Math.round(a * 100)}%
           </Typography>
-        </Box>
+        </FlexRow>
       </Box>
 
       {/* Color preview: old → new */}
-      <Box className="color-picker__preview" sx={{ display: "flex", gap: SKETCH_SPACING.xs, height: "20px", borderRadius: "3px", overflow: "hidden" }}>
+      <FlexRow className="color-picker__preview" sx={{ gap: SKETCH_SPACING.xs, height: "20px", borderRadius: "3px", overflow: "hidden" }}>
         <Box sx={{ flex: 1, backgroundColor: initialColor, border: "1px solid rgba(255,255,255,0.1)" }} />
         <Box sx={{ flex: 1, backgroundColor: color, border: "1px solid rgba(255,255,255,0.1)" }} />
-      </Box>
+      </FlexRow>
 
       {/* Mode toggle */}
       <ToggleButtonGroup
@@ -350,9 +350,9 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       )}
 
       {mode === "rgb" && (
-        <Box className="color-picker__rgb-inputs" sx={{ display: "flex", gap: SKETCH_SPACING.xs }}>
+        <FlexRow className="color-picker__rgb-inputs" sx={{ gap: SKETCH_SPACING.xs }}>
           {(["r", "g", "b"] as const).map((ch) => (
-            <Box key={ch} sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <FlexColumn key={ch} align="center" sx={{ flex: 1 }}>
               <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted }}>{ch.toUpperCase()}</Typography>
               <TextField
                 size="small"
@@ -362,15 +362,15 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
                 inputProps={{ min: 0, max: 255 }}
                 sx={numSx}
               />
-            </Box>
+            </FlexColumn>
           ))}
-        </Box>
+        </FlexRow>
       )}
 
       {mode === "hsl" && (
-        <Box className="color-picker__hsl-inputs" sx={{ display: "flex", gap: SKETCH_SPACING.xs }}>
+        <FlexRow className="color-picker__hsl-inputs" sx={{ gap: SKETCH_SPACING.xs }}>
           {(["h", "s", "l"] as const).map((ch) => (
-            <Box key={ch} sx={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <FlexColumn key={ch} align="center" sx={{ flex: 1 }}>
               <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted }}>
                 {ch === "h" ? "H°" : ch === "s" ? "S%" : "L%"}
               </Typography>
@@ -382,9 +382,9 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
                 inputProps={{ min: 0, max: ch === "h" ? 360 : 100 }}
                 sx={numSx}
               />
-            </Box>
+            </FlexColumn>
           ))}
-        </Box>
+        </FlexRow>
       )}
 
       <Button

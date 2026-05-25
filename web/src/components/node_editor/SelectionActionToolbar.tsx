@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { Box } from "@mui/material";
-import { Divider } from "../ui_primitives";
+import { Divider, FlexRow, ToolbarIconButton } from "../ui_primitives";
 import {
   AlignHorizontalLeft,
   AlignHorizontalCenter,
@@ -20,7 +19,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import { ToolbarIconButton } from "../ui_primitives";
 
 interface SelectionActionToolbarProps {
   visible: boolean;
@@ -225,11 +223,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   }
 
   return (
-    <Box
+    <FlexRow
       className="selection-action-toolbar"
       role="region"
       aria-label="Selection Action Toolbar"
       onKeyDown={handleKeyDown}
+      gap={0.5}
+      align="center"
       sx={{
         position: "absolute",
         bottom: "auto",
@@ -237,9 +237,6 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        gap: 0.5,
         padding: "6px 10px",
         backgroundColor: 'var(--palette-grey-800)',
         borderRadius: 2,
@@ -254,7 +251,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         const actionButton = button as ActionButton;
         return renderButton(actionButton, index);
       })}
-    </Box>
+    </FlexRow>
   );
 });
 

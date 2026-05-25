@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import {
-  Box,
   TextField,
   InputAdornment
 } from "@mui/material";
@@ -13,7 +12,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Box } from "../ui_primitives";
 import React, { memo, useCallback } from "react";
 
 interface SearchBarProps {

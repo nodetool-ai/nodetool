@@ -12,7 +12,6 @@ import ReactDOM from "react-dom";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   IconButton,
   Menu,
   MenuItem,
@@ -55,10 +54,13 @@ import { displayCombo } from "./shortcuts";
 import {
   Caption,
   Divider,
+  FlexColumn,
+  FlexRow,
   TabGroup,
   TabPanel,
   Text,
-  Tooltip
+  Tooltip,
+  Box
 } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
@@ -222,14 +224,12 @@ const SketchModal: React.FC<SketchModalProps> = ({
         </Text>
 
         {isPressureSketchTool(activeTool) ? (
-          <Box
+          <FlexRow
             className="sketch-modal-pen-inline"
+            align="center"
+            wrap
+            gap={0.75}
             sx={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 0.75,
               rowGap: "4px"
             }}
           >
@@ -260,13 +260,11 @@ const SketchModal: React.FC<SketchModalProps> = ({
               </IconButton>
             </Tooltip>
             {headerPenPressureOn ? (
-              <Box
+              <FlexRow
                 id="sketch-modal-pen-pressure-panel"
+                align="center"
+                wrap
                 sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  flexWrap: "wrap",
                   columnGap: 10,
                   rowGap: 4,
                   py: 0.25,
@@ -282,13 +280,13 @@ const SketchModal: React.FC<SketchModalProps> = ({
                   omitSensitivitySwitch
                   inlineRow
                 />
-              </Box>
+              </FlexRow>
             ) : null}
-          </Box>
+          </FlexRow>
         ) : null}
 
         {/* ── Actions (right-aligned) ── */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <FlexRow align="center" sx={{ gap: "2px" }}>
           <Tooltip title={`Undo (${displayCombo("undo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
               <IconButton size="small" aria-label="Undo" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
@@ -402,15 +400,13 @@ const SketchModal: React.FC<SketchModalProps> = ({
               </IconButton>
             </Tooltip>
           )}
-        </Box>
+        </FlexRow>
       </Box>
-      <Box
+      <FlexColumn
         className="sketch-modal-body"
         sx={{
           flex: 1,
           position: "relative",
-          display: "flex",
-          flexDirection: "column",
           minHeight: 0,
           overflow: "hidden"
         }}
@@ -435,7 +431,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 backgroundColor: alpha(theme.palette.common.black, 0.45)
               }}
             />
-            <Box
+            <FlexColumn
               component="section"
               role="dialog"
               aria-modal="true"
@@ -450,8 +446,6 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 height: "80vh",
                 maxHeight: "80vh",
                 zIndex: SKETCH_Z_INDEX.popover,
-                display: "flex",
-                flexDirection: "column",
                 borderRadius: 2,
                 border: `1px solid ${theme.vars.palette.grey[700]}`,
                 backgroundColor: theme.vars.palette.grey[800],
@@ -459,12 +453,11 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 overflow: "hidden"
               }}
             >
-              <Box
+              <FlexRow
+                align="center"
+                justify="space-between"
+                gap={1}
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 1,
                   px: SKETCH_SPACING.md,
                   py: SKETCH_SPACING.sm,
                   borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
@@ -483,14 +476,12 @@ const SketchModal: React.FC<SketchModalProps> = ({
                     <CloseIcon sx={{ fontSize: "18px" }} />
                   </IconButton>
                 </Tooltip>
-              </Box>
-              <Box
+              </FlexRow>
+              <FlexColumn
                 sx={{
                   flex: 1,
                   minHeight: 0,
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column"
+                  overflow: "hidden"
                 }}
               >
                 <TabGroup
@@ -512,13 +503,11 @@ const SketchModal: React.FC<SketchModalProps> = ({
                     borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
                   }}
                 />
-                <Box
+                <FlexColumn
                   sx={{
                     flex: 1,
                     minHeight: 0,
                     overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
                     px: SKETCH_SPACING.md,
                     pb: SKETCH_SPACING.md,
                     pt: SKETCH_SPACING.sm
@@ -559,12 +548,12 @@ const SketchModal: React.FC<SketchModalProps> = ({
                       imageEditorShortcuts
                     />
                   </TabPanel>
-                </Box>
-              </Box>
-            </Box>
+                </FlexColumn>
+              </FlexColumn>
+            </FlexColumn>
           </>
         ) : null}
-      </Box>
+      </FlexColumn>
     </Box>,
     window.document.body
   );

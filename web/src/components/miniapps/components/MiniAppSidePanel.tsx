@@ -2,8 +2,8 @@
 import React, { useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Box, Collapse } from "@mui/material";
-import { ToolbarIconButton, EditorButton } from "../../ui_primitives";
+import { Collapse } from "@mui/material";
+import { ToolbarIconButton, EditorButton, Box } from "../../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";

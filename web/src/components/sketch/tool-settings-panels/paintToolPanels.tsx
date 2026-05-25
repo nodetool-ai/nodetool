@@ -1,5 +1,6 @@
 import React, { memo, useState } from "react";
-import { Box, Typography, Slider, Button } from "@mui/material";
+import { Typography, Slider, Button } from "@mui/material";
+import { Box } from "../../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {

@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useState, useCallback, useMemo } from "react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -25,7 +24,8 @@ import {
   Dialog,
   TextInput,
   Card,
-  Chip
+  Chip,
+  Box
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
 import ConfirmDialog from "../dialogs/ConfirmDialog";

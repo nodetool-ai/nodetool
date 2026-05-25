@@ -31,6 +31,7 @@ jest.mock("../../ui_primitives", () => ({
   Caption: ({ children, ...props }: any) => <span data-testid="Caption" {...props}>{children}</span>,
   LoadingSpinner: (props: any) => <div data-testid="LoadingSpinner" {...props} />,
   Chip: ({ children, ...props }: any) => <span data-testid="UIPrimitiveChip" {...props}>{children}</span>,
+  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>,
 }));
 
 // Mock stores

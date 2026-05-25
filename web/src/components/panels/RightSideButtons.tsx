@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
 import { useCombo } from "../../stores/KeyPressedStore";
-import { Box, useMediaQuery } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useShallow } from "zustand/react/shallow";
 import Help from "../content/Help/Help";
@@ -14,7 +14,7 @@ import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 import { isProduction } from "../../lib/env";
 import { ThemeToggleButton } from "../ui_primitives/ThemeToggleButton";
-import { HelpButton } from "../ui_primitives";
+import { HelpButton, Box } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
