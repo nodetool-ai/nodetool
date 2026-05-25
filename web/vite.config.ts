@@ -198,9 +198,10 @@ export default defineConfig(async ({ mode }) => {
                   // Static icon set (large SVG payload)
                   if (/[\\/]node_modules[\\/]@lobehub[\\/]/.test(id))
                     return "vendor-icons";
-                  // Catch-all for any remaining third-party code so it doesn't
-                  // bloat the entry chunk.
-                  return "vendor-misc";
+                  // Leave other dependencies unmatched so Rollup can apply
+                  // its default chunking strategy instead of forcing a single
+                  // shared misc vendor chunk.
+                  return;
                 }
               }
             }
