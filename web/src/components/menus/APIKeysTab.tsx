@@ -46,6 +46,12 @@ import replicateIcon from "@lobehub/icons-static-svg/icons/replicate.svg";
 import falColorIcon from "@lobehub/icons-static-svg/icons/fal-color.svg";
 import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
 import moonshotIcon from "@lobehub/icons-static-svg/icons/moonshot.svg";
+import topazlabsIcon from "@lobehub/icons-static-svg/icons/topazlabs.svg";
+import zhipuColorIcon from "@lobehub/icons-static-svg/icons/zhipu-color.svg";
+import minimaxColorIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg";
+import meshyColorIcon from "@lobehub/icons-static-svg/icons/meshy-color.svg";
+import githubIcon from "@lobehub/icons-static-svg/icons/github.svg";
+import googleColorIcon from "@lobehub/icons-static-svg/icons/google-color.svg";
 
 
 interface ProviderMeta {
@@ -55,7 +61,7 @@ interface ProviderMeta {
   category: "recommended" | "other";
   tag?: string;
   docsUrl: string;
-  icon: string;
+  icon?: string;
   /** Mono (single-color black) icon — needs inversion in dark mode to be visible. */
   mono?: boolean;
 }
@@ -182,6 +188,15 @@ const PROVIDER_META: ProviderMeta[] = [
     mono: true
   },
   {
+    key: "TOPAZ_API_KEY",
+    name: "Topaz",
+    description: "Topaz Labs image and video enhancement.",
+    category: "other",
+    docsUrl: "https://developer.topazlabs.com/",
+    icon: topazlabsIcon,
+    mono: true
+  },
+  {
     key: "KIMI_API_KEY",
     name: "Kimi",
     description: "Moonshot AI models via Kimi API.",
@@ -189,6 +204,162 @@ const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://platform.moonshot.cn/docs",
     icon: moonshotIcon,
     mono: true
+  },
+  {
+    key: "ZHIPU_API_KEY",
+    name: "Z.AI",
+    description: "GLM models via Z.AI's OpenAI-compatible API.",
+    category: "other",
+    docsUrl: "https://open.bigmodel.cn/",
+    icon: zhipuColorIcon
+  },
+  {
+    key: "MINIMAX_API_KEY",
+    name: "MiniMax",
+    description: "MiniMax AI models.",
+    category: "other",
+    docsUrl: "https://platform.minimax.chat/",
+    icon: minimaxColorIcon
+  },
+  {
+    key: "AKI_API_KEY",
+    name: "AKI",
+    description: "AKI.IO AI Model Hub.",
+    category: "other",
+    docsUrl: "https://aki.io/"
+  },
+  {
+    key: "AIME_API_KEY",
+    name: "Aime",
+    description: "Aime AI services.",
+    category: "other",
+    docsUrl: "https://aime.info/"
+  },
+  {
+    key: "LLAMA_API_KEY",
+    name: "llama.cpp",
+    description: "Bearer auth for a local llama-server instance.",
+    category: "other",
+    docsUrl: "https://github.com/ggml-org/llama.cpp"
+  },
+  {
+    key: "KIE_API_KEY",
+    name: "Kie.ai",
+    description: "Kie.ai unified model access.",
+    category: "other",
+    docsUrl: "https://kie.ai/"
+  },
+  {
+    key: "MESHY_API_KEY",
+    name: "Meshy",
+    description: "3D model generation.",
+    category: "other",
+    docsUrl: "https://docs.meshy.ai/",
+    icon: meshyColorIcon
+  },
+  {
+    key: "RODIN_API_KEY",
+    name: "Rodin",
+    description: "Rodin AI 3D model generation.",
+    category: "other",
+    docsUrl: "https://hyperhuman.deemos.com/"
+  },
+  {
+    key: "RUNPOD_API_KEY",
+    name: "RunPod",
+    description: "Serverless GPU endpoints on RunPod.",
+    category: "other",
+    docsUrl: "https://docs.runpod.io/"
+  },
+  {
+    key: "NODE_SUPABASE_KEY",
+    name: "NodeSupabase",
+    description: "Supabase service key for user-provided nodes.",
+    category: "other",
+    docsUrl: "https://supabase.com/docs"
+  },
+  {
+    key: "SERPAPI_API_KEY",
+    name: "SerpAPI",
+    description: "Web search via SerpAPI.",
+    category: "other",
+    docsUrl: "https://serpapi.com/"
+  },
+  {
+    key: "APIFY_API_KEY",
+    name: "Apify",
+    description: "Web search via Apify Google Search Scraper.",
+    category: "other",
+    docsUrl: "https://docs.apify.com/"
+  },
+  {
+    key: "BRAVE_API_KEY",
+    name: "Brave Search",
+    description: "Brave Search web API.",
+    category: "other",
+    docsUrl: "https://brave.com/search/api/"
+  },
+  {
+    key: "DATA_FOR_SEO_LOGIN",
+    name: "DataForSEO Login",
+    description: "DataForSEO login for web search.",
+    category: "other",
+    docsUrl: "https://docs.dataforseo.com/"
+  },
+  {
+    key: "DATA_FOR_SEO_PASSWORD",
+    name: "DataForSEO Password",
+    description: "DataForSEO password for web search.",
+    category: "other",
+    docsUrl: "https://docs.dataforseo.com/"
+  },
+  {
+    key: "TRACELOOP_API_KEY",
+    name: "Traceloop",
+    description: "OpenLLMetry trace export to Traceloop.",
+    category: "other",
+    docsUrl: "https://www.traceloop.com/docs"
+  },
+  {
+    key: "GOOGLE_MAIL_USER",
+    name: "Google Mail User",
+    description: "Email address for Google mail integration.",
+    category: "other",
+    docsUrl: "https://support.google.com/mail/",
+    icon: googleColorIcon
+  },
+  {
+    key: "GOOGLE_APP_PASSWORD",
+    name: "Google App Password",
+    description: "App password for Google services.",
+    category: "other",
+    docsUrl: "https://myaccount.google.com/apppasswords",
+    icon: googleColorIcon
+  },
+  {
+    key: "GITHUB_CLIENT_ID",
+    name: "GitHub Client ID",
+    description: "OAuth App Client ID for GitHub PKCE flow.",
+    category: "other",
+    docsUrl: "https://docs.github.com/en/apps/oauth-apps",
+    icon: githubIcon,
+    mono: true
+  },
+  {
+    key: "GITHUB_CLIENT_SECRET",
+    name: "GitHub Client Secret",
+    description: "OAuth App Client Secret for GitHub PKCE flow.",
+    category: "other",
+    docsUrl: "https://docs.github.com/en/apps/oauth-apps",
+    icon: githubIcon,
+    mono: true
+  },
+  {
+    key: "SERVER_AUTH_TOKEN",
+    name: "Server Auth Token",
+    description: "Bearer token to secure NodeTool server endpoints.",
+    category: "other",
+    docsUrl: "https://github.com/nodetool-ai/nodetool"
   }
 ];
 
@@ -261,19 +432,25 @@ const ProviderCard = memo(function ProviderCard({
           marginTop: "2px"
         }}
       >
-        <Box
-          component="img"
-          src={meta.icon}
-          alt={meta.name}
-          sx={{
-            width: 28,
-            height: 28,
-            objectFit: "contain",
-            ...(meta.mono && theme.applyStyles("dark", {
-              filter: "invert(1)"
-            }))
-          }}
-        />
+        {meta.icon ? (
+          <Box
+            component="img"
+            src={meta.icon}
+            alt={meta.name}
+            sx={{
+              width: 28,
+              height: 28,
+              objectFit: "contain",
+              ...(meta.mono && theme.applyStyles("dark", {
+                filter: "invert(1)"
+              }))
+            }}
+          />
+        ) : (
+          <Text size="big" weight={700}>
+            {meta.name.charAt(0)}
+          </Text>
+        )}
       </FlexRow>
 
       {/* Info */}
