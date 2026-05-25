@@ -1,6 +1,6 @@
 import React, { memo } from "react";
-import { Slider, Switch, Typography } from "@mui/material";
-import { FlexRow, Box } from "../../ui_primitives";
+import { Slider, Switch } from "@mui/material";
+import { FlexRow, Box, Text } from "../../ui_primitives";
 import { sketchSliderSx } from "../sketchStyles";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {
@@ -56,12 +56,12 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
 
   const lightEndRow = (
     <Box className="setting-row">
-      <Typography
+      <Text
         className="setting-label"
         title="Size/opacity at minimum pressure. Slider uses eased mapping so the upper range is easier to dial in."
       >
         Light end
-      </Typography>
+      </Text>
       <Slider
         sx={sketchSliderSx}
         size="small"
@@ -77,20 +77,20 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
           })
         }
       />
-      <Typography className="setting-value">
+      <Text className="setting-value">
         {Math.round(minScale * 100)}%
-      </Typography>
+      </Text>
     </Box>
   );
 
   const curveRow = (
     <Box className="setting-row">
-      <Typography
+      <Text
         className="setting-label"
         title="Pressure exponent before mapping: 1 = linear; higher = need firmer pressure for full size"
       >
         Curve
-      </Typography>
+      </Text>
       <Slider
         sx={sketchSliderSx}
         size="small"
@@ -100,9 +100,9 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
         value={settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE}
         onChange={(_, v) => onChange({ pressureCurve: v as number })}
       />
-      <Typography className="setting-value">
+      <Text className="setting-value">
         {(settings.pressureCurve ?? DEFAULT_PRESSURE_CURVE).toFixed(2)}
-      </Typography>
+      </Text>
     </Box>
   );
 
@@ -134,7 +134,7 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
     <>
       {!omitSensitivitySwitch ? (
         <Box className="setting-row" sx={{ alignItems: "center" }}>
-          <Typography className="setting-label">Pressure</Typography>
+          <Text className="setting-label">Pressure</Text>
           <Switch
             size="small"
             checked={settings.pressureSensitivity ?? true}

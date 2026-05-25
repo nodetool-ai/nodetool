@@ -1,13 +1,18 @@
 import React, { useMemo, useCallback, useRef, useState } from "react";
 import {
-  TextField,
-  Button,
-  IconButton,
-  Chip,
   ToggleButtonGroup,
   ToggleButton
 } from "@mui/material";
-import { Text, FlexRow, FlexColumn, Box } from "../ui_primitives";
+import {
+  Text,
+  FlexRow,
+  FlexColumn,
+  Box,
+  TextInput,
+  EditorButton,
+  ToolbarIconButton,
+  Chip
+} from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { useTheme } from "@mui/material/styles";
@@ -157,7 +162,7 @@ function NodeTestPage() {
       >
         <Text size="normal" weight={600}>Node Integration Tests</Text>
 
-        <TextField
+        <TextInput
           size="small"
           placeholder="Search nodes..."
           value={search}
@@ -165,7 +170,7 @@ function NodeTestPage() {
           sx={{ width: 250 }}
         />
 
-        <TextField
+        <TextInput
           size="small"
           type="number"
           label="Concurrency"
@@ -177,16 +182,16 @@ function NodeTestPage() {
           inputProps={{ min: 1, max: 50 }}
         />
 
-        <Button
+        <EditorButton
           variant="contained"
           startIcon={<PlayArrowIcon />}
           onClick={handleRunAll}
           size="small"
         >
           Run All ({stats.total})
-        </Button>
+        </EditorButton>
 
-        <Button
+        <EditorButton
           variant="outlined"
           startIcon={<StopIcon />}
           onClick={stopAll}
@@ -194,11 +199,11 @@ function NodeTestPage() {
           color="warning"
         >
           Stop All
-        </Button>
+        </EditorButton>
 
-        <Button size="small" onClick={clearResults}>
+        <EditorButton size="small" onClick={clearResults}>
           Clear
-        </Button>
+        </EditorButton>
 
         <ToggleButtonGroup
           size="small"
@@ -260,13 +265,12 @@ function NodeTestPage() {
                       borderColor: "divider"
                     }}
                   >
-                    <IconButton
+                    <ToolbarIconButton
                       size="small"
                       onClick={() => handleRunNamespace(row.namespace)}
-                      title={`Run all ${row.nodeCount} nodes in ${row.namespace}`}
-                    >
-                      <PlayArrowIcon fontSize="small" />
-                    </IconButton>
+                      tooltip={`Run all ${row.nodeCount} nodes in ${row.namespace}`}
+                      icon={<PlayArrowIcon fontSize="small" />}
+                    />
                     <Text size="small" weight={700}>
                       {row.namespace}
                     </Text>

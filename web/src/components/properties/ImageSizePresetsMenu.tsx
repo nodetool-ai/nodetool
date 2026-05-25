@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Menu, MenuItem, ListSubheader, TextField, InputAdornment } from "@mui/material";
-import { FlexColumn, FlexRow } from "../ui_primitives";
+import { Menu, MenuItem, ListSubheader, InputAdornment } from "@mui/material";
+import { FlexColumn, FlexRow, NodeTextField } from "../ui_primitives";
 import Search from "@mui/icons-material/Search";
 import { IMAGE_SIZE_PRESETS, PresetOption } from "../../config/constants";
 
@@ -105,10 +105,9 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
         height: '48px',
         boxSizing: 'border-box'
       }}>
-        <TextField
+        <NodeTextField
           className="presets-search-field"
           fullWidth
-          size="small"
           placeholder="Search presets..."
           value={searchQuery}
           onChange={handleSearchChange}

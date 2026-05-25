@@ -1,10 +1,8 @@
 import React, { memo, useEffect } from "react";
 import {
-  Button,
   FormControlLabel,
   Slider,
-  Switch,
-  Typography
+  Switch
 } from "@mui/material";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {
@@ -20,7 +18,8 @@ import {
   LOCAL_SAM3_CAPABILITIES,
   LOCAL_SAM3_MODEL_ID
 } from "../sam";
-import { FlexRow, TextInput, Box } from "../../ui_primitives";
+import { FlexRow, TextInput, Box, Text } from "../../ui_primitives";
+import { EditorButton } from "../../editor_ui";
 import {
   sketchButtonSmallSx,
   sketchSliderSx,
@@ -199,7 +198,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   return (
     <>
       <Box className="setting-row" sx={{ gap: "4px" }}>
-        <Typography className="setting-label">Backend</Typography>
+        <Text className="setting-label">Backend</Text>
         <SketchModeToggle
           value={settings.backend}
           onChange={(_, v) => {
@@ -221,7 +220,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
 
       {modelInfo && (
         <Box sx={{ mb: "4px" }}>
-          <Typography
+          <Text
             sx={{
               fontSize: SKETCH_FONT.xs,
               lineHeight: 1.3,
@@ -243,7 +242,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             {modelInfo.status === "checking" && "Checking…"}
             {modelInfo.status === "downloading" &&
               `${modelStatusText ?? "Downloading…"} ${Math.round((modelInfo.downloadProgress ?? 0) * 100)}%`}
-          </Typography>
+          </Text>
         </Box>
       )}
 
@@ -266,7 +265,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       </SketchModeToggle>
 
       <Box className="setting-row">
-        <Typography className="setting-label">Max Objects</Typography>
+        <Text className="setting-label">Max Objects</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -275,11 +274,11 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           value={settings.maxObjects}
           onChange={(_, v) => onChange({ maxObjects: v as number })}
         />
-        <Typography className="setting-value">{settings.maxObjects}</Typography>
+        <Text className="setting-value">{settings.maxObjects}</Text>
       </Box>
 
       <Box className="setting-row">
-        <Typography className="setting-label">Confidence</Typography>
+        <Text className="setting-label">Confidence</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -289,13 +288,13 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           value={settings.confidenceThreshold}
           onChange={(_, v) => onChange({ confidenceThreshold: v as number })}
         />
-        <Typography className="setting-value">
+        <Text className="setting-value">
           {settings.confidenceThreshold.toFixed(2)}
-        </Typography>
+        </Text>
       </Box>
 
       <Box className="setting-row">
-        <Typography className="setting-label">Min Size</Typography>
+        <Text className="setting-label">Min Size</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -305,13 +304,13 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           value={settings.minObjectSize}
           onChange={(_, v) => onChange({ minObjectSize: v as number })}
         />
-        <Typography className="setting-value">
+        <Text className="setting-value">
           {settings.minObjectSize}
-        </Typography>
+        </Text>
       </Box>
 
       <Box className="setting-row">
-        <Typography className="setting-label">Feather</Typography>
+        <Text className="setting-label">Feather</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -321,13 +320,13 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           value={settings.maskFeather}
           onChange={(_, v) => onChange({ maskFeather: v as number })}
         />
-        <Typography className="setting-value">
+        <Text className="setting-value">
           {settings.maskFeather}
-        </Typography>
+        </Text>
       </Box>
 
       <Box className="setting-row" sx={{ gap: "4px" }}>
-        <Typography className="setting-label">Source Layer</Typography>
+        <Text className="setting-label">Source Layer</Text>
         <SketchModeToggle
           value={settings.sourceLayerAction}
           onChange={(_, v) => {
@@ -351,18 +350,18 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           />
         }
         label={
-          <Typography sx={{ fontSize: SKETCH_FONT.xs }}>
+          <Text sx={{ fontSize: SKETCH_FONT.xs }}>
             {settings.outputCutouts ? "Cutout layers" : "Mask layers"}
-          </Typography>
+          </Text>
         }
         sx={{ mt: "2px", ml: 0 }}
       />
 
       {supportsTextPrompts && (
         <Box className="setting-row" sx={{ alignItems: "flex-start" }}>
-          <Typography className="setting-label" sx={{ pt: "6px" }}>
+          <Text className="setting-label" sx={{ pt: "6px" }}>
             Concept
-          </Typography>
+          </Text>
           <TextInput
             compact
             value={settings.conceptPrompt}
@@ -385,7 +384,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       {isLocalSam3 && (
         <>
           <Box className="setting-row">
-            <Typography className="setting-label">Points / Side</Typography>
+            <Text className="setting-label">Points / Side</Text>
             <Slider
               sx={sketchSliderSx}
               size="small"
@@ -397,13 +396,13 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                 onChange({ pointsPerSide: value as number })
               }
             />
-            <Typography className="setting-value">
+            <Text className="setting-value">
               {settings.pointsPerSide}
-            </Typography>
+            </Text>
           </Box>
 
           <Box className="setting-row">
-            <Typography className="setting-label">Pred IoU</Typography>
+            <Text className="setting-label">Pred IoU</Text>
             <Slider
               sx={sketchSliderSx}
               size="small"
@@ -415,9 +414,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                 onChange({ predIouThresh: value as number })
               }
             />
-            <Typography className="setting-value">
+            <Text className="setting-value">
               {settings.predIouThresh.toFixed(2)}
-            </Typography>
+            </Text>
           </Box>
         </>
       )}
@@ -426,7 +425,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         {!isRunning && !isPreviewing && (
           <>
             {canDownloadLocalSam3 && (
-              <Button
+              <EditorButton
                 size="small"
                 variant="outlined"
                 onClick={() => {
@@ -435,10 +434,10 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                 sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
               >
                 Download Local SAM3
-              </Button>
+              </EditorButton>
             )}
             {isLocalSam3 && localSam3Downloading && (
-              <Button
+              <EditorButton
                 size="small"
                 variant="outlined"
                 color="warning"
@@ -448,9 +447,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                 sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
               >
                 Cancel download
-              </Button>
+              </EditorButton>
             )}
-            <Button
+            <EditorButton
               size="small"
               variant="contained"
               onClick={onRunSegmentation}
@@ -458,22 +457,22 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               {segmentActionLabel}
-            </Button>
+            </EditorButton>
             {showClearPrompts && (
-              <Button
+              <EditorButton
                 size="small"
                 variant="outlined"
                 onClick={onClearPrompts}
                 sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
               >
                 Clear
-              </Button>
+              </EditorButton>
             )}
           </>
         )}
         {isRunning && (
           <>
-            <Typography
+            <Text
               sx={{
                 fontSize: SKETCH_FONT.xs,
                 color: "info.main",
@@ -484,8 +483,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               }}
             >
               {getSegmentationStatusMessage(segmentationStatus)}
-            </Typography>
-            <Button
+            </Text>
+            <EditorButton
               size="small"
               variant="outlined"
               color="warning"
@@ -493,12 +492,12 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               Cancel
-            </Button>
+            </EditorButton>
           </>
         )}
         {isPreviewing && (
           <>
-            <Button
+            <EditorButton
               size="small"
               variant="contained"
               color="success"
@@ -506,20 +505,20 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               Apply
-            </Button>
-            <Button
+            </EditorButton>
+            <EditorButton
               size="small"
               variant="outlined"
               onClick={onDiscardResult}
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               Discard
-            </Button>
+            </EditorButton>
           </>
         )}
       </FlexRow>
 
-      <Typography
+      <Text
         sx={{
           fontSize: SKETCH_FONT.xs,
           color: SKETCH_COLORS.textFaint,
@@ -531,10 +530,10 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         {supportsPointPrompts || supportsBoxPrompts || supportsTextPrompts
           ? promptModeHelpText(settings.promptMode)
           : `${backendLabel} currently supports automatic layer split only.`}
-      </Typography>
+      </Text>
 
       {settings.promptMode === "auto" && !canSplitSelectedLayer && (
-        <Typography
+        <Text
           sx={{
             fontSize: SKETCH_FONT.xs,
             color: SKETCH_COLORS.textFaint,
@@ -543,11 +542,11 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           }}
         >
           Select exactly one raster layer to split.
-        </Typography>
+        </Text>
       )}
 
       {segmentationStatus === "error" && (
-        <Typography
+        <Text
           sx={{
             fontSize: SKETCH_FONT.xs,
             color: "error.main",
@@ -556,7 +555,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           }}
         >
           Segmentation failed. Check model availability and try again.
-        </Typography>
+        </Text>
       )}
     </>
   );
