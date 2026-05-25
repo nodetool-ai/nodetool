@@ -38,8 +38,14 @@ describe.skipIf(!device)("mask slot (unbound → default white)", () => {
     const width = 4;
     const height = 4;
     const pixels = new Uint8Array(width * height * 4);
+    // RGB filled with deterministic bytes; alpha forced opaque so the input
+    // is trivially valid premultiplied (rgb <= a). `color.invert` now operates
+    // on the un-premultiplied straight color and re-premultiplies on store —
+    // mixing a sub-opaque alpha with arbitrary RGB would not survive that
+    // round trip, but the executor's "unbound mask → default white" behavior
+    // (the actual subject of this test) is independent of the alpha channel.
     for (let i = 0; i < pixels.length; i++) {
-      pixels[i] = (i * 11 + 17) & 0xff;
+      pixels[i] = i % 4 === 3 ? 255 : (i * 11 + 17) & 0xff;
     }
 
     const source = createLabeledTexture(gpuDevice, {
