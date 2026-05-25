@@ -47,7 +47,7 @@ export default function ComparisonSection({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
             competitor="ComfyUI"
-            sentence="ComfyUI is a Stable Diffusion power tool with engineer-first UX. NodeTool is the full creative workspace — image, video, audio, and text on one canvas, with masks, inpaint, outpaint, relight, upscale, and compositing built in."
+            sentence="ComfyUI is a node editor for diffusion models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away."
             reducedMotion={reducedMotion}
             delay={0}
           />

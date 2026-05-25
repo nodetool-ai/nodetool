@@ -77,10 +77,9 @@ export default function SeoHeroContent() {
         <div className="space-y-3 text-slate-300">
           <div>
             <strong className="text-white">vs ComfyUI:</strong> ComfyUI is a
-            Stable Diffusion power tool with engineer-first UX. NodeTool is a
-            full creative workspace — image, video, audio, and text on one
-            canvas — with the editing tools you rely on: masks, inpaint,
-            outpaint, relight, upscale, layers, compositing.
+            node editor for diffusion models. NodeTool is the studio around it:
+            image, video, music, and words on one canvas, every major model a
+            click away.
           </div>
           <div>
             <strong className="text-white">vs Weavy / closed SaaS canvases:</strong>{" "}
