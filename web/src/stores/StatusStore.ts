@@ -21,7 +21,7 @@ type StatusStore = {
   clearStatuses: (workflowId: string, nodeIds?: Set<string>) => void;
 };
 
-export const hashKey = (workflowId: string, nodeId: string) =>
+export const hashKey = (workflowId: string, nodeId: string): string =>
   `${workflowId}:${nodeId}`;
 
 const useStatusStore = create<StatusStore>((set, get) => ({

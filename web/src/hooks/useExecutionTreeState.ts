@@ -20,8 +20,8 @@ import type { StepToolCall } from "../stores/GlobalChatStore";
 // State types
 // ---------------------------------------------------------------------------
 
-export type StepStatus = "waiting" | "running" | "completed" | "failed";
-export type TaskStatus = "waiting" | "running" | "completed" | "failed";
+type StepStatus = "waiting" | "running" | "completed" | "failed";
+type TaskStatus = "waiting" | "running" | "completed" | "failed";
 
 export interface StepToolCallEntry {
   id?: string;

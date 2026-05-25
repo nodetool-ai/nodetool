@@ -2,6 +2,7 @@ import { Node } from "@xyflow/react";
 import { Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
+import { NODE_COLLAPSED_STRIP_HEIGHT_PX } from "./collapseNodeLayout";
 
 export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const ui_properties: NodeUIProperties = {
@@ -18,6 +19,10 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     endpoint_id: node.data.endpoint_id
   };
 
+  if (node.data.collapsed) {
+    ui_properties.collapsed = true;
+  }
+
   // Persist explicit user resize dimensions
   // ReactFlow's applyNodeChanges sets node.width/height (top-level) when user resizes via NodeResizeControl
   // Also check node.style.width/height for initial load values from graphNodeToReactFlowNode
@@ -31,7 +36,14 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     ui_properties.width = node.style.width;
   }
 
-  if (typeof node.height === "number") {
+  const strip = NODE_COLLAPSED_STRIP_HEIGHT_PX;
+  if (
+    node.data.collapsed &&
+    typeof node.data.expandedHeightPx === "number" &&
+    node.data.expandedHeightPx > strip
+  ) {
+    ui_properties.height = node.data.expandedHeightPx;
+  } else if (typeof node.height === "number") {
     ui_properties.height = node.height;
   } else if (
     node.style &&
@@ -65,7 +77,6 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     parent_id: node.parentId,
     ui_properties: ui_properties,
     dynamic_properties: node.data?.dynamic_properties || {},
-    dynamic_outputs: node.data?.dynamic_outputs || {},
-    sync_mode: node.data?.sync_mode || "on_any"
+    dynamic_outputs: node.data?.dynamic_outputs || {}
   };
 }

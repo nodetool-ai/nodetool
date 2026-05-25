@@ -40,6 +40,8 @@ function isRefSet(ref: unknown): boolean {
 export class GroundedSearchNode extends BaseNode {
   static readonly nodeType = "gemini.text.GroundedSearch";
   static readonly title = "Grounded Search";
+  static readonly inlineFields = ["query"];
+  static readonly inputFields: string[] = [];
   static readonly description =
     "Search the web using Google's Gemini API with grounding capabilities.\n    google, search, grounded, web, gemini, ai\n\n    This node uses Google's Gemini API to perform web searches and return structured results\n    with source information. Requires a Gemini API key.\n\n    Use cases:\n    - Research current events and latest information\n    - Find reliable sources for fact-checking\n    - Gather web-based information with citations\n    - Get up-to-date information beyond the model's training data";
   static readonly metadataOutputTypes = {
@@ -157,6 +159,8 @@ export class GroundedSearchNode extends BaseNode {
 export class EmbeddingNode extends BaseNode {
   static readonly nodeType = "gemini.text.Embedding";
   static readonly title = "Embedding";
+  static readonly inlineFields = ["input"];
+  static readonly inputFields: string[] = [];
   static readonly description =
     "Generate vector representations of text for semantic analysis using Google's Gemini API.\n    embeddings, similarity, search, clustering, classification, gemini\n\n    Uses Google's text embedding models to create dense vector representations of text.\n    These vectors capture semantic meaning, enabling:\n    - Semantic search\n    - Text clustering\n    - Document classification\n    - Recommendation systems\n    - Anomaly detection\n    - Measuring text similarity and diversity";
   static readonly metadataOutputTypes = {
@@ -221,6 +225,8 @@ export class EmbeddingNode extends BaseNode {
 export class ImageGenerationNode extends BaseNode {
   static readonly nodeType = "gemini.image.ImageGeneration";
   static readonly title = "Image Generation";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image"];
   static readonly description =
     "Generate an image using Google's Imagen model via the Gemini API.\n    google, image generation, ai, imagen\n\n    Use cases:\n    - Create images from text descriptions\n    - Generate assets for creative projects\n    - Explore AI-powered image synthesis";
   static readonly metadataOutputTypes = {
@@ -240,15 +246,11 @@ export class ImageGenerationNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "imagen-3.0-generate-002",
+    default: "imagen-4.0-generate-001",
     title: "Model",
     description: "The image generation model to use",
     values: [
-      "gemini-2.0-flash-preview-image-generation",
-      "gemini-2.5-flash-image-preview",
-      "gemini-3-pro-image-preview",
-      "imagen-3.0-generate-001",
-      "imagen-3.0-generate-002",
+      "gemini-3.1-flash-image-preview",
       "imagen-4.0-generate-001"
     ]
   })
@@ -271,7 +273,7 @@ export class ImageGenerationNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
-    const model = String(this.model ?? "imagen-3.0-generate-002");
+    const model = String(this.model ?? "imagen-4.0-generate-001");
     const image = (this.image ?? {}) as Record<string, unknown>;
 
     if (!prompt) throw new Error("The input prompt cannot be empty.");
@@ -347,7 +349,7 @@ export class ImageGenerationNode extends BaseNode {
       throw new Error("No image bytes returned in response");
     }
 
-    // Imagen models use the generateImages endpoint
+    // Imagen models use the generateImages endpoint.
     const url = `${GEMINI_API_BASE}/models/${model}:generateImages?key=${apiKey}`;
     const body = {
       prompt,
@@ -390,6 +392,8 @@ export class ImageGenerationNode extends BaseNode {
 export class TextToVideoGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.video.TextToVideo";
   static readonly title = "Text To Video";
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly description =
     "Generate videos from text prompts using Google's Veo models.\n    google, video, generation, text-to-video, veo, ai\n\n    This node uses Google's Veo models to generate high-quality videos from text descriptions.\n    Supports 720p resolution at 24fps with 8-second duration and native audio generation.";
   static readonly metadataOutputTypes = {
@@ -473,6 +477,8 @@ export class TextToVideoGeminiNode extends BaseNode {
 export class ImageToVideoGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.video.ImageToVideo";
   static readonly title = "Image To Video";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image"];
   static readonly description =
     "Generate videos from images using Google's Veo models.\n    google, video, generation, image-to-video, veo, ai, animation\n\n    This node uses Google's Veo models to animate static images into dynamic videos.\n    Supports 720p resolution at 24fps with 8-second duration and native audio generation.";
   static readonly metadataOutputTypes = {
@@ -630,6 +636,8 @@ function extractVideoFromResponse(data: Record<string, unknown>): string {
 export class TextToSpeechGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.audio.TextToSpeech";
   static readonly title = "Text To Speech";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields: string[] = [];
   static readonly description =
     "Generate speech audio from text using Google's Gemini text-to-speech models.\n    google, text-to-speech, tts, audio, speech, voice, ai\n\n    This node converts text input into natural-sounding speech audio using Google's\n    advanced text-to-speech models with support for multiple voices and speech styles.\n\n    Supported voices:\n    - achernar, achird, algenib, algieba, alnilam\n    - aoede, autonoe, callirrhoe, charon, despina\n    - enceladus, erinome, fenrir, gacrux, iapetus\n    - kore, laomedeia, leda, orus, puck\n    - pulcherrima, rasalgethi, sadachbia, sadaltager, schedar\n    - sulafat, umbriel, vindemiatrix, zephyr, zubenelgenubi\n\n    Use cases:\n    - Create voiceovers for videos and presentations\n    - Generate audio content for podcasts and audiobooks\n    - Add voice narration to applications\n    - Create accessibility features with speech output\n    - Generate multilingual audio content";
   static readonly metadataOutputTypes = {
@@ -797,6 +805,8 @@ export class TextToSpeechGeminiNode extends BaseNode {
 export class TranscribeGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.audio.Transcribe";
   static readonly title = "Transcribe";
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["audio", "prompt"];
   static readonly description =
     "Transcribe audio to text using Google's Gemini models.\n    google, transcription, speech-to-text, audio, whisper, ai\n\n    This node converts audio input into text using Google's multimodal Gemini models.\n    Supports various audio formats and provides accurate speech-to-text transcription.\n\n    Use cases:\n    - Convert recorded audio to text\n    - Transcribe podcasts and interviews\n    - Generate subtitles from audio tracks\n    - Create meeting notes from audio recordings\n    - Analyze speech content in audio files";
   static readonly metadataOutputTypes = {

@@ -16,7 +16,7 @@ const SINGLE_NODE_MIN_HEIGHT = 800;
 export function getNodesBounds(
   nodesToBound: Node<NodeData>[],
   nodesById: Record<string, XYPosition>
-) {
+): { xMin: number; xMax: number; yMin: number; yMax: number } | null {
   if (nodesToBound.length === 0) {
     return null;
   }
@@ -49,7 +49,7 @@ export function getNodesBounds(
  * fitView({ padding: 0.2 }); // Custom padding
  * fitView({ nodeIds: ['node-1', 'node-2'] }); // Specific nodes
  */
-export const useFitView = () => {
+export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[] }) => void) => {
   const reactFlowInstance = useReactFlow();
   const { nodes, selectedNodes, setSelectedNodes, setViewport } = useNodes(
     useShallow((state) => ({

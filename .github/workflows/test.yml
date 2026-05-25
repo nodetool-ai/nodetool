@@ -9,8 +9,16 @@ on:
       - "electron/**"
       - "packages/**"
       - "mobile/**"
+      - "examples/**"
+      - "scripts/**"
       - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "tsconfig.*.json"
+      - "turbo.json"
+      - ".nvmrc"
       - ".github/workflows/test.yml"
+      - ".github/workflows/quality-checks.yml"
   pull_request:
     branches:
       - main
@@ -19,12 +27,28 @@ on:
       - "electron/**"
       - "packages/**"
       - "mobile/**"
+      - "examples/**"
+      - "scripts/**"
       - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "tsconfig.*.json"
+      - "turbo.json"
+      - ".nvmrc"
       - ".github/workflows/test.yml"
+      - ".github/workflows/quality-checks.yml"
 
 jobs:
-  web:
-    name: Web Test
+  quality:
+    name: Quality Gate (npm run check)
+    uses: ./.github/workflows/quality-checks.yml
+    with:
+      fail-fast: true
+      skip-tests: false
+
+  integration:
+    name: Workflow Integration Tests
+    needs: quality
     runs-on: ubuntu-latest
 
     steps:
@@ -37,107 +61,19 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
 
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-
-      - name: Build backend packages
-        run: npm run build:packages
-
-      - name: Run TypeScript type check
-        run: cd web && npm run typecheck
-
-      - name: Run ESLint
-        run: cd web && npm run lint
-
-      - name: Run Tests
-        run: cd web && npm test
-
-  packages:
-    name: Packages Test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: ".nvmrc"
-
       - name: Install system libraries for keytar
         run: sudo apt-get update && sudo apt-get install -y libsecret-1-0
 
       - name: Install all workspace dependencies
-        run: npm install
+        run: npm ci
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
       - name: Rebuild native modules
         run: npm rebuild better-sqlite3
 
-      - name: Build packages
-        run: npm run build:packages
-
-      - name: Run package tests
-        run: npm run test:packages
-
-  electron:
-    name: Electron Test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-
       - name: Build backend packages
         run: npm run build:packages
 
-      - name: Run TypeScript type check
-        run: cd electron && npm run typecheck
-
-      - name: Run ESLint
-        run: cd electron && npm run lint
-
-      - name: Run Tests
-        run: cd electron && npm test
-
-  mobile:
-    name: Mobile Test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-          cache-dependency-path: mobile/package-lock.json
-
-      - name: Install mobile dependencies
-        run: |
-          cd mobile
-          npm ci
-
-      - name: Run Tests
-        run: |
-          cd mobile
-          npm run test
+      - name: Run shipped-workflow execution tests
+        run: npm run test:integration

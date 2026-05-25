@@ -13,6 +13,7 @@ import { listFiles } from "@huggingface/hub";
 import { asyncHfDownload, hfRepoCacheDir } from "./hf-downloader.js";
 import { downloadLlamaCppModel } from "./llama-cpp-download.js";
 import { resolveHfToken } from "./hf-auth.js";
+import { augmentHfHubAccessError } from "./hf-access-errors.js";
 
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
@@ -335,8 +336,9 @@ export class DownloadManager {
       if (errors.length > 0) {
         const firstErr = errors[0].reason;
         state.status = "error";
-        state.errorMessage =
+        const raw =
           firstErr instanceof Error ? firstErr.message : String(firstErr);
+        state.errorMessage = augmentHfHubAccessError(raw);
         emitProgress();
         return;
       }
@@ -348,7 +350,8 @@ export class DownloadManager {
         state.status = "cancelled";
       } else {
         state.status = "error";
-        state.errorMessage = err instanceof Error ? err.message : String(err);
+        const raw = err instanceof Error ? err.message : String(err);
+        state.errorMessage = augmentHfHubAccessError(raw);
       }
       emitProgress();
     }

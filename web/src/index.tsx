@@ -14,6 +14,7 @@ import { useWorkflowManager } from "./contexts/WorkflowManagerContext";
 import ReactDOM from "react-dom/client";
 
 import {
+  Navigate,
   RouteObject,
   RouterProvider,
   createBrowserRouter
@@ -72,10 +73,9 @@ import MobileClassProvider from "./components/MobileClassProvider";
 const AppHeader = React.lazy(() => import("./components/panels/AppHeader"));
 import { SkipLinks } from "./components/ui_primitives/SkipLinks";
 
+import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
+
 // Lazy-loaded route components for code splitting
-const WelcomePage = React.lazy(
-  () => import("./components/dashboard/WelcomePage")
-);
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
@@ -130,12 +130,14 @@ const SettingsPage = React.lazy(
 const TimelineEditor = React.lazy(
   () => import("./components/timeline/TimelineEditor")
 );
+const SketchEditorPage = React.lazy(
+  () => import("./components/sketch/SketchEditorPage")
+);
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
   Promise.all([
     import("./lib/tools/builtin/addNode"),
-    import("./lib/tools/builtin/setNodeSyncMode"),
     import("./lib/tools/builtin/connectNodes"),
     import("./lib/tools/builtin/updateNodeData"),
     import("./lib/tools/builtin/moveNode"),
@@ -204,11 +206,11 @@ const NavigateToStart = () => {
           return;
         }
 
-        // Brand-new users land on the guided welcome page rather than an
-        // empty new workflow — the onboarding hint overlay drives them
-        // through their first steps from there.
+        // Brand-new users land on the chat homepage, which embeds the
+        // getting-started checklist in its empty state. The chat composer
+        // is right there waiting for their first message.
         if (isNewcomer) {
-          navigate("/welcome", { replace: true });
+          navigate("/chat", { replace: true });
           return;
         }
 
@@ -220,17 +222,18 @@ const NavigateToStart = () => {
             navigate(`/editor/${workflow.id}`, { replace: true });
           } catch (error) {
             console.error("Failed to create workflow:", error);
-            navigate("/welcome", { replace: true });
+            navigate("/chat", { replace: true });
           }
         }
       };
 
       if (isLocalhost || state === "logged_in") {
-        // Newcomers always start on /welcome, regardless of the
+        // Newcomers always start on the chat homepage (which embeds the
+        // getting-started checklist), regardless of the
         // showWelcomeOnStartup setting (which still controls the Portal
         // for returning users).
         if (isNewcomer) {
-          navigate("/welcome", { replace: true });
+          navigate("/chat", { replace: true });
         } else if (!showWelcomeOnStartup) {
           await navigateToEditor();
         } else {
@@ -260,20 +263,56 @@ function getRoutes() {
       element: <NavigateToStart />
     },
     {
-      path: "/dashboard",
-      element: (
-        <ProtectedRoute>
-          <Portal />
-        </ProtectedRoute>
-      )
+      element: <ChatComposerLayout />,
+      children: [
+        {
+          path: "/dashboard",
+          element: (
+            <ProtectedRoute>
+              <Portal />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "/chat/:thread_id?",
+          element: (
+            <ProtectedRoute>
+              <div
+                className="page-enter"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
+                  height: "100%"
+                }}
+              >
+                <SkipLinks />
+                {/* Fixed application header at the very top */}
+                <AppHeader />
+                {/* Main chat area beneath the header */}
+                <div
+                  id="main-content"
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    height: "100%"
+                  }}
+                >
+                  <PanelLeft />
+                  <GlobalChat />
+                  <PanelBottom />
+                </div>
+              </div>
+            </ProtectedRoute>
+          )
+        }
+      ]
     },
     {
+      // Legacy route — the getting-started checklist now lives in the
+      // chat homepage's empty state. Redirect old links there.
       path: "/welcome",
-      element: (
-        <ProtectedRoute>
-          <WelcomePage />
-        </ProtectedRoute>
-      )
+      element: <Navigate to="/chat" replace />
     },
     {
       path: "/settings",
@@ -297,39 +336,6 @@ function getRoutes() {
     {
       path: "/login",
       element: <Login />
-    },
-    {
-      path: "/chat/:thread_id?",
-      element: (
-        <ProtectedRoute>
-          <div
-            className="page-enter"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: "100%",
-              height: "100%"
-            }}
-          >
-            <SkipLinks />
-            {/* Fixed application header at the very top */}
-            <AppHeader />
-            {/* Main chat area beneath the header */}
-            <div
-              id="main-content"
-              style={{
-                display: "flex",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <PanelLeft />
-              <GlobalChat />
-              <PanelBottom />
-            </div>
-          </div>
-        </ProtectedRoute>
-      )
     },
     {
       path: "/apps/:workflowId?",
@@ -506,6 +512,28 @@ function getRoutes() {
             <AppHeader />
             <React.Suspense fallback={<LoadingSpinner />}>
               <TimelineEditor />
+            </React.Suspense>
+          </div>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/sketch/:documentId",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%",
+              paddingTop: HEADER_HEIGHT
+            }}
+          >
+            <SkipLinks />
+            <AppHeader />
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <SketchEditorPage />
             </React.Suspense>
           </div>
         </ProtectedRoute>

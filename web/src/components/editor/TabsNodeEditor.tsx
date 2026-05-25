@@ -13,7 +13,8 @@ import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
-import { Box, useMediaQuery } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
+import { FlexColumn } from "../ui_primitives";
 
 import TabsBar from "./TabsBar";
 import ChainEditorBridge from "../chain_editor/ChainEditorBridge";
@@ -22,6 +23,7 @@ import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import FloatingToolBar from "../panels/FloatingToolBar";
+import NodeCreateBridge from "./NodeCreateBridge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
@@ -31,6 +33,8 @@ import {
 import { useSettingsStore } from "../../stores/SettingsStore";
 import type { NodeStore } from "../../stores/NodeStore";
 import { useFileTabsStore } from "../../stores/FileTabsStore";
+import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import SubgraphTabContent from "./SubgraphTabContent";
 
 const styles = (theme: Theme) =>
   css({
@@ -489,6 +493,16 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     [activeFileTabId, openFileTabs]
   );
 
+  const activeSubgraphKey = useSubgraphTabsStore((state) => state.activeKey);
+  const subgraphTabs = useSubgraphTabsStore((state) => state.tabs);
+  const activeSubgraphTab = useMemo(
+    () =>
+      activeSubgraphKey
+        ? subgraphTabs.find((t) => t.key === activeSubgraphKey)
+        : undefined,
+    [activeSubgraphKey, subgraphTabs]
+  );
+
   return (
     <>
       <div
@@ -512,39 +526,43 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
             style={{ flex: 1, minHeight: 0, minWidth: 0 }}
           >
             {activeFileTab && (
-              <Box
+              <FlexColumn
                 key={`file-${activeFileTab.asset.id}`}
+                fullWidth
+                fullHeight
                 sx={{
                   overflow: "hidden",
                   position: "absolute",
-                  width: "100%",
-                  height: "100%",
                   minHeight: 0,
-                  minWidth: 0,
-                  display: "flex",
-                  flexDirection: "column"
+                  minWidth: 0
                 }}
               >
                 <FileTabContent asset={activeFileTab.asset} />
-              </Box>
+              </FlexColumn>
+            )}
+            {activeSubgraphTab && !activeFileTab && (
+              <SubgraphTabContent
+                key={activeSubgraphTab.key}
+                tab={activeSubgraphTab}
+              />
             )}
             {openWorkflows.map((workflow) => {
               const store = nodeStores[workflow.id];
               if (!store) return null;
               const isActive =
-                workflow.id === currentWorkflowId && !activeFileTab;
+                workflow.id === currentWorkflowId &&
+                !activeFileTab &&
+                !activeSubgraphTab;
               return (
-                <Box
+                <FlexColumn
                   key={workflow.id}
+                  fullWidth
+                  fullHeight
                   sx={{
                     overflow: "hidden",
                     position: "absolute",
-                    width: "100%",
-                    height: "100%",
                     minHeight: 0,
                     minWidth: 0,
-                    display: "flex",
-                    flexDirection: "column",
                     opacity: isActive ? 1 : 0,
                     pointerEvents: isActive ? "auto" : "none",
                     zIndex: isActive ? 1 : 0
@@ -581,13 +599,14 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                                 />
                               </div>
                               {isActive && <FloatingToolBar />}
+                              {isActive && <NodeCreateBridge />}
                             </KeyboardProvider>
                           </ConnectableNodesProvider>
                         </ContextMenuProvider>
                       </ReactFlowProvider>
                     )}
                   </NodeContext.Provider>
-                </Box>
+                </FlexColumn>
               );
             })}
           </div>

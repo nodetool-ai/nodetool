@@ -269,13 +269,17 @@ declare global {
         ) => () => void;
       };
 
-      // Settings module - Application settings (Windows only)
+      // Settings module - Application settings
       settings?: {
         getCloseBehavior: () => Promise<"ask" | "quit" | "background">;
         setCloseBehavior: (
           action: "ask" | "quit" | "background"
         ) => Promise<void>;
         getSystemInfo: () => Promise<SystemInfo>;
+        getAutoUpdates?: () => Promise<boolean>;
+        setAutoUpdates?: (enabled: boolean) => Promise<void>;
+        getUpdateChannel?: () => Promise<"latest" | "nightly">;
+        setUpdateChannel?: (channel: "latest" | "nightly") => Promise<"latest" | "nightly">;
       };
 
       // Debug module - Debug bundle export
@@ -307,10 +311,10 @@ declare global {
         }) => Promise<{ canceled: boolean; filePaths: string[] }>;
       };
 
-      // Claude Agent SDK operations (available in Electron only)
+      // Agent SDK operations (available in Electron only)
       agent?: {
         createSession: (options: {
-          provider?: "claude" | "codex" | "opencode";
+          provider?: "pi" | "llm";
           model: string;
           workspacePath?: string;
           resumeSessionId?: string;
@@ -320,13 +324,13 @@ declare global {
           };
         }) => Promise<string>;
         listModels: (options?: {
-          provider?: "claude" | "codex" | "opencode";
+          provider?: "pi" | "llm";
           workspacePath?: string;
         }) => Promise<Array<{
           id: string;
           label: string;
           isDefault?: boolean;
-          provider?: "claude" | "codex" | "opencode";
+          provider?: "pi" | "llm";
           supportsReasoningEffort?: boolean;
           supportsMaxTurns?: boolean;
         }>>;
@@ -369,7 +373,7 @@ declare global {
             customTitle?: string;
             firstPrompt?: string;
             createdAt?: number;
-            provider?: "claude" | "codex" | "opencode";
+            provider?: "pi" | "llm";
           }>
         >;
         getSessionMessages: (options: {
@@ -482,6 +486,8 @@ declare global {
       off: (channel: string, listener: (...args: unknown[]) => void) => void;
     };
     __UPDATES__?: Record<string, unknown>[];
+    // Note: full `window.api` shape is large; access additional namespaces
+    // (packages, nodePacks, settings, ...) through optional chaining.
     // Debug globals exposed by ApiClient
     isProduction?: boolean;
     isLocalhost?: boolean;

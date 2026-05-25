@@ -35,4 +35,27 @@
   --c_node_bg_group: var(--palette-c_node_bg_group);
   --c_node_header_bg: var(--palette-c_node_header_bg);
   --c_node_header_bg_group: var(--palette-c_node_header_bg_group);
+
+  /* Collapsed workflow node (header strip) — shared: vars.css, collapsed.css, collapsedNodeTokens.ts
+     Use a real height: `auto` + flex `node-content-container` kept BaseNodes visually expanded. */
+  --node-collapsed-height: 40px;
+  --node-collapsed-min-height: 40px;
+  --node-collapsed-min-width: 140px;
+  --node-collapsed-max-height: none;
+  --node-collapsed-overflow: visible;
+  /* Pixels along node — % is relative to ancestor height (often 0 in collapsed overlays) */
+  --node-collapsed-handle-mid-y: calc(var(--node-collapsed-height) / 2);
+  /* Extra −Y on strip-centered sockets (collect/streaming are taller than --handle_height) */
+  --node-collapsed-handle-y-nudge: calc(var(--handle_height) * 0.85);
+  /* Agent orange source handle: sit lower than mid-strip when collapsed */
+  --node-collapsed-agent-control-bottom-drop: 30px;
+  /* Taller socket variants (collect / streaming) need a bit more upward shift */
+  --node-collapsed-tall-handle-extra-nudge: calc(var(--handle_height) * 0.35);
+  /* Horizontal offset from center for agent control top vs bottom handle */
+  --node-collapsed-control-split: 14px;
+
+  /* PreviewNode left target: default handle top:5px sits above header (matches header padding-top + ~½ line) */
+  --preview-target-handle-top-expanded: calc(1.25em + 0.65em);
+  /* Collapsed: nudge down from strip midline (global collapsed rules still center the handle) */
+  --preview-target-handle-extra-top-collapsed: 10px;
 }

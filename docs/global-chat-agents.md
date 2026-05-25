@@ -4,7 +4,7 @@ title: "Global Chat & Agents"
 description: "Run workflows from chat, enable autonomous agents, and expose them through APIs."
 ---
 
-Global Chat is the always-on assistant that can run any workflow, stream results, and escalate to autonomous agents when a task needs planning. Use this page to jump to the right references.
+Global Chat runs workflows, streams results, and switches to agent mode when a task needs planning. Jump to the right reference below.
 
 ## Core guides
 

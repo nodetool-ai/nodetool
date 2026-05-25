@@ -128,9 +128,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
-    const setCurrentTimeMs = useTimelinePlaybackStore(
-      (s) => s.setCurrentTimeMs
-    );
+    const seek = useTimelinePlaybackStore((s) => s.seek);
     const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
 
     // ── Draw ────────────────────────────────────────────────────────────────
@@ -169,9 +167,11 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
       const { majorMs, minorMs } = computeTickIntervals(msPerPx);
 
-      // Visible time range (accounting for scroll and header offset)
+      // The canvas is already offset by the CSS paddingLeft (headerWidthPx),
+      // so its x=0 aligns with the scrollable lanes' left edge. We work in the
+      // canvas's own coordinate space here — no further header offset.
       const visibleStartMs = scrollLeftPx * msPerPx;
-      const visibleEndMs = visibleStartMs + (w - headerWidthPx) * msPerPx;
+      const visibleEndMs = visibleStartMs + w * msPerPx;
 
       // First tick time (floor to minorMs boundary)
       const firstTickMs =
@@ -186,10 +186,9 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         tMs <= visibleEndMs + minorMs;
         tMs += minorMs
       ) {
-        const px =
-          headerWidthPx + (tMs / msPerPx) - scrollLeftPx;
+        const px = tMs / msPerPx - scrollLeftPx;
 
-        if (px < headerWidthPx || px > w) {
+        if (px < 0 || px > w) {
           continue;
         }
 
@@ -218,18 +217,18 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           return 0;
         }
         const rect = canvas.getBoundingClientRect();
-        const localPx = clientX - rect.left - headerWidthPx;
+        const localPx = clientX - rect.left;
         return Math.max(0, localPx * msPerPx + scrollLeftPx * msPerPx);
       },
-      [msPerPx, scrollLeftPx, headerWidthPx]
+      [msPerPx, scrollLeftPx]
     );
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
         e.currentTarget.setPointerCapture(e.pointerId);
-        setCurrentTimeMs(pxToMs(e.clientX));
+        seek(pxToMs(e.clientX));
       },
-      [pxToMs, setCurrentTimeMs]
+      [pxToMs, seek]
     );
 
     const handlePointerMove = useCallback(
@@ -237,9 +236,9 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         if (e.buttons !== 1) {
           return;
         }
-        setCurrentTimeMs(pxToMs(e.clientX));
+        seek(pxToMs(e.clientX));
       },
-      [pxToMs, setCurrentTimeMs]
+      [pxToMs, seek]
     );
 
     return (

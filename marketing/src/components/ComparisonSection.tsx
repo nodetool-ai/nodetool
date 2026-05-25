@@ -30,7 +30,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            What NodeTool is, said honestly
+            Where NodeTool fits in your stack
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
@@ -39,14 +39,15 @@ export default function ComparisonSection({
             transition={{ duration: 0.5, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            Where we sit next to the tools you&apos;re already using.
+            You&apos;re probably using two or three of these already. Here&apos;s
+            what changes when they live on one canvas.
           </motion.p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
             competitor="ComfyUI"
-            sentence="ComfyUI is a Stable Diffusion power tool with engineer-first UX. NodeTool is the full creative workspace — image, video, audio, and text on one canvas, with masks, inpaint, outpaint, relight, upscale, and compositing built in."
+            sentence="ComfyUI is a node editor for diffusion models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away."
             reducedMotion={reducedMotion}
             delay={0}
           />

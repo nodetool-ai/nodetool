@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -100,6 +101,8 @@ export class LoadDocumentFileNode extends BaseNode {
   static readonly title = "Load Document File";
   static readonly description =
     "Read a document from disk.\n    files, document, read, input, load, file";
+  static readonly inlineFields = ["path"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "document"
   };
@@ -130,6 +133,8 @@ export class SaveDocumentFileNode extends BaseNode {
   static readonly title = "Save Document File";
   static readonly description =
     "Write a document to disk.\n    files, document, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
+  static readonly inlineFields = ["folder", "filename"];
+  static readonly inputFields = ["document"];
 
   @prop({
     type: "document",
@@ -184,12 +189,19 @@ export class ListDocumentsNode extends BaseNode {
   static readonly title = "List Documents";
   static readonly description =
     "List documents in a directory.\n    files, list, directory";
+  static readonly inlineFields = ["folder", "pattern"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     document: "document",
     documents: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    document: { kind: "iteration", source: "__execution__", group: "items" },
+    documents: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: "~",
@@ -277,6 +289,8 @@ export class SplitDocumentNode extends BaseNode {
   static readonly title = "Split Document";
   static readonly description =
     "Split text semantically.\n    chroma, embedding, collection, RAG, index, text, markdown, semantic";
+  static readonly inlineFields = ["buffer_size", "threshold"];
+  static readonly inputFields = ["embed_model", "document"];
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
@@ -321,7 +335,14 @@ export class SplitDocumentNode extends BaseNode {
     }
   ];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "language_model",
     default: {
@@ -410,6 +431,8 @@ export class SplitHTMLNode extends BaseNode {
   static readonly title = "Split HTML";
   static readonly description =
     "Split HTML content into semantic chunks based on HTML tags.\n    html, text, semantic, tags, parsing";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
@@ -417,7 +440,14 @@ export class SplitHTMLNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "document",
     default: {
@@ -543,6 +573,8 @@ export class SplitJSONNode extends BaseNode {
   static readonly title = "Split JSON";
   static readonly description =
     "Split JSON content into semantic chunks.\n    json, parsing, semantic, structured";
+  static readonly inlineFields = ["include_metadata", "include_prev_next_rel"];
+  static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
@@ -550,7 +582,14 @@ export class SplitJSONNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "document",
     default: {
@@ -683,6 +722,8 @@ export class SplitRecursivelyNode extends BaseNode {
   static readonly title = "Split Recursively";
   static readonly description =
     "Splits text recursively using LangChain's RecursiveCharacterTextSplitter.\n    text, split, chunks\n\n    Use cases:\n    - Splitting documents while preserving semantic relationships\n    - Creating chunks for language model processing\n    - Handling text in languages with/without word boundaries";
+  static readonly inlineFields = ["chunk_size", "chunk_overlap"];
+  static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
@@ -690,7 +731,14 @@ export class SplitRecursivelyNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "document",
     default: {
@@ -846,6 +894,8 @@ export class SplitMarkdownNode extends BaseNode {
   static readonly title = "Split Markdown";
   static readonly description =
     "Splits markdown text by headers while preserving header hierarchy in metadata.\n    markdown, split, headers\n\n    Use cases:\n    - Splitting markdown documentation while preserving structure\n    - Processing markdown files for semantic search\n    - Creating context-aware chunks from markdown content";
+  static readonly inlineFields = ["headers_to_split_on", "chunk_size"];
+  static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
@@ -853,7 +903,14 @@ export class SplitMarkdownNode extends BaseNode {
     chunks: "list"
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "iteration", source: "document", group: "items" },
+    source_id: { kind: "iteration", source: "document", group: "items" },
+    start_index: { kind: "iteration", source: "document", group: "items" },
+    chunks: { kind: "single", source: "document" }
+  };
+
   @prop({
     type: "document",
     default: {

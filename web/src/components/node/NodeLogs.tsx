@@ -219,6 +219,7 @@ NodeLogsDialog.displayName = "NodeLogsDialog";
 
 export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   const theme = useTheme();
+  const memoizedStyles = useMemo(() => styles(theme), [theme]);
   // O(1) lookup via pre-keyed map instead of filtering the full logs array.
   const logs = useLogsStore(
     (state) => state.logsByNode[nodeLogKey(workflowId, id)]
@@ -240,7 +241,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   }
 
   return (
-    <div className="node-logs-container" css={styles(theme)}>
+    <div className="node-logs-container" css={memoizedStyles}>
       <div className="node-logs">
         <EditorButton
           className="logs-button"

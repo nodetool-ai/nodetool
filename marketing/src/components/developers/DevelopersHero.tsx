@@ -42,9 +42,10 @@ export default function DevelopersHero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
         >
-          NodeTool is a TypeScript-first workspace built on an async Node.js runtime. Add custom
-          nodes, drive the canvas from a CLI or SDK, and build the integrations your team needs —
-          all on the same open-source codebase.
+          TypeScript-first, async Node.js under the hood, the same open-source
+          codebase that ships Studio and Cloud. Write a custom node, drive the
+          canvas from a CLI, generate workflows in code — and put the result in
+          front of your team without rewriting it for a different runtime.
         </motion.p>
 
         {/* Feature Pills */}

@@ -36,27 +36,13 @@ import type {
   AssetUpdateRequest,
   // Workflow types
   Workflow,
-  WorkflowList,
-  WorkflowRequest,
-  WorkflowTool,
-  WorkflowToolList,
   WorkflowGraph,
   // Thread & Message types
   Thread,
   ThreadList,
-  ThreadCreateRequest,
   ThreadUpdateRequest,
-  ThreadSummarizeRequest,
   Message,
-  MessageCreateRequest,
-  MessageList,
-  MessageTextContent,
-  MessageImageContent,
-  MessageVideoContent,
-  MessageAudioContent,
-  MessageDocumentContent,
   MessageContent,
-  ToolCall,
   // Node Metadata types
   PropertyTypeMetadata,
   Property,
@@ -70,48 +56,26 @@ import type {
   ResourceLimits,
   // Model types
   Provider,
-  InferenceProvider,
   ProviderInfo,
   LanguageModel,
-  EmbeddingModel,
   ImageModel,
   TTSModel,
   ASRModel,
   VideoModel,
-  LlamaModel,
-  HuggingFaceModel,
-  UnifiedModel,
   ModelPack,
   // System types
   SystemStats,
   SecretResponse,
-  // Task/Agent types
-  Task,
-  TaskPlan,
-  Step,
-  StepResult,
   // File/Workspace types
-  FileInfo,
-  RepoPath,
   CollectionResponse,
   CollectionList,
   CollectionCreate,
-  WorkspaceResponse,
-  WorkspaceListResponse,
-  WorkspaceCreateRequest,
-  WorkspaceUpdateRequest,
   // WebSocket message types
   NodeUpdate,
   OutputUpdate,
   NodeProgress,
-  PreviewUpdate,
   TaskUpdate,
   JobUpdate,
-  EdgeUpdate,
-  Notification,
-  LogUpdate,
-  ToolCallUpdate,
-  ToolResultUpdate,
   Chunk,
   PlanningUpdate,
   Prediction,
@@ -146,36 +110,12 @@ export type {
 export type { Asset, AssetList, AssetUpdateRequest };
 
 // Workflow
-export type {
-  Workflow,
-  WorkflowList,
-  WorkflowRequest,
-  WorkflowTool,
-  WorkflowToolList,
-  WorkflowGraph,
-};
+export type { Workflow, WorkflowGraph };
 
 // Thread & Message
-export type {
-  Thread,
-  ThreadList,
-  ThreadCreateRequest,
-  ThreadUpdateRequest,
-  ThreadSummarizeRequest,
-  Message,
-  MessageCreateRequest,
-  MessageList,
-  MessageTextContent,
-  MessageImageContent,
-  MessageVideoContent,
-  MessageAudioContent,
-  MessageDocumentContent,
-  MessageContent,
-  ToolCall,
-};
+export type { Thread, ThreadList, ThreadUpdateRequest, Message, MessageContent };
 
-// Node Metadata — use protocol names; keep legacy aliases for backward compat
-export type TypeMetadata = PropertyTypeMetadata;
+// Node Metadata
 export type { Property, OutputSlot, IndexResponse };
 export type { PropertyTypeMetadata };
 
@@ -185,52 +125,28 @@ export type { JobResponse, JobListResponse, RunJobRequest, ResourceLimits };
 // Models
 export type {
   Provider,
-  InferenceProvider,
   ProviderInfo,
   LanguageModel,
-  EmbeddingModel,
   ImageModel,
   TTSModel,
   ASRModel,
   VideoModel,
-  LlamaModel,
-  HuggingFaceModel,
-  UnifiedModel,
   ModelPack,
 };
 
 // System
 export type { SystemStats, SecretResponse };
 
-// Task/Agent
-export type { Task, TaskPlan, Step, StepResult };
-
 // Files & Workspace
-export type {
-  FileInfo,
-  RepoPath,
-  CollectionResponse,
-  CollectionList,
-  CollectionCreate,
-  WorkspaceResponse,
-  WorkspaceListResponse,
-  WorkspaceCreateRequest,
-  WorkspaceUpdateRequest,
-};
+export type { CollectionResponse, CollectionList, CollectionCreate };
 
 // WebSocket message types
 export type {
   NodeUpdate,
   OutputUpdate,
   NodeProgress,
-  PreviewUpdate,
   TaskUpdate,
   JobUpdate,
-  EdgeUpdate,
-  Notification,
-  LogUpdate,
-  ToolCallUpdate,
-  ToolResultUpdate,
   Chunk,
   PlanningUpdate,
   Prediction,

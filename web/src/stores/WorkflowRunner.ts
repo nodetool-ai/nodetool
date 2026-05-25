@@ -15,17 +15,10 @@ import { isLocalhost } from "../lib/env";
 import { NodeData } from "./NodeData";
 import { BASE_URL } from "./BASE_URL";
 import useResultsStore from "./ResultsStore";
-import { useComfyUIStore } from "./ComfyUIStore";
 import { Edge, Node } from "@xyflow/react";
 import {
-  Prediction,
-  NodeProgress,
-  NodeUpdate,
-  JobUpdate,
   RunJobRequest,
-  WorkflowAttributes,
-  TaskUpdate,
-  PlanningUpdate
+  WorkflowAttributes
 } from "./ApiTypes";
 import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
@@ -39,7 +32,7 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
-import { getNodeStore } from "./workflowUpdates";
+import { getNodeStore, MsgpackData } from "./workflowUpdates";
 
 export type MessageHandler = (
   workflow: WorkflowAttributes,
@@ -92,13 +85,7 @@ export type WorkflowRunner = {
   endInputStream: (inputName: string, handle?: string) => void;
 };
 
-export type MsgpackData =
-  | JobUpdate
-  | Prediction
-  | NodeProgress
-  | NodeUpdate
-  | TaskUpdate
-  | PlanningUpdate;
+export type { MsgpackData };
 
 export type WorkflowRunnerStore = UseBoundStore<StoreApi<WorkflowRunner>>;
 
@@ -264,17 +251,35 @@ export const createWorkflowRunnerStore = (
       subgraphNodeIds?: Set<string>
     ) => {
       const currentState = get().state;
-      if (
+      const currentJobId = get().job_id;
+      const wsConnected = globalWebSocketManager.isConnectionOpen();
+      const busy =
         currentState === "connecting" ||
         currentState === "running" ||
         currentState === "paused" ||
-        currentState === "suspended"
-      ) {
+        currentState === "suspended";
+      // A stuck "running" state with no active job_id or no live WS means we
+      // never received a terminal job_update (e.g. WS dropped, worker crashed).
+      // Reset so the user can retry instead of getting permanently blocked.
+      // "connecting" is mid-handshake, not stuck — only treat the
+      // post-handshake states as stuck candidates.
+      const stuck =
+        busy &&
+        currentState !== "connecting" &&
+        (!currentJobId || !wsConnected);
+      if (busy && !stuck) {
         console.warn(
           `WorkflowRunner[${workflowId}]: Ignoring run request while workflow is busy`,
           { currentState }
         );
         return;
+      }
+      if (stuck) {
+        console.warn(
+          `WorkflowRunner[${workflowId}]: Recovering from stuck state`,
+          { currentState, currentJobId, wsConnected }
+        );
+        set({ state: "idle", job_id: null });
       }
 
       console.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
@@ -290,7 +295,6 @@ export const createWorkflowRunnerStore = (
       const clearErrors = useErrorStore.getState().clearErrors;
       const clearEdges = useResultsStore.getState().clearEdges;
       const clearResults = useResultsStore.getState().clearResults;
-      const clearPreviews = useResultsStore.getState().clearPreviews;
       const clearProgress = useResultsStore.getState().clearProgress;
       const clearToolCalls = useResultsStore.getState().clearToolCalls;
       const clearTasks = useResultsStore.getState().clearTasks;
@@ -325,7 +329,6 @@ export const createWorkflowRunnerStore = (
       clearErrors(workflow.id, subgraphNodeIds);
       clearResults(workflow.id, subgraphNodeIds);
       clearOutputResults(workflow.id, subgraphNodeIds);
-      clearPreviews(workflow.id, subgraphNodeIds);
       clearProgress(workflow.id, subgraphNodeIds);
       clearToolCalls(workflow.id, subgraphNodeIds);
       clearTasks(workflow.id, subgraphNodeIds);

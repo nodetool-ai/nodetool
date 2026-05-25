@@ -60,6 +60,52 @@ describe("getNodeMetadata", () => {
     expect(meta.is_streaming_output).toBe(true);
   });
 
+  it("includes correlation metadata", () => {
+    class CorrelatedNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.Correlated";
+      static readonly title = "Correlated";
+      static readonly description = "Has correlation metadata";
+      static readonly inputMode = "stream" as const;
+      static readonly outputCorrelation = {
+        output: { kind: "forward", source: "input" }
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(CorrelatedNode);
+    expect(meta.input_mode).toBe("stream");
+    expect(meta.output_correlation).toEqual({
+      output: { kind: "forward", source: "input" }
+    });
+  });
+
+  it("throws on invalid correlation metadata", () => {
+    class BadAggregateNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.BadAggregate";
+      static readonly title = "Bad Aggregate";
+      static readonly description = "Aggregate on a buffered node — rejected";
+      static readonly inputMode = "buffered" as const;
+      static readonly outputCorrelation = {
+        output: {
+          kind: "aggregate",
+          source: "input",
+          collapse: "innermost"
+        }
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    expect(() => getNodeMetadata(BadAggregateNode)).toThrow(
+      /aggregate output .* is not allowed on buffered nodes/
+    );
+  });
+
   it("infers string types from defaults", () => {
     const meta = getNodeMetadata(StringConcat);
     const propA = meta.properties.find((p) => p.name === "a");
@@ -595,7 +641,6 @@ describe("getNodeMetadata – decorator-based properties", () => {
           stream: true
         }
       ],
-      basic_fields: ["a"],
       is_dynamic: true,
       is_streaming_output: true,
       expose_as_tool: true,
@@ -651,48 +696,6 @@ describe("getNodeMetadata – outputTypes support", () => {
     expect(messageOut!.type.type).toBe("str");
   });
 
-  it("treats `tjs.*`-typed model props as basic fields by default", () => {
-    class TjsLikeNode extends BaseNode {
-      static readonly nodeType = "nodetool.test.TjsLike";
-      static readonly title = "TJS-like";
-      static readonly description = "";
-
-      @prop({ type: "str", default: "hello", title: "Text" })
-      declare text: any;
-
-      @prop({
-        type: "tjs.text_classification",
-        default: { type: "tjs.text_classification", repo_id: "Xenova/foo" },
-        title: "Model"
-      })
-      declare model: any;
-
-      @prop({ type: "int", default: 1, title: "Top K" })
-      declare top_k: any;
-
-      @prop({ type: "enum", default: "auto", title: "Quantization", values: ["auto", "fp16"] })
-      declare dtype: any;
-
-      @prop({ type: "enum", default: "auto", title: "Device", values: ["auto", "cpu"] })
-      declare device: any;
-
-      async process() {
-        return {};
-      }
-    }
-
-    const meta = getNodeMetadata(
-      TjsLikeNode as unknown as import("../src/base-node.js").NodeClass
-    );
-    // 5 props total — heuristic kicks in (not the ≤3 fall-through).
-    // `model` (tjs.* selector) and `text` (str / primary input) must be basic;
-    // `top_k`, `dtype`, `device` should remain advanced.
-    expect(meta.basic_fields).toEqual(expect.arrayContaining(["model", "text"]));
-    expect(meta.basic_fields).not.toContain("top_k");
-    expect(meta.basic_fields).not.toContain("dtype");
-    expect(meta.basic_fields).not.toContain("device");
-  });
-
   it("marks outputs as streaming when isStreamingOutput is true", () => {
     class StreamingOutputNode extends BaseNode {
       static readonly nodeType = "nodetool.test.StreamingOutput";
@@ -714,5 +717,46 @@ describe("getNodeMetadata – outputTypes support", () => {
     expect(meta.outputs).toHaveLength(1);
     expect(meta.outputs[0].stream).toBeUndefined();
     expect(meta.is_streaming_output).toBe(true);
+  });
+
+  it("auto-derives is_streaming_output when genProcess is overridden", () => {
+    class AutoStreamingNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.AutoStreaming";
+      static readonly title = "Auto Streaming";
+      static readonly description = "";
+      static readonly outputTypes = { value: "int" };
+
+      async process() {
+        return {};
+      }
+
+      async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+        yield { value: 1 };
+        yield { value: 2 };
+      }
+    }
+
+    const meta = getNodeMetadata(
+      AutoStreamingNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.is_streaming_output).toBe(true);
+  });
+
+  it("leaves is_streaming_output false when neither flag nor genProcess override is set", () => {
+    class NonStreamingNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.NonStreaming";
+      static readonly title = "Non Streaming";
+      static readonly description = "";
+      static readonly outputTypes = { value: "int" };
+
+      async process() {
+        return { value: 1 };
+      }
+    }
+
+    const meta = getNodeMetadata(
+      NonStreamingNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.is_streaming_output).toBe(false);
   });
 });

@@ -17,19 +17,6 @@ export function formatFileSize(bytes: number, decimals: number = 1): string {
 }
 
 /**
- * Get size category for filtering
- * @param bytes - Size in bytes
- * @returns Category string
- */
-export function getSizeCategory(bytes: number): string {
-  if (bytes === 0) {return "empty";}
-  if (bytes < 1024 * 1024) {return "small";} // < 1MB
-  if (bytes < 10 * 1024 * 1024) {return "medium";} // 1-10MB
-  if (bytes < 100 * 1024 * 1024) {return "large";} // 10-100MB
-  return "xlarge"; // > 100MB
-}
-
-/**
  * Size filter categories with human-readable labels
  */
 export const SIZE_FILTERS = [

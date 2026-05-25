@@ -20,10 +20,22 @@ Object.defineProperty(globalThis, "import", {
 
 // Mock TextEncoder/TextDecoder for msgpack
 import { TextEncoder, TextDecoder } from "util";
-(global as any).TextEncoder = TextEncoder;
-(global as any).TextDecoder = TextDecoder;
+(globalThis as unknown as { TextEncoder: typeof TextEncoder }).TextEncoder = TextEncoder;
+(globalThis as unknown as { TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder;
 
 // Mock global.btoa and atob for base64 operations
 global.btoa = (str: string) => Buffer.from(str, "binary").toString("base64");
 global.atob = (str: string) => Buffer.from(str, "base64").toString("binary");
+
+// jsdom does not implement ResizeObserver; stub it so React components that
+// observe their container (e.g. <TransformGizmo />) can mount in tests.
+if (typeof (globalThis as { ResizeObserver?: unknown }).ResizeObserver === "undefined") {
+  class StubResizeObserver {
+    observe = (): void => {};
+    unobserve = (): void => {};
+    disconnect = (): void => {};
+  }
+  (globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
+    StubResizeObserver as unknown as typeof ResizeObserver;
+}
 

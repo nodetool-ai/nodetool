@@ -11,7 +11,7 @@ import {
   ConcatAudioListNode,
   CreateSilenceNode,
   FpsNode,
-  FrameIteratorNode,
+  ForEachFrameNode,
   FrameToVideoNode,
   TrimVideoNode,
   ExtractFrameVideoNode,
@@ -94,12 +94,12 @@ describe("RepeatAudioNode — uses loops property (not count)", () => {
   });
 });
 
-describe("ConcatAudioNode — uses a/b properties", () => {
-  it("concatenates a and b", async () => {
+describe("ConcatAudioNode — fully dynamic inputs", () => {
+  it("concatenates dynamic inputs in insertion order", async () => {
     const node = new ConcatAudioNode();
     node.assign({
-      a: audioRef([1, 2]),
-      b: audioRef([3, 4])
+      audio_1: audioRef([1, 2]),
+      audio_2: audioRef([3, 4])
     });
     const result = await node.process();
     const output = result.output as { data: string };
@@ -156,9 +156,9 @@ describe("FpsNode — uses ffprobe for fps extraction", () => {
   });
 });
 
-describe("FrameIteratorNode — uses ffmpeg for frame extraction", () => {
+describe("ForEachFrameNode — uses ffmpeg for frame extraction", () => {
   it("yields nothing for empty video", async () => {
-    const node = new FrameIteratorNode();
+    const node = new ForEachFrameNode();
     const frames: Record<string, unknown>[] = [];
     node.assign({
       video: videoRef([])

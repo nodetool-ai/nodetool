@@ -15,6 +15,7 @@ import {
 } from "../../lib/dragdrop";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { shallow } from "zustand/shallow";
+import { instantiatePaletteNode } from "../../utils/instantiatePaletteNode";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -110,9 +111,10 @@ export const useDropHandler = () => {
   const { handlePngFile, handleJsonFile, handleCsvFile, handleGenericFile } =
     useFileHandlers();
   const reactFlow = useReactFlow();
-  const { addNode, createNode } = useNodes((state) => ({
+  const { addNode, createNode, updateNodeData } = useNodes((state) => ({
     addNode: state.addNode,
-    createNode: state.createNode
+    createNode: state.createNode,
+    updateNodeData: state.updateNodeData
   }), shallow);
   const getAsset = useAssetStore((state) => state.get);
   const { user } = useAuth();
@@ -137,11 +139,18 @@ export const useDropHandler = () => {
 
       // Handle create-node drop
       if (dragData?.type === "create-node") {
-        const node = dragData.payload as NodeMetadata;
-        const newNode = createNode(node, position);
+        const nodeMeta = dragData.payload as NodeMetadata;
+        const { node: newNode, afterAdd } = instantiatePaletteNode(
+          nodeMeta,
+          position,
+          createNode
+        );
         addNode(newNode);
+        if (afterAdd) {
+          updateNodeData(newNode.id, afterAdd);
+        }
         // Track this node as recently used
-        addRecentNode(node.node_type);
+        addRecentNode(nodeMeta.node_type);
         return;
       }
 
@@ -277,6 +286,7 @@ export const useDropHandler = () => {
       user,
       createNode,
       addNode,
+      updateNodeData,
       getAsset,
       addNodeFromAsset,
       addRecentNode,

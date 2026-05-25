@@ -178,4 +178,41 @@ describe("SqliteVecProvider", () => {
     });
     expect(results.map((r) => r.id)).toEqual(["1"]);
   });
+
+  it("preserves uri through upsert / get / query", async () => {
+    const col = await provider.createCollection({
+      name: "docs",
+      embeddingFunction: fakeEf
+    });
+    await col.upsert([
+      { id: "a", document: "alpha", uri: "file:///tmp/a.txt" },
+      { id: "b", document: "beta", uri: "https://example.com/b" }
+    ]);
+
+    const got = await col.get({ ids: ["a", "b"] });
+    const byId = Object.fromEntries(got.map((r) => [r.id, r]));
+    expect(byId.a.uri).toBe("file:///tmp/a.txt");
+    expect(byId.b.uri).toBe("https://example.com/b");
+
+    const matches = await col.query({ text: "alpha", topK: 2 });
+    const matchById = Object.fromEntries(matches.map((m) => [m.id, m]));
+    expect(matchById.a.uri).toBe("file:///tmp/a.txt");
+  });
+
+  it("modify() updates name and metadata visible on the same handle", async () => {
+    const col = await provider.createCollection({
+      name: "before",
+      metadata: { kind: "draft" }
+    });
+
+    await col.modify({ name: "after", metadata: { kind: "final", v: 2 } });
+
+    expect(col.name).toBe("after");
+    expect(col.metadata.kind).toBe("final");
+    expect(col.metadata.v).toBe(2);
+
+    const cols = await provider.listCollections();
+    expect(cols.map((c) => c.name).sort()).toEqual(["after"]);
+    expect(cols[0].metadata.kind).toBe("final");
+  });
 });

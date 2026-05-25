@@ -84,7 +84,7 @@ describe("useProcessedEdges", () => {
 
       expect(result.current.processedEdges).toHaveLength(1);
       expect(result.current.processedEdges[0].style).toBeDefined();
-      expect(result.current.processedEdges[0].style?.strokeWidth).toBe(2);
+      expect(result.current.processedEdges[0].style?.strokeWidth).toBe(1.5);
     });
 
     it("preserves original edge properties", () => {

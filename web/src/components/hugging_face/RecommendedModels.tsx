@@ -1,11 +1,10 @@
 import React, { memo, useEffect, useMemo, useState } from "react";
 import {
   List,
-  Box,
   TextField,
   InputAdornment
 } from "@mui/material";
-import { EditorButton, Text } from "../ui_primitives";
+import { EditorButton, FlexRow, Text } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
@@ -86,14 +85,11 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
 
   return (
     <>
-      <Box
+      <FlexRow
         className="search-models-container"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          marginBottom: 2
-        }}
+        gap={2}
+        align="center"
+        sx={{ marginBottom: 2 }}
       >
         <TextField
           className="search-models-input"
@@ -127,7 +123,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
             }
           }}
         />
-      </Box>
+      </FlexRow>
 
       {displayModels.length === 0 ? (
         <Text
@@ -157,6 +153,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
       )}
       <Text
         sx={{ marginTop: "1em", color: theme.vars.palette.grey[100] }}
+        component="div"
       >
         <AnnouncementIcon
           fontSize="small"
@@ -169,10 +166,27 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
         Models will be downloaded to your local cache folder in the standard
         location for Huggingface and Ollama.
       </Text>
+      <Text
+        sx={{
+          marginTop: "0.75em",
+          color: theme.vars.palette.grey[200],
+          maxWidth: "52rem",
+          userSelect: "text",
+          cursor: "text"
+        }}
+        component="div"
+        size="small"
+      >
+        Gated or private Hugging Face models need access on huggingface.co (accept
+        the license or request access) plus a read token for the server process:
+        set HF_TOKEN before starting NodeTool, or run huggingface-cli login once.
+        If a download fails, open the progress panel and use Copy message to share
+        the details.
+      </Text>
 
       {/* Open folder buttons */}
       {isLocalhost && isFileExplorerAvailable() && (
-        <Box mt={2} sx={{ display: "flex", gap: 2 }}>
+        <FlexRow gap={2} mt={2}>
           <EditorButton
             variant="outlined"
             density="normal"
@@ -189,7 +203,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
             <FolderOutlined sx={{ mr: 0.5, fontSize: "1em" }} />
             Open Ollama folder
           </EditorButton>
-        </Box>
+        </FlexRow>
       )}
     </>
   );

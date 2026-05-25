@@ -99,10 +99,10 @@ export class CodeNode extends BaseNode {
     "APIs: fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
     "Dynamic inputs become global variables; return an object to define outputs. " +
     "For date/HTML/CSV/validation work use the dedicated workflow nodes.\n    code, javascript, function, script, dynamic";
+  static readonly inlineFields = ["code"];
+  static readonly inputFields = [];
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
-  static readonly isStreamingOutput = true;
-  static readonly basicFields = ["code"];
 
   /** Persistent state across streaming invocations; reset each workflow run. */
   private _state: Record<string, unknown> = {};
@@ -223,7 +223,7 @@ export class CodeNode extends BaseNode {
 function extractDynamicInputs(
   inputs: Record<string, unknown>
 ): Record<string, unknown> {
-  const reserved = new Set(["code", "timeout", "sync_mode"]);
+  const reserved = new Set(["code", "timeout"]);
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
     if (reserved.has(key) || key.startsWith("_")) continue;

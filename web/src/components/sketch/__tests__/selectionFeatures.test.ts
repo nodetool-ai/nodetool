@@ -1,0 +1,413 @@
+/**
+ * Tests for selection features:
+ * - Selection movement
+ * - Selection add/subtract (union/subtract)
+ * - Selection constrains clear
+ * - Fill with selection
+ * - Deselect with Ctrl+D / Escape
+ */
+
+import { act } from "@testing-library/react";
+import { useSketchStore } from "../state/useSketchStore";
+import {
+  cloneSelectionMask,
+  contractSelectionMask,
+  expandSelectionMask,
+  featherMaskAlpha,
+  rectSelectionMask,
+  getSelectionBounds,
+  smoothSelectionBorders
+} from "../selection";
+import type { Selection } from "../types";
+import type { SketchRuntime } from "../rendering/types";
+
+/**
+ * Minimal runtime stub that satisfies the duck-typed contract that
+ * `selectionSlice`'s GPU refine ops use. The slice calls `setSelection` (to
+ * upload the padded buffer) and then awaits the matching `*SelectionGpu`
+ * method; this stub records the buffer passed to `setSelection` and runs
+ * the CPU equivalent in place of the GPU kernel so the test exercises the
+ * slice's pad-then-trim ROI logic without needing a real WebGPU device.
+ */
+function createCpuRefineRuntimeStub(): SketchRuntime {
+  let pendingSel: Selection | null = null;
+  const stub: Partial<SketchRuntime> = {
+    setSelection: (sel: Selection | null) => {
+      pendingSel = sel;
+    },
+    featherSelectionGpu: async (radius: number) => {
+      if (!pendingSel) return null;
+      const copy = cloneSelectionMask(pendingSel);
+      featherMaskAlpha(copy, radius);
+      return copy;
+    },
+    expandSelectionGpu: async (radius: number) => {
+      if (!pendingSel) return null;
+      const copy = cloneSelectionMask(pendingSel);
+      expandSelectionMask(copy, radius);
+      return copy;
+    },
+    contractSelectionGpu: async (radius: number) => {
+      if (!pendingSel) return null;
+      const copy = cloneSelectionMask(pendingSel);
+      contractSelectionMask(copy, radius);
+      return copy;
+    },
+    smoothSelectionGpu: async (strength: number) => {
+      if (!pendingSel) return null;
+      const copy = cloneSelectionMask(pendingSel);
+      smoothSelectionBorders(copy, strength);
+      return copy;
+    }
+  };
+  return stub as SketchRuntime;
+}
+
+function makeSelectionWithRect(
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+  rectWidth: number,
+  rectHeight: number
+): Selection {
+  const data = new Uint8ClampedArray(width * height);
+  for (let yy = y; yy < y + rectHeight; yy++) {
+    const row = yy * width;
+    for (let xx = x; xx < x + rectWidth; xx++) {
+      data[row + xx] = 255;
+    }
+  }
+  return { width, height, data };
+}
+
+// Reset store before each test
+beforeEach(() => {
+  act(() => {
+    useSketchStore.getState().resetDocument();
+    useSketchStore.getState().setMirrorX(false);
+    useSketchStore.getState().setMirrorY(false);
+    // Reset selection and lastSelection by setting selection directly via store
+    useSketchStore.setState({ selection: null, lastSelection: null });
+  });
+});
+
+describe("Selection features", () => {
+  describe("setSelection / selectAll / deselect", () => {
+    it("sets a rectangular selection", () => {
+      const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
+      act(() => {
+        useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 10, 20, 100, 50));
+      });
+      const sel = useSketchStore.getState().selection;
+      expect(sel).not.toBeNull();
+      const bounds = getSelectionBounds(sel!);
+      expect(bounds).toEqual({ x: 10, y: 20, width: 100, height: 50 });
+    });
+
+    it("selectAll creates selection covering the full canvas", () => {
+      act(() => {
+        useSketchStore.getState().selectAll();
+      });
+      const sel = useSketchStore.getState().selection;
+      const { width, height } = useSketchStore.getState().document.canvas;
+      expect(sel).not.toBeNull();
+      expect(sel!.width).toBe(width);
+      expect(sel!.height).toBe(height);
+      const bounds = getSelectionBounds(sel!);
+      expect(bounds).toEqual({ x: 0, y: 0, width, height });
+    });
+
+    it("setSelection(null) deselects", () => {
+      const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
+      act(() => {
+        useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 0, 0, 100, 100));
+      });
+      expect(useSketchStore.getState().selection).not.toBeNull();
+      act(() => {
+        useSketchStore.getState().setSelection(null);
+      });
+      expect(useSketchStore.getState().selection).toBeNull();
+    });
+
+    it("starts with no selection", () => {
+      expect(useSketchStore.getState().selection).toBeNull();
+    });
+  });
+
+  describe("selection union (add with Shift)", () => {
+    it("union of two non-overlapping rectangles creates bounding box", () => {
+      // Simulate the union logic from usePointerHandlers
+      const sel1 = { x: 10, y: 10, width: 50, height: 50 };
+      const sel2 = { x: 80, y: 80, width: 40, height: 40 };
+
+      const ux = Math.min(sel1.x, sel2.x);
+      const uy = Math.min(sel1.y, sel2.y);
+      const ux2 = Math.max(sel1.x + sel1.width, sel2.x + sel2.width);
+      const uy2 = Math.max(sel1.y + sel1.height, sel2.y + sel2.height);
+      const union = { x: ux, y: uy, width: ux2 - ux, height: uy2 - uy };
+
+      expect(union).toEqual({ x: 10, y: 10, width: 110, height: 110 });
+    });
+
+    it("union of overlapping rectangles creates correct bounding box", () => {
+      const sel1 = { x: 10, y: 10, width: 60, height: 60 };
+      const sel2 = { x: 40, y: 40, width: 60, height: 60 };
+
+      const ux = Math.min(sel1.x, sel2.x);
+      const uy = Math.min(sel1.y, sel2.y);
+      const ux2 = Math.max(sel1.x + sel1.width, sel2.x + sel2.width);
+      const uy2 = Math.max(sel1.y + sel1.height, sel2.y + sel2.height);
+      const union = { x: ux, y: uy, width: ux2 - ux, height: uy2 - uy };
+
+      expect(union).toEqual({ x: 10, y: 10, width: 90, height: 90 });
+    });
+  });
+
+  describe("selection subtract (with Alt)", () => {
+    it("subtract when new rect fully covers existing results in null", () => {
+      const existing = { x: 20, y: 20, width: 40, height: 40 };
+      const subtract = { x: 10, y: 10, width: 60, height: 60 };
+
+      // Logic from usePointerHandlers
+      const sx1 = existing.x;
+      const sy1 = existing.y;
+      const sx2 = existing.x + existing.width;
+      const sy2 = existing.y + existing.height;
+      const nx1 = subtract.x;
+      const ny1 = subtract.y;
+      const nx2 = subtract.x + subtract.width;
+      const ny2 = subtract.y + subtract.height;
+
+      const fullyCovered = nx1 <= sx1 && ny1 <= sy1 && nx2 >= sx2 && ny2 >= sy2;
+      expect(fullyCovered).toBe(true);
+    });
+
+    it("subtract when new rect partially covers keeps existing selection", () => {
+      const existing = { x: 10, y: 10, width: 80, height: 80 };
+      const subtract = { x: 50, y: 50, width: 20, height: 20 };
+
+      const sx1 = existing.x;
+      const sy1 = existing.y;
+      const sx2 = existing.x + existing.width;
+      const sy2 = existing.y + existing.height;
+      const nx1 = subtract.x;
+      const ny1 = subtract.y;
+      const nx2 = subtract.x + subtract.width;
+      const ny2 = subtract.y + subtract.height;
+
+      const fullyCovered = nx1 <= sx1 && ny1 <= sy1 && nx2 >= sx2 && ny2 >= sy2;
+      expect(fullyCovered).toBe(false);
+      // Since we can't represent non-rectangular selections, we keep the existing selection
+    });
+  });
+
+  describe("selection movement", () => {
+    it("moving a selection updates position but preserves dimensions", () => {
+      const original = { x: 50, y: 50, width: 100, height: 80 };
+      const dragStart = { x: 75, y: 75 };
+      const dragEnd = { x: 95, y: 85 };
+
+      const dx = dragEnd.x - dragStart.x;
+      const dy = dragEnd.y - dragStart.y;
+
+      const moved = {
+        x: Math.round(original.x + dx),
+        y: Math.round(original.y + dy),
+        width: original.width,
+        height: original.height
+      };
+
+      expect(moved).toEqual({ x: 70, y: 60, width: 100, height: 80 });
+    });
+
+    it("checks if point is inside selection for move detection", () => {
+      const selection = { x: 50, y: 50, width: 100, height: 80 };
+
+      // Point inside
+      const inside = { x: 75, y: 75 };
+      const isInside =
+        inside.x >= selection.x &&
+        inside.x < selection.x + selection.width &&
+        inside.y >= selection.y &&
+        inside.y < selection.y + selection.height;
+      expect(isInside).toBe(true);
+
+      // Point outside
+      const outside = { x: 10, y: 10 };
+      const isOutside =
+        outside.x >= selection.x &&
+        outside.x < selection.x + selection.width &&
+        outside.y >= selection.y &&
+        outside.y < selection.y + selection.height;
+      expect(isOutside).toBe(false);
+
+      // Point on max edge (exclusive) — should be outside
+      const onEdge = { x: 150, y: 130 };
+      const isOnEdge =
+        onEdge.x >= selection.x &&
+        onEdge.x < selection.x + selection.width &&
+        onEdge.y >= selection.y &&
+        onEdge.y < selection.y + selection.height;
+      expect(isOnEdge).toBe(false);
+    });
+  });
+});
+
+describe("Invert selection", () => {
+  it("invertSelection with no selection selects all", () => {
+    act(() => {
+      useSketchStore.getState().invertSelection();
+    });
+    const sel = useSketchStore.getState().selection;
+    const { width, height } = useSketchStore.getState().document.canvas;
+    expect(sel).not.toBeNull();
+    expect(sel!.width).toBe(width);
+    expect(sel!.height).toBe(height);
+    const bounds = getSelectionBounds(sel!);
+    expect(bounds).toEqual({ x: 0, y: 0, width, height });
+  });
+
+  it("invertSelection with existing selection selects all (approx invert)", () => {
+    const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
+    act(() => {
+      useSketchStore.getState().setSelection(rectSelectionMask(cw, ch, 10, 10, 50, 50));
+    });
+    act(() => {
+      useSketchStore.getState().invertSelection();
+    });
+    const sel = useSketchStore.getState().selection;
+    const { width, height } = useSketchStore.getState().document.canvas;
+    expect(sel).not.toBeNull();
+    expect(sel!.width).toBe(width);
+    expect(sel!.height).toBe(height);
+  });
+});
+
+describe("Reselect last selection", () => {
+  it("lastSelection starts as null", () => {
+    expect(useSketchStore.getState().lastSelection).toBeNull();
+  });
+
+  it("deselecting stores the previous selection as lastSelection", () => {
+    const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
+    const testSel = rectSelectionMask(cw, ch, 20, 30, 100, 60);
+    act(() => {
+      useSketchStore.getState().setSelection(testSel);
+    });
+    act(() => {
+      useSketchStore.getState().setSelection(null);
+    });
+    expect(useSketchStore.getState().selection).toBeNull();
+    const last = useSketchStore.getState().lastSelection;
+    expect(last).not.toBeNull();
+    const bounds = getSelectionBounds(last!);
+    expect(bounds).toEqual({ x: 20, y: 30, width: 100, height: 60 });
+  });
+
+  it("reselectLastSelection restores the previous selection", () => {
+    const { width: cw, height: ch } = useSketchStore.getState().document.canvas;
+    const testSel = rectSelectionMask(cw, ch, 20, 30, 100, 60);
+    act(() => {
+      useSketchStore.getState().setSelection(testSel);
+    });
+    act(() => {
+      useSketchStore.getState().setSelection(null);
+    });
+    act(() => {
+      useSketchStore.getState().reselectLastSelection();
+    });
+    const sel = useSketchStore.getState().selection;
+    expect(sel).not.toBeNull();
+    const bounds = getSelectionBounds(sel!);
+    expect(bounds).toEqual({ x: 20, y: 30, width: 100, height: 60 });
+  });
+
+  it("reselectLastSelection does nothing when no last selection exists", () => {
+    act(() => {
+      useSketchStore.getState().reselectLastSelection();
+    });
+    expect(useSketchStore.getState().selection).toBeNull();
+  });
+});
+
+describe("Selection mutations stay ROI-bounded", () => {
+  it("expandCurrentSelection trims the result back to the changed ROI", async () => {
+    const selection = makeSelectionWithRect(512, 512, 120, 140, 8, 6);
+    useSketchStore.getState().setRuntimeInstance(createCpuRefineRuntimeStub());
+    act(() => {
+      useSketchStore.getState().setSelection(selection);
+    });
+    await act(async () => {
+      await useSketchStore.getState().expandCurrentSelection(4);
+    });
+
+    const expanded = useSketchStore.getState().selection;
+    expect(expanded).not.toBeNull();
+    expect(expanded!.width).toBeLessThan(512);
+    expect(expanded!.height).toBeLessThan(512);
+    expect(expanded!.width).toBeLessThanOrEqual(20);
+    expect(expanded!.height).toBeLessThanOrEqual(18);
+    expect(getSelectionBounds(expanded!)).toEqual({
+      x: 116,
+      y: 136,
+      width: 16,
+      height: 14
+    });
+  });
+
+  it("featherCurrentSelection no longer keeps a full-document buffer for small edits", async () => {
+    const selection = makeSelectionWithRect(512, 512, 80, 96, 10, 10);
+    // Inject a CPU-backed runtime stub: feather is GPU-only in production,
+    // but we still need to exercise the slice's pad-then-trim ROI logic.
+    useSketchStore.getState().setRuntimeInstance(createCpuRefineRuntimeStub());
+    act(() => {
+      useSketchStore.getState().setSelection(selection);
+      useSketchStore.getState().setSelectSettings({ featherRadius: 6 });
+    });
+    await act(async () => {
+      await useSketchStore.getState().featherCurrentSelection();
+    });
+
+    const feathered = useSketchStore.getState().selection;
+    const bounds = getSelectionBounds(feathered!);
+    expect(feathered).not.toBeNull();
+    expect(feathered!.width).toBeLessThan(512);
+    expect(feathered!.height).toBeLessThan(512);
+    expect(bounds).not.toBeNull();
+    // Bounds include the full soft fringe (any alpha > 0), not just the ≥128 core,
+    // so the box is wider than the old thresholded footprint after feather.
+    expect(bounds!.width).toBeGreaterThanOrEqual(10);
+    expect(bounds!.width).toBeLessThanOrEqual(48);
+    expect(bounds!.height).toBeGreaterThanOrEqual(10);
+    expect(bounds!.height).toBeLessThanOrEqual(48);
+    expect(bounds!.x).toBeGreaterThanOrEqual(60);
+    expect(bounds!.x).toBeLessThanOrEqual(82);
+    expect(bounds!.y).toBeGreaterThanOrEqual(76);
+    expect(bounds!.y).toBeLessThanOrEqual(98);
+    expect(bounds!.x + bounds!.width).toBeGreaterThanOrEqual(90);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(122);
+    expect(bounds!.y + bounds!.height).toBeGreaterThanOrEqual(106);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(138);
+  });
+
+  it("convertSelectionToBorderOutline pads outward before trimming", () => {
+    const selection = makeSelectionWithRect(512, 512, 200, 220, 20, 12);
+    act(() => {
+      useSketchStore.getState().setSelection(selection);
+      useSketchStore.getState().setSelectSettings({ borderWidth: 6 });
+      useSketchStore.getState().convertSelectionToBorderOutline();
+    });
+
+    const border = useSketchStore.getState().selection;
+    expect(border).not.toBeNull();
+    expect(border!.width).toBeLessThan(512);
+    expect(border!.height).toBeLessThan(512);
+    expect(getSelectionBounds(border!)).toEqual({
+      x: 197,
+      y: 217,
+      width: 26,
+      height: 18
+    });
+  });
+});

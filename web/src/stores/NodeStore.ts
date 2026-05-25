@@ -27,12 +27,17 @@ import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
+import { addExposedInput } from "../utils/exposedInputs";
 import { WorkflowAttributes } from "./ApiTypes";
 import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
 import PlaceholderNode from "../components/node_types/PlaceholderNode";
+import {
+  getContentCardDefaultSize,
+  isContentCardNode
+} from "../components/node_types/contentCardRegistry";
 import {
   graphEdgeToReactFlowEdge,
   CONTROL_HANDLE_ID,
@@ -46,6 +51,25 @@ import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
+import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
+
+function isUnifiedModel(value: unknown): value is UnifiedModel {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    "repo_id" in value
+  );
+}
+
+const syncReactFlowNodeChromeClass = (node: Node<NodeData>): Node<NodeData> => ({
+  ...node,
+  className: reactFlowNodeChromeClassName(node.data)
+});
+
+const syncAllReactFlowNodeChromeClass = (
+  nodes: Node<NodeData>[]
+): Node<NodeData>[] => nodes.map(syncReactFlowNodeChromeClass);
 
 /**
  * Generates a default name for input nodes based on their type.
@@ -171,7 +195,7 @@ export interface NodeStoreState {
   getWorkflow: () => Workflow;
   isComfyWorkflow: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
-  updateWorkflowSetting: (key: string, value: unknown) => void;
+  updateWorkflowSetting: (key: string, value: string | number | boolean | null) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -265,7 +289,6 @@ export const createNodeStore = (
   state?: Partial<NodeStoreState>
 ): NodeStore =>
   create<NodeStoreState>()(
-    // @ts-expect-error Types are not fully compatible between zundo v2 and zustand v4
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
@@ -330,6 +353,9 @@ export const createNodeStore = (
         let lastNodesForGetSelection: Node<NodeData>[] | null = null;
         let lastEdgesForGetSelection: Edge[] | null = null;
         let lastSelection: NodeSelection = { nodes: [], edges: [] };
+        let lastNodesForComfy: Node<NodeData>[] | null = null;
+        let lastWorkflowForComfy: WorkflowAttributes | null = null;
+        let lastIsComfy = false;
 
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
@@ -422,12 +448,19 @@ export const createNodeStore = (
             return count;
           },
           setSelectedNodes: (nodes: Node<NodeData>[]): void => {
-            set({
-              nodes: get().nodes.map((node) => ({
-                ...node,
-                selected: nodes.includes(node)
-              }))
+            const nodesToSelectIds = new Set(nodes.map(n => n.id));
+            let changed = false;
+            const nextNodes = get().nodes.map((node) => {
+              const shouldBeSelected = nodesToSelectIds.has(node.id);
+              if (node.selected !== shouldBeSelected) {
+                changed = true;
+                return { ...node, selected: shouldBeSelected };
+              }
+              return node;
             });
+            if (changed) {
+              set({ nodes: nextNodes });
+            }
           },
           selectNodesByType: (nodeType: string): void => {
             const nodes = get().nodes;
@@ -448,19 +481,22 @@ export const createNodeStore = (
             if (matchingCount === 0) {
               return;
             }
-            set({
-              nodes: nodes.map((node) => {
-                const currentType = node.type;
-                const originalType = node.data?.originalType;
-                const isMatch =
-                  currentType === nodeType ||
-                  (!!originalType && originalType === nodeType);
-                return {
-                  ...node,
-                  selected: isMatch
-                };
-              })
+            let changed = false;
+            const nextNodes = nodes.map((node) => {
+              const currentType = node.type;
+              const originalType = node.data?.originalType;
+              const isMatch =
+                currentType === nodeType ||
+                (!!originalType && originalType === nodeType);
+              if (node.selected !== isMatch) {
+                changed = true;
+                return { ...node, selected: isMatch };
+              }
+              return node;
             });
+            if (changed) {
+              set({ nodes: nextNodes });
+            }
           },
           getSelectedNodeIds: (): string[] => {
             const nodes = get().nodes;
@@ -527,7 +563,10 @@ export const createNodeStore = (
               return true;
             });
 
-            const nodes = applyNodeChanges(filteredChanges, currentNodes);
+            const rawNodes = applyNodeChanges(filteredChanges, currentNodes);
+            const nodes = syncAllReactFlowNodeChromeClass(
+              rawNodes ?? currentNodes
+            );
             set({ nodes });
 
             // Only mark as dirty if there are actual user changes, not just internal React Flow updates
@@ -669,7 +708,7 @@ export const createNodeStore = (
 
             if (
               wouldCreateCycle(
-                filteredEdges as Edge[],
+                filteredEdges,
                 connection.source,
                 connection.target
               )
@@ -698,6 +737,32 @@ export const createNodeStore = (
             set({
               edges: addEdge(newEdge, normalizedEdges)
             });
+
+            // Persist the target as an exposed input so its handle survives
+            // disconnection. Skipped for dynamic props and control edges
+            // (those have their own surfaces) and for properties already
+            // declared as a handle by metadata (`input_fields` / inline rows
+            // render their own handle).
+            if (!isDynamicProperty && !isControlEdge) {
+              const targetMetadata = useMetadataStore
+                .getState()
+                .getMetadata(targetNode.type || "");
+              const inlineFields = targetMetadata?.inline_fields ?? [];
+              const inputFields = targetMetadata?.input_fields ?? [];
+              const isMetadataHandle =
+                inlineFields.includes(connection.targetHandle) ||
+                inputFields.includes(connection.targetHandle);
+              if (targetMetadata && !isMetadataHandle) {
+                const next = addExposedInput(
+                  targetNode.data.exposedInputs,
+                  connection.targetHandle
+                );
+                if (next !== targetNode.data.exposedInputs) {
+                  get().updateNodeData(targetNode.id, { exposedInputs: next });
+                }
+              }
+            }
+
             get().setWorkflowDirty(true);
           },
           findNode: (id: string): Node<NodeData> | undefined =>
@@ -711,7 +776,7 @@ export const createNodeStore = (
             }
             node.expandParent = true;
             node.data.workflow_id = get().workflow.id;
-            set({ nodes: [...get().nodes, node] });
+            set({ nodes: [...get().nodes, syncReactFlowNodeChromeClass(node)] });
             get().setWorkflowDirty(true);
           },
           updateNode: (
@@ -730,6 +795,9 @@ export const createNodeStore = (
 
               const newNodes = [...state.nodes];
               const updatedNode = { ...newNodes[nodeIndex], ...nodeUpdate };
+              updatedNode.className = reactFlowNodeChromeClassName(
+                updatedNode.data
+              );
               newNodes[nodeIndex] = updatedNode;
 
               // If parentId is being set or changed, reorder nodes
@@ -775,9 +843,11 @@ export const createNodeStore = (
               }
               const nodes = state.nodes.slice();
               const target = nodes[index];
+              const mergedData = { ...target.data, ...data };
               nodes[index] = {
                 ...target,
-                data: { ...target.data, ...data }
+                data: mergedData,
+                className: reactFlowNodeChromeClassName(mergedData)
               };
               return { ...state, nodes };
             });
@@ -828,10 +898,11 @@ export const createNodeStore = (
               return;
             }
 
-            const focusedElement = document.activeElement as HTMLElement;
+            const focusedElement = document.activeElement;
             if (
-              focusedElement.classList.contains("MuiInput-input") ||
-              focusedElement.tagName === "TEXTAREA"
+              focusedElement instanceof HTMLElement &&
+              (focusedElement.classList.contains("MuiInput-input") ||
+                focusedElement.tagName === "TEXTAREA")
             ) {
               return;
             }
@@ -941,13 +1012,8 @@ export const createNodeStore = (
                   )
                 ) {
                   const property = node.data.properties[key];
-                  if (
-                    property &&
-                    typeof property === "object" &&
-                    "type" in property &&
-                    "repo_id" in property
-                  ) {
-                    models.push(property as UnifiedModel);
+                  if (isUnifiedModel(property)) {
+                    models.push(property);
                   }
                 }
               }
@@ -1007,26 +1073,34 @@ export const createNodeStore = (
             };
           },
           isComfyWorkflow: (): boolean => {
-            const settings = get().workflow.settings as
+            const nodes = get().nodes;
+            const workflow = get().workflow;
+            if (nodes === lastNodesForComfy && workflow === lastWorkflowForComfy) {
+              return lastIsComfy;
+            }
+            lastNodesForComfy = nodes;
+            lastWorkflowForComfy = workflow;
+            const settings = workflow.settings as
               | Record<string, unknown>
               | undefined;
             if (settings?.[COMFY_WORKFLOW_FLAG] === true) {
+              lastIsComfy = true;
               return true;
             }
-
-            return get().nodes.some(
+            lastIsComfy = nodes.some(
               (node) =>
                 typeof node.type === "string" && node.type.startsWith("comfy.")
             );
+            return lastIsComfy;
           },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
           },
-          updateWorkflowSetting: (key: string, value: unknown): void => {
+          updateWorkflowSetting: (key: string, value: string | number | boolean | null): void => {
             const current = get().workflow;
             const settings = {
               ...(current.settings ?? {}),
-              [key]: value as string | number | boolean | null
+              [key]: value
             };
             set({ workflow: { ...current, settings } });
           },
@@ -1127,11 +1201,16 @@ export const createNodeStore = (
               | ((nodes: Node<NodeData>[]) => Node<NodeData>[])
           ): void => {
             if (typeof nodesOrCallback === "function") {
-              set((state) => ({
-                nodes: nodesOrCallback(state.nodes)
-              }));
+              set((state) => {
+                const next = nodesOrCallback(state.nodes);
+                return {
+                  nodes: syncAllReactFlowNodeChromeClass(next ?? state.nodes)
+                };
+              });
             } else {
-              set({ nodes: nodesOrCallback });
+              set({
+                nodes: syncAllReactFlowNodeChromeClass(nodesOrCallback)
+              });
             }
             get().setWorkflowDirty(true);
           },
@@ -1189,12 +1268,12 @@ export const createNodeStore = (
               );
             }
 
-            const srcMetadata = useMetadataStore
-              .getState()
-              .getMetadata(srcNode.type as string);
-            const targetMetadata = useMetadataStore
-              .getState()
-              .getMetadata(targetNode.type as string);
+            const srcMetadata = srcNode.type
+              ? useMetadataStore.getState().getMetadata(srcNode.type)
+              : undefined;
+            const targetMetadata = targetNode.type
+              ? useMetadataStore.getState().getMetadata(targetNode.type)
+              : undefined;
 
             // If either node doesn't have metadata (placeholder nodes), allow connection
             if (!srcMetadata || !targetMetadata) {
@@ -1301,6 +1380,13 @@ export const createNodeStore = (
               metadata.node_type === "nodetool.compare.CompareImages";
             const isModel3DConstantNode =
               metadata.node_type === "nodetool.constant.Model3D";
+            const isContentCard = isContentCardNode(metadata);
+            // Agent-style content cards use {{variable}} templating, not
+            // media preview — they should size like regular nodes (auto
+            // height) instead of inheriting the text variant's 320×220.
+            const isAgentStyle =
+              metadata.node_type === "nodetool.agents.Agent" ||
+              metadata.node_type === "openai.agents.RealtimeAgent";
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
@@ -1308,6 +1394,10 @@ export const createNodeStore = (
               defaultStyle = { width: 450, height: 350 };
             } else if (isModel3DConstantNode) {
               defaultStyle = { width: 320, height: 320 };
+            } else if (isAgentStyle) {
+              defaultStyle = { width: DEFAULT_NODE_WIDTH };
+            } else if (isContentCard) {
+              defaultStyle = getContentCardDefaultSize(metadata);
             } else {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };
             }
@@ -1334,12 +1424,17 @@ export const createNodeStore = (
             };
           },
           selectAllNodes: (): void => {
-            set({
-              nodes: get().nodes.map((node) => ({
-                ...node,
-                selected: true
-              }))
+            let changed = false;
+            const nextNodes = get().nodes.map((node) => {
+              if (!node.selected) {
+                changed = true;
+                return { ...node, selected: true };
+              }
+              return node;
             });
+            if (changed) {
+              set({ nodes: nextNodes });
+            }
           },
           toggleBypass: (nodeId: string): void => {
             set((state) => {
@@ -1352,7 +1447,10 @@ export const createNodeStore = (
               const newNodes = [...state.nodes];
               newNodes[index] = {
                 ...node,
-                className: newBypassed ? "bypassed" : undefined,
+                className: reactFlowNodeChromeClassName({
+                  ...node.data,
+                  bypassed: newBypassed
+                }),
                 data: { ...node.data, bypassed: newBypassed }
               };
               return { nodes: newNodes };
@@ -1369,7 +1467,10 @@ export const createNodeStore = (
               const newNodes = [...state.nodes];
               newNodes[index] = {
                 ...node,
-                className: bypassed ? "bypassed" : undefined,
+                className: reactFlowNodeChromeClassName({
+                  ...node.data,
+                  bypassed
+                }),
                 data: { ...node.data, bypassed }
               };
               return { nodes: newNodes };
@@ -1393,7 +1494,10 @@ export const createNodeStore = (
                 n.selected
                   ? {
                       ...n,
-                      className: shouldBypass ? "bypassed" : undefined,
+                      className: reactFlowNodeChromeClassName({
+                        ...n.data,
+                        bypassed: shouldBypass
+                      }),
                       data: { ...n.data, bypassed: shouldBypass }
                     }
                   : n

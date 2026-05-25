@@ -5,15 +5,12 @@
  * Each class extends BaseNode and calls Kie.ai API via shared helpers.
  */
 
+import { classifyFields, classNameToTitle } from "@nodetool-ai/node-sdk";
 import type { NodeConfig, ModuleConfig, FieldDef } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
-}
 
 function castFn(type: string): string {
   switch (type) {
@@ -45,7 +42,30 @@ function fieldToVarName(name: string): string {
 }
 
 function isAssetType(type: string): boolean {
-  return ["image", "audio", "video", "list[image]"].includes(type);
+  return [
+    "image",
+    "audio",
+    "video",
+    "list[image]",
+    "list[video]",
+    "list[audio]",
+    "video_clip_list"
+  ].includes(type);
+}
+
+// ---------------------------------------------------------------------------
+// Field Classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute inlineFields and inputFields from a Kie field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after mapping
+ * each Kie `FieldDef.type` onto the `{ name, propType }` shape it expects.
+ */
+function computeFieldClassification(fields: FieldDef[]) {
+  return classifyFields(
+    fields.map((f) => ({ name: f.name, propType: f.type }))
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +124,7 @@ export class KieNodeGenerator {
   ): string {
     const fullClassName = `${node.className}Node`;
     const nodeType = `kie.${moduleName}.${node.className}`;
-    const title = node.title || toTitle(node.className);
+    const title = node.title || classNameToTitle(node.className);
     const description = node.description.replace(/`/g, "'");
     const pollInterval =
       node.pollInterval ?? moduleConfig.defaultPollInterval ?? 2000;
@@ -121,6 +141,11 @@ export class KieNodeGenerator {
     );
     lines.push(`  static readonly requiredSettings = ["KIE_API_KEY"];`);
     lines.push(`  static readonly exposeAsTool = true;`);
+
+    // Compute and emit field classification
+    const { inlineFields, inputFields } = computeFieldClassification(node.fields);
+    lines.push(`  static readonly inlineFields = ${JSON.stringify(inlineFields)};`);
+    lines.push(`  static readonly inputFields = ${JSON.stringify(inputFields)};`);
     lines.push(``);
 
     // Custom fields
@@ -139,9 +164,7 @@ export class KieNodeGenerator {
 
   private _renderProp(field: FieldDef): string {
     const parts: string[] = [];
-    parts.push(
-      `type: ${JSON.stringify(field.type === "list[image]" ? "list[image]" : field.type)}`
-    );
+    parts.push(`type: ${JSON.stringify(field.type)}`);
     if (field.default !== undefined) {
       if (isAssetType(field.type) && typeof field.default === "object") {
         parts.push(`default: ${JSON.stringify(field.default)}`);
@@ -149,7 +172,8 @@ export class KieNodeGenerator {
         parts.push(`default: ${defaultLiteral(field.default, field.type)}`);
       }
     } else {
-      parts.push(`default: ${field.type === "bool" ? "false" : '""'}`);
+      const listType = field.type.startsWith("list[");
+      parts.push(`default: ${field.type === "bool" ? "false" : listType ? "[]" : '""'}`);
     }
     if (field.values?.length) {
       parts.push(`values: ${JSON.stringify(field.values)}`);
@@ -170,7 +194,9 @@ export class KieNodeGenerator {
     maxAttempts: number
   ): string[] {
     const lines: string[] = [];
-    lines.push(`  async process(): Promise<Record<string, unknown>> {`);
+    lines.push(
+      `  async process(context?: Parameters<BaseNode["process"]>[0]): Promise<Record<string, unknown>> {`
+    );
     lines.push(`    const apiKey = getApiKey(this._secrets);`);
 
     // Validation
@@ -215,7 +241,7 @@ export class KieNodeGenerator {
           `    for (const img of [${groupUploads.map((u) => `this.${u.field}`).join(", ")}]) {`
         );
         lines.push(
-          `      if (isRefSet(img)) ${arrayVar}.push(await ${uploadFn}(apiKey, img));`
+          `      if (isRefSet(img)) ${arrayVar}.push(await ${uploadFn}(apiKey, img, context));`
         );
         lines.push(`    }`);
         uploadVars[paramName] = arrayVar;
@@ -240,7 +266,7 @@ export class KieNodeGenerator {
             `    for (const item of ${fieldToVarName(upload.field)}List) {`
           );
           lines.push(
-            `      if (isRefSet(item)) ${listVar}.push(await ${uploadFn}(apiKey, item));`
+            `      if (isRefSet(item)) ${listVar}.push(await ${uploadFn}(apiKey, item, context));`
           );
           lines.push(`    }`);
           uploadVars[upload.paramName ?? `${upload.field}_urls`] = listVar;
@@ -248,7 +274,7 @@ export class KieNodeGenerator {
           const varName = `${fieldToVarName(upload.field)}Url`;
           lines.push(`    let ${varName} = "";`);
           lines.push(
-            `    if (isRefSet(this.${upload.field})) ${varName} = await ${uploadFn}(apiKey, this.${upload.field});`
+            `    if (isRefSet(this.${upload.field})) ${varName} = await ${uploadFn}(apiKey, this.${upload.field}, context);`
           );
           uploadVars[upload.paramName ?? `${upload.field}_url`] = varName;
         }

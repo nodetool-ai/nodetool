@@ -244,6 +244,16 @@ describe("run / runGraph", () => {
   //   nodetool.test.Add       → { result: ... }
   //   nodetool.test.ErrorNode → throws
 
+  beforeAll(async () => {
+    // Warm up lazy runtime/module initialization once for this suite.
+    const warmupNode = createNode<SingleOutput<number, "value">>(
+      "nodetool.test.Constant",
+      { value: 0 },
+      { outputNames: ["value"], defaultOutput: "value" }
+    );
+    await run(workflow(warmupNode));
+  }, 45000);
+
   test("run() executes a single source node and returns its outputs", async () => {
     const a = createNode<SingleOutput<number, "value">>(
       "nodetool.test.Constant",

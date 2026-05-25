@@ -63,7 +63,7 @@ $WebJob = Start-Job -ScriptBlock {
 $WebServerPid = $WebJob.Id
 
 Write-Host "Waiting for Vite server..."
-$MaxAttempts = 120
+$MaxAttempts = 300
 $Ready = $false
 
 for ($i = 0; $i -lt $MaxAttempts; $i++) {

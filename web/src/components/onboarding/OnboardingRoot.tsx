@@ -10,9 +10,10 @@ import { useOnboardingDetectors } from "./useOnboardingDetectors";
  * detector subscriptions so each step is recorded complete as the user
  * uses the real product.
  *
- * The /welcome page (GettingStartedPanel) is the canonical checklist;
- * hints are just contextual overlays that anchor to the relevant UI until
- * each step is done.
+ * The chat homepage's empty state (GettingStartedPanel) is the canonical
+ * checklist; hints are just contextual overlays that anchor to the relevant
+ * UI until each step is done. The overlay suppresses itself while any
+ * GettingStartedPanel is mounted so the two don't show the same step twice.
  */
 const OnboardingRoot: React.FC = () => {
   useOnboardingDetectors();

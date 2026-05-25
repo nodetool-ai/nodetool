@@ -18,7 +18,8 @@ import {
   useViewport,
   useUpdateNodeInternals,
   type Edge,
-  type Node
+  type Node,
+  type NodeChange
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -44,6 +45,9 @@ import {
   WorkflowNode,
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
+import { SubgraphNode, SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
+import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import ConstantStringNode from "../node/ConstantStringNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
@@ -74,7 +78,8 @@ import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
 import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
-
+import type { NodeData } from "../../stores/NodeData";
+import { scheduleNodeInternalsRefresh } from "../../utils/scheduleNodeInternalsRefresh";
 
 interface ReactFlowWrapperProps {
   workflowId: string;
@@ -82,15 +87,41 @@ interface ReactFlowWrapperProps {
 }
 
 import GhostNode from "./GhostNode";
+import SketchNode, {
+  SKETCH_NODE_TYPE
+} from "../node/SketchNode/SketchNode";
 import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 
+/** React Flow edge paths use both endpoints — refresh neighbors when one node’s DOM height changes. */
+function withEdgeNeighborNodeIds(
+  nodeIds: readonly string[],
+  edgeList: Edge[]
+): string[] {
+  const result = new Set(nodeIds);
+  for (const edge of edgeList) {
+    const src = edge.source;
+    const tgt = edge.target;
+    if (!src || !tgt) {
+      continue;
+    }
+    if (result.has(src)) {
+      result.add(tgt);
+    }
+    if (result.has(tgt)) {
+      result.add(src);
+    }
+  }
+  return [...result];
+}
+
 const ReactFlowWrapper = ({
   workflowId,
   active
 }: ReactFlowWrapperProps) => {
+  const workflowManagerStore = useWorkflowManagerStore();
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
   // Combine multiple store subscriptions into a single selector to reduce re-renders
@@ -195,8 +226,13 @@ const ReactFlowWrapper = ({
 
   const { handleMoveEnd, handleOnMoveStart } = useReactFlowEvents();
 
-  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
-  const workflowExistsLocally = workflowId ? !!getNodeStore(workflowId) : false;
+  // Subscribe directly to `nodeStores[workflowId]` so the component re-renders
+  // when an ephemeral store is registered (e.g. a subgraph tab opening).
+  // Selecting `state.getNodeStore` would return a stable function reference
+  // and miss the store-injection event.
+  const workflowExistsLocally = useWorkflowManager((state) =>
+    workflowId ? !!state.nodeStores[workflowId] : false
+  );
 
   const { isLoading, error } = useWorkflow(workflowId, {
     enabled: !workflowExistsLocally
@@ -237,6 +273,76 @@ const ReactFlowWrapper = ({
       return () => cancelAnimationFrame(rafId);
     }
   }, [connecting, edges.length, updateNodeInternals]);
+
+  /** Tracks layout-driving fields so programmatic collapse/expand (no active resize drag) retriggers RF handle math */
+  const nodeLayoutSigRef = useRef<Map<string, string>>(new Map());
+  const nodeLayoutFingerprintSkipFirstRef = useRef(true);
+  useEffect(() => {
+    nodeLayoutFingerprintSkipFirstRef.current = true;
+    nodeLayoutSigRef.current.clear();
+  }, [workflowId]);
+
+  useEffect(() => {
+    const next = new Map<string, string>();
+    for (const n of nodes) {
+      const sh = n.style?.height;
+      const stylePart =
+        typeof sh === "number"
+          ? String(sh)
+          : typeof sh === "string"
+            ? sh.trim()
+            : "";
+      // Handles can be added/removed without changing node height:
+      //   - exposedInputs: inspector "show as input" toggle promotes a static property
+      //   - dynamic_properties / dynamic_inputs / dynamic_outputs: dynamic nodes
+      // ReactFlow caches handle bounds, so we must signal a refresh whenever
+      // the set of handles can change, or new handles stay un-draggable until
+      // some other event (e.g. a connection drag) forces a refresh.
+      const exposedPart = [
+        ...(n.data.exposedInputs ?? []),
+        ...(n.data.exposedInputsLabeled ?? []),
+        ...(n.data.exposedInputsHidden ?? [])
+      ].join(",");
+      const dynPropsPart = Object.keys(n.data.dynamic_properties ?? {})
+        .sort()
+        .join(",");
+      const dynInputsPart = Object.keys(n.data.dynamic_inputs ?? {})
+        .sort()
+        .join(",");
+      const dynOutputsPart = Object.keys(n.data.dynamic_outputs ?? {})
+        .sort()
+        .join(",");
+      next.set(
+        n.id,
+        `${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
+      );
+    }
+    const changedIds: string[] = [];
+    for (const [id, sig] of next) {
+      const prev = nodeLayoutSigRef.current.get(id);
+      if (prev !== sig) {
+        changedIds.push(id);
+        nodeLayoutSigRef.current.set(id, sig);
+      }
+    }
+    for (const id of [...nodeLayoutSigRef.current.keys()]) {
+      if (!next.has(id)) {
+        nodeLayoutSigRef.current.delete(id);
+      }
+    }
+
+    if (nodeLayoutFingerprintSkipFirstRef.current) {
+      nodeLayoutFingerprintSkipFirstRef.current = false;
+      return;
+    }
+    if (changedIds.length === 0) {
+      return;
+    }
+    scheduleNodeInternalsRefresh(
+      updateNodeInternals,
+      withEdgeNeighborNodeIds(changedIds, edges)
+    );
+  }, [nodes, edges, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
@@ -293,6 +399,8 @@ const ReactFlowWrapper = ({
       "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
+      [SUBGRAPH_NODE_TYPE]: SubgraphNode,
+      [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]
@@ -323,22 +431,6 @@ const ReactFlowWrapper = ({
 
   useEffect(() => {
     if (!pendingNodeType) {
-      setGhostPosition(null);
-      return;
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        cancelPlacement();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [pendingNodeType, cancelPlacement]);
-
-  useEffect(() => {
-    if (!pendingNodeType) {
       if (ghostRafRef.current !== null) {
         cancelAnimationFrame(ghostRafRef.current);
         ghostRafRef.current = null;
@@ -346,6 +438,12 @@ const ReactFlowWrapper = ({
       setGhostPosition(null);
       return;
     }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        cancelPlacement();
+      }
+    };
 
     const handleMouseMove = (event: MouseEvent) => {
       const { clientX, clientY } = event;
@@ -357,26 +455,21 @@ const ReactFlowWrapper = ({
       });
     };
 
+    const previousCursor = document.body.style.cursor;
+    document.body.style.cursor = "crosshair";
+
+    window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("mousemove", handleMouseMove);
     return () => {
+      window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousemove", handleMouseMove);
       if (ghostRafRef.current !== null) {
         cancelAnimationFrame(ghostRafRef.current);
         ghostRafRef.current = null;
       }
-    };
-  }, [pendingNodeType]);
-
-  useEffect(() => {
-    if (!pendingNodeType) {
-      return;
-    }
-    const previousCursor = document.body.style.cursor;
-    document.body.style.cursor = "crosshair";
-    return () => {
       document.body.style.cursor = previousCursor;
     };
-  }, [pendingNodeType]);
+  }, [pendingNodeType, cancelPlacement]);
 
   const { isConnectionValid } = useConnectionEvents();
 
@@ -387,7 +480,34 @@ const ReactFlowWrapper = ({
       reactFlowInstance
     });
 
-  const { handleNodeContextMenu, handleNodesChange } = useNodeEvents();
+  const { handleNodeContextMenu, handleNodesChange: propagateNodesChange } =
+    useNodeEvents();
+
+  const handleNodesChange = useCallback(
+    (changes: NodeChange<Node<NodeData>>[]) => {
+      propagateNodesChange(changes);
+
+      const dimIds = new Set<string>();
+      for (const c of changes) {
+        if (c.type !== "dimensions") {
+          continue;
+        }
+        /* Mid-resize we already get continuous RF updates — skip storms */
+        if ("resizing" in c && (c as { resizing?: boolean }).resizing === true) {
+          continue;
+        }
+        dimIds.add(c.id);
+      }
+      if (dimIds.size === 0) {
+        return;
+      }
+      scheduleNodeInternalsRefresh(
+        updateNodeInternals,
+        withEdgeNeighborNodeIds([...dimIds], edges)
+      );
+    },
+    [propagateNodesChange, updateNodeInternals, edges]
+  );
 
   const {
     onEdgeContextMenu,
@@ -568,14 +688,17 @@ const ReactFlowWrapper = ({
     return props;
   }, [settings.panControls]);
 
-  if (isLoading) {
+  // Local stores (subgraph tabs included) bypass the fetch entirely; ignore
+  // any stale loading/error state cached from a previous query for the same
+  // workflowId — those reflect the server fetch which is no longer relevant.
+  if (!workflowExistsLocally && isLoading) {
     return (
       <div className="loading-overlay">
         <LoadingSpinner /> Loading workflow...
       </div>
     );
   }
-  if (error) {
+  if (!workflowExistsLocally && error) {
     return (
       <div className="loading-overlay">
         <Text color="error">
@@ -644,6 +767,35 @@ const ReactFlowWrapper = ({
         onNodeContextMenu={handleNodeContextMenu}
         onPaneClick={handlePaneClickWithSuppress}
         onNodeClick={handleNodeClick}
+        onNodeDoubleClick={(_event, node) => {
+          if (node.type !== SUBGRAPH_NODE_TYPE) return;
+          const data = node.data as {
+            workflow_id?: string;
+            title?: string;
+            properties?: { graph?: { nodes?: unknown[]; edges?: unknown[] } };
+          };
+          const innerGraph = data.properties?.graph ?? { nodes: [], edges: [] };
+          const key = useSubgraphTabsStore.getState().openTab({
+            workflowId: data.workflow_id ?? "",
+            nodeId: node.id,
+            label: data.title || "Subgraph",
+            initialGraph: {
+              nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
+              edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
+            }
+          });
+          const tab = useSubgraphTabsStore.getState().getTab(key);
+          if (tab) {
+            // Register the subgraph store synchronously so the upcoming
+            // SubgraphTabContent → ReactFlowWrapper render sees
+            // workflowExistsLocally === true and skips the 404 fetch for
+            // the synthetic id. SubgraphTabContent's useEffect also
+            // re-registers (idempotent) to survive StrictMode double-mount.
+            workflowManagerStore.setState((state) => ({
+              nodeStores: { ...state.nodeStores, [key]: tab.store }
+            }));
+          }
+        }}
         onPaneContextMenu={handlePaneContextMenu}
         onMoveStart={handleOnMoveStart}
         onDoubleClick={handleDoubleClick}

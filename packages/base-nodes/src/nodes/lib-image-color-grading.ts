@@ -3,6 +3,11 @@ import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import sharp from "sharp";
 import {
+  vignetteV1,
+  colorHsbV1,
+  colorExposureV1
+} from "@nodetool-ai/gpu/pool";
+import {
   decodeImage,
   toRef,
   pickImage,
@@ -13,12 +18,14 @@ import {
   rgbToHsv,
   hsvToRgb
 } from "./lib-image-utils.js";
+import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
 
 type Desc = {
   nodeType: string;
   title: string;
   description: string;
-  basicFields: string[];
+  inlineFields: string[];
+  inputFields:  string[];
   outputs: Record<string, string>;
   properties: Array<{ name: string; options: PropOptions }>;
 };
@@ -28,7 +35,8 @@ function createColorGradingNode(desc: Desc): NodeClass {
     static readonly nodeType = desc.nodeType;
     static readonly title = desc.title;
     static readonly description = desc.description;
-    static readonly basicFields = desc.basicFields;
+    static readonly inlineFields = desc.inlineFields;
+    static readonly inputFields  = desc.inputFields;
     static readonly metadataOutputTypes = desc.outputs;
 
     async process(
@@ -61,7 +69,12 @@ function createColorGradingNode(desc: Desc): NodeClass {
         return { output: toRef(out, baseObj) };
       }
 
-      // Exposure
+      // Exposure — when the only non-default knob is `exposure` (or
+      // `exposure` + `contrast`), the math collapses to the shader's
+      // `color.exposure` ± `color.brightnessContrast` and we route there.
+      // The full eight-knob path (highlights/shadows/whites/blacks) stays
+      // CPU because the published catalog doesn't yet expose tone-mapped
+      // shadow/highlight rolloff.
       if (t.endsWith(".Exposure")) {
         const exposure = Number((this as any).exposure ?? self.exposure ?? 0);
         const contrast = Number((this as any).contrast ?? self.contrast ?? 0);
@@ -71,6 +84,22 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const shadows = Number((this as any).shadows ?? self.shadows ?? 0);
         const whites = Number((this as any).whites ?? self.whites ?? 0);
         const blacks = Number((this as any).blacks ?? self.blacks ?? 0);
+        if (
+          highlights === 0 &&
+          shadows === 0 &&
+          whites === 0 &&
+          blacks === 0 &&
+          contrast === 0
+        ) {
+          const png = await runShaderOnPngBuffer(
+            colorExposureV1,
+            { stops: exposure },
+            new Uint8Array(baseBytes),
+            {},
+            context
+          );
+          return { output: toRef(Buffer.from(png), baseObj) };
+        }
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
         const expMul = Math.pow(2, exposure);
         for (let i = 0; i < data.length; i += 3) {
@@ -100,40 +129,26 @@ function createColorGradingNode(desc: Desc): NodeClass {
         return { output: toRef(out, baseObj) };
       }
 
-      // SaturationVibrance
+      // SaturationVibrance — vibrance isn't on the published HSB shader,
+      // so it's folded into saturation as an additive boost. Pure-saturation
+      // input still matches sharp's `modulate({ saturation })` semantics.
       if (t.endsWith(".SaturationVibrance")) {
         const saturation = Number(
           (this as any).saturation ?? self.saturation ?? 0
         );
         const vibrance = Number((this as any).vibrance ?? self.vibrance ?? 0);
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        for (let i = 0; i < data.length; i += 3) {
-          let r = data[i],
-            g = data[i + 1],
-            b = data[i + 2];
-          const lum = getLuminance(r, g, b);
-          // Saturation
-          r = lum + (r - lum) * (1 + saturation);
-          g = lum + (g - lum) * (1 + saturation);
-          b = lum + (b - lum) * (1 + saturation);
-          // Vibrance
-          if (vibrance !== 0) {
-            const maxC = Math.max(r, g, b);
-            const minC = Math.min(r, g, b);
-            const curSat = (maxC - minC) / (maxC + 0.001);
-            const mask = 1 - curSat;
-            const vFactor = 1 + vibrance * mask;
-            const lum2 = getLuminance(r, g, b);
-            r = lum2 + (r - lum2) * vFactor;
-            g = lum2 + (g - lum2) * vFactor;
-            b = lum2 + (b - lum2) * vFactor;
-          }
-          data[i] = r;
-          data[i + 1] = g;
-          data[i + 2] = b;
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
+        const png = await runShaderOnPngBuffer(
+          colorHsbV1,
+          {
+            hue: 0,
+            saturation: 1 + saturation + vibrance * 0.5,
+            brightness: 1
+          },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       }
 
       // LiftGammaGain
@@ -255,7 +270,12 @@ function createColorGradingNode(desc: Desc): NodeClass {
         return { output: toRef(out, baseObj) };
       }
 
-      // HSLAdjust
+      // HSLAdjust — when `color_range === "ALL"` the per-channel CPU loop
+      // collapses to a pure HSV multiply on every pixel, so we route it
+      // through the shader pool's `color.hsb` op. Range-restricted modes
+      // ("REDS", "GREENS", …) still go through the CPU path below because
+      // they need per-pixel hue gating that the published shader doesn't
+      // expose.
       if (t.endsWith(".HSLAdjust")) {
         const colorRange = String(
           (this as any).color_range ?? self.color_range ?? "ALL"
@@ -263,6 +283,20 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const hueShift = Number((this as any).hue_shift ?? self.hue_shift ?? 0);
         const satAdj = Number((this as any).saturation ?? self.saturation ?? 0);
         const lumAdj = Number((this as any).luminance ?? self.luminance ?? 0);
+        if (colorRange === "ALL") {
+          const png = await runShaderOnPngBuffer(
+            colorHsbV1,
+            {
+              hue: hueShift * 180,
+              saturation: 1 + satAdj,
+              brightness: 1 + lumAdj
+            },
+            new Uint8Array(baseBytes),
+            {},
+            context
+          );
+          return { output: toRef(Buffer.from(png), baseObj) };
+        }
         const HUE_RANGES: Record<string, [number, number]> = {
           ALL: [0, 1],
           REDS: [0.95, 0.05],
@@ -483,45 +517,26 @@ function createColorGradingNode(desc: Desc): NodeClass {
         return { output: toRef(out, baseObj) };
       }
 
-      // Vignette
+      // Vignette — GPU `filters.vignette@1`. The shader's `intensity` maps
+      // to the legacy `amount`; midpoint and feather translate roughly onto
+      // the shader's `radius` (where the vignette begins) and `softness`
+      // (how soft the falloff is). `roundness` isn't a parameter on the
+      // current shader — defaulted to the round shape.
       if (t.endsWith(".Vignette")) {
         const amount = Number((this as any).amount ?? self.amount ?? 0.5);
         const midpoint = Number((this as any).midpoint ?? self.midpoint ?? 0.5);
-        const roundness = Number(
-          (this as any).roundness ?? self.roundness ?? 0
-        );
         const feather = Math.max(
           0.01,
           Number((this as any).feather ?? self.feather ?? 0.4)
         );
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        const cx = width / 2,
-          cy = height / 2;
-        const halfW = width / 2,
-          halfH = height / 2;
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            const normX = (x - cx) / halfW;
-            const normY = (y - cy) / halfH;
-            let dist: number;
-            if (roundness < 0) {
-              const rect = Math.max(Math.abs(normX), Math.abs(normY));
-              const eucl = Math.sqrt(normX * normX + normY * normY);
-              dist =
-                eucl * (1 - Math.abs(roundness)) + rect * Math.abs(roundness);
-            } else {
-              dist = Math.sqrt(normX * normX + normY * normY);
-            }
-            const vig = clamp((dist - midpoint) / feather, 0, 1);
-            const factor = amount > 0 ? 1 - vig * amount : 1 + vig * -amount;
-            const idx = (y * width + x) * 3;
-            data[idx] *= factor;
-            data[idx + 1] *= factor;
-            data[idx + 2] *= factor;
-          }
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
+        const png = await runShaderOnPngBuffer(
+          vignetteV1,
+          { intensity: amount, radius: 1 - midpoint, softness: feather },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       }
 
       // Fallback: return image unchanged
@@ -543,19 +558,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "CDL",
     description:
       "ASC CDL (Color Decision List) color correction.\n    cdl, slope, offset, power, saturation, asc, color decision list\n\n    Use cases:\n    - Apply industry-standard CDL color correction\n    - Exchange color grades between different software\n    - Apply precise mathematical color transformations\n    - Create consistent looks across multiple shots\n\n    Formula: output = (input * slope + offset) ^ power\n    Followed by saturation adjustment.",
-    basicFields: [
-      "image",
-      "slope_r",
-      "slope_g",
-      "slope_b",
-      "offset_r",
-      "offset_g",
-      "offset_b",
-      "power_r",
-      "power_g",
-      "power_b",
-      "saturation"
-    ],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -692,7 +696,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Color Balance",
     description:
       "Adjust color temperature and tint for white balance correction.\n    white balance, temperature, tint, color balance, warm, cool\n\n    Use cases:\n    - Correct white balance in photos and video\n    - Warm up or cool down the overall image\n    - Fix color casts from mixed lighting\n    - Create mood through color temperature shifts",
-    basicFields: ["image", "temperature", "tint"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -742,17 +747,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Curves",
     description:
       "RGB curves adjustment with control points for precise tonal control.\n    curves, rgb, tonal, contrast, levels\n\n    Use cases:\n    - Create custom contrast curves\n    - Adjust specific tonal ranges precisely\n    - Create cross-processed or stylized looks\n    - Match the tonal characteristics of film stocks",
-    basicFields: [
-      "image",
-      "black_point",
-      "white_point",
-      "shadows",
-      "midtones",
-      "highlights",
-      "red_midtones",
-      "green_midtones",
-      "blue_midtones"
-    ],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -867,15 +863,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Exposure",
     description:
       "Comprehensive tonal exposure controls similar to Lightroom/Camera Raw.\n    exposure, contrast, highlights, shadows, whites, blacks, tonal\n\n    Use cases:\n    - Correct over/underexposed images\n    - Recover highlight and shadow detail\n    - Adjust overall contrast and tonal range\n    - Fine-tune the brightness of specific tonal regions",
-    basicFields: [
-      "image",
-      "exposure",
-      "contrast",
-      "highlights",
-      "shadows",
-      "whites",
-      "blacks"
-    ],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -970,7 +959,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Film Look",
     description:
       "Apply preset cinematic film looks with adjustable intensity.\n    film look, cinematic, preset, movie, lut, color grade\n\n    Use cases:\n    - Quickly apply popular cinematic color grades\n    - Create consistent looks across multiple images\n    - Emulate classic film stock characteristics\n    - Starting point for custom color grading",
-    basicFields: ["image", "preset", "intensity"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -1030,13 +1020,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "HSLAdjust",
     description:
       "Adjust hue, saturation, and luminance for specific color ranges.\n    hsl, hue, saturation, luminance, selective color, color range\n\n    Use cases:\n    - Shift specific colors (e.g., make blues more cyan)\n    - Desaturate or boost individual color ranges\n    - Brighten or darken specific colors\n    - Create color-specific looks (teal skies, orange skin)",
-    basicFields: [
-      "image",
-      "color_range",
-      "hue_shift",
-      "saturation",
-      "luminance"
-    ],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -1117,21 +1102,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Lift Gamma Gain",
     description:
       "Three-way color corrector for shadows, midtones, and highlights.\n    lift, gamma, gain, color wheels, primary correction, shadows, midtones, highlights\n\n    Use cases:\n    - Apply the industry-standard three-way color correction\n    - Balance colors across different tonal ranges\n    - Create color contrast between shadows and highlights\n    - Match footage from different sources\n\n    Lift affects shadows, Gamma affects midtones, Gain affects highlights.\n    Each control adjusts both luminance and color for its tonal range.",
-    basicFields: [
-      "image",
-      "lift_r",
-      "lift_g",
-      "lift_b",
-      "lift_master",
-      "gamma_r",
-      "gamma_g",
-      "gamma_b",
-      "gamma_master",
-      "gain_r",
-      "gain_g",
-      "gain_b",
-      "gain_master"
-    ],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -1290,7 +1262,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Saturation Vibrance",
     description:
       "Adjust color saturation with vibrance protection for skin tones.\n    saturation, vibrance, color intensity, skin tones\n\n    Use cases:\n    - Boost color intensity without clipping\n    - Protect skin tones while increasing saturation\n    - Create desaturated or oversaturated looks\n    - Fine-tune color intensity independently",
-    basicFields: ["image", "saturation", "vibrance"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -1341,14 +1314,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Split Toning",
     description:
       "Apply different color tints to shadows and highlights.\n    split toning, shadows, highlights, tint, duotone\n\n    Use cases:\n    - Create classic teal and orange looks\n    - Add color contrast between shadows and highlights\n    - Emulate film processing techniques\n    - Create stylized color-graded images",
-    basicFields: [
-      "image",
-      "shadow_hue",
-      "shadow_saturation",
-      "highlight_hue",
-      "highlight_saturation",
-      "balance"
-    ],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -1431,7 +1398,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Vignette",
     description:
       "Apply cinematic vignette effect to darken or lighten image edges.\n    vignette, edge, darken, focus, cinematic\n\n    Use cases:\n    - Draw attention to the center of the image\n    - Create a classic cinematic look\n    - Simulate lens light falloff\n    - Add subtle framing to photos",
-    basicFields: ["image", "amount", "midpoint", "roundness", "feather"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },

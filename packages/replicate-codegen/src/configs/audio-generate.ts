@@ -45,6 +45,15 @@ export const audioGenerateConfig: ModuleConfig = {
     "minimax/speech-2.8-hd": {
       className: "Speech_2_8_HD",
       returnType: "audio"
+    },
+    "minimax/music-2.6": {
+      className: "Music_2_6",
+      returnType: "audio"
+    },
+    "minimax/music-cover": {
+      className: "Music_Cover",
+      returnType: "audio",
+      fieldOverrides: { audio: { propType: "audio" } }
     }
   }
 };

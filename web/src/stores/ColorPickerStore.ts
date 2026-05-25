@@ -211,63 +211,6 @@ export function gradientToCss(gradient: GradientValue): string {
   return `radial-gradient(circle, ${stopsStr})`;
 }
 
-/**
- * Parse CSS gradient string to GradientValue
- */
-export function parseGradientCss(css: string): GradientValue | null {
-  const linearMatch = css.match(
-    /linear-gradient\s*\(\s*(\d+)deg\s*,\s*(.+)\)/i
-  );
-  const radialMatch = css.match(
-    /radial-gradient\s*\(\s*(?:circle\s*,\s*)?(.+)\)/i
-  );
-
-  if (linearMatch) {
-    const angle = parseInt(linearMatch[1], 10);
-    const stops = parseGradientStops(linearMatch[2]);
-    return { type: "linear", angle, stops };
-  }
-
-  if (radialMatch) {
-    const stops = parseGradientStops(radialMatch[1]);
-    return { type: "radial", stops };
-  }
-
-  return null;
-}
-
-function parseGradientStops(stopsStr: string): GradientStop[] {
-  const stops: GradientStop[] = [];
-  const regex = /(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))\s*(\d+)?%?/g;
-  let match;
-  const matches: Array<{ color: string; position?: string }> = [];
-
-  while ((match = regex.exec(stopsStr)) !== null) {
-    matches.push({
-      color: match[1],
-      position: match[2]
-    });
-  }
-
-  // Calculate positions for stops without explicit positions
-  matches.forEach((m, i) => {
-    let position: number;
-    if (m.position !== undefined) {
-      position = parseInt(m.position, 10);
-    } else if (i === 0) {
-      position = 0;
-    } else if (i === matches.length - 1) {
-      position = 100;
-    } else {
-      // Interpolate position
-      position = (i / (matches.length - 1)) * 100;
-    }
-    stops.push({ color: m.color, position });
-  });
-
-  return stops;
-}
-
 // Pre-built palettes for user convenience
 export const PRESET_PALETTES: ColorPalette[] = [
   {

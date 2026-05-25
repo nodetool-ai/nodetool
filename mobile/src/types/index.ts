@@ -13,10 +13,7 @@ export type {
 } from "./workflow";
 export type {
   MiniAppInputKind,
-  InputNodeData,
-  MiniAppInputDefinition,
   MiniAppResult,
-  MiniAppProgress,
 } from "./miniapp";
 // Export chat types selectively to avoid conflicts with ApiTypes
 export type {
@@ -26,7 +23,6 @@ export type {
   GenerationStoppedUpdate,
   ErrorUpdate,
   ChatMessageRequest,
-  StopGenerationRequest,
   ChatState,
   WebSocketConfig,
 } from "./chat";

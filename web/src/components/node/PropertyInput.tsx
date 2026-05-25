@@ -1,9 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, createElement, memo } from "react";
+import React, { useCallback, createElement, memo, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
+import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
+import { isCollectType } from "../../utils/TypeHandler";
 import useContextMenu from "../../stores/ContextMenuStore";
 import reduceUnionType from "../../hooks/reduceUnionType";
 import StringProperty from "../properties/StringProperty";
@@ -39,7 +41,7 @@ import ImageSizeProperty from "../properties/ImageSizeProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
@@ -47,6 +49,7 @@ import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
 import ImageListProperty from "../properties/ImageListProperty";
 import VideoListProperty from "../properties/VideoListProperty";
+import VideoClipListProperty from "../properties/VideoClipListProperty";
 import AudioListProperty from "../properties/AudioListProperty";
 import TextListProperty from "../properties/TextListProperty";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -63,22 +66,39 @@ import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../../utils/codeOutputInference";
+import { InspectorHeaderResetProvider } from "../../contexts/InspectorPropertyHeaderContext";
+import type { PropertyProps } from "./PropertyInput.types";
+
+export type { PropertyProps } from "./PropertyInput.types";
+
+const RESET_BUTTON_OFFSET_CSS = css({
+  "--property-reset-button-offset": "40px"
+});
 
 const propertyInputContainerStyles = (theme: Theme) =>
   css({
     "&.property-input-container": {
       position: "relative",
+      minHeight: 0
     },
-    "&.property-input-container.value-changed::before": {
-      content: '""',
+    // Changed-value bar is painted on `.node-property` in properties.css
+    // (class kept for :has() + numberInputStyles).
+    ".property-reset-anchor": {
       position: "absolute",
-      left: -5,
       top: 0,
-      bottom: 0,
-      width: 2,
-      backgroundColor: theme.vars.palette.primary.main,
-      opacity: 0.2,
-      borderRadius: "var(--rounded-xs)",
+      right: "var(--property-reset-button-offset, 0px)",
+      width: 0,
+      height: 0,
+      overflow: "visible",
+      lineHeight: 0,
+      fontSize: 0,
+      pointerEvents: "none"
+    },
+    ".property-reset-anchor .reset-button": {
+      pointerEvents: "none"
+    },
+    ".property-reset-anchor .reset-button.is-active": {
+      pointerEvents: "auto"
     },
 
     // ACTION ICONS — hidden by default, shown on hover
@@ -99,7 +119,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
     },
 
-    "&:hover .action-icons, &:hover .reset-button": {
+    "&:hover .action-icons, &:hover .reset-button.is-active": {
       opacity: 1
     },
 
@@ -159,28 +179,6 @@ const propertyInputContainerStyles = (theme: Theme) =>
     }
   });
 
-export type PropertyProps = {
-  property: Property;
-  value: any;
-  nodeType: string;
-  nodeId: string;
-  hideLabel?: boolean;
-  propertyIndex: string;
-  isInspector?: boolean;
-  onChange: (value: any) => void;
-  /**
-   * Called when the user finishes changing the value (e.g., on mouseup for sliders).
-   * Useful for triggering actions only when the user has committed their change.
-   */
-  onChangeComplete?: () => void;
-  tabIndex?: number;
-  isDynamicProperty?: boolean;
-  /**
-   * Value differs from default — shows visual indicator
-   */
-  changed?: boolean;
-};
-
 function InputProperty(props: PropertyProps) {
   const id = `edge-${props.property.name}-${props.propertyIndex}`;
 
@@ -192,6 +190,7 @@ function InputProperty(props: PropertyProps) {
         id={id}
         handleTooltipType={props.property.type}
         handleTooltipPosition="left"
+        isCollectInput={isCollectType(props.property.type)}
       />
     </>
   );
@@ -289,6 +288,8 @@ function componentForType(type: string): React.ComponentType<PropertyProps> {
       return ImageListProperty;
     case "video_list":
       return VideoListProperty;
+    case "video_clip_list":
+      return VideoClipListProperty;
     case "audio_list":
       return AudioListProperty;
     case "text_list":
@@ -426,6 +427,8 @@ export type PropertyInputProps = {
   propertyIndex?: string;
   controlKeyPressed?: boolean;
   isInspector?: boolean;
+  /** When the inspector edits multiple nodes, reset/context menu apply to all of these ids. */
+  inspectorBatchNodeIds?: readonly string[];
   tabIndex?: number;
   isDynamicProperty?: boolean;
   hideActionIcons?: boolean;
@@ -444,9 +447,14 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   isDynamicProperty,
   hideActionIcons,
   isInspector,
+  inspectorBatchNodeIds,
   onValueChange
 }: PropertyInputProps) => {
   const theme = useTheme();
+  const containerCss = useMemo(
+    () => propertyInputContainerStyles(theme),
+    [theme]
+  );
   const { updateNodeProperties, findNode, updateNodeData } = useNodes(
     (state) => ({
       updateNodeProperties: state.updateNodeProperties,
@@ -457,6 +465,12 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
   const metadata = useMetadataStore((state) => state.metadata);
 
+  const targetNodeIds = useMemo(
+    () =>
+      inspectorBatchNodeIds?.length ? [...inspectorBatchNodeIds] : [id],
+    [inspectorBatchNodeIds, id]
+  );
+
   // Auto-run hook for input nodes - triggers downstream workflow execution on property changes
   const { onPropertyChange, onPropertyChangeComplete } = useInputNodeAutoRun({
     nodeId: id,
@@ -465,7 +479,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   });
 
   const onChange = useCallback(
-    (value: any) => {
+    (value: unknown) => {
       if (onValueChange) {
         onValueChange(value);
         return;
@@ -543,31 +557,18 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   // Skip if no default is defined — nothing to compare against.
   // Treat null defaults the same as undefined (common in dynamic/FalAI schemas
   // where default is null but initial value is "" or [] or 0).
-  const isChanged = property.default != null && !isEqual(value, property.default);
+  const hasResetDefault = property.default != null;
+  const isChanged = hasResetDefault && !isEqual(value, property.default);
 
   // Handle slider/number input change complete
   const handleChangeComplete = useCallback(() => {
     onPropertyChangeComplete();
   }, [onPropertyChangeComplete]);
 
-  const propertyProps = {
-    property: property,
-    value: value,
-    propertyIndex: propertyIndex || "",
-    nodeType: nodeType,
-    nodeId: id,
-    onChange: onChange,
-    onChangeComplete: handleChangeComplete,
-    tabIndex: tabIndex,
-    isDynamicProperty: isDynamicProperty,
-    isInspector: isInspector,
-    changed: isChanged
-  };
-
   // Property Context Menu
   const { openContextMenu } = useContextMenu();
   const handlePropertyContextMenu = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>, prop: Property) => {
+    (event: React.MouseEvent<HTMLElement>, prop: Property) => {
       event.preventDefault();
       event.stopPropagation();
       openContextMenu(
@@ -579,59 +580,69 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         prop.type,
         prop.name,
         prop.description || undefined,
-        isDynamicProperty
+        isDynamicProperty,
+        targetNodeIds.length > 1 ? { inspectorBatchNodeIds: targetNodeIds } : undefined
       );
     },
-    [id, isDynamicProperty, openContextMenu]
+    [id, isDynamicProperty, openContextMenu, targetNodeIds]
   );
 
-  // Reset property to default value
-  const onContextMenu = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      if (controlKeyPressed) {
-        // Reset to default value with Ctrl+Right-click
-        const node = findNode(id);
-        if (!node || !node.data) {
-          return;
-        }
-
-        if (isDynamicProperty) {
-          // For dynamic properties, get default from metadata or the property object itself
+  const handleResetToDefault = useCallback(() => {
+    for (const nodeId of targetNodeIds) {
+      const node = findNode(nodeId);
+      if (!node?.data) {
+        continue;
+      }
+      if (isDynamicProperty) {
+        const dynamicInputDefaults = node.data.dynamic_inputs || {};
+        let defaultValue = dynamicInputDefaults?.[property.name]?.default;
+        if (defaultValue === undefined) {
           const nodeMetadata = metadata?.[node.type as string];
-          let defaultValue = property.default;
-
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === property.name
             );
-            if (propertyDef) {
-              defaultValue = propertyDef.default;
-            }
+            defaultValue = propertyDef?.default ?? property.default;
           }
-
-          if (defaultValue !== undefined && node.data.dynamic_properties) {
-            const updatedDynamicProperties = {
+        }
+        if (defaultValue !== undefined && node.data.dynamic_properties) {
+          updateNodeData(nodeId, {
+            dynamic_properties: {
               ...node.data.dynamic_properties,
               [property.name]: defaultValue
-            };
-            updateNodeData(id, {
-              dynamic_properties: updatedDynamicProperties
-            });
-          }
+            }
+          });
+        }
+      } else {
+        const nodeMetadata = metadata?.[node.type as string];
+        if (nodeMetadata) {
+          const propertyDef = nodeMetadata.properties.find(
+            (prop: Property) => prop.name === property.name
+          );
+          const defaultValue = propertyDef?.default ?? property.default;
+          updateNodeProperties(nodeId, { [property.name]: defaultValue });
         } else {
-          // For regular properties, get default from metadata or property
-          const nodeMetadata = metadata?.[node.type as string];
-          if (nodeMetadata) {
-            const propertyDef = nodeMetadata.properties.find(
-              (prop: Property) => prop.name === property.name
-            );
-            const defaultValue = propertyDef?.default ?? property.default;
-            updateNodeProperties(id, { [property.name]: defaultValue });
-          } else {
-            // Fallback to property.default if metadata not available
-            updateNodeProperties(id, { [property.name]: property.default });
-          }
+          updateNodeProperties(nodeId, { [property.name]: property.default });
+        }
+      }
+    }
+  }, [
+    findNode,
+    isDynamicProperty,
+    metadata,
+    property,
+    targetNodeIds,
+    updateNodeData,
+    updateNodeProperties
+  ]);
+
+  const onContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (controlKeyPressed || event.ctrlKey || event.metaKey) {
+        if (isChanged) {
+          handleResetToDefault();
         }
       } else {
         handlePropertyContextMenu(event, property);
@@ -639,55 +650,27 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     },
     [
       controlKeyPressed,
-      findNode,
-      id,
-      isDynamicProperty,
-      metadata,
-      property,
-      updateNodeData,
-      updateNodeProperties,
-      handlePropertyContextMenu
+      handlePropertyContextMenu,
+      handleResetToDefault,
+      isChanged,
+      property
     ]
   );
 
-  const handleResetToDefault = useCallback(() => {
-    const node = findNode(id);
-    if (!node || !node.data) {
-      return;
-    }
-    if (isDynamicProperty) {
-      const dynamicInputDefaults = node.data?.dynamic_inputs || {};
-      let defaultValue = dynamicInputDefaults?.[property.name]?.default;
-      if (defaultValue === undefined) {
-        const nodeMetadata = metadata?.[node.type as string];
-        if (nodeMetadata) {
-          const propertyDef = nodeMetadata.properties.find(
-            (prop: Property) => prop.name === property.name
-          );
-          defaultValue = propertyDef?.default ?? property.default;
-        }
-      }
-      if (defaultValue !== undefined && node.data.dynamic_properties) {
-        updateNodeData(id, {
-          dynamic_properties: {
-            ...node.data.dynamic_properties,
-            [property.name]: defaultValue
-          }
-        });
-      }
-    } else {
-      const nodeMetadata = metadata?.[node.type as string];
-      if (nodeMetadata) {
-        const propertyDef = nodeMetadata.properties.find(
-          (prop: Property) => prop.name === property.name
-        );
-        const defaultValue = propertyDef?.default ?? property.default;
-        updateNodeProperties(id, { [property.name]: defaultValue });
-      } else {
-        updateNodeProperties(id, { [property.name]: property.default });
-      }
-    }
-  }, [findNode, id, isDynamicProperty, metadata, property, updateNodeData, updateNodeProperties]);
+  const propertyProps: PropertyProps = {
+    property: property,
+    value: value,
+    propertyIndex: propertyIndex || "",
+    nodeType: nodeType,
+    nodeId: id,
+    onChange: onChange,
+    onChangeComplete: handleChangeComplete,
+    tabIndex: tabIndex,
+    isDynamicProperty: isDynamicProperty,
+    isInspector: isInspector,
+    changed: isChanged,
+    onPropertyContextMenu: onContextMenu
+  };
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [editedName, setEditedName] = React.useState(property.name);
@@ -760,27 +743,66 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     componentType === JSONProperty ||
     componentType === DataframeProperty;
 
-  return (
+  const canvasResetButton =
+    !isInspector && hasResetDefault ? (
+      <Tooltip
+        title="Reset to default"
+        placement="top"
+        disableInteractive
+        disabled={!isChanged}
+      >
+        <span className="property-reset-anchor">
+          <div
+            className={`reset-button${isChanged ? " is-active" : ""}`}
+            onClick={isChanged ? handleResetToDefault : undefined}
+            aria-hidden={!isChanged}
+          >
+            <SettingsBackupRestoreIcon />
+          </div>
+        </span>
+      </Tooltip>
+    ) : null;
+
+  const inspectorResetButton =
+    isInspector && hasResetDefault ? (
+      <Tooltip title="Reset to default" placement="top" disableInteractive>
+        <span className="inspector-reset-tooltip" style={{ display: "inline-flex" }}>
+          <ToolbarIconButton
+            className={`inspector-reset-button${isChanged ? " is-changed" : ""}`}
+            onClick={handleResetToDefault}
+            disabled={!isChanged}
+            size="small"
+            icon={<SettingsBackupRestoreIcon />}
+            sx={
+              isChanged
+                ? { color: theme.vars.palette.common.white }
+                : {
+                    color: theme.vars.palette.text.disabled,
+                    "&.Mui-disabled": {
+                      opacity: 0.5,
+                      color: theme.vars.palette.text.disabled
+                    }
+                  }
+            }
+          />
+        </span>
+      </Tooltip>
+    ) : null;
+
+  const container = (
     <div
       className={`property-input-container${isChanged ? " value-changed" : ""}`}
       css={[
-        propertyInputContainerStyles(theme),
-        hasTopRightPropertyActions &&
-          css({
-            "--property-reset-button-offset": "40px"
-          })
+        containerCss,
+        hasTopRightPropertyActions && !isInspector && RESET_BUTTON_OFFSET_CSS
       ]}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
     >
-      {inputField}
-      {isChanged && (
-        <Tooltip title="Reset to default" placement="top" disableInteractive>
-          <div className="reset-button" onClick={handleResetToDefault}>
-            <SettingsBackupRestoreIcon />
-          </div>
-        </Tooltip>
-      )}
+      <PropertyHandleTooltipContext.Provider value={property.type}>
+        {inputField}
+      </PropertyHandleTooltipContext.Provider>
+      {canvasResetButton}
       {isDynamicProperty && !hideActionIcons && (
         <div className="action-icons">
           <Edit
@@ -794,6 +816,16 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         </div>
       )}
     </div>
+  );
+
+  if (!isInspector) {
+    return container;
+  }
+
+  return (
+    <InspectorHeaderResetProvider reset={inspectorResetButton}>
+      {container}
+    </InspectorHeaderResetProvider>
   );
 };
 

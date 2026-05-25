@@ -817,6 +817,115 @@ describe("parse() — synthetic schema edge cases", () => {
     expect(seedField?.default).toBe(-1);
   });
 
+  it("maps schema length and item bounds to field min max metadata", () => {
+    const schema = makeMinimalSchema();
+    (
+      (
+        (schema["paths"] as Record<string, unknown>)[
+          "/fal-ai/test/model"
+        ] as Record<string, unknown>
+      )["post"] as Record<string, unknown>
+    )["requestBody"] = {
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              prompt: {
+                type: "string",
+                minLength: 3,
+                maxLength: 5000
+              },
+              image_urls: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 1,
+                maxItems: 4
+              }
+            },
+            required: []
+          }
+        }
+      }
+    };
+
+    const spec = p.parse(schema);
+    expect(spec.inputFields.find((f) => f.name === "prompt")).toMatchObject({
+      min: 3,
+      max: 5000
+    });
+    expect(spec.inputFields.find((f) => f.name === "images")).toMatchObject({
+      min: 1,
+      max: 4
+    });
+  });
+
+  it("maps documented minimum maximum values to field min max metadata", () => {
+    const schema = makeMinimalSchema();
+    (
+      (
+        (schema["paths"] as Record<string, unknown>)[
+          "/fal-ai/test/model"
+        ] as Record<string, unknown>
+      )["post"] as Record<string, unknown>
+    )["requestBody"] = {
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              duration: {
+                type: "integer",
+                description: "Video duration. Minimum: 4, Maximum: 15"
+              }
+            },
+            required: []
+          }
+        }
+      }
+    };
+
+    const spec = p.parse(schema);
+    expect(spec.inputFields.find((f) => f.name === "duration")).toMatchObject({
+      propType: "int",
+      min: 4,
+      max: 15
+    });
+  });
+
+  it("keeps duration enums as enums when the schema defines options", () => {
+    const schema = makeMinimalSchema();
+    (
+      (
+        (schema["paths"] as Record<string, unknown>)[
+          "/fal-ai/test/model"
+        ] as Record<string, unknown>
+      )["post"] as Record<string, unknown>
+    )["requestBody"] = {
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              duration: {
+                type: "string",
+                enum: ["5", "10"],
+                description: "Video duration."
+              }
+            },
+            required: []
+          }
+        }
+      }
+    };
+
+    const spec = p.parse(schema);
+    expect(spec.inputFields.find((f) => f.name === "duration")).toMatchObject({
+      propType: "enum",
+      enumValues: ["5", "10"]
+    });
+  });
+
   it("skips queue-status paths when finding the output schema", () => {
     const schema = {
       openapi: "3.0.0",

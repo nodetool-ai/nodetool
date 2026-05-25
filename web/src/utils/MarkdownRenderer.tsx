@@ -1,21 +1,22 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useRef, useState, useCallback, useMemo } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Options } from "react-markdown";
 import { createPortal } from "react-dom";
 import DraggableNodeDocumentation from "../components/content/Help/DraggableNodeDocumentation";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { CopyButton, Dialog, ToolbarIconButton } from "../components/ui_primitives";
+import { CopyButton, Dialog, ToolbarIconButton, Box } from "../components/ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { getShortcutTooltip } from "../config/shortcuts";
 import "../styles/markdown/github-markdown.css";
 import "../styles/markdown/nodetool-markdown.css";
+
+const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
 
 interface MarkdownRendererProps {
   content: string;
@@ -144,12 +145,43 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   }, [selectedNodeType, documentationPosition, handleClose]);
 
   const baseFontSize = isReadme ? undefined : "inherit";
-  // Only allow raw HTML when rendering trusted content (e.g. HuggingFace README).
-  // For normal outputs, treat "<...>" as text to avoid React "unknown tag" warnings
-  // and reduce XSS surface area.
-  const rehypePlugins = useMemo(
+  // Only trusted content (README) gets rehypeRaw — raw HTML is an XSS vector for user-generated output.
+  const rehypePlugins: Options["rehypePlugins"] = useMemo(
     () => (isReadme ? [rehypeRaw] : []),
     [isReadme]
+  );
+
+  const mainStyles = useMemo(
+    () =>
+      styles(theme, {
+        constrainHeight: !fillContainer,
+        isScrollable: isFocused,
+        fontSize: baseFontSize,
+        fillContainer
+      }),
+    [theme, fillContainer, isFocused, baseFontSize]
+  );
+
+  const fullscreenStyles = useMemo(
+    () =>
+      styles(theme, {
+        constrainHeight: false,
+        isScrollable: true,
+        fontSize: baseFontSize
+      }),
+    [theme, baseFontSize]
+  );
+
+  const markdownComponents: Options["components"] = useMemo(
+    () => ({
+      a: ({ href, children }: { href?: string; children?: React.ReactNode }) => {
+        if (isExternalLink(href || "")) {
+          return <span>{children}</span>;
+        }
+        return <a href={href}>{children}</a>;
+      }
+    }),
+    []
   );
 
   return (
@@ -158,12 +190,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         className={`output markdown markdown-body ${
           isFocused ? "nowheel" : ""
         }`}
-        css={styles(theme, {
-          constrainHeight: !fillContainer,
-          isScrollable: isFocused,
-          fontSize: baseFontSize,
-          fillContainer
-        })}
+        css={mainStyles}
         ref={containerRef}
         tabIndex={0}
         onMouseEnter={handleMouseEnter}
@@ -194,17 +221,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         )}
         <Box sx={fillContainer ? { height: "100%" } : undefined}>
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={REMARK_PLUGINS}
             rehypePlugins={rehypePlugins}
-            components={{
-              a: ({ href, children }) => {
-                if (isExternalLink(href || "")) {
-                  return <span>{children}</span>;
-                }
-
-                return <a href={href}>{children}</a>;
-              }
-            }}
+            components={markdownComponents}
           >
             {content || ""}
           </ReactMarkdown>
@@ -228,11 +247,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
       >
         <Box
           className="output markdown markdown-body"
-          css={styles(theme, {
-            constrainHeight: false,
-            isScrollable: true,
-            fontSize: baseFontSize
-          })}
+          css={fullscreenStyles}
           sx={{
             position: "relative",
             width: "100%",
@@ -262,17 +277,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             />
           </div>
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={REMARK_PLUGINS}
             rehypePlugins={rehypePlugins}
-            components={{
-              a: ({ href, children }) => {
-                if (isExternalLink(href || "")) {
-                  return <span>{children}</span>;
-                }
-
-                return <a href={href}>{children}</a>;
-              }
-            }}
+            components={markdownComponents}
           >
             {content || ""}
           </ReactMarkdown>

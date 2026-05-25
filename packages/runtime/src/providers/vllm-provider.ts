@@ -18,15 +18,24 @@ export class VLLMProvider extends OpenAIProvider {
   private _vllmBaseURL: string;
 
   constructor(
-    secrets: { VLLM_API_KEY?: string } = {},
+    secrets: { VLLM_API_KEY?: string; VLLM_BASE_URL?: string } = {},
     options: VLLMProviderOptions = {}
   ) {
-    const baseURL = options.baseURL;
-    if (!baseURL) {
-      throw new Error("VLLM_BASE_URL is required (pass via options.baseURL)");
+    const rawBaseURL =
+      options.baseURL ??
+      secrets.VLLM_BASE_URL ??
+      process.env["VLLM_BASE_URL"];
+    if (!rawBaseURL || !String(rawBaseURL).trim()) {
+      throw new Error(
+        "VLLM_BASE_URL is required (options.baseURL, secret, or env)"
+      );
     }
+    const baseURL = String(rawBaseURL).replace(/\/+$/, "");
 
-    const apiKey = secrets.VLLM_API_KEY ?? "sk-no-key-required";
+    const apiKey =
+      secrets.VLLM_API_KEY && secrets.VLLM_API_KEY.trim().length > 0
+        ? secrets.VLLM_API_KEY
+        : "sk-no-key-required";
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(

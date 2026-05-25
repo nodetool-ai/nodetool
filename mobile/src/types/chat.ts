@@ -64,7 +64,7 @@ export interface PlanningUpdate {
 /**
  * Task lifecycle update from the agent task executor.
  */
-export interface TaskUpdateMessage {
+interface TaskUpdateMessage {
   type: 'task_update';
   event?: string;
   task?: { id?: string; title?: string };
@@ -104,14 +104,6 @@ export interface ChatMessageRequest {
   agent_mode?: boolean;
   help_mode?: boolean;
   media_generation?: MediaGenerationRequest;
-}
-
-/**
- * Stop generation request
- */
-export interface StopGenerationRequest {
-  type: 'stop';
-  thread_id: string;
 }
 
 /**

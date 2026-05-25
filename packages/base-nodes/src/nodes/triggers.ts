@@ -84,6 +84,8 @@ export class WaitNode extends BaseNode {
     "    The workflow is suspended (not running) while waiting, so it doesn't\n" +
     "    consume resources. State is persisted and the workflow can be resumed\n" +
     "    even after server restarts.";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input"];
   static readonly metadataOutputTypes = {
     data: "any",
     resumed_at: "str",
@@ -144,6 +146,8 @@ export class ManualTriggerNode extends BaseNode {
     "    - Interactive processing pipelines\n" +
     "    - Manual batch processing\n" +
     "    - Testing and debugging workflows";
+  static readonly inlineFields = ["name"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     data: "any",
     timestamp: "str",
@@ -152,7 +156,6 @@ export class ManualTriggerNode extends BaseNode {
   };
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "int",
@@ -236,6 +239,8 @@ export class IntervalTriggerNode extends BaseNode {
     "    - Scheduled batch processing\n" +
     "    - Heartbeat or keepalive workflows\n" +
     "    - Time-based automation";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     tick: "int",
     elapsed_seconds: "float",
@@ -245,7 +250,6 @@ export class IntervalTriggerNode extends BaseNode {
     event_type: "str"
   };
 
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "int",
@@ -367,6 +371,8 @@ export class WebhookTriggerNode extends BaseNode {
     "    - Receiving notifications from external services\n" +
     "    - Building API endpoints that trigger workflows\n" +
     "    - Integration with third-party webhook providers";
+  static readonly inlineFields = ["path"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     body: "any",
     headers: "dict[str, any]",
@@ -378,7 +384,6 @@ export class WebhookTriggerNode extends BaseNode {
     event_type: "str"
   };
 
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "int",
@@ -560,6 +565,8 @@ export class FileWatchTriggerNode extends BaseNode {
     "    - Processing files as they arrive in a directory\n" +
     "    - Triggering workflows on configuration changes\n" +
     "    - Building file-based automation pipelines";
+  static readonly inlineFields = ["path"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     event: "str",
     path: "str",
@@ -568,7 +575,6 @@ export class FileWatchTriggerNode extends BaseNode {
     timestamp: "str"
   };
 
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "int",

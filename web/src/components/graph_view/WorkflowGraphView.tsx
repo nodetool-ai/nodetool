@@ -28,6 +28,7 @@ import {
   useNodesInitialized
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import "../../styles/collapsed.css";
 
 import { fetchWorkflowById } from "../../serverState/useWorkflow";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -38,6 +39,9 @@ import useMetadataStore from "../../stores/MetadataStore";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import GroupNode from "../node/GroupNode";
 import CommentNode from "../node/CommentNode";
+import SketchNode, {
+  SKETCH_NODE_TYPE
+} from "../node/SketchNode/SketchNode";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 import type { Workflow } from "../../stores/ApiTypes";
@@ -109,6 +113,7 @@ function GraphInner() {
       ...baseNodeTypes,
       "nodetool.workflows.base_node.Group": GroupNode,
       "nodetool.workflows.base_node.Comment": CommentNode,
+      [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
     [baseNodeTypes]

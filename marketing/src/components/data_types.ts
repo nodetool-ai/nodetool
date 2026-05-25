@@ -49,7 +49,6 @@
 // import { Tooltip } from "@mui/material";
 // import { TOOLTIP_ENTER_DELAY } from "../components/node/BaseNode";
 // import ThemeNodetool from "../components/themes/ThemeNodetool";
-// import comfy_taesd from "../icons/comfy.taesd.svg?react";
 // import comfy_clip from "../icons/comfy.clip.svg?react";
 // import comfy_clip_vision from "../icons/comfy.clip_vision.svg?react";
 // import comfy_clip_vision_output from "../icons/comfy.clip_vision_output.svg?react";
@@ -91,7 +90,6 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   // thread_message,
   // union,
   // video,
-  // "comfy.taesd": comfy_taesd,
   // "comfy.clip": comfy_clip,
   // "comfy.clip_vision": comfy_clip_vision,
   // "comfy.clip_vision_output": comfy_clip_vision_output,
@@ -563,18 +561,6 @@ let DATA_TYPES: DataType[] = [
     description:
       "A model that applies a style to an image, used in Stable Diffusion",
     color: "#16A34A", // Green-600
-    textColor: "#fff",
-    name: "",
-    slug: "",
-    namespace: "",
-    icon: "ModelTraining",
-  },
-  {
-    value: "taesd",
-    label: "TAESD",
-    description:
-      "Tiny Autoencoder for Stable Diffusion previews, a lightweight alternative to VAE",
-    color: "#CA8A04", // Yellow-600
     textColor: "#fff",
     name: "",
     slug: "",

@@ -17,6 +17,16 @@ set -euo pipefail
 #   ./deploy.sh                  # Pull + deploy (HTTPS, requires cert.pem + key.pem)
 #   ./deploy.sh --self-signed    # Auto-generate TLS cert for origin
 #   ./deploy.sh --no-tls         # Plain HTTP origin (Cloudflare Flexible)
+#   ./deploy.sh --bind <addr>    # Restrict the host port to a bind address
+#                                # (e.g. --bind 127.0.0.1 for loopback-only,
+#                                # the right choice behind a Cloudflare Tunnel).
+#                                # Also via env: NODETOOL_BIND=127.0.0.1
+#   ./deploy.sh --slug <name>    # Run a parallel preview instance named
+#                                # "nodetool-server-<name>" on a separate port,
+#                                # leaving the main production container alone.
+#                                # Also implies --no-wait (preview images may
+#                                # already exist) and reuses .env from cwd.
+#                                # Also via env: NODETOOL_SLUG=<name>
 #   ./deploy.sh --tag <tag>      # Pull a specific image tag (default: auto from git HEAD)
 #   ./deploy.sh --no-pull        # Deploy existing local image (skip pull)
 #   ./deploy.sh --no-wait        # Don't wait for CI to publish the image
@@ -33,7 +43,9 @@ IMAGE_TAG="latest"
 IMAGE_TAG_PREV="rollback"
 PULL_TAG="${NODETOOL_IMAGE_TAG:-}"   # empty → derive from git HEAD
 CONTAINER_NAME="nodetool-server"
+SLUG="${NODETOOL_SLUG:-}"   # empty = production container; non-empty = preview instance
 PORT="${NODETOOL_PORT:-443}"
+BIND_ADDR="${NODETOOL_BIND:-}"   # empty = bind 0.0.0.0; set to 127.0.0.1 for loopback-only (e.g. behind a Cloudflare Tunnel)
 HEALTH_TIMEOUT=60
 HEALTH_INTERVAL=2
 # How long to wait for the CI-built image to appear in the registry
@@ -44,46 +56,16 @@ IMAGE_WAIT_INTERVAL=15
 NO_PULL=0
 NO_WAIT=0
 TLS_MODE="certs"  # none | self-signed | certs (default: certs for Cloudflare Full Strict)
+ACTION=""  # deferred so --logs/--status/--stop/--rollback can honor --slug regardless of arg order
 
 while (( $# )); do
   arg="$1"
   case "$arg" in
-    --logs)
-      docker logs -f "$CONTAINER_NAME" 2>&1
-      exit 0
-      ;;
-    --status)
-      echo "=== Container Status ==="
-      docker ps --filter "name=$CONTAINER_NAME" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-      echo ""
-      echo "=== Health Check ==="
-      if curl -fsk "https://localhost:${PORT}/health" 2>/dev/null; then
-        echo ""
-      elif curl -fs "http://localhost:${PORT}/health" 2>/dev/null; then
-        echo ""
-      else
-        echo "UNHEALTHY"
-      fi
-      echo ""
-      echo "=== Resource Usage ==="
-      docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}" "$CONTAINER_NAME" 2>/dev/null || echo "Container not running"
-      exit 0
-      ;;
-    --stop)
-      echo "Stopping $CONTAINER_NAME..."
-      docker stop "$CONTAINER_NAME" 2>/dev/null || true
-      docker rm "$CONTAINER_NAME" 2>/dev/null || true
-      echo "Stopped."
-      exit 0
+    --logs|--status|--stop)
+      ACTION="$arg"
       ;;
     --rollback)
-      if ! docker image inspect "$IMAGE_NAME:$IMAGE_TAG_PREV" &>/dev/null; then
-        echo "ERROR: No rollback image found ($IMAGE_NAME:$IMAGE_TAG_PREV)"
-        exit 1
-      fi
-      echo "Rolling back to previous image..."
-      docker tag "$IMAGE_NAME:$IMAGE_TAG_PREV" "$IMAGE_NAME:$IMAGE_TAG"
-      NO_PULL=1
+      ACTION="--rollback"
       ;;
     --no-pull|--no-build) NO_PULL=1 ;;
     --no-wait) NO_WAIT=1 ;;
@@ -94,6 +76,14 @@ while (( $# )); do
     --self-signed) TLS_MODE="self-signed" ;;
     --certs)       TLS_MODE="certs" ;;
     --no-tls)      TLS_MODE="none" ;;
+    --bind)
+      shift
+      BIND_ADDR="${1:?--bind requires an address (e.g. 127.0.0.1 or 0.0.0.0)}"
+      ;;
+    --slug)
+      shift
+      SLUG="${1:?--slug requires a name (alphanumerics + dashes)}"
+      ;;
     --help|-h)
       sed -n '3,22p' "$0" | sed 's/^# \?//'
       exit 0
@@ -101,6 +91,78 @@ while (( $# )); do
   esac
   shift
 done
+
+# ── Apply --slug (preview instance mode) ─────────────────────────────
+#
+# When --slug <name> is given we run a parallel preview container alongside
+# the production one. The slug is folded into:
+#   * CONTAINER_NAME — so `docker ps` lists each instance separately and the
+#     production rolling-deploy logic doesn't touch previews.
+#   * The host port — default to a deterministic port in the 8500–8999 range
+#     derived from the slug (so the same slug always lands on the same port)
+#     unless the caller passed NODETOOL_PORT explicitly.
+#
+# The slug must only contain characters that are safe in container names
+# (`[a-zA-Z0-9][a-zA-Z0-9_.-]*`).
+
+if [[ -n "$SLUG" ]]; then
+  if [[ ! "$SLUG" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,62}$ ]]; then
+    echo "ERROR: --slug must match [a-zA-Z0-9][a-zA-Z0-9_.-]{0,62} (got: $SLUG)"
+    exit 1
+  fi
+  CONTAINER_NAME="${CONTAINER_NAME}-${SLUG}"
+  if [[ -z "${NODETOOL_PORT:-}" ]]; then
+    # Deterministic port: hash(slug) -> 8500..8999. Keeps previews predictable
+    # across redeploys of the same branch without a central allocator.
+    SLUG_HASH=$(printf '%s' "$SLUG" | cksum | awk '{ print $1 }')
+    PORT=$(( 8500 + (SLUG_HASH % 500) ))
+  fi
+  # Preview pulls should not block waiting for CI — operator decides when the
+  # branch image is ready.
+  NO_WAIT=1
+fi
+
+# ── Deferred actions (honor --slug regardless of arg order) ──────────
+
+case "$ACTION" in
+  --logs)
+    docker logs -f "$CONTAINER_NAME" 2>&1
+    exit 0
+    ;;
+  --status)
+    echo "=== Container Status ==="
+    docker ps --filter "name=$CONTAINER_NAME" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+    echo ""
+    echo "=== Health Check ==="
+    if curl -fsk "https://localhost:${PORT}/health" 2>/dev/null; then
+      echo ""
+    elif curl -fs "http://localhost:${PORT}/health" 2>/dev/null; then
+      echo ""
+    else
+      echo "UNHEALTHY"
+    fi
+    echo ""
+    echo "=== Resource Usage ==="
+    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}" "$CONTAINER_NAME" 2>/dev/null || echo "Container not running"
+    exit 0
+    ;;
+  --stop)
+    echo "Stopping $CONTAINER_NAME..."
+    docker stop "$CONTAINER_NAME" 2>/dev/null || true
+    docker rm "$CONTAINER_NAME" 2>/dev/null || true
+    echo "Stopped."
+    exit 0
+    ;;
+  --rollback)
+    if ! docker image inspect "$IMAGE_NAME:$IMAGE_TAG_PREV" &>/dev/null; then
+      echo "ERROR: No rollback image found ($IMAGE_NAME:$IMAGE_TAG_PREV)"
+      exit 1
+    fi
+    echo "Rolling back to previous image..."
+    docker tag "$IMAGE_NAME:$IMAGE_TAG_PREV" "$IMAGE_NAME:$IMAGE_TAG"
+    NO_PULL=1
+    ;;
+esac
 
 # ── Preflight ────────────────────────────────────────────────────────
 
@@ -201,7 +263,7 @@ build_run_args() {
 
   RUN_ARGS=(
     -d --name "$name" --restart unless-stopped
-    -p "${host_port}:7777"
+    -p "${BIND_ADDR:+${BIND_ADDR}:}${host_port}:7777"
     --env-file "$SCRIPT_DIR/.env"
     -e HOST=0.0.0.0 -e PORT=7777
     -e NODETOOL_ENV=production
@@ -302,5 +364,7 @@ echo "  Rollback:  $0 --rollback"
 echo ""
 
 mkdir -p "$SCRIPT_DIR/.deploy"
-echo "PORT=${PORT}" > "$SCRIPT_DIR/.deploy/ports.env"
-echo "TLS_MODE=${TLS_MODE}" >> "$SCRIPT_DIR/.deploy/ports.env"
+PORTS_FILE="$SCRIPT_DIR/.deploy/ports${SLUG:+-${SLUG}}.env"
+echo "PORT=${PORT}" > "$PORTS_FILE"
+echo "TLS_MODE=${TLS_MODE}" >> "$PORTS_FILE"
+echo "CONTAINER=${CONTAINER_NAME}" >> "$PORTS_FILE"

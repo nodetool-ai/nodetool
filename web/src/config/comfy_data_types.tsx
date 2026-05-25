@@ -1,6 +1,5 @@
 import { DataType } from "./data_types";
 import { solarizedColors, monokaiColors } from "./comfy_colors";
-import comfy_taesd from "../icons/data_types/comfy/comfy_taesd.svg?react";
 import comfy_clip from "../icons/data_types/comfy/comfy_clip.svg?react";
 import comfy_clip_vision from "../icons/data_types/comfy/comfy_clip_vision.svg?react";
 import comfy_clip_vision_output from "../icons/data_types/comfy/comfy_clip_vision_output.svg?react";
@@ -23,7 +22,6 @@ export const comfyIconMap: Record<
   string,
   React.FC<React.SVGProps<SVGSVGElement>>
 > = {
-  "comfy.taesd": comfy_taesd,
   "comfy.clip": comfy_clip,
   "comfy.clip_vision": comfy_clip_vision,
   "comfy.clip_vision_output": comfy_clip_vision_output,

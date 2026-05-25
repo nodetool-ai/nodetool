@@ -2,7 +2,7 @@
 import { memo, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
 import PropertyLabel from "./PropertyLabel";
@@ -26,10 +26,14 @@ export type PropertyFieldProps = {
   showFields?: boolean;
   showHandle?: boolean;
   isInspector?: boolean;
+  /** When the inspector edits multiple nodes at once, reset/context actions apply to these ids. */
+  inspectorBatchNodeIds?: readonly string[];
   tabIndex?: number;
   isDynamicProperty?: boolean;
   hideActionIcons?: boolean;
   data: NodeData;
+  /** True when an edge is connected to this property's target handle. */
+  isConnected?: boolean;
   onValueChange?: (value: any) => void;
 };
 
@@ -45,10 +49,12 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   showFields = true,
   showHandle = true,
   isInspector,
+  inspectorBatchNodeIds,
   tabIndex,
   isDynamicProperty,
   hideActionIcons,
   data,
+  isConnected = false,
   onValueChange
 }) => {
   const controlKeyPressed = useKeyPressedStore((state) =>
@@ -59,12 +65,11 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   );
 
   const { connectType, connectDirection, connectNodeId } = useConnectionStore(
-    (state) => ({
+    useShallow((state) => ({
       connectType: state.connectType,
       connectDirection: state.connectDirection,
       connectNodeId: state.connectNodeId
-    }),
-    shallow
+    }))
   );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const validationError = usePropertyValidationStore((state) =>
@@ -117,18 +122,29 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
         "react-flow__pane",
         property.type,
         property.name,
-        property.description || undefined
+        property.description || undefined,
+        undefined,
+        inspectorBatchNodeIds?.length
+          ? { inspectorBatchNodeIds }
+          : undefined
       );
     },
-    [id, openContextMenu, property.description, property.name, property.type]
+    [
+      id,
+      inspectorBatchNodeIds,
+      openContextMenu,
+      property.description,
+      property.name,
+      property.type
+    ]
   );
 
   const fieldClass = `node-property ${Slugify(property.type.type)}${
     validationError ? " has-validation-error" : ""
-  }`;
+  }${isConnected ? " is-connected" : ""}`;
 
   const inner = (
-    <div className={fieldClass}>
+    <div className={fieldClass} data-property={property.name}>
       {showHandle && (
         <div className="handle-popup" style={handlePopupStyle}>
           <HandleTooltip
@@ -137,7 +153,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             className={classConnectable}
             handlePosition="left"
             isCollectInput={isCollectHandle}
-            enableHover={false}
+            enableHover={true}
           >
             <Handle
               type="target"
@@ -165,6 +181,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             isDynamicProperty={isDynamicProperty}
             hideActionIcons={hideActionIcons}
             data={data}
+            inspectorBatchNodeIds={inspectorBatchNodeIds}
             onValueChange={onValueChange}
           />
         </>

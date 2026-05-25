@@ -33,8 +33,7 @@ function mapComfyTypeToNodeToolType(comfyType: unknown): string {
     "STYLE_MODEL": "comfy.style_model",
     "GLIGEN": "comfy.gligen",
     "IP_ADAPTER": "comfy.ip_adapter",
-    "INSIGHTFACE": "comfy.insight_face",
-    "TAESD": "comfy.taesd"
+    "INSIGHTFACE": "comfy.insight_face"
   };
 
   if (typeof comfyType === "string" && comfyType.length > 0) {
@@ -179,7 +178,6 @@ export function comfySchemaToNodeMetadata(
     layout: "default",
 
     recommended_models: [],
-    basic_fields: properties.map((property) => property.name),
     is_dynamic: false,
     is_streaming_output: false,
     expose_as_tool: false,

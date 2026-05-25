@@ -7,7 +7,27 @@ import { fileURLToPath } from "node:url";
 
 export { loadKieNodesFromManifest, createKieNodeClass } from "./kie-factory.js";
 export type { KieManifestEntry } from "./kie-factory.js";
-export { getApiKey, kieExecuteTask, kieImageRef } from "./kie-base.js";
+export {
+  getApiKey,
+  isRefSet,
+  kieExecuteTask,
+  kieExecuteOmniDirect,
+  kieImageRef,
+  parseCreditsConsumed,
+  reportKieProviderCost,
+  uploadAudioInput,
+  uploadImageInput,
+  uploadVideoInput
+} from "./kie-base.js";
+export type { KieExecuteResult } from "./kie-base.js";
+export {
+  buildVideoClipsFromRefs,
+  readClipStart,
+  readClipEnd,
+  clampClipEnd,
+  MAX_VIDEO_CLIP_SPAN
+} from "./video-clip.js";
+export type { VideoClipPayload } from "./video-clip.js";
 
 function loadManifest(): KieManifestEntry[] {
   const dir = dirname(fileURLToPath(import.meta.url));

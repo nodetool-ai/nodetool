@@ -33,13 +33,13 @@ beforeEach(() => {
   useResultsStore.setState({
     results: {},
     outputResults: {},
+    providerCosts: {},
     progress: {},
     edges: {},
     chunks: {},
     tasks: {},
     toolCalls: {},
-    planningUpdates: {},
-    previews: {}
+    planningUpdates: {}
   });
   useStatusStore.setState({ statuses: {} });
   useLogsStore.setState({ logs: [], logsByNode: {} });
@@ -96,6 +96,25 @@ describe("handleUpdate", () => {
     const error = useErrorStore.getState().getError("workflow-1", "n1");
     expect(error).toBe("something failed");
     expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: "error" });
+  });
+
+  it("stores provider_cost on completed node_update", () => {
+    const update: NodeUpdate = {
+      type: "node_update",
+      node_id: "n1",
+      node_name: "Node 1",
+      node_type: "kie.test.Node",
+      status: "completed",
+      provider_cost: { provider: "kie", amount: 12, unit: "credits" }
+    };
+
+    handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
+
+    expect(useResultsStore.getState().getProviderCost("workflow-1", "n1")).toEqual({
+      provider: "kie",
+      amount: 12,
+      unit: "credits"
+    });
   });
 
   it("stores output result on output_update", () => {

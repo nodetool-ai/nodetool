@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry, hasStreamingOutput } from "@nodetool-ai/node-sdk";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { registerBaseNodes, WorkflowNode } from "../src/index.js";
@@ -87,7 +87,7 @@ describe("WorkflowNode", () => {
       "nodetool.workflows.workflow_node.Workflow"
     );
     expect(WorkflowNode.isDynamic).toBe(true);
-    expect(WorkflowNode.isStreamingOutput).toBe(true);
+    expect(hasStreamingOutput(WorkflowNode)).toBe(true);
   });
 
   it("returns empty output when no workflow_json is set", async () => {

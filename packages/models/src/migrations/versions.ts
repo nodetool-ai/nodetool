@@ -1402,5 +1402,49 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_timeline_sequence_updated");
       await db.execute("DROP TABLE IF EXISTS timeline_sequences");
     }
+  },
+
+  // ── Create image_documents ──────────────────────────────────────
+  {
+    version: "20260509_000000",
+    name: "create_image_documents",
+    createsTables: ["image_documents"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS image_documents (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          workflow_id TEXT,
+          name TEXT NOT NULL,
+          width INTEGER NOT NULL DEFAULT 1024,
+          height INTEGER NOT NULL DEFAULT 1024,
+          background_color TEXT NOT NULL DEFAULT '#ffffff',
+          document TEXT NOT NULL,
+          thumbnail_asset_id TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_image_document_user
+        ON image_documents (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_image_document_project
+        ON image_documents (project_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_image_document_updated
+        ON image_documents (updated_at)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_image_document_user");
+      await db.execute("DROP INDEX IF EXISTS idx_image_document_project");
+      await db.execute("DROP INDEX IF EXISTS idx_image_document_updated");
+      await db.execute("DROP TABLE IF EXISTS image_documents");
+    }
   }
 ];

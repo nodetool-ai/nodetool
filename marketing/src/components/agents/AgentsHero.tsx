@@ -48,9 +48,11 @@ export default function AgentsHero() {
             </h1>
 
             <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
-              Agents are nodes you wire into the same canvas as your image, video, and
-              text models. Give one an objective and it&apos;ll call the right models and
-              tools to finish the job — then hand the result to the next node.
+              Agents are nodes. Wire one into the same canvas as your image,
+              video, and text models, hand it an objective, and it picks the
+              tools, calls the models, and ships the result to the next node.
+              Reasoning lives on the canvas — not in a chat window you can&apos;t
+              re-run.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

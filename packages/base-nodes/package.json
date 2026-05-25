@@ -26,6 +26,7 @@
     "@napi-rs/canvas": "^0.1.65",
     "@nodetool-ai/agents": "*",
     "@nodetool-ai/code-runners": "*",
+    "@nodetool-ai/gpu": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/kie-nodes": "*",
@@ -64,7 +65,8 @@
     "sharp": "^0.34.5",
     "tesseract.js": "^7.0.0",
     "turndown": "^7.2.2",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

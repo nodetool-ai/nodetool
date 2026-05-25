@@ -112,7 +112,7 @@ export function areTypesCompatible(
 }
 
 /** Returns properties on `metadata` that are compatible with `outputType`. */
-export function getCompatibleInputs(
+function getCompatibleInputs(
   metadata: NodeMetadata,
   outputType: PropertyTypeMetadata
 ): Property[] {
@@ -148,7 +148,6 @@ export function chainToGraph(
       position: { x: 0, y: index * 200 },
       width: 280,
     },
-    sync_mode: "zip_all",
   }));
 
   const edges: Edge[] = connections.map((c, i) => ({

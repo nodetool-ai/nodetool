@@ -45,6 +45,8 @@ export class LoadModel3DFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = ["path"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -71,6 +73,8 @@ export class SaveModel3DFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = ["filename"];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",
@@ -137,6 +141,8 @@ export class SaveModel3DNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = ["name"];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",

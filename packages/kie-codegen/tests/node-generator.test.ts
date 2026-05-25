@@ -595,7 +595,7 @@ describe("Upload handling", () => {
         ]
       })
     );
-    expect(code).toContain("uploadImageInput(apiKey, this.image)");
+    expect(code).toContain("uploadImageInput(apiKey, this.image, context)");
     expect(code).toContain("imageUrl");
   });
 
@@ -610,7 +610,7 @@ describe("Upload handling", () => {
         ]
       })
     );
-    expect(code).toContain("uploadAudioInput(apiKey, this.audio_file)");
+    expect(code).toContain("uploadAudioInput(apiKey, this.audio_file, context)");
   });
 
   it("generates list upload", () => {
@@ -626,6 +626,39 @@ describe("Upload handling", () => {
     );
     expect(code).toContain("for (const item of");
     expect(code).toContain("imagesUrls");
+    expect(code).toContain("uploadImageInput(apiKey, item, context)");
+  });
+
+  it("generates list video upload", () => {
+    const code = gen.generateModule(
+      makeModule({
+        nodes: [
+          makeNode({
+            fields: [makeField({ name: "videos", type: "list[video]" })],
+            uploads: [{ field: "videos", kind: "video", isList: true }]
+          })
+        ]
+      })
+    );
+    expect(code).toContain('type: "list[video]"');
+    expect(code).toContain("uploadVideoInput(apiKey, item, context)");
+    expect(code).not.toContain('params["videos"] = String');
+  });
+
+  it("generates list audio upload", () => {
+    const code = gen.generateModule(
+      makeModule({
+        nodes: [
+          makeNode({
+            fields: [makeField({ name: "audios", type: "list[audio]" })],
+            uploads: [{ field: "audios", kind: "audio", isList: true }]
+          })
+        ]
+      })
+    );
+    expect(code).toContain('type: "list[audio]"');
+    expect(code).toContain("uploadAudioInput(apiKey, item, context)");
+    expect(code).not.toContain('params["audios"] = String');
   });
 
   it("generates grouped uploads into array param", () => {

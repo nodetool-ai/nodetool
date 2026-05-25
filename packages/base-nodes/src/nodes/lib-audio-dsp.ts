@@ -67,6 +67,8 @@ export class GainNode_ extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -121,6 +123,8 @@ export class DelayNode_ extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -222,6 +226,8 @@ export class HighPassFilterNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -276,6 +282,8 @@ export class LowPassFilterNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -330,6 +338,8 @@ export class HighShelfFilterNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -397,6 +407,8 @@ export class LowShelfFilterNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",
@@ -464,6 +476,8 @@ export class PeakFilterNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
 
   @prop({
     type: "audio",

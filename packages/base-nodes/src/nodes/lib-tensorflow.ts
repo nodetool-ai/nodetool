@@ -186,6 +186,8 @@ export class TensorflowMobileNetClassifyNode extends BaseNode {
   static readonly title = "TensorFlow MobileNet Classify";
   static readonly description =
     "Classify an image with the MobileNet ImageNet model from TensorFlow.js.\n    tensorflow, image, classification, mobilenet, imagenet";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "list" };
   static readonly exposeAsTool = true;
 
@@ -238,6 +240,8 @@ export class TensorflowMobileNetEmbeddingNode extends BaseNode {
   static readonly title = "TensorFlow MobileNet Embedding";
   static readonly description =
     "Extract a fixed-length feature embedding from an image using the MobileNet penultimate layer.\n    Useful as input to a custom classifier or nearest-neighbour search.\n    tensorflow, image, embedding, features, mobilenet, transfer learning";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "list" };
   static readonly exposeAsTool = true;
 
@@ -287,6 +291,8 @@ export class TensorflowCocoSsdDetectNode extends BaseNode {
   static readonly title = "TensorFlow COCO-SSD Detect";
   static readonly description =
     "Detect objects in an image using the COCO-SSD model from TensorFlow.js.\n    Returns class name, score and bounding box ({x, y, width, height}) for each detection.\n    tensorflow, object detection, coco, ssd, bounding box";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "list" };
   static readonly exposeAsTool = true;
 
@@ -362,6 +368,8 @@ export class TensorflowQnaNode extends BaseNode {
   static readonly title = "TensorFlow BERT QnA";
   static readonly description =
     "Answer a natural-language question against a passage of context using the TensorFlow.js BERT QnA model.\n    tensorflow, qna, bert, nlp, extractive, reading comprehension";
+  static readonly inlineFields = ["question", "passage"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = { output: "list" };
   static readonly exposeAsTool = true;
 

@@ -82,7 +82,7 @@ const uploadAsset = async (
       body: formData
     });
 
-    const data = (await response.json().catch(() => null)) as Asset | unknown;
+    const data: unknown = await response.json().catch(() => null);
 
     if (!response.ok) {
       throw data;
@@ -105,7 +105,7 @@ const uploadAsset = async (
   }
 };
 
-export type AssetQuery = {
+type AssetQuery = {
   cursor?: string;
   workflow_id?: string | null;
   parent_id?: string | null;
@@ -113,7 +113,7 @@ export type AssetQuery = {
   recursive?: boolean;
 };
 
-export type AssetSearchQuery = {
+type AssetSearchQuery = {
   query: string;
   content_type?: string;
   page_size?: number;
@@ -205,10 +205,6 @@ const buildFolderTree = (
   return sortedTree;
 };
 
-interface AssetTreeResponse {
-  assets: AssetTreeNode[];
-}
-
 export interface AssetTreeNode extends Asset {
   updated_at?: string;
   children: AssetTreeNode[];
@@ -248,9 +244,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves to the asset.
    */
   get: async (id: string) => {
-    const raw = (await trpcClient.assets.get.query({
+    const raw = await trpcClient.assets.get.query({
       id
-    })) as unknown as Asset;
+    });
     const data = normalizeAssetUrls(raw);
     get().add(data);
     return data;
@@ -271,11 +267,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ...(query.content_type ? { content_type: query.content_type } : {}),
       ...(query.workflow_id ? { workflow_id: query.workflow_id } : {})
     });
-    const normalized = normalizeAssetList(data.assets as unknown as Asset[]);
+    const normalized = normalizeAssetList(data.assets);
     for (const asset of normalized) {
       get().add(asset);
     }
-    return { ...(data as unknown as AssetList), assets: normalized };
+    return { ...data, assets: normalized };
   },
 
   /**
@@ -288,7 +284,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       content_type: "folder"
     });
     return buildFolderTree(
-      normalizeAssetList(data.assets as unknown as Asset[]),
+      normalizeAssetList(data.assets),
       sortBy === "updated_at" ? "updated_at" : "name"
     );
   },
@@ -309,10 +305,11 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     if (requestedFolderId) {
       const asset = await get().get(requestedFolderId);
       if (!isStillActive()) {
-        return { next: "", assets: [] } as AssetList;
+        const empty: AssetList = { next: "", assets: [] };
+        return empty;
       }
       setCurrentFolder(asset);
-      if (asset?.parent_id !== "") {
+      if (asset?.parent_id) {
         get()
           .get(asset.parent_id)
           .then((parent) => {
@@ -494,21 +491,19 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         ? disposition.split("filename=")[1]
         : "assets.zip";
 
-      // Check for Electron's API (could be window.electron or window.api)
       type ElectronSaveFile = (
         data: ArrayBuffer,
         filename: string,
         filters?: { name: string; extensions: string[] }[]
       ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
 
-      const electronApi =
-        (
-          window as unknown as {
-            electron?: { saveFile?: ElectronSaveFile };
-            api?: { saveFile?: ElectronSaveFile };
-          }
-        ).electron ||
-        (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
+      interface ElectronWindow {
+        electron?: { saveFile?: ElectronSaveFile };
+        api?: { saveFile?: ElectronSaveFile };
+      }
+
+      const win = window as unknown as ElectronWindow;
+      const electronApi = win.electron || win.api;
 
       if (electronApi?.saveFile) {
         const result = await electronApi.saveFile(data, filename, [
@@ -554,7 +549,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     // Use provided values or fall back to previous values for required fields.
     // This ensures we don't accidentally clear fields like parent_id when only
     // updating the name.
-    const data = (await trpcClient.assets.update.mutate({
+    const data = await trpcClient.assets.update.mutate({
       id: req.id,
       name: req.name !== undefined ? req.name : prev.name,
       parent_id:
@@ -570,7 +565,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ...(req.data_encoding !== undefined
         ? { data_encoding: req.data_encoding }
         : {})
-    })) as unknown as Asset;
+    });
     const normalized = normalizeAssetUrls(data);
     get().add(normalized);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);

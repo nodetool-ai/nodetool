@@ -1,7 +1,7 @@
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { FlexColumn } from "../../ui_primitives";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
 import { NodeErrors } from "../NodeErrors";
@@ -56,10 +56,7 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected, parentId, dragging } = props;
   const { workflow_id } = data;
   const isFocused = useNodeFocusStore((state) => state.focusedNodeId === id);
-  const updateNode = useNodes((state) => state.updateNode);
   const hasParent = Boolean(parentId);
-
-  const [showAdvancedFields, setShowAdvancedFields] = useState(false);
 
   const metadata = useMetadataStore((state) => state.getMetadata(type));
   const status = useStatusStore((state) => state.getStatus(workflow_id, id));
@@ -67,23 +64,6 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     status && status !== null && typeof status !== "object"
       ? status
       : undefined;
-
-  const meta = useMemo(() => {
-    if (!metadata) {
-      return { nodeBasicFields: [], hasAdvancedFields: false };
-    }
-    return {
-      nodeBasicFields: metadata.basic_fields || [],
-      hasAdvancedFields:
-        (metadata.properties?.length ?? 0) >
-        (metadata.basic_fields?.length ?? 0)
-    };
-  }, [metadata]);
-
-  const onToggleAdvancedFields = useCallback(() => {
-    setShowAdvancedFields((prev) => !prev);
-    updateNode(id, { height: undefined, measured: undefined });
-  }, [id, updateNode]);
 
   const headerTitle = useMemo(() => {
     if (!metadata) {
@@ -101,12 +81,10 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }
 
   return (
-    <Box
+    <FlexColumn
       className="workflow-node"
+      fullHeight
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
         minHeight: 100,
         padding: "0 !important",
         border: `1px solid ${WORKFLOW_HEADER_COLOR}40`,
@@ -138,8 +116,6 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         showResultButton={false}
         showInputsButton={false}
-        onShowResults={() => {}}
-        onShowInputs={() => {}}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={statusValue} />
@@ -148,16 +124,12 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         status={statusValue}
       />
-      <Box
+      <FlexColumn
         className="node-content-container"
+        fullWidth
         sx={{
           flex: "1 1 auto",
-          minHeight: 120,
-          width: "100%",
-          overflow: "visible",
-          display: "flex",
-          flexDirection: "column",
-          clipPath: "inset(0 -20px)"
+          minHeight: 120
         }}
       >
         <WorkflowNodeContent
@@ -165,15 +137,11 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           nodeType={type}
           nodeMetadata={metadata}
           data={data}
-          basicFields={meta.nodeBasicFields}
-          showAdvancedFields={showAdvancedFields}
-          hasAdvancedFields={meta.hasAdvancedFields}
-          onToggleAdvancedFields={onToggleAdvancedFields}
           status={statusValue}
           workflowId={workflow_id}
         />
-      </Box>
-    </Box>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

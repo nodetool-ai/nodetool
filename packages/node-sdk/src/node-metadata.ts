@@ -7,6 +7,7 @@
  */
 
 import type { NodeClass } from "./base-node.js";
+import { hasStreamingOutput } from "./base-node.js";
 import type {
   NodeMetadata,
   OutputSlotMetadata,
@@ -14,6 +15,10 @@ import type {
   TypeMetadata
 } from "./metadata.js";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
+import {
+  CorrelationMetadataError,
+  validateOutputCorrelation
+} from "./correlation-validation.js";
 
 export interface GetNodeMetadataOptions {
   pythonMetadata?: NodeMetadata;
@@ -151,7 +156,10 @@ function mergeMetadata(
         : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
     // Backfill optional fields from Python when TS doesn't set them
     layout: tsMetadata.layout ?? pyMetadata.layout,
-    model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs
+    model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
+    input_mode: tsMetadata.input_mode ?? pyMetadata.input_mode,
+    output_correlation:
+      tsMetadata.output_correlation ?? pyMetadata.output_correlation
   };
 }
 
@@ -210,57 +218,6 @@ function getOutputs(nodeClass: NodeClass): OutputSlotMetadata[] {
   return outputs;
 }
 
-/** Media/data types that represent primary node inputs (not tuning parameters). */
-const PRIMARY_INPUT_TYPES = new Set([
-  "image",
-  "video",
-  "audio",
-  "text",
-  "str",
-  "dataframe",
-  "tensor",
-  "folder",
-  "thread",
-  "thread_message",
-  "task",
-  "workflow",
-  "agent",
-  "any"
-]);
-
-/** Type-name prefixes that mark a prop as a model-selector and therefore primary. */
-const PRIMARY_TYPE_PREFIXES = ["tjs."];
-
-function isPrimaryType(typeName: string): boolean {
-  if (PRIMARY_INPUT_TYPES.has(typeName)) return true;
-  return PRIMARY_TYPE_PREFIXES.some((prefix) => typeName.startsWith(prefix));
-}
-
-/**
- * When a node doesn't explicitly set basicFields, derive them:
- * - Nodes with ≤3 properties: show all
- * - Nodes with >3 properties: primary inputs (media/data types,
- *   model-selector types like `tjs.*`) and required props are basic;
- *   scalar tuning params are advanced.
- * - If heuristic produces no basic or no advanced fields, show all.
- */
-function deriveBasicFields(properties: PropertyMetadata[]): string[] {
-  const allNames = properties.map((p) => p.name);
-  if (properties.length <= 3) return allNames;
-
-  const basic = properties
-    .filter(
-      (p) => p.required || isPrimaryType(p.type.type)
-    )
-    .map((p) => p.name);
-
-  // If heuristic is unhelpful (all or none are basic), show everything
-  if (basic.length === 0 || basic.length >= properties.length) {
-    return allNames;
-  }
-  return basic;
-}
-
 export function getNodeMetadata(
   nodeClass: NodeClass,
   options: GetNodeMetadataOptions = {}
@@ -276,6 +233,18 @@ export function getNodeMetadata(
     type: toMetadataType(o.type)
   }));
 
+  if (nodeClass.outputCorrelation) {
+    const issues = validateOutputCorrelation(
+      nodeType,
+      nodeClass.inputMode,
+      nodeClass.outputCorrelation,
+      outputs.map((o) => o.name)
+    );
+    if (issues.length > 0) {
+      throw new CorrelationMetadataError(issues);
+    }
+  }
+
   const tsMetadata: NodeMetadata = {
     title: nodeClass.title || nodeType,
     description: nodeClass.description || "",
@@ -286,14 +255,16 @@ export function getNodeMetadata(
     outputs,
 
     recommended_models: nodeClass.recommendedModels ?? [],
-    basic_fields:
-      nodeClass.basicFields ??
-      deriveBasicFields(properties),
+    inline_fields: nodeClass.inlineFields,
+    input_fields: nodeClass.inputFields,
     required_settings: nodeClass.requiredSettings ?? [],
     required_runtimes: nodeClass.requiredRuntimes ?? [],
     is_streaming_input: nodeClass.isStreamingInput || false,
-    is_streaming_output: nodeClass.isStreamingOutput || false,
+    is_streaming_output: hasStreamingOutput(nodeClass),
+    input_mode: nodeClass.inputMode,
+    output_correlation: nodeClass.outputCorrelation,
     is_controlled: nodeClass.isControlled || false,
+    is_join_node: nodeClass.isJoinNode || undefined,
     is_dynamic: nodeClass.isDynamic || false,
     expose_as_tool: nodeClass.exposeAsTool,
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,

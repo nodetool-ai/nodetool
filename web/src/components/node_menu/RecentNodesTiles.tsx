@@ -5,14 +5,13 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { DragEvent as ReactDragEvent } from "react";
-import { Tooltip, Text, ToolbarIconButton, FlexRow, thinScrollbarStyles } from "../ui_primitives";
-import HistoryIcon from "@mui/icons-material/History";
+import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles } from "../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useCreateNode } from "../../hooks/useCreateNode";
+import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
@@ -174,7 +173,11 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
-  const handleCreateNode = useCreateNode();
+  // Route click-to-add via PendingNodeCreateStore so this component can be
+  // rendered outside the workflow editor's ReactFlowProvider (e.g. from the
+  // left-panel Search view). The `<NodeCreateBridge />` inside the active
+  // tab's ReactFlowProvider consumes the request.
+  const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
 
   // Use data attributes to avoid creating new function references on each render
   // This is more efficient than curried handlers which create new closures
@@ -226,9 +229,9 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
         return;
       }
 
-      handleCreateNode(metadata);
+      requestCreate(metadata);
     },
-    [getMetadata, addNotification, handleCreateNode]
+    [getMetadata, addNotification, requestCreate]
   );
 
   const handleTileMouseEnter = useCallback(
@@ -288,10 +291,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   return (
     <div css={memoizedStyles}>
       <div className="tiles-header">
-        <FlexRow align="center" gap={0.5}>
-          <HistoryIcon fontSize="small" sx={{ opacity: 0.8 }} />
-          <Text size="normal" weight={600}>Recent Nodes</Text>
-        </FlexRow>
+        <Text size="normal" weight={600}>Recent Nodes</Text>
         <ToolbarIconButton
           icon={<ClearIcon fontSize="small" />}
           tooltip="Clear recent nodes"

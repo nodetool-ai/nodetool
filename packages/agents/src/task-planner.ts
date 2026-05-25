@@ -35,7 +35,6 @@ import {
   RemoveTaskTool,
   FinishPlanTool
 } from "./tools/plan-builder-tools.js";
-import { rejectAgenticProvider } from "./reject-agentic-provider.js";
 
 const MAX_RETRIES = 3;
 const MAX_PER_TASK_RETRIES = 3;
@@ -210,7 +209,6 @@ export class TaskPlanner {
     objective: string,
     _context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, Task | null> {
-    rejectAgenticProvider(this.provider, "TaskPlanner.plan");
     const toolsInfo = this.formatToolsInfo();
 
     const userPrompt = TASK_CREATION_PROMPT_TEMPLATE
@@ -355,8 +353,6 @@ export class TaskPlanner {
       status: "started",
       content: "Starting parallel task planning..."
     } satisfies PlanningUpdate;
-
-    rejectAgenticProvider(this.provider, "TaskPlanner.planMultiTask");
 
     const builder = new PlanBuilder(this.inputs);
     const addTaskTool = new AddTaskTool(builder);

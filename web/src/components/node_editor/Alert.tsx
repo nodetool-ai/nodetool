@@ -12,8 +12,14 @@ import {
 import { CopyButton } from "../ui_primitives";
 import { NOTIFICATION_TIMEOUT_DEFAULT } from "../../config/constants";
 
-const TRANSITION_DURATION = 300; // Duration for fade in/out animations
-const MAX_WIDTH = "500px";
+const TRANSITION_DURATION = 300;
+const ENTER_OFFSET_Y = 12;
+
+const easing = {
+  entering: "cubic-bezier(0, 0, 0.2, 1)",
+  exiting: "cubic-bezier(0.4, 0, 1, 1)"
+};
+const MAX_WIDTH = "440px";
 const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   const typeMap: Record<string, AlertColor> = {
     error: "error",
@@ -32,20 +38,44 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
 const styles = () =>
   css({
     position: "fixed",
-    top: "60px",
-    right: "2em",
-    zIndex: 10000,
+    top: "68px",
+    right: "calc(2em + 24px)",
+    zIndex: "var(--zIndex-popover)",
     display: "flex",
     flexDirection: "column",
     gap: "2px",
     alignItems: "flex-end",
+    ".MuiAlert-root": {
+      minHeight: "unset",
+      paddingTop: "6px",
+      paddingBottom: "6px",
+      paddingLeft: "10px",
+      paddingRight: "8px",
+      alignItems: "flex-start",
+      "& .MuiAlert-icon": {
+        marginRight: "8px",
+        paddingTop: "2px",
+        opacity: 0.92,
+        "& svg": {
+          fontSize: "1.125rem"
+        }
+      },
+      "& .MuiAlert-action": {
+        paddingTop: 0,
+        marginRight: "-4px",
+        alignItems: "flex-start",
+        "& .MuiIconButton-root": {
+          padding: "4px"
+        }
+      }
+    },
     ".MuiAlert-message": {
-      padding: "0.5em 2em 0.2em 0",
-      lineHeight: "1.2em",
-      fontSize: "var(--fontSizeBig)",
+      padding: "0.2em 1.5em 0.1em 0",
+      lineHeight: 1.35,
+      fontSize: "var(--fontSizeSmall)",
       overflowX: "hidden",
       overflowY: "auto",
-      maxHeight: "300px",
+      maxHeight: "240px",
       wordWrap: "break-word",
       overflowWrap: "break-word",
       whiteSpace: "pre-wrap"
@@ -56,31 +86,32 @@ const styles = () =>
     ".copy-button": {
       position: "absolute",
       opacity: 0.8,
-      top: "13px",
-      right: "30px"
+      top: "9px",
+      right: "26px"
     },
     ".copy-button.has-action": {
-      right: "120px" // Move further left when action button is present
+      right: "108px"
     },
     li: {
       listStyleType: "none",
       maxWidth: MAX_WIDTH,
-      transition: "all 0.3s ease-in-out",
       "&.alert-enter": {
         opacity: 0,
-        transform: "translateX(100%)"
+        transform: `translateY(${ENTER_OFFSET_Y}px)`
       },
       "&.alert-enter-active": {
         opacity: 1,
-        transform: "translateX(0)"
+        transform: "translateY(0)",
+        transition: `opacity ${TRANSITION_DURATION}ms ${easing.entering}, transform ${TRANSITION_DURATION}ms ${easing.entering}`
       },
       "&.alert-exit": {
         opacity: 1,
-        transform: "translateX(0)"
+        transform: "translateY(0)"
       },
       "&.alert-exit-active": {
         opacity: 0,
-        transform: "translateX(100%)"
+        transform: `translateY(${ENTER_OFFSET_Y}px)`,
+        transition: `opacity ${TRANSITION_DURATION}ms ${easing.exiting}, transform ${TRANSITION_DURATION}ms ${easing.exiting}`
       }
     }
   });

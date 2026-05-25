@@ -18,12 +18,18 @@ import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import ApiIcon from "@mui/icons-material/Api";
 import CodeIcon from "@mui/icons-material/Code";
+import HighQualityIcon from "@mui/icons-material/HighQuality";
+import LayersClearIcon from "@mui/icons-material/LayersClear";
+import WbSunnyIcon from "@mui/icons-material/WbSunny";
+import PolylineIcon from "@mui/icons-material/Polyline";
+import MovieFilterIcon from "@mui/icons-material/MovieFilter";
+import MusicVideoIcon from "@mui/icons-material/MusicVideo";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useCreateNode } from "../../hooks/useCreateNode";
+import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { IconForType, colorForType } from "../../config/data_types";
@@ -68,21 +74,27 @@ const buildQuickAction = (
 /** Shorthand: pass rgb values (no alpha) as "rgb(r, g, b)" */
 const rgb = (r: number, g: number, b: number) => `rgba(${r}, ${g}, ${b}`;
 
-const QUICK_ACTION_AI_NODE_TYPES = QUICK_ACTION_NODE_TYPES.slice(0, 11);
-const QUICK_ACTION_CONSTANT_NODE_TYPES = QUICK_ACTION_NODE_TYPES.slice(11);
+const QUICK_ACTION_AI_NODE_TYPES = QUICK_ACTION_NODE_TYPES.slice(0, 17);
+const QUICK_ACTION_CONSTANT_NODE_TYPES = QUICK_ACTION_NODE_TYPES.slice(17);
 
 export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
   buildQuickAction("agent", "Agent", QUICK_ACTION_AI_NODE_TYPES[0], <SupportAgentIcon />, rgb(79, 70, 229), rgb(99, 102, 241), "#4f46e5"),
   buildQuickAction("code", "Code", QUICK_ACTION_AI_NODE_TYPES[1], <CodeIcon />, rgb(34, 197, 94), rgb(74, 222, 128), "#16a34a"),
   buildQuickAction("text-to-image", "Text to Image", QUICK_ACTION_AI_NODE_TYPES[2], <ImageIcon />, rgb(236, 72, 153), rgb(244, 114, 182), "#db2777"),
   buildQuickAction("image-to-image", "Image to Image", QUICK_ACTION_AI_NODE_TYPES[3], <AutoFixHighIcon />, rgb(16, 185, 129), rgb(52, 211, 153), "#059669"),
-  buildQuickAction("text-to-video", "Text to Video", QUICK_ACTION_AI_NODE_TYPES[4], <VideoLibraryIcon />, rgb(168, 85, 247), rgb(192, 132, 252), "#9333ea"),
-  buildQuickAction("image-to-video", "Image to Video", QUICK_ACTION_AI_NODE_TYPES[5], <OndemandVideoIcon />, rgb(249, 115, 22), rgb(251, 146, 60), "#ea580c"),
-  buildQuickAction("text-to-speech", "Text to Speech", QUICK_ACTION_AI_NODE_TYPES[6], <RecordVoiceOverIcon />, rgb(6, 182, 212), rgb(34, 211, 238), "#0891b2"),
-  buildQuickAction("speech-to-text", "Speech to Text", QUICK_ACTION_AI_NODE_TYPES[7], <KeyboardVoiceIcon />, rgb(14, 165, 233), rgb(56, 189, 248), "#0284c7"),
-  buildQuickAction("fal-dynamic", "FalAI", QUICK_ACTION_AI_NODE_TYPES[8], <ApiIcon />, rgb(139, 92, 246), rgb(167, 139, 250), "#7c3aed"),
-  buildQuickAction("kie-dynamic", "KieAI", QUICK_ACTION_AI_NODE_TYPES[9], <ApiIcon />, rgb(229, 92, 32), rgb(255, 140, 66), "#d94a12"),
-  buildQuickAction("replicate-dynamic", "Replicate", QUICK_ACTION_AI_NODE_TYPES[10], <ApiIcon />, rgb(59, 130, 246), rgb(129, 140, 248), "#2563eb")
+  buildQuickAction("upscale", "Upscale", QUICK_ACTION_AI_NODE_TYPES[4], <HighQualityIcon />, rgb(217, 70, 239), rgb(232, 121, 249), "#c026d3"),
+  buildQuickAction("remove-background", "Remove Background", QUICK_ACTION_AI_NODE_TYPES[5], <LayersClearIcon />, rgb(20, 184, 166), rgb(45, 212, 191), "#0d9488"),
+  buildQuickAction("relight", "Relight", QUICK_ACTION_AI_NODE_TYPES[6], <WbSunnyIcon />, rgb(245, 158, 11), rgb(251, 191, 36), "#d97706"),
+  buildQuickAction("vectorize", "Vectorize", QUICK_ACTION_AI_NODE_TYPES[7], <PolylineIcon />, rgb(132, 204, 22), rgb(163, 230, 53), "#65a30d"),
+  buildQuickAction("text-to-video", "Text to Video", QUICK_ACTION_AI_NODE_TYPES[8], <VideoLibraryIcon />, rgb(168, 85, 247), rgb(192, 132, 252), "#9333ea"),
+  buildQuickAction("image-to-video", "Image to Video", QUICK_ACTION_AI_NODE_TYPES[9], <OndemandVideoIcon />, rgb(249, 115, 22), rgb(251, 146, 60), "#ea580c"),
+  buildQuickAction("video-to-video", "Video to Video", QUICK_ACTION_AI_NODE_TYPES[10], <MovieFilterIcon />, rgb(244, 63, 94), rgb(251, 113, 133), "#e11d48"),
+  buildQuickAction("lip-sync", "Lip Sync", QUICK_ACTION_AI_NODE_TYPES[11], <MusicVideoIcon />, rgb(217, 70, 239), rgb(240, 171, 252), "#c026d3"),
+  buildQuickAction("text-to-speech", "Text to Speech", QUICK_ACTION_AI_NODE_TYPES[12], <RecordVoiceOverIcon />, rgb(6, 182, 212), rgb(34, 211, 238), "#0891b2"),
+  buildQuickAction("speech-to-text", "Speech to Text", QUICK_ACTION_AI_NODE_TYPES[13], <KeyboardVoiceIcon />, rgb(14, 165, 233), rgb(56, 189, 248), "#0284c7"),
+  buildQuickAction("fal-dynamic", "FalAI", QUICK_ACTION_AI_NODE_TYPES[14], <ApiIcon />, rgb(139, 92, 246), rgb(167, 139, 250), "#7c3aed"),
+  buildQuickAction("kie-dynamic", "KieAI", QUICK_ACTION_AI_NODE_TYPES[15], <ApiIcon />, rgb(229, 92, 32), rgb(255, 140, 66), "#d94a12"),
+  buildQuickAction("replicate-dynamic", "Replicate", QUICK_ACTION_AI_NODE_TYPES[16], <ApiIcon />, rgb(59, 130, 246), rgb(129, 140, 248), "#2563eb")
 ];
 
 const hexToRgba = (hex: string, alpha: number) => {
@@ -137,7 +149,7 @@ const buildConstantNode = ({
   };
 };
 
-export const CONSTANT_NODES: QuickActionDefinition[] = [
+const CONSTANT_NODES: QuickActionDefinition[] = [
   buildConstantNode({
     key: "constant-bool",
     label: "Bool",
@@ -367,10 +379,10 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
-  const { setDragToCreate, setHoveredNode } = useNodeMenuStore((state) => ({
+  const { setDragToCreate, setHoveredNode } = useNodeMenuStore(useShallow((state) => ({
     setDragToCreate: state.setDragToCreate,
     setHoveredNode: state.setHoveredNode
-  }), shallow);
+  })));
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -378,7 +390,9 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
-  const handleCreateNode = useCreateNode();
+  // Route click-to-add via PendingNodeCreateStore so this component is safe
+  // to render outside the editor's ReactFlowProvider.
+  const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
 
   const handleDragStart = useCallback(
     (event: ReactDragEvent<HTMLDivElement>) => {
@@ -428,9 +442,9 @@ const QuickActionTiles = memo(function QuickActionTiles() {
         return;
       }
 
-      handleCreateNode(metadata);
+      requestCreate(metadata);
     },
-    [getMetadata, addNotification, handleCreateNode]
+    [getMetadata, addNotification, requestCreate]
   );
 
   const onTileMouseEnter = useCallback(

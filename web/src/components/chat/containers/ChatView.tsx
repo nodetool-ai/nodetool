@@ -15,6 +15,7 @@ import {
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
+import ComposerSlot from "../composer/ComposerSlot";
 import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
@@ -138,6 +139,13 @@ type ChatViewProps = {
    * buttons). Only used when composerVariant is "simple".
    */
   composerToolbar?: React.ReactNode;
+  /**
+   * When true, ChatView does not render its own composer. Instead it renders a
+   * bottom ComposerSlot wired to its send handler, and the shared
+   * PersistentComposer (from ChatComposerLayout) is positioned over it. Used by
+   * GlobalChat so the composer persists across /dashboard → /chat.
+   */
+  useExternalComposer?: boolean;
 };
 
 const ChatView = ({
@@ -175,7 +183,8 @@ const ChatView = ({
   requireToolSupport,
   workflowId,
   composerVariant,
-  composerToolbar
+  composerToolbar,
+  useExternalComposer = false
 }: ChatViewProps) => {
   const theme = useTheme();
   const handleSendMessage = useCallback(
@@ -251,29 +260,33 @@ const ChatView = ({
         )}
       </div>
 
-      <ChatInputSection
-        status={status}
-        showToolbar={showToolbar}
-        onSendMessage={handleSendMessage}
-        onStop={onStop}
-        onNewChat={onNewChat}
-        selectedTools={selectedTools}
-        onToolsChange={onToolsChange}
-        selectedCollections={selectedCollections}
-        onCollectionsChange={onCollectionsChange}
-        selectedModel={model}
-        onModelChange={onModelChange}
-        agentMode={agentMode}
-        onAgentModeToggle={onAgentModeToggle}
-        agentPlanner={agentPlanner}
-        onAgentPlannerChange={onAgentPlannerChange}
-        memoryEnabled={memoryEnabled}
-        onMemoryToggle={onMemoryToggle}
-        allowedProviders={allowedProviders}
-        requireToolSupport={requireToolSupport}
-        variant={composerVariant}
-        composerToolbar={composerToolbar}
-      />
+      {useExternalComposer ? (
+        <ComposerSlot className="chat-input-section" onSend={handleSendMessage} />
+      ) : (
+        <ChatInputSection
+          status={status}
+          showToolbar={showToolbar}
+          onSendMessage={handleSendMessage}
+          onStop={onStop}
+          onNewChat={onNewChat}
+          selectedTools={selectedTools}
+          onToolsChange={onToolsChange}
+          selectedCollections={selectedCollections}
+          onCollectionsChange={onCollectionsChange}
+          selectedModel={model}
+          onModelChange={onModelChange}
+          agentMode={agentMode}
+          onAgentModeToggle={onAgentModeToggle}
+          agentPlanner={agentPlanner}
+          onAgentPlannerChange={onAgentPlannerChange}
+          memoryEnabled={memoryEnabled}
+          onMemoryToggle={onMemoryToggle}
+          allowedProviders={allowedProviders}
+          requireToolSupport={requireToolSupport}
+          variant={composerVariant}
+          composerToolbar={composerToolbar}
+        />
+      )}
     </div>
   );
 };

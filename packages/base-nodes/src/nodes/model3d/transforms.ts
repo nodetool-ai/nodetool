@@ -12,6 +12,8 @@ export class Transform3DNode extends GlbTransformNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",
@@ -75,6 +77,8 @@ export class CenterMeshNode extends GlbTransformNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",
@@ -105,6 +109,8 @@ export class NormalizeModel3DNode extends GlbTransformNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",

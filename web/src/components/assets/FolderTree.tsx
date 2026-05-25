@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo } from "react";
-import { Box } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { EditorButton, Box } from "../ui_primitives";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { type AssetTreeNode } from "../../stores/AssetStore";
@@ -64,7 +63,8 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   sortBy = "name"
 }) => {
   const theme = useTheme();
-  
+  const treeStyles = useMemo(() => styles(theme), [theme]);
+
   // Fetch folder tree using useQuery
   const { data: folderTree = {} } = useFolderTree(sortBy);
 
@@ -110,7 +110,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   );
 
   return (
-    <Box className="folder-tree" css={styles(theme)}>
+    <Box className="folder-tree" css={treeStyles}>
       <SimpleTreeView
         className="tree-view"
         expandedItems={expandedItems}
@@ -123,4 +123,4 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   );
 };
 
-export default FolderTree;
+export default React.memo(FolderTree);

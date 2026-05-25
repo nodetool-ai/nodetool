@@ -32,11 +32,13 @@ jest.mock("../../../contexts/NodeContext", () => ({
     updateNode: typeof mockUpdateNode;
     updateNodeData: typeof mockUpdateNodeData;
     workflow: { id: string };
+    findNode: () => undefined;
   }) => unknown) =>
     selector({
       updateNode: mockUpdateNode,
       updateNodeData: mockUpdateNodeData,
-      workflow: { id: "wf-1" }
+      workflow: { id: "wf-1" },
+      findNode: () => undefined
     })
   )
 }));
@@ -52,10 +54,7 @@ jest.mock("../NodeLogs", () => ({
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NodeHeader from "../NodeHeader";
-import {
-  resolveCodeNodeTitle,
-  resolveVisibleBasicFields
-} from "../codeNodeUi";
+import { resolveCodeNodeTitle } from "../codeNodeUi";
 import type { NodeData } from "../../../stores/NodeData";
 
 function makeNodeData(overrides: Partial<NodeData> = {}): NodeData {
@@ -75,13 +74,6 @@ describe("code node UI helpers", () => {
     );
   });
 
-  it("hides the code field from snippet code nodes by default", () => {
-    expect(
-      resolveVisibleBasicFields("nodetool.code.Code", ["code", "timeout"], {
-        codeNodeMode: "snippet"
-      } as NodeData)
-    ).toEqual(["timeout"]);
-  });
 });
 
 describe("NodeHeader code node title editing", () => {

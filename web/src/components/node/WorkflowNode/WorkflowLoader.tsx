@@ -1,10 +1,9 @@
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
 import {
-  Box,
   Autocomplete,
   TextField
 } from "@mui/material";
-import { Caption, LoadingSpinner } from "../../ui_primitives";
+import { Caption, LoadingSpinner, Box } from "../../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import isEqual from "fast-deep-equal";
 import { useNodes } from "../../../contexts/NodeContext";
@@ -53,7 +52,13 @@ interface WorkflowLoaderProps {
  * Extract dynamic inputs and outputs from a workflow's input/output nodes.
  * Input nodes become dynamic inputs; Output nodes become dynamic outputs.
  */
-export function extractDynamicIO(workflow: Workflow) {
+interface DynamicIO {
+  dynamic_inputs: Record<string, TypeMetadata & { description?: string }>;
+  dynamic_outputs: Record<string, TypeMetadata>;
+  dynamic_properties: Record<string, unknown>;
+}
+
+export function extractDynamicIO(workflow: Workflow): DynamicIO {
   const graph = workflow.graph;
   if (!graph || !graph.nodes) {
     return { dynamic_inputs: {}, dynamic_outputs: {}, dynamic_properties: {} };

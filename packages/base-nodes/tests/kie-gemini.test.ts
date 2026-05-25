@@ -251,7 +251,7 @@ describe("ImageGenerationNode", () => {
 
     node.assign({
       prompt: "a cat",
-      model: "imagen-3.0-generate-002"
+      model: "imagen-4.0-generate-001"
     });
 
     node.setDynamic("_secrets", secrets._secrets);
@@ -425,7 +425,7 @@ describe("ImageGenerationNode", () => {
 
     node.assign({
       prompt: "cat",
-      model: "imagen-3.0-generate-002"
+      model: "imagen-4.0-generate-001"
     });
 
     node.setDynamic("_secrets", secrets._secrets);
@@ -440,7 +440,7 @@ describe("ImageGenerationNode", () => {
 
     node.assign({
       prompt: "cat",
-      model: "imagen-3.0-generate-002"
+      model: "imagen-4.0-generate-001"
     });
 
     node.setDynamic("_secrets", secrets._secrets);
@@ -453,7 +453,7 @@ describe("ImageGenerationNode", () => {
 
     node.assign({
       prompt: "cat",
-      model: "imagen-3.0-generate-002"
+      model: "imagen-4.0-generate-001"
     });
 
     node.setDynamic("_secrets", secrets._secrets);
@@ -1163,7 +1163,7 @@ describe("Node defaults coverage", () => {
     const node = new ImageGenerationNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("imagen-3.0-generate-002");
+    expect(d.model).toBe("imagen-4.0-generate-001");
   });
 
   it("TextToVideoGeminiNode defaults", () => {

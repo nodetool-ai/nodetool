@@ -17,6 +17,8 @@ export class RecalculateNormalsNode extends GlbTransformNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",
@@ -59,6 +61,8 @@ export class FlipNormalsNode extends GlbTransformNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",
@@ -81,6 +85,8 @@ export class ExtractLargestComponentNode extends GlbTransformNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",
@@ -103,6 +109,8 @@ export class RepairMeshNode extends GlbTransformNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["model"];
 
   @prop({
     type: "model_3d",

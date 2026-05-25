@@ -1,6 +1,5 @@
 import {
   formatFileSize,
-  getSizeCategory,
   SIZE_FILTERS,
   formatToolName
 } from "./formatUtils";
@@ -43,35 +42,6 @@ describe("formatUtils", () => {
 
     it("handles negative decimals by using 0", () => {
       expect(formatFileSize(1536, -1)).toBe("2 KB");
-    });
-  });
-
-  describe("getSizeCategory", () => {
-    it("returns 'empty' for 0 bytes", () => {
-      expect(getSizeCategory(0)).toBe("empty");
-    });
-
-    it("returns 'small' for < 1MB", () => {
-      expect(getSizeCategory(500)).toBe("small");
-      expect(getSizeCategory(1024 * 512)).toBe("small");
-      expect(getSizeCategory(1024 * 1024 - 1)).toBe("small");
-    });
-
-    it("returns 'medium' for 1-10MB", () => {
-      expect(getSizeCategory(1024 * 1024)).toBe("medium");
-      expect(getSizeCategory(1024 * 1024 * 5)).toBe("medium");
-      expect(getSizeCategory(1024 * 1024 * 10 - 1)).toBe("medium");
-    });
-
-    it("returns 'large' for 10-100MB", () => {
-      expect(getSizeCategory(1024 * 1024 * 10)).toBe("large");
-      expect(getSizeCategory(1024 * 1024 * 50)).toBe("large");
-      expect(getSizeCategory(1024 * 1024 * 100 - 1)).toBe("large");
-    });
-
-    it("returns 'xlarge' for > 100MB", () => {
-      expect(getSizeCategory(1024 * 1024 * 100)).toBe("xlarge");
-      expect(getSizeCategory(1024 * 1024 * 1024)).toBe("xlarge");
     });
   });
 

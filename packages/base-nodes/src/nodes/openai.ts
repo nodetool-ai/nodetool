@@ -27,6 +27,8 @@ function authHeaders(apiKey: string): Record<string, string> {
 export class EmbeddingNode extends BaseNode {
   static readonly nodeType = "openai.text.Embedding";
   static readonly title = "Embedding";
+  static readonly inlineFields = ["input"];
+  static readonly inputFields: string[] = [];
   static readonly description =
     "Generate vector representations of text for semantic analysis.\n    embeddings, similarity, search, clustering, classification\n\n    Uses OpenAI's embedding models to create dense vector representations of text.\n    These vectors capture semantic meaning, enabling:\n    - Semantic search\n    - Text clustering\n    - Document classification\n    - Recommendation systems\n    - Anomaly detection\n    - Measuring text similarity and diversity";
   static readonly metadataOutputTypes = {
@@ -95,6 +97,8 @@ export class EmbeddingNode extends BaseNode {
 export class WebSearchNode extends BaseNode {
   static readonly nodeType = "openai.text.WebSearch";
   static readonly title = "Web Search";
+  static readonly inlineFields = ["query"];
+  static readonly inputFields: string[] = [];
   static readonly description =
     "🔍 OpenAI Web Search - Searches the web using OpenAI's web search capabilities.\n\n    This node uses an OpenAI model equipped with web search functionality\n    (like gpt-4o with search preview) to answer queries based on current web information.\n    Requires an OpenAI API key.";
   static readonly metadataOutputTypes = {
@@ -156,7 +160,8 @@ export class ModerationNode extends BaseNode {
     categories: "dict[str, bool]",
     category_scores: "dict[str, float]"
   };
-  static readonly basicFields = ["input"];
+  static readonly inlineFields = ["input"];
+  static readonly inputFields: string[] = [];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly exposeAsTool = true;
 
@@ -219,6 +224,8 @@ export class ModerationNode extends BaseNode {
 export class CreateImageNode extends BaseNode {
   static readonly nodeType = "openai.image.CreateImage";
   static readonly title = "Create Image";
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly description =
     "Generates images from textual descriptions.\n    image, t2i, tti, text-to-image, create, generate, picture, photo, art, drawing, illustration";
   static readonly metadataOutputTypes = {
@@ -318,6 +325,8 @@ export class CreateImageNode extends BaseNode {
 export class EditImageNode extends BaseNode {
   static readonly nodeType = "openai.image.EditImage";
   static readonly title = "Edit Image";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image", "mask"];
   static readonly description =
     "Edit images using OpenAI's gpt-image-1 model.\n    image, edit, modify, transform, inpaint, outpaint, variation\n\n    Takes an input image and a text prompt to generate a modified version.\n    Can be used for inpainting, outpainting, style transfer, and image modification.\n    Optionally accepts a mask to specify which areas to edit.";
   static readonly metadataOutputTypes = {
@@ -480,7 +489,8 @@ export class TextToSpeechNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
-  static readonly basicFields = ["input", "model", "voice"];
+  static readonly inlineFields = ["input"];
+  static readonly inputFields: string[] = [];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
@@ -554,6 +564,8 @@ export class TextToSpeechNode extends BaseNode {
 export class TranslateNode extends BaseNode {
   static readonly nodeType = "openai.audio.Translate";
   static readonly title = "Translate";
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["audio"];
   static readonly description =
     "Translates speech in audio to English text.\n    audio, translation, speech-to-text, localization";
   static readonly metadataOutputTypes = {
@@ -625,7 +637,8 @@ export class TranscribeNode extends BaseNode {
     words: "list[audio_chunk]",
     segments: "list[audio_chunk]"
   };
-  static readonly basicFields = ["audio", "language", "timestamps"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["audio", "prompt"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly exposeAsTool = true;
 
@@ -852,11 +865,11 @@ export class RealtimeAgentNode extends BaseNode {
     audio: "audio",
     text: "str"
   };
-  static readonly basicFields = ["model", "system", "chunk", "speed"];
+  static readonly inlineFields = ["system"];
+  static readonly inputFields = ["chunk"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "enum",
@@ -1158,6 +1171,8 @@ export class RealtimeAgentNode extends BaseNode {
 export class RealtimeTranscriptionNode extends BaseNode {
   static readonly nodeType = "openai.agents.RealtimeTranscription";
   static readonly title = "Realtime Transcription";
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["chunk"];
   static readonly description =
     "Realtime speech-to-text using OpenAI's WebSocket Realtime API.\n" +
     "Streams audio chunks in and receives transcription results in real-time.\n" +
@@ -1169,7 +1184,6 @@ export class RealtimeTranscriptionNode extends BaseNode {
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
 
   @prop({
     type: "enum",

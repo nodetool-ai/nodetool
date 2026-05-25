@@ -34,7 +34,6 @@ describe("reactFlowNodeToGraphNode", () => {
     expect(uiProps(result).width).toBe(280);
     expect(uiProps(result).height).toBeUndefined();
     expect(uiProps(result).selectable).toBe(true);
-    expect(result.sync_mode).toBe("on_any");
   });
 
   it("preserves title and color from node data", () => {
@@ -180,5 +179,47 @@ describe("reactFlowNodeToGraphNode", () => {
     const result = reactFlowNodeToGraphNode(makeNode({ type: undefined }));
 
     expect(result.type).toBe("");
+  });
+
+  it("omits collapsed in ui_properties when expanded", () => {
+    const result = reactFlowNodeToGraphNode(makeNode());
+
+    expect(uiProps(result).collapsed).toBeUndefined();
+  });
+
+  it("persists collapsed:true in ui_properties when node.data.collapsed is true", () => {
+    const result = reactFlowNodeToGraphNode(
+      makeNode({
+        data: {
+          properties: { text: "hello" },
+          selectable: true,
+          dynamic_properties: {},
+          workflow_id: "wf-1",
+          collapsed: true
+        }
+      })
+    );
+
+    expect(uiProps(result).collapsed).toBe(true);
+  });
+
+  it("when collapsed, saves expanded body height to ui_properties.height from expandedHeightPx", () => {
+    const result = reactFlowNodeToGraphNode(
+      makeNode({
+        height: 45,
+        width: 280,
+        style: { width: 280, height: 45 },
+        data: {
+          properties: { text: "hello" },
+          selectable: true,
+          dynamic_properties: {},
+          workflow_id: "wf-1",
+          collapsed: true,
+          expandedHeightPx: 200
+        }
+      })
+    );
+
+    expect(uiProps(result).height).toBe(200);
   });
 });

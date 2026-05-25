@@ -53,10 +53,6 @@ const ComparisonSection = dynamic(
   () => import("../components/ComparisonSection"),
   { ssr: false }
 );
-const EditionsCompareSection = dynamic(
-  () => import("../components/EditionsCompareSection"),
-  { ssr: false }
-);
 import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
 
 import { Feature, features } from "./features";
@@ -544,14 +540,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* How it works (Build / Run / Deploy) */}
-        <section aria-labelledby="how-title" className="rhythm-section pt-4">
-          <div className={`${sectionContainer}`}>
-            <BuildRunDeploy />
-          </div>
-        </section>
-
-        {/* Demo video */}
+        {/* Demo video — surface the product immediately after the hero */}
         <section id="demo-video" aria-label="NodeTool Demo" className="rhythm-section relative scroll-mt-24">
           <div className={`${sectionContainer}`}>
             <motion.div
@@ -579,40 +568,40 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Editions: Studio vs Cloud */}
-        <EditionsCompareSection reducedMotion={reducedMotion} />
-
-        {/* Comparisons with alternatives */}
+        {/* Position the product first: "What NodeTool is" */}
         <ComparisonSection reducedMotion={reducedMotion} />
 
-        {/* Your tools, your data, your way */}
-        <OwnershipSection reducedMotion={reducedMotion} />
+        {/* How it works (Build / Run / Deploy) — the 3-step mental model */}
+        <section aria-labelledby="how-title" className="rhythm-section pt-4">
+          <div className={`${sectionContainer}`}>
+            <BuildRunDeploy />
+          </div>
+        </section>
 
-        {/* Local Model Support - MLX & GGML/GGUF */}
-        <ModelSupportSection reducedMotion={reducedMotion} />
+        {/* What the canvas does */}
+        <FeaturesSection />
 
-        {/* Model Manager */}
-        <ModelManagerSection />
+        {/* What's in the canvas */}
+        <NodeMenuSection />
 
-        {/* Video Generation */}
+        {/* A flagship capability example */}
         <VideoGenerationSection reducedMotion={reducedMotion} />
+
+        {/* Asset Manager — companion to the canvas story */}
+        <AssetManagerSection />
+
+        {/* Alternate interface: drive workflows by chat (payoff after canvas) */}
+        <ChatUISection />
+
+        {/* Ownership block — three adjacent sections that share the BYOK / your-stack story */}
+        <OwnershipSection reducedMotion={reducedMotion} />
+        <ModelSupportSection reducedMotion={reducedMotion} />
+        <ModelManagerSection />
 
         {/* Templates Gallery */}
         {/* <ExamplesGrid /> */}
 
-        {/* Features */}
-        <FeaturesSection />
-
-        {/* Node Menu */}
-        <NodeMenuSection />
-
-        {/* Chat UI */}
-        <ChatUISection />
-
-        {/* Asset Manager */}
-        <AssetManagerSection />
-
-        {/* Deploy */}
+        {/* Self-host / deploy */}
         <DeploySection reducedMotion={reducedMotion} />
 
         {/* Feature Modal (accessible) */}

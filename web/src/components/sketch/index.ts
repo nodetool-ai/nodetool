@@ -1,0 +1,169 @@
+/**
+ * Sketch Editor Module
+ *
+ * Public API for the sketch editor. All external consumers
+ * should import from this index file.
+ */
+
+export { default as SketchEditor } from "./SketchEditor";
+export { default as SketchEditorPage } from "./SketchEditorPage";
+export { default as SketchModal } from "./SketchModal";
+export { default as SketchCanvas } from "./SketchCanvas";
+export { default as SketchToolbar } from "./SketchToolbar";
+export { default as SketchToolTopBar } from "./SketchToolTopBar";
+export { default as SketchLayersPanel } from "./SketchLayersPanel";
+export { default as SketchToolIconLabel } from "./SketchToolIconLabel";
+export type { SketchToolIconLabelProps } from "./SketchToolIconLabel";
+
+export { useSketchStore } from "./state";
+
+export {
+  useResolvedToolSettings,
+  useActiveToolSettings,
+  useHistoryActions,
+  useLayerActions,
+  useCanvasActions,
+  useColorActions,
+  useSegmentation
+} from "./hooks";
+
+export {
+  useCompositing,
+  useCanvasImperativeHandle,
+  useOverlayRenderer,
+  usePointerHandlers
+} from "./sketchCanvasHooks";
+
+export { Canvas2DRuntime, WebGPURuntime, isWebGPUAvailable, createRuntime } from "./rendering";
+export type { SketchRuntime, ActiveStrokeInfo, DirtyRect, WebGPUInitResult } from "./rendering";
+
+export { getToolHandler } from "./tools";
+export type { ToolHandler, ToolContext, ToolPointerEvent } from "./tools";
+export { SegmentTool } from "./tools/SegmentTool";
+
+export { useCollapsedSections } from "./useCollapsedSections";
+
+export {
+  ALL_TOOL_DEFINITIONS,
+  PAINTING_TOOLS,
+  SHAPE_TOOLS,
+  CONTEXT_MENU_TOOLS,
+  CONTEXT_MENU_TOOL_GROUPS,
+  getToolDefinition
+} from "./toolDefinitions";
+
+export type {
+  ToolDefinition,
+  ToolIconComponent
+} from "./toolDefinitions";
+
+export type {
+  SketchDocument,
+  SketchTool,
+  ShapeToolType,
+  Layer,
+  LayerType,
+  LayerImageReference,
+  LayerImageObjectFit,
+  BlendMode,
+  BrushSettings,
+  BrushType,
+  PencilSettings,
+  EraserSettings,
+  ShapeSettings,
+  FillSettings,
+  BlurSettings,
+  ToolSettings,
+  SegmentSettings,
+  SegmentPromptMode,
+  SegmentSourceLayerAction,
+  SegmentPointPrompt,
+  SegmentBoxPrompt,
+  SegmentationMask,
+  SegmentationResult,
+  SegmentationStatus,
+  SegmentationLayerMeta,
+  Point,
+  Size,
+  Color,
+  ColorMode,
+  Selection,
+  HistoryEntry,
+  SketchEditorState
+} from "./types";
+
+export type {
+  CanvasPreset
+} from "./types";
+
+export {
+  SKETCH_FORMAT_VERSION,
+  SKETCH_NODE_INPUT_IMAGE_LAYER_NAME,
+  DEFAULT_BRUSH_SETTINGS,
+  DEFAULT_PENCIL_SETTINGS,
+  DEFAULT_ERASER_SETTINGS,
+  DEFAULT_SHAPE_SETTINGS,
+  DEFAULT_FILL_SETTINGS,
+  DEFAULT_BLUR_SETTINGS,
+  DEFAULT_TOOL_SETTINGS,
+  DEFAULT_SWATCHES,
+  DEFAULT_SEGMENT_SETTINGS,
+  CANVAS_PRESETS,
+  createDefaultDocument,
+  createDefaultLayer,
+  generateLayerId,
+  layerAllowsTransformWhilePixelLocked,
+  summarizeLayerImageReference,
+  summarizeImageRefUriForDisplay,
+  coerceBlendMode,
+  isShapeTool,
+  isPaintingTool,
+  hexToRgb,
+  rgbToHex,
+  rgbToHsl,
+  hslToRgb,
+  MAX_HISTORY_SIZE
+} from "./types";
+
+export {
+  serializeDocument,
+  deserializeDocument,
+  flattenDocument,
+  exportMask,
+  exportLayer,
+  canvasToDataUrl,
+  canvasToBlob,
+  loadImageToLayerData,
+  loadImageWithDimensions,
+  getLayerDataImageUrl
+} from "./serialization";
+
+export type {
+  ImageLoadResult,
+  LayerRasterBounds
+} from "./serialization";
+
+/** Clipboard / copy-paste pixel pipeline (usable from a standalone sketch shell). */
+export {
+  multiplyImageDataAlphaBySelectionMask,
+  readSystemClipboardImageCanvas,
+  writeImageCanvasToSystemClipboardPng,
+  resolveSketchPasteImageCanvas,
+  buildSketchInternalClipboardCanvas,
+  drawSketchPasteOnLayerContext
+} from "./sketchClipboard";
+export type {
+  ResolveSketchPasteImageOptions,
+  BuildSketchInternalClipboardParams,
+  SketchPasteDrawParams
+} from "./sketchClipboard";
+
+export { getSamService, setSamService, SamServiceStub } from "./sam";
+export { DEFAULT_SAM_MODEL_ID, DEFAULT_SAM_MODEL_NAME } from "./sam";
+export type {
+  SamService,
+  SamModelStatus,
+  SamModelInfo,
+  SegmentationRequest,
+  SegmentationResponse
+} from "./sam";

@@ -5,12 +5,20 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  Checkbox,
-  Box,
   Menu,
   MenuItem
 } from "@mui/material";
-import { Divider, EditorButton, LoadingSpinner, Tooltip } from "../ui_primitives";
+import {
+  Caption,
+  Checkbox,
+  Divider,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  LoadingSpinner,
+  Tooltip,
+  Box
+} from "../ui_primitives";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useTheme } from "@mui/material/styles";
@@ -69,6 +77,7 @@ import novitaColorIcon from "@lobehub/icons-static-svg/icons/novita-color.svg";
 import sambanovaColorIcon from "@lobehub/icons-static-svg/icons/sambanova-color.svg";
 import siliconcloudColorIcon from "@lobehub/icons-static-svg/icons/siliconcloud-color.svg";
 import xinferenceColorIcon from "@lobehub/icons-static-svg/icons/xinference-color.svg";
+import dalleColorIcon from "@lobehub/icons-static-svg/icons/dalle-color.svg";
 import bflIcon from "@lobehub/icons-static-svg/icons/bfl.svg";
 import fluxIcon from "@lobehub/icons-static-svg/icons/flux.svg";
 import lumaColorIcon from "@lobehub/icons-static-svg/icons/luma-color.svg";
@@ -156,9 +165,7 @@ const providerIconMap: Record<string, string> = {
   // Anthropic / Claude
   anthropic: anthropicIcon,
   claude: claudeColorIcon,
-  claude_agent: claudeColorIcon,
-  "claude-agent": claudeColorIcon,
-  
+
   // Google / Gemini
   google: geminiColorIcon,
   gemini: geminiColorIcon,
@@ -214,6 +221,8 @@ const providerIconMap: Record<string, string> = {
   xinference: xinferenceColorIcon,
   
   // Image generation
+  dalle: dalleColorIcon,
+  "dall-e": dalleColorIcon,
   bfl: bflIcon,
   "black-forest-labs": bflIcon,
   blackforestlabs: bflIcon,
@@ -487,13 +496,11 @@ const listStyles = css({
   maxHeight: "calc(100% - 20px)"
 });
 
-interface ProviderSelectorState {
-  selectedProvider: string | null;
-  setSelectedProvider: (provider: string | null) => void;
-}
-
-type ProviderSelectorHook = <Selected>(
-  selector: (state: ProviderSelectorState) => Selected,
+type ProviderStoreHook = <Selected>(
+  selector: (state: {
+    selectedProvider: string | null;
+    setSelectedProvider: (provider: string | null) => void;
+  }) => Selected,
   equalityFn?: (left: Selected, right: Selected) => boolean
 ) => Selected;
 
@@ -501,7 +508,7 @@ export interface ProviderListProps {
   providers: string[];
   isLoading: boolean;
   isError: boolean;
-  storeHook?: ProviderSelectorHook;
+  storeHook?: ProviderStoreHook;
   forceUnselect?: boolean;
   iconOnly?: boolean;
 }
@@ -633,16 +640,36 @@ const ProviderList: React.FC<ProviderListProps> = ({
         selected={selected === null && !forceUnselect}
         onClick={handleSelectNull}
         sx={{
-          py: iconOnly ? 1 : 0.25,
-          justifyContent: iconOnly ? 'center' : 'flex-start',
+          py: iconOnly ? 0.75 : 0.25,
+          justifyContent: iconOnly ? "center" : "flex-start",
           px: iconOnly ? 0 : 2,
-          minHeight: iconOnly ? 40 : 'auto',
+          minHeight: iconOnly ? 52 : "auto",
           borderRadius: iconOnly ? 1 : 0
         }}
       >
         {iconOnly ? (
-          <Tooltip className="model-menu__all-providers-tooltip" title="All providers" placement="right">
-            <FormatListBulletedIcon className="model-menu__all-providers-icon" />
+          <Tooltip
+            className="model-menu__all-providers-tooltip"
+            title="All providers"
+            placement="right"
+          >
+            <FlexColumn align="center" gap={0.25} sx={{ py: 0.25 }}>
+              <FormatListBulletedIcon className="model-menu__all-providers-icon" />
+              <Caption
+                sx={{
+                  display: "block",
+                  maxWidth: 76,
+                  textAlign: "center",
+                  lineHeight: 1.15,
+                  fontSize: (t: Theme) => t.vars.fontSizeTiny,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                All
+              </Caption>
+            </FlexColumn>
           </Tooltip>
         ) : (
           <ListItemText
@@ -666,6 +693,9 @@ const ProviderList: React.FC<ProviderListProps> = ({
           const available = providerEnabled;
           const env = requiredSecretForProvider(p);
           const hasKey = env ? isApiKeySet(env) : true;
+          const providerLabel = isHuggingFaceProvider(p)
+            ? getProviderBaseName(p)
+            : formatGenericProviderName(p);
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
             const isHF = isHuggingFaceProvider(p);
@@ -683,7 +713,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             }
 
             return (
-              <Box className="model-menu__provider-badges" sx={{ display: "flex", gap: 0.5 }}>
+              <FlexRow className="model-menu__provider-badges" gap={0.5}>
                 {badges.map((b) => {
                   const tooltipTitle =
                     b.label === "HF"
@@ -722,7 +752,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     </Tooltip>
                   );
                 })}
-              </Box>
+              </FlexRow>
             );
           };
           return (
@@ -740,78 +770,102 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 sx={{
                   gap: 0.1,
                   opacity: enabled && available ? 1 : 0.5,
-                  py: iconOnly ? 1 : 0.25,
-                  justifyContent: iconOnly ? 'center' : 'flex-start',
+                  py: iconOnly ? 0.75 : 0.25,
+                  justifyContent: iconOnly ? "center" : "flex-start",
                   px: iconOnly ? 0 : 2,
-                  minHeight: iconOnly ? 40 : 'auto',
+                  minHeight: iconOnly ? 68 : "auto",
                   borderRadius: iconOnly ? 1 : 0
                 }}
               >
                 {iconOnly ? (
                   <Tooltip
                     className="model-menu__provider-icon-tooltip"
-                    title={
-                      isHuggingFaceProvider(p)
-                        ? getProviderBaseName(p)
-                        : formatGenericProviderName(p)
-                    }
+                    title={providerLabel}
                     placement="right"
                   >
-                    <Box className="model-menu__provider-icon-circle" sx={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 'var(--rounded-circle)',
-                      bgcolor: (selected === p) ? 'primary.main' : (isProviderEnabled(p) ? 'action.selected' : 'transparent'),
-                      border: `1px solid ${selected === p ? 'transparent' : theme.vars.palette.divider}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 700,
-                      fontSize: '0.8rem',
-                      color: (selected === p) ? 'primary.contrastText' : (isProviderEnabled(p) ? 'text.primary' : 'text.disabled'),
-                      overflow: 'hidden',
-                    }}>
-                      {(() => {
-                        const iconUrl = getProviderIconUrl(p);
-                        if (iconUrl) {
-                          // Check if using HuggingFace logo (either base HF or unknown sub-provider)
-                          // In this case, don't invert in dark mode since HF logo has good contrast
-                          const isHFLogo = iconUrl === huggingfaceColorIcon;
-                          return (
-                            <img
-                              className="model-menu__provider-icon-image"
-                              src={iconUrl} 
-                              alt="" 
-                              style={{ 
-                                width: 24, 
-                                height: 24, 
-                                objectFit: 'contain',
-                                filter: selected === p ? 'brightness(0) invert(1)' : 
-                                  (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
-                              }} 
-                            />
-                          );
-                        }
-                        return getProviderFallbackLabel(p);
-                      })()}
-                    </Box>
+                    <FlexColumn align="center" gap={0.25} sx={{ py: 0.25 }}>
+                      <FlexRow
+                        className="model-menu__provider-icon-circle"
+                        align="center"
+                        justify="center"
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "var(--rounded-circle)",
+                          bgcolor:
+                            selected === p
+                              ? "primary.main"
+                              : isProviderEnabled(p)
+                                ? "action.selected"
+                                : "transparent",
+                          border: `1px solid ${selected === p ? "transparent" : theme.vars.palette.divider}`,
+                          fontWeight: 700,
+                          fontSize: "0.8rem",
+                          color:
+                            selected === p
+                              ? "primary.contrastText"
+                              : isProviderEnabled(p)
+                                ? "text.primary"
+                                : "text.disabled",
+                          overflow: "hidden",
+                          flexShrink: 0
+                        }}
+                      >
+                        {(() => {
+                          const iconUrl = getProviderIconUrl(p);
+                          if (iconUrl) {
+                            const isHFLogo = iconUrl === huggingfaceColorIcon;
+                            return (
+                              <img
+                                className="model-menu__provider-icon-image"
+                                src={iconUrl}
+                                alt=""
+                                style={{
+                                  width: 24,
+                                  height: 24,
+                                  objectFit: "contain",
+                                  filter: selected === p
+                                    ? "brightness(0) invert(1)"
+                                    : isDarkMode && !isHFLogo
+                                      ? "invert(1) brightness(1.1) contrast(0.9)"
+                                      : "none"
+                                }}
+                              />
+                            );
+                          }
+                          return getProviderFallbackLabel(p);
+                        })()}
+                      </FlexRow>
+                      <Caption
+                        sx={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          wordBreak: "break-word",
+                          maxWidth: 76,
+                          textAlign: "center",
+                          lineHeight: 1.15,
+                          fontSize: (th: Theme) => th.vars.fontSizeTiny
+                        }}
+                      >
+                        {providerLabel}
+                      </Caption>
+                    </FlexColumn>
                   </Tooltip>
                 ) : (
                   <>
                     <ListItemText
                       className="model-menu__provider-label"
                       primary={
-                        <Box className="model-menu__provider-label-content" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <FlexRow className="model-menu__provider-label-content" gap={1} align="center">
                           {(() => {
                             const iconUrl = getProviderIconUrl(p);
                             // Check if using HuggingFace logo (either base HF or unknown sub-provider)
                             // In this case, don't invert in dark mode since HF logo has good contrast
                             const isHFLogo = iconUrl === huggingfaceColorIcon;
                             return (
-                              <Box className="model-menu__provider-inline-icon" sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                              <FlexRow className="model-menu__provider-inline-icon" align="center" justify="center" sx={{
                                 width: 28,
                                 height: 28,
                                 flexShrink: 0,
@@ -844,15 +898,13 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                     {getProviderFallbackLabel(p)}
                                   </Box>
                                 )}
-                              </Box>
+                              </FlexRow>
                             );
                           })()}
                           <span className="model-menu__provider-name">
-                            {isHuggingFaceProvider(p)
-                              ? getProviderBaseName(p)
-                              : formatGenericProviderName(p)}
+                            {providerLabel}
                           </span>
-                        </Box>
+                        </FlexRow>
                       }
                       slotProps={{
                         primary: {
@@ -863,14 +915,11 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       }}
                     />
                     {!hasKey && (
-                      <Box
+                      <FlexRow
                         className="model-menu__provider-missing-key"
-                        sx={{
-                          mr: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.5
-                        }}
+                        gap={0.5}
+                        align="center"
+                        sx={{ mr: 1 }}
                         onClick={handleStopPropagation}
                       >
                         <Tooltip className="model-menu__provider-missing-key-tooltip" title="API key required">
@@ -898,16 +947,13 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             Add key
                           </EditorButton>
                         </Tooltip>
-                      </Box>
+                      </FlexRow>
                     )}
-                    <Box
+                    <FlexRow
                       className="model-menu__provider-actions"
-                      sx={{
-                        ml: "auto",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.5
-                      }}
+                      gap={0.5}
+                      align="center"
+                      sx={{ ml: "auto" }}
                       onClick={handleStopPropagation}
                     >
                       {renderBadges()}
@@ -936,7 +982,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           />
                         </Box>
                       </Tooltip>
-                    </Box>
+                    </FlexRow>
                   </>
                 )}
               </ListItemButton>

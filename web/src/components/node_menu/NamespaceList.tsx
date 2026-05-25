@@ -3,13 +3,13 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Box, List } from "@mui/material";
-import { Text, EditorButton, BORDER_RADIUS } from "../ui_primitives";
+import { List } from "@mui/material";
+import { Text, EditorButton, BORDER_RADIUS, Box } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
@@ -425,6 +425,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
   metadata
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => namespaceStyles(theme), [theme]);
   const {
     searchTerm,
     selectedPath,
@@ -434,7 +435,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedInputType,
     selectedOutputType,
     selectedProviderType
-  } = useNodeMenuStore((state) => ({
+  } = useNodeMenuStore(useShallow((state) => ({
     searchTerm: state.searchTerm,
     selectedPath: state.selectedPath,
     searchResults: state.searchResults,
@@ -443,7 +444,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedInputType: state.selectedInputType,
     selectedOutputType: state.selectedOutputType,
     selectedProviderType: state.selectedProviderType
-  }), shallow);
+  })));
 
   const allMetadata = useMetadataStore((state) => state.metadata);
 
@@ -461,7 +462,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
       : 1;
 
   const totalNodes = useMemo(() => {
-    return Object.values(allMetadata).length;
+    return Object.keys(allMetadata).length;
   }, [allMetadata]);
 
   const isHomeLayout = !(
@@ -474,7 +475,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
 
   return (
     <div
-      css={namespaceStyles(theme)}
+      css={cssStyles}
       className={`${
         (searchTerm.length > minSearchTermLength ||
           selectedInputType ||

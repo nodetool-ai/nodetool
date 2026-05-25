@@ -1,20 +1,12 @@
 /**
- * RightPanelStore manages the right-side panel state.
+ * RightPanelStore manages the right-side panel state. The right panel now
+ * hosts only the Inspector — secondary tools (logs, jobs, assistant, etc.)
+ * moved to the bottom panel.
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type RightPanelView =
-  | "inspector"
-  | "assistant"
-  | "logs"
-  | "workspace"
-  | "versions"
-  | "workflow"
-  | "jobs"
-  | "workflowAssets"
-  | "sandboxes"
-  | "agent";
+export type RightPanelView = "inspector";
 
 interface PanelState {
   panelSize: number;
@@ -129,11 +121,7 @@ export const useRightPanelStore = create<ResizePanelState>()(
     }),
     {
       name: "right-panel-storage",
-      version: 1,
-      // Persist only the user-driven slice of `panel`. Constants like
-      // minWidth/maxWidth/defaultWidth come from code on every load, so
-      // bumping them in source should not be undermined by stale persisted
-      // values. activeView is validated on rehydrate.
+      version: 2,
       partialize: (state: ResizePanelState) => ({
         panel: {
           panelSize: state.panel.panelSize,
@@ -142,25 +130,16 @@ export const useRightPanelStore = create<ResizePanelState>()(
         }
       }),
       merge: (persistedState, currentState) => {
-        const persisted = (persistedState ?? {}) as Partial<ResizePanelState>;
-        const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
-        const validViews: RightPanelView[] = [
-          "inspector",
-          "assistant",
-          "logs",
-          "workspace",
-          "versions",
-          "workflow",
-          "jobs",
-          "workflowAssets",
-          "sandboxes",
-          "agent"
-        ];
-        const activeView = validViews.includes(
-          persistedPanel.activeView as RightPanelView
-        )
-          ? (persistedPanel.activeView as RightPanelView)
-          : currentState.panel.activeView;
+        if (!persistedState || typeof persistedState !== "object" || Array.isArray(persistedState)) {
+          return currentState;
+        }
+        const persisted = persistedState as Record<string, unknown>;
+        const rawPanel = persisted.panel;
+        if (!rawPanel || typeof rawPanel !== "object" || Array.isArray(rawPanel)) {
+          return currentState;
+        }
+        const persistedPanel = rawPanel as Record<string, unknown>;
+        // Only "inspector" survives; any legacy view collapses to "inspector".
         return {
           ...currentState,
           panel: {
@@ -176,7 +155,7 @@ export const useRightPanelStore = create<ResizePanelState>()(
               typeof persistedPanel.isVisible === "boolean"
                 ? persistedPanel.isVisible
                 : currentState.panel.isVisible,
-            activeView
+            activeView: "inspector"
           }
         };
       }

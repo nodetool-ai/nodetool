@@ -2,52 +2,54 @@
 
 ## Vision
 
-AI belongs on your machine, next to your data.
+AI belongs on your machine, next to your work.
 Not behind a paywall. Not in someone else's cloud.
 Transparent. Flexible. Yours.
 
 ## Mission
 
-Build an open-source visual platform for everyone to design and run AI workflows. Privacy by default. Cloud when you choose.
+Build an open-source visual platform where creative artists design and run AI workflows. Privacy by default. Cloud when you choose. The graph is yours, the models are yours, the output is yours.
 
 ## Principles
 
-- **Build visually** - Connect blocks, not code
-- **Your data stays yours** - It doesn't leave unless you send it
-- **See every step** - Watch your workflow execute in real-time
-- **Mix your tools** - Combine local AI with cloud services
-- **Share your work** - Export, deploy, collaborate
-- **Experiment freely** - Iterate, undo, perfect
-- **Own your infrastructure** - Run on your hardware
+- **Build visually.** Connect blocks, not code.
+- **The graph is the source of truth.** What runs is what you see.
+- **Your data stays yours.** It does not leave unless you send it.
+- **See every step.** Watch the workflow execute in real time.
+- **Mix your tools.** Local models alongside cloud APIs.
+- **Power before abstraction.** See and control the workflow before we simplify it.
+- **Optimize for the second session.** A workflow you open in a week should still make sense.
+- **Generative output deserves drama.** When the image, video, or audio lands, the tool gets out of the way.
+- **Own your infrastructure.** Run on your hardware. Ship to your server.
 
 ## What NodeTool Is
 
-A visual workflow builder + AI runtime (desktop + web) that lets you:
+A visual workflow builder and AI runtime, on desktop and web, that lets you:
 
-- Generate content, process data, automate with AI
-- Run models locally (Flux/SDXL/Whisper/LLMs) or use cloud APIs (OpenAI/Anthropic/Replicate)
-- Work on your laptop, deploy to cloud when needed
-- Share workflows as Mini-Apps or deploy as APIs
+- Generate images, video, audio, text, and 3D with the models of your choice.
+- Run locally (Flux, SDXL, Whisper, LLMs via Ollama and MLX) or call cloud APIs (OpenAI, Anthropic, Replicate, FAL, HuggingFace).
+- Compose multi-step pipelines once and reuse them across projects.
+- Share workflows as Mini-Apps or deploy them as APIs.
 
-## What NodeTool Is Not (today)
+## What NodeTool Is Not
 
-- Yet another SaaS subscription
-- A closed platform with vendor lock-in
-- Limited to cloud-only services
-- A one-size-fits-all solution
+- A subscription that owns your work.
+- A closed platform with vendor lock-in.
+- A cloud-only service.
+- A black box that hides what the model is doing.
 
-## Who It’s For
+## Who It Is For
 
-Indie hackers, Game devs, AI enthusiasts, creative professionals, agencies, and studios who want to build and run AI workflows while keeping control. They value flexibility, privacy, and the ability to work without restrictions.
+Creative artists working with generative AI: designers, illustrators, photographers, video editors, motion artists, audio producers, and independent creators. People who want to wire models and editing steps into one reusable canvas, produce better work faster, and keep control of how, where, and on whose hardware their workflows run.
 
 ## Roadmap
 
-- **Workflow templates** - Ready examples for common tasks
-- **Version control** - Track changes, compare versions, rollback
-- **Batch processing** - Run workflows at scale with variations
-- **Community hub** - Share workflows, discover patterns, learn
+- **Workflow templates.** Ready examples for common creative pipelines.
+- **Version control.** Track changes, compare versions, roll back.
+- **Batch processing.** Run a workflow across many inputs and variations.
+- **Community hub.** Share workflows, discover patterns, learn from other creators.
 
 ## Promise
 
 Open source. Privacy first.
-Own your workflows, your data, everything you build.
+Your workflows, your data, everything you build.

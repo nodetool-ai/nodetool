@@ -11,6 +11,7 @@ import {
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { resourceEvents, type ResourceChangePayload } from "./resource-events.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
@@ -48,9 +49,11 @@ import type {
 import {
   ProcessingContext as RuntimeProcessingContext,
   executeComfy,
+  encodeRawRgbaToPng,
   type ComfyProgressEvent,
   type ComfyExecutionHandle
 } from "@nodetool-ai/runtime";
+import { isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
@@ -331,21 +334,34 @@ async function autoSaveAssets(
 
     const assetType = String(assetValue.type);
 
-    // Get bytes from inline data or URI
-    let bytes = decodeAssetBytes(assetValue.data);
-    if (!bytes && typeof assetValue.uri === "string") {
-      bytes = await readBytesFromUri(assetValue.uri as string);
+    // Get bytes. Raw in-flight RGBA is encoded to PNG first so the stored
+    // asset (and its thumbnail) is a real image.
+    const isRaw = isRawRgbaImage(assetValue);
+    let bytes: Uint8Array | null;
+    if (isRaw) {
+      bytes = await encodeRawRgbaToPng(
+        assetValue.data as Uint8Array,
+        assetValue.width as number,
+        assetValue.height as number
+      );
+    } else {
+      bytes = decodeAssetBytes(assetValue.data);
+      if (!bytes && typeof assetValue.uri === "string") {
+        bytes = await readBytesFromUri(assetValue.uri as string);
+      }
     }
     if (!bytes) continue;
 
-    // Determine mime/ext, preferring explicit content_type
-    const explicitMime = assetValue.mime_type ?? assetValue.content_type;
+    // Determine mime/ext, preferring explicit content_type.
+    const explicitMime = isRaw
+      ? "image/png"
+      : (assetValue.mime_type ?? assetValue.content_type);
     const contentType =
       typeof explicitMime === "string" && explicitMime
         ? explicitMime
         : (ASSET_TYPE_MIME[assetType] ?? "application/octet-stream");
 
-    const ext = ASSET_TYPE_EXT[assetType] ?? "bin";
+    const ext = isRaw ? "png" : (ASSET_TYPE_EXT[assetType] ?? "bin");
 
     // Create Asset record
     const asset = new Asset({
@@ -364,9 +380,16 @@ async function autoSaveAssets(
       asset.size = bytes.length;
       await asset.save();
 
-      // Mutate the result value in-place
+      // Mutate the result value in-place. For raw assets, also drop the raw
+      // pixels and fix the mime so later normalization treats it as the saved
+      // PNG, not raw RGBA.
       assetValue.asset_id = asset.id;
       assetValue.uri = `asset://${fileName}`;
+      if (isRaw) {
+        const mutable = assetValue as Record<string, unknown>;
+        mutable.data = undefined;
+        mutable.mimeType = "image/png";
+      }
     } catch (err) {
       log.warn("Auto-save asset failed", {
         nodeId: opts.nodeId,
@@ -1602,9 +1625,17 @@ export class UnifiedWebSocketRunner {
             continue;
           }
 
-          // Only relay output_update for Output-type nodes
+          const meta = this.getNodeMetadata?.(nodeType);
+
+          // Relay output_update for Output-type nodes and for streaming or
+          // auto-saving generative nodes (FAL / Replicate / Kie / …) so the
+          // client receives one event per yielded item — the UI accumulates
+          // and renders each generation as it arrives.
           if (outbound.type === "output_update") {
-            if (!nodeType.includes("Output")) continue;
+            const isStreamingLeaf =
+              Boolean(meta?.is_streaming_output) ||
+              Boolean(meta?.auto_save_asset);
+            if (!nodeType.includes("Output") && !isStreamingLeaf) continue;
             outputUpdateSeen = true;
           }
 
@@ -1612,10 +1643,8 @@ export class UnifiedWebSocketRunner {
           if (
             outbound.type === "node_update" &&
             outbound.status === "completed" &&
-            outbound.result != null &&
-            this.getNodeMetadata
+            outbound.result != null
           ) {
-            const meta = this.getNodeMetadata(nodeType);
             if (meta?.auto_save_asset) {
               try {
                 await autoSaveAssets(
@@ -4477,6 +4506,238 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Run a one-shot media-generation request (text-to-image, image-to-image,
+   * text-to-video, or text-to-audio) and return the produced asset ids.
+   * Mirrors the image / image_edit / video / audio branches of
+   * `handleMediaGenerationMessage` but skips the chat-thread machinery —
+   * the caller wants asset ids, not a streamed Message row.
+   *
+   * Used by the `generate_media` RPC for the sketch editor's direct-gen
+   * image layers and the timeline's direct-gen video / audio clips; the
+   * chat-path equivalents stay in `handleMediaGenerationMessage` for now.
+   */
+  private async runDirectMediaGeneration(
+    req: {
+      mode: "image" | "image_edit" | "video" | "audio";
+      provider: string;
+      model: string;
+      prompt: string;
+      sourceAssetId?: string;
+      width?: number;
+      height?: number;
+      strength?: number;
+      numInferenceSteps?: number;
+      variations?: number;
+      voice?: string;
+      speed?: number;
+      audioFormat?: string;
+    }
+  ): Promise<{ asset_ids: string[] }> {
+    if (!this.resolveProvider) {
+      throw new Error("No provider resolver configured");
+    }
+    if (!req.model) {
+      throw new Error("model is required");
+    }
+    if (!req.prompt || !req.prompt.trim()) {
+      throw new Error("prompt is required");
+    }
+
+    const userId = this.userId ?? "1";
+    const provider = await this.resolveProvider(req.provider, userId);
+    const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+
+    const storeAsset = async (
+      bytes: Uint8Array,
+      contentType: string,
+      ext: string
+    ): Promise<string> => {
+      const asset = new Asset({
+        user_id: userId,
+        workflow_id: null,
+        name: `${req.mode}_${Date.now()}`,
+        content_type: contentType,
+        parent_id: null
+      });
+      const fileName = `${asset.id}.${ext}`;
+      await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
+      asset.size = bytes.length;
+      await asset.save();
+      return asset.id;
+    };
+
+    if (req.mode === "video") {
+      const videoModel: ProviderVideoModel = {
+        id: req.model,
+        name: req.model,
+        provider: req.provider
+      };
+      const params: TextToVideoParams = {
+        model: videoModel,
+        prompt: req.prompt
+      };
+      const bytes = await provider.textToVideo(params);
+      const assetId = await storeAsset(bytes, "video/mp4", "mp4");
+      return { asset_ids: [assetId] };
+    }
+
+    if (req.mode === "audio") {
+      const supportedFormats = new Set([
+        "mp3",
+        "wav",
+        "flac",
+        "ogg",
+        "aac",
+        "pcm"
+      ]);
+      const requestedFormat =
+        req.audioFormat && supportedFormats.has(req.audioFormat)
+          ? req.audioFormat
+          : null;
+
+      // Prefer providers that return fully-encoded audio (OpenAI, HuggingFace).
+      const encoded = await provider.textToSpeechEncoded({
+        text: req.prompt,
+        model: req.model,
+        voice: req.voice,
+        speed: req.speed,
+        audioFormat: requestedFormat ?? undefined
+      });
+
+      if (encoded) {
+        const mimeToExt: Record<string, string> = {
+          "audio/mpeg": "mp3",
+          "audio/wav": "wav",
+          "audio/ogg": "ogg",
+          "audio/flac": "flac",
+          "audio/aac": "aac"
+        };
+        const ext = mimeToExt[encoded.mimeType] ?? "flac";
+        const assetId = await storeAsset(encoded.data, encoded.mimeType, ext);
+        return { asset_ids: [assetId] };
+      }
+
+      // Streaming-PCM fallback (OpenAI / Gemini), wrap in WAV unless caller
+      // explicitly asked for raw PCM.
+      const pcmChunks: Uint8Array[] = [];
+      let totalBytes = 0;
+      let chunkSampleRate = 24000;
+      for await (const chunk of provider.textToSpeech({
+        text: req.prompt,
+        model: req.model,
+        voice: req.voice,
+        speed: req.speed,
+        audioFormat: requestedFormat ?? undefined
+      })) {
+        if (chunk?.samples) {
+          if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
+          const view = new Uint8Array(
+            chunk.samples.buffer,
+            chunk.samples.byteOffset,
+            chunk.samples.byteLength
+          );
+          const copy = new Uint8Array(view);
+          pcmChunks.push(copy);
+          totalBytes += copy.byteLength;
+        }
+      }
+      const merged = new Uint8Array(totalBytes);
+      let off = 0;
+      for (const c of pcmChunks) {
+        merged.set(c, off);
+        off += c.byteLength;
+      }
+
+      if (requestedFormat === "pcm") {
+        const assetId = await storeAsset(merged, "audio/pcm", "pcm");
+        return { asset_ids: [assetId] };
+      }
+
+      // Wrap raw 16-bit PCM in a WAV container so browsers can play it back.
+      const sampleRate = chunkSampleRate;
+      const numChannels = 1;
+      const bitsPerSample = 16;
+      const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+      const blockAlign = numChannels * (bitsPerSample / 8);
+      const wavHeader = new ArrayBuffer(44);
+      const dv = new DataView(wavHeader);
+      const writeStr = (pos: number, str: string) => {
+        for (let i = 0; i < str.length; i++)
+          dv.setUint8(pos + i, str.charCodeAt(i));
+      };
+      writeStr(0, "RIFF");
+      dv.setUint32(4, 36 + merged.byteLength, true);
+      writeStr(8, "WAVE");
+      writeStr(12, "fmt ");
+      dv.setUint32(16, 16, true);
+      dv.setUint16(20, 1, true);
+      dv.setUint16(22, numChannels, true);
+      dv.setUint32(24, sampleRate, true);
+      dv.setUint32(28, byteRate, true);
+      dv.setUint16(32, blockAlign, true);
+      dv.setUint16(34, bitsPerSample, true);
+      writeStr(36, "data");
+      dv.setUint32(40, merged.byteLength, true);
+
+      const wav = new Uint8Array(44 + merged.byteLength);
+      wav.set(new Uint8Array(wavHeader), 0);
+      wav.set(merged, 44);
+
+      const assetId = await storeAsset(wav, "audio/wav", "wav");
+      return { asset_ids: [assetId] };
+    }
+
+    const imageModel: ProviderImageModel = {
+      id: req.model,
+      name: req.model,
+      provider: req.provider
+    };
+
+    let images: Uint8Array[];
+    if (req.mode === "image") {
+      const params: TextToImageParams = {
+        model: imageModel,
+        prompt: req.prompt,
+        width: req.width,
+        height: req.height
+      };
+      images = await provider.textToImages(params, variations);
+    } else {
+      if (!req.sourceAssetId) {
+        throw new Error("source_asset_id is required for image_edit");
+      }
+      const sourceAsset = await Asset.find(userId, req.sourceAssetId);
+      if (!sourceAsset) {
+        throw new Error(`Source asset not found: ${req.sourceAssetId}`);
+      }
+      const ext =
+        (sourceAsset.content_type ?? "image/png").split("/")[1] ?? "png";
+      const adapter = getAssetAdapter();
+      const sourceBytes = await adapter.retrieve(
+        adapter.uriForKey(`${req.sourceAssetId}.${ext}`)
+      );
+      if (!sourceBytes) {
+        throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
+      }
+      const params: ImageToImageParams = {
+        model: imageModel,
+        prompt: req.prompt,
+        targetWidth: req.width ?? null,
+        targetHeight: req.height ?? null,
+        strength: req.strength ?? null,
+        numInferenceSteps: req.numInferenceSteps ?? null
+      };
+      images = await provider.imageToImages(sourceBytes, params, variations);
+    }
+
+    const assetIds: string[] = [];
+    for (const bytes of images) {
+      assetIds.push(await storeAsset(bytes, "image/png", "png"));
+    }
+    return { asset_ids: assetIds };
+  }
+
+  /**
    * Build a tRPC caller bound to this connection's `userId`. Used to dispatch
    * the read-only RPC commands (list_workflows, get_workflow, list_assets,
    * get_asset, list_nodes, get_node) onto the existing tRPC routers — single
@@ -4744,6 +5005,65 @@ export class UnifiedWebSocketRunner {
           caller.nodes.get({ node_type: String(data.node_type ?? "") })
         );
       }
+      case "generate_media": {
+        const rawMode = data.mode;
+        const mode: "image" | "image_edit" | "video" | "audio" =
+          rawMode === "image_edit"
+            ? "image_edit"
+            : rawMode === "video"
+              ? "video"
+              : rawMode === "audio"
+                ? "audio"
+                : "image";
+        const provider = String(data.provider ?? this.defaultProvider);
+        const model = String(data.model ?? this.defaultModel);
+        const prompt = String(data.prompt ?? "");
+        const sourceAssetId =
+          typeof data.source_asset_id === "string"
+            ? (data.source_asset_id as string)
+            : undefined;
+        const width =
+          typeof data.width === "number" ? (data.width as number) : undefined;
+        const height =
+          typeof data.height === "number" ? (data.height as number) : undefined;
+        const strength =
+          typeof data.strength === "number"
+            ? (data.strength as number)
+            : undefined;
+        const numInferenceSteps =
+          typeof data.num_inference_steps === "number"
+            ? (data.num_inference_steps as number)
+            : undefined;
+        const variations =
+          typeof data.variations === "number"
+            ? (data.variations as number)
+            : undefined;
+        const voice =
+          typeof data.voice === "string" ? (data.voice as string) : undefined;
+        const speed =
+          typeof data.speed === "number" ? (data.speed as number) : undefined;
+        const audioFormat =
+          typeof data.audio_format === "string"
+            ? (data.audio_format as string)
+            : undefined;
+        return this.runRpc(command, () =>
+          this.runDirectMediaGeneration({
+            mode,
+            provider,
+            model,
+            prompt,
+            sourceAssetId,
+            width,
+            height,
+            strength,
+            numInferenceSteps,
+            variations,
+            voice,
+            speed,
+            audioFormat
+          })
+        );
+      }
       default:
         return { error: "Unknown command" };
     }
@@ -4787,12 +5107,14 @@ export class UnifiedWebSocketRunner {
   private registerObserver(): void {
     if (this.observerRegistered) return;
     ModelObserver.subscribe(this.onModelChange);
+    resourceEvents.on("change", this.onResourceEvent);
     this.observerRegistered = true;
   }
 
   private unregisterObserver(): void {
     if (!this.observerRegistered) return;
     ModelObserver.unsubscribe(this.onModelChange);
+    resourceEvents.off("change", this.onResourceEvent);
     this.observerRegistered = false;
   }
 
@@ -4801,14 +5123,42 @@ export class UnifiedWebSocketRunner {
     event: ModelChangeEvent
   ): void => {
     if (!this.websocket) return;
+    // Only forward changes for models the connected user owns. Models without
+    // a `user_id` (runtime-internal types) are forwarded to every connection.
+    const ownerId = (instance as DBModel & { user_id?: string }).user_id;
+    if (ownerId && this.userId && ownerId !== this.userId) return;
+
+    const resource: Record<string, unknown> = {
+      id: instance.partitionValue(),
+      etag: instance.getEtag()
+    };
+    // Include scope fields for resource types whose cache is keyed on a
+    // parent id (Message → thread_id, WorkflowVersion → workflow_id, etc.).
+    // Frontend handlers use these to narrow invalidation.
+    const data = instance as Record<string, unknown>;
+    for (const field of ["workflow_id", "thread_id", "parent_id"] as const) {
+      const value = data[field];
+      if (typeof value === "string" && value.length > 0) {
+        resource[field] = value;
+      }
+    }
+
     void this.sendMessage({
       type: "resource_change",
       event,
       resource_type: instance.constructor.name.toLowerCase(),
-      resource: {
-        id: instance.partitionValue(),
-        etag: instance.getEtag()
-      }
+      resource
+    });
+  };
+
+  private onResourceEvent = (payload: ResourceChangePayload): void => {
+    if (!this.websocket) return;
+    if (payload.userId && this.userId && payload.userId !== this.userId) return;
+    void this.sendMessage({
+      type: "resource_change",
+      event: payload.event,
+      resource_type: payload.resource_type,
+      resource: payload.resource
     });
   };
 

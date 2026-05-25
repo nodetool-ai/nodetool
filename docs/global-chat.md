@@ -1,25 +1,23 @@
 ---
 layout: page
 title: "Global Chat"
-description: "Chat with AI models, run autonomous agents, and integrate workflows from anywhere in NodeTool."
+description: "Chat with models, run agents, trigger workflows."
 ---
 
-Global Chat is NodeTool's AI assistant interface for interacting with AI models from anywhere in the application. It supports multiple providers, autonomous agents, specialized tools, and workflow integration.
+Global Chat is the always-on chat surface inside NodeTool. It talks to any provider, runs tools, kicks off agents, and triggers your saved workflows.
 
 ---
 
 ## Overview
 
-Global Chat provides:
+- 20+ providers (OpenAI, Anthropic, Gemini, Ollama, …)
+- Tools: web search, files, code execution
+- Agent mode for multi-step planning
+- Run saved workflows from the composer
+- Multiple threads, persistent history
+- Standalone tray window
 
-- Chat with AI models (OpenAI, Anthropic, Google, Ollama, and 20+ providers)
-- Specialized tools for web search, file operations, code execution, and more
-- Autonomous agents for complex multi-step task execution
-- Workflow integration -- run saved workflows directly from chat
-- Multiple conversation threads with history
-- Standalone chat window from system tray
-
-The chat maintains a persistent WebSocket connection and automatically reconnects after app reloads.
+Persistent WebSocket connection — reconnects after reloads.
 
 ---
 

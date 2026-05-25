@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useMemo } from "react";
-import { Box } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, Box } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Asset } from "../../stores/ApiTypes";

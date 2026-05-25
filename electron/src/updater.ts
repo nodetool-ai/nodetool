@@ -6,7 +6,7 @@ import fs from "fs";
 import { logMessage } from "./logger";
 import { getMainWindow } from "./state";
 import { IpcChannels } from "./types.d";
-import { readSettingsAsync } from "./settings";
+import { getUpdateChannel, readSettingsAsync } from "./settings";
 
 let updateAvailable: boolean = false;
 
@@ -131,13 +131,24 @@ async function setupAutoUpdater(): Promise<void> {
   }
 
   try {
+    const settings = await readSettingsAsync();
+    const updateChannel = getUpdateChannel(settings, app.getVersion());
+    const allowPrerelease = updateChannel === "nightly";
+
+    autoUpdater.channel = updateChannel;
+    autoUpdater.allowPrerelease = allowPrerelease;
+    autoUpdater.allowDowngrade = true;
     autoUpdater.setFeedURL({
       provider: "github",
       owner: "nodetool-ai",
       repo: "nodetool",
       updaterCacheDirName: "nodetool-updater",
+      ...(updateChannel === "nightly" ? { channel: "nightly" } : {}),
     });
 
+    logMessage(
+      `Auto-updater using ${updateChannel} channel (allowPrerelease=${allowPrerelease})`
+    );
     autoUpdater.logger = log;
 
     autoUpdater.checkForUpdates().catch((err: Error) => {

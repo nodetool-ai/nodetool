@@ -1,6 +1,5 @@
 import React, { memo } from "react";
-import { Box } from "@mui/material";
-import { Text, Caption, FlexColumn } from "../../ui_primitives";
+import { Text, Caption, FlexColumn, Box } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
@@ -14,10 +13,6 @@ export interface DynamicKieSchemaContentProps {
   isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
-  basicFields: string[];
-  showAdvancedFields: boolean;
-  hasAdvancedFields: boolean;
-  onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
   showResultOverlay?: boolean;
@@ -35,10 +30,6 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
       isConstantNode,
       isOutputNode,
       data,
-      basicFields,
-      showAdvancedFields,
-      hasAdvancedFields,
-      onToggleAdvancedFields,
       status,
       workflowId
     }) => {
@@ -67,14 +58,12 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
               </Caption>
             </Box>
           )}
-          <Box
+          <FlexColumn
             className="dynamic-kie-schema-inputs"
             sx={{
               flex: "1 1 auto",
               minHeight: 80,
               overflow: "visible",
-              display: "flex",
-              flexDirection: "column",
               visibility: "visible",
               "& .node-inputs": {
                 visibility: "visible"
@@ -117,18 +106,13 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
               nodeType={nodeType}
               data={data}
               showHandle={!isConstantNode}
-              hasAdvancedFields={hasAdvancedFields}
-              showAdvancedFields={showAdvancedFields}
-              basicFields={basicFields}
-              onToggleAdvancedFields={onToggleAdvancedFields}
             />
-          </Box>
+          </FlexColumn>
           {!isOutputNode && (
             <Box sx={{ flexShrink: 0 }}>
               <NodeOutputs
                 id={id}
                 outputs={nodeMetadata.outputs}
-                isStreamingOutput={nodeMetadata.is_streaming_output}
               />
             </Box>
           )}

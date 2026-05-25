@@ -189,6 +189,7 @@ const initialConfigTemplate = {
 
 const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const { updateNodeData, updateNode } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode
@@ -356,7 +357,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         className={`node-drag-handle comment-node ${
           props.selected ? "selected" : ""
         } ${isEditorFocused ? "focused" : ""}`.trim()}
-        css={styles(theme)}
+        css={cssStyles}
       >
         <div className="format-toolbar-container">
           <ToolbarPlugin />

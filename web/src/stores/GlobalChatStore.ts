@@ -21,8 +21,6 @@ import {
   PlanningUpdate,
   LogUpdate,
   Thread,
-  ThreadUpdateRequest,
-  ThreadSummarizeRequest,
   LanguageModel
 } from "./ApiTypes";
 import { isLocalhost } from "../lib/env";
@@ -64,7 +62,7 @@ export type StepToolCall = {
   status?: string | null;
 };
 
-export type AgentExecutionToolCalls = Record<
+type AgentExecutionToolCalls = Record<
   string,
   Record<string, StepToolCall[]>
 >;
@@ -667,7 +665,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
           const threadsRecord: Record<string, Thread> = {};
           data.threads.forEach((thread) => {
-            threadsRecord[thread.id] = thread as unknown as Thread;
+            threadsRecord[thread.id] = thread;
           });
 
           set({ threads: threadsRecord, threadsLoaded: true, error: null });
@@ -692,11 +690,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
           set((state) => ({
             threads: {
               ...state.threads,
-              [threadId]: data as unknown as Thread
+              [threadId]: data
             }
           }));
 
-          return data as unknown as Thread;
+          return data;
         } catch (error: unknown) {
           // Surface NOT_FOUND without logging — missing threads are expected
           // when fetching by stale id.
@@ -1300,7 +1298,7 @@ export const useThreadsQuery = () => {
     if (query.isSuccess && query.data) {
       const threadsRecord: Record<string, Thread> = {};
       query.data.threads.forEach((thread) => {
-        threadsRecord[thread.id] = thread as unknown as Thread;
+        threadsRecord[thread.id] = thread;
       });
 
       // Merge with existing threads so locally-created/optimistic threads

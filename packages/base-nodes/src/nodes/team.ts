@@ -13,6 +13,7 @@
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import {
   TeamExecutor,
   DbTaskBoard,
@@ -41,10 +42,15 @@ export class TeamAgentNode extends BaseNode {
   static readonly description =
     "An individual AI agent that receives work from a TeamLead via control edges.\n    agent, team, controlled, worker";
   static readonly isControlled = true;
+  static readonly inputMode: InputMode = "controlled";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    result: { kind: "single", source: "__execution__" }
+  };
   static readonly metadataOutputTypes = {
     result: "str"
   };
-  static readonly basicFields = ["name", "role", "provider", "model"];
+  static readonly inlineFields = ["name", "role"];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",
@@ -158,7 +164,8 @@ export class TeamLeadNode extends BaseNode {
     messages: "list",
     events: "list"
   };
-  static readonly basicFields = ["objective", "strategy"];
+  static readonly inlineFields = ["objective"];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",

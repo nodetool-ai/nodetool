@@ -3,20 +3,33 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   useMediaQuery
 } from "@mui/material";
-import { EditorButton } from "../editor_ui";
-import { ToolbarIconButton } from "../ui_primitives";
+import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import { useCombo } from "../../stores/KeyPressedStore";
+import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
 import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
+import WorkflowForm from "../workflows/WorkflowForm";
+import AgentPanel from "./AgentPanel";
+import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
+import FavoritesTiles from "../node_menu/FavoritesTiles";
+import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
+import QuickAccessGrid from "../node_menu/QuickAccessGrid";
 
 import { IconForType } from "../../config/data_types";
-import { LeftPanelView, usePanelStore } from "../../stores/PanelStore";
+import {
+  LeftPanelView,
+  NodeCategoryId,
+  usePanelStore
+} from "../../stores/PanelStore";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import {
+  LEFT_PANEL_TOP_LEVEL,
+  getTopLevelCategory
+} from "../../config/quickAccessCategories";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -25,13 +38,10 @@ import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
 import { ScrollArea, Tooltip, MobileBottomSheet } from "../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
-// Icons
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
 
 import { Fullscreen } from "@mui/icons-material";
-import { getShortcutTooltip } from "../../config/shortcuts";
-// Models, Workspaces, and Collections (modals)
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;
@@ -47,7 +57,6 @@ const styles = (
       : HEADER_HEIGHT
     : 0;
   return css({
-    // Main container - fixed to left edge of viewport
     position: "fixed",
     left: 0,
     top: `${headerHeight}px`,
@@ -56,7 +65,6 @@ const styles = (
     flexDirection: "row",
     zIndex: 1100,
 
-    // Drawer content area (appears right of toolbar)
     ".drawer-content": {
       height: "100%",
       backgroundColor: theme.vars.palette.background.default,
@@ -67,7 +75,6 @@ const styles = (
       flexDirection: "column"
     },
 
-    // Resize handle on right edge of drawer
     ".panel-resize-handle": {
       width: `${PANEL_RESIZE_HANDLE_WIDTH}px`,
       position: "absolute",
@@ -93,7 +100,6 @@ const styles = (
       }
     },
 
-    // Fixed toolbar on the left edge
     ".vertical-toolbar": {
       width: `${TOOLBAR_WIDTH}px`,
       flexShrink: 0,
@@ -111,7 +117,6 @@ const styles = (
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         willChange: "transform, box-shadow",
         backgroundColor: "transparent",
-        // Match IconForType "small" size (20px)
         "& svg": {
           fontSize: "1.25rem",
           "[data-mui-color-scheme='dark'] &": {
@@ -152,39 +157,15 @@ const styles = (
       }
     },
 
-    // Inner content wrapper
     ".panel-inner-content": {
       display: "flex",
       flex: 1,
       height: "100%",
-      overflow: "hidden"
-    },
-
-    ".help-chat": {
-      "& .MuiButton-root": {
-        whiteSpace: "normal",
-        wordWrap: "break-word",
-        textTransform: "none",
-        maxWidth: "160px",
-        borderColor: theme.vars.palette.grey[400],
-        color: theme.vars.palette.grey[700],
-        margin: "0.5em",
-        padding: "0.5em 1em",
-
-        "[data-mui-color-scheme='dark'] &": {
-          borderColor: theme.vars.palette.grey[200],
-          color: theme.vars.palette.grey[200]
-        },
-
-        "&:hover": {
-          borderColor: "var(--palette-primary-main)",
-          color: "var(--palette-primary-main)"
-        }
-      }
+      overflow: "hidden",
+      padding: isMobile ? 0 : "0 0.75em"
     }
   });
 };
-
 
 const VerticalToolbar = memo(function VerticalToolbar({
   activeView,
@@ -197,65 +178,26 @@ const VerticalToolbar = memo(function VerticalToolbar({
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
-  const handlePanelToggleClick = useCallback(() => {
-    handlePanelToggle();
-  }, [handlePanelToggle]);
-
-  const handleWorkflowViewClick = useCallback(() => {
-    onViewChange("workflowGrid");
-  }, [onViewChange]);
-
-  const handleAssetsViewClick = useCallback(() => {
-    onViewChange("assets");
-  }, [onViewChange]);
+  // Sidebar shows the view as "active" only when the panel is open and
+  // that view is selected.
+  const renderedActive: LeftPanelView | "" =
+    panelVisible && LEFT_PANEL_TOP_LEVEL.some((c) => c.id === activeView)
+      ? (activeView as LeftPanelView)
+      : "";
 
   return (
     <div className="vertical-toolbar">
-      {/* Drawer views section - My Stuff */}
-      <Tooltip
-        title={
-          <div className="tooltip-span">
-            <div className="tooltip-title">Workflows</div>
-            <div className="tooltip-key">
-              <kbd>1</kbd>
-            </div>
-          </div>
-        }
-        placement="right-start"
-        delay={TOOLTIP_ENTER_DELAY}
-      >
-        <ToolbarIconButton
-          tabIndex={-1}
-          ariaLabel="Show workflows"
-          onClick={handleWorkflowViewClick}
-          className={
-            activeView === "workflowGrid" && panelVisible ? "active" : ""
-          }
-          icon={<GridViewIcon />}
-        />
-      </Tooltip>
-      <Tooltip
-        title={getShortcutTooltip("toggleAssets")}
-        placement="right-start"
-        delay={TOOLTIP_ENTER_DELAY}
-      >
-        <ToolbarIconButton
-          tabIndex={-1}
-          ariaLabel="Show assets"
-          onClick={handleAssetsViewClick}
-          className={activeView === "assets" && panelVisible ? "active" : ""}
-          icon={<IconForType iconName="asset" showTooltip={false} iconSize="small" />}
-        />
-      </Tooltip>
-
-
+      <QuickAccessSidebar
+        activeCategory={renderedActive}
+        onCategoryClick={onViewChange}
+      />
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
         <ToolbarIconButton
           tabIndex={-1}
           ariaLabel="Toggle panel"
-          onClick={handlePanelToggleClick}
+          onClick={handlePanelToggle}
           icon={<CodeIcon />}
         />
       </Tooltip>
@@ -265,27 +207,94 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
 const PanelContent = memo(function PanelContent({
   activeView,
+  activeNodeCategory,
+  setActiveNodeCategory,
   handlePanelToggle,
   isMobile = false
 }: {
   activeView: string;
+  activeNodeCategory: NodeCategoryId;
+  setActiveNodeCategory: (id: NodeCategoryId) => void;
   handlePanelToggle: (view: LeftPanelView) => void;
   isMobile?: boolean;
 }) {
   const navigate = useNavigate();
   const path = useLocation().pathname;
+  const currentWorkflow = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
+        null
+      : null
+  );
+  const setVisibility = usePanelStore((state) => state.setVisibility);
+  const closePanel = useCallback(() => setVisibility(false), [setVisibility]);
 
   const handleFullscreenClick = useCallback(() => {
     navigate("/assets");
     handlePanelToggle("assets");
   }, [navigate, handlePanelToggle]);
 
+  if (activeView === "nodes") {
+    return (
+      <FlexColumn
+        fullWidth
+        fullHeight
+        sx={{
+          overflow: "hidden",
+          margin: isMobile ? "0" : "0 0.5em"
+        }}
+      >
+        {!isMobile && <PanelHeadline title="Nodes" />}
+        <QuickAccessGrid
+          activeSubcategory={activeNodeCategory}
+          onSubcategoryChange={setActiveNodeCategory}
+        />
+      </FlexColumn>
+    );
+  }
+
   return (
     <>
+      {activeView === "history" && (
+        <FlexColumn
+          fullWidth
+          fullHeight
+          sx={{
+            margin: isMobile ? "0" : "0 0.5em",
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && <PanelHeadline title="History" />}
+          <HistoryTilesPanel />
+        </FlexColumn>
+      )}
+      {activeView === "favorites" && (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          {!isMobile && <PanelHeadline title="Favorites" />}
+          <ScrollArea fullHeight>
+            <FavoritesTiles showEmpty hideHeader />
+          </ScrollArea>
+        </Box>
+      )}
       {activeView === "assets" && (
         <Box
           className="assets-container"
-          sx={{ width: "100%", height: "100%", margin: isMobile ? "0" : "0 1em" }}
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column"
+          }}
         >
           {!isMobile && (
             <PanelHeadline
@@ -305,34 +314,57 @@ const PanelContent = memo(function PanelContent({
           <AssetGrid maxItemSize={5} isMobile={isMobile} />
         </Box>
       )}
-      {activeView === "workflowGrid" && (
-        <Box
+      {activeView === "workflows" && (
+        <FlexColumn
           className="workflow-grid-container"
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
             margin: isMobile ? "0" : "0 1em",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            overflow: "hidden"
           }}
         >
           {!isMobile && <PanelHeadline title="Workflows" />}
           <ScrollArea fullHeight>
             <WorkflowList />
           </ScrollArea>
+        </FlexColumn>
+      )}
+      {activeView === "settings" && currentWorkflow && (
+        <Box
+          className="workflow-settings-container"
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "auto"
+          }}
+        >
+          {!isMobile && <PanelHeadline title="Settings" />}
+          <WorkflowForm workflow={currentWorkflow} onClose={closePanel} />
         </Box>
       )}
-
+      {activeView === "agent" && (
+        <FlexColumn
+          className="agent-panel-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && <PanelHeadline title="Agent" />}
+          <AgentPanel />
+        </FlexColumn>
+      )}
     </>
   );
 });
 
 // ---------------------------------------------------------------------------
-// Mobile variant — the left panel becomes a launcher FAB + bottom sheet.
+// Mobile variant
 // ---------------------------------------------------------------------------
 
-const MOBILE_LAUNCHER_TOP = 48; // sits just below the 40px AppHeader
+const MOBILE_LAUNCHER_TOP = 48;
 const MOBILE_LAUNCHER_TOP_STANDALONE = 8;
 
 const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
@@ -388,6 +420,8 @@ const mobileHeaderExtrasStyles = (theme: Theme) =>
 
 const MobilePanelLeft: React.FC<{
   activeView: LeftPanelView;
+  activeNodeCategory: NodeCategoryId;
+  setActiveNodeCategory: (id: NodeCategoryId) => void;
   isVisible: boolean;
   hasHeader: boolean;
   onOpen: () => void;
@@ -396,6 +430,8 @@ const MobilePanelLeft: React.FC<{
   handlePanelToggle: (view: LeftPanelView) => void;
 }> = ({
   activeView,
+  activeNodeCategory,
+  setActiveNodeCategory,
   isVisible,
   hasHeader,
   onOpen,
@@ -403,85 +439,81 @@ const MobilePanelLeft: React.FC<{
   onViewChange,
   handlePanelToggle
 }) => {
-    const theme = useTheme();
+  const theme = useTheme();
 
-    const handleSheetViewChange = useCallback(
-      (view: LeftPanelView) => {
-        // On mobile we never want tapping a tab to close the sheet — just switch
-        // the active view. Fall back to the toggle helper only when the sheet is
-        // currently closed (so the caller can open it via the FAB).
-        onViewChange(view);
-      },
-      [onViewChange]
-    );
+  const handleSheetViewChange = useCallback(
+    (view: LeftPanelView) => {
+      onViewChange(view);
+    },
+    [onViewChange]
+  );
 
-    const launcherTitle =
-      activeView === "assets" ? "Assets" : "Workflows";
+  const launcherTitle =
+    getTopLevelCategory(activeView)?.label ?? "Workflows";
 
-    return (
-      <>
-        <ToolbarIconButton
-          className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
-          css={mobileLauncherStyles(theme, hasHeader)}
-          onClick={isVisible ? onClose : onOpen}
-          ariaLabel={isVisible ? "Close panel" : "Open workflows panel"}
-          aria-expanded={isVisible}
-          tabIndex={-1}
-          icon={<MenuIcon />}
-        />
+  return (
+    <>
+      <ToolbarIconButton
+        className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
+        css={mobileLauncherStyles(theme, hasHeader)}
+        onClick={isVisible ? onClose : onOpen}
+        ariaLabel={isVisible ? "Close panel" : "Open workflows panel"}
+        aria-expanded={isVisible}
+        tabIndex={-1}
+        icon={<MenuIcon />}
+      />
 
-        <MobileBottomSheet
-          open={isVisible}
-          onClose={onClose}
-          title={launcherTitle}
-          ariaLabel="Workflows and assets panel"
-          headerExtras={
-            <div css={mobileHeaderExtrasStyles(theme)}>
-              <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-                <ToolbarIconButton
-                  className={`tab-button ${activeView === "workflowGrid" ? "active" : ""}`}
-                  onClick={() => handleSheetViewChange("workflowGrid")}
-                  ariaLabel="Show workflows"
-                  tabIndex={-1}
-                  icon={<GridViewIcon />}
-                />
-              </Tooltip>
-              <Tooltip title="Assets" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-                <ToolbarIconButton
-                  className={`tab-button ${activeView === "assets" ? "active" : ""}`}
-                  onClick={() => handleSheetViewChange("assets")}
-                  ariaLabel="Show assets"
-                  tabIndex={-1}
-                  icon={<IconForType iconName="asset" showTooltip={false} iconSize="small" />}
-                />
-              </Tooltip>
-
-              <Box sx={{ flex: 1 }} />
-            </div>
-          }
-        >
-          <Box
-            sx={{
-              height: "65vh",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden"
-            }}
-          >
-            <ContextMenuProvider>
-              <ContextMenus />
-              <PanelContent
-                activeView={activeView}
-                handlePanelToggle={handlePanelToggle}
-                isMobile
+      <MobileBottomSheet
+        open={isVisible}
+        onClose={onClose}
+        title={launcherTitle}
+        ariaLabel="Workflows and assets panel"
+        headerExtras={
+          <div css={mobileHeaderExtrasStyles(theme)}>
+            <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+              <ToolbarIconButton
+                className={`tab-button ${activeView === "workflows" ? "active" : ""}`}
+                onClick={() => handleSheetViewChange("workflows")}
+                ariaLabel="Show workflows"
+                tabIndex={-1}
+                icon={<GridViewIcon />}
               />
-            </ContextMenuProvider>
-          </Box>
-        </MobileBottomSheet>
+            </Tooltip>
+            <Tooltip title="Assets" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+              <ToolbarIconButton
+                className={`tab-button ${activeView === "assets" ? "active" : ""}`}
+                onClick={() => handleSheetViewChange("assets")}
+                ariaLabel="Show assets"
+                tabIndex={-1}
+                icon={<IconForType iconName="asset" showTooltip={false} iconSize="small" />}
+              />
+            </Tooltip>
 
-      </>
-    );
-  };
+            <Box sx={{ flex: 1 }} />
+          </div>
+        }
+      >
+        <FlexColumn
+          sx={{
+            height: "65vh",
+            overflow: "hidden"
+          }}
+        >
+          <ContextMenuProvider>
+            <ContextMenus />
+            <PanelContent
+              activeView={activeView}
+              activeNodeCategory={activeNodeCategory}
+              setActiveNodeCategory={setActiveNodeCategory}
+              handlePanelToggle={handlePanelToggle}
+              isMobile
+            />
+          </ContextMenuProvider>
+        </FlexColumn>
+      </MobileBottomSheet>
+    </>
+  );
+};
 
 MobilePanelLeft.displayName = "MobilePanelLeft";
 
@@ -490,7 +522,6 @@ const PanelLeft: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
 
-  // Detect routes that don't have AppHeader (standalone modes)
   const isStandaloneMode =
     location.pathname.startsWith("/standalone-chat") ||
     location.pathname.startsWith("/miniapp");
@@ -505,12 +536,16 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  useCombo(["1"], () => handlePanelToggle("workflowGrid"), false);
-  useCombo(["2"], () => handlePanelToggle("assets"), false);
-
+  useAuditCuratedCategories();
 
   const activeView =
-    usePanelStore((state) => state.panel.activeView) || "workflowGrid";
+    usePanelStore((state) => state.panel.activeView) || "workflows";
+  const activeNodeCategory = usePanelStore(
+    (state) => state.panel.activeNodeCategory
+  );
+  const setActiveNodeCategory = usePanelStore(
+    (state) => state.setActiveNodeCategory
+  );
   const setVisibility = usePanelStore((state) => state.setVisibility);
 
   const onViewChange = useCallback(
@@ -525,8 +560,6 @@ const PanelLeft: React.FC = () => {
   }, [handlePanelToggle, activeView]);
 
   const handleMobileOpen = useCallback(() => {
-    // Ensure the sheet always opens to the current activeView (setting it if
-    // collapsed).
     handlePanelToggle(activeView);
   }, [handlePanelToggle, activeView]);
 
@@ -534,7 +567,6 @@ const PanelLeft: React.FC = () => {
     setVisibility(false);
   }, [setVisibility]);
 
-  // On mobile chat routes, hide the left panel — chat has its own conversations UI
   const isChatRoute = location.pathname.startsWith("/chat");
   if (isMobile && isChatRoute) {
     return null;
@@ -544,6 +576,8 @@ const PanelLeft: React.FC = () => {
     return (
       <MobilePanelLeft
         activeView={activeView as LeftPanelView}
+        activeNodeCategory={activeNodeCategory}
+        setActiveNodeCategory={setActiveNodeCategory}
         isVisible={isVisible}
         hasHeader={hasHeader}
         onOpen={handleMobileOpen}
@@ -556,7 +590,6 @@ const PanelLeft: React.FC = () => {
 
   return (
     <div css={styles(theme, hasHeader, false)} className="panel-left-container">
-      {/* Fixed toolbar - always on the left edge */}
       <ContextMenuProvider>
         <ContextMenus />
         <VerticalToolbar
@@ -565,7 +598,6 @@ const PanelLeft: React.FC = () => {
           handlePanelToggle={handlePanelToggleClick}
         />
 
-        {/* Drawer content - appears right of toolbar when visible */}
         {isVisible && (
           <div
             ref={panelRef}
@@ -574,8 +606,16 @@ const PanelLeft: React.FC = () => {
               width: `${Math.max(panelSize - TOOLBAR_WIDTH, 250)}px`,
               minWidth: "250px"
             }}
+            onKeyDown={(e) => {
+              if (
+                e.key === "Escape" &&
+                (activeView === "nodes" || activeView === "workflows")
+              ) {
+                e.stopPropagation();
+                setVisibility(false);
+              }
+            }}
           >
-            {/* Resize handle on right edge */}
             <div
               className="panel-resize-handle"
               onMouseDown={handleMouseDown}
@@ -586,6 +626,8 @@ const PanelLeft: React.FC = () => {
             <div className="panel-inner-content">
               <PanelContent
                 activeView={activeView}
+                activeNodeCategory={activeNodeCategory}
+                setActiveNodeCategory={setActiveNodeCategory}
                 handlePanelToggle={handlePanelToggle}
               />
             </div>

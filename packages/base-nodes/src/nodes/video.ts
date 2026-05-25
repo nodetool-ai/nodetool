@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { execFile as execFileCb } from "node:child_process";
@@ -7,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { audioBytes, toBytes } from "../lib/audio-wav.js";
+import { audioBytes, audioBytesAsync, toBytes } from "../lib/audio-wav.js";
 
 type VideoRefLike = { uri?: string; data?: Uint8Array | string };
 type ImageRefLike = { uri?: string; data?: Uint8Array | string };
@@ -217,13 +218,8 @@ export class TextToVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly basicFields = [
-    "model",
-    "prompt",
-    "aspect_ratio",
-    "resolution",
-    "duration"
-  ];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -328,14 +324,8 @@ export class ImageToVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly basicFields = [
-    "image",
-    "model",
-    "prompt",
-    "aspect_ratio",
-    "resolution",
-    "duration"
-  ];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["image", "prompt"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -457,6 +447,8 @@ export class LoadVideoFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
   @prop({
     type: "str",
@@ -481,6 +473,8 @@ export class SaveVideoFileVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video"];
 
   @prop({
     type: "video",
@@ -536,8 +530,17 @@ export class LoadVideoAssetsNode extends BaseNode {
     videos: "list",
     names: "list"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    video: { kind: "iteration", source: "__execution__", group: "items" },
+    name: { kind: "iteration", source: "__execution__", group: "items" },
+    videos: { kind: "single", source: "__execution__" },
+    names: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "folder",
     default: {
@@ -622,6 +625,8 @@ export class SaveVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video"];
 
   @prop({
     type: "video",
@@ -673,9 +678,9 @@ export class SaveVideoNode extends BaseNode {
   }
 }
 
-export class FrameIteratorNode extends BaseNode {
-  static readonly nodeType = "nodetool.video.FrameIterator";
-  static readonly title = "Frame Iterator";
+export class ForEachFrameNode extends BaseNode {
+  static readonly nodeType = "nodetool.video.ForEachFrame";
+  static readonly title = "For Each Frame";
   static readonly description =
     "Extract frames from a video file using OpenCV.\n    video, frames, extract, sequence";
   static readonly metadataOutputTypes = {
@@ -683,8 +688,16 @@ export class FrameIteratorNode extends BaseNode {
     index: "int",
     fps: "float"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video"];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    frame: { kind: "iteration", source: "video", group: "items" },
+    index: { kind: "iteration", source: "video", group: "items" },
+    fps: { kind: "single", source: "video" }
+  };
+
   @prop({
     type: "video",
     default: {
@@ -808,6 +821,8 @@ export class FpsNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "float"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video"];
 
   @prop({
     type: "video",
@@ -860,9 +875,16 @@ export class FrameToVideoNode extends BaseNode {
   static readonly description =
     "Combine a sequence of frames into a single video file.\n    video, frames, combine, sequence";
   static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "aggregate", source: "frame", collapse: "innermost" }
+  };
+
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["frame"];
 
   @prop({
     type: "image",
@@ -1017,53 +1039,19 @@ abstract class VideoTransformNode extends BaseNode {
 
 export class ConcatVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Concat";
-  static readonly title = "Concat";
+  static readonly title = "Concatenate Video";
   static readonly description =
-    "Concatenate multiple video files into a single video, including audio when available.\n    video, concat, merge, combine, audio, +";
+    "Concatenate multiple video files into a single video, including audio when available. Add inputs dynamically with the “add video input” button.\n    video, concat, merge, combine, audio, +";
   static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
   static readonly isDynamic = true;
 
-  @prop({
-    type: "video",
-    default: {
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    },
-    title: "Video A",
-    description: "The first video to concatenate."
-  })
-  declare video_a: any;
-
-  @prop({
-    type: "video",
-    default: {
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    },
-    title: "Video B",
-    description: "The second video to concatenate."
-  })
-  declare video_b: any;
-
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const inputValues = [
-      this.video_a,
-      this.video_b,
-      ...Array.from(this.dynamicProps.values())
-    ];
+    const inputValues = Array.from(this.dynamicProps.values());
     const parts: Uint8Array[] = [];
     for (const input of inputValues) {
       const bytes = await videoBytesAsync(input, context);
@@ -1116,6 +1104,8 @@ export class TrimVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -1944,6 +1934,8 @@ export class ReverseVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -2149,6 +2141,8 @@ export class AddAudioVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly inputFields: string[] = ["video", "audio"];
+
 
   @prop({
     type: "video",
@@ -2351,6 +2345,8 @@ export class ExtractAudioVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -2410,6 +2406,8 @@ export class ExtractFrameVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -2491,6 +2489,8 @@ export class GetVideoInfoNode extends BaseNode {
     codec: "str",
     has_audio: "bool"
   };
+  static readonly inputFields: string[] = ["video"];
+
 
   @prop({
     type: "video",
@@ -2592,6 +2592,147 @@ export class GetVideoInfoNode extends BaseNode {
   }
 }
 
+export class VideoToVideoNode extends BaseNode {
+  static readonly nodeType = "nodetool.video.VideoToVideo";
+  static readonly title = "Video To Video";
+  static readonly description =
+    "Restyle or edit an existing video with a text prompt using any supported video provider.\n    video, video-to-video, v2v, restyle, style-transfer, AI";
+  static readonly metadataOutputTypes = { output: "video" };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video", "prompt"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "video_model",
+    default: {
+      type: "video_model",
+      provider: "fal_ai",
+      id: "fal-ai/ltx-2-19b/distilled/video-to-video",
+      name: "LTX Video To Video",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The video-to-video model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "video",
+    default: { type: "video", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Video",
+    description: "The input video to transform"
+  })
+  declare video: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Text prompt describing the desired transformation"
+  })
+  declare prompt: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Text prompt describing what to avoid"
+  })
+  declare negative_prompt: any;
+
+  @prop({
+    type: "float",
+    default: 0.6,
+    title: "Strength",
+    description: "How much to transform the input video",
+    min: 0,
+    max: 1
+  })
+  declare strength: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await videoBytesAsync(this.video, context);
+    if (bytes.length === 0) throw new Error("The input video is empty.");
+    const { providerId, modelId } = modelConfig(this.serialize());
+    if (!canUseProvider(context, providerId, modelId)) {
+      throw new Error("No provider available for video-to-video generation.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "video_to_video",
+      model: modelId,
+      params: {
+        video: bytes,
+        prompt: String(this.prompt ?? ""),
+        negative_prompt: this.negative_prompt,
+        strength: Number(this.strength ?? 0.6)
+      }
+    })) as Uint8Array;
+    return { output: videoRef(output) };
+  }
+}
+
+export class LipSyncNode extends BaseNode {
+  static readonly nodeType = "nodetool.video.LipSync";
+  static readonly title = "Lip Sync";
+  static readonly description =
+    "Drive a face in a video to match speech in an audio track using any supported lip-sync provider.\n    video, lip-sync, lipsync, talking-head, dubbing, AI";
+  static readonly metadataOutputTypes = { output: "video" };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["video", "audio"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "video_model",
+    default: {
+      type: "video_model",
+      provider: "fal_ai",
+      id: "fal-ai/sync-lipsync/v2",
+      name: "Sync Lipsync V2",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The lip-sync model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "video",
+    default: { type: "video", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Video",
+    description: "The input video containing the face to drive"
+  })
+  declare video: any;
+
+  @prop({
+    type: "audio",
+    default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Audio",
+    description: "The audio track the mouth motion should follow"
+  })
+  declare audio: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const video = await videoBytesAsync(this.video, context);
+    if (video.length === 0) throw new Error("The input video is empty.");
+    const audio = await audioBytesAsync(this.audio, context);
+    if (audio.length === 0) throw new Error("The input audio is empty.");
+    const { providerId, modelId } = modelConfig(this.serialize());
+    if (!canUseProvider(context, providerId, modelId)) {
+      throw new Error("No provider available for lip sync.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "lip_sync",
+      model: modelId,
+      params: { video, audio }
+    })) as Uint8Array;
+    return { output: videoRef(output) };
+  }
+}
+
 export const VIDEO_NODES = [
   TextToVideoNode,
   ImageToVideoNode,
@@ -2599,7 +2740,7 @@ export const VIDEO_NODES = [
   SaveVideoFileVideoNode,
   LoadVideoAssetsNode,
   SaveVideoNode,
-  FrameIteratorNode,
+  ForEachFrameNode,
   FpsNode,
   FrameToVideoNode,
   ConcatVideoNode,
@@ -2621,5 +2762,7 @@ export const VIDEO_NODES = [
   ChromaKeyVideoNode,
   ExtractAudioVideoNode,
   ExtractFrameVideoNode,
-  GetVideoInfoNode
+  GetVideoInfoNode,
+  VideoToVideoNode,
+  LipSyncNode
 ] as const;

@@ -124,14 +124,23 @@ export const Notification = jest.fn().mockImplementation(() => ({
   on: jest.fn(),
   close: jest.fn(),
 }));
-(Notification as any).isSupported = jest.fn().mockReturnValue(true);
+Object.assign(Notification, { isSupported: jest.fn().mockReturnValue(true) });
 
 // Return an EventEmitter-backed fake so tests can `emit('spawn')` etc.
 // Each fork() call produces a fresh emitter so lifecycle is isolated.
 import { EventEmitter as _EE } from "events";
+
+interface MockUtilityProcess extends _EE {
+  pid: number;
+  stdout: _EE;
+  stderr: _EE;
+  kill: ReturnType<typeof jest.fn>;
+  postMessage: ReturnType<typeof jest.fn>;
+}
+
 export const utilityProcess = {
   fork: jest.fn().mockImplementation(() => {
-    const proc: any = Object.assign(new _EE(), {
+    const proc: MockUtilityProcess = Object.assign(new _EE(), {
       pid: 4242,
       stdout: new _EE(),
       stderr: new _EE(),

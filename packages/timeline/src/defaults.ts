@@ -17,7 +17,17 @@ import type {
   TimelineTrack,
   TimelineClip,
   TimelineMarker,
-  ClipVersion
+  ClipVersion,
+  TrackEffect,
+  TrackGainEffect,
+  TrackEq3Effect,
+  TrackFilterEffect,
+  TrackCompressorEffect,
+  TrackColorCorrectionEffect,
+  TrackVideoBlurEffect,
+  TrackSharpenEffect,
+  TrackVignetteEffect,
+  TrackChromaKeyEffect
 } from "./types.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -107,6 +117,104 @@ export function makeTrack(
     locked: false,
     ...overrides
   };
+}
+
+/**
+ * Create a {@link TrackEffect} of the given type, filled with sensible
+ * defaults. Each effect has `enabled: true` and a fresh `id`.
+ */
+export function makeTrackEffect(type: TrackEffect["type"]): TrackEffect {
+  const id = createTimeOrderedUuid();
+  switch (type) {
+    case "gain":
+      return {
+        id,
+        type: "gain",
+        enabled: true,
+        gainDb: 0
+      } satisfies TrackGainEffect;
+    case "eq3":
+      return {
+        id,
+        type: "eq3",
+        enabled: true,
+        lowFreq: 200,
+        lowGainDb: 0,
+        midFreq: 1000,
+        midQ: 1,
+        midGainDb: 0,
+        highFreq: 5000,
+        highGainDb: 0
+      } satisfies TrackEq3Effect;
+    case "filter":
+      return {
+        id,
+        type: "filter",
+        enabled: true,
+        mode: "lowpass",
+        frequency: 1000,
+        q: 1
+      } satisfies TrackFilterEffect;
+    case "compressor":
+      return {
+        id,
+        type: "compressor",
+        enabled: true,
+        thresholdDb: -24,
+        ratio: 4,
+        attackMs: 3,
+        releaseMs: 250,
+        kneeDb: 30
+      } satisfies TrackCompressorEffect;
+    case "colorCorrection":
+      return {
+        id,
+        type: "colorCorrection",
+        enabled: true,
+        brightness: 0,
+        contrast: 1,
+        saturation: 1,
+        hue: 0,
+        temperature: 0,
+        tint: 0,
+        shadows: 0,
+        highlights: 0
+      } satisfies TrackColorCorrectionEffect;
+    case "videoBlur":
+      return {
+        id,
+        type: "videoBlur",
+        enabled: true,
+        radius: 4
+      } satisfies TrackVideoBlurEffect;
+    case "sharpen":
+      return {
+        id,
+        type: "sharpen",
+        enabled: true,
+        amount: 0.5,
+        threshold: 0
+      } satisfies TrackSharpenEffect;
+    case "vignette":
+      return {
+        id,
+        type: "vignette",
+        enabled: true,
+        intensity: 0.4,
+        radius: 0.9,
+        softness: 0.5
+      } satisfies TrackVignetteEffect;
+    case "chromaKey":
+      return {
+        id,
+        type: "chromaKey",
+        enabled: true,
+        keyColor: "#00ff00",
+        tolerance: 0.2,
+        softness: 0.1,
+        spill: 0.5
+      } satisfies TrackChromaKeyEffect;
+  }
 }
 
 /**

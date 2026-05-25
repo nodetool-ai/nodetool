@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 export class SendEmailLibNode extends BaseNode {
   static readonly nodeType = "lib.mail.SendEmail";
@@ -10,6 +11,8 @@ export class SendEmailLibNode extends BaseNode {
     output: "bool"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["to_address", "subject"];
+  static readonly inputFields = ["body"];
 
   @prop({
     type: "str",
@@ -156,20 +159,26 @@ export class GmailSearchLibNode extends BaseNode {
     emails: "list",
     message_ids: "list"
   };
-  static readonly basicFields = [
-    "from_address",
-    "subject",
-    "body",
-    "date_filter",
-    "max_results"
-  ];
+  static readonly inlineFields = ["from_address", "subject"];
+  static readonly inputFields = ["text"];
   static readonly requiredSettings = [
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"
   ];
   static readonly exposeAsTool = true;
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    email: { kind: "iteration", source: "__execution__", group: "items" },
+    message_id: { kind: "iteration", source: "__execution__", group: "items" },
+    subject: { kind: "iteration", source: "__execution__", group: "items" },
+    sender: { kind: "iteration", source: "__execution__", group: "items" },
+    date: { kind: "iteration", source: "__execution__", group: "items" },
+    body: { kind: "iteration", source: "__execution__", group: "items" },
+    emails: { kind: "single", source: "__execution__" },
+    message_ids: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: "",
@@ -380,6 +389,8 @@ export class AddLabelLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
+  static readonly inlineFields = ["message_id", "label"];
+  static readonly inputFields = [];
   static readonly requiredSettings = [
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"
@@ -447,6 +458,8 @@ export class MoveToArchiveLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
+  static readonly inlineFields = ["message_id"];
+  static readonly inputFields = [];
   static readonly requiredSettings = [
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"

@@ -6,10 +6,9 @@ import { shallow } from "zustand/shallow";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import isEqual from "fast-deep-equal";
 import { NodeData } from "../../stores/NodeData";
+import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
-import { hexToRgba } from "../../utils/ColorUtils";
-import { useTheme } from "@mui/material/styles";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
@@ -85,19 +84,19 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showCodeBadge = false,
   codeBadgeTooltip = "Code node"
 }: NodeHeaderProps) => {
-  const theme = useTheme();
-  const isLightMode = theme.palette.mode === "light";
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
-  const { updateNode, updateNodeData, workflowId: nodeWorkflowId } = useNodes(
-    (state) => ({
-      updateNode: state.updateNode,
-      updateNodeData: state.updateNodeData,
-      workflowId: state.workflow?.id
-    }),
-    shallow
-  );
+  const { updateNode, updateNodeData, findNode, workflowId: nodeWorkflowId } =
+    useNodes(
+      (state) => ({
+        updateNode: state.updateNode,
+        updateNodeData: state.updateNodeData,
+        findNode: state.findNode,
+        workflowId: state.workflow?.id
+      }),
+      shallow
+    );
   const targetWorkflowId = workflowId || nodeWorkflowId || "";
   // O(1) lookup via pre-keyed map — avoids filtering the full logs array on
   // every store update (which previously ran for every NodeHeader in the graph).
@@ -120,17 +119,17 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     () =>
       css({
         width: "100%",
-        minHeight: "44px",
+        minHeight: "32px",
         backgroundColor: "transparent",
-        color: "var(--palette-grey-0)",
+        color: "var(--palette-text-secondary)",
         margin: 0,
-        padding: "0 4px",
+        padding: "0 6px",
         borderRadius:
           "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+        borderBottom: "none",
         transition: "background-color 0.2s ease-in-out, opacity 0.15s",
         ".header-left": {
-          padding: "4px 4px",
+          padding: "2px 2px",
           flex: 1,
           minWidth: 0
         },
@@ -138,21 +137,26 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           display: "flex",
           alignItems: "center",
           gap: "4px",
-          padding: "4px 4px",
+          padding: "2px 2px",
           flexShrink: 0
         },
         ".node-icon": {
-          width: "28px",
-          minWidth: "28px",
-          height: "28px",
-          borderRadius: "var(--rounded-md)",
+          width: "20px",
+          minWidth: "20px",
+          height: "20px",
+          borderRadius: "var(--rounded-sm)",
           display: "grid",
           placeItems: "center",
-          boxShadow: "0 0 3px rgba(0, 0, 0, 0.1)",
           marginRight: "4px",
           flexShrink: 0,
+          opacity: 0.65,
+          // Hit target must be this div (not nested SVG), otherwise React Flow / d3-drag may not
+          // treat the gesture as starting on `.node-drag-handle` in some browsers.
+          "& *": {
+            pointerEvents: "none"
+          },
           "& svg": {
-            transform: "scale(0.9)"
+            transform: "scale(0.8)"
           }
         },
         ".node-title": {
@@ -165,11 +169,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           textAlign: "left",
           wordWrap: "break-word",
           lineHeight: "1.2em",
-          fontSize: "var(--fontSizeNormal)",
-          fontWeight: 500,
-          letterSpacing: "0.02em",
+          fontSize: "var(--fontSizeSmall)",
+          fontWeight: 400,
+          letterSpacing: "0.01em",
           padding: "2px 0",
-          color: "var(--palette-text-primary)"
+          color: "var(--palette-text-secondary)"
         },
         ".node-title-text": {
           minWidth: 0,
@@ -225,6 +229,29 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     updateNode(id, { selected: true });
   }, [id, updateNode]);
 
+  const toggleCollapsed = useCallback(() => {
+    const node = findNode(id);
+    if (!node) {
+      return;
+    }
+    const next = !node.data.collapsed;
+    const { data: dataPatch, node: nodePatch } = getCollapseTogglePatches(
+      node,
+      next
+    );
+    updateNodeData(id, dataPatch);
+    updateNode(id, nodePatch);
+  }, [findNode, id, updateNode, updateNodeData]);
+
+  const handleIconDoubleClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      event.preventDefault();
+      toggleCollapsed();
+    },
+    [toggleCollapsed]
+  );
+
   const handleOpenLogsDialog = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setLogsDialogOpen(true);
@@ -254,13 +281,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
 
   const handleTitleDoubleClick = useCallback(
     (event: React.MouseEvent<HTMLSpanElement>) => {
-      if (!isTitleEditable) {
+      if (isTitleEditable) {
+        event.stopPropagation();
+        setIsEditingTitle(true);
         return;
       }
       event.stopPropagation();
-      setIsEditingTitle(true);
+      event.preventDefault();
+      toggleCollapsed();
     },
-    [isTitleEditable]
+    [isTitleEditable, toggleCollapsed]
   );
 
   const handleTitleKeyDown = useCallback(
@@ -280,43 +310,22 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   const hasIcon = Boolean(iconType);
   const resolvedTitle = title ?? metadataTitle;
 
+  // Neutral header — category color intentionally dropped to keep chrome quiet.
   const headerStyle: React.CSSProperties | undefined = useMemo(() => {
     if (backgroundColor === "transparent") {
       return { background: "transparent" } as React.CSSProperties;
     }
-    const hasCategoryColor = Boolean(backgroundColor);
-    if (isLightMode) {
-      if (!hasCategoryColor) {
-        return {
-          background: "var(--palette-grey-800)",
-          borderBottom: "1px solid var(--palette-divider)"
-        } as React.CSSProperties;
-      }
-      const flat = selected ? 0.32 : 0.2;
-      return {
-        background: hexToRgba(backgroundColor!, flat),
-        borderBottom: `1px solid ${hexToRgba(backgroundColor!, 0.28)}`
-      } as React.CSSProperties;
-    }
-    const tint = backgroundColor || "var(--c_node_header_bg)";
-    const baseOpacity = selected ? 0.55 : 0.35;
-    const endOpacity = selected ? 0.22 : 0.12;
     return {
-      background: `linear-gradient(135deg, ${hexToRgba(tint, baseOpacity)}, ${hexToRgba(
-        tint,
-        endOpacity
-      )})`
+      background: "transparent",
+      borderBottom: "none"
     } as React.CSSProperties;
-  }, [backgroundColor, selected, isLightMode]);
+  }, [backgroundColor]);
 
-  // Memoize icon background style to prevent recreation on every render
-  const iconBackgroundStyle = useMemo(() => ({
-    background: iconBaseColor
-      ? hexToRgba(iconBaseColor, isLightMode ? 0.14 : 0.22)
-      : isLightMode
-        ? "rgba(26,23,21,0.05)"
-        : "rgba(255,255,255,0.08)"
-  }), [iconBaseColor, isLightMode]);
+  // Neutral icon tile — no category tint.
+  const iconBackgroundStyle = useMemo(
+    () => ({ background: "transparent" }),
+    []
+  );
 
   // Memoize title padding style to prevent recreation on every render
   const titlePaddingStyle = useMemo(() => ({
@@ -338,8 +347,9 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       <FlexRow className="header-left" gap={1} align="center">
         {hasIcon && showIcon && (
           <div
-            className="node-icon"
+            className="node-icon node-drag-handle"
             style={iconBackgroundStyle}
+            onDoubleClick={handleIconDoubleClick}
           >
             <IconForType
               iconName={iconType!}

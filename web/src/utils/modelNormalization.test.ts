@@ -1,6 +1,5 @@
 import {
   normalizeModelMeta,
-  buildMetaIndex,
   applyAdvancedModelFilters
 } from "./modelNormalization";
 import type { LanguageModel } from "../stores/ApiTypes";
@@ -103,24 +102,6 @@ describe("modelNormalization", () => {
       const model = { id: "model-1m", name: "Model 1M" } as LanguageModel;
       const meta = normalizeModelMeta(model);
       expect(meta.sizeB).toBe(0.001);
-    });
-  });
-
-  describe("buildMetaIndex", () => {
-    it("builds index with model and meta", () => {
-      const models = [
-        { id: "llama-7b", name: "Llama 7B" } as LanguageModel,
-        { id: "qwen-7b", name: "Qwen 7B" } as LanguageModel,
-      ];
-      const index = buildMetaIndex(models);
-      expect(index).toHaveLength(2);
-      expect(index[0].model.id).toBe("llama-7b");
-      expect(index[0].meta.family).toBe("llama");
-    });
-
-    it("handles empty array", () => {
-      const index = buildMetaIndex([]);
-      expect(index).toHaveLength(0);
     });
   });
 

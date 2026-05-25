@@ -3,9 +3,7 @@
  */
 import {
   secondsToHMS,
-  prettyDate,
   relativeTime,
-  getTimestampForFilename
 } from '../formatDateAndTime';
 
 describe('formatDateAndTime utilities', () => {
@@ -33,56 +31,6 @@ describe('formatDateAndTime utilities', () => {
     test('handles decimal seconds by flooring', () => {
       expect(secondsToHMS(3661.9)).toBe('01:01:01');
       expect(secondsToHMS(59.9)).toBe('00:00:59');
-    });
-  });
-
-  describe('prettyDate', () => {
-    test('returns "-" for undefined or empty input', () => {
-      expect(prettyDate(undefined)).toBe('-');
-      expect(prettyDate('')).toBe('-');
-      expect(prettyDate(0)).toBe('-');
-    });
-
-    test('formats normal dates in 12h format by default', () => {
-      expect(prettyDate('2023-01-02 03:04:05')).toBe('2023-01-02 | 03:04:05 AM');
-      expect(prettyDate('2023-01-02T15:30:45')).toBe('2023-01-02 | 03:30:45 PM');
-    });
-
-    test('formats normal dates in 24h format when specified', () => {
-      expect(prettyDate('2023-01-02 03:04:05', 'normal', { timeFormat: '24h' })).toBe('02.01.2023 | 03:04:05');
-      expect(prettyDate('2023-01-02T15:30:45', 'normal', { timeFormat: '24h' })).toBe('02.01.2023 | 15:30:45');
-    });
-
-    test('formats verbose dates in 12h format', () => {
-      const year = new Date().getFullYear();
-      const str = `${year}-05-15 13:30:00`;
-      const expected = 'May 15 | 01:30 PM';
-      expect(prettyDate(str, 'verbose')).toBe(expected);
-
-      // Different year
-      expect(prettyDate('2022-05-15 13:30:00', 'verbose')).toBe('2022 May 15 | 01:30 PM');
-    });
-
-    test('formats verbose dates in 24h format', () => {
-      const year = new Date().getFullYear();
-      const str = `${year}-05-15 13:30:00`;
-      expect(prettyDate(str, 'verbose', { timeFormat: '24h' })).toBe('15. May  | 13:30');
-
-      // Different year
-      expect(prettyDate('2022-05-15 13:30:00', 'verbose', { timeFormat: '24h' })).toBe('15 May 2022 | 13:30');
-    });
-
-    test('handles numeric timestamp input', () => {
-      const timestamp = new Date('2023-01-02T03:04:05Z').getTime();
-      // Since we set timezone to UTC in jest.setup.js, expect UTC time
-      expect(prettyDate(timestamp)).toBe('2023-01-02 | 03:04:05 AM');
-    });
-
-    test('returns "Invalid Date" and logs warning on bad input', () => {
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      expect(prettyDate('not-a-date')).toBe('Invalid Date');
-      expect(warnSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
     });
   });
 
@@ -132,14 +80,4 @@ describe('formatDateAndTime utilities', () => {
     });
   });
 
-  describe('getTimestampForFilename', () => {
-    test('generates timestamp with time by default', () => {
-      expect(getTimestampForFilename()).toBe('2023-01-02_03-04-05');
-      expect(getTimestampForFilename(true)).toBe('2023-01-02_03-04-05');
-    });
-
-    test('generates timestamp without time when specified', () => {
-      expect(getTimestampForFilename(false)).toBe('2023-01-02');
-    });
-  });
 });

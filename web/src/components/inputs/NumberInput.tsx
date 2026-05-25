@@ -409,7 +409,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
               decimalPlaces={state.decimalPlaces}
             />
           )}
-          {props.inputType === "int" && !inputIsFocused && (
+          {props.inputType === "int" && !inputIsFocused && !state.isDragging && (
             <div className="number-stepper nodrag">
               <button
                 type="button"

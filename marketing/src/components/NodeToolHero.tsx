@@ -40,9 +40,10 @@ export default function NodeToolHero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-400 md:text-lg">
-            Every major model from every major provider, called with your own
-            keys, wired into one node-based canvas. Pay providers directly at
-            provider prices. Switch the moment a better model ships.
+            One canvas. Every major model from every major provider, called
+            with your own keys. Pay providers what they charge — no credits, no
+            markup, no curated roster. When the next model ships, swap one node
+            and you&apos;re on it the same day.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

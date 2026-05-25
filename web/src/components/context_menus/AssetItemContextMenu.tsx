@@ -22,7 +22,7 @@ import { useFileTabsStore } from "../../stores/FileTabsStore";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import AssetInfoPanel from "./AssetInfoPanel";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 
 const AssetItemContextMenu = () => {
   const menuPosition = useContextMenuStore((state) => state.menuPosition);
@@ -37,7 +37,7 @@ const AssetItemContextMenu = () => {
     openCompareView,
     setCreateFolderDialogOpen
   } = useAssetGridStore(
-    (state) => ({
+    useShallow((state) => ({
       setRenameDialogOpen: state.setRenameDialogOpen,
       setMoveToFolderDialogOpen: state.setMoveToFolderDialogOpen,
       setDeleteDialogOpen: state.setDeleteDialogOpen,
@@ -45,8 +45,7 @@ const AssetItemContextMenu = () => {
       selectedAssets: state.selectedAssets,
       openCompareView: state.openCompareView,
       setCreateFolderDialogOpen: state.setCreateFolderDialogOpen
-    }),
-    shallow
+    }))
   );
 
   const download = useAssetStore((state) => state.download);

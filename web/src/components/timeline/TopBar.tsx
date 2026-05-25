@@ -15,14 +15,12 @@ import {
   FlexRow,
   Text,
   Caption,
-  ToolbarIconButton,
   EditorButton
 } from "../ui_primitives";
-import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import LibraryMusicIcon from "@mui/icons-material/LibraryMusic";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+
+import { TopBarPrompt } from "./TopBarPrompt";
 
 const styles = (theme: Theme) =>
   css({
@@ -57,12 +55,6 @@ export interface TopBarProps {
   saveStatus?: string;
   /** Called when the user clicks the project name dropdown */
   onProjectNameClick?: () => void;
-  /** Called when the user clicks the Project button */
-  onProjectClick?: () => void;
-  /** Called when the user clicks the Library button */
-  onLibraryClick?: () => void;
-  /** Called when the user clicks the Exports button */
-  onExportsClick?: () => void;
   /** Called when the user clicks Render All */
   onRenderAll?: () => void;
   /** Optional slot for an activity indicator (NOD-311) */
@@ -74,9 +66,6 @@ export const TopBar: React.FC<TopBarProps> = memo(
     sequenceName = "Untitled Sequence",
     saveStatus,
     onProjectNameClick,
-    onProjectClick,
-    onLibraryClick,
-    onExportsClick,
     onRenderAll,
     activitySlot
   }) => {
@@ -116,27 +105,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
           )}
         </FlexRow>
 
-        {/* Center: Project / Library / Exports nav buttons */}
-        <FlexRow gap={0.5} align="center">
-          <ToolbarIconButton
-            icon={<FolderOpenIcon />}
-            tooltip="Project"
-            onClick={onProjectClick}
-            aria-label="Project"
-          />
-          <ToolbarIconButton
-            icon={<LibraryMusicIcon />}
-            tooltip="Library"
-            onClick={onLibraryClick}
-            aria-label="Library"
-          />
-          <ToolbarIconButton
-            icon={<FileDownloadIcon />}
-            tooltip="Exports"
-            onClick={onExportsClick}
-            aria-label="Exports"
-          />
-        </FlexRow>
+        {/* Center: quick-prompt generation bar */}
+        <TopBarPrompt />
 
         {/* Right: activity slot + Render All */}
         <FlexRow gap={1} align="center">

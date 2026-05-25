@@ -39,6 +39,10 @@ Searches Gmail using Gmail-specific search operators and yields matching emails.
 |--------|------|-------------|
 | email | `dict` |  |
 | message_id | `str` |  |
+| subject | `str` |  |
+| sender | `str` |  |
+| date | `str` |  |
+| body | `str` |  |
 | emails | `list` |  |
 | message_ids | `list` |  |
 

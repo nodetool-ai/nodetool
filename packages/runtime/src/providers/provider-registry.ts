@@ -6,6 +6,10 @@ const log = createLogger("nodetool.runtime.provider-registry");
 interface ProviderRegistration {
   cls: new (...args: any[]) => BaseProvider;
   kwargs: Record<string, unknown>;
+  // Keys that should be resolved from the secret store / env when available,
+  // but are NOT required for the provider to be considered configured. The
+  // mapped value is the fallback default used when nothing is resolvable.
+  optionalKwargs: Record<string, unknown>;
 }
 
 /**
@@ -22,9 +26,10 @@ const _PROVIDER_REGISTRY = new Map<string, ProviderRegistration>();
 export function registerProvider(
   providerId: string,
   cls: new (...args: any[]) => BaseProvider,
-  kwargs: Record<string, unknown> = {}
+  kwargs: Record<string, unknown> = {},
+  optionalKwargs: Record<string, unknown> = {}
 ): void {
-  _PROVIDER_REGISTRY.set(providerId, { cls, kwargs });
+  _PROVIDER_REGISTRY.set(providerId, { cls, kwargs, optionalKwargs });
 }
 
 export function getRegisteredProvider(
@@ -68,6 +73,25 @@ export async function getProvider(
         kwargs[key] = envVal;
       }
     }
+  }
+
+  // Optional kwargs: resolve from secret store / env when available, else use
+  // the registered default. These are not required for the provider to be
+  // "configured" (see isProviderConfigured) but still flow into the
+  // constructor so user-set values (e.g. LMSTUDIO_API_URL) take effect on
+  // every getProvider() call without a restart.
+  for (const [key, fallback] of Object.entries(registration.optionalKwargs)) {
+    const fromSecret = await getSecret(key);
+    if (fromSecret) {
+      kwargs[key] = fromSecret;
+      continue;
+    }
+    const envVal = process.env[key];
+    if (envVal) {
+      kwargs[key] = envVal;
+      continue;
+    }
+    kwargs[key] = fallback;
   }
 
   return new registration.cls(kwargs);

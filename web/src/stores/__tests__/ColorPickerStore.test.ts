@@ -1,7 +1,6 @@
 import {
   useColorPickerStore,
   gradientToCss,
-  parseGradientCss,
   PRESET_PALETTES,
   GradientValue
 } from "../ColorPickerStore";
@@ -234,31 +233,6 @@ describe("gradientToCss", () => {
 
     const css = gradientToCss(gradient);
     expect(css).toBe("linear-gradient(90deg, #ff0000 0%, #0000ff 100%)");
-  });
-});
-
-describe("parseGradientCss", () => {
-  it("parses linear gradient CSS", () => {
-    const css = "linear-gradient(90deg, #ff0000 0%, #0000ff 100%)";
-    const gradient = parseGradientCss(css);
-
-    expect(gradient).not.toBeNull();
-    expect(gradient!.type).toBe("linear");
-    expect(gradient!.angle).toBe(90);
-    expect(gradient!.stops).toHaveLength(2);
-  });
-
-  it("parses radial gradient CSS", () => {
-    const css = "radial-gradient(circle, #ff0000 0%, #0000ff 100%)";
-    const gradient = parseGradientCss(css);
-
-    expect(gradient).not.toBeNull();
-    expect(gradient!.type).toBe("radial");
-  });
-
-  it("returns null for invalid CSS", () => {
-    const result = parseGradientCss("not a gradient");
-    expect(result).toBeNull();
   });
 });
 

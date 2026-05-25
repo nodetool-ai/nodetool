@@ -21,6 +21,8 @@ export class SpeechToTextNode extends BaseNode {
     words: "list",
     transcription_id: "str"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["audio"];
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
 
   @prop({

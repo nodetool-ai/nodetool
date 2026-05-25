@@ -6,11 +6,22 @@
  * Used by both the backend HTTP handlers and the frontend stores.
  */
 
-import type { Edge } from "./graph.js";
+import type { Edge, InputMode, OutputCorrelation } from "./graph.js";
 
 // ---------------------------------------------------------------------------
 // Media Refs
 // ---------------------------------------------------------------------------
+
+/**
+ * Discriminator `mimeType` marking an {@link ImageRef} whose `data` holds raw,
+ * straight-alpha RGBA8 pixels (`length === width * height * 4`) rather than an
+ * encoded image. GPU image ops emit this so an adjacent GPU op can skip the
+ * codec; it's the in-flight format, lazily encoded to a real image at any
+ * boundary that needs portable bytes (client, storage, file save, Python
+ * bridge). Code that reads `data` must go through the shared decode/encode
+ * helpers, never assume it is already PNG.
+ */
+export const RAW_RGBA_MIME = "image/x-raw-rgba";
 
 export interface ImageRef {
   type: "image";
@@ -22,6 +33,27 @@ export interface ImageRef {
   mimeType?: string;
   width?: number;
   height?: number;
+}
+
+/**
+ * True when `value` is an in-flight raw-RGBA image (see {@link RAW_RGBA_MIME}):
+ * `data` is a `Uint8Array` of `width * height * 4` straight-alpha bytes.
+ */
+export function isRawRgbaImage(
+  value: unknown
+): value is ImageRef & { data: Uint8Array; width: number; height: number } {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    v.type === "image" &&
+    v.mimeType === RAW_RGBA_MIME &&
+    v.data instanceof Uint8Array &&
+    typeof v.width === "number" &&
+    typeof v.height === "number" &&
+    v.width > 0 &&
+    v.height > 0 &&
+    v.data.length === v.width * v.height * 4
+  );
 }
 
 export interface AudioRef {
@@ -207,7 +239,7 @@ export interface CalendarEvent {
 export interface Asset {
   id: string;
   user_id: string;
-  parent_id: string;
+  parent_id: string | null;
   name: string;
   content_type: string;
   size?: number | null;
@@ -545,6 +577,14 @@ export interface OutputSlot {
   stream: boolean;
 }
 
+/** FAL.ai list price on generated FAL nodes (API / index JSON uses snake_case). */
+export interface FalUnitPricing {
+  endpoint_id: string;
+  unit_price: number;
+  billing_unit: string;
+  currency: string;
+}
+
 export interface NodeMetadata {
   title: string;
   description: string;
@@ -555,13 +595,17 @@ export interface NodeMetadata {
   outputs: OutputSlot[];
 
   recommended_models: UnifiedModel[];
-  basic_fields: string[];
+  inline_fields?: string[];
+  input_fields?: string[];
   required_settings: string[];
   is_dynamic: boolean;
   is_streaming_output: boolean;
+  input_mode?: InputMode;
+  output_correlation?: Record<string, OutputCorrelation>;
   expose_as_tool: boolean;
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
+  fal_unit_pricing?: FalUnitPricing | null;
 }
 
 export interface IndexResponse {
@@ -580,7 +624,6 @@ export interface Node {
   ui_properties?: unknown;
   dynamic_properties?: Record<string, unknown>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
-  sync_mode: string;
   [key: string]: unknown;
 }
 

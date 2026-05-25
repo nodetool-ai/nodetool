@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { BLEND_MODE_TUPLE } from "@nodetool-ai/gpu";
+
+const blendModeEnum = z.enum(BLEND_MODE_TUPLE);
 
 // ── Shared sub-schemas ───────────────────────────────────────────────────────
 
@@ -26,6 +29,111 @@ export const timelineMarker = z.object({
 });
 export type TimelineMarker = z.infer<typeof timelineMarker>;
 
+// ── Track DSP effects ────────────────────────────────────────────────────────
+
+export const trackGainEffect = z.object({
+  id: z.string(),
+  type: z.literal("gain"),
+  enabled: z.boolean(),
+  gainDb: z.number()
+});
+
+export const trackEq3Effect = z.object({
+  id: z.string(),
+  type: z.literal("eq3"),
+  enabled: z.boolean(),
+  lowFreq: z.number(),
+  lowGainDb: z.number(),
+  midFreq: z.number(),
+  midQ: z.number(),
+  midGainDb: z.number(),
+  highFreq: z.number(),
+  highGainDb: z.number()
+});
+
+export const trackFilterEffect = z.object({
+  id: z.string(),
+  type: z.literal("filter"),
+  enabled: z.boolean(),
+  mode: z.enum(["lowpass", "highpass", "bandpass"]),
+  frequency: z.number(),
+  q: z.number()
+});
+
+export const trackCompressorEffect = z.object({
+  id: z.string(),
+  type: z.literal("compressor"),
+  enabled: z.boolean(),
+  thresholdDb: z.number(),
+  ratio: z.number(),
+  attackMs: z.number(),
+  releaseMs: z.number(),
+  kneeDb: z.number()
+});
+
+// ── Track video effects ──────────────────────────────────────────────────────
+
+export const trackColorCorrectionEffect = z.object({
+  id: z.string(),
+  type: z.literal("colorCorrection"),
+  enabled: z.boolean(),
+  brightness: z.number(),
+  contrast: z.number(),
+  saturation: z.number(),
+  hue: z.number(),
+  temperature: z.number(),
+  tint: z.number(),
+  shadows: z.number(),
+  highlights: z.number()
+});
+
+export const trackVideoBlurEffect = z.object({
+  id: z.string(),
+  type: z.literal("videoBlur"),
+  enabled: z.boolean(),
+  radius: z.number()
+});
+
+export const trackSharpenEffect = z.object({
+  id: z.string(),
+  type: z.literal("sharpen"),
+  enabled: z.boolean(),
+  amount: z.number(),
+  threshold: z.number()
+});
+
+export const trackVignetteEffect = z.object({
+  id: z.string(),
+  type: z.literal("vignette"),
+  enabled: z.boolean(),
+  intensity: z.number(),
+  radius: z.number(),
+  softness: z.number()
+});
+
+export const trackChromaKeyEffect = z.object({
+  id: z.string(),
+  type: z.literal("chromaKey"),
+  enabled: z.boolean(),
+  keyColor: z.string(),
+  tolerance: z.number(),
+  softness: z.number(),
+  spill: z.number()
+});
+
+export const trackEffect = z.discriminatedUnion("type", [
+  trackGainEffect,
+  trackEq3Effect,
+  trackFilterEffect,
+  trackCompressorEffect,
+  trackColorCorrectionEffect,
+  trackVideoBlurEffect,
+  trackSharpenEffect,
+  trackVignetteEffect,
+  trackChromaKeyEffect
+]);
+export type TrackEffect = z.infer<typeof trackEffect>;
+
 export const timelineTrack = z.object({
   id: z.string(),
   name: z.string(),
@@ -35,9 +143,62 @@ export const timelineTrack = z.object({
   locked: z.boolean(),
   muted: z.boolean().optional(),
   solo: z.boolean().optional(),
-  heightPx: z.number().optional()
+  heightPx: z.number().optional(),
+  effects: z.array(trackEffect).optional()
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
+
+// ── Per-clip placement, transitions, and GPU effects ─────────────────────────
+
+export const clipTransform = z.object({
+  position: z.object({ x: z.number(), y: z.number() }),
+  scale: z.object({ x: z.number(), y: z.number() }),
+  rotation: z.number(),
+  anchor: z.object({ x: z.number(), y: z.number() })
+});
+export type ClipTransform = z.infer<typeof clipTransform>;
+
+export const clipTransition = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("crossfade"), durationMs: z.number() })
+]);
+export type ClipTransition = z.infer<typeof clipTransition>;
+
+export const clipColorEffect = z.object({
+  id: z.string(),
+  type: z.literal("color"),
+  enabled: z.boolean(),
+  brightness: z.number().optional(),
+  contrast: z.number().optional(),
+  saturation: z.number().optional(),
+  hue: z.number().optional(),
+  temperature: z.number().optional(),
+  tint: z.number().optional(),
+  shadows: z.number().optional(),
+  highlights: z.number().optional()
+});
+
+export const clipBlurEffect = z.object({
+  id: z.string(),
+  type: z.literal("blur"),
+  enabled: z.boolean(),
+  radius: z.number(),
+  sigma: z.number().optional()
+});
+
+export const clipEffect = z.discriminatedUnion("type", [
+  clipColorEffect,
+  clipBlurEffect
+]);
+export type ClipEffect = z.infer<typeof clipEffect>;
+
+export const clipBindingKind = z.enum([
+  "workflow",
+  "text-to-image",
+  "image-to-image",
+  "text-to-video",
+  "text-to-audio"
+]);
+export type ClipBindingKind = z.infer<typeof clipBindingKind>;
 
 export const timelineClip = z
   .object({
@@ -50,9 +211,22 @@ export const timelineClip = z
     outPointMs: z.number().optional(),
     mediaType: z.enum(["image", "video", "audio", "overlay"]),
     sourceType: z.enum(["imported", "generated"]),
+    bindingKind: clipBindingKind.optional(),
     workflowId: z.string().optional(),
     selectedOutputNodeId: z.string().optional(),
     paramOverrides: z.record(z.string(), z.unknown()).optional(),
+    prompt: z.string().optional(),
+    negativePrompt: z.string().optional(),
+    provider: z.string().optional(),
+    model: z.string().optional(),
+    /** TTS voice id for `text-to-audio` direct-gen clips. */
+    voice: z.string().optional(),
+    sourceClipId: z.string().nullable().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    strength: z.number().optional(),
+    numInferenceSteps: z.number().optional(),
+    seed: z.number().optional(),
     dependencyHash: z.string().optional(),
     lastGeneratedHash: z.string().optional(),
     currentAssetId: z.string().optional(),
@@ -73,14 +247,16 @@ export const timelineClip = z
     hidden: z.boolean().optional(),
     versions: z.array(clipVersion),
     opacity: z.number().optional(),
-    blendMode: z
-      .enum(["normal", "screen", "multiply", "add", "overlay"])
-      .optional(),
+    blendMode: blendModeEnum.optional(),
     speedMultiplier: z.number().optional(),
     speedBaked: z.boolean().optional(),
     volumeDb: z.number().optional(),
     fadeInMs: z.number().optional(),
-    fadeOutMs: z.number().optional()
+    fadeOutMs: z.number().optional(),
+    transform: clipTransform.optional(),
+    borderRadius: z.number().optional(),
+    effects: z.array(clipEffect).optional(),
+    transitionIn: clipTransition.optional()
   });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
@@ -166,7 +342,7 @@ export const createClipInput = z.object({
   id: z.string(),
   trackId: z.string(),
   startMs: z.number().int().min(0),
-  /** The source standalone workflow to clone into a clip-private `run_mode = "clip"` row. */
+  /** The source workflow the clip will run. The clip references it directly; no clone is created. */
   sourceWorkflowId: z.string(),
   /**
    * Override which terminal node's output becomes the clip's media.

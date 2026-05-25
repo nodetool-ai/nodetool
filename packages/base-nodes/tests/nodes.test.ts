@@ -77,11 +77,18 @@ describe("base node registration", () => {
     registerBaseNodes(registry);
 
     expect(registry.has(IfNode.nodeType)).toBe(true);
+    expect(registry.has("nodetool.control.RepeatCount")).toBe(true);
+    expect(registry.has("nodetool.control.RepeatValue")).toBe(true);
+    expect(registry.has("nodetool.list.Range")).toBe(true);
+    expect(registry.has("nodetool.list.Tile")).toBe(true);
+    expect(registry.has("nodetool.list.RepeatEach")).toBe(true);
+    expect(registry.has("nodetool.list.RepeatValue")).toBe(true);
     expect(registry.has("nodetool.input.StringInput")).toBe(true);
     expect(registry.has("nodetool.output.Output")).toBe(true);
     expect(registry.has("nodetool.workflows.base_node.Preview")).toBe(true);
     expect(registry.has("nodetool.audio.TextToSpeech")).toBe(true);
     expect(registry.has("nodetool.image.ImageToImage")).toBe(true);
+    expect(registry.has("nodetool.image.ImageEditor")).toBe(true);
     expect(registry.has("nodetool.video.TextToVideo")).toBe(true);
     expect(registry.has("nodetool.workspace.ReadTextFile")).toBe(true);
     expect(registry.has("nodetool.document.SplitDocument")).toBe(true);
@@ -159,7 +166,7 @@ describe("input/output/workspace nodes", () => {
     });
   });
 
-  it("PreviewNode emits preview_update and returns normalized output", async () => {
+  it("PreviewNode returns normalized output without emitting a separate preview_update", async () => {
     const node = new PreviewNode();
     node.assign({ value: "fallback" });
     const emitted: Array<Record<string, unknown>> = [];
@@ -173,11 +180,9 @@ describe("input/output/workspace nodes", () => {
     await expect(node.process(context)).resolves.toEqual({
       output: "HELLO"
     });
-    expect(emitted).toHaveLength(1);
-    expect(emitted[0]).toMatchObject({
-      type: "preview_update",
-      value: "HELLO"
-    });
+    // PreviewNode now relies on the runner's output_update for its display
+    // value — no redundant preview_update emission.
+    expect(emitted).toHaveLength(0);
   });
 
   it("workspace text file nodes read and write", async () => {
@@ -211,10 +216,13 @@ describe("input/output/workspace nodes", () => {
     const bytes = Uint8Array.from([1, 2, 3]);
     const node = new CompareImagesNode();
     node.assign({ image_a: { data: bytes }, image_b: { data: bytes } });
-    await expect(node.process()).resolves.toEqual({ score: 1, equal: true });
+    const result = await node.process();
+    expect(result.score).toBe(1);
+    expect(result.equal).toBe(true);
+    expect(result.comparison).toMatchObject({ type: "image_comparison" });
   });
 
-  it("CompareImagesNode emits the image comparison preview shape used by the web UI", async () => {
+  it("CompareImagesNode returns the image comparison snapshot as a regular output", async () => {
     const node = new CompareImagesNode();
     const emitted: Array<Record<string, unknown>> = [];
     const context = {
@@ -229,19 +237,17 @@ describe("input/output/workspace nodes", () => {
       label_b: "After"
     });
 
-    await node.process(context);
+    const result = await node.process(context);
 
-    expect(emitted).toHaveLength(1);
-    expect(emitted[0]).toMatchObject({
-      type: "preview_update",
-      node_id: "compare-1",
-      value: {
-        type: "image_comparison",
-        image_a: { uri: "https://example.com/a.png", type: "image" },
-        image_b: { uri: "https://example.com/b.png", type: "image" },
-        label_a: "Before",
-        label_b: "After"
-      }
+    // The snapshot now flows through the regular output channel — no
+    // out-of-band preview_update emission.
+    expect(emitted).toHaveLength(0);
+    expect(result.comparison).toMatchObject({
+      type: "image_comparison",
+      image_a: { uri: "https://example.com/a.png", type: "image" },
+      image_b: { uri: "https://example.com/b.png", type: "image" },
+      label_a: "Before",
+      label_b: "After"
     });
   });
 
@@ -388,7 +394,7 @@ describe("input/output/workspace nodes", () => {
     _sb.assign({ duration: 4 });
     const silenceB = await _sb.process();
     const _cat = new ConcatAudioNode();
-    _cat.assign({ a: silenceA.output, b: silenceB.output });
+    _cat.assign({ audio_1: silenceA.output, audio_2: silenceB.output });
     const concat = await _cat.process();
     const concatOutput = concat.output as { data: string };
     expect(concatOutput.data.length).toBeGreaterThan(0);

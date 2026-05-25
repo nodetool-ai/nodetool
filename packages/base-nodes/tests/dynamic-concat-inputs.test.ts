@@ -10,7 +10,7 @@ function audioRef(bytes: number[]) {
 }
 
 describe("dynamic concat inputs", () => {
-  it("ConcatAudioNode concatenates static and dynamic inputs", async () => {
+  it("ConcatAudioNode concatenates dynamic inputs in insertion order", async () => {
     const node = new ConcatAudioNode();
     node.assign({
       a: audioRef([1, 2]),
@@ -26,7 +26,7 @@ describe("dynamic concat inputs", () => {
     expect(Array.from(bytes)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
-  it("ConcatTextNode concatenates static and dynamic inputs", async () => {
+  it("ConcatTextNode concatenates dynamic inputs in insertion order", async () => {
     const node = new ConcatTextNode();
     node.assign({
       a: "hello",

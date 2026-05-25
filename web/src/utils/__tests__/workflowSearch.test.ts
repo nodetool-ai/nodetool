@@ -1,213 +1,108 @@
-import { describe, it, expect } from "@jest/globals";
-import { searchWorkflows } from "../workflowSearch";
+import Fuse from "fuse.js";
 import { Workflow } from "../../stores/ApiTypes";
+import { searchWorkflowsWithFuse } from "../workflowSearch";
 
-// Mock workflow data
-const mockWorkflows: Workflow[] = [
-  {
-    id: "1",
-    name: "Image Processing Pipeline",
-    description: "A workflow for processing and resizing images",
+function makeWorkflow(overrides: Partial<Workflow> = {}): Workflow {
+  return {
+    id: "wf-1",
+    name: "Untitled",
+    description: "",
+    access: "private",
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
     graph: { nodes: [], edges: [] },
-    created_at: "2024-01-01",
-    updated_at: "2024-01-01",
-    thumbnail: "",
-    thumbnail_url: "",
-    access: "private"
-  },
-  {
-    id: "2",
-    name: "Text Analysis",
-    description: "Analyzes text sentiment and extracts keywords",
-    graph: { nodes: [], edges: [] },
-    created_at: "2024-01-02",
-    updated_at: "2024-01-02",
-    thumbnail: "",
-    thumbnail_url: "",
-    access: "private"
-  },
-  {
-    id: "3",
-    name: "Data Transformation",
-    description: "Transforms CSV data into JSON format",
-    graph: { nodes: [], edges: [] },
-    created_at: "2024-01-03",
-    updated_at: "2024-01-03",
-    thumbnail: "",
-    thumbnail_url: "",
-    access: "private"
-  },
-  {
-    id: "4",
-    name: "Audio Processing",
-    description: "Process audio files with noise reduction",
-    graph: { nodes: [], edges: [] },
-    created_at: "2024-01-04",
-    updated_at: "2024-01-04",
-    thumbnail: "",
-    thumbnail_url: "",
-    access: "private"
-  }
+    ...overrides
+  } as Workflow;
+}
+
+const workflows: Workflow[] = [
+  makeWorkflow({ id: "wf-1", name: "Image Generator", description: "Creates images from text prompts" }),
+  makeWorkflow({ id: "wf-2", name: "Text Summarizer", description: "Summarizes long text" }),
+  makeWorkflow({ id: "wf-3", name: "Audio Processor", description: "Processes audio files" })
 ];
 
-describe("workflowSearch", () => {
-  describe("searchWorkflows", () => {
-    it("should return all workflows when query is empty", () => {
-      const results = searchWorkflows(mockWorkflows, "");
-      expect(results).toHaveLength(mockWorkflows.length);
-      results.forEach((result, index) => {
-        expect(result.workflow).toBe(mockWorkflows[index]);
-        expect(result.fuseScore).toBe(1);
-        expect(result.matches).toEqual([]);
-      });
-    });
+function buildFuse(items: Workflow[]): Fuse<Workflow> {
+  return new Fuse(items, {
+    includeScore: true,
+    includeMatches: true,
+    threshold: 0.1,
+    distance: 100,
+    minMatchCharLength: 2,
+    ignoreLocation: true,
+    keys: [
+      { name: "name", weight: 2 },
+      { name: "description", weight: 1 }
+    ]
+  });
+}
 
-    it("should return all workflows when query is only whitespace", () => {
-      const results = searchWorkflows(mockWorkflows, "   ");
-      expect(results).toHaveLength(mockWorkflows.length);
-      results.forEach((result) => {
-        expect(result.fuseScore).toBe(1);
-        expect(result.matches).toEqual([]);
-      });
+describe("searchWorkflowsWithFuse", () => {
+  it("returns all workflows with fuseScore 1 when query is empty", () => {
+    const fuse = buildFuse(workflows);
+    const results = searchWorkflowsWithFuse(fuse, workflows, "");
+    expect(results).toHaveLength(3);
+    results.forEach((r) => {
+      expect(r.fuseScore).toBe(1);
+      expect(r.matches).toEqual([]);
     });
+  });
 
-    it("should find workflows by exact name match", () => {
-      const results = searchWorkflows(mockWorkflows, "Image Processing");
-      expect(results.length).toBeGreaterThan(0);
-      expect(results[0].workflow.name).toBe("Image Processing Pipeline");
-      expect(results[0].fuseScore).toBeGreaterThan(0);
-    });
+  it("returns all workflows when query is only whitespace", () => {
+    const fuse = buildFuse(workflows);
+    const results = searchWorkflowsWithFuse(fuse, workflows, "   ");
+    expect(results).toHaveLength(3);
+  });
 
-    it("should find workflows by partial name match", () => {
-      const results = searchWorkflows(mockWorkflows, "Process");
-      expect(results.length).toBeGreaterThan(0);
-      const names = results.map(r => r.workflow.name);
-      expect(names).toContain("Image Processing Pipeline");
-      expect(names).toContain("Audio Processing");
-    });
+  it("returns matching workflows for a name query", () => {
+    const fuse = buildFuse(workflows);
+    const results = searchWorkflowsWithFuse(fuse, workflows, "Image");
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    expect(results[0].workflow.name).toBe("Image Generator");
+  });
 
-    it("should find workflows by description match", () => {
-      const results = searchWorkflows(mockWorkflows, "sentiment");
-      expect(results.length).toBeGreaterThan(0);
-      expect(results[0].workflow.name).toBe("Text Analysis");
-    });
+  it("returns matching workflows for a description query", () => {
+    const fuse = buildFuse(workflows);
+    const results = searchWorkflowsWithFuse(fuse, workflows, "audio");
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    expect(results.some((r) => r.workflow.id === "wf-3")).toBe(true);
+  });
 
-    it("should prioritize name matches over description matches", () => {
-      const results = searchWorkflows(mockWorkflows, "Analysis");
-      expect(results.length).toBeGreaterThan(0);
-      // Name match should come first due to higher weight
-      expect(results[0].workflow.name).toBe("Text Analysis");
-    });
+  it("returns empty array when nothing matches", () => {
+    const fuse = buildFuse(workflows);
+    const results = searchWorkflowsWithFuse(fuse, workflows, "zzzznotfound");
+    expect(results).toHaveLength(0);
+  });
 
-    it("should handle case-insensitive search", () => {
-      const resultsLower = searchWorkflows(mockWorkflows, "image");
-      const resultsUpper = searchWorkflows(mockWorkflows, "IMAGE");
-      const resultsMixed = searchWorkflows(mockWorkflows, "ImAgE");
-      
-      expect(resultsLower.length).toBeGreaterThan(0);
-      expect(resultsUpper.length).toBe(resultsLower.length);
-      expect(resultsMixed.length).toBe(resultsLower.length);
-    });
+  it("returns fuseScore between 0 and 1 for matches", () => {
+    const fuse = buildFuse(workflows);
+    const results = searchWorkflowsWithFuse(fuse, workflows, "Text");
+    for (const r of results) {
+      expect(r.fuseScore).toBeGreaterThanOrEqual(0);
+      expect(r.fuseScore).toBeLessThanOrEqual(1);
+    }
+  });
 
-    it("should return matches with score and match details", () => {
-      const results = searchWorkflows(mockWorkflows, "Data");
-      expect(results.length).toBeGreaterThan(0);
-      const firstResult = results[0];
-      expect(firstResult.workflow.name).toBe("Data Transformation");
-      expect(firstResult.fuseScore).toBeGreaterThan(0);
-      expect(firstResult.fuseScore).toBeLessThanOrEqual(1);
-      expect(firstResult.matches).toBeDefined();
-      expect(Array.isArray(firstResult.matches)).toBe(true);
+  it("populates matches array for results", () => {
+    const fuse = buildFuse(workflows);
+    const results = searchWorkflowsWithFuse(fuse, workflows, "Summarizer");
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    const match = results[0];
+    expect(match.matches.length).toBeGreaterThanOrEqual(1);
+    match.matches.forEach((m) => {
+      expect(typeof m.text).toBe("string");
+      expect(m.text.length).toBeGreaterThan(0);
     });
+  });
 
-    it("should handle multi-word search", () => {
-      const results = searchWorkflows(mockWorkflows, "text keyword");
-      expect(results.length).toBeGreaterThan(0);
-      // Should find workflows containing both words
-      expect(results[0].workflow.name).toBe("Text Analysis");
-    });
+  it("works with empty workflow list", () => {
+    const fuse = buildFuse([]);
+    const results = searchWorkflowsWithFuse(fuse, [], "test");
+    expect(results).toHaveLength(0);
+  });
 
-    it("should handle no matches", () => {
-      const results = searchWorkflows(mockWorkflows, "xyz123nonexistent");
-      expect(results).toEqual([]);
-    });
-
-    it("should handle empty workflow array", () => {
-      const results = searchWorkflows([], "test");
-      expect(results).toEqual([]);
-    });
-
-    it("should extract unique matches", () => {
-      const results = searchWorkflows(mockWorkflows, "Processing");
-      expect(results.length).toBeGreaterThan(0);
-      
-      results.forEach(result => {
-        // Check that matches are unique
-        const matchTexts = result.matches.map(m => m.text);
-        const uniqueTexts = [...new Set(matchTexts)];
-        expect(matchTexts.length).toBe(uniqueTexts.length);
-      });
-    });
-
-    it("should handle special characters in query", () => {
-      const specialWorkflows: Workflow[] = [
-        {
-          ...mockWorkflows[0],
-          name: "Test@Workflow",
-          description: "Contains special@characters"
-        }
-      ];
-      
-      const results = searchWorkflows(specialWorkflows, "@");
-      // Fuse.js handles special characters, should return results or empty array
-      expect(Array.isArray(results)).toBe(true);
-    });
-
-    it("should handle very long queries", () => {
-      const longQuery = "a".repeat(500);
-      const results = searchWorkflows(mockWorkflows, longQuery);
-      expect(Array.isArray(results)).toBe(true);
-    });
-
-    it("should correctly calculate fuse score", () => {
-      const results = searchWorkflows(mockWorkflows, "Image Processing Pipeline");
-      expect(results.length).toBeGreaterThan(0);
-      // Exact match should have high score
-      expect(results[0].fuseScore).toBeGreaterThan(0.8);
-    });
-
-    it("should handle workflows with missing fields", () => {
-      const incompleteWorkflows: Workflow[] = [
-        {
-          ...mockWorkflows[0],
-          name: "",
-          description: "Workflow with empty name"
-        },
-        {
-          ...mockWorkflows[1],
-          name: "Workflow with no description",
-          description: ""
-        }
-      ];
-      
-      const results = searchWorkflows(incompleteWorkflows, "Workflow");
-      expect(results.length).toBeGreaterThan(0);
-    });
-
-    it("should handle path-like text in matches", () => {
-      const pathWorkflows: Workflow[] = [
-        {
-          ...mockWorkflows[0],
-          name: "path/to/workflow.json",
-          description: "A workflow with path-like name"
-        }
-      ];
-      
-      const results = searchWorkflows(pathWorkflows, "workflow");
-      expect(results.length).toBeGreaterThan(0);
-      // Should extract the last part of the path
-      const matchTexts = results[0].matches.map(m => m.text);
-      expect(matchTexts.some(text => text.includes("workflow") || text.includes("json"))).toBe(true);
-    });
+  it("returns all workflows for empty query even when list is empty", () => {
+    const fuse = buildFuse([]);
+    const results = searchWorkflowsWithFuse(fuse, [], "");
+    expect(results).toHaveLength(0);
   });
 });

@@ -27,27 +27,19 @@ import { VLLMProvider } from "./vllm-provider.js";
 import { HuggingFaceProvider } from "./huggingface-provider.js";
 import { PythonProvider } from "./python-provider.js";
 import { ReplicateProvider } from "./replicate-provider.js";
-import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { FalProvider } from "./fal-provider.js";
 import { KieProvider } from "./kie-provider.js";
+import { TopazProvider } from "./topaz-provider.js";
 import { AkiProvider } from "./aki-provider.js";
 import { MeshyProvider } from "./meshy-provider.js";
 import { RodinProvider } from "./rodin-provider.js";
 import { CohereProvider } from "./cohere-provider.js";
 import { VoyageProvider } from "./voyage-provider.js";
 import { JinaProvider } from "./jina-provider.js";
+import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
 export { AnthropicProvider };
-export { ClaudeAgentProvider };
-export {
-  ClaudeAgentError,
-  classifyClaudeAgentError
-} from "./claude-agent-provider.js";
-export type {
-  OnToolCall,
-  ClaudeAgentErrorKind
-} from "./claude-agent-provider.js";
 export { GeminiProvider };
 export { LlamaProvider };
 export { OpenAIProvider };
@@ -68,6 +60,7 @@ export { PythonProvider };
 export { ReplicateProvider };
 export { FalProvider };
 export { KieProvider };
+export { TopazProvider };
 export { AkiProvider };
 export { MeshyProvider };
 export { RodinProvider };
@@ -153,6 +146,7 @@ registerBuiltinProvider("minimax", MinimaxProvider, { MINIMAX_API_KEY: "" });
 registerBuiltinProvider("replicate", ReplicateProvider, { REPLICATE_API_TOKEN: "" });
 registerBuiltinProvider("fal_ai", FalProvider, { FAL_API_KEY: "" });
 registerBuiltinProvider("kie", KieProvider, { KIE_API_KEY: "" });
+registerBuiltinProvider("topaz", TopazProvider, { TOPAZ_API_KEY: "" });
 registerBuiltinProvider("aki", AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider("meshy", MeshyProvider, { MESHY_API_KEY: "" });
 registerBuiltinProvider("rodin", RodinProvider, { RODIN_API_KEY: "" });
@@ -168,11 +162,52 @@ registerBuiltinProvider("xai", XAIProvider, { XAI_API_KEY: "" });
 // Local-only providers — require local servers/CLIs, skip in production
 if (process.env["NODETOOL_ENV"] !== "production") {
   // Ollama defaults to the standard local daemon port so the provider is
-  // usable out-of-the-box. Users running a remote instance override via env.
-  registerBuiltinProvider("ollama", OllamaProvider, {
-    OLLAMA_API_URL:
-      process.env["OLLAMA_API_URL"] ?? "http://127.0.0.1:11434"
+  // usable out-of-the-box. The URL is registered as an optionalKwarg so it
+  // re-resolves from the secret store / env on every getProvider() call —
+  // users changing OLLAMA_API_URL via Settings → API Keys see the change
+  // take effect without a restart. Empty kwargs keep isProviderConfigured()
+  // returning true for the zero-config localhost case.
+  registerBuiltinProvider(
+    "ollama",
+    OllamaProvider,
+    {},
+    { OLLAMA_API_URL: "http://127.0.0.1:11434" }
+  );
+  // LM Studio: URL (and optional API key) are user-configurable via the
+  // Settings → API Keys panel. Register them as optionalKwargs so the
+  // registry resolves them from the secret store / env on every
+  // getProvider() call — that way changing the port in settings takes
+  // effect immediately without forcing isProviderConfigured() to return
+  // false when the user hasn't set anything (LM Studio runs at the default
+  // localhost:1234 out of the box).
+  registerBuiltinProvider(
+    "lmstudio",
+    LMStudioProvider,
+    {},
+    {
+      LMSTUDIO_API_URL: "http://127.0.0.1:1234",
+      LMSTUDIO_API_KEY: "lm-studio"
+    }
+  );
+  // llama.cpp OpenAI-compatible server — URL only from Settings / env (no
+  // default host). Empty kwarg keeps the provider "unavailable" until configured.
+  registerBuiltinProvider("llama_cpp", LlamaProvider, {
+    LLAMA_CPP_URL: ""
   });
-  registerBuiltinProvider("lmstudio", LMStudioProvider, {});
-  registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});
+  // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.
+  registerBuiltinProvider(
+    "vllm",
+    VLLMProvider,
+    { VLLM_BASE_URL: "" },
+    { VLLM_API_KEY: "sk-no-key-required" }
+  );
+}
+
+// Fake provider for end-to-end testing without external API keys.
+// Opt-in via env flag — never enabled in production builds.
+if (
+  process.env["NODETOOL_ENV"] !== "production" &&
+  process.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
+) {
+  registerBuiltinProvider("fake", FakeProvider, {});
 }

@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 function notionHeaders(token: string): Record<string, string> {
   return {
@@ -89,6 +90,8 @@ function parseJsonProp(value: string, label: string): unknown {
 export class NotionSearchLibNode extends BaseNode {
   static readonly nodeType = "lib.notion.Search";
   static readonly title = "Notion Search";
+  static readonly inlineFields = ["query"];
+  static readonly inputFields = [];
   static readonly description =
     "Search across all pages and databases the Notion integration has access to.\n    notion, search, pages, databases, api";
   static readonly metadataOutputTypes = {
@@ -97,7 +100,11 @@ export class NotionSearchLibNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    result: { kind: "iteration", source: "__execution__", group: "items" },
+    results: { kind: "single", source: "__execution__" }
+  };
 
   @prop({
     type: "str",
@@ -218,6 +225,8 @@ export class NotionSearchLibNode extends BaseNode {
 export class NotionGetPageLibNode extends BaseNode {
   static readonly nodeType = "lib.notion.GetPage";
   static readonly title = "Notion Get Page";
+  static readonly inlineFields = ["page_id"];
+  static readonly inputFields = [];
   static readonly description =
     "Retrieve a Notion page and its properties.\n    notion, page, get, read, api";
   static readonly metadataOutputTypes = {
@@ -288,6 +297,8 @@ function extractPageTitle(page: Record<string, unknown>): string {
 export class NotionGetPageContentLibNode extends BaseNode {
   static readonly nodeType = "lib.notion.GetPageContent";
   static readonly title = "Notion Get Page Content";
+  static readonly inlineFields = ["page_id"];
+  static readonly inputFields = [];
   static readonly description =
     "Retrieve all blocks (content) of a Notion page.\n    notion, page, content, blocks, read, api";
   static readonly metadataOutputTypes = {
@@ -296,7 +307,11 @@ export class NotionGetPageContentLibNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    block: { kind: "iteration", source: "__execution__", group: "items" },
+    blocks: { kind: "single", source: "__execution__" }
+  };
 
   @prop({
     type: "str",
@@ -350,6 +365,8 @@ export class NotionGetPageContentLibNode extends BaseNode {
 export class NotionCreatePageLibNode extends BaseNode {
   static readonly nodeType = "lib.notion.CreatePage";
   static readonly title = "Notion Create Page";
+  static readonly inlineFields = ["parent_id", "title"];
+  static readonly inputFields = [];
   static readonly description =
     "Create a new page in a Notion database or as a child of another page.\n    notion, page, create, add, api";
   static readonly metadataOutputTypes = {
@@ -487,6 +504,8 @@ export class NotionCreatePageLibNode extends BaseNode {
 export class NotionUpdatePageLibNode extends BaseNode {
   static readonly nodeType = "lib.notion.UpdatePage";
   static readonly title = "Notion Update Page";
+  static readonly inlineFields = ["page_id"];
+  static readonly inputFields = [];
   static readonly description =
     "Update properties of an existing Notion page.\n    notion, page, update, edit, modify, api";
   static readonly metadataOutputTypes = {
@@ -578,6 +597,8 @@ export class NotionUpdatePageLibNode extends BaseNode {
 export class NotionQueryDatabaseLibNode extends BaseNode {
   static readonly nodeType = "lib.notion.QueryDatabase";
   static readonly title = "Notion Query Database";
+  static readonly inlineFields = ["database_id"];
+  static readonly inputFields = [];
   static readonly description =
     "Query a Notion database with optional filter and sort.\n    notion, database, query, filter, sort, api";
   static readonly metadataOutputTypes = {
@@ -586,7 +607,11 @@ export class NotionQueryDatabaseLibNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    result: { kind: "iteration", source: "__execution__", group: "items" },
+    results: { kind: "single", source: "__execution__" }
+  };
 
   @prop({
     type: "str",

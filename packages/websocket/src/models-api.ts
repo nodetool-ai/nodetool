@@ -201,12 +201,12 @@ async function repoFileInCache(
   relativePath: string
 ): Promise<boolean> {
   const snapshotDirs = await listSnapshotDirs(repoId);
-  for (const snapshotDir of snapshotDirs) {
-    if (await pathExists(join(snapshotDir, relativePath))) {
-      return true;
-    }
-  }
-  return false;
+  const checks = await Promise.all(
+    snapshotDirs.map((snapshotDir) =>
+      pathExists(join(snapshotDir, relativePath))
+    )
+  );
+  return checks.some((exists) => exists);
 }
 
 async function listRepoCachedFiles(repoId: string): Promise<string[]> {
@@ -215,22 +215,21 @@ async function listRepoCachedFiles(repoId: string): Promise<string[]> {
 
   async function walk(root: string, current: string): Promise<void> {
     const entries = await readdir(current, { withFileTypes: true });
-    for (const entry of entries) {
+    const promises = entries.map(async (entry) => {
       const full = join(current, entry.name);
       if (entry.isDirectory()) {
         await walk(root, full);
-        continue;
+        return;
       }
       if (entry.isFile() || entry.isSymbolicLink()) {
         const rel = full.slice(root.length + 1).replaceAll("\\", "/");
         collected.add(rel);
       }
-    }
+    });
+    await Promise.all(promises);
   }
 
-  for (const snapshotDir of snapshotDirs) {
-    await walk(snapshotDir, snapshotDir);
-  }
+  await Promise.all(snapshotDirs.map((dir) => walk(dir, dir)));
 
   return [...collected];
 }
@@ -487,21 +486,36 @@ async function serverAllowsModel(
 
 async function getServerAvailability(): Promise<Record<string, boolean>> {
   // Skip localhost probes in production — local servers won't be available
-  if (isProduction()) return { ollama: false, llama_cpp: false };
+  if (isProduction()) {
+    return { ollama: false, llama_cpp: false, lmstudio: false, vllm: false };
+  }
 
-  const ollamaUrl = (
-    process.env.OLLAMA_API_URL ?? "http://127.0.0.1:11434"
-  ).replace(/\/+$/, "");
-  const llamaUrl = process.env.LLAMA_CPP_URL?.replace(/\/+$/, "") ?? "";
+  // Resolve URLs the same way getProvider() does: secret store → env → default.
+  // Otherwise a user-set URL in Settings → API Keys wouldn't filter the
+  // recommended-models list correctly.
+  const getSecret = secretResolverFor("1");
+  const resolve = async (key: string, fallback: string): Promise<string> => {
+    const fromStore = await getSecret(key);
+    return (fromStore || process.env[key] || fallback).replace(/\/+$/, "");
+  };
 
-  const [ollama, llama] = await Promise.all([
+  const [ollamaUrl, llamaUrl, lmstudioUrl, vllmUrl] = await Promise.all([
+    resolve("OLLAMA_API_URL", "http://127.0.0.1:11434"),
+    resolve("LLAMA_CPP_URL", ""),
+    resolve("LMSTUDIO_API_URL", "http://127.0.0.1:1234"),
+    resolve("VLLM_BASE_URL", "")
+  ]);
+
+  const [ollama, llama, lmstudio, vllm] = await Promise.all([
     isServerReachable(`${ollamaUrl}/api/tags`),
     llamaUrl
       ? isServerReachable(`${llamaUrl}/v1/models`)
-      : Promise.resolve(false)
+      : Promise.resolve(false),
+    isServerReachable(`${lmstudioUrl}/v1/models`),
+    vllmUrl ? isServerReachable(`${vllmUrl}/v1/models`) : Promise.resolve(false)
   ]);
 
-  return { ollama, llama_cpp: llama };
+  return { ollama, llama_cpp: llama, lmstudio, vllm };
 }
 
 async function recommendedModels(
@@ -510,13 +524,12 @@ async function recommendedModels(
   const models = [...RECOMMENDED_MODELS];
   if (!checkServers) return models;
   const servers = await getServerAvailability();
-  const filtered: UnifiedModel[] = [];
-  for (const model of models) {
-    if (await serverAllowsModel(model, servers)) {
-      filtered.push(model);
-    }
-  }
-  return filtered;
+
+  const allowedResults = await Promise.all(
+    models.map((model) => serverAllowsModel(model, servers))
+  );
+
+  return models.filter((_, index) => allowedResults[index]);
 }
 
 function selectRecommended(
@@ -536,13 +549,19 @@ async function getAllModels(userId = "1"): Promise<UnifiedModel[]> {
 
   // Include language models from all available providers
   const availableIds = await getAvailableProviderIds(userId);
-  for (const providerId of availableIds) {
+  const providerModelsPromises = availableIds.map(async (providerId) => {
     try {
       const models = await getLanguageModelsByProvider(providerId, userId);
-      all.push(...models.map(toUnifiedLanguageModel));
+      return models.map(toUnifiedLanguageModel);
     } catch {
       // Provider unavailable — skip
+      return [];
     }
+  });
+
+  const providerModelsArrays = await Promise.all(providerModelsPromises);
+  for (const models of providerModelsArrays) {
+    all.push(...models);
   }
 
   // Include HuggingFace cached/recommended models
@@ -627,17 +646,20 @@ async function isLlamaCppModelCached(
   if (!(await pathExists(repoDir))) return false;
 
   const snapshots = await readdir(repoDir, { withFileTypes: true });
-  for (const snapshot of snapshots) {
-    if (!snapshot.isDirectory()) continue;
-    if (await pathExists(join(repoDir, snapshot.name, filePath))) {
-      return true;
-    }
-    if (await pathExists(join(repoDir, snapshot.name, basename(filePath)))) {
-      return true;
-    }
-  }
+  const checkPromises = snapshots
+    .filter((snapshot) => snapshot.isDirectory())
+    .map(async (snapshot) => {
+      if (await pathExists(join(repoDir, snapshot.name, filePath))) {
+        return true;
+      }
+      if (await pathExists(join(repoDir, snapshot.name, basename(filePath)))) {
+        return true;
+      }
+      return false;
+    });
 
-  return false;
+  const results = await Promise.all(checkPromises);
+  return results.some((exists) => exists);
 }
 
 async function fastCacheStatus(

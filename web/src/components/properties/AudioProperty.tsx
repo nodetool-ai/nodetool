@@ -7,8 +7,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo, useState } from "react";
 import isEqual from "fast-deep-equal";
-import { TextField } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { EditorButton, NodeTextField } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
@@ -105,11 +104,10 @@ const AudioProperty = (props: PropertyProps) => {
             </div>
           )}
           <div className="controls-row">
-            <TextField
+            <NodeTextField
               className="sample-rate-input"
               label="Hz"
               type="number"
-              size="small"
               value={sampleRate}
               onChange={(e) => setSampleRate(Number(e.target.value))}
               disabled={isStreaming}

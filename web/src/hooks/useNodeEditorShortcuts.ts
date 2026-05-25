@@ -21,13 +21,17 @@ import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
+import { useBottomPanelStore } from "../stores/BottomPanelStore";
+import { usePanelStore } from "../stores/PanelStore";
 import { NodeData } from "../stores/NodeData";
+import { getCollapseTogglePatches } from "../stores/collapseNodeLayout";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
 import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
 import type { MenuEventData } from "../window";
+import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
 
 /**
  * Hook that registers and manages all keyboard shortcuts for the node editor.
@@ -114,6 +118,8 @@ export const useNodeEditorShortcuts = (
     (state) => state.addNotification
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
+  const bottomPanelToggle = useBottomPanelStore((state) => state.handleViewChange);
+  const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
   const findInWorkflow = useFindInWorkflow();
   const nodeFocus = useNodeFocus();
   // All hooks above this line
@@ -129,7 +135,7 @@ export const useNodeEditorShortcuts = (
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
-    if (!active) {
+    if (!active || isTextInputActive()) {
       return;
     }
 
@@ -308,6 +314,17 @@ export const useNodeEditorShortcuts = (
       if (!active) {
         return;
       }
+      // When the sketch editor is mounted it owns selectAll/duplicate;
+      // these are routed there via its own menu handler. Avoid double-firing
+      // node-editor actions on top.
+      const isSketchActive =
+        useSketchCanvasRefStore.getState().flattenToDataUrl !== null;
+      if (
+        isSketchActive &&
+        (data.type === "selectAll" || data.type === "duplicate")
+      ) {
+        return;
+      }
       switch (data.type) {
         case "copy":
           if (isTextInputActive()) {
@@ -434,8 +451,24 @@ export const useNodeEditorShortcuts = (
   }, [inspectorToggle]);
 
   const handleWorkflowSettingsToggle = useCallback(() => {
-    inspectorToggle("workflow");
-  }, [inspectorToggle]);
+    leftPanelToggle("settings");
+  }, [leftPanelToggle]);
+
+  const handleToggleSelectedNodesCollapsed = useCallback(() => {
+    const selected = nodeStore.getState().getSelectedNodes();
+    if (selected.length === 0) {
+      return;
+    }
+    const { updateNodeData, updateNode, findNode } = nodeStore.getState();
+    for (const n of selected) {
+      const live = findNode(n.id) ?? n;
+      const next = !live.data.collapsed;
+      const { data: dataPatch, node: nodePatch } =
+        getCollapseTogglePatches(live, next);
+      updateNodeData(n.id, dataPatch);
+      updateNode(n.id, nodePatch);
+    }
+  }, [nodeStore]);
 
   // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
@@ -509,6 +542,10 @@ export const useNodeEditorShortcuts = (
       moveDown: { callback: () => handleMoveNodes({ y: 10 }) },
       bypassNode: {
         callback: handleBypassSelected,
+        active: selectedNodeCount > 0
+      },
+      toggleNodeCollapsed: {
+        callback: handleToggleSelectedNodesCollapsed,
         active: selectedNodeCount > 0
       },
       findInWorkflow: { callback: openFind },
@@ -613,6 +650,7 @@ export const useNodeEditorShortcuts = (
     handleZoomOut,
     handleZoomToPreset,
     handleBypassSelected,
+    handleToggleSelectedNodesCollapsed,
     handleFitView,
     handleSwitchTab,
     handleMoveNodes,

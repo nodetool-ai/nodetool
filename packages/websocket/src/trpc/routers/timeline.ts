@@ -384,18 +384,22 @@ export const timelineRouter = router({
       .input(createClipInput)
       .output(timelineClipResponse)
       .mutation(async ({ ctx, input }) => {
-        // 1. Verify ownership of timeline
         const seq = await loadOwned(ctx.userId, input.id);
 
-        // 2. Clone the source workflow into a clip-private row
-        const clone = await Workflow.cloneAsClipPrivate(
-          input.sourceWorkflowId,
-          ctx.userId!
+        // Validate access to the source workflow.
+        const source = await Workflow.find(
+          ctx.userId!,
+          input.sourceWorkflowId
         );
+        if (!source) {
+          throwApiError(
+            ApiErrorCode.NOT_FOUND,
+            "Source workflow not found or not accessible"
+          );
+        }
 
-        const nodes = (clone.graph?.nodes ?? []) as Record<string, unknown>[];
+        const nodes = (source.graph?.nodes ?? []) as Record<string, unknown>[];
 
-        // 3. Find terminal output nodes (nodes whose type is a known output type)
         const outputNodes = nodes.filter((n) =>
           isOutputNode(n.type as string)
         );
@@ -415,7 +419,7 @@ export const timelineRouter = router({
           if (!found) {
             throwApiError(
               ApiErrorCode.INVALID_INPUT,
-              `selectedOutputNodeId ${input.selectedOutputNodeId} is not a terminal output node in the cloned graph`
+              `selectedOutputNodeId ${input.selectedOutputNodeId} is not a terminal output node in the source graph`
             );
           }
           selectedOutputNode = found;
@@ -426,7 +430,6 @@ export const timelineRouter = router({
             ApiErrorCode.INVALID_INPUT,
             "Source workflow has multiple terminal output nodes; provide selectedOutputNodeId"
           );
-          // unreachable: throwApiError always throws (returns never)
         }
 
         const rawMediaType = mediaTypeForOutputNode(
@@ -437,7 +440,6 @@ export const timelineRouter = router({
             ? "overlay"
             : rawMediaType;
 
-        // 4. Seed paramOverrides from each Input* node default
         const paramOverrides: Record<string, unknown> = {};
         for (const node of nodes) {
           if (!isInputNode(node.type as string)) continue;
@@ -447,7 +449,6 @@ export const timelineRouter = router({
           }
         }
 
-        // 5. Initial durationMs
         const durationMsInput = nodes.find(
           (n) => isInputNode(n.type as string) && inputNodeName(n) === "duration_ms"
         );
@@ -456,30 +457,28 @@ export const timelineRouter = router({
           DEFAULT_DURATION_MS[mediaType] ??
           4000;
 
-        // 5. Compute initial dependencyHash via @nodetool-ai/timeline
         const workflowUpdatedAt =
-          (clone.updated_at as string | undefined | null) ??
+          (source.updated_at as string | undefined | null) ??
           new Date().toISOString();
         const dependencyHash = computeDependencyHash({
-          workflowId: clone.id,
+          workflowId: source.id,
           workflowUpdatedAt,
           paramOverrides,
           inputAssetHashes: []
         });
 
-        // 6. Build and insert the clip into the sequence document.
-        // The clip name inherits the source workflow's name so users can
+        // Clip name inherits the source workflow's name so users can
         // identify clip origins in the timeline before renaming.
         const clipId = createTimeOrderedUuid();
         const newClip = makeClip({
           id: clipId,
-          name: clone.name,
+          name: source.name,
           trackId: input.trackId,
           startMs: input.startMs,
           durationMs,
           mediaType,
           sourceType: "generated",
-          workflowId: clone.id,
+          workflowId: source.id,
           selectedOutputNodeId: selectedOutputNode.id as string,
           paramOverrides,
           dependencyHash,
@@ -495,6 +494,63 @@ export const timelineRouter = router({
           document: JSON.stringify(doc)
         });
 
+        return newClip;
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.string(), clipId: z.string() }))
+      .output(z.object({ ok: z.literal(true) }))
+      .mutation(async ({ ctx, input }) => {
+        const seq = await loadOwned(ctx.userId, input.id);
+        const doc = seq.toDocument();
+        const clipIndex = doc.clips.findIndex((c) => c.id === input.clipId);
+        if (clipIndex === -1) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
+        }
+
+        doc.clips.splice(clipIndex, 1);
+        await TimelineSequence.update(input.id, {
+          document: JSON.stringify(doc)
+        });
+        return { ok: true as const };
+      }),
+
+    duplicate: protectedProcedure
+      .input(
+        z.object({
+          id: z.string(),
+          clipId: z.string(),
+          deltaMs: z.number().default(0)
+        })
+      )
+      .output(timelineClipResponse)
+      .mutation(async ({ ctx, input }) => {
+        const seq = await loadOwned(ctx.userId, input.id);
+        const doc = seq.toDocument();
+        const src = doc.clips.find((c) => c.id === input.clipId);
+        if (!src) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
+        }
+
+        const newClip = makeClip({
+          ...src,
+          id: createTimeOrderedUuid(),
+          startMs: src.startMs + input.deltaMs,
+          workflowId: src.workflowId,
+          paramOverrides: src.paramOverrides
+            ? structuredClone(src.paramOverrides)
+            : undefined,
+          status: "draft",
+          locked: false,
+          currentAssetId: undefined,
+          lastGeneratedHash: undefined,
+          versions: []
+        });
+
+        doc.clips.push(newClip);
+        await TimelineSequence.update(input.id, {
+          document: JSON.stringify(doc)
+        });
         return newClip;
       })
   })

@@ -33,6 +33,10 @@ import { colorForType } from "../../config/data_types";
 import { editorClassNames, cn } from "../editor_ui";
 import HandleTooltip from "../HandleTooltip";
 import type { NodeStoreState } from "../../stores/NodeStore";
+import {
+  NODE_COLLAPSED_BODY_HEIGHT_WIN,
+  NODE_COLLAPSED_LAYOUT
+} from "../../styles/collapsedNodeTokens";
 
 const MAX_AUTO_HEIGHT = 600;
 
@@ -60,6 +64,18 @@ const styles = (theme: Theme) =>
     ".header-wrapper": {
       position: "relative",
       flexShrink: 0
+    },
+    ".header-wrapper .input-handle-wrapper": {
+      position: "absolute",
+      left: "-8px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      zIndex: 11
+    },
+    ".header-wrapper .input-handle-wrapper .react-flow__handle-left": {
+      top: "50%",
+      left: 0,
+      transform: "translateY(-50%)"
     },
     ".header-actions": {
       position: "absolute",
@@ -112,16 +128,19 @@ const styles = (theme: Theme) =>
         cursor: "default"
       }
     },
-    ".input-handle-wrapper": {
-      position: "absolute",
-      left: 0,
-      top: "50%"
+    "&.collapsed": {
+      ...NODE_COLLAPSED_LAYOUT,
+      height: NODE_COLLAPSED_BODY_HEIGHT_WIN,
+      "& > .constant-string-body": {
+        display: "none !important"
+      }
     }
   });
 
 const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected } = props;
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastEmittedHeight = useRef<number>(0);
   const [isFocused, setIsFocused] = useState(false);
@@ -190,6 +209,9 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // non-textarea overhead (header, padding, outputs) measured from the
   // DOM, and set an explicit height on the React Flow node.
   useLayoutEffect(() => {
+    if (data.collapsed) {
+      return;
+    }
     const textarea = textareaRef.current;
     if (!textarea) {
       return;
@@ -219,7 +241,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       lastEmittedHeight.current = desiredNodeH;
       updateNode(id, { height: desiredNodeH });
     }
-  }, [localValue, id, updateNode]);
+  }, [localValue, id, updateNode, data.collapsed]);
 
   const headerColor = useMemo(() => {
     const firstOutputType = metadata?.outputs?.[0]?.type?.type as
@@ -257,8 +279,8 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      css={styles(theme)}
-      className={`base-node constant-string-node node-body ${selected ? "selected" : ""}`}
+      css={cssStyles}
+      className={`base-node constant-string-node node-body ${data.collapsed ? "collapsed " : ""}${selected ? "selected" : ""}`}
       style={
         {
           "--node-primary-color": headerColor || "var(--palette-primary-main)"
@@ -273,10 +295,31 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           data={data}
           backgroundColor={headerColor}
           metadataTitle={metadata.title}
-          iconType={metadata?.outputs?.[0]?.type?.type}
+          iconType={
+            metadata?.outputs?.[0]?.type?.type ??
+            metadata?.properties?.[0]?.type?.type ??
+            "any"
+          }
           iconBaseColor={headerColor}
           workflowId={data.workflow_id}
         />
+        <div className="input-handle-wrapper nodrag nopan">
+          <HandleTooltip
+            typeMetadata={valuePropType}
+            paramName="value"
+            className="is-connectable"
+            handlePosition="left"
+            enableHover={false}
+          >
+            <Handle
+              type="target"
+              id="value"
+              position={Position.Left}
+              isConnectable={true}
+              className="str is-connectable"
+            />
+          </HandleTooltip>
+        </div>
         <div className="header-actions nodrag nopan">
           <ToolbarIconButton title="Open Editor" size="small" onClick={toggleExpand}>
             <OpenInFullIcon />
@@ -294,24 +337,6 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           isFocused && editorClassNames.nowheel
         )}
       >
-        <div className="input-handle-wrapper">
-          <HandleTooltip
-            typeMetadata={valuePropType}
-            paramName="value"
-            className="is-connectable"
-            handlePosition="left"
-            enableHover={false}
-          >
-            <Handle
-              type="target"
-              id="value"
-              position={Position.Left}
-              isConnectable={true}
-              className="str is-connectable"
-            />
-          </HandleTooltip>
-        </div>
-
         <textarea
           ref={textareaRef}
           className="constant-string-textarea"
@@ -324,11 +349,9 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         />
       </div>
 
-      <NodeOutputs
-        id={id}
-        outputs={metadata.outputs}
-        isStreamingOutput={metadata.is_streaming_output}
-      />
+      <div className="node-content-container">
+        <NodeOutputs id={id} outputs={metadata.outputs} />
+      </div>
 
       <NodeResizeHandle minWidth={200} minHeight={100} />
 

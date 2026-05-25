@@ -333,8 +333,10 @@ See [packages/agents/CLAUDE.md](packages/agents/CLAUDE.md) for agent architectur
 
 ## Detailed Guidelines
 
-See the AGENTS.md hierarchy for detailed coding rules per area:
-- [Root rules](AGENTS.md) — TypeScript, React, Zustand, MUI, testing rules
+**Canonical standards**: [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md) — TypeScript, React, Zustand, MUI/primitives, TanStack Query, ReactFlow, Vitest/Jest/Playwright, Fastify, Drizzle, Zod, Electron security, WebSocket protocol, accessibility (WCAG 2.2 AA), performance budgets, security (OWASP), observability (OpenTelemetry), error handling, git/PRs, dependencies. Read this first.
+
+Area-specific overlays:
+- [Root rules](AGENTS.md) — Quick commands and base reminders
 - [Backend packages](packages/AGENTS.md) — Package architecture, dependency order
 - [Web UI](web/src/AGENTS.md) — Components, stores, hooks, contexts, server state
 - [Electron](electron/src/AGENTS.md) — Security, IPC, platform code

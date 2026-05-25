@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import { extname, join } from "node:path";
@@ -51,6 +52,8 @@ export class SplitTextNode extends BaseNode {
   static readonly title = "Split Text";
   static readonly description =
     "Separates text into a list of strings based on a specified delimiter.\n    text, split, tokenize";
+  static readonly inlineFields = ["text", "delimiter"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -73,6 +76,8 @@ export class ExtractTextNode extends BaseNode {
   static readonly title = "Extract Text";
   static readonly description =
     "Extracts a substring from input text.\n    text, extract, substring";
+  static readonly inlineFields = ["text", "start"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -99,6 +104,8 @@ export class ChunkTextNode extends BaseNode {
   static readonly title = "Split Text into Chunks";
   static readonly description =
     "Splits text into chunks of specified word length.\n    text, chunk, split";
+  static readonly inlineFields = ["text", "length"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -140,6 +147,8 @@ export class ExtractRegexNode extends BaseNode {
   static readonly title = "Extract Regex Groups";
   static readonly description =
     "Extracts substrings matching regex groups from text.\n    text, regex, extract\n\n    Use cases:\n    - Extracting structured data (e.g., dates, emails) from unstructured text\n    - Parsing specific patterns in log files or documents\n    - Isolating relevant information from complex text formats";
+  static readonly inlineFields = ["text", "regex"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -181,6 +190,8 @@ export class FindAllRegexNode extends BaseNode {
   static readonly title = "Find All Regex Matches";
   static readonly description =
     "Finds all regex matches in text as separate substrings.\n    text, regex, find";
+  static readonly inlineFields = ["text", "regex"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -221,6 +232,8 @@ export class TextParseJSONNode extends BaseNode {
   static readonly title = "Parse JSON String";
   static readonly description =
     "Parses a JSON string into a Python object.\n    json, parse, convert";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "any"
   };
@@ -280,6 +293,8 @@ export class ExtractJSONNode extends BaseNode {
   static readonly title = "Extract JSON";
   static readonly description =
     "Extracts data from JSON using JSONPath expressions.\n    json, extract, jsonpath";
+  static readonly inlineFields = ["text", "json_path"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "any"
   };
@@ -315,6 +330,8 @@ export class RegexMatchNode extends BaseNode {
   static readonly title = "Find Regex Matches";
   static readonly description =
     "Find all matches of a regex pattern in text.\n    regex, search, pattern, match\n\n    Use cases:\n    - Extract specific patterns from text\n    - Validate text against patterns\n    - Find all occurrences of a pattern";
+  static readonly inlineFields = ["text", "pattern"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -367,6 +384,8 @@ export class RegexReplaceNode extends BaseNode {
   static readonly title = "Replace with Regex";
   static readonly description =
     "Replace text matching a regex pattern.\n    regex, replace, substitute\n\n    Use cases:\n    - Clean or standardize text\n    - Remove unwanted patterns\n    - Transform text formats";
+  static readonly inlineFields = ["text", "pattern"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -431,6 +450,8 @@ export class RegexSplitNode extends BaseNode {
   static readonly title = "Split with Regex";
   static readonly description =
     "Split text using a regex pattern as delimiter.\n    regex, split, tokenize\n\n    Use cases:\n    - Parse structured text\n    - Extract fields from formatted strings\n    - Tokenize text";
+  static readonly inlineFields = ["text", "pattern"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
@@ -489,6 +510,8 @@ export class RegexValidateNode extends BaseNode {
   static readonly title = "Validate with Regex";
   static readonly description =
     "Check if text matches a regex pattern.\n    regex, validate, check\n\n    Use cases:\n    - Validate input formats (email, phone, etc)\n    - Check text structure\n    - Filter text based on patterns";
+  static readonly inlineFields = ["text", "pattern"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "bool"
   };
@@ -523,6 +546,8 @@ export class CompareTextNode extends BaseNode {
   static readonly title = "Compare Text";
   static readonly description =
     "Compares two text values and reports ordering.\n    text, compare, equality, sort, equals, =\n\n    Use cases:\n    - Checking if two strings are identical before branching\n    - Determining lexical order for sorting or deduplication\n    - Normalizing casing/spacing before compares";
+  static readonly inlineFields = ["text_a", "text_b"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -582,6 +607,8 @@ export class EqualsTextNode extends BaseNode {
   static readonly title = "Equals";
   static readonly description =
     "Checks if two text inputs are equal.\n    text, compare, equals, match, =";
+  static readonly inlineFields = ["text_a", "text_b"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "bool"
   };
@@ -621,6 +648,8 @@ export class ToUppercaseNode extends BaseNode {
   static readonly title = "To Uppercase";
   static readonly description =
     "Converts text to uppercase.\n    text, transform, uppercase, format";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -638,6 +667,8 @@ export class ToLowercaseNode extends BaseNode {
   static readonly title = "To Lowercase";
   static readonly description =
     "Converts text to lowercase.\n    text, transform, lowercase, format";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -655,6 +686,8 @@ export class ToTitlecaseNode extends BaseNode {
   static readonly title = "To Title Case";
   static readonly description =
     "Converts text to title case.\n    text, transform, titlecase, format\n\n    Use cases:\n    - Cleaning user provided titles before display\n    - Normalizing headings in generated documents\n    - Making list entries easier to scan";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -672,6 +705,8 @@ export class CapitalizeTextNode extends BaseNode {
   static readonly title = "Capitalize Text";
   static readonly description =
     "Capitalizes only the first character.\n    text, transform, capitalize, format\n\n    Use cases:\n    - Formatting short labels or sentences\n    - Cleaning up LLM output before UI rendering\n    - Quickly fixing lowercase starts after concatenation";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -695,6 +730,8 @@ export class SliceTextNode extends BaseNode {
   static readonly title = "Slice Text";
   static readonly description =
     "Slices text using Python's slice notation (start:stop:step).\n    text, slice, substring\n\n    Use cases:\n    - Extracting specific portions of text with flexible indexing\n    - Reversing text using negative step\n    - Taking every nth character with step parameter\n\n    Examples:\n    - start=0, stop=5: first 5 characters\n    - start=-5: last 5 characters\n    - step=2: every second character\n    - step=-1: reverse the text";
+  static readonly inlineFields = ["text", "start"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -762,6 +799,8 @@ export class StartsWithTextNode extends BaseNode {
   static readonly title = "Starts With";
   static readonly description =
     "Checks if text starts with a specified prefix.\n    text, check, prefix, compare, validate, substring, string\n\n    Use cases:\n    - Validating string prefixes\n    - Filtering text based on starting content\n    - Checking file name patterns";
+  static readonly inlineFields = ["text", "prefix"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "bool"
   };
@@ -784,6 +823,8 @@ export class EndsWithTextNode extends BaseNode {
   static readonly title = "Ends With";
   static readonly description =
     "Checks if text ends with a specified suffix.\n    text, check, suffix, compare, validate, substring, string\n\n    Use cases:\n    - Validating file extensions\n    - Checking string endings\n    - Filtering text based on ending content";
+  static readonly inlineFields = ["text", "suffix"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "bool"
   };
@@ -806,6 +847,8 @@ export class ContainsTextNode extends BaseNode {
   static readonly title = "Contains Text";
   static readonly description =
     "Checks if text contains a specified substring.\n    text, compare, validate, substring, string";
+  static readonly inlineFields = ["text", "substring"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "bool"
   };
@@ -876,6 +919,8 @@ export class TrimWhitespaceNode extends BaseNode {
   static readonly title = "Trim Whitespace";
   static readonly description =
     "Trims whitespace from the start and/or end of text.\n    text, whitespace, clean, remove";
+  static readonly inlineFields = ["text", "trim_start"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -912,6 +957,8 @@ export class CollapseWhitespaceNode extends BaseNode {
   static readonly title = "Collapse Whitespace";
   static readonly description =
     "Collapses consecutive whitespace into single separators.\n    text, whitespace, normalize, clean, remove";
+  static readonly inlineFields = ["text", "preserve_newlines"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -967,6 +1014,8 @@ export class IsEmptyTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -988,6 +1037,8 @@ export class RemovePunctuationNode extends BaseNode {
   static readonly title = "Remove Punctuation";
   static readonly description =
     "Removes punctuation characters from text.\n    text, cleanup, punctuation, normalize";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -1035,6 +1086,8 @@ export class StripAccentsNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1070,6 +1123,8 @@ export class SlugifyNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1118,6 +1173,8 @@ export class HasLengthTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1160,6 +1217,8 @@ export class TruncateTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1202,6 +1261,8 @@ export class PadTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1264,6 +1325,8 @@ export class LengthTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1318,6 +1381,8 @@ export class IndexOfTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1394,6 +1459,8 @@ export class SurroundWithTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1435,6 +1502,8 @@ export class CountTokensNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1624,6 +1693,8 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     text: "str"
   };
   static readonly exposeAsTool = true;
+  static readonly inputFields: string[] = ["audio"];
+
 
   @prop({
     type: "asr_model",
@@ -1708,7 +1779,8 @@ export class EmbeddingTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list"
   };
-  static readonly basicFields = ["model", "input"];
+  static readonly inlineFields = [];
+  static readonly inputFields  = ["input"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -1758,6 +1830,8 @@ export class SaveTextFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "text"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1804,6 +1878,8 @@ export class SaveTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "text"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: any;
@@ -1851,7 +1927,6 @@ export class LoadTextFolderNode extends BaseNode {
     paths: "list"
   };
 
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default: "",
@@ -1965,7 +2040,6 @@ export class LoadTextAssetsNode extends BaseNode {
     names: "list"
   };
 
-  static readonly isStreamingOutput = true;
   @prop({
     type: "folder",
     default: {
@@ -2037,9 +2111,9 @@ export class FilterStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-
-  static readonly isStreamingOutput = true;
-  static readonly syncMode = "on_any" as const;
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" }
+  };
 
   private _filterType: FilterStringType = "contains";
   private _criteria = "";
@@ -2136,9 +2210,9 @@ export class FilterRegexStringNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-
-  static readonly isStreamingOutput = true;
-  static readonly syncMode = "on_any" as const;
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" }
+  };
 
   private _pattern = "";
   private _fullMatch = false;
@@ -2203,23 +2277,20 @@ export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
   static readonly title = "Concatenate Text";
   static readonly description =
-    "Concatenates text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
+    "Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button.\n    text, combine, add, concatenate, merge, join, append";
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
   static readonly isDynamic = true;
 
-  @prop({ type: "str", default: "", title: "A", description: "First text input." })
-  declare a: any;
-
-  @prop({ type: "str", default: "", title: "B", description: "Second text input." })
-  declare b: any;
-
   async process(): Promise<Record<string, unknown>> {
-    const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())].map(
-      (value) => String(value ?? "")
-    );
-    return { output: values.join("") };
+    return {
+      output: Array.from(this.dynamicProps.values())
+        .map((value) => String(value ?? ""))
+        .join("")
+    };
   }
 }
 
@@ -2259,7 +2330,6 @@ export class CollectTextNode extends BaseNode {
     output: "str"
   };
 
-  static readonly syncMode = "on_any" as const;
 
   private _items: string[] = [];
 
@@ -2290,6 +2360,8 @@ export class FormatTextNode extends BaseNode {
   };
 
   static readonly isDynamic = true;
+  static readonly inputFields: string[] = ["template"];
+
 
   @prop({
     type: "str",
@@ -2356,6 +2428,87 @@ export class FormatTextNode extends BaseNode {
   }
 }
 
+export class PromptNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.Prompt";
+  static readonly title = "Prompt";
+  static readonly description =
+    "Compose a prompt string with named variables. Add variables via the Add Variable button; reference them in the prompt as {{ variable }} (or {variable}). Supports filters: {{ var|upper }}, {{ var|lower }}, {{ var|capitalize }}, {{ var|title }}, {{ var|trim }}, {{ var|truncate(n) }}, {{ var|default(val) }}.\n\n    prompt, text, template, variable, llm, agent";
+  static readonly metadataOutputTypes = {
+    output: "str"
+  };
+
+  static readonly isDynamic = true;
+  static readonly inputFields: string[] = ["prompt"];
+
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description:
+      "Prompt text. Reference variables with {{ name }} or {name}."
+  })
+  declare prompt: any;
+
+  private applyFilter(value: string, filter: string): string {
+    const trimmed = filter.trim();
+    if (trimmed === "upper") return value.toUpperCase();
+    if (trimmed === "lower") return value.toLowerCase();
+    if (trimmed === "capitalize") {
+      return value.length === 0
+        ? ""
+        : value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    }
+    if (trimmed === "title") {
+      return toTitleCase(value);
+    }
+    if (trimmed === "trim") return value.trim();
+    const truncateMatch = trimmed.match(/^truncate\((\d+)\)$/);
+    if (truncateMatch) {
+      const n = Number(truncateMatch[1]);
+      return value.length <= n ? value : value.slice(0, n) + "...";
+    }
+    const defaultMatch = trimmed.match(/^default\((.+)\)$/);
+    if (defaultMatch) {
+      return value === "" ? defaultMatch[1].replace(/^['"]|['"]$/g, "") : value;
+    }
+    return value;
+  }
+
+  private applyFilters(value: string, filters: string[]): string {
+    let result = value;
+    for (const f of filters) {
+      result = this.applyFilter(result, f);
+    }
+    return result;
+  }
+
+  async process(): Promise<Record<string, unknown>> {
+    let result = String(this.prompt ?? "");
+    const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
+
+    result = result.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, expr: string) => {
+      const parts = expr.split("|").map((p: string) => p.trim());
+      const varName = parts[0];
+      if (varName in props) {
+        const strValue = String(props[varName] ?? "");
+        return parts.length > 1
+          ? this.applyFilters(strValue, parts.slice(1))
+          : strValue;
+      }
+      return _match;
+    });
+
+    for (const [key, value] of Object.entries(props)) {
+      const strValue = String(value ?? "");
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
+      result = result.replace(single, () => strValue);
+    }
+    return { output: result };
+  }
+}
+
 export class TemplateTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Template";
   static readonly title = "Template";
@@ -2399,6 +2552,8 @@ export class ReplaceTextNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly inputFields: string[] = ["text"];
+
 
   @prop({ type: "str", default: "", title: "Text", description: "The input text." })
   declare text: any;
@@ -2516,6 +2671,7 @@ export const TEXT_EXTRA_NODES = [
   JoinTextNode,
   CollectTextNode,
   FormatTextNode,
+  PromptNode,
   TemplateTextNode,
   ReplaceTextNode,
   ToStringNode

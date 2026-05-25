@@ -83,7 +83,7 @@ export const useCollectionStore = create<CollectionStore>()(
         try {
           const data = await trpcClient.collections.list.query();
           set({
-            collections: data as unknown as CollectionListType,
+            collections: data as CollectionListType,
             isLoading: false
           });
         } catch (err) {
@@ -156,19 +156,17 @@ export const useCollectionStore = create<CollectionStore>()(
               }
             );
 
-            const data = (await response.json().catch(() => null)) as
-              | IndexResponseData
-              | { detail?: { msg?: string }[] }
-              | null;
-            const responseData = data as IndexResponseData | undefined;
+            const data: unknown = await response.json().catch(() => null);
 
-            if (!response.ok || responseData?.error) {
+            const indexData = data as IndexResponseData | undefined;
+            const errorDetail = data as { detail?: { msg?: string }[] } | undefined;
+
+            if (!response.ok || indexData?.error) {
               errors.push({
                 file: file.name,
                 error:
-                  (data as { detail?: { msg?: string }[] } | undefined)
-                    ?.detail?.[0]?.msg ||
-                  responseData?.error ||
+                  errorDetail?.detail?.[0]?.msg ||
+                  indexData?.error ||
                   "Unknown error"
               });
             }

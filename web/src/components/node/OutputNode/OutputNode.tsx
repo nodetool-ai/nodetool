@@ -20,10 +20,12 @@ import { getOutputNodeSelectionSx } from "../selectionStyles";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeInputs } from "../NodeInputs";
+import HandleColumn from "../HandleColumn";
 import PreviewActions from "../PreviewNode/PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { NODE_COLLAPSED_LAYOUT } from "../../../styles/collapsedNodeTokens";
 
 const styles = (theme: Theme) =>
   css([
@@ -45,7 +47,10 @@ const styles = (theme: Theme) =>
         padding: 0,
         margin: 0,
         "&.collapsed": {
-          maxHeight: "60px"
+          ...NODE_COLLAPSED_LAYOUT
+        },
+        "&.collapsed .node-header ~ *": {
+          display: "none !important"
         },
         label: {
           display: "none"
@@ -291,6 +296,7 @@ const CONTENT_DIV_STYLE = {
  */
 const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -413,10 +419,11 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
   return (
     <Container
-      css={styles(theme)}
+      css={cssStyles}
       sx={getOutputNodeSelectionSx(theme, Boolean(props.selected))}
-      className={`output-node nopan node-drag-handle ${hasParent ? "hasParent" : ""
-        }`}
+      className={`output-node nopan node-drag-handle node-body ${
+        hasParent ? "hasParent " : ""
+      }${props.data.collapsed ? "collapsed " : ""}`}
     >
       <div className={`output-node-content `}>
         <>
@@ -430,28 +437,36 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
             backgroundColor={"transparent"}
             iconType={"any"}
             iconBaseColor={theme.vars.palette.secondary.main}
-            showIcon={false}
+            showIcon={true}
             workflowId={props.data.workflow_id}
             hideLogs={true}
           />
 
-          {/* Render properties with handles using NodeInputs - just like BaseNode does */}
-          {nodeMetadata && (
-            <NodeInputs
-              id={props.id}
-              nodeMetadata={nodeMetadata}
-              layout={nodeMetadata.layout}
-              properties={nodeMetadata.properties}
-              nodeType={props.type}
-              data={props.data}
-              showHandle={true}
-              showFields={true}
-              hasAdvancedFields={false}
-              showAdvancedFields={false}
-              basicFields={nodeMetadata.basic_fields || nodeMetadata.properties.map(p => p.name)}
-              onToggleAdvancedFields={() => { }}
-            />
-          )}
+          {nodeMetadata && (() => {
+            const inlineNames = nodeMetadata.inline_fields ?? [];
+            const inputNames = nodeMetadata.input_fields ?? [];
+            const inlineProps = nodeMetadata.properties.filter((p) =>
+              inlineNames.includes(p.name)
+            );
+            const inputProps = nodeMetadata.properties.filter((p) =>
+              inputNames.includes(p.name)
+            );
+            return (
+              <>
+                <HandleColumn id={props.id} properties={inputProps} />
+                <NodeInputs
+                  id={props.id}
+                  nodeMetadata={nodeMetadata}
+                  layout={nodeMetadata.layout}
+                  properties={inlineProps}
+                  nodeType={props.type}
+                  data={props.data}
+                  showHandle={false}
+                  showFields={true}
+                />
+              </>
+            );
+          })()}
 
           {result === null || result === undefined && (
             <Text className="hint">

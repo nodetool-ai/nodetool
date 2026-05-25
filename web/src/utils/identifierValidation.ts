@@ -33,8 +33,3 @@ export function validateIdentifierName(name: string): ValidationResult {
     isValid: true
   };
 }
-
-/** Checks if a name starts with a number. */
-export function startsWithNumber(name: string): boolean {
-  return /^[0-9]/.test(name.trim());
-}

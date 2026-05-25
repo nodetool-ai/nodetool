@@ -78,6 +78,8 @@ function applyFilters(query: any, filters: Filter[]): any {
 export class SelectLibNode extends BaseNode {
   static readonly nodeType = "lib.supabase.Select";
   static readonly title = "Select";
+  static readonly inlineFields = ["table_name"];
+  static readonly inputFields = [];
   static readonly description =
     "Query records from a Supabase table.\n    supabase, database, query, select";
   static readonly metadataOutputTypes = {
@@ -184,6 +186,8 @@ export class SelectLibNode extends BaseNode {
 export class InsertLibNode extends BaseNode {
   static readonly nodeType = "lib.supabase.Insert";
   static readonly title = "Insert";
+  static readonly inlineFields = ["table_name"];
+  static readonly inputFields = ["records"];
   static readonly description =
     "Insert record(s) into a Supabase table.\n    supabase, database, insert, add, record";
   static readonly metadataOutputTypes = {
@@ -246,6 +250,8 @@ export class InsertLibNode extends BaseNode {
 export class UpdateLibNode extends BaseNode {
   static readonly nodeType = "lib.supabase.Update";
   static readonly title = "Update";
+  static readonly inlineFields = ["table_name"];
+  static readonly inputFields = ["values"];
   static readonly description =
     "Update records in a Supabase table.\n    supabase, database, update, modify, change";
   static readonly metadataOutputTypes = {
@@ -317,6 +323,8 @@ export class UpdateLibNode extends BaseNode {
 export class DeleteLibNode extends BaseNode {
   static readonly nodeType = "lib.supabase.Delete";
   static readonly title = "Delete";
+  static readonly inlineFields = ["table_name"];
+  static readonly inputFields = [];
   static readonly description =
     "Delete records from a Supabase table.\n    supabase, database, delete, remove";
   static readonly metadataOutputTypes = {
@@ -367,6 +375,8 @@ export class DeleteLibNode extends BaseNode {
 export class UpsertLibNode extends BaseNode {
   static readonly nodeType = "lib.supabase.Upsert";
   static readonly title = "Upsert";
+  static readonly inlineFields = ["table_name"];
+  static readonly inputFields = ["records"];
   static readonly description =
     "Insert or update (upsert) records in a Supabase table.\n    supabase, database, upsert, merge";
   static readonly metadataOutputTypes = {
@@ -430,6 +440,8 @@ export class UpsertLibNode extends BaseNode {
 export class RPCLibNode extends BaseNode {
   static readonly nodeType = "lib.supabase.RPC";
   static readonly title = "RPC";
+  static readonly inlineFields = ["function"];
+  static readonly inputFields = ["params"];
   static readonly description =
     "Call a PostgreSQL function via Supabase RPC.\n    supabase, database, rpc, function";
   static readonly metadataOutputTypes = {

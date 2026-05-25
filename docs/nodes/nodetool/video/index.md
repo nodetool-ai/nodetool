@@ -17,7 +17,7 @@ This namespace contains 29 node(s).
 - **[Extract Audio](extractaudio.md)** - Separate and extract audio track from a video file.
 - **[Extract Frame](extractframe.md)** - Extract a single frame from a video at a specific time position.
 - **[Fps](fps.md)** - Get the frames per second (FPS) of a video file.
-- **[Frame Iterator](frameiterator.md)** - Extract frames from a video file using OpenCV.
+- **[For Each Frame](foreachframe.md)** - Extract frames from a video file using OpenCV.
 - **[Frame To Video](frametovideo.md)** - Combine a sequence of frames into a single video file.
 - **[Get Video Info](getvideoinfo.md)** - Get metadata information about a video file.
 - **[Image To Video](imagetovideo.md)** - Generate videos from input images using any supported video provider.

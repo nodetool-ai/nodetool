@@ -25,7 +25,7 @@ Passing `use_s3: true` when obtaining asset storage forces S3 even in developmen
 | `ASSET_BUCKET` | Bucket name (S3) or Supabase Storage bucket name, or folder name (local). |
 | `ASSET_DOMAIN` | Public domain serving assets (S3 only). Not used for Supabase. |
 | `ASSET_TEMP_BUCKET` / `ASSET_TEMP_DOMAIN` | Optional separate bucket for temporary assets. |
-| `FONT_PATH`, `COMFY_FOLDER`, `CHROMA_PATH` | Additional paths for specific nodes (registered in `@nodetool-ai/websocket` / `src/settings-api.ts`). |
+| `FONT_PATH`, `COMFY_FOLDER`, `VECTORSTORE_DB_PATH` | Additional paths for specific nodes (registered in `@nodetool-ai/websocket` / `src/settings-api.ts`). |
 
 For S3-compatible services, set:
 

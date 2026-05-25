@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 export class IfNode extends BaseNode {
   static readonly nodeType = "nodetool.control.If";
@@ -10,9 +11,14 @@ export class IfNode extends BaseNode {
     if_true: "any",
     if_false: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value", "condition"];
 
-  static readonly isStreamingOutput = true;
-  static readonly syncMode = "zip_all" as const;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    if_true: { kind: "forward", source: "value" },
+    if_false: { kind: "forward", source: "value" }
+  };
   @prop({
     type: "bool",
     default: false,
@@ -49,8 +55,14 @@ export class ForEachNode extends BaseNode {
     output: "any",
     index: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_list"];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" }
+  };
   @prop({
     type: "list[any]",
     default: [],
@@ -87,6 +99,93 @@ export class ForEachNode extends BaseNode {
   }
 }
 
+export class RepeatCountNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.RepeatCount";
+  static readonly title = "Repeat Count";
+  static readonly description =
+    "Emit N sequential ticks without needing an input list.\n    repeat, loop, count, times, iterate, batch\n\n    Use cases:\n    - Run the same downstream step N times (e.g. generate N images from one prompt)\n    - Drive iteration by count instead of building a range list\n    - Pair with Collect to gather N results";
+  static readonly metadataOutputTypes = {
+    output: "int",
+    index: "int"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
+
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" }
+  };
+
+  @prop({
+    type: "int",
+    default: 1,
+    min: 0,
+    title: "Count",
+    description: "Number of ticks to emit (0 emits nothing)."
+  })
+  declare count: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const total = Math.max(0, Math.floor(Number(this.count ?? 0)));
+    for (let index = 0; index < total; index++) {
+      yield { output: index, index };
+    }
+  }
+}
+
+export class RepeatValueStreamNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.RepeatValue";
+  static readonly title = "Repeat Value";
+  static readonly description =
+    "Emit the same value N times without building a list first.\n    repeat, loop, duplicate, scalar, batch, stream\n\n    Use cases:\n    - Run downstream steps N times with a wired prompt or parameter\n    - Repeat one image ref, text, or dict through a pipeline\n    - Pair with Collect to gather N results";
+  static readonly metadataOutputTypes = {
+    output: "any",
+    index: "int"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value"];
+
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" }
+  };
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Value",
+    description: "Single value to emit on each tick."
+  })
+  declare value: any;
+
+  @prop({
+    type: "int",
+    default: 1,
+    min: 0,
+    title: "Count",
+    description: "Number of times to emit the value (0 emits nothing)."
+  })
+  declare count: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const value = this.value ?? null;
+    const total = Math.max(0, Math.floor(Number(this.count ?? 0)));
+    for (let index = 0; index < total; index++) {
+      yield { output: value, index };
+    }
+  }
+}
+
 export class TakeNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Take";
   static readonly title = "Take";
@@ -96,9 +195,15 @@ export class TakeNode extends BaseNode {
     output: "any",
     index: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" },
+    index: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -152,9 +257,14 @@ export class CollectNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[any]"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
-  static readonly syncMode = "on_any" as const;
   static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
+  };
 
   @prop({
     type: "any",
@@ -188,9 +298,13 @@ export class RerouteNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_value"];
 
-  static readonly isStreamingOutput = true;
-  static readonly syncMode = "on_any" as const;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_value" }
+  };
   @prop({
     type: "any",
     default: [],
@@ -213,6 +327,14 @@ export class SwitchNode extends BaseNode {
     matched: "any",
     default: "any",
     index: "int"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value", "input"];
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    matched: { kind: "forward", source: "input" },
+    default: { kind: "forward", source: "input" },
+    index: { kind: "single", source: "input" }
   };
 
   @prop({
@@ -263,6 +385,14 @@ export class TryCatchNode extends BaseNode {
     error: "str",
     has_error: "bool"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["value", "fallback"];
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "value" },
+    error: { kind: "single", source: "value" },
+    has_error: { kind: "single", source: "value" }
+  };
 
   @prop({
     type: "any",
@@ -303,9 +433,15 @@ export class DropNode extends BaseNode {
     output: "any",
     index: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" },
+    index: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -366,9 +502,14 @@ export class FilterEqualNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item", "value"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -437,9 +578,14 @@ export class FilterCodeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -484,9 +630,15 @@ export class ChunkNode extends BaseNode {
     output: "list[any]",
     index: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "input_item", group: "batch" },
+    index: { kind: "iteration", source: "input_item", group: "batch" }
+  };
 
   @prop({
     type: "any",
@@ -542,8 +694,14 @@ export class LastNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
+  };
 
   @prop({
     type: "any",
@@ -581,8 +739,14 @@ export class CountStreamNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "aggregate", source: "input_item", collapse: "innermost" }
+  };
 
   @prop({
     type: "any",
@@ -644,9 +808,14 @@ export class DistinctNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -693,9 +862,14 @@ export class TakeWhileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -744,9 +918,14 @@ export class DropWhileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -793,9 +972,14 @@ export class TapNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["input_item"];
 
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "forward", source: "input_item" }
+  };
 
   @prop({
     type: "any",
@@ -830,9 +1014,332 @@ export class TapNode extends BaseNode {
   }
 }
 
+/**
+ * Zip — explicit join for two independent iteration sources.
+ *
+ * §7 of docs/correlation-design.md. Pairs values by matched iteration
+ * `index` within the longest common parent prefix. V1 accepts at most one
+ * differing iteration root per input after the prefix; deeper differences
+ * must be aggregated or zipped in stages first. Emits a new iteration root
+ * `${node.id}:zip` so downstream nodes see one ordinary correlated stream.
+ *
+ * Pairing strategy (matches the analyzer's static facts):
+ *   1. `inputs.invocationScope()` is the common parent prefix.
+ *   2. For each handle, `inputs.scopeFor(handle)` minus the parent prefix
+ *      is the set of "differing" roots; V1 requires exactly one.
+ *   3. Bucket key per arrival = `parentKey | differingIndex`. Pair when both
+ *      sides have a value for the same bucket key.
+ *   4. Emit via `outputs.emitGroup({ left, right, index })` so all three
+ *      sibling handles share one minted `${nodeId}:zip` token — the actor
+ *      mints once per emitGroup call.
+ */
+export class ZipNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Zip";
+  static readonly title = "Zip";
+  static readonly description =
+    "Pair items from two independent iteration sources by matched index within the common parent.";
+  static readonly metadataOutputTypes = {
+    left: "any",
+    right: "any",
+    index: "int"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["left", "right"];
+
+  static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly isJoinNode = true;
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    left: { kind: "iteration", source: "__execution__", group: "zip" },
+    right: { kind: "iteration", source: "__execution__", group: "zip" },
+    index: { kind: "iteration", source: "__execution__", group: "zip" }
+  };
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Left",
+    description: "Left iteration source."
+  })
+  declare left: any;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Right",
+    description: "Right iteration source."
+  })
+  declare right: any;
+
+  @prop({
+    type: "int",
+    default: 1024,
+    title: "Max Unmatched Pairs",
+    description:
+      "Maximum number of unmatched items to buffer before failing. §7."
+  })
+  declare max_unmatched_pairs: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const limit = Math.max(1, Number(this.max_unmatched_pairs ?? 1024));
+    const parentScope = inputs.invocationScope();
+    const parentSet = new Set(parentScope);
+
+    const findDiffering = (handle: string): string => {
+      const scope = inputs.scopeFor(handle);
+      const differing = scope.filter((r) => !parentSet.has(r));
+      if (differing.length !== 1) {
+        throw new Error(
+          `Zip handle "${handle}" must have exactly one iteration root ` +
+            `after the common parent prefix; got ${differing.length} ` +
+            `(${differing.join(", ") || "none"}). Aggregate or zip in stages.`
+        );
+      }
+      return differing[0];
+    };
+    const leftDiff = findDiffering("left");
+    const rightDiff = findDiffering("right");
+
+    const projectParent = (
+      env: { correlation_lineage: Record<string, { index: number }> }
+    ): string => {
+      // Canonical projection in scope order — matches analyzeCorrelation.
+      // Missing parent tokens indicate an upstream correlation bug; we
+      // fail fast rather than collapsing distinct parents into the same
+      // bucket (which would silently cross-pair items from independent
+      // parent scopes). §7.
+      if (parentScope.length === 0) return "";
+      const parts: string[] = [];
+      for (const root of parentScope) {
+        const tok = env.correlation_lineage[root];
+        if (!tok) {
+          throw new Error(
+            `Zip received an envelope missing parent root "${root}" — ` +
+              `the analyzer requires the common parent prefix to be present ` +
+              `on both sides. Upstream correlation likely failed to mint or ` +
+              `propagate the parent token.`
+          );
+        }
+        parts.push(`${root}=${tok.index}`);
+      }
+      return parts.join(",");
+    };
+
+    const bucketKey = (
+      env: { correlation_lineage: Record<string, { index: number }> },
+      diff: string
+    ): { key: string; index: number } => {
+      const tok = env.correlation_lineage[diff];
+      if (!tok) {
+        throw new Error(
+          `Zip received an envelope on a side missing its differing ` +
+            `root "${diff}" — upstream did not mint a token.`
+        );
+      }
+      return { key: `${projectParent(env)}|${tok.index}`, index: tok.index };
+    };
+
+    interface Pending {
+      data: unknown;
+      index: number;
+    }
+    const lefts = new Map<string, Pending>();
+    const rights = new Map<string, Pending>();
+
+    const tryEmit = async () => {
+      for (const [key, l] of lefts) {
+        const r = rights.get(key);
+        if (!r) continue;
+        lefts.delete(key);
+        rights.delete(key);
+        // emitGroup mints one shared zip token; all three sibling handles
+        // (left, right, index) end up as the SAME logical item downstream.
+        await outputs.emitGroup({
+          left: l.data,
+          right: r.data,
+          index: l.index
+        });
+      }
+    };
+
+    const watchLimit = () => {
+      if (lefts.size > limit || rights.size > limit) {
+        throw new Error(
+          `Zip node "${(this as { id?: string }).id ?? "?"}" exceeded ` +
+            `max_unmatched_pairs (${limit}). §7 — likely one side is missing values.`
+        );
+      }
+    };
+
+    const leftLoop = (async () => {
+      for await (const env of inputs.streamWithEnvelope("left")) {
+        const { key, index } = bucketKey(env, leftDiff);
+        lefts.set(key, { data: env.data, index });
+        watchLimit();
+        await tryEmit();
+      }
+    })();
+    const rightLoop = (async () => {
+      for await (const env of inputs.streamWithEnvelope("right")) {
+        const { key, index } = bucketKey(env, rightDiff);
+        rights.set(key, { data: env.data, index });
+        watchLimit();
+        await tryEmit();
+      }
+    })();
+    await Promise.all([leftLoop, rightLoop]);
+    await tryEmit();
+  }
+}
+
+/**
+ * Cross — cartesian product of two iteration sources within their common
+ * parent prefix. §7.
+ *
+ * V1 buffers both sides until their scopes close for the common parent key
+ * and errors before emitting more than `max_output_count` pairs.
+ */
+export class CrossNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Cross";
+  static readonly title = "Cross";
+  static readonly description =
+    "Emit the cartesian product of two iteration sources within their common parent.";
+  static readonly metadataOutputTypes = {
+    left: "any",
+    right: "any"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["left", "right"];
+
+  static readonly isStreamingInput = true;
+  static readonly inputMode: InputMode = "stream";
+  static readonly isJoinNode = true;
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    left: { kind: "iteration", source: "__execution__", group: "cross" },
+    right: { kind: "iteration", source: "__execution__", group: "cross" }
+  };
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Left",
+    description: "Left iteration source."
+  })
+  declare left: any;
+
+  @prop({
+    type: "any",
+    default: null,
+    title: "Right",
+    description: "Right iteration source."
+  })
+  declare right: any;
+
+  @prop({
+    type: "int",
+    default: 1024,
+    title: "Max Output Count",
+    description:
+      "Maximum number of pairs to emit. Buffering both sides without a cap can blow memory."
+  })
+  declare max_output_count: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const limit = Math.max(1, Number(this.max_output_count ?? 1024));
+    const parentScope = inputs.invocationScope();
+    const projectParent = (
+      env: { correlation_lineage: Record<string, { index: number }> }
+    ): string => {
+      // Fail fast on missing parent tokens; collapsing distinct parents
+      // into the empty bucket would generate cross-products across
+      // independent parent scopes. §7.
+      if (parentScope.length === 0) return "";
+      const parts: string[] = [];
+      for (const root of parentScope) {
+        const tok = env.correlation_lineage[root];
+        if (!tok) {
+          throw new Error(
+            `Cross received an envelope missing parent root "${root}" — ` +
+              `the analyzer requires the common parent prefix to be present ` +
+              `on both sides.`
+          );
+        }
+        parts.push(`${root}=${tok.index}`);
+      }
+      return parts.join(",");
+    };
+
+    // Group each side by parent key so the cartesian product stays within
+    // a shared parent scope. Cross-parent products are not what Cross is
+    // for; they would conflate independent items.
+    const leftByParent = new Map<string, unknown[]>();
+    const rightByParent = new Map<string, unknown[]>();
+
+    const leftLoop = (async () => {
+      for await (const env of inputs.streamWithEnvelope("left")) {
+        const pk = projectParent(env);
+        let bucket = leftByParent.get(pk);
+        if (!bucket) {
+          bucket = [];
+          leftByParent.set(pk, bucket);
+        }
+        bucket.push(env.data);
+      }
+    })();
+    const rightLoop = (async () => {
+      for await (const env of inputs.streamWithEnvelope("right")) {
+        const pk = projectParent(env);
+        let bucket = rightByParent.get(pk);
+        if (!bucket) {
+          bucket = [];
+          rightByParent.set(pk, bucket);
+        }
+        bucket.push(env.data);
+      }
+    })();
+    await Promise.all([leftLoop, rightLoop]);
+
+    let emitted = 0;
+    for (const [pk, lefts] of leftByParent) {
+      const rights = rightByParent.get(pk);
+      if (!rights) continue;
+      for (const l of lefts) {
+        for (const r of rights) {
+          if (emitted >= limit) {
+            throw new Error(
+              `Cross node exceeded max_output_count (${limit}); ` +
+                `truncate the inputs or raise the limit. §7.`
+            );
+          }
+          // emitGroup mints one shared cross token per pair so left and
+          // right end up as the SAME logical item downstream.
+          await outputs.emitGroup({ left: l, right: r });
+          emitted++;
+        }
+      }
+    }
+  }
+}
+
 export const CONTROL_NODES = [
   IfNode,
   ForEachNode,
+  RepeatCountNode,
+  RepeatValueStreamNode,
   TakeNode,
   DropNode,
   TakeWhileNode,
@@ -847,5 +1354,7 @@ export const CONTROL_NODES = [
   CollectNode,
   RerouteNode,
   SwitchNode,
-  TryCatchNode
+  TryCatchNode,
+  ZipNode,
+  CrossNode
 ] as const;

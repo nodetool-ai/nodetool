@@ -3,9 +3,9 @@ import { css } from "@emotion/react";
 import {
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  Box
+  AccordionDetails
 } from "@mui/material";
+import { Box } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
 import FolderItem from "./FolderItem";
@@ -170,6 +170,7 @@ interface FolderListProps {
 
 const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const theme = useTheme();
+  const folderListStyles = useMemo(() => styles(theme), [theme]);
   const currentUser = useAuth((state) => state.user);
   const { folderTree } = useAssets();
   const { navigateToFolder, navigateToFolderId } = useAssets();
@@ -183,24 +184,27 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
     new Set()
   );
 
+  const parentMap = useMemo(() => {
+    if (!folderTree) return new Map<string, string>();
+    const map = new Map<string, string>();
+    const build = (nodes: FolderNode[], parentId: string) => {
+      for (const node of nodes) {
+        map.set(node.id, parentId);
+        if (node.children) {
+          build(node.children, node.id);
+        }
+      }
+    };
+    const rootNodes = Object.values(folderTree) as FolderNode[];
+    build(rootNodes, currentUser?.id ?? "root");
+    return map;
+  }, [folderTree, currentUser?.id]);
+
   // Auto-expand ancestors when the selected folder changes
   useEffect(() => {
     if (!folderTree || selectedFolderIds.length === 0) return;
     const targetId = selectedFolderIds[0];
     if (!targetId || targetId === currentUser?.id) return;
-
-    // Build parent lookup from the tree
-    const parentMap = new Map<string, string>();
-    const buildParentMap = (nodes: FolderNode[], parentId: string) => {
-      for (const node of nodes) {
-        parentMap.set(node.id, parentId);
-        if (node.children) {
-          buildParentMap(node.children, node.id);
-        }
-      }
-    };
-    const rootNodes = Object.values(folderTree) as FolderNode[];
-    buildParentMap(rootNodes, currentUser?.id ?? "root");
 
     // Walk up from target to root, collecting ancestor IDs to expand
     const ancestorIds: string[] = [];
@@ -220,12 +224,11 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
         for (const id of ancestorIds) {
           next.add(id);
         }
-        // Only update if we actually added new IDs
         if (next.size === prev.size) return prev;
         return next;
       });
     }
-  }, [selectedFolderIds, folderTree, currentUser?.id]);
+  }, [selectedFolderIds, folderTree, currentUser?.id, parentMap]);
 
   const handleSelect = useCallback((folder: Asset | RootFolder) => {
     if ((folder as Asset).user_id !== undefined) {
@@ -395,7 +398,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   return (
     <div
       className="folder-list-container"
-      css={styles(theme)}
+      css={folderListStyles}
       style={{
         minHeight: isHorizontal ? "100%" : "auto",
         minWidth: isHorizontal ? LIST_MIN_WIDTH : "auto"

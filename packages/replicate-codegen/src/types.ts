@@ -42,7 +42,6 @@ export interface NodeConfig {
   fieldOverrides?: Record<string, Partial<FieldDef>>;
   enumOverrides?: Record<string, string>; // oldEnumName -> newEnumName
   enumValueOverrides?: Record<string, Record<string, string>>; // enumName -> {oldKey: newKey}
-  basicFields?: string[];
 }
 
 export interface ModuleConfig {

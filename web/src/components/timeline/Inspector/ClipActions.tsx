@@ -6,15 +6,16 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import CallSplitIcon from "@mui/icons-material/CallSplit";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import ImageIcon from "@mui/icons-material/Image";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
 import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast } from "../../ui_primitives";
 
@@ -53,47 +54,54 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     );
     const sequenceId = useTimelineStore((s) => s.sequenceId);
 
-    const duplicateClipLinked = useTimelineStore((s) => s.duplicateClipLinked);
-    const duplicateClipAsVariation = useTimelineStore(
-      (s) => s.duplicateClipAsVariation
-    );
+    const duplicateClip = useTimelineStore((s) => s.duplicateClip);
+    const regenerateAsCopy = useTimelineStore((s) => s.regenerateAsCopy);
+    const selectClip = useTimelineUIStore((s) => s.selectClip);
     const setClipLocked = useTimelineStore((s) => s.setClipLocked);
     const replaceClipOutput = useTimelineStore((s) => s.replaceClipOutput);
     const { generateClip, cancelClipGeneration, isActive, isGenerating } =
       useGenerateClip(clipId);
 
-    const variationBusyRef = useRef(false);
-    const [variationBusy, setVariationBusy] = useState(false);
-    const [variationError, setVariationError] = useState<string | null>(null);
+    const duplicateBusyRef = useRef(false);
+    const [duplicateBusy, setDuplicateBusy] = useState(false);
+    const [duplicateError, setDuplicateError] = useState<string | null>(null);
     const [generationError, setGenerationError] = useState<string | null>(null);
     const [replaceOpen, setReplaceOpen] = useState(false);
     const [assetIdInput, setAssetIdInput] = useState("");
 
-    // ── Duplicate Linked ───────────────────────────────────────────────────
-
-    const handleDuplicateLinked = useCallback(() => {
-      duplicateClipLinked(clipId, duplicateOffsetMs);
-    }, [clipId, duplicateOffsetMs, duplicateClipLinked]);
-
-    // ── Duplicate as Variation ─────────────────────────────────────────────
-
-    const handleDuplicateVariation = useCallback(async () => {
-      if (variationBusyRef.current) {
+    const handleDuplicate = useCallback(async () => {
+      if (duplicateBusyRef.current) {
         return;
       }
-      variationBusyRef.current = true;
-      setVariationBusy(true);
+      duplicateBusyRef.current = true;
+      setDuplicateBusy(true);
       try {
-        await duplicateClipAsVariation(clipId, duplicateOffsetMs);
+        const newClipId = await duplicateClip(clipId, duplicateOffsetMs);
+        selectClip(newClipId);
       } catch (err) {
-        setVariationError(
-          err instanceof Error ? err.message : "Failed to create variation"
+        setDuplicateError(
+          err instanceof Error ? err.message : "Failed to duplicate clip"
         );
       } finally {
-        variationBusyRef.current = false;
-        setVariationBusy(false);
+        duplicateBusyRef.current = false;
+        setDuplicateBusy(false);
       }
-    }, [clipId, duplicateOffsetMs, duplicateClipAsVariation]);
+    }, [clipId, duplicateOffsetMs, duplicateClip, selectClip]);
+
+    // ── Regenerate as new clip ─────────────────────────────────────────────
+    // Drops a fresh sibling immediately to the right with the same binding
+    // (workflow + overrides, or prompt + model) but no rendered asset, so
+    // the user can roll a new take without losing the existing one.
+    const handleRegenerateAsCopy = useCallback(() => {
+      try {
+        const newClipId = regenerateAsCopy(clipId, duplicateOffsetMs);
+        selectClip(newClipId);
+      } catch (err) {
+        setDuplicateError(
+          err instanceof Error ? err.message : "Failed to create copy"
+        );
+      }
+    }, [clipId, duplicateOffsetMs, regenerateAsCopy, selectClip]);
 
     // ── Lock ───────────────────────────────────────────────────────────────
 
@@ -187,26 +195,22 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
 
           <ToolbarIconButton
             icon={<ContentCopyIcon fontSize="small" />}
-            tooltip={
-              "Duplicate Linked — shared graph, independent param overrides"
-            }
-            onClick={handleDuplicateLinked}
-            aria-label="Duplicate clip linked"
-            data-testid="clip-action-duplicate-linked"
+            tooltip="Duplicate — copies overrides; tweak params for a variation"
+            onClick={() => void handleDuplicate()}
+            disabled={duplicateBusy}
+            aria-label="Duplicate clip"
+            data-testid="clip-action-duplicate"
           />
 
-          <ToolbarIconButton
-            icon={<CallSplitIcon fontSize="small" />}
-            tooltip={
-              variationBusy
-                ? "Cloning workflow…"
-                : "Duplicate as Variation — for trying a different look; graph is fully independent"
-            }
-            onClick={handleDuplicateVariation}
-            disabled={variationBusy}
-            aria-label="Duplicate clip as variation"
-            data-testid="clip-action-duplicate-variation"
-          />
+          {clip.sourceType === "generated" && (
+            <ToolbarIconButton
+              icon={<AutoAwesomeMotionIcon fontSize="small" />}
+              tooltip="Regenerate as new clip — drops a fresh copy beside this one so you can roll a new take without losing the existing render"
+              onClick={handleRegenerateAsCopy}
+              aria-label="Regenerate as new clip"
+              data-testid="clip-action-regenerate-as-copy"
+            />
+          )}
 
           <ToolbarIconButton
             icon={
@@ -271,12 +275,11 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
           />
         </Dialog>
 
-        {/* Variation error toast */}
         <Toast
-          open={variationError !== null}
-          message={variationError ?? ""}
+          open={duplicateError !== null}
+          message={duplicateError ?? ""}
           severity="error"
-          onClose={() => setVariationError(null)}
+          onClose={() => setDuplicateError(null)}
           vertical="top"
           horizontal="center"
         />

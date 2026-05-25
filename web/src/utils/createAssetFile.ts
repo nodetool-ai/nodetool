@@ -55,6 +55,15 @@ export type CreateAssetFileOptions = {
   maxTextChars?: number;
 };
 
+function isTypedOutput(output: unknown): output is TypedOutput {
+  return (
+    output !== null &&
+    typeof output === "object" &&
+    !Array.isArray(output) &&
+    !(output instanceof Uint8Array)
+  );
+}
+
 const TEXT_ENCODER = new TextEncoder();
 const DEFAULT_MAX_TEXT_CHARS = 5_000_000;
 const TRUNCATION_SUFFIX = "\n… (truncated)";
@@ -340,23 +349,22 @@ const normalizeOutput = (
 };
 
 const getOutputType = (output: AssetOutput): string | undefined => {
-  if (output && typeof output === "object") {
-    return (output as TypedOutput).type;
+  if (isTypedOutput(output)) {
+    return output.type;
   }
   return undefined;
 };
 
 const getOutputData = (output: AssetOutput): unknown => {
-  if (output && typeof output === "object") {
-    const record = output as TypedOutput;
-    if (record.data !== undefined && record.data !== null) {
-      return record.data;
+  if (isTypedOutput(output)) {
+    if (output.data !== undefined && output.data !== null) {
+      return output.data;
     }
-    if (record.value !== undefined && record.value !== null) {
-      return record.value;
+    if (output.value !== undefined && output.value !== null) {
+      return output.value;
     }
-    if (record.content !== undefined && record.content !== null) {
-      return record.content;
+    if (output.content !== undefined && output.content !== null) {
+      return output.content;
     }
     return output;
   }
@@ -367,20 +375,20 @@ const getMimeType = (
   output: AssetOutput,
   fallback: string
 ): string => {
-  if (!output || typeof output !== "object") {
+  if (!isTypedOutput(output)) {
     return fallback;
   }
 
   const asString = (value: unknown): value is string =>
     typeof value === "string" && value.includes("/");
 
-  const typedOutput = output as TypedOutput;
+  const nestedData = isTypedOutput(output.data) ? output.data : undefined;
   return (
-    (asString(typedOutput.mime_type) && typedOutput.mime_type) ||
-    (asString(typedOutput.mimeType) && typedOutput.mimeType) ||
-    (asString(typedOutput.type) && typedOutput.type) ||
-    (asString((typedOutput.data as TypedOutput)?.mime_type) && (typedOutput.data as TypedOutput).mime_type) ||
-    (asString((typedOutput.data as TypedOutput)?.mimeType) && (typedOutput.data as TypedOutput).mimeType) ||
+    (asString(output.mime_type) && output.mime_type) ||
+    (asString(output.mimeType) && output.mimeType) ||
+    (asString(output.type) && output.type) ||
+    (nestedData && asString(nestedData.mime_type) && nestedData.mime_type) ||
+    (nestedData && asString(nestedData.mimeType) && nestedData.mimeType) ||
     fallback
   );
 };

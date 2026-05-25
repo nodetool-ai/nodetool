@@ -1,7 +1,10 @@
 import { EventEmitter } from "../EventEmitter";
 import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
-import { handleResourceChange } from "../../stores/resourceChangeHandler";
-import { handleSystemStats } from "../../stores/systemStatsHandler";
+import {
+  handleResourceChange,
+  invalidateAllResourceQueries
+} from "../../stores/resourceChangeHandler";
+import { handleSystemStats, SystemStatsMessage } from "../../stores/systemStatsHandler";
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
 import { ConnectionState, WebSocketManager } from "./WebSocketManager";
 import { FrontendToolRegistry } from "../tools/frontendTools";
@@ -19,6 +22,23 @@ export interface WebSocketMessage {
 }
 
 type MessageHandler = (message: WebSocketMessage) => void;
+
+function isResourceChange(msg: WebSocketMessage): msg is WebSocketMessage & ResourceChangeUpdate {
+  return msg.type === "resource_change";
+}
+
+function isSystemStats(msg: WebSocketMessage): msg is WebSocketMessage & SystemStatsMessage {
+  return msg.type === "system_stats";
+}
+
+interface RpcResponse extends WebSocketMessage {
+  type: "rpc_response";
+  request_id: string;
+}
+
+function isRpcResponse(msg: WebSocketMessage): msg is RpcResponse {
+  return msg.type === "rpc_response" && typeof (msg as Record<string, unknown>).request_id === "string";
+}
 
 interface GlobalWebSocketEvents {
   open: () => void;
@@ -51,6 +71,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private isConnecting = false;
   private isConnected = false;
   private networkListenersSetup = false;
+  private hasEverConnected = false;
   private networkCleanup: (() => void) | null = null;
 
   private constructor() {
@@ -111,8 +132,17 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
         console.info("GlobalWebSocketManager: Connected");
         this.isConnected = true;
         this.isConnecting = false;
+
+        // After a reconnect, any `resource_change` events emitted while we
+        // were offline are gone — refresh every active query so the UI
+        // catches up. Skip on the first connection of the session.
+        if (this.hasEverConnected) {
+          invalidateAllResourceQueries();
+        }
+        this.hasEverConnected = true;
+
         this.emit("open");
-        
+
         // Send frontend tools manifest to the server on connection
         this.sendToolsManifest();
       });
@@ -167,22 +197,18 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
    * have routing keys but should update global state.
    */
   private routeMessage(message: WebSocketMessage): void {
-    // Handle resource_change messages separately
-    if (message.type === "resource_change") {
+    if (isResourceChange(message)) {
       try {
-        handleResourceChange(message as unknown as ResourceChangeUpdate);
+        handleResourceChange(message);
       } catch (error) {
         console.error("GlobalWebSocketManager: Error handling resource change:", error);
       }
-      // Resource change messages are not routed to specific handlers
-      // They only trigger cache invalidation
       return;
     }
 
-    // Handle system_stats messages separately
-    if (message.type === "system_stats") {
+    if (isSystemStats(message)) {
       try {
-        handleSystemStats(message as unknown as Parameters<typeof handleSystemStats>[0]);
+        handleSystemStats(message);
       } catch (error) {
         console.error("GlobalWebSocketManager: Error handling system stats:", error);
       }
@@ -201,6 +227,10 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
     if (message.job_id) {
       routingKeys.add(message.job_id);
+    }
+
+    if (isRpcResponse(message)) {
+      routingKeys.add(message.request_id);
     }
 
     if (routingKeys.size === 0) {

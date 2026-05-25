@@ -5,6 +5,7 @@ import {
   globalShortcut,
   shell,
   dialog,
+  app,
 } from "electron";
 import fs from "fs/promises";
 import path from "path";
@@ -33,6 +34,9 @@ import {
   updateSetting,
   getModelServiceStartupSettings,
   updateModelServiceStartupSettings,
+  getUpdateChannel,
+  normalizeUpdateChannel,
+  setUpdateChannel,
 } from "./settings";
 import { createPackageManagerWindow, createSettingsWindow } from "./window";
 import { IpcRequest } from "./types.d";
@@ -53,10 +57,45 @@ import {
   RUNTIME_PACKAGE_IDS,
 } from "./packageManager";
 import {
+  installNodePack,
+  uninstallNodePack,
+  listInstalledNodePacks,
+  getNodePackInstallRoot,
+} from "./nodePackManager";
+import {
   openModelDirectory,
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
+
+const MIME_TYPE_MAP: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  ico: "image/x-icon",
+  svg: "image/svg+xml",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  m4a: "audio/mp4",
+  flac: "audio/flac",
+  aac: "audio/aac",
+  mp4: "video/mp4",
+  avi: "video/x-msvideo",
+  mov: "video/quicktime",
+  wmv: "video/x-ms-wmv",
+  flv: "video/x-flv",
+  webm: "video/webm",
+  mkv: "video/x-matroska",
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  txt: "text/plain",
+  html: "text/html",
+};
 
 import WebSocket from "ws";
 
@@ -600,42 +639,8 @@ export function initializeIpcHandlers(): void {
         const buffer = await fs.readFile(safePath);
         const ext = path.extname(safePath).toLowerCase().replace(".", "");
         
-        // MIME type lookup map for better maintainability
-        const mimeTypeMap: Record<string, string> = {
-          // Image types
-          png: "image/png",
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          gif: "image/gif",
-          webp: "image/webp",
-          bmp: "image/bmp",
-          ico: "image/x-icon",
-          svg: "image/svg+xml",
-          // Audio types
-          mp3: "audio/mpeg",
-          wav: "audio/wav",
-          ogg: "audio/ogg",
-          m4a: "audio/mp4",
-          flac: "audio/flac",
-          aac: "audio/aac",
-          // Video types
-          mp4: "video/mp4",
-          avi: "video/x-msvideo",
-          mov: "video/quicktime",
-          wmv: "video/x-ms-wmv",
-          flv: "video/x-flv",
-          webm: "video/webm",
-          mkv: "video/x-matroska",
-          // Document types
-          pdf: "application/pdf",
-          doc: "application/msword",
-          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          txt: "text/plain",
-          html: "text/html",
-        };
-        
-        const mimeType = mimeTypeMap[ext] || "application/octet-stream";
-        
+        const mimeType = MIME_TYPE_MAP[ext] || "application/octet-stream";
+
         return `data:${mimeType};base64,${buffer.toString("base64")}`;
       } catch (error) {
         logMessage(`Failed to read file as data URL: ${error}`, "warn");
@@ -661,41 +666,7 @@ export function initializeIpcHandlers(): void {
         const buffer = await fs.readFile(safePath);
         const ext = path.extname(safePath).toLowerCase().replace(".", "");
 
-        // MIME type lookup map for better maintainability
-        const mimeTypeMap: Record<string, string> = {
-          // Image types
-          png: "image/png",
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          gif: "image/gif",
-          webp: "image/webp",
-          bmp: "image/bmp",
-          ico: "image/x-icon",
-          svg: "image/svg+xml",
-          // Audio types
-          mp3: "audio/mpeg",
-          wav: "audio/wav",
-          ogg: "audio/ogg",
-          m4a: "audio/mp4",
-          flac: "audio/flac",
-          aac: "audio/aac",
-          // Video types
-          mp4: "video/mp4",
-          avi: "video/x-msvideo",
-          mov: "video/quicktime",
-          wmv: "video/x-ms-wmv",
-          flv: "video/x-flv",
-          webm: "video/webm",
-          mkv: "video/x-matroska",
-          // Document types
-          pdf: "application/pdf",
-          doc: "application/msword",
-          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          txt: "text/plain",
-          html: "text/html",
-        };
-
-        const mimeType = mimeTypeMap[ext] || "application/octet-stream";
+        const mimeType = MIME_TYPE_MAP[ext] || "application/octet-stream";
 
         return { buffer, mimeType };
       } catch (error) {
@@ -946,6 +917,22 @@ export function initializeIpcHandlers(): void {
     return await checkExpectedPackageVersions();
   });
 
+  // Node pack handlers (third-party TS node packs)
+  createIpcMainHandler(IpcChannels.NODE_PACK_LIST_INSTALLED, async () => {
+    return await listInstalledNodePacks();
+  });
+  createIpcMainHandler(IpcChannels.NODE_PACK_INSTALL, async (_event, req) => {
+    logMessage(`Installing node pack: ${req.spec}`);
+    return await installNodePack(req.spec);
+  });
+  createIpcMainHandler(IpcChannels.NODE_PACK_UNINSTALL, async (_event, req) => {
+    logMessage(`Uninstalling node pack: ${req.name}`);
+    return await uninstallNodePack(req.name);
+  });
+  createIpcMainHandler(IpcChannels.NODE_PACK_GET_INSTALL_DIR, async () => {
+    return getNodePackInstallRoot();
+  });
+
   // Runtime package handlers
   createIpcMainHandler(IpcChannels.RUNTIME_PACKAGE_STATUSES, async () => {
     logMessage("Fetching runtime package statuses");
@@ -1010,9 +997,12 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(IpcChannels.FRONTEND_LOG, async (_event, data) => {
     const source = data.source?.trim() ? `[${data.source.trim()}] ` : "";
+    // Cap forwarded messages so a runaway log doesn't spam the file, but
+    // leave room for full error messages and short stack-trace headers.
+    const MAX_FORWARDED_MESSAGE_LENGTH = 4000;
     const message =
-      data.message.length > 80
-        ? data.message.slice(0, 80) + "…"
+      data.message.length > MAX_FORWARDED_MESSAGE_LENGTH
+        ? data.message.slice(0, MAX_FORWARDED_MESSAGE_LENGTH) + "…"
         : data.message;
     logMessage(`${source}${message}`, data.level);
   });
@@ -1329,6 +1319,23 @@ export function initializeIpcHandlers(): void {
     async (_event, enabled) => {
       logMessage(`Setting auto-updates to: ${enabled}`);
       updateSetting("autoUpdatesEnabled", enabled);
+    },
+  );
+
+  createIpcMainHandler(IpcChannels.SETTINGS_GET_UPDATE_CHANNEL, async () => {
+    const settings = await readSettingsAsync();
+    return getUpdateChannel(settings, app.getVersion());
+  });
+
+  createIpcMainHandler(
+    IpcChannels.SETTINGS_SET_UPDATE_CHANNEL,
+    async (_event, channel) => {
+      const nextChannel = normalizeUpdateChannel(channel);
+      if (!nextChannel) {
+        throw new Error(`Invalid update channel: ${String(channel)}`);
+      }
+      logMessage(`Setting update channel to: ${nextChannel}`);
+      return setUpdateChannel(nextChannel);
     },
   );
 

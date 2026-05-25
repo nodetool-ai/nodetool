@@ -34,7 +34,6 @@ export const audioSpeechConfig: ModuleConfig = {
     "cjwbw/parler-tts": { className: "Parler_TTS", returnType: "audio" },
     "cjwbw/voicecraft": { className: "VoiceCraft", returnType: "audio" },
     "chenxwh/openvoice": { className: "OpenVoice", returnType: "audio" },
-    "playht/text-to-speech": { className: "PlayHT_TTS", returnType: "audio" },
     "x-lance/f5-tts": { className: "F5_TTS", returnType: "audio" },
     "fermatresearch/spanish-f5-tts": {
       className: "Spanish_F5_TTS",
@@ -101,6 +100,18 @@ export const audioSpeechConfig: ModuleConfig = {
     },
     "zsxkib/flux-music": { className: "Flux_Music", returnType: "audio" },
     "zsxkib/dia": { className: "Dia", returnType: "audio" },
-    "zsxkib/thinksound": { className: "ThinkSound", returnType: "audio" }
+    "zsxkib/thinksound": { className: "ThinkSound", returnType: "audio" },
+    "inworld/realtime-tts-2": {
+      className: "Inworld_Realtime_TTS_2",
+      returnType: "audio"
+    },
+    "xai/grok-text-to-speech": {
+      className: "Grok_Text_To_Speech",
+      returnType: "audio"
+    },
+    "google/gemini-3.1-flash-tts": {
+      className: "Gemini_3_1_Flash_TTS",
+      returnType: "audio"
+    }
   }
 };

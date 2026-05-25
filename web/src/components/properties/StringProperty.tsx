@@ -1,16 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, memo, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
 import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
+import { useTheme } from "@mui/material/styles";
 import { CopyButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
+import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 
 const determineCodeLanguage = (nodeType: string) => {
   if (nodeType === "nodetool.code.ExecutePython") {
@@ -74,7 +76,9 @@ const StringProperty = ({
   tabIndex,
   nodeId,
   nodeType,
-  isDynamicProperty
+  isDynamicProperty,
+  isInspector,
+  onPropertyContextMenu
 }: PropertyProps) => {
   const id = `textfield-${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -83,6 +87,14 @@ const StringProperty = ({
 
   const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
   const isConnected = useNodes(isConnectedSelector);
+  const theme = useTheme();
+  const inspectorToolbarActionSx = useMemo(
+    () => ({
+      color: theme.vars.palette.common.white,
+      "& svg": { fontSize: "0.9375rem" }
+    }),
+    [theme]
+  );
 
   const codeLanguage = determineCodeLanguage(nodeType);
   const stringValue = typeof value === "string" ? value : "";
@@ -96,6 +108,33 @@ const StringProperty = ({
       return next;
     });
   }, []);
+
+  const editorActions = useMemo(
+    () => (
+      <>
+        <ToolbarIconButton
+          className="inspector-supplemental-action"
+          tooltip="Open Editor"
+          icon={<OpenInFullIcon />}
+          onClick={toggleExpand}
+          size="small"
+          sx={inspectorToolbarActionSx}
+        />
+        <CopyButton
+          className="inspector-supplemental-action"
+          value={value}
+          buttonSize="small"
+          sx={inspectorToolbarActionSx}
+        />
+      </>
+    ),
+    [inspectorToolbarActionSx, toggleExpand, value]
+  );
+
+  useInspectorHeaderSupplementalRegistration(
+    editorActions,
+    isInspector === true
+  );
 
   if (isConnected) {
     return (
@@ -123,14 +162,20 @@ const StringProperty = ({
           id={id}
           isDynamicProperty={isDynamicProperty}
         />
-        {isHovered && (
+        {!isInspector && isHovered ? (
           <div className="string-action-buttons">
-            <ToolbarIconButton tooltip="Open Editor" icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
+            <ToolbarIconButton
+              tooltip="Open Editor"
+              icon={<OpenInFullIcon />}
+              onClick={toggleExpand}
+              size="small"
+            />
             <CopyButton value={value} buttonSize="small" />
           </div>
-        )}
+        ) : null}
         <div
           className="value-container"
+          onContextMenuCapture={onPropertyContextMenu}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >

@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getS3Client(
@@ -35,6 +36,8 @@ function getAwsCredentials(secrets: Record<string, string>): {
 export class S3ListBucketsLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.ListBuckets";
   static readonly title = "S3 List Buckets";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly description =
     "Lists all S3 buckets in the AWS account.\n    aws, s3, buckets, list, cloud, storage";
   static readonly metadataOutputTypes = {
@@ -75,6 +78,8 @@ export class S3ListBucketsLibNode extends BaseNode {
 export class S3ListObjectsLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.ListObjects";
   static readonly title = "S3 List Objects";
+  static readonly inlineFields = ["bucket", "prefix"];
+  static readonly inputFields = [];
   static readonly description =
     "Lists objects in an S3 bucket with optional prefix filter.\n    aws, s3, objects, list, cloud, storage, browse";
   static readonly metadataOutputTypes = {
@@ -86,7 +91,11 @@ export class S3ListObjectsLibNode extends BaseNode {
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY"
   ];
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    object: { kind: "iteration", source: "__execution__", group: "items" },
+    objects: { kind: "single", source: "__execution__" }
+  };
 
   @prop({
     type: "str",
@@ -187,6 +196,8 @@ export class S3ListObjectsLibNode extends BaseNode {
 export class S3GetObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.GetObject";
   static readonly title = "S3 Get Object";
+  static readonly inlineFields = ["bucket", "key"];
+  static readonly inputFields = [];
   static readonly description =
     "Downloads an object's content as text from S3.\n    aws, s3, get, download, read, cloud, storage";
   static readonly metadataOutputTypes = {
@@ -253,6 +264,8 @@ export class S3GetObjectLibNode extends BaseNode {
 export class S3PutObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.PutObject";
   static readonly title = "S3 Put Object";
+  static readonly inlineFields = ["bucket", "key"];
+  static readonly inputFields = ["body"];
   static readonly description =
     "Uploads text content to an S3 object.\n    aws, s3, put, upload, write, cloud, storage";
   static readonly metadataOutputTypes = {
@@ -339,6 +352,8 @@ export class S3PutObjectLibNode extends BaseNode {
 export class S3DeleteObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.DeleteObject";
   static readonly title = "S3 Delete Object";
+  static readonly inlineFields = ["bucket", "key"];
+  static readonly inputFields = [];
   static readonly description =
     "Deletes an object from an S3 bucket.\n    aws, s3, delete, remove, cloud, storage";
   static readonly metadataOutputTypes = {
@@ -398,6 +413,8 @@ export class S3DeleteObjectLibNode extends BaseNode {
 export class S3CopyObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.CopyObject";
   static readonly title = "S3 Copy Object";
+  static readonly inlineFields = ["source_bucket", "dest_bucket"];
+  static readonly inputFields = [];
   static readonly description =
     "Copies an object within or between S3 buckets.\n    aws, s3, copy, duplicate, cloud, storage";
   static readonly metadataOutputTypes = {
@@ -481,6 +498,8 @@ export class S3CopyObjectLibNode extends BaseNode {
 export class S3GetPresignedUrlLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.GetPresignedUrl";
   static readonly title = "S3 Get Presigned URL";
+  static readonly inlineFields = ["bucket", "key"];
+  static readonly inputFields = [];
   static readonly description =
     "Generates a presigned URL for temporary access to an S3 object.\n    aws, s3, presigned, url, share, cloud, storage\n\n    Note: Requires @aws-sdk/s3-request-presigner. If unavailable, falls back to constructing an unsigned URL.";
   static readonly metadataOutputTypes = {

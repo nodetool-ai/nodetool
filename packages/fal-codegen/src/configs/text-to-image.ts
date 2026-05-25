@@ -58,8 +58,7 @@ export const config: ModuleConfig = {
           description: "Enable safety checker to filter unsafe content"
         }
       },
-      enumOverrides: { ImageSize: "ImageSizePreset" },
-      basicFields: ["prompt", "image_size", "num_inference_steps"]
+      enumOverrides: { ImageSize: "ImageSizePreset" }
     },
 
     "fal-ai/flux/schnell": {
@@ -99,8 +98,7 @@ export const config: ModuleConfig = {
           description: "Enable safety checker to filter unsafe content"
         }
       },
-      enumOverrides: { ImageSize: "ImageSizePreset" },
-      basicFields: ["prompt", "image_size", "num_inference_steps"]
+      enumOverrides: { ImageSize: "ImageSizePreset" }
     },
 
     "fal-ai/flux-pro/v1.1": {
@@ -146,8 +144,7 @@ export const config: ModuleConfig = {
         output_format: {
           description: "Output image format (jpeg or png)"
         }
-      },
-      basicFields: ["prompt", "image_size", "guidance_scale"]
+      }
     },
 
     "fal-ai/flux-pro/v1.1-ultra": {
@@ -198,8 +195,7 @@ export const config: ModuleConfig = {
         image_prompt_strength: {
           description: "Strength of image prompt influence (0-1)"
         }
-      },
-      basicFields: ["prompt", "image_size", "aspect_ratio"]
+      }
     },
 
     "fal-ai/flux-lora": {
@@ -244,8 +240,7 @@ export const config: ModuleConfig = {
         enable_safety_checker: {
           description: "Enable safety checker to filter unsafe content"
         }
-      },
-      basicFields: ["prompt", "loras", "image_size"]
+      }
     },
 
     "fal-ai/ideogram/v2": {
@@ -288,8 +283,7 @@ export const config: ModuleConfig = {
         seed: {
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "aspect_ratio", "style"]
+      }
     },
 
     "fal-ai/ideogram/v2/turbo": {
@@ -333,8 +327,7 @@ export const config: ModuleConfig = {
         seed: {
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "aspect_ratio", "style"]
+      }
     },
 
     "fal-ai/recraft-v3": {
@@ -374,8 +367,7 @@ export const config: ModuleConfig = {
         style_id: {
           description: "Custom style ID for brand-specific styles"
         }
-      },
-      basicFields: ["prompt", "style", "colors"]
+      }
     },
 
     "fal-ai/stable-diffusion-v35-large": {
@@ -407,8 +399,7 @@ export const config: ModuleConfig = {
         aspect_ratio: {
           description: "The aspect ratio of the generated image"
         }
-      },
-      basicFields: ["prompt", "negative_prompt", "aspect_ratio"]
+      }
     },
 
     "fal-ai/flux-pro/new": {
@@ -445,8 +436,7 @@ export const config: ModuleConfig = {
           default: -1,
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "image_size"]
+      }
     },
 
     "fal-ai/flux-2/turbo": {
@@ -487,8 +477,7 @@ export const config: ModuleConfig = {
           default: -1,
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "image_size", "num_images"]
+      }
     },
 
     "fal-ai/flux-2/flash": {
@@ -526,8 +515,7 @@ export const config: ModuleConfig = {
           default: -1,
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "image_size"]
+      }
     },
 
     "fal-ai/ideogram/v3": {
@@ -563,8 +551,7 @@ export const config: ModuleConfig = {
         expand_prompt: {
           description: "Automatically enhance the prompt for better results"
         }
-      },
-      basicFields: ["prompt", "aspect_ratio", "style"]
+      }
     },
 
     "fal-ai/omnigen-v1": {
@@ -602,8 +589,7 @@ export const config: ModuleConfig = {
           default: -1,
           description: "Seed for reproducible results. Use -1 for random"
         }
-      },
-      basicFields: ["prompt", "guidance_scale", "num_inference_steps"]
+      }
     },
 
     "fal-ai/sana": {
@@ -644,8 +630,7 @@ export const config: ModuleConfig = {
         num_inference_steps: {
           description: "Number of denoising steps"
         }
-      },
-      basicFields: ["prompt", "image_size", "guidance_scale"]
+      }
     },
 
     "fal-ai/hunyuan-image/v3/instruct/text-to-image": {
@@ -666,8 +651,7 @@ export const config: ModuleConfig = {
         "Produce high-quality visual content",
         "Generate images with advanced understanding",
         "Create professional visuals from text"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/qwen-image-max/text-to-image": {
@@ -681,8 +665,7 @@ export const config: ModuleConfig = {
         "Produce high-fidelity visual content",
         "Generate professional-grade images",
         "Create superior quality visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/qwen-image-2512": {
@@ -703,8 +686,7 @@ export const config: ModuleConfig = {
         "Produce quality artwork from text",
         "Generate images with fine details",
         "Create high-quality visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/qwen-image-2512/lora": {
@@ -718,8 +700,7 @@ export const config: ModuleConfig = {
         "Produce domain-specific artwork",
         "Generate images with fine-tuned models",
         "Create customized visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/z-image/base": {
@@ -740,8 +721,7 @@ export const config: ModuleConfig = {
         "Produce visual content quickly",
         "Generate images with good performance",
         "Create efficient visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/z-image/base/lora": {
@@ -755,8 +735,7 @@ export const config: ModuleConfig = {
         "Produce domain-specific visuals",
         "Generate with fine-tuned base model",
         "Create efficient custom visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/z-image/turbo": {
@@ -777,8 +756,7 @@ export const config: ModuleConfig = {
         "Produce quick visual iterations",
         "Generate images for fast workflows",
         "Create instant visual content"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/z-image/turbo/lora": {
@@ -792,8 +770,7 @@ export const config: ModuleConfig = {
         "Produce quick domain-specific visuals",
         "Generate with fast fine-tuned models",
         "Create instant custom visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/4b": {
@@ -807,8 +784,7 @@ export const config: ModuleConfig = {
         "Produce efficient visual artwork",
         "Generate images with good performance",
         "Create optimized visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/4b/base": {
@@ -822,8 +798,7 @@ export const config: ModuleConfig = {
         "Produce standard visual artwork",
         "Generate images with base model",
         "Create baseline visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/4b/base/lora": {
@@ -837,8 +812,7 @@ export const config: ModuleConfig = {
         "Produce domain-specific visuals",
         "Generate with fine-tuned 4B model",
         "Create customized baseline visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/9b": {
@@ -852,8 +826,7 @@ export const config: ModuleConfig = {
         "Produce detailed artwork",
         "Generate images with powerful model",
         "Create premium quality visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/9b/base": {
@@ -867,8 +840,7 @@ export const config: ModuleConfig = {
         "Produce superior baseline artwork",
         "Generate images with powerful base",
         "Create premium baseline visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/flux-2/klein/9b/base/lora": {
@@ -882,8 +854,7 @@ export const config: ModuleConfig = {
         "Produce custom superior visuals",
         "Generate with fine-tuned 9B model",
         "Create advanced customized visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/flux-2-max": {
@@ -904,8 +875,7 @@ export const config: ModuleConfig = {
         "Produce professional-grade artwork",
         "Generate images with best model",
         "Create superior quality visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/glm-image": {
@@ -919,8 +889,7 @@ export const config: ModuleConfig = {
         "Produce AI-powered artwork",
         "Generate images with understanding",
         "Create smart visuals from text"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/gpt-image-1.5": {
@@ -934,8 +903,7 @@ export const config: ModuleConfig = {
         "Produce intelligent artwork",
         "Generate images with natural language",
         "Create GPT-powered visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "wan/v2.6/text-to-image": {
@@ -949,8 +917,7 @@ export const config: ModuleConfig = {
         "Produce reliable artwork from text",
         "Generate images with advanced model",
         "Create high-quality visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/longcat-image": {
@@ -964,8 +931,7 @@ export const config: ModuleConfig = {
         "Produce distinctive artwork",
         "Generate images with character",
         "Create artistic visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/bytedance/seedream/v4.5/text-to-image": {
@@ -986,8 +952,7 @@ export const config: ModuleConfig = {
         "Produce advanced AI artwork",
         "Generate images with latest tech",
         "Create modern AI visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "fal-ai/vidu/q2/text-to-image": {
@@ -1001,8 +966,7 @@ export const config: ModuleConfig = {
         "Produce balanced artwork",
         "Generate images efficiently",
         "Create reliable visuals"
-      ],
-      basicFields: ["prompt"]
+      ]
     },
 
     "imagineart/imagineart-1.5-pro-preview/text-to-image": {
@@ -2439,18 +2403,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/hyper-sdxl": {
-      className: "HyperSdxl",
-      docstring: "Hyper-charge SDXL's performance and creativity.",
-      tags: ["generation", "text-to-image", "txt2img", "ai-art"],
-      useCases: [
-        "AI-powered art generation",
-        "Marketing and advertising visuals",
-        "Concept art and ideation",
-        "Social media content creation",
-        "Rapid prototyping and mockups"
-      ]
-    },
 
     "fal-ai/fast-lcm-diffusion": {
       className: "FastLcmDiffusion",
@@ -2556,8 +2508,7 @@ export const config: ModuleConfig = {
         "Produce marketing visuals from descriptions",
         "Generate creative illustrations from ideas",
         "Create polished images for presentations"
-      ],
-      basicFields: ["prompt", "resolution", "aspect_ratio"]
+      ]
     },
 
     "fal-ai/fooocus": {

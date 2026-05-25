@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
 
-type Email = {
+export type Email = {
   sender: string;
   to: string;
   cc?: string;

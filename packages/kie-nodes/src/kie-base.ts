@@ -19,6 +19,22 @@ function headers(apiKey: string): Record<string, string> {
   };
 }
 
+function withTaskId(message: string, taskId: string): string {
+  return `${message} (taskId: ${taskId})`;
+}
+
+function pollTimeoutError(
+  taskId: string,
+  maxAttempts: number,
+  pollInterval: number
+): Error {
+  const timeoutSeconds = (maxAttempts * pollInterval) / 1000;
+  return new Error(
+    `Task timed out after ${timeoutSeconds}s (taskId: ${taskId}). ` +
+      "The job may still complete on KIE — check recordInfo or the KIE dashboard."
+  );
+}
+
 function checkStatus(data: Record<string, unknown>): void {
   const code = Number(data.code);
   const map: Record<number, string> = {
@@ -68,35 +84,41 @@ async function pollStatus(
     if (data.code !== undefined) checkStatus(data);
     const state = (data.data as Record<string, unknown>)?.state as string;
     if (state === "success") return data;
-    if (state === "failed") {
-      const msg =
-        (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
-      throw new Error(`Task failed: ${msg}`);
+    if (state === "failed" || state === "fail") {
+      const inner = data.data as Record<string, unknown>;
+      const msg = inner?.failMsg || data.msg || "Unknown error";
+      throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
     }
     await new Promise((r) => setTimeout(r, pollInterval));
   }
-  throw new Error(`Task timed out after ${maxAttempts * pollInterval}ms`);
+  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
 }
 
 async function downloadResult(
   apiKey: string,
   taskId: string
-): Promise<{ bytes: Buffer; taskId: string }> {
+): Promise<{ items: Buffer[]; taskId: string }> {
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
   const res = await fetch(url, { headers: headers(apiKey) });
-  if (!res.ok) throw new Error(`Failed to get result: ${res.status}`);
+  if (!res.ok) throw new Error(withTaskId(`Failed to get result: ${res.status}`, taskId));
   const data = (await res.json()) as Record<string, unknown>;
   if (data.code !== undefined) checkStatus(data);
   const resultJsonStr = (data.data as Record<string, unknown>)
     ?.resultJson as string;
-  if (!resultJsonStr) throw new Error("No resultJson in response");
+  if (!resultJsonStr) throw new Error(withTaskId("No resultJson in response", taskId));
   const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
   const resultUrls = resultData.resultUrls as string[];
-  if (!resultUrls?.length) throw new Error("No resultUrls in resultJson");
-  const dlRes = await fetch(resultUrls[0]);
-  if (!dlRes.ok) throw new Error(`Failed to download from ${resultUrls[0]}`);
-  const buf = Buffer.from(await dlRes.arrayBuffer());
-  return { bytes: buf, taskId };
+  if (!resultUrls?.length) throw new Error(withTaskId("No resultUrls in resultJson", taskId));
+  const items = await Promise.all(
+    resultUrls.map(async (resultUrl) => {
+      const dlRes = await fetch(resultUrl);
+      if (!dlRes.ok) {
+        throw new Error(withTaskId(`Failed to download from ${resultUrl}`, taskId));
+      }
+      return Buffer.from(await dlRes.arrayBuffer());
+    })
+  );
+  return { items, taskId };
 }
 
 export async function uploadFile(
@@ -289,7 +311,7 @@ async function pollCustom(
       const flag = Number(successFlag);
       if (flag === 1) return data;
       if (flag === 2 || flag === 3) {
-        throw new Error(`Task failed: ${data.msg || "Unknown error"}`);
+        throw new Error(withTaskId(`Task failed: ${data.msg || "Unknown error"}`, taskId));
       }
     }
 
@@ -298,12 +320,12 @@ async function pollCustom(
     if (state === "success") return data;
     if (state === "fail") {
       const msg = inner?.failMsg || data.msg || "Unknown error";
-      throw new Error(`Task failed: ${msg}`);
+      throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
     }
 
     await new Promise((r) => setTimeout(r, pollInterval));
   }
-  throw new Error(`Task timed out after ${maxAttempts * pollInterval}ms`);
+  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
 }
 
 async function downloadCustomResult(
@@ -349,6 +371,102 @@ async function downloadCustomResult(
   return Buffer.from(await res.arrayBuffer());
 }
 
+async function downloadTextResult(
+  apiKey: string,
+  taskId: string,
+  resultObjectKey: string
+): Promise<string> {
+  const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
+  const res = await fetch(url, { headers: headers(apiKey) });
+  if (!res.ok) throw new Error(withTaskId(`Failed to get result: ${res.status}`, taskId));
+  const data = (await res.json()) as Record<string, unknown>;
+  if (data.code !== undefined) checkStatus(data);
+  const resultJsonStr = (data.data as Record<string, unknown>)?.resultJson as string;
+  if (!resultJsonStr) throw new Error(withTaskId("No resultJson in response", taskId));
+  const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
+  const resultObject = asRecord(resultData.resultObject) ?? resultData;
+  const value = resultObject[resultObjectKey];
+  if (typeof value === "string" && value) {
+    return value;
+  }
+  throw new Error(
+    withTaskId(`No ${resultObjectKey} in resultJson`, taskId)
+  );
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+export type KieExecuteResult = {
+  data: string;
+  items: string[];
+  taskId: string;
+  creditsConsumed?: number;
+};
+
+export function parseCreditsConsumed(
+  statusData: Record<string, unknown>
+): number | undefined {
+  const raw = asRecord(statusData.data)?.creditsConsumed;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return raw;
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
+export function reportKieProviderCost(
+  context: unknown,
+  creditsConsumed: number | undefined
+): void {
+  if (creditsConsumed == null || !Number.isFinite(creditsConsumed)) return;
+  const setter = (context as { setProviderCost?: unknown } | null | undefined)
+    ?.setProviderCost;
+  if (typeof setter === "function") {
+    (setter as (p: string, a: number, u: string) => void).call(
+      context,
+      "kie",
+      creditsConsumed,
+      "credits"
+    );
+  }
+}
+
+export async function kieExecuteOmniDirect(
+  apiKey: string,
+  endpoint: string,
+  body: Record<string, unknown>,
+  responseIdKey: string
+): Promise<KieExecuteResult> {
+  const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
+    method: "POST",
+    headers: headers(apiKey),
+    body: JSON.stringify(body)
+  });
+  const data = (await res.json()) as Record<string, unknown>;
+  const code = Number(data.code);
+  if (code !== 200 && code !== 0) {
+    if (data.code !== undefined) checkStatus(data);
+  }
+  if (!res.ok) {
+    throw new Error(`Omni submit failed: ${res.status} ${JSON.stringify(data)}`);
+  }
+  const inner = asRecord(data.data);
+  const id = inner?.[responseIdKey];
+  if (typeof id !== "string" || !id) {
+    throw new Error(`No ${responseIdKey} in response: ${JSON.stringify(data)}`);
+  }
+  return { data: id, items: [id], taskId: "" };
+}
+
 export async function kieExecuteTask(
   apiKey: string,
   model: string,
@@ -356,8 +474,9 @@ export async function kieExecuteTask(
   pollInterval = 2000,
   maxAttempts = 300,
   submitEndpoint?: string,
-  pollEndpoint?: string
-): Promise<{ data: string; taskId: string }> {
+  pollEndpoint?: string,
+  resultObjectKey?: string
+): Promise<KieExecuteResult> {
   if (submitEndpoint) {
     // Custom submit/poll endpoints (Veo, Runway, etc.)
     const taskId = await submitCustom(apiKey, submitEndpoint, { model, ...input });
@@ -368,13 +487,21 @@ export async function kieExecuteTask(
       pollInterval,
       maxAttempts
     );
+    const creditsConsumed = parseCreditsConsumed(statusData);
     const resultBytes = await downloadCustomResult(statusData);
-    return { data: resultBytes.toString("base64"), taskId };
+    const b64 = resultBytes.toString("base64");
+    return { data: b64, items: [b64], taskId, creditsConsumed };
   }
   const taskId = await submitTask(apiKey, model, input);
-  await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+  const statusData = await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+  const creditsConsumed = parseCreditsConsumed(statusData);
+  if (resultObjectKey) {
+    const text = await downloadTextResult(apiKey, taskId, resultObjectKey);
+    return { data: text, items: [text], taskId, creditsConsumed };
+  }
   const result = await downloadResult(apiKey, taskId);
-  return { data: result.bytes.toString("base64"), taskId: result.taskId };
+  const items = result.items.map((b) => b.toString("base64"));
+  return { data: items[0], items, taskId: result.taskId, creditsConsumed };
 }
 
 // Suno music uses different endpoints
@@ -421,10 +548,12 @@ export async function kiePollSuno(
     if (data.code !== undefined) checkStatus(data);
     const status = (data.data as Record<string, unknown>)?.status as string;
     if (status === "SUCCESS") return data;
-    if (failed.has(status)) throw new Error(`Suno task failed: ${status}`);
+    if (failed.has(status)) {
+      throw new Error(withTaskId(`Suno task failed: ${status}`, taskId));
+    }
     await new Promise((r) => setTimeout(r, pollInterval));
   }
-  throw new Error(`Suno task timed out`);
+  throw pollTimeoutError(taskId, maxAttempts, pollInterval);
 }
 
 export async function kieExecuteSunoTask(
@@ -433,9 +562,10 @@ export async function kieExecuteSunoTask(
   pollInterval = 4000,
   maxAttempts = 120,
   endpoint?: string
-): Promise<{ data: string; taskId: string }> {
+): Promise<KieExecuteResult> {
   const taskId = await kieSubmitSuno(apiKey, input, endpoint);
   const pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
+  const creditsConsumed = parseCreditsConsumed(pollResult);
   // Polling response: data.response.sunoData[].audioUrl
   const sunoData = (
     (pollResult.data as Record<string, unknown>)?.response as Record<string, unknown>
@@ -446,7 +576,8 @@ export async function kieExecuteSunoTask(
   const dlRes = await fetch(audioUrl);
   if (!dlRes.ok) throw new Error(`Failed to download audio: ${dlRes.status}`);
   const buf = Buffer.from(await dlRes.arrayBuffer());
-  return { data: buf.toString("base64"), taskId };
+  const b64 = buf.toString("base64");
+  return { data: b64, items: [b64], taskId, creditsConsumed };
 }
 
 export async function kieImageRef(base64: string): Promise<Record<string, unknown>> {

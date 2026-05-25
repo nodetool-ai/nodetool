@@ -1,6 +1,5 @@
 import React, { memo } from "react";
-import { Box } from "@mui/material";
-import { Text, Caption, FlexColumn } from "../../ui_primitives";
+import { Text, Caption, FlexColumn, Box } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
@@ -14,10 +13,6 @@ export interface DynamicFalSchemaContentProps {
   isConstantNode: boolean;
   isOutputNode: boolean;
   data: NodeData;
-  basicFields: string[];
-  showAdvancedFields: boolean;
-  hasAdvancedFields: boolean;
-  onToggleAdvancedFields: () => void;
   status?: string;
   workflowId: string;
   showResultOverlay?: boolean;
@@ -40,10 +35,6 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
       isConstantNode,
       isOutputNode,
       data,
-      basicFields,
-      showAdvancedFields,
-      hasAdvancedFields,
-      onToggleAdvancedFields,
       status,
       workflowId
     }) => {
@@ -72,14 +63,12 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
               </Caption>
             </Box>
           )}
-          <Box
+          <FlexColumn
             className="dynamic-fal-schema-inputs"
             sx={{
               flex: "1 1 auto",
               minHeight: 80,
               overflow: "visible",
-              display: "flex",
-              flexDirection: "column",
               // Force properties, labels, handles and input controls visible (override zoom/other CSS)
               visibility: "visible",
               "& .node-inputs": {
@@ -124,18 +113,13 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
               nodeType={nodeType}
               data={data}
               showHandle={!isConstantNode}
-              hasAdvancedFields={hasAdvancedFields}
-              showAdvancedFields={showAdvancedFields}
-              basicFields={basicFields}
-              onToggleAdvancedFields={onToggleAdvancedFields}
             />
-          </Box>
+          </FlexColumn>
           {!isOutputNode && (
             <Box sx={{ flexShrink: 0 }}>
               <NodeOutputs
                 id={id}
                 outputs={nodeMetadata.outputs}
-                isStreamingOutput={nodeMetadata.is_streaming_output}
               />
             </Box>
           )}

@@ -11,7 +11,6 @@ import React, {
   useRef,
   useState
 } from "react";
-import { Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PortalRecents from "./PortalRecents";
 import PortalSearchResults from "./PortalSearchResults";
@@ -25,9 +24,9 @@ import { usePanelStore } from "../../stores/PanelStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
 import AppHeader from "../panels/AppHeader";
-import ChatInputSection from "../chat/containers/ChatInputSection";
+import ComposerSlot from "../chat/composer/ComposerSlot";
 import SchoolIcon from "@mui/icons-material/School";
-import { BORDER_RADIUS } from "../ui_primitives";
+import { BORDER_RADIUS, Box } from "../ui_primitives";
 
 const KNOWN_PROVIDER_KEYS = [
   "OPENAI_API_KEY",
@@ -87,7 +86,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       maxWidth: 640,
       position: "relative",
-      // Override ChatInputSection margin
+      // Override the composer slot margin (ComposerSlot carries .chat-input-section)
       "& .chat-input-section": {
         margin: "0 auto",
         width: "100%",
@@ -246,18 +245,13 @@ const Portal: React.FC = () => {
   }, []);
 
   const {
-    status,
     threads,
     selectedModel,
-    selectedTools,
-    agentMode,
     sendMessage,
     newThread,
     selectThread,
     deleteThread: _deleteThread,
-    setSelectedModel,
-    setAgentMode,
-    setSelectedTools
+    setSelectedModel
   } = usePortalChat();
 
   const { sortedWorkflows, startTemplates } = useDashboardData();
@@ -313,15 +307,13 @@ const Portal: React.FC = () => {
           model: selectedModel?.id
         };
         await sendMessage(message);
-        setTimeout(() => {
-          navigate(`/chat/${threadId}`);
-        }, 100);
+        navigate(`/chat/${threadId}`);
       }
     },
     [newThread, sendMessage, navigate, selectedModel]
   );
 
-  // Handle send from ChatInputSection
+  // Handle send from ComposerSlot
   const handleSendMessage = useCallback(
     async (content: MessageContent[], prompt: string, _agentMode: boolean) => {
       setDebouncedQuery("");
@@ -336,11 +328,7 @@ const Portal: React.FC = () => {
         return;
       }
 
-      // Start fade-out, then send + navigate
-      setIsTransitioning(true);
-      setTimeout(() => {
-        sendAndNavigate(content, prompt);
-      }, 400);
+      await sendAndNavigate(content, prompt);
     },
     [hasConfiguredProvider, sendAndNavigate]
   );
@@ -374,7 +362,7 @@ const Portal: React.FC = () => {
   }, []);
 
   const handleOpenGettingStarted = useCallback(() => {
-    transitionTo(() => navigate("/welcome"));
+    transitionTo(() => navigate("/chat"));
   }, [navigate, transitionTo]);
 
   // Handle clicking a recent chat thread
@@ -411,27 +399,6 @@ const Portal: React.FC = () => {
     [handleExampleClick, startTemplates, transitionTo]
   );
 
-  const handleModelChange = useCallback(
-    (model: LanguageModel) => {
-      setSelectedModel(model);
-    },
-    [setSelectedModel]
-  );
-
-  const handleToolsChange = useCallback(
-    (tools: string[]) => {
-      setSelectedTools(tools);
-    },
-    [setSelectedTools]
-  );
-
-  const handleAgentModeToggle = useCallback(
-    (enabled: boolean) => {
-      setAgentMode(enabled);
-    },
-    [setAgentMode]
-  );
-
   // SETUP state
   if (portalState === "setup") {
     return (
@@ -459,16 +426,7 @@ const Portal: React.FC = () => {
         )}
 
         <div className="portal-input-wrapper">
-          <ChatInputSection
-            status={status === "stopping" ? "loading" : status}
-            onSendMessage={handleSendMessage}
-            selectedTools={selectedTools}
-            onToolsChange={handleToolsChange}
-            selectedModel={selectedModel}
-            onModelChange={handleModelChange}
-            agentMode={agentMode}
-            onAgentModeToggle={handleAgentModeToggle}
-          />
+          <ComposerSlot className="chat-input-section" onSend={handleSendMessage} />
           {debouncedQuery.length >= 2 && !isTransitioning && (
             <PortalSearchResults
               query={debouncedQuery}

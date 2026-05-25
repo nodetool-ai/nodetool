@@ -2,8 +2,8 @@
 
 import { css } from "@emotion/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { InputAdornment, TextField } from "@mui/material";
-import { Tooltip, Chip } from "../ui_primitives";
+import { InputAdornment } from "@mui/material";
+import { Tooltip, Chip, NodeTextField } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
@@ -274,10 +274,9 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
     <div css={styles(theme)} onKeyDown={handleKeyDown}>
       <div className="sidebar-header">
         <div className="sidebar-title">Snippets</div>
-        <TextField
+        <NodeTextField
           inputRef={searchRef}
           className="snippet-search"
-          size="small"
           fullWidth
           placeholder="Search…"
           value={search}
@@ -345,6 +344,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
                       e.stopPropagation();
                       void copySnippet(snippet);
                     }}
+                    aria-label="Copy snippet"
                   >
                     <ContentCopyIcon
                       sx={{ fontSize: "0.75rem", color: copied === snippet.id ? "success.main" : undefined }}
@@ -358,6 +358,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
                       e.stopPropagation();
                       insertSnippet(snippet);
                     }}
+                    aria-label="Insert snippet"
                   >
                     <AddIcon sx={{ fontSize: "0.75rem" }} />
                   </button>

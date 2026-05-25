@@ -13,8 +13,7 @@ export const config: ModuleConfig = {
         "Access multiple LLM providers",
         "Flexible model selection",
         "Unified LLM API access"
-      ],
-      basicFields: ["prompt", "model"]
+      ]
     },
     "openrouter/router/openai/v1/chat/completions": {
       className: "OpenRouterChatCompletions",
@@ -33,8 +32,7 @@ export const config: ModuleConfig = {
         "Multi-model chat completions",
         "Standardized chat interface",
         "Universal LLM chat API"
-      ],
-      basicFields: ["messages", "model"]
+      ]
     },
     "fal-ai/qwen-3-guard": {
       className: "Qwen3Guard",
@@ -47,8 +45,7 @@ export const config: ModuleConfig = {
         "Safety filtering for outputs",
         "Content policy enforcement",
         "Text safety analysis"
-      ],
-      basicFields: ["text"]
+      ]
     },
     "openrouter/router/openai/v1/responses": {
       className: "RouterOpenaiV1Responses",

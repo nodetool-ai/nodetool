@@ -2,13 +2,22 @@ import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import sharp from "sharp";
+import * as d from "typegpu/data";
+import {
+  colorBrightnessContrastV1,
+  colorHsbV1,
+  sharpenUnsharpMaskV1,
+  filtersConvolve3x3V1
+} from "@nodetool-ai/gpu/pool";
 import { decodeImage, toRef, pickImage } from "./lib-image-utils.js";
+import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
 
 type Desc = {
   nodeType: string;
   title: string;
   description: string;
-  basicFields: string[];
+  inlineFields: string[];
+  inputFields:  string[];
   outputs: Record<string, string>;
   properties: Array<{ name: string; options: PropOptions }>;
 };
@@ -18,7 +27,8 @@ function createEnhanceNode(desc: Desc): NodeClass {
     static readonly nodeType = desc.nodeType;
     static readonly title = desc.title;
     static readonly description = desc.description;
-    static readonly basicFields = desc.basicFields;
+    static readonly inlineFields = desc.inlineFields;
+    static readonly inputFields  = desc.inputFields;
     static readonly metadataOutputTypes = desc.outputs;
 
     async process(
@@ -33,36 +43,103 @@ function createEnhanceNode(desc: Desc): NodeClass {
         return { output: baseObj ?? {} };
       }
 
-      let img = sharp(baseBytes, { failOn: "none" });
-
+      // GPU-backed paths first — single-pixel ops on the shared shader pool.
+      // Sharp is kept only for ops that need histograms / per-tile work /
+      // sorted neighbourhoods that the published shader catalog doesn't yet
+      // cover (AutoContrast, Equalize, AdaptiveContrast, RankFilter).
       if (t.endsWith(".Brightness")) {
         const factor = Number((this as any).factor ?? 1);
-        img = img.modulate({ brightness: factor });
+        // sharp's `modulate({ brightness })` is a pixel-wise multiply
+        // (`rgb *= factor`). The brightness/contrast shader computes
+        // `(src - 0.5) * contrast + 0.5 + brightness`. Solving for a pure
+        // multiply: `contrast = factor`, `brightness = (factor - 1) * 0.5`
+        // collapses to `factor * src` exactly. One pass, no intermediate
+        // PNG round-trip.
+        const png = await runShaderOnPngBuffer(
+          colorBrightnessContrastV1,
+          { brightness: (factor - 1) * 0.5, contrast: factor },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       } else if (t.endsWith(".Color")) {
         const factor = Number((this as any).factor ?? 1);
-        img = img.modulate({ saturation: factor });
+        const png = await runShaderOnPngBuffer(
+          colorHsbV1,
+          { hue: 0, saturation: factor, brightness: 1 },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       } else if (t.endsWith(".Contrast")) {
         const factor = Number((this as any).factor ?? 1);
-        img = img.linear(factor, -(128 * (factor - 1)));
+        const png = await runShaderOnPngBuffer(
+          colorBrightnessContrastV1,
+          { brightness: 0, contrast: factor },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
       } else if (t.endsWith(".Sharpen")) {
-        img = img.convolve({
-          width: 3,
-          height: 3,
-          kernel: [-1, -1, -1, -1, 9, -1, -1, -1, -1]
-        });
-      } else if (t.endsWith(".Sharpness")) {
-        const factor = Number((this as any).factor ?? 1);
-        img = img.sharpen({ sigma: 1, m1: Math.max(0, factor), m2: 0.5 });
-      } else if (t.endsWith(".UnsharpMask")) {
-        const radius = Number((this as any).radius ?? 2);
-        const percent = Number((this as any).percent ?? 150);
-        const threshold = Number((this as any).threshold ?? 3);
-        img = img.sharpen({
-          sigma: Math.max(0.5, radius),
-          m1: percent / 100,
-          m2: threshold
-        });
-      } else if (t.endsWith(".AutoContrast")) {
+        // PIL `ImageFilter.SHARPEN`: 3×3 [-1 -1 -1 / -1 9 -1 / -1 -1 -1].
+        const png = await runShaderOnPngBuffer(
+          filtersConvolve3x3V1,
+          {
+            row0: d.vec4f(-1, -1, -1, 0),
+            row1: d.vec4f(-1, 9, -1, 0),
+            row2: d.vec4f(-1, -1, -1, 1)
+          },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      } else if (t.endsWith(".Sharpness") || t.endsWith(".UnsharpMask")) {
+        const isUnsharp = t.endsWith(".UnsharpMask");
+        const amount = isUnsharp
+          ? Number((this as any).percent ?? 150) / 100
+          : Number((this as any).factor ?? 1);
+        const threshold = isUnsharp
+          ? Number((this as any).threshold ?? 3) / 255
+          : 0;
+        const png = await runShaderOnPngBuffer(
+          sharpenUnsharpMaskV1,
+          { amount: Math.max(0, amount), threshold },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      } else if (t.endsWith(".Detail") || t.endsWith(".EdgeEnhance")) {
+        // PIL `ImageFilter.DETAIL`: 3×3 [0 -1 0 / -1 10 -1 / 0 -1 0] / 6,
+        // and `EDGE_ENHANCE`: same kernel family, slightly weaker.
+        const isDetail = t.endsWith(".Detail");
+        const png = await runShaderOnPngBuffer(
+          filtersConvolve3x3V1,
+          isDetail
+            ? {
+                row0: d.vec4f(0, -1, 0, 0),
+                row1: d.vec4f(-1, 10, -1, 0),
+                row2: d.vec4f(0, -1, 0, 6)
+              }
+            : {
+                row0: d.vec4f(-1, -1, -1, 0),
+                row1: d.vec4f(-1, 10, -1, 0),
+                row2: d.vec4f(-1, -1, -1, 2)
+              },
+          new Uint8Array(baseBytes),
+          {},
+          context
+        );
+        return { output: toRef(Buffer.from(png), baseObj) };
+      }
+
+      const img = sharp(baseBytes, { failOn: "none" });
+
+      if (t.endsWith(".AutoContrast")) {
         // Proper autocontrast with cutoff
         const cutoff = Number((this as any).cutoff ?? 0);
         const { data: raw, info } = await img
@@ -261,8 +338,6 @@ function createEnhanceNode(desc: Desc): NodeClass {
           .png()
           .toBuffer();
         return { output: toRef(out, baseObj) };
-      } else if (t.endsWith(".Detail") || t.endsWith(".EdgeEnhance")) {
-        img = img.sharpen({ sigma: 0.5, m1: 0.5, m2: 0.3 });
       } else if (t.endsWith(".RankFilter")) {
         // Proper rank filter with configurable rank
         const size = Math.max(1, Number((this as any).size ?? 3));
@@ -319,7 +394,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Adaptive Contrast",
     description:
       "Applies localized contrast enhancement using adaptive techniques.\n    image, contrast, enhance\n\n    Use cases:\n    - Improve visibility in images with varying lighting conditions\n    - Prepare images for improved feature detection in computer vision",
-    basicFields: ["image", "clip_limit", "grid_size"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -368,7 +444,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Auto Contrast",
     description:
       "Automatically adjusts image contrast for enhanced visual quality.\n    image, contrast, balance\n\n    Use cases:\n    - Enhance image clarity for better visual perception\n    - Pre-process images for computer vision tasks\n    - Improve photo aesthetics in editing workflows",
-    basicFields: ["image", "cutoff"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -407,7 +484,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Brightness",
     description:
       "Adjusts overall image brightness to lighten or darken.\n    image, brightness, enhance\n\n    Use cases:\n    - Correct underexposed or overexposed photographs\n    - Enhance visibility of dark image regions\n    - Prepare images for consistent display across devices",
-    basicFields: ["image", "factor"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -443,7 +521,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Color",
     description:
       "Adjusts color intensity of an image.\n    image, color, enhance\n\n    Use cases:\n    - Enhance color vibrancy in photographs\n    - Correct color imbalances in digital images\n    - Prepare images for consistent brand color representation",
-    basicFields: ["image", "factor"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -479,7 +558,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Contrast",
     description:
       "Adjusts image contrast to modify light-dark differences.\n    image, contrast, enhance\n\n    Use cases:\n    - Enhance visibility of details in low-contrast images\n    - Prepare images for visual analysis or recognition tasks\n    - Create dramatic effects in artistic photography",
-    basicFields: ["image", "factor"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -515,7 +595,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Detail",
     description:
       "Enhances fine details in images.\n    image, detail, enhance\n\n    Use cases:\n    - Improve clarity of textural elements in photographs\n    - Enhance visibility of small features for analysis\n    - Prepare images for high-resolution display or printing",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -542,7 +623,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Edge Enhance",
     description:
       "Enhances edge visibility by increasing contrast along boundaries.\n    image, edge, enhance\n\n    Use cases:\n    - Improve object boundary detection for computer vision\n    - Highlight structural elements in technical drawings\n    - Prepare images for feature extraction in image analysis",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -569,7 +651,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Equalize",
     description:
       "Enhances image contrast by equalizing intensity distribution.\n    image, contrast, histogram\n\n    Use cases:\n    - Improve visibility in poorly lit images\n    - Enhance details for image analysis tasks\n    - Normalize image data for machine learning",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -596,7 +679,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Rank Filter",
     description:
       "Applies rank-based filtering to enhance or smooth image features.\n    image, filter, enhance\n\n    Use cases:\n    - Reduce noise while preserving edges in images\n    - Enhance specific image features based on local intensity\n    - Pre-process images for improved segmentation results",
-    basicFields: ["image", "size", "rank"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -645,7 +729,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Sharpen",
     description:
       "Enhances image detail by intensifying local pixel contrast.\n    image, sharpen, clarity\n\n    Use cases:\n    - Improve clarity of photographs for print or display\n    - Refine texture details in product photography\n    - Enhance readability of text in document images",
-    basicFields: ["image"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -672,7 +757,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Sharpness",
     description:
       "Adjusts image sharpness to enhance or reduce detail clarity.\n    image, clarity, sharpness\n\n    Use cases:\n    - Enhance photo details for improved visual appeal\n    - Refine images for object detection tasks\n    - Correct slightly blurred images",
-    basicFields: ["image", "factor"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },
@@ -708,7 +794,8 @@ const DESCRIPTORS: readonly Desc[] = [
     title: "Unsharp Mask",
     description:
       "Sharpens images using the unsharp mask technique.\n    image, sharpen, enhance\n\n    Use cases:\n    - Enhance edge definition in photographs\n    - Improve perceived sharpness of digital artwork\n    - Prepare images for high-quality printing or display",
-    basicFields: ["image", "radius", "percent", "threshold"],
+    inlineFields: [],
+    inputFields:  ["image"],
     outputs: {
       output: "image"
     },

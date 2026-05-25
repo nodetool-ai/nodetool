@@ -1,0 +1,42 @@
+/**
+ * tools/gizmo – Shared gizmo-core module for overlay drawing.
+ *
+ * Provides centralized constants, reusable paint primitives, and viewport
+ * conversion helpers so TransformTool, MoveTool, CropTool, and future
+ * gizmo consumers share one visual implementation.
+ *
+ * @module tools/gizmo
+ */
+
+export {
+  // Constants
+  HANDLE_SIZE,
+  HANDLE_HIT_RADIUS,
+  ROTATION_HANDLE_OFFSET,
+  ROTATION_HANDLE_RADIUS_FACTOR,
+  OUTSIDE_ROTATE_MARGIN,
+  PIVOT_CROSSHAIR_SIZE,
+  PIVOT_HIT_RADIUS,
+  PIVOT_SNAP_DISTANCE,
+  GIZMO_PRIMARY_COLOR,
+  GIZMO_PRIMARY_SEMI,
+  GIZMO_PRIMARY_FAINT,
+  HANDLE_FILL_DEFAULT,
+  HANDLE_FILL_HOVERED,
+  OFF_CANVAS_INDICATOR_COLOR,
+  OFF_CANVAS_CORNER_ARM_CSS,
+  CROP_DIM_COLOR,
+  CROP_BORDER_COLOR,
+  CROP_GRID_COLOR,
+  GIZMO_LINE_WIDTH,
+  GIZMO_LINE_WIDTH_HOVERED,
+  BOUNDING_BOX_DASH_ON,
+  BOUNDING_BOX_DASH_OFF,
+} from "./gizmoConstants";
+
+export {
+  // Paint primitives (MoveTool + CropTool only — TransformTool is React/SVG)
+  drawOffCanvasIndicator,
+  drawCropOverlay,
+  drawCropGizmoWithHandles
+} from "./gizmoPrimitives";

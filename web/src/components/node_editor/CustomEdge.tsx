@@ -16,6 +16,8 @@ import { memo, useMemo } from "react";
 
 export function CustomEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -38,6 +40,7 @@ export function CustomEdge({
 
   const counter = data?.counter as number | undefined;
   const dataTypeLabel = data?.dataTypeLabel as string | undefined;
+  const sourceTypeColor = data?.sourceTypeColor as string | undefined;
   const showLabel = counter && counter > 1;
 
   // EXPERIMENTAL: Check if edge has active data flow
@@ -78,17 +81,24 @@ export function CustomEdge({
     [labelX, labelY, selected]
   );
 
-  // EXPERIMENTAL: Enhanced edge style with particle animation support
-  const enhancedStyle = useMemo(
-    () => ({
+  // A4: Selected edges get a 2px stroke + a subtle outer glow that uses the
+  // source type's color so the highlight reads as "this typed wire" rather
+  // than a generic UI selection. Unselected edges keep the 1.5px stroke
+  // applied in useProcessedEdges. CSS transitions animate the color change.
+  const enhancedStyle = useMemo(() => {
+    const accent = sourceTypeColor || "currentColor";
+    return {
       ...style,
+      ...(selected && {
+        strokeWidth: 2,
+        filter: `drop-shadow(0 0 4px color-mix(in srgb, ${accent} 60%, transparent))`
+      }),
       ...(isActive && {
         strokeDasharray: "14 10",
         animation: "edgeFlow 2s linear infinite"
       })
-    }),
-    [style, isActive]
-  );
+    } as React.CSSProperties;
+  }, [style, isActive, selected, sourceTypeColor]);
 
   return (
     <>
@@ -121,10 +131,13 @@ const MemoizedCustomEdge = memo(CustomEdge, (prevProps, nextProps) => {
     prevProps.sourceY === nextProps.sourceY &&
     prevProps.targetX === nextProps.targetX &&
     prevProps.targetY === nextProps.targetY &&
+    prevProps.sourcePosition === nextProps.sourcePosition &&
+    prevProps.targetPosition === nextProps.targetPosition &&
     prevProps.style === nextProps.style &&
     prevProps.data?.counter === nextProps.data?.counter &&
     prevProps.data?.dataTypeLabel === nextProps.data?.dataTypeLabel &&
-    prevProps.data?.status === nextProps.data?.status // Compare status for particle animation
+    prevProps.data?.sourceTypeColor === nextProps.data?.sourceTypeColor &&
+    prevProps.data?.status === nextProps.data?.status
   );
 });
 

@@ -6,7 +6,12 @@
  * declared properties, backed by a generic process() that calls Replicate.
  */
 
-import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  classifyFields,
+  classNameToTitle,
+  registerDeclaredProperty
+} from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import {
   getReplicateApiKey,
@@ -58,10 +63,6 @@ export interface ReplicateManifestEntry {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
-}
-
 function isAssetPropType(propType: string): boolean {
   return [
     "image",
@@ -80,6 +81,10 @@ function assetKind(
   if (propType === "video" || propType === "list[video]") return "video";
   if (propType === "audio" || propType === "list[audio]") return "audio";
   return "none";
+}
+
+function isListAsset(propType: string): boolean {
+  return propType.startsWith("list[") && isAssetPropType(propType);
 }
 
 function defaultForPropType(propType: string): unknown {
@@ -103,6 +108,9 @@ function defaultForPropType(propType: string): unknown {
 
 function castValue(value: unknown, propType: string): unknown {
   if (value === null || value === undefined) return value;
+  if (propType.startsWith("list[") || propType.startsWith("dict[")) {
+    return value;
+  }
   switch (propType) {
     case "int":
     case "float":
@@ -116,10 +124,28 @@ function castValue(value: unknown, propType: string): unknown {
 
 const EXCLUDED_FIELDS = new Set(["prompt_template"]);
 
+// ---------------------------------------------------------------------------
+// Field Classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute inlineFields and inputFields from a Replicate field list.
+ * Delegates to the shared `classifyFields` rule in node-sdk after stripping
+ * sub-fields and Replicate-specific `EXCLUDED_FIELDS`.
+ */
+function computeFieldClassification(fields: ReplicateFieldDef[]) {
+  return classifyFields(
+    fields
+      .filter((f) => !f.parentField && !EXCLUDED_FIELDS.has(f.name))
+      .map((f) => ({ name: f.name, propType: f.propType }))
+  );
+}
+
 async function buildArgs(
   instance: BaseNode,
   spec: ReplicateManifestEntry,
-  apiKey: string
+  apiKey: string,
+  context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
   const args: Record<string, unknown> = {};
 
@@ -127,15 +153,39 @@ async function buildArgs(
     if (field.parentField) continue;
     if (EXCLUDED_FIELDS.has(field.name)) continue;
 
+    // Image-gen nodes always produce a single output — force num_outputs to 1
+    // regardless of any saved value, since the field is no longer exposed.
+    if (field.name === "num_outputs") {
+      const apiName = field.apiParamName ?? field.name;
+      args[apiName] = 1;
+      continue;
+    }
+
     const value = (instance as unknown as Record<string, unknown>)[field.name];
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
 
     if (kind !== "none") {
-      const ref = value as Record<string, unknown> | undefined;
-      if (isRefSet(ref)) {
-        const url = await assetToUrl(ref!, apiKey);
-        if (url) args[apiName] = url;
+      if (isListAsset(field.propType)) {
+        const refs = Array.isArray(value) ? value : [];
+        const urls: string[] = [];
+        for (const ref of refs) {
+          if (isRefSet(ref)) {
+            const url = await assetToUrl(
+              ref as Record<string, unknown>,
+              apiKey,
+              context
+            );
+            if (url) urls.push(url);
+          }
+        }
+        if (urls.length) args[apiName] = urls;
+      } else {
+        const ref = value as Record<string, unknown> | undefined;
+        if (isRefSet(ref)) {
+          const url = await assetToUrl(ref!, apiKey, context);
+          if (url) args[apiName] = url;
+        }
       }
     } else {
       args[apiName] = castValue(value, field.propType);
@@ -173,7 +223,7 @@ export function createReplicateNodeClass(
 ): NodeClass {
   const moduleId = spec.moduleName.replace(/-/g, ".");
   const nodeType = `replicate.${moduleId}.${spec.className}`;
-  const title = toTitle(spec.className);
+  const title = classNameToTitle(spec.className);
   const descFirstLine = spec.docstring || `${spec.className} node`;
   const descSecondLine =
     spec.tags.length > 0 ? spec.tags.join(", ") : "replicate, ai";
@@ -184,12 +234,22 @@ export function createReplicateNodeClass(
   );
   const specRef = spec;
 
+  const executePrediction = async (
+    instance: BaseNode,
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<unknown> => {
+    const apiKey = getReplicateApiKey(instance._secrets);
+    const args = await buildArgs(instance, specRef, apiKey, context);
+    const res = await replicateSubmit(apiKey, specRef.endpointId, args);
+    return res.output;
+  };
+
   const ReplicateNodeClass = class extends BaseNode {
-    async process(): Promise<Record<string, unknown>> {
-      const apiKey = getReplicateApiKey(this._secrets);
-      const args = await buildArgs(this, specRef, apiKey);
-      const res = await replicateSubmit(apiKey, specRef.endpointId, args);
-      return mapOutput(specRef, res.output);
+    async process(
+      context?: Parameters<BaseNode["process"]>[0]
+    ): Promise<Record<string, unknown>> {
+      const output = await executePrediction(this, context);
+      return mapOutput(specRef, output);
     }
   };
 
@@ -224,9 +284,22 @@ export function createReplicateNodeClass(
     configurable: true
   });
 
-  // Register declared properties
+  // Compute and set field classification
+  const { inlineFields, inputFields } = computeFieldClassification(spec.inputFields);
+  Object.defineProperty(ReplicateNodeClass, "inlineFields", {
+    value: inlineFields,
+    configurable: true
+  });
+  Object.defineProperty(ReplicateNodeClass, "inputFields", {
+    value: inputFields,
+    configurable: true
+  });
+
+  // Register declared properties. num_outputs is internal-only (pinned to 1)
+  // and not exposed in the UI.
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
+    if (field.name === "num_outputs") continue;
 
     const propOptions: PropOptions = {
       type: field.propType,

@@ -1,0 +1,146 @@
+/**
+ * Tests for WebGPU runtime factory and initialization helpers.
+ *
+ * JSDOM doesn't have WebGPU, so these tests verify:
+ * - isWebGPUAvailable returns false in JSDOM
+ * - createRuntime falls back to Canvas2D when WebGPU is unavailable
+ * - WebGPURuntime class exists and has correct shape
+ * - Phase 3: createRuntime accepts onDeviceLost callback
+ * - Phase 3: evaluateLayerEffects exists on both runtime prototypes
+ */
+
+import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
+import { WebGPURuntime } from "../rendering/WebGPURuntime";
+import { isWebGPUAvailable, createRuntime } from "../rendering/initWebGPU";
+import type { LayerEffect } from "../types";
+
+describe("WebGPU initialization", () => {
+  describe("isWebGPUAvailable", () => {
+    it("returns false in JSDOM (no WebGPU)", () => {
+      expect(isWebGPUAvailable()).toBe(false);
+    });
+  });
+
+  describe("createRuntime", () => {
+    it("falls back to Canvas2D when WebGPU is not available", async () => {
+      const { runtime, backend } = await createRuntime();
+      expect(backend).toBe("canvas2d");
+      expect(runtime).toBeInstanceOf(Canvas2DRuntime);
+      runtime.dispose();
+    });
+
+    it("accepts a shared layer canvas map", async () => {
+      const sharedMap = new Map<string, HTMLCanvasElement>();
+      const { runtime, backend } = await createRuntime(sharedMap);
+      expect(backend).toBe("canvas2d");
+      runtime.getOrCreateLayerCanvas("test", 64, 64);
+      expect(sharedMap.has("test")).toBe(true);
+      runtime.dispose();
+    });
+
+    it("accepts an onDeviceLost callback", async () => {
+      const onDeviceLost = jest.fn();
+      const { runtime, backend } = await createRuntime(undefined, onDeviceLost);
+      expect(backend).toBe("canvas2d");
+      // Canvas2D fallback doesn't call onDeviceLost (no GPU device)
+      expect(onDeviceLost).not.toHaveBeenCalled();
+      runtime.dispose();
+    });
+  });
+
+});
+
+describe("Canvas2DRuntime evaluateLayerEffects", () => {
+  let runtime: Canvas2DRuntime;
+  let sourceCanvas: HTMLCanvasElement;
+
+  beforeEach(() => {
+    runtime = new Canvas2DRuntime();
+    sourceCanvas = document.createElement("canvas");
+    sourceCanvas.width = 64;
+    sourceCanvas.height = 64;
+    const ctx = sourceCanvas.getContext("2d")!;
+    ctx.fillStyle = "red";
+    ctx.fillRect(0, 0, 64, 64);
+  });
+
+  afterEach(() => {
+    runtime.dispose();
+  });
+
+  it("returns source unchanged when effects is empty", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, []);
+    expect(result.surface).toBe(sourceCanvas);
+    expect(result.workingSpace).toBe("srgb");
+    expect(result.dynamicRange).toBe("sdr");
+  });
+
+  it("returns source unchanged when effects is undefined-like", () => {
+    const result = runtime.evaluateLayerEffects(
+      "layer1",
+      sourceCanvas,
+      null as unknown as LayerEffect[]
+    );
+    expect(result.surface).toBe(sourceCanvas);
+  });
+
+  it("returns source unchanged when all effects are disabled", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "brightness_contrast", enabled: false, params: { brightness: 0.5, contrast: 0 } }
+    ]);
+    expect(result.surface).toBe(sourceCanvas);
+  });
+
+  it("returns a different canvas when effects are enabled", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "brightness_contrast", enabled: true, params: { brightness: 0.5, contrast: 0 } }
+    ]);
+    expect(result.surface).not.toBe(sourceCanvas);
+    expect(result.surface.width).toBe(64);
+    expect(result.surface.height).toBe(64);
+    expect(result.workingSpace).toBe("srgb");
+    expect(result.dynamicRange).toBe("sdr");
+  });
+
+  it("applies hue_saturation effects", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "hue_saturation", enabled: true, params: { hueDegrees: 90, saturation: 0.5, lightness: 0 } }
+    ]);
+    expect(result.surface).not.toBe(sourceCanvas);
+    expect(result.surface.width).toBe(64);
+  });
+
+  it("applies exposure effects", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "exposure", enabled: true, params: { exposureStops: 1.0 } }
+    ]);
+    expect(result.surface).not.toBe(sourceCanvas);
+    expect(result.surface.width).toBe(64);
+  });
+
+  it("throws for unsupported effect types in development", () => {
+    // curves/tonemap/bloom are not yet implemented — they must fail loudly
+    // in dev mode so unsupported effects never silently no-op.
+    expect(() => {
+      runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+        { type: "curves", enabled: true, params: { rgb: [] } }
+      ]);
+    }).toThrow(/not yet implemented/);
+  });
+
+  it("chains multiple enabled effects", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "brightness_contrast", enabled: true, params: { brightness: 0.2, contrast: 0.1 } },
+      { type: "hue_saturation", enabled: true, params: { hueDegrees: 45, saturation: 0, lightness: 0 } }
+    ]);
+    expect(result.surface).not.toBe(sourceCanvas);
+  });
+
+  it("returns source when all params are zero (no-op)", () => {
+    const result = runtime.evaluateLayerEffects("layer1", sourceCanvas, [
+      { type: "brightness_contrast", enabled: true, params: { brightness: 0, contrast: 0 } }
+    ]);
+    // brightness=0 and contrast=0 produce no filter parts
+    expect(result.surface).toBe(sourceCanvas);
+  });
+});

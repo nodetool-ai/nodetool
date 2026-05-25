@@ -525,6 +525,11 @@ export enum IpcChannels {
   PACKAGE_SEARCH_NODES = "package-search-nodes",
   PACKAGE_UPDATES_AVAILABLE = "package-updates-available",
   PACKAGE_VERSION_CHECK = "package-version-check",
+  // Node pack channels (third-party TypeScript node packs)
+  NODE_PACK_LIST_INSTALLED = "node-pack-list-installed",
+  NODE_PACK_INSTALL = "node-pack-install",
+  NODE_PACK_UNINSTALL = "node-pack-uninstall",
+  NODE_PACK_GET_INSTALL_DIR = "node-pack-get-install-dir",
   // Runtime package channels
   RUNTIME_PACKAGE_STATUSES = "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL = "runtime-package-install",
@@ -547,6 +552,8 @@ export enum IpcChannels {
   SETTINGS_SET_CLOSE_BEHAVIOR = "settings-set-close-behavior",
   SETTINGS_GET_AUTO_UPDATES = "settings-get-auto-updates",
   SETTINGS_SET_AUTO_UPDATES = "settings-set-auto-updates",
+  SETTINGS_GET_UPDATE_CHANNEL = "settings-get-update-channel",
+  SETTINGS_SET_UPDATE_CHANNEL = "settings-set-update-channel",
   SETTINGS_GET_MODEL_SERVICES_STARTUP = "settings-get-model-services-startup",
   SETTINGS_SET_MODEL_SERVICES_STARTUP = "settings-set-model-services-startup",
   SHOW_SETTINGS = "show-settings",
@@ -670,6 +677,10 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: string; // url
   [IpcChannels.PACKAGE_SEARCH_NODES]: string; // query
   [IpcChannels.PACKAGE_VERSION_CHECK]: void;
+  [IpcChannels.NODE_PACK_LIST_INSTALLED]: void;
+  [IpcChannels.NODE_PACK_INSTALL]: { spec: string };
+  [IpcChannels.NODE_PACK_UNINSTALL]: { name: string };
+  [IpcChannels.NODE_PACK_GET_INSTALL_DIR]: void;
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: void;
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { packageId: string; installLocation?: string };
   [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { packageId: string };
@@ -702,6 +713,8 @@ export interface IpcRequest {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: WindowCloseAction;
   [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: void;
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: boolean;
+  [IpcChannels.SETTINGS_GET_UPDATE_CHANNEL]: void;
+  [IpcChannels.SETTINGS_SET_UPDATE_CHANNEL]: UpdateChannel;
   [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: void;
   [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettingsUpdate;
   [IpcChannels.SHOW_SETTINGS]: void;
@@ -725,6 +738,7 @@ export interface IpcRequest {
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
+export type UpdateChannel = "latest" | "nightly";
 
 export interface ModelServicesStartupSettings {
   startLlamaCppOnStartup: boolean;
@@ -777,6 +791,10 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: void;
   [IpcChannels.PACKAGE_SEARCH_NODES]: PackageNode[];
   [IpcChannels.PACKAGE_VERSION_CHECK]: PackageVersionCheckResult[];
+  [IpcChannels.NODE_PACK_LIST_INSTALLED]: NodePackInfo[];
+  [IpcChannels.NODE_PACK_INSTALL]: NodePackActionResult;
+  [IpcChannels.NODE_PACK_UNINSTALL]: NodePackActionResult;
+  [IpcChannels.NODE_PACK_GET_INSTALL_DIR]: string;
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: RuntimePackageStatus[];
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { success: boolean; message: string };
   [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { success: boolean; message: string };
@@ -798,6 +816,8 @@ export interface IpcResponse {
   [IpcChannels.SETTINGS_SET_CLOSE_BEHAVIOR]: void;
   [IpcChannels.SETTINGS_GET_AUTO_UPDATES]: boolean;
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: void;
+  [IpcChannels.SETTINGS_GET_UPDATE_CHANNEL]: UpdateChannel;
+  [IpcChannels.SETTINGS_SET_UPDATE_CHANNEL]: UpdateChannel;
   [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
   [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
   [IpcChannels.SHOW_SETTINGS]: void;
@@ -917,6 +937,18 @@ export interface PackageUninstallRequest {
   repo_id: string;
 }
 
+/** A third-party node pack discovered in the Electron-managed install dir. */
+export interface NodePackInfo {
+  name: string;
+  version?: string;
+}
+
+/** Result of a node-pack install or uninstall. `message` carries error text or success info. */
+export interface NodePackActionResult {
+  success: boolean;
+  message: string;
+}
+
 export type RuntimePackageId =
   | "python"
   | "nodejs"
@@ -927,8 +959,6 @@ export type RuntimePackageId =
   | "pandoc"
   | "pdftotext"
   | "yt-dlp"
-  | "claude-agent-sdk"
-  | "codex-sdk"
   | "transformers-js"
   | "tensorflow-js";
 

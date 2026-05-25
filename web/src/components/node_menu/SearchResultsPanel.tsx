@@ -1,24 +1,35 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useEffect, useRef } from "react";
+import { useTheme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import SearchResultItem from "./SearchResultItem";
-import { useCreateNode } from "../../hooks/useCreateNode";
+import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { EmptyState } from "../ui_primitives/EmptyState";
 
 interface SearchResultsPanelProps {
   searchNodes: NodeMetadata[];
+  /**
+   * Compact mode: tighter rows, title-only — used by the left-panel sidebar
+   * where the full row layout doesn't fit. Default false (floating menu).
+   */
+  compact?: boolean;
 }
 
 const ROW_HEIGHT = 72;
+const ROW_HEIGHT_COMPACT = 36;
 
 const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
-  searchNodes
+  searchNodes,
+  compact = false
 }) => {
-  const handleCreateNode = useCreateNode();
+  const theme = useTheme();
+  // Route click-to-add via PendingNodeCreateStore (safe outside the editor's
+  // ReactFlowProvider, e.g. inside the left-panel Search view).
+  const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
   const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
   const selectedIndex = useNodeMenuStore((state) => state.selectedIndex);
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
@@ -28,8 +39,8 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
   const virtualizer = useVirtualizer({
     count: searchNodes.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 8,
+    estimateSize: () => (compact ? ROW_HEIGHT_COMPACT : ROW_HEIGHT),
+    overscan: theme.virtualScroll.overscan.small,
   });
 
   // Scroll to the selected item when selectedIndex changes
@@ -58,9 +69,9 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 
   const handleNodeClick = useCallback(
     (node: NodeMetadata) => {
-      handleCreateNode(node);
+      requestCreate(node);
     },
-    [handleCreateNode]
+    [requestCreate]
   );
 
   if (searchNodes.length === 0) {
@@ -93,25 +104,43 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
       >
         {virtualizer.getVirtualItems().map((vi) => {
           const node = searchNodes[vi.index];
+          // Compact rows use dynamic measurement so the actual 36 px row
+          // height isn't approximated to the default 72 px estimate. Default
+          // (floating-menu) rows keep their fixed `vi.size` height to
+          // preserve hover-expand and scrollIntoView behavior unchanged.
+          const itemProps = compact
+            ? {
+                "data-index": vi.index,
+                ref: virtualizer.measureElement,
+                style: {
+                  position: "absolute" as const,
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${vi.start}px)`,
+                  overflow: "visible" as const,
+                },
+              }
+            : {
+                style: {
+                  position: "absolute" as const,
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: vi.size,
+                  transform: `translateY(${vi.start}px)`,
+                  overflow: "visible" as const,
+                },
+              };
           return (
-            <div
-              key={vi.key}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: vi.size,
-                transform: `translateY(${vi.start}px)`,
-                overflow: "visible",
-              }}
-            >
+            <div key={vi.key} {...itemProps}>
               <SearchResultItem
                 node={node}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleNodeClick}
                 isKeyboardSelected={vi.index === selectedIndex}
+                compact={compact}
               />
             </div>
           );

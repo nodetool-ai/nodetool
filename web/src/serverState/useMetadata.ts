@@ -5,6 +5,8 @@ import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
 import { generateSnippetMetadata } from "../config/snippetMetadata";
+import { attachBundleFalUnitPricing } from "../utils/attachBundleFalUnitPricing";
+import { attachBundleKieUnitPricing } from "../utils/attachBundleKieUnitPricing";
 
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 
@@ -15,7 +17,6 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     namespace: "default",
     node_type: "nodetool.workflows.base_node.Preview",
     layout: "default",
-    basic_fields: [],
     is_dynamic: false,
     properties: [
       {
@@ -53,7 +54,6 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     namespace: "nodetool.workflows",
     node_type: WORKFLOW_NODE_TYPE,
     layout: "default",
-    basic_fields: [],
     is_dynamic: true,
     properties: [],
     outputs: [],
@@ -66,7 +66,7 @@ const defaultMetadata: Record<string, NodeMetadata> = {
   }
 };
 
-export const loadMetadata = async () => {
+export const loadMetadata = async (): Promise<"success" | "error"> => {
   const response = await restFetch(
     "/api/nodes/metadata?fields=full&limit=10000"
   );
@@ -106,6 +106,12 @@ export const loadMetadata = async () => {
   // Add snippet virtual nodes to the metadata
   const snippetMetadata = generateSnippetMetadata();
   Object.assign(metadataByType, snippetMetadata);
+
+  // Merge bundled FAL list prices onto metadata before publishing to the
+  // store. Backend `NodeMetadata` does not include `fal_unit_pricing` today,
+  // so we attach it client-side from the codegen JSON bundle.
+  attachBundleFalUnitPricing(metadataByType);
+  attachBundleKieUnitPricing(metadataByType);
 
   useMetadataStore.getState().setMetadata(metadataByType);
   useMetadataStore.getState().setRecommendedModels(uniqueRecommendedModels);

@@ -1,106 +1,138 @@
 /**
- * useNodeResultHistory hook for accessing node execution history.
+ * useNodeResultHistory — DB-backed generation history for a node.
  *
- * Provides:
- * - Session history from NodeResultHistoryStore (in-memory, across runs)
- * - Asset-based history from API (persistent, loaded on demand)
+ * Single source of truth: the assets table. Generative nodes (those with
+ * `auto_save_asset` in their metadata) write their outputs as assets on
+ * job completion, each tagged with `node_id` and `job_id`.
+ *
+ * The hook surfaces two views:
+ *   - `assetHistory` — every saved asset for this node across all runs.
+ *   - `lastJobAssets` — only assets from the most recent job, used as a
+ *     fallback when the live in-memory `outputResults` are gone (after a
+ *     page reload or workflow switch). Cards always reflect the last
+ *     workflow execution.
  */
 
-import { useCallback } from "react";
 import { useMemo } from "react";
-import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
-import { HistoricalResult } from "../../stores/NodeResultHistoryStore";
-import { useNodeAssets } from "../../serverState/useNodeAssets";
+import { useQuery } from "@tanstack/react-query";
 
-const resolveHistoryUri = (uri: string): string | null => {
-  if (uri.startsWith("asset://")) {
-    const assetId = uri.slice("asset://".length);
-    return `/api/storage/${assetId}`;
-  }
+import { trpcClient } from "../../trpc/client";
+import type { Asset } from "../../stores/ApiTypes";
+import { normalizeAssetList } from "../../utils/normalizeAsset";
 
-  if (uri.startsWith("memory://")) {
-    return null;
-  }
+const EMPTY_ASSETS: Asset[] = [];
 
-  return uri;
+const fetchNodeAssets = async (nodeId: string): Promise<Asset[]> => {
+  const data = await trpcClient.assets.list.query({ node_id: nodeId });
+  const assets = normalizeAssetList((data.assets as Asset[]) ?? []);
+  // eslint-disable-next-line no-console
+  console.log("[debug:gen] fetchNodeAssets", {
+    nodeId,
+    returned: assets.length,
+    jobIds: assets.map((a) => a.job_id),
+    sample: assets[0]
+      ? {
+          id: assets[0].id,
+          job_id: assets[0].job_id,
+          node_id: assets[0].node_id,
+          created_at: assets[0].created_at
+        }
+      : null
+  });
+  return assets;
 };
 
-const normalizeHistoryResultUris = (value: unknown): unknown => {
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizeHistoryResultUris(item));
+export const nodeAssetsQueryKey = (nodeId: string | null) =>
+  ["assets", { node_id: nodeId }] as const;
+
+/**
+ * Convert a saved asset into the value shape the preview components expect
+ * (mirrors the `{ type, uri }` records carried over `output_update`).
+ */
+export const assetToOutputValue = (asset: Asset): Record<string, unknown> => {
+  const ct = asset.content_type ?? "";
+  const uri = asset.get_url ?? asset.thumb_url ?? "";
+  if (ct.startsWith("image/")) return { type: "image", uri };
+  if (ct.startsWith("video/")) return { type: "video", uri };
+  if (ct.startsWith("audio/")) return { type: "audio", uri };
+  if (ct.includes("model") || asset.name?.toLowerCase().endsWith(".glb")) {
+    return { type: "model_3d", uri, name: asset.name ?? undefined };
   }
+  return { uri, type: "asset", name: asset.name ?? undefined };
+};
 
-  if (!value || typeof value !== "object") {
-    return value;
-  }
-
-  const record = value as Record<string, unknown>;
-  const normalized: Record<string, unknown> = {};
-
-  for (const [key, raw] of Object.entries(record)) {
-    if (key === "uri" && typeof raw === "string") {
-      const resolved = resolveHistoryUri(raw);
-      if (resolved === null) {
-        continue;
-      }
-      normalized[key] = resolved;
-      continue;
-    }
-
-    normalized[key] = normalizeHistoryResultUris(raw);
-  }
-
-  return normalized;
+/**
+ * Reduce a list of last-job assets to a single preview value (single asset)
+ * or an array (multi-asset job). Returns `undefined` for an empty list so
+ * callers can use it as a `??` fallback against live results.
+ */
+export const assetsToPreviewValue = (assets: Asset[]): unknown => {
+  if (assets.length === 0) return undefined;
+  const values = assets.map(assetToOutputValue);
+  return values.length === 1 ? values[0] : values;
 };
 
 export const useNodeResultHistory = (
   workflowId: string | null,
   nodeId: string | null
 ) => {
-  const sessionHistory = useNodeResultHistoryStore((state) =>
-    workflowId && nodeId ? state.getHistory(workflowId, nodeId) : []
-  );
+  const enabled = Boolean(nodeId);
+  const query = useQuery({
+    queryKey: nodeAssetsQueryKey(nodeId),
+    queryFn: () =>
+      nodeId ? fetchNodeAssets(nodeId) : Promise.resolve(EMPTY_ASSETS),
+    enabled,
+    staleTime: 60_000
+  });
 
-  const historyCount = useNodeResultHistoryStore((state) =>
-    workflowId && nodeId ? state.getHistoryCount(workflowId, nodeId) : 0
-  );
+  const assets = query.data ?? EMPTY_ASSETS;
 
-  const clearNodeHistory = useNodeResultHistoryStore(
-    (state) => state.clearNodeHistory
-  );
+  // Newest-first so badge/dialog/last-job derivations agree.
+  const sortedAssets = useMemo(() => {
+    if (assets.length < 2) return assets;
+    return [...assets].sort((a, b) => {
+      const aTs = a.created_at ? Date.parse(a.created_at) : 0;
+      const bTs = b.created_at ? Date.parse(b.created_at) : 0;
+      return bTs - aTs;
+    });
+  }, [assets]);
 
-  // Asset-based history (loaded on demand)
-  const {
-    data: assetHistory,
-    isLoading: isLoadingAssets,
-    refetch: loadAssetHistory
-  } = useNodeAssets(nodeId, false);
-
-  const clearHistory = useCallback(() => {
-    if (workflowId && nodeId) {
-      clearNodeHistory(workflowId, nodeId);
+  // Group by job_id and pick the assets from the most recent group. Assets
+  // without a job_id are treated as their own "last group" only when there
+  // are no jobbed assets at all — otherwise they're ignored.
+  const lastJobAssets = useMemo<Asset[]>(() => {
+    if (sortedAssets.length === 0) return EMPTY_ASSETS;
+    const jobbed = sortedAssets.filter((a) => a.job_id);
+    if (jobbed.length === 0) {
+      // eslint-disable-next-line no-console
+      console.log("[debug:gen] lastJobAssets: no jobbed assets, returning all", {
+        nodeId,
+        total: sortedAssets.length
+      });
+      return sortedAssets;
     }
-  }, [workflowId, nodeId, clearNodeHistory]);
+    const latestJobId = jobbed[0].job_id;
+    const filtered = sortedAssets.filter((a) => a.job_id === latestJobId);
+    // eslint-disable-next-line no-console
+    console.log("[debug:gen] lastJobAssets: grouped by job_id", {
+      nodeId,
+      total: sortedAssets.length,
+      latestJobId,
+      kept: filtered.length
+    });
+    return filtered;
+  }, [sortedAssets, nodeId]);
 
-  const normalizedSessionHistory = useMemo<HistoricalResult[]>(
-    () =>
-      sessionHistory.map((item) => ({
-        ...item,
-        result: normalizeHistoryResultUris(item.result)
-      })),
-    [sessionHistory]
-  );
+  const lastJobId = lastJobAssets[0]?.job_id ?? null;
 
   return {
-    // Session history (in-memory)
-    sessionHistory: normalizedSessionHistory,
-    historyCount,
-    clearHistory,
-
-    // Asset-based history (persistent)
-    assetHistory,
-    isLoadingAssets,
-    loadAssetHistory
+    assetHistory: sortedAssets,
+    historyCount: sortedAssets.length,
+    lastJobAssets,
+    lastJobId,
+    isLoading: query.isLoading,
+    refresh: query.refetch,
+    workflowId
   };
 };
 

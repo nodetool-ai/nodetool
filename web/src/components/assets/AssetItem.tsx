@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       contain: "layout style paint",
       border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
       boxShadow: "0 8px 18px rgb(0 0 0 / 0.18)",
-      transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease"
+      transition: "box-shadow 0.18s ease, border-color 0.18s ease"
     },
     "&.selected .asset": {
       border: `2px solid ${theme.vars.palette.primary.main}`,
@@ -95,7 +95,6 @@ const styles = (theme: Theme) =>
       willChange: "opacity"
     },
     "&:hover .asset": {
-      transform: "translateY(-2px)",
       boxShadow: "0 16px 30px rgb(0 0 0 / 0.18)",
       borderColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.1)`
     },
@@ -318,8 +317,16 @@ export type AssetItemProps = {
   onDoubleClick?: (asset: Asset) => void;
 };
 
+const deleteButtonOverlayStyle = css({
+  position: "absolute",
+  top: 4,
+  right: 4,
+  zIndex: 1000
+});
+
 const AssetItem: React.FC<AssetItemProps> = (props) => {
   const theme = useTheme();
+  const assetStyles = useMemo(() => styles(theme), [theme]);
   const {
     asset,
     draggable = true,
@@ -406,7 +413,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
   const result = (
     <div
-      css={styles(theme)}
+      css={assetStyles}
       className={`asset-item ${assetType} ${isSelected ? "selected" : ""} ${isDragHovered ? "drag-hover" : ""
         } ${isParent ? "parent" : ""}`}
       onDragEnter={handleDragEnter}
@@ -422,14 +429,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       onDragOver={handleDragOver}
     >
       {showDeleteButton && (
-        <div
-          css={css({
-            position: "absolute",
-            top: 4,
-            right: 4,
-            zIndex: 1000
-          })}
-        >
+        <div css={deleteButtonOverlayStyle}>
           <DeleteButton
             className="asset-delete"
             onClick={handleDelete}

@@ -90,12 +90,16 @@
   }
 }
 
-/* edge */
+/* edge — A4: default static stroke is 1.5px (typed color set inline by
+   useProcessedEdges via colorForType(source.type)). Width is intentionally
+   *not* !important here so per-edge inline width (selected: 2, hover: 4,
+   streaming variants) wins. Stroke color animates on change. */
 .react-flow .react-flow__edge-path,
 .react-flow .react-flow__connection-path {
   stroke: var(--palette-grey-400);
-  stroke-width: 2.5 !important;
+  stroke-width: 1.5;
   transition:
+    stroke 0.18s ease-in-out,
     stroke-opacity 0.2s ease-in-out,
     stroke-width 0.15s ease-in-out,
     filter 0.2s ease-in-out;
@@ -130,16 +134,15 @@
     drop-shadow(0 0 3px rgba(255, 255, 255, 0.15));
 }
 
-/* edge selected */
+/* edge selected — A4: keep the typed stroke color (set inline by
+   useProcessedEdges) and rely on CustomEdge's inline 2px width + outer
+   glow so the highlight tints with the source type instead of a flat
+   text-primary slash. */
 .react-flow
   .react-flow__edges
   .react-flow__edge.selected
   .react-flow__edge-path {
-  stroke: var(--palette-text-primary) !important;
-  stroke-width: 3 !important;
   stroke-opacity: 1;
-  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8))
-    drop-shadow(0 0 4px rgba(255, 255, 255, 0.2));
 }
 
 /* Flow animation for edges on message_sent or running source node */
@@ -179,17 +182,15 @@
   stroke-opacity: 1;
 }
 
-/* Selected streaming edge */
+/* Selected streaming edge — A4: preserve the typed stroke color, only
+   boost width and apply a glow (CustomEdge supplies the type-tinted glow). */
 .react-flow
   .react-flow__edges
   .react-flow__edge.streaming-edge.selected
   .react-flow__edge-path {
-  stroke: var(--palette-text-primary) !important;
   stroke-dasharray: 8;
   stroke-width: 4 !important;
   stroke-opacity: 1;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9))
-    drop-shadow(0 0 4px rgba(255, 255, 255, 0.25));
 }
 
 .react-flow__edge .react-flow__edge-text {
@@ -301,17 +302,18 @@
   border-top: 1px solid var(--palette-grey-700);
   border-bottom: 1px solid var(--palette-grey-700);
   right: -6px;
+  top: 5px;
   border-radius: 0 2px 2px 0;
 }
 
 /* handle hover */
 .react-flow__node .react-flow__handle-left:hover {
-  transform: translate(0, -50%) scale(1.75, 1.5);
+  transform: translate(0, -50%) scale(1.75, 1.2);
   cursor: cell;
   opacity: 0.9;
 }
 .react-flow__node .react-flow__handle-right:hover {
-  transform: translate(0, -50%) scale(1.75, 1.5);
+  transform: translate(0, -50%) scale(1.75, 1.2);
   cursor: cell;
   opacity: 0.9;
 }
@@ -322,14 +324,12 @@
   position: absolute;
   top: -5px;
   left: -10px;
-  background-color: transparent;
   width: 24px; /* width of the invisible snap area of a handle */
   height: 200%; /* height of the invisible snap area of a handle */
 }
 .react-flow__node .react-flow__handle-right::after {
   left: unset;
   right: -10px;
-  border-radius: 0px;
 }
 .react-flow.is-connecting .react-flow__node .react-flow__handle-right::after,
 .react-flow.is-connecting .react-flow__node .react-flow__handle-left::after {
@@ -383,11 +383,10 @@
 .react-flow__node .react-flow__handle-right.streaming-handle {
   /* Wider handle to signify streaming */
   height: calc(var(--handle_height) * 1.25);
-
   border-radius: 0 4px 4px 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Stripe overlay that shows on top of the type color */
@@ -405,10 +404,10 @@
   pointer-events: none;
 }
 
-.react-flow__node .react-flow__handle-right.streaming-handle:hover {
+/* .react-flow__node .react-flow__handle-right.streaming-handle:hover {
   height: calc(var(--handle_height) * 1.6);
   transform: translate(0, -50%) scale(1.3, 1);
-}
+} */
 
 /* Enhance visibility during connection */
 .react-flow.is-connecting
@@ -448,60 +447,127 @@ ul.multi-outputs li::marker {
 
 .handle-tooltip-wrapper {
   padding: 0;
+  display: contents;
+}
+
+.property-tooltip-wrapper {
+  display: inline;
+  position: relative;
+  max-width: 100%;
+}
+
+.property-handle-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 999;
+  pointer-events: none;
+  margin-top: 2px;
+}
+
+.property-handle-tooltip-type {
+  font-size: var(--fontSizeSmaller);
+  font-family: var(--fontFamily2, monospace);
+  opacity: 0.9;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+.property-handle-tooltip .handle-tooltip-info {
+  position: static;
+  transform: none;
+  margin-top: 0.35em;
+  padding: 0;
+  max-width: 220px;
+  text-align: left;
 }
 
 .handle-tooltip {
-  position: fixed;
+  position: absolute;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 150ms ease-in-out;
   z-index: 999;
+  top: 50%;
+  white-space: nowrap;
+  width: max-content;
+  transform: translateY(calc(-50% + 2px)) scale(0.92);
+  transform-origin: center right;
+  transition:
+    opacity 320ms ease-out,
+    transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.handle-tooltip.handle-left {
+  right: 100%;
+  margin-right: 16px;
+  transform-origin: center right;
+}
+
+.handle-tooltip.handle-right {
+  left: 100%;
+  margin-left: 16px;
+  transform-origin: center left;
 }
 
 .handle-tooltip.show {
-  opacity: 0.85;
-  transition: opacity 150ms ease-in-out 500ms;
+  opacity: 0.9;
+  transform: translateY(calc(-50% + 2px)) scale(1);
+}
+
+/* Connect-time label on compatible handles — surface immediately, no delay. */
+.handle-tooltip.connecting.show {
+  opacity: 1;
 }
 
 /* Handle tooltip inner content */
 .handle-tooltip-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5em;
   text-align: center;
-  padding: 0.4em;
   visibility: visible;
   white-space: nowrap;
+}
+
+.handle-tooltip-label {
+  position: relative;
+  display: inline-block;
 }
 
 .handle-tooltip-name {
   font-size: var(--fontSizeNormal);
   font-weight: bold;
   border: 0;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-  width: 100%;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
   padding: 0.25em 0.5em;
-  margin-bottom: 0.2em;
   line-height: 1.2;
 }
 
-.handle-tooltip-type {
-  width: fit-content;
-  font-family: var(--fontFamily2);
-  font-size: var(--fontSizeSmall);
-  background-color: var(--palette-grey-800);
-  color: var(--palette-grey-100);
-  opacity: 0.8;
-  border: 0;
-  border-radius: 0.4em;
-  padding: 0.2em 0.5em;
-  line-height: 1;
+.handle-tooltip-details {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, calc(-0.2em - 3px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
 }
 
-.handle-tooltip-streaming,
-.handle-tooltip-info {
+.handle-tooltip-type {
+  font-size: var(--fontSizeSmaller);
+  font-family: var(--fontFamily2, monospace);
+  opacity: 0.8;
+  padding: 0 0.35em;
+  line-height: 1;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.handle-tooltip-streaming {
   font-size: var(--fontSizeSmall);
   font-style: italic;
   opacity: 0.9;
@@ -513,6 +579,35 @@ ul.multi-outputs li::marker {
   line-height: 1.3;
   white-space: normal;
   word-wrap: break-word;
+}
+
+/* Long collect-input copy sits outside the label stack so it does not cover neighbors. */
+.handle-tooltip-info {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fontSizeSmall);
+  font-style: italic;
+  opacity: 0.9;
+  max-width: 200px;
+  line-height: 1.3;
+  white-space: normal;
+  word-wrap: break-word;
+  pointer-events: none;
+  padding: 0 0.35em;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+.handle-tooltip-info.handle-tooltip-info-left {
+  left: 100%;
+  margin-left: 0.35em;
+  text-align: left;
+}
+
+.handle-tooltip-info.handle-tooltip-info-right {
+  right: 100%;
+  margin-right: 0.35em;
+  text-align: right;
 }
 
 /* =============================================================================

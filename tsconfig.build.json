@@ -1,8 +1,10 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/gpu" },
     { "path": "packages/protocol" },
     { "path": "packages/timeline" },
+    { "path": "packages/image-editor" },
     { "path": "packages/config" },
     { "path": "packages/auth" },
     { "path": "packages/storage" },
@@ -23,6 +25,7 @@
     { "path": "packages/transformers-js-provider" },
     { "path": "packages/kie-codegen" },
     { "path": "packages/kie-nodes" },
+    { "path": "packages/topaz-nodes" },
     { "path": "packages/agents" },
     { "path": "packages/base-nodes" },
     { "path": "packages/dsl" },
@@ -30,6 +33,7 @@
     { "path": "packages/chat" },
     { "path": "packages/websocket" },
     { "path": "packages/cli" },
+    { "path": "packages/sdk" },
     { "path": "packages/sandbox" },
     { "path": "packages/sandbox-agent" },
     { "path": "packages/sandbox-tools" }

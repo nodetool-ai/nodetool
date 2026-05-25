@@ -48,7 +48,7 @@ export function normalizeModelMeta(m: LanguageModel): NormalizedModelMeta {
     /(reason|r1|qwq)/.test(text) && "reasoning",
     /(code|coder)/.test(text) && "code",
     /\bmath\b/.test(text) && "math"
-  ].filter(Boolean) as string[];
+  ].filter((v): v is string => Boolean(v));
 
   const sizeMatch = text.match(/(\d+(?:\.\d+)?)\s*(b|m)\b/);
   const sizeB = sizeMatch
@@ -74,15 +74,6 @@ export function normalizeModelMeta(m: LanguageModel): NormalizedModelMeta {
     family,
     moe
   };
-}
-
-export function buildMetaIndex<TModel extends ModelSelectorModel>(
-  models: TModel[]
-) {
-  return models.map((m) => ({
-    model: m,
-    meta: normalizeModelMeta(m as LanguageModel)
-  }));
 }
 
 export interface AdvancedModelFilters {

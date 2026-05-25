@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useMemo, memo } from "react";
-import { Box } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, Box } from "../ui_primitives";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
 import { formatFileSize } from "../../utils/formatUtils";
@@ -66,6 +65,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
 }) => {
   const location = useLocation();
   const theme = useTheme();
+  const analyticsStyles = useMemo(() => styles(theme), [theme]);
 
   const { totalSize, fileCount, folderCount } = useMemo(() => {
     let total = 0;
@@ -92,7 +92,7 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
   }
 
   return (
-    <Box css={styles(theme)} className="storage-analytics">
+    <Box css={analyticsStyles} className="storage-analytics">
       <Text className="folder-info">
         {currentFolder?.name || "ASSETS"}
       </Text>

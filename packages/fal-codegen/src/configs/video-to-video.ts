@@ -19,28 +19,7 @@ export const config: ModuleConfig = {
         "Smooth out choppy video",
         "Generate intermediate frames",
         "Enhance video playback quality"
-      ],
-      basicFields: ["video"]
-    },
-    "half-moon-ai/ai-face-swap/faceswapvideo": {
-      className: "AIFaceSwapVideo",
-      docstring:
-        "AI Face Swap replaces faces in videos with target faces while preserving expressions and movements.",
-      tags: [
-        "video",
-        "face-swap",
-        "deepfake",
-        "face-replacement",
-        "video-to-video"
-      ],
-      useCases: [
-        "Replace faces in video content",
-        "Create personalized video content",
-        "Swap actors in video scenes",
-        "Generate face replacement effects",
-        "Create video with different faces"
-      ],
-      basicFields: ["video", "target_face"]
+      ]
     },
     "fal-ai/fast-animatediff/video-to-video": {
       className: "AnimateDiffVideoToVideo",
@@ -59,8 +38,7 @@ export const config: ModuleConfig = {
         "Transform video aesthetics",
         "Create stylized video versions",
         "Generate video variations"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/fast-animatediff/turbo/video-to-video": {
       className: "AnimateDiffTurboVideoToVideo",
@@ -80,8 +58,7 @@ export const config: ModuleConfig = {
         "Fast video effect application",
         "Efficient video processing",
         "Real-time video styling"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/auto-caption": {
       className: "AutoCaption",
@@ -100,8 +77,7 @@ export const config: ModuleConfig = {
         "Create multilingual subtitles",
         "Transcribe video speech",
         "Add text overlays to videos"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/ben/v2/video": {
       className: "BenV2Video",
@@ -114,8 +90,7 @@ export const config: ModuleConfig = {
         "Improve video clarity",
         "Apply video enhancements",
         "Optimize video output"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/birefnet/v2/video": {
       className: "BiRefNetV2Video",
@@ -134,8 +109,7 @@ export const config: ModuleConfig = {
         "Isolate video subjects",
         "Generate video mattes",
         "Prepare videos for compositing"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "bria/bria_video_eraser/erase/mask": {
       className: "BriaVideoEraserMask",
@@ -155,8 +129,7 @@ export const config: ModuleConfig = {
         "Clean up video backgrounds",
         "Remove watermarks from videos",
         "Edit video content seamlessly"
-      ],
-      basicFields: ["video", "mask"]
+      ]
     },
     "bria/bria_video_eraser/erase/keypoints": {
       className: "BriaVideoEraserKeypoints",
@@ -176,8 +149,7 @@ export const config: ModuleConfig = {
         "Targeted video content removal",
         "Precision video editing",
         "Remove elements with point markers"
-      ],
-      basicFields: ["video", "keypoints"]
+      ]
     },
     "bria/bria_video_eraser/erase/prompt": {
       className: "BriaVideoEraserPrompt",
@@ -197,8 +169,7 @@ export const config: ModuleConfig = {
         "Natural language video cleanup",
         "Prompt-driven object removal",
         "Semantic video editing"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/cogvideox-5b/video-to-video": {
       className: "CogVideoX5BVideoToVideo",
@@ -217,28 +188,7 @@ export const config: ModuleConfig = {
         "Restyle video content",
         "Generate video variations",
         "Create artistic video versions"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/frame-forge": {
-      className: "FrameForge",
-      docstring:
-        "Frame Forge processes and transforms individual video frames for creative effects.",
-      tags: [
-        "video",
-        "frame-processing",
-        "effects",
-        "transformation",
-        "video-to-video"
-      ],
-      useCases: [
-        "Process video frames individually",
-        "Apply per-frame effects",
-        "Transform frame sequences",
-        "Create frame-based effects",
-        "Generate processed video output"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/hunyuan-video/video-to-video": {
       className: "HunyuanVideoToVideo",
@@ -251,118 +201,7 @@ export const config: ModuleConfig = {
         "Restyle existing footage",
         "Generate video variations",
         "Create enhanced video versions"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/ltx-video/video-to-video": {
-      className: "LTXVideoToVideo",
-      docstring:
-        "LTX Video transforms videos with temporal consistency and high quality.",
-      tags: ["video", "transformation", "ltx", "temporal", "video-to-video"],
-      useCases: [
-        "Transform videos with consistency",
-        "Apply temporal effects",
-        "Generate smooth video transitions",
-        "Create consistent video variations",
-        "Maintain temporal coherence"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/luma-dream-machine/video-to-video": {
-      className: "LumaDreamMachineVideoToVideo",
-      docstring:
-        "Luma Dream Machine transforms videos with dreamlike artistic effects.",
-      tags: [
-        "video",
-        "transformation",
-        "luma",
-        "dream-machine",
-        "artistic",
-        "video-to-video"
-      ],
-      useCases: [
-        "Create dreamlike video effects",
-        "Transform videos artistically",
-        "Generate surreal video versions",
-        "Apply creative effects",
-        "Produce artistic video content"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/minimax-video/v1/video-to-video": {
-      className: "MinimaxVideoV1VideoToVideo",
-      docstring:
-        "Minimax Video v1 transforms videos efficiently with minimal resource usage.",
-      tags: [
-        "video",
-        "transformation",
-        "minimax",
-        "efficient",
-        "video-to-video"
-      ],
-      useCases: [
-        "Transform videos efficiently",
-        "Process videos with minimal resources",
-        "Generate optimized video outputs",
-        "Create scalable video transformations",
-        "Efficient video processing"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/runway-gen3/turbo/video-to-video": {
-      className: "RunwayGen3TurboVideoToVideo",
-      docstring:
-        "Runway Gen-3 Turbo transforms videos quickly with high-quality output.",
-      tags: [
-        "video",
-        "transformation",
-        "runway",
-        "gen3",
-        "turbo",
-        "video-to-video"
-      ],
-      useCases: [
-        "Transform videos rapidly",
-        "Quick video style transfers",
-        "Fast video processing",
-        "Real-time video effects",
-        "Efficient video transformations"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/stable-video/video-to-video": {
-      className: "StableVideoToVideo",
-      docstring:
-        "Stable Video transforms videos with consistent and stable results.",
-      tags: [
-        "video",
-        "transformation",
-        "stable",
-        "consistent",
-        "video-to-video"
-      ],
-      useCases: [
-        "Transform videos consistently",
-        "Generate stable video outputs",
-        "Create predictable video effects",
-        "Maintain video stability",
-        "Reliable video transformations"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/wan-x-labs/svd-v1": {
-      className: "WanXLabsSVDV1",
-      docstring:
-        "Wan X Labs SVD v1 performs stable video diffusion for video transformation.",
-      tags: ["video", "diffusion", "svd", "transformation", "video-to-video"],
-      useCases: [
-        "Apply diffusion effects to videos",
-        "Transform videos with SVD",
-        "Generate diffusion-based variations",
-        "Create stable video transformations",
-        "Produce diffusion video effects"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/video-upscaler": {
       className: "VideoUpscaler",
@@ -381,8 +220,7 @@ export const config: ModuleConfig = {
         "Increase video resolution",
         "Improve video clarity",
         "Restore old video footage"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/ccsr": {
       className: "CCSR",
@@ -401,166 +239,7 @@ export const config: ModuleConfig = {
         "Fix color issues in videos",
         "Improve video color grading",
         "Restore faded video footage"
-      ],
-      basicFields: ["video"]
-    },
-    "fal-ai/luma-photon/video-to-video": {
-      className: "LumaPhotonVideoToVideo",
-      docstring:
-        "Luma Photon transforms videos with photorealistic effects and enhancements.",
-      tags: [
-        "video",
-        "transformation",
-        "luma",
-        "photon",
-        "photorealistic",
-        "video-to-video"
-      ],
-      useCases: [
-        "Create photorealistic video effects",
-        "Transform videos realistically",
-        "Generate realistic video variations",
-        "Enhance video realism",
-        "Produce lifelike video content"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/kling-video/v1/standard/video-to-video": {
-      className: "KlingVideoV1StandardVideoToVideo",
-      docstring:
-        "Kling Video v1 Standard transforms videos with balanced quality and speed.",
-      tags: ["video", "transformation", "kling", "standard", "video-to-video"],
-      useCases: [
-        "Transform videos efficiently",
-        "Balanced video processing",
-        "Standard quality transformations",
-        "General purpose video effects",
-        "Moderate speed processing"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/kling-video/v1/pro/video-to-video": {
-      className: "KlingVideoV1ProVideoToVideo",
-      docstring:
-        "Kling Video v1 Pro transforms videos with professional quality output.",
-      tags: [
-        "video",
-        "transformation",
-        "kling",
-        "pro",
-        "professional",
-        "video-to-video"
-      ],
-      useCases: [
-        "Professional video transformations",
-        "High-quality video effects",
-        "Premium video processing",
-        "Cinematic video enhancements",
-        "Professional grade output"
-      ],
-      basicFields: ["video", "prompt"]
-    },
-    "fal-ai/moondream/video": {
-      className: "MoondreamVideo",
-      docstring:
-        "Moondream Video analyzes and processes video content with AI understanding.",
-      tags: [
-        "video",
-        "analysis",
-        "understanding",
-        "moondream",
-        "video-to-video"
-      ],
-      useCases: [
-        "Analyze video content",
-        "Process videos with AI understanding",
-        "Extract video insights",
-        "Generate video descriptions",
-        "Intelligent video processing"
-      ],
-      basicFields: ["video"]
-    },
-    "fal-ai/video-depth-crafter": {
-      className: "VideoDepthCrafter",
-      docstring:
-        "Video Depth Crafter generates depth maps from videos for 3D effects.",
-      tags: ["video", "depth-estimation", "3d", "depth-map", "video-to-video"],
-      useCases: [
-        "Generate depth maps from videos",
-        "Create 3D effects from videos",
-        "Extract depth information",
-        "Enable video 3D conversion",
-        "Produce depth-aware video effects"
-      ],
-      basicFields: ["video"]
-    },
-    "fal-ai/video-portrait": {
-      className: "VideoPortrait",
-      docstring:
-        "Video Portrait processes and enhances portrait videos with face-aware effects.",
-      tags: [
-        "video",
-        "portrait",
-        "face-processing",
-        "enhancement",
-        "video-to-video"
-      ],
-      useCases: [
-        "Process portrait videos",
-        "Enhance face quality in videos",
-        "Apply portrait effects",
-        "Improve video selfies",
-        "Face-aware video processing"
-      ],
-      basicFields: ["video"]
-    },
-    "fal-ai/viggle/v2": {
-      className: "ViggleV2",
-      docstring:
-        "Viggle v2 applies motion and animation effects to video content.",
-      tags: ["video", "motion", "animation", "viggle", "video-to-video"],
-      useCases: [
-        "Apply motion effects to videos",
-        "Animate video content",
-        "Create dynamic video effects",
-        "Generate motion-based variations",
-        "Add movement to videos"
-      ],
-      basicFields: ["video"]
-    },
-    "fal-ai/video-retalking": {
-      className: "VideoRetalking",
-      docstring:
-        "Video Retalking synchronizes lip movements in videos with new audio.",
-      tags: ["video", "lip-sync", "audio-sync", "retalking", "video-to-video"],
-      useCases: [
-        "Sync lips with new audio",
-        "Dub videos naturally",
-        "Change video dialogue",
-        "Create multilingual videos",
-        "Resync video speech"
-      ],
-      basicFields: ["video", "audio"]
-    },
-    "fal-ai/video-stabilizer": {
-      className: "VideoStabilizer",
-      docstring:
-        "Video Stabilizer removes camera shake and stabilizes shaky video footage.",
-      tags: [
-        "video",
-        "stabilization",
-        "shake-removal",
-        "smoothing",
-        "video-to-video"
-      ],
-      useCases: [
-        "Stabilize shaky videos",
-        "Remove camera shake",
-        "Smooth handheld footage",
-        "Fix unstable video",
-        "Improve video stability"
-      ],
-      basicFields: ["video"]
+      ]
     },
     "fal-ai/ltx-2-19b/distilled/video-to-video/lora": {
       className: "Ltx219BDistilledVideoToVideoLora",
@@ -848,8 +527,7 @@ export const config: ModuleConfig = {
         "Automated video editing",
         "Special effects generation",
         "Content repurposing"
-      ],
-      basicFields: ["video", "prompt", "duration"]
+      ]
     },
     "fal-ai/kling-video/o3/standard/video-to-video/edit": {
       className: "KlingVideoO3StandardVideoToVideoEdit",
@@ -861,8 +539,7 @@ export const config: ModuleConfig = {
         "Automated video editing",
         "Special effects generation",
         "Content repurposing"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/kling-video/o3/pro/video-to-video/reference": {
       className: "KlingVideoO3ProVideoToVideoReference",
@@ -874,8 +551,7 @@ export const config: ModuleConfig = {
         "Automated video editing",
         "Special effects generation",
         "Content repurposing"
-      ],
-      basicFields: ["video", "prompt", "duration"]
+      ]
     },
     "fal-ai/kling-video/o3/pro/video-to-video/edit": {
       className: "KlingVideoO3ProVideoToVideoEdit",
@@ -887,8 +563,7 @@ export const config: ModuleConfig = {
         "Automated video editing",
         "Special effects generation",
         "Content repurposing"
-      ],
-      basicFields: ["video", "prompt"]
+      ]
     },
     "fal-ai/steady-dancer": {
       className: "SteadyDancer",

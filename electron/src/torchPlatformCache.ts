@@ -1,8 +1,18 @@
-import { readSettings, updateSetting, readSettingsAsync } from "./settings";
+import { readSettings, updateSetting } from "./settings";
 import { logMessage } from "./logger";
 import type { TorchruntimeDetectionResult, TorchPlatform } from "./torchruntime";
 
 const TORCH_PLATFORM_SETTING_KEY = "TORCH_PLATFORM_DETECTED";
+
+const VALID_TORCH_PLATFORMS: ReadonlySet<string> = new Set([
+  "cu118", "cu124", "cu128", "cu129",
+  "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
+  "mps", "cpu"
+]);
+
+function isTorchPlatform(value: string): value is TorchPlatform {
+  return VALID_TORCH_PLATFORMS.has(value);
+}
 
 interface SavedTorchData {
   platform: string;
@@ -38,36 +48,13 @@ export function getSavedTorchPlatform(): TorchruntimeDetectionResult | null {
       return null;
     }
 
-    return {
-      platform: saved.platform as TorchPlatform,
-      indexUrl: saved.indexUrl,
-      error: saved.error,
-    };
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logMessage(`Failed to read saved torch platform: ${message}`, "warn");
-    return null;
-  }
-}
-
-/**
- * Get the saved torch platform detection result from settings asynchronously
- * Returns null if no detection result is saved
- */
-export async function getSavedTorchPlatformAsync(): Promise<TorchruntimeDetectionResult | null> {
-  try {
-    const settings = await readSettingsAsync();
-    const saved = settings[TORCH_PLATFORM_SETTING_KEY];
-
-    if (!isSavedTorchData(saved)) {
-      if (saved) {
-        logMessage("Invalid torch platform data in settings, ignoring", "warn");
-      }
+    if (!isTorchPlatform(saved.platform)) {
+      logMessage(`Unknown torch platform "${saved.platform}" in settings, ignoring`, "warn");
       return null;
     }
 
     return {
-      platform: saved.platform as TorchPlatform,
+      platform: saved.platform,
       indexUrl: saved.indexUrl,
       error: saved.error,
     };
@@ -85,23 +72,6 @@ export async function getSavedTorchPlatformAsync(): Promise<TorchruntimeDetectio
 export function getTorchIndexUrl(): string | null {
   const saved = getSavedTorchPlatform();
   
-  if (saved && saved.indexUrl) {
-    logMessage(`Using saved torch index URL: ${saved.indexUrl}`);
-    return saved.indexUrl;
-  }
-
-  // Fallback to CPU for consistent behavior across all platforms
-  logMessage("No saved torch platform, falling back to CPU");
-  return "https://download.pytorch.org/whl/cpu";
-}
-
-/**
- * Get torch index URL for package installation asynchronously
- * Uses saved detection result or falls back to default based on platform
- */
-export async function getTorchIndexUrlAsync(): Promise<string | null> {
-  const saved = await getSavedTorchPlatformAsync();
-
   if (saved && saved.indexUrl) {
     logMessage(`Using saved torch index URL: ${saved.indexUrl}`);
     return saved.indexUrl;

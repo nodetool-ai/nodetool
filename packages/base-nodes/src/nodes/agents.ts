@@ -11,7 +11,12 @@ import type {
   ProviderStreamItem,
   ToolCall
 } from "@nodetool-ai/runtime";
-import type { Chunk, LanguageModel, ProcessingMessage } from "@nodetool-ai/protocol";
+import type {
+  Chunk,
+  LanguageModel,
+  OutputCorrelation,
+  ProcessingMessage
+} from "@nodetool-ai/protocol";
 import { MultiModeAgent, Tool as AgentTool } from "@nodetool-ai/agents";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 
@@ -66,22 +71,6 @@ function asText(value: unknown): string {
     return JSON.stringify(value);
   }
   return "";
-}
-
-/**
- * Substitute {{variable}} placeholders in `template` from a map of values.
- * Used by AgentNode so users can parameterize the prompt/system text from
- * dynamic properties wired into the node. Unknown variables are left intact.
- */
-function substituteDynamicVars(
-  template: string,
-  vars: Map<string, unknown>
-): string {
-  if (vars.size === 0 || !template) return template;
-  return template.replace(/\{\{\s*([^}\s|]+)\s*\}\}/g, (match, name: string) => {
-    if (!vars.has(name)) return match;
-    return asText(vars.get(name));
-  });
 }
 
 function summarize(text: string, maxSentences: number): string {
@@ -301,16 +290,6 @@ export async function* streamProviderMessages(
   }
 }
 
-/**
- * Check whether a provider supports native agentic tool execution (MCP).
- * When true, the provider handles tool calls internally via onToolCall callback.
- */
-function isAgenticProvider(provider: BaseProvider): boolean {
-  return (
-    (provider as unknown as Record<string, unknown>).provider === "claude_agent"
-  );
-}
-
 function parseCategory(raw: string, categories: string[]): string {
   if (categories.length === 0) return "Unknown";
 
@@ -481,12 +460,104 @@ function logThreadWarning(
   });
 }
 
+const ASSET_URI_RE = /asset:\/\/[A-Za-z0-9._~\-/]+/g;
+
+const IMAGE_EXT_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  svg: "image/svg+xml"
+};
+
+const AUDIO_EXT_MIME: Record<string, string> = {
+  mp3: "audio/mpeg",
+  mpeg: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  m4a: "audio/mp4",
+  aac: "audio/aac",
+  flac: "audio/flac",
+  opus: "audio/opus"
+};
+
+/**
+ * Classify an `asset://<id>.<ext>` token by its extension. Only image and
+ * audio are provider-consumable media; everything else (text, video, unknown)
+ * returns null so the reference is left as literal text in the prompt.
+ */
+function classifyAssetToken(
+  token: string
+): { kind: "image" | "audio"; mime: string } | null {
+  const noScheme = token.slice("asset://".length);
+  const primary = noScheme.split(/[?#]/)[0];
+  const ext = (primary.split(".").pop() ?? "").toLowerCase();
+  if (ext in IMAGE_EXT_MIME) return { kind: "image", mime: IMAGE_EXT_MIME[ext] };
+  if (ext in AUDIO_EXT_MIME) return { kind: "audio", mime: AUDIO_EXT_MIME[ext] };
+  return null;
+}
+
+/**
+ * Split a prompt containing inline `asset://<id>.<ext>` references into a
+ * multimodal content array: text segments interleaved with image / audio
+ * blocks that carry the `asset://` URI verbatim. The blocks are NOT resolved
+ * here — the runtime layer (`ProcessingContext.resolveMessageMediaUris`)
+ * dereferences the URIs to data URIs just before the provider call. Tokens
+ * that aren't a supported media type (text, video, unknown) stay as literal
+ * text so the model still sees the mention.
+ */
+export function expandAssetReferences(prompt: string): MessageContent[] {
+  ASSET_URI_RE.lastIndex = 0;
+  if (!ASSET_URI_RE.test(prompt)) {
+    return [{ type: "text", text: prompt }];
+  }
+
+  const parts: MessageContent[] = [];
+  const pushText = (text: string) => {
+    if (text) parts.push({ type: "text", text });
+  };
+
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+  ASSET_URI_RE.lastIndex = 0;
+  while ((match = ASSET_URI_RE.exec(prompt)) !== null) {
+    let token = match[0];
+    // A trailing dot is sentence punctuation, not part of the extension.
+    const trailingDots = token.match(/\.+$/);
+    if (trailingDots) {
+      token = token.slice(0, token.length - trailingDots[0].length);
+    }
+    const classification = classifyAssetToken(token);
+    if (!classification) {
+      continue;
+    }
+    pushText(prompt.slice(cursor, match.index));
+    if (classification.kind === "image") {
+      parts.push({
+        type: "image_url",
+        image: { uri: token, mimeType: classification.mime }
+      });
+    } else {
+      parts.push({
+        type: "audio",
+        audio: { uri: token, mimeType: classification.mime }
+      });
+    }
+    cursor = match.index + token.length;
+  }
+  pushText(prompt.slice(cursor));
+
+  return parts.length > 0 ? parts : [{ type: "text", text: prompt }];
+}
+
 function buildUserMessage(
   prompt: string,
   image: unknown,
   audio: unknown
 ): Message {
-  const content: MessageContent[] = [{ type: "text", text: prompt }];
+  const content: MessageContent[] = expandAssetReferences(prompt);
   const imageRef = normalizeBinaryRef(image);
   if (imageRef) {
     content.push({ type: "image_url", image: imageRef });
@@ -1018,52 +1089,6 @@ export async function runAgentLoop(
   const provider = await context.getProvider(providerId);
   let lastAssistantText = "";
 
-  // --- Agentic provider fast-path ---
-  if (isAgenticProvider(provider) && tools.length > 0) {
-    const onToolCall = async (
-      name: string,
-      args: Record<string, unknown>
-    ): Promise<string> => {
-      const tool = tools.find((t) => t.name === name);
-      if (!tool || typeof tool.process !== "function") {
-        return JSON.stringify({ error: `Unknown tool: ${name}` });
-      }
-      try {
-        const result = await tool.process(context, args);
-        return typeof result === "string"
-          ? result
-          : JSON.stringify(serializeToolResult(result));
-      } catch (e) {
-        return JSON.stringify({ error: String(e) });
-      }
-    };
-
-    let assistantText = "";
-    for await (const item of streamProviderMessages(provider, {
-      messages,
-      model: modelId,
-      tools: providerTools,
-      maxTokens,
-      threadId: options.threadId,
-      onToolCall
-    })) {
-      if (isChunkItem(item) && !item.thinking) {
-        assistantText += item.content ?? "";
-      }
-    }
-
-    if (assistantText) {
-      lastAssistantText = assistantText;
-      messages.push({
-        role: "assistant",
-        content: [{ type: "text", text: assistantText }]
-      });
-    }
-
-    return { text: lastAssistantText, messages };
-  }
-
-  // --- Standard multi-iteration loop ---
   let iteration = 0;
   let shouldContinue = true;
 
@@ -1247,7 +1272,17 @@ export class SummarizerNode extends BaseNode {
     text: "str",
     chunk: "chunk"
   };
-  static readonly basicFields = ["text", "model", "image", "audio"];
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = ["image", "audio", "system_prompt"];
+  // TODO: process() awaits the full provider response and only returns
+  // `text` — `chunk` is never emitted. To actually stream, convert to
+  // `genProcess` and yield each provider piece as a `chunk`, then flip
+  // `chunk` to `iteration`. Keeping `single` so metadata reflects current
+  // behavior.
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "single", source: "__execution__" },
+    chunk: { kind: "single", source: "__execution__" }
+  };
   static readonly recommendedModels = [
     {
       id: "phi3.5:latest",
@@ -1306,7 +1341,6 @@ export class SummarizerNode extends BaseNode {
     { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Efficient Gemma 3 for summarization via llama.cpp." }
   ];
 
-  static readonly isStreamingOutput = true;
   @prop({
     type: "str",
     default:
@@ -1399,6 +1433,8 @@ export class SummarizerNode extends BaseNode {
 export class CreateThreadNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.CreateThread";
   static readonly title = "Create Thread";
+  static readonly inlineFields = ["title"];
+  static readonly inputFields: string[] = [];
   static readonly description =
     "Create a new conversation thread and return its ID.\n    threads, chat, conversation, context\n\n    Use this to seed a thread_id that downstream Agent nodes can reuse for\n    persistent history across the graph or multiple runs.";
   static readonly metadataOutputTypes = {
@@ -1450,7 +1486,8 @@ export class ExtractorNode extends BaseNode {
   static readonly title = "Extractor";
   static readonly description =
     "Extract structured data from text content using LLM providers.\n    data-extraction, structured-data, nlp, parsing\n\n    Specialized for extracting structured information:\n    - Converting unstructured text into structured data\n    - Identifying and extracting specific fields from documents\n    - Parsing text according to predefined schemas\n    - Creating structured records from natural language content";
-  static readonly basicFields = ["text", "model", "image", "audio"];
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = ["image", "audio", "system_prompt"];
   static readonly supportsDynamicOutputs = true;
   static readonly recommendedModels = [
     {
@@ -1608,13 +1645,8 @@ export class ClassifierNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = [
-    "text",
-    "categories",
-    "model",
-    "image",
-    "audio"
-  ];
+  static readonly inlineFields = ["text"];
+  static readonly inputFields = ["image", "audio", "system_prompt"];
   static readonly recommendedModels = [
     {
       id: "phi3.5:latest",
@@ -1808,12 +1840,19 @@ export class AgentNode extends BaseNode {
     thinking: "chunk",
     audio: "audio"
   };
-  static readonly basicFields = ["prompt", "model", "tools", "image", "audio"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image", "audio"];
   static readonly supportsDynamicOutputs = true;
-  // Dynamic properties become {{variable}} placeholders the user can wire
-  // into the prompt and system prompt — e.g. add `subject` and `body`
-  // properties, then write `Classify: {{subject}} — {{body}}` in the prompt.
-  static readonly isDynamic = true;
+  // Streamed outputs: each yielded chunk/thinking/audio is a distinct
+  // iteration step. Without this, the analyzer defaults to `single`, which
+  // gives every yield the same lineage key — downstream collapses to the
+  // last value and early chunks are dropped.
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "single", source: "__execution__" },
+    chunk: { kind: "iteration", source: "__execution__", group: "stream" },
+    thinking: { kind: "iteration", source: "__execution__", group: "stream" },
+    audio: { kind: "iteration", source: "__execution__", group: "stream" }
+  };
   static readonly recommendedModels = [
     {
       id: "gpt-oss:20b",
@@ -2236,7 +2275,6 @@ export class AgentNode extends BaseNode {
     }
   ];
 
-  static readonly isStreamingOutput = true;
   @prop({
     type: "language_model",
     default: {
@@ -2437,14 +2475,8 @@ export class AgentNode extends BaseNode {
       return;
     }
 
-    const prompt = substituteDynamicVars(
-      asText(this.prompt ?? ""),
-      this.dynamicProps
-    );
-    let system = substituteDynamicVars(
-      asText(this.system ?? DEFAULT_SYSTEM_PROMPT),
-      this.dynamicProps
-    );
+    const prompt = asText(this.prompt ?? "");
+    let system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
     const image = this.image ?? this.image;
     const audio = this.audio ?? this.audio;
     const historyInput = this.history ?? this.history;
@@ -2517,181 +2549,20 @@ export class AgentNode extends BaseNode {
       await saveThreadMessage(context, threadId, messages[messages.length - 1]);
     }
 
+    // Dereference inline asset:// references (mentioned in the prompt) to data
+    // URIs before the provider call. Resolution lives in the runtime layer so
+    // it's shared across nodes and providers stay asset-agnostic. Saved to the
+    // thread above first, so the stored message keeps the compact asset:// URI.
+    if (typeof context.resolveMessageMediaUris === "function") {
+      const resolved = await context.resolveMessageMediaUris(messages);
+      messages.splice(0, messages.length, ...resolved);
+    }
+
     let lastTextOutput: string | null = null;
     const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
     const provider = await context.getProvider(providerId);
 
-    // --- Agentic provider fast-path (e.g. Claude Agent SDK with MCP) ---
-    // The provider handles the full tool-calling loop internally.
-    // We provide an onToolCall callback so tools execute natively via MCP.
-    if (isAgenticProvider(provider) && tools.length > 0) {
-      log.info("AgentNode using agentic provider path", {
-        nodeId: this.__node_id ?? null,
-        providerId,
-        modelId,
-        toolCount: tools.length
-      });
-
-      // Build onToolCall callback that bridges into our tool set
-      const onToolCall = async (
-        name: string,
-        args: Record<string, unknown>
-      ): Promise<string> => {
-        const tool = tools.find((t) => t.name === name);
-        if (!tool || typeof tool.process !== "function") {
-          return JSON.stringify({ error: `Unknown tool: ${name}` });
-        }
-
-        if (isControlTool(tool)) {
-          const callArgs = args ?? {};
-          if (context.hasControlEventSupport) {
-            try {
-              const controlResult = await context.sendControlEvent(
-                tool.targetNodeId,
-                callArgs
-              );
-              return JSON.stringify({
-                status: "completed",
-                target_node_id: tool.targetNodeId,
-                result: controlResult
-              });
-            } catch (err) {
-              return JSON.stringify({
-                status: "error",
-                target_node_id: tool.targetNodeId,
-                error: err instanceof Error ? err.message : String(err)
-              });
-            }
-          }
-          return JSON.stringify({
-            status: "error",
-            error: "Control event dispatch unavailable"
-          });
-        }
-
-        try {
-          const result = await tool.process(context, args);
-          return typeof result === "string"
-            ? result
-            : JSON.stringify(serializeToolResult(result));
-        } catch (e) {
-          return JSON.stringify({ error: String(e) });
-        }
-      };
-
-      let assistantText = "";
-      const assistantToolCalls: ToolCall[] = [];
-      const thinkSplitter = new RedactedThinkingStreamSplitter();
-      let streamedRedactedThinking = false;
-
-      for await (const item of streamProviderMessages(provider, {
-        messages,
-        model: modelId,
-        tools: providerTools,
-        maxTokens,
-        maxTurns,
-        threadId: threadId || undefined,
-        onToolCall
-      })) {
-        if (isChunkItem(item)) {
-          if (item.thinking) {
-            yield { chunk: null, thinking: item, text: null, audio: null };
-          } else if (item.content_type === "audio") {
-            yield { chunk: item, thinking: null, text: null, audio: null };
-            const audioBytes = item.content
-              ? Buffer.from(item.content, "base64")
-              : Buffer.alloc(0);
-            yield {
-              chunk: null,
-              thinking: null,
-              text: null,
-              audio: { data: new Uint8Array(audioBytes) }
-            };
-          } else {
-            const rawPiece = item.content ?? "";
-            assistantText += rawPiece;
-            for (const y of yieldSplitThinkChunks(item, rawPiece, thinkSplitter)) {
-              if (y.thinking != null) streamedRedactedThinking = true;
-              yield y;
-            }
-          }
-        }
-        if (isToolCallItem(item)) {
-          assistantToolCalls.push(item);
-          log.info("AgentNode MCP tool executed", {
-            nodeId: this.__node_id ?? null,
-            toolName: item.name
-          });
-          yield {
-            chunk: toolCallChunk(item),
-            thinking: null,
-            text: null,
-            audio: null
-          };
-        }
-      }
-
-      for (const part of thinkSplitter.flush()) {
-        if (part.kind === "thinking" && part.content.length > 0) {
-          streamedRedactedThinking = true;
-          yield {
-            chunk: null,
-            thinking: { type: "chunk", content: part.content, thinking: true },
-            text: null,
-            audio: null
-          };
-        } else if (part.kind === "text" && part.content.length > 0) {
-          yield {
-            chunk: {
-              type: "chunk",
-              content: part.content,
-              content_type: "text",
-              thinking: false,
-              done: false
-            } as Chunk,
-            thinking: null,
-            text: null,
-            audio: null
-          };
-        }
-      }
-
-      if (assistantText) {
-        const { thinking: thinkingText, text: cleanText } =
-          extractThinkTags(assistantText);
-        const trimmed = cleanText.trim();
-        if (trimmed) {
-          lastTextOutput = trimmed;
-        }
-        if (thinkingText && !streamedRedactedThinking) {
-          yield {
-            chunk: null,
-            thinking: { type: "chunk", content: thinkingText, thinking: true },
-            text: null,
-            audio: null
-          };
-        }
-        yield { chunk: null, thinking: null, text: cleanText, audio: null };
-      }
-
-      // Save messages to thread
-      if (assistantText || assistantToolCalls.length > 0) {
-        const assistantMessage: Message = {
-          role: "assistant",
-          content: [{ type: "text", text: assistantText }],
-          toolCalls: assistantToolCalls.length > 0 ? assistantToolCalls : null
-        };
-        messages.push(assistantMessage);
-        await saveThreadMessage(context, threadId, assistantMessage);
-      }
-
-      log.info("AgentNode agentic path completed", {
-        nodeId: this.__node_id ?? null,
-        textLength: assistantText.length,
-        toolCallCount: assistantToolCalls.length
-      });
-    } else {
-      // --- Standard multi-iteration loop (for non-agentic providers) ---
+    {
       let shouldContinue = false;
       let firstIteration = true;
       let turn = 0;
@@ -3200,7 +3071,8 @@ export class AgentStepNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["instructions", "tools"];
+  static readonly inlineFields = ["instructions"];
+  static readonly inputFields = ["input"];
 
   @prop({
     type: "str",

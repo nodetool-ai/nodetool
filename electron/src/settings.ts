@@ -11,16 +11,52 @@ import { logMessage } from "./logger";
  */
 type SettingsRecord = Record<string, unknown>;
 
+function isSettingsRecord(value: unknown): value is SettingsRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 // Add cache at the module level
 let settingsCache: SettingsRecord | null = null;
 
 const START_LLAMA_CPP_ON_STARTUP_KEY = "START_LLAMA_CPP_ON_STARTUP";
+const UPDATE_CHANNEL_KEY = "updateChannel";
+const UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY = "updateChannelConfiguredByUser";
+const NIGHTLY_VERSION_PATTERN = /-nightly\.\d{8}\.\d+$/;
 
-export interface ModelServiceStartupSettings {
+export type UpdateChannel = "latest" | "nightly";
+
+function isNightlyVersion(version: string): boolean {
+  return NIGHTLY_VERSION_PATTERN.test(version);
+}
+
+function getDefaultUpdateChannel(version: string): UpdateChannel {
+  return isNightlyVersion(version) ? "nightly" : "latest";
+}
+
+export function normalizeUpdateChannel(value: unknown): UpdateChannel | null {
+  return value === "latest" || value === "nightly" ? value : null;
+}
+
+export function getUpdateChannel(settings: SettingsRecord | undefined, version: string): UpdateChannel {
+  const source = settings ?? readSettings();
+  const configuredByUser = source[UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY] === true;
+  const storedChannel = normalizeUpdateChannel(source[UPDATE_CHANNEL_KEY]);
+  return configuredByUser && storedChannel ? storedChannel : getDefaultUpdateChannel(version);
+}
+
+export function setUpdateChannel(channel: UpdateChannel): UpdateChannel {
+  updateSettings({
+    [UPDATE_CHANNEL_KEY]: channel,
+    [UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY]: true,
+  });
+  return channel;
+}
+
+interface ModelServiceStartupSettings {
   startLlamaCppOnStartup: boolean;
 }
 
-export interface ModelServiceStartupSettingsUpdate {
+interface ModelServiceStartupSettingsUpdate {
   startLlamaCppOnStartup?: boolean;
 }
 
@@ -131,7 +167,8 @@ function readSettings(): SettingsRecord {
     logMessage(`Reading settings from ${settingsPath}`);
     const fileContents = fs.readFileSync(settingsPath, "utf8");
 
-    settingsCache = (yaml.load(fileContents) as SettingsRecord) || {};
+    const loaded = yaml.load(fileContents);
+    settingsCache = isSettingsRecord(loaded) ? loaded : {};
     logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 
     return settingsCache;
@@ -170,7 +207,8 @@ async function readSettingsAsync(): Promise<SettingsRecord> {
     logMessage(`Reading settings from ${settingsPath}`);
     const fileContents = await fs.promises.readFile(settingsPath, "utf8");
 
-    settingsCache = (yaml.load(fileContents) as SettingsRecord) || {};
+    const loaded = yaml.load(fileContents);
+    settingsCache = isSettingsRecord(loaded) ? loaded : {};
     logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 
     return settingsCache;

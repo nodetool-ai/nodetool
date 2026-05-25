@@ -40,6 +40,7 @@ export interface QueryResult {
   ids: string[][];
   documents: (string | null)[][];
   metadatas: (Record<string, unknown> | null)[][];
+  uris: (string | null)[][];
   distances: number[][];
 }
 
@@ -47,6 +48,17 @@ export interface GetResult {
   ids: string[];
   documents: (string | null)[];
   metadatas: (Record<string, unknown> | null)[];
+  uris: (string | null)[];
+}
+
+function emptyQueryResult(): QueryResult {
+  return {
+    ids: [[]],
+    documents: [[]],
+    metadatas: [[]],
+    uris: [[]],
+    distances: [[]]
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -62,8 +74,8 @@ export interface EmbeddingFunction {
 // ---------------------------------------------------------------------------
 
 export class VecCollection {
-  readonly name: string;
-  readonly metadata: CollectionMetadata;
+  name: string;
+  metadata: CollectionMetadata;
   private store: SqliteVecStore;
   private collectionId: number;
   private embeddingFunction: EmbeddingFunction | null;
@@ -249,7 +261,7 @@ export class VecCollection {
     limit?: number;
     offset?: number;
   }): Promise<GetResult> {
-    let sql = `SELECT doc_id, document, metadata FROM "${this.docsTable}"`;
+    let sql = `SELECT doc_id, document, uri, metadata FROM "${this.docsTable}"`;
     const params: unknown[] = [];
 
     if (opts?.ids && opts.ids.length > 0) {
@@ -271,12 +283,14 @@ export class VecCollection {
     const rows = this.db.prepare(sql).all(...params) as Array<{
       doc_id: string;
       document: string | null;
+      uri: string | null;
       metadata: string;
     }>;
 
     return {
       ids: rows.map((r) => r.doc_id),
       documents: rows.map((r) => r.document),
+      uris: rows.map((r) => r.uri ?? null),
       metadatas: rows.map((r) => {
         try {
           return JSON.parse(r.metadata ?? "{}");
@@ -351,13 +365,13 @@ export class VecCollection {
     }
 
     if (!queryEmbeddings || queryEmbeddings.length === 0) {
-      return { ids: [[]], documents: [[]], metadatas: [[]], distances: [[]] };
+      return emptyQueryResult();
     }
 
     const dimension = this.getDimension();
     if (dimension === 0) {
       // No embeddings stored, return empty
-      return { ids: [[]], documents: [[]], metadatas: [[]], distances: [[]] };
+      return emptyQueryResult();
     }
 
     this.ensureIndex(dimension);
@@ -365,6 +379,7 @@ export class VecCollection {
     const allIds: string[][] = [];
     const allDocs: (string | null)[][] = [];
     const allMetas: (Record<string, unknown> | null)[][] = [];
+    const allUris: (string | null)[][] = [];
     const allDistances: number[][] = [];
 
     for (const queryEmb of queryEmbeddings) {
@@ -389,7 +404,7 @@ export class VecCollection {
       if (docFilter) {
         // Filter first, then rank by distance
         sql = `
-          SELECT d.doc_id, d.document, d.metadata, v.distance
+          SELECT d.doc_id, d.document, d.uri, d.metadata, v.distance
           FROM "${this.idxTable}" v
           JOIN "${this.docsTable}" d ON d.vec_rowid = v.rowid
           WHERE v.embedding MATCH ? AND k = ?
@@ -399,7 +414,7 @@ export class VecCollection {
         params = [queryBuf, nResults * 3, ...filterParams]; // over-fetch then limit
       } else {
         sql = `
-          SELECT d.doc_id, d.document, d.metadata, v.distance
+          SELECT d.doc_id, d.document, d.uri, d.metadata, v.distance
           FROM "${this.idxTable}" v
           JOIN "${this.docsTable}" d ON d.vec_rowid = v.rowid
           WHERE v.embedding MATCH ? AND k = ?
@@ -411,6 +426,7 @@ export class VecCollection {
       const rows = this.db.prepare(sql).all(...params) as Array<{
         doc_id: string;
         document: string | null;
+        uri: string | null;
         metadata: string;
         distance: number;
       }>;
@@ -419,6 +435,7 @@ export class VecCollection {
 
       allIds.push(limited.map((r) => r.doc_id));
       allDocs.push(limited.map((r) => r.document));
+      allUris.push(limited.map((r) => r.uri ?? null));
       allMetas.push(
         limited.map((r) => {
           try {
@@ -435,6 +452,7 @@ export class VecCollection {
       ids: allIds,
       documents: allDocs,
       metadatas: allMetas,
+      uris: allUris,
       distances: allDistances
     };
   }
@@ -448,10 +466,11 @@ export class VecCollection {
     const allIds: string[][] = [];
     const allDocs: (string | null)[][] = [];
     const allMetas: (Record<string, unknown> | null)[][] = [];
+    const allUris: (string | null)[][] = [];
     const allDistances: number[][] = [];
 
     for (const queryText of queryTexts) {
-      let sql = `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE document LIKE ? ESCAPE '\\'`;
+      let sql = `SELECT doc_id, document, uri, metadata FROM "${this.docsTable}" WHERE document LIKE ? ESCAPE '\\'`;
       const escapedQuery = queryText.replace(/[%_\\]/g, "\\$&");
       const params: unknown[] = [`%${escapedQuery}%`];
 
@@ -469,11 +488,13 @@ export class VecCollection {
       const rows = this.db.prepare(sql).all(...params) as Array<{
         doc_id: string;
         document: string | null;
+        uri: string | null;
         metadata: string;
       }>;
 
       allIds.push(rows.map((r) => r.doc_id));
       allDocs.push(rows.map((r) => r.document));
+      allUris.push(rows.map((r) => r.uri ?? null));
       allMetas.push(
         rows.map((r) => {
           try {
@@ -490,6 +511,7 @@ export class VecCollection {
       ids: allIds,
       documents: allDocs,
       metadatas: allMetas,
+      uris: allUris,
       distances: allDistances
     };
   }
@@ -499,22 +521,25 @@ export class VecCollection {
     const allIds: string[][] = [];
     const allDocs: (string | null)[][] = [];
     const allMetas: (Record<string, unknown> | null)[][] = [];
+    const allUris: (string | null)[][] = [];
     const allDistances: number[][] = [];
 
     for (const uri of queryURIs) {
       const escapedUri = uri.replace(/[%_\\]/g, "\\$&");
       const rows = this.db
         .prepare(
-          `SELECT doc_id, document, metadata FROM "${this.docsTable}" WHERE uri LIKE ? ESCAPE '\\' LIMIT ?`
+          `SELECT doc_id, document, uri, metadata FROM "${this.docsTable}" WHERE uri LIKE ? ESCAPE '\\' LIMIT ?`
         )
         .all(`%${escapedUri}%`, nResults) as Array<{
         doc_id: string;
         document: string | null;
+        uri: string | null;
         metadata: string;
       }>;
 
       allIds.push(rows.map((r) => r.doc_id));
       allDocs.push(rows.map((r) => r.document));
+      allUris.push(rows.map((r) => r.uri ?? null));
       allMetas.push(
         rows.map((r) => {
           try {
@@ -531,6 +556,7 @@ export class VecCollection {
       ids: allIds,
       documents: allDocs,
       metadatas: allMetas,
+      uris: allUris,
       distances: allDistances
     };
   }
@@ -576,11 +602,13 @@ export class VecCollection {
       this.db
         .prepare(`UPDATE vec_collections SET name = ? WHERE id = ?`)
         .run(opts.name, this.collectionId);
+      this.name = opts.name;
     }
     if (opts.metadata !== undefined) {
       this.db
         .prepare(`UPDATE vec_collections SET metadata = ? WHERE id = ?`)
         .run(JSON.stringify(opts.metadata), this.collectionId);
+      this.metadata = { ...opts.metadata };
     }
   }
 }

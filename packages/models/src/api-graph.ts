@@ -21,7 +21,6 @@ export interface ApiNode {
   ui_properties?: Record<string, unknown>;
   dynamic_properties?: Record<string, unknown>;
   dynamic_outputs?: Record<string, unknown>;
-  sync_mode?: "on_any" | "zip_all";
 }
 
 /** Edge representation for API transport. */
@@ -49,8 +48,7 @@ export interface ApiGraph {
  * Convert a kernel-level NodeDescriptor to an ApiNode.
  *
  * Strips runtime-only fields (is_streaming_input, is_streaming_output,
- * sync_mode, is_controlled, is_dynamic, outputs) and maps `properties`
- * to the `data` field.
+ * is_controlled, is_dynamic, outputs) and maps `properties` to `data`.
  */
 export function toApiNode(node: NodeDescriptor): ApiNode {
   return {
@@ -60,8 +58,7 @@ export function toApiNode(node: NodeDescriptor): ApiNode {
     data: (node.properties as Record<string, unknown>) ?? {},
     ui_properties: node.ui_properties ?? {},
     dynamic_properties: node.dynamic_properties ?? {},
-    dynamic_outputs: (node.dynamic_outputs as Record<string, unknown>) ?? {},
-    sync_mode: node.sync_mode ?? "on_any"
+    dynamic_outputs: (node.dynamic_outputs as Record<string, unknown>) ?? {}
   };
 }
 

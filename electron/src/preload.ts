@@ -127,6 +127,28 @@ function validateRepoId(repoId: string): string {
   return repoId;
 }
 
+/** Validate an npm package spec — name with optional scope and version. */
+function validateNpmSpec(spec: string): string {
+  if (typeof spec !== "string") {
+    throw new Error("Pack spec must be a string");
+  }
+  if (!/^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(@[\w.\-^~><=*]+)?$/i.test(spec)) {
+    throw new Error("Invalid npm pack spec");
+  }
+  return spec;
+}
+
+/** Validate a bare npm package name (no version). */
+function validateNpmName(name: string): string {
+  if (typeof name !== "string") {
+    throw new Error("Pack name must be a string");
+  }
+  if (!/^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i.test(name)) {
+    throw new Error("Invalid npm pack name");
+  }
+  return name;
+}
+
 // ============================================================================
 // API Definition
 // ============================================================================
@@ -324,6 +346,32 @@ const api = {
     /** Open folder picker for conda install location */
     selectInstallLocation: () =>
       ipcRenderer.invoke(IpcChannels.RUNTIME_SELECT_INSTALL_LOCATION),
+  },
+
+  // ============================================================================
+  // nodePacks: third-party TypeScript node packs (separate from `packages`,
+  // which manages Python nodes via the registry)
+  // ============================================================================
+  nodePacks: {
+    /** List packs installed in the Electron-managed install root. */
+    listInstalled: () =>
+      ipcRenderer.invoke(IpcChannels.NODE_PACK_LIST_INSTALLED),
+
+    /** Install a pack by npm spec (e.g. `@acme/cool-nodes` or `cool-nodes@1.2.3`). */
+    install: (spec: string) =>
+      ipcRenderer.invoke(IpcChannels.NODE_PACK_INSTALL, {
+        spec: validateNpmSpec(spec),
+      }),
+
+    /** Uninstall a pack by package name. */
+    uninstall: (name: string) =>
+      ipcRenderer.invoke(IpcChannels.NODE_PACK_UNINSTALL, {
+        name: validateNpmName(name),
+      }),
+
+    /** Path of the install root (so the UI can show it). */
+    getInstallDir: () =>
+      ipcRenderer.invoke(IpcChannels.NODE_PACK_GET_INSTALL_DIR),
   },
 
   // ============================================================================
@@ -634,6 +682,14 @@ const api = {
     setAutoUpdates: (enabled: boolean) =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_SET_AUTO_UPDATES, enabled),
 
+    /** Get the selected desktop update channel */
+    getUpdateChannel: () =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_GET_UPDATE_CHANNEL),
+
+    /** Set the selected desktop update channel */
+    setUpdateChannel: (channel: "latest" | "nightly") =>
+      ipcRenderer.invoke(IpcChannels.SETTINGS_SET_UPDATE_CHANNEL, channel),
+
     /** Get startup settings for managed local model services */
     getModelServicesStartup: () =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP),
@@ -661,10 +717,9 @@ const api = {
       ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
   },
 
-  // The Claude/Codex/OpenCode agent runtime moved out of the Electron main
-  // process and now lives on the NodeTool server. The renderer talks to it
-  // directly over the `/ws/agent` WebSocket — see
-  // `web/src/lib/agent/AgentSocketClient.ts`.
+  // The agent runtime moved out of the Electron main process and now lives
+  // on the NodeTool server. The renderer talks to it directly over the
+  // `/ws/agent` WebSocket — see `web/src/lib/agent/AgentSocketClient.ts`.
 
   // ============================================================================
   // logging: Renderer -> main logging bridge

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
   ONBOARDING_STEP_ORDER,
@@ -168,16 +168,19 @@ const useNodeStats = (): NodeStats => {
 
 const OnboardingOverlay: React.FC = () => {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
 
   const completed = useOnboardingStore((s) => s.completed);
   const dismissed = useOnboardingStore((s) => s.dismissed);
   const markComplete = useOnboardingStore((s) => s.markComplete);
+  const panelMountCount = useOnboardingStore((s) => s.panelMountCount);
 
   const isNodeMenuOpen = useNodeMenuStore((s) => s.isMenuOpen);
   const { maxNodeCount, hasStringNode, hasAgentNode } = useNodeStats();
 
-  const onWelcomePage = pathname === "/welcome";
+  // The checklist panel (GettingStartedPanel) shows the same step content
+  // as our hints. When it's visible — on the chat homepage, dashboard, etc. —
+  // suppress the floating overlay so we don't double up.
+  const panelVisible = panelMountCount > 0;
 
   const incompleteSteps = useMemo(
     () => ONBOARDING_STEP_ORDER.filter((id) => !completed[id]),
@@ -248,7 +251,7 @@ const OnboardingOverlay: React.FC = () => {
     if (effectiveStep?.modelsRoute) navigate(effectiveStep.modelsRoute);
   }, [effectiveStep?.modelsRoute, navigate]);
 
-  if (dismissed || onWelcomePage || !visible || !effectiveStep) return null;
+  if (dismissed || panelVisible || !visible || !effectiveStep) return null;
 
   return createPortal(
     <>

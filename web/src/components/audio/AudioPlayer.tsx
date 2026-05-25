@@ -128,7 +128,7 @@ const formatTime = (time: number) => {
 
 const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   const theme = useTheme();
-  const wsprops = getWsprops(theme);
+  const wsprops = useMemo(() => getWsprops(theme), [theme]);
   const {
     source,
     alwaysShowControls = wsprops.alwaysShowControls,
@@ -143,6 +143,11 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     mimeType = "audio/mp3",
     ...otherProps
   } = incomingProps;
+
+  // Ref keeps config props stable — these only apply at WaveSurfer creation
+  // time and should not trigger callback/effect recreation on every render.
+  const otherPropsRef = useRef(otherProps);
+  otherPropsRef.current = otherProps;
 
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [prevUrl, setPrevUrl] = useState<string | null>(null);
@@ -165,13 +170,6 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     } catch (error) {
       console.error("Audio Playback Error:", error);
     }
-  }, []);
-
-  useEffect(() => {
-    console.info("Audio Player mounted.");
-    return () => {
-      console.info("Audio Player unmounted.");
-    };
   }, []);
 
   const onPlay = useCallback(() => {
@@ -255,7 +253,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         const waveSurfer = WaveSurfer.create({
           container: waveFormRef.current,
           ...wsprops,
-          ...otherProps,
+          ...otherPropsRef.current,
           url: audioUrl,
           plugins: [minimap]
         });
@@ -270,7 +268,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           setIsReady(true);
           checkWaveformFit();
           console.info("Audio is ready for playback");
-          if (otherProps.playOnLoad) {
+          if (otherPropsRef.current.playOnLoad) {
             waveSurfer.play();
           }
         });
@@ -318,7 +316,6 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     minimapHeight,
     minimapBarHeight,
     minPxPerSec,
-    otherProps,
     onPlay,
     onPause,
     checkWaveformFit,
@@ -360,9 +357,23 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     };
   }, [onPlay, onPause]);
 
+  const handleZoomChange = useCallback((value: number) => {
+    try {
+      requestAnimationFrame(() => {
+        setZoom(value);
+        waveSurferRef.current?.zoom(value);
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.info("Zoom audio failed: ", message);
+    }
+  }, []);
+
+  const cssStyles = useMemo(() => styles(theme), [theme]);
+
   return (
     <div
-      css={styles(theme)}
+      css={cssStyles}
       onClick={(e) => {
         e.stopPropagation();
       }}
@@ -420,17 +431,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           mute={mute}
           setMute={setMute}
           fontSize={fontSize}
-          onZoomChange={(value) => {
-            try {
-              requestAnimationFrame(() => {
-                setZoom(value);
-                waveSurferRef.current?.zoom(value);
-              });
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              console.info("Zoom audio failed: ", message);
-            }
-          }}
+          onZoomChange={handleZoomChange}
         />
       )}
     </div>

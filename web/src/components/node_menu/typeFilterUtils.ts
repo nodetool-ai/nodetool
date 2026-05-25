@@ -1,7 +1,7 @@
 import { NodeMetadata, TypeMetadata, TypeName } from "../../stores/ApiTypes";
 import { isConnectable } from "../../utils/TypeHandler";
 
-export type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
+type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
 
 const hashType = (type: TypeMetadata): string => {
   if (type) {
@@ -14,7 +14,7 @@ const hashType = (type: TypeMetadata): string => {
 
 let connectabilityMatrix: ConnectabilityMatrix | null = null;
 
-export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
+export function createConnectabilityMatrix(metadata: NodeMetadata[]): void {
   if (connectabilityMatrix) {
     return;
   }
@@ -55,7 +55,7 @@ export function createConnectabilityMatrix(metadata: NodeMetadata[]) {
 export function isConnectableCached(
   sourceType: TypeMetadata,
   targetType: TypeMetadata
-) {
+): boolean {
   const sourceKey = hashType(sourceType);
   const targetKey = hashType(targetType);
   const cached = connectabilityMatrix?.[sourceKey]?.[targetKey];

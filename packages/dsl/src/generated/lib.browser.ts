@@ -13,8 +13,8 @@ export interface WebFetchOutputs {
   output: string;
 }
 
-export function webFetch(inputs: WebFetchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<WebFetchOutputs, "output"> {
-  return createNode("lib.browser.WebFetch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function webFetch(inputs: WebFetchInputs): DslNode<WebFetchOutputs, "output"> {
+  return createNode("lib.browser.WebFetch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Download File — lib.browser.DownloadFile
@@ -26,8 +26,8 @@ export interface DownloadFileOutputs {
   output: unknown;
 }
 
-export function downloadFile(inputs: DownloadFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DownloadFileOutputs, "output"> {
-  return createNode("lib.browser.DownloadFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function downloadFile(inputs: DownloadFileInputs): DslNode<DownloadFileOutputs, "output"> {
+  return createNode("lib.browser.DownloadFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Browser — lib.browser.Browser
@@ -42,8 +42,8 @@ export interface BrowserOutputs {
   metadata: Record<string, unknown>;
 }
 
-export function browser(inputs: BrowserInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<BrowserOutputs> {
-  return createNode("lib.browser.Browser", inputs as Record<string, unknown>, { outputNames: ["success", "content", "metadata"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function browser(inputs: BrowserInputs): DslNode<BrowserOutputs> {
+  return createNode("lib.browser.Browser", inputs as Record<string, unknown>, { outputNames: ["success", "content", "metadata"] });
 }
 
 // Screenshot — lib.browser.Screenshot
@@ -57,8 +57,8 @@ export interface ScreenshotOutputs {
   output: ImageRef;
 }
 
-export function screenshot(inputs: ScreenshotInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ScreenshotOutputs, "output"> {
-  return createNode("lib.browser.Screenshot", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function screenshot(inputs: ScreenshotInputs): DslNode<ScreenshotOutputs, "output"> {
+  return createNode("lib.browser.Screenshot", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Spider Crawl — lib.browser.SpiderCrawl
@@ -84,6 +84,6 @@ export interface SpiderCrawlOutputs {
   pages: unknown[];
 }
 
-export function spiderCrawl(inputs: SpiderCrawlInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SpiderCrawlOutputs> {
-  return createNode("lib.browser.SpiderCrawl", inputs as Record<string, unknown>, { outputNames: ["url", "depth", "html", "title", "status_code", "pages"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function spiderCrawl(inputs: SpiderCrawlInputs): DslNode<SpiderCrawlOutputs> {
+  return createNode("lib.browser.SpiderCrawl", inputs as Record<string, unknown>, { outputNames: ["url", "depth", "html", "title", "status_code", "pages"], streaming: true });
 }

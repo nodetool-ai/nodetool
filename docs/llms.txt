@@ -1,0 +1,123 @@
+---
+layout: null
+permalink: /llms.txt
+---
+# NodeTool Documentation
+
+> {{ site.description }}
+
+NodeTool is an open-source, local-first visual environment for building AI workflows. Wire image, video, audio, text, and agent models on a node-based canvas. Runs on macOS, Windows, Linux (Studio), or in the browser (Cloud). AGPL-3.0.
+
+## Getting Started
+
+- [Introduction]({{ site.url }}/): Overview of NodeTool — Studio vs Cloud, what you can build.
+- [Why NodeTool]({{ site.url }}/comparisons): How NodeTool compares to ComfyUI, n8n, LangChain, etc.
+- [Installation]({{ site.url }}/installation): Install NodeTool Studio on macOS, Windows, or Linux.
+- [Quick Start]({{ site.url }}/getting-started): Install, run a template, edit and iterate.
+
+## Core Concepts
+
+- [Key Concepts]({{ site.url }}/key-concepts): Canvas, nodes, edges, workflows, agents, providers.
+- [Workflows]({{ site.url }}/workflow-editor): Building, running, and managing workflow graphs.
+- [Nodes]({{ site.url }}/nodes/): Catalog of available nodes by category.
+- [Agents]({{ site.url }}/global-chat-agents): Planning agents, tools, multi-step execution.
+- [Models]({{ site.url }}/models-and-providers): Local and cloud model providers.
+- [Glossary]({{ site.url }}/glossary): Terminology used across NodeTool.
+
+## Workflow Editor
+
+- [User Interface]({{ site.url }}/user-interface): UI tour and shortcuts.
+- [Workflow Editor]({{ site.url }}/workflow-editor): Canvas, ports, edges, execution.
+- [Editor Panels]({{ site.url }}/editor-panels): Inspector, assets, models, chat panels.
+- [Chain Editor]({{ site.url }}/chain-editor): Linear chain authoring mode.
+- [Graph View]({{ site.url }}/workflow-graph-view): Read-only graph navigation.
+- [Debugging]({{ site.url }}/workflow-debugging): Inspect runs, errors, logs.
+- [Image Editor]({{ site.url }}/image-editor): Mask, paint, layer images inline.
+- [Templates Gallery]({{ site.url }}/templates-gallery): Browse and open starter workflows.
+- [VibeCoding]({{ site.url }}/vibecoding): Generate workflows from natural language.
+- [ComfyUI Integration]({{ site.url }}/comfyui-integration): Import and run ComfyUI graphs.
+
+## Chat & Agents
+
+- [Global Chat]({{ site.url }}/global-chat): Provider-agnostic chat interface.
+- [Chat & Agents]({{ site.url }}/global-chat-agents): Use agents from chat.
+- [Agent Config]({{ site.url }}/agent-config-schema): YAML schema for agent definitions.
+- [Agent Memory]({{ site.url }}/agent-memory): How agents persist context.
+
+## Models & Providers
+
+- [Overview]({{ site.url }}/models-and-providers): All supported providers.
+- [Local vs Cloud]({{ site.url }}/models): When to use which.
+- [Provider Reference]({{ site.url }}/providers): Per-provider configuration.
+- [HuggingFace]({{ site.url }}/huggingface): Models from the Hub.
+- [Models Manager]({{ site.url }}/models-manager): Download and manage local models.
+
+## Examples
+
+- [Cookbook]({{ site.url }}/cookbook): End-to-end patterns and recipes.
+- [Core Patterns]({{ site.url }}/cookbook/core-concepts): Foundational workflow patterns.
+- [Pipeline Patterns]({{ site.url }}/cookbook/patterns): Composition patterns.
+- [Workflow Examples]({{ site.url }}/workflows/): Ready-to-run sample workflows.
+
+## Configuration
+
+- [Configuration]({{ site.url }}/configuration): Settings and environment variables.
+- [Storage]({{ site.url }}/storage): Local and S3 storage backends.
+- [Vector Storage]({{ site.url }}/vector-storage): SQLite-vec (default), Pinecone, Supabase pgvector.
+- [Indexing]({{ site.url }}/indexing): Document ingestion and RAG pipelines.
+- [Collections]({{ site.url }}/collections): Vector collections for RAG.
+- [Asset Management]({{ site.url }}/asset-management): Files, images, datasets.
+- [Authentication]({{ site.url }}/authentication): Auth setup for hosted deployments.
+- [Security Hardening]({{ site.url }}/security-hardening): Production security guidance.
+- [Proxy]({{ site.url }}/proxy): HTTP/HTTPS proxy configuration.
+
+## Deployment
+
+- [Deployment Guide]({{ site.url }}/deployment): Where and how to deploy.
+- [End-to-End Guide]({{ site.url }}/deployment-e2e-guide): Full production walkthrough.
+- [Self-Hosted]({{ site.url }}/self-hosted-deployment): Run on your own infra with Docker.
+- [Docker Resources]({{ site.url }}/docker-resource-management): GPU, memory, volumes.
+- [RunPod]({{ site.url }}/runpod-deployment): Serverless GPU deployment.
+- [Google Cloud Run]({{ site.url }}/gcp-deployment): GCP managed deployment.
+- [Supabase]({{ site.url }}/supabase-deployment): Postgres + auth backend.
+
+## CLI
+
+- [CLI Overview]({{ site.url }}/cli): `nodetool` command reference.
+- [Chat CLI]({{ site.url }}/chat-cli): Interactive chat with agent mode.
+- [Agent CLI]({{ site.url }}/agent-cli): Run agent configs from the terminal.
+- [Chat Server]({{ site.url }}/chat-server): Standalone chat WebSocket server.
+- [API Server]({{ site.url }}/api-server): REST + WebSocket API server.
+- [Terminal WebSocket]({{ site.url }}/terminal-websocket): Browser terminal protocol.
+
+## API Reference
+
+- [API Overview]({{ site.url }}/api-reference): REST API conventions.
+- [Workflow API]({{ site.url }}/workflow-api): Create, run, manage workflows.
+- [WebSocket API]({{ site.url }}/websocket-api): Streaming run protocol.
+- [Chat API]({{ site.url }}/chat-api): OpenAI-compatible chat endpoint.
+
+## Developers
+
+- [Developer Guide]({{ site.url }}/developer/): Build and extend NodeTool.
+- [Architecture]({{ site.url }}/architecture): Backend packages, kernel, runtime, providers.
+- [Packages]({{ site.url }}/packages): NPM workspace package map.
+- [Python Bridge Protocol]({{ site.url }}/python-bridge-protocol): Stdio msgpack bridge to Python nodes.
+- [Execution Strategies]({{ site.url }}/execution-strategies): Subprocess, Docker, in-process.
+- [Custom Nodes]({{ site.url }}/developer/custom-nodes-guide): Implement BaseNode subclasses.
+- [Node Patterns]({{ site.url }}/developer/node-patterns): process / genProcess / streaming.
+- [Node Reference]({{ site.url }}/developer/node-reference): @prop, types, decorators.
+- [TypeScript DSL]({{ site.url }}/developer/ts-dsl-guide): Define workflows in TS.
+- [Gradio Conversion]({{ site.url }}/developer/gradio-conversion): Convert Gradio apps to nodes.
+- [Node Packs]({{ site.url }}/node-packs): Distribute nodes as installable packs.
+
+## Apps
+
+- [Desktop App]({{ site.url }}/desktop-app): NodeTool Studio (Electron).
+- [Desktop App Views]({{ site.url }}/electron-views): Windows and panels.
+- [Mobile App]({{ site.url }}/mobile-app): React Native client.
+
+## Help
+
+- [Troubleshooting]({{ site.url }}/troubleshooting): Common errors and fixes.
+- [Tips & Tricks]({{ site.url }}/tips-and-tricks): Productivity shortcuts.

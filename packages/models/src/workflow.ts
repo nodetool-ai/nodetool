@@ -4,18 +4,27 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or, isNull, type SQL } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
+import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 // ── Types ────────────────────────────────────────────────────────────
 
 export type AccessLevel = "private" | "public";
+export type { WorkflowRunMode };
 
 export interface WorkflowGraph {
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
+}
+
+function ensureSqlCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
+  if (!condition) {
+    throw new Error("Expected SQL condition");
+  }
+  return condition;
 }
 
 export class Workflow extends DBModel {
@@ -117,7 +126,7 @@ export class Workflow extends DBModel {
     opts: {
       limit?: number;
       access?: AccessLevel;
-      runMode?: string;
+      runMode?: WorkflowRunMode | string;
       tag?: string;
     } = {}
   ): Promise<[Workflow[], string]> {
@@ -126,20 +135,40 @@ export class Workflow extends DBModel {
 
     const conditions = [eq(workflows.user_id, userId)];
     if (access) conditions.push(eq(workflows.access, access));
-    if (runMode) conditions.push(eq(workflows.run_mode, runMode));
+    if (runMode) {
+      conditions.push(eq(workflows.run_mode, runMode));
+    } else {
+      // Default listing surfaces standalone workflows plus legacy layer/clip
+      // rows (the layer/clip clone-on-bind machinery has been removed; these
+      // rows now show up alongside regular workflows).
+      conditions.push(
+        ensureSqlCondition(
+          or(
+            eq(workflows.run_mode, "workflow"),
+            eq(workflows.run_mode, "layer"),
+            eq(workflows.run_mode, "clip"),
+            isNull(workflows.run_mode)
+          )
+        )
+      );
+    }
 
     const rows = await db
       .select()
       .from(workflows)
       .where(and(...conditions))
       .orderBy(desc(workflows.updated_at))
-      .limit(tag ? 10_000 : limit + 1)
+      .limit(tag ? 10_000 : limit + 1);
 
-    let items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    let items = rows.map(
+      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+    );
 
     // Filter by tag in-memory (JSON array field)
     if (tag) {
-      items = items.filter((w: Workflow) => Array.isArray(w.tags) && w.tags.includes(tag));
+      items = items.filter(
+        (w: Workflow) => Array.isArray(w.tags) && w.tags.includes(tag)
+      );
       // Apply limit after tag filter
       const capped = items.slice(0, limit + 1);
       if (capped.length <= limit) return [capped, ""];
@@ -165,9 +194,11 @@ export class Workflow extends DBModel {
       .from(workflows)
       .where(eq(workflows.access, "public"))
       .orderBy(desc(workflows.updated_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
-    const items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    const items = rows.map(
+      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+    );
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -186,9 +217,11 @@ export class Workflow extends DBModel {
       .from(workflows)
       .where(and(eq(workflows.user_id, userId), eq(workflows.run_mode, "tool")))
       .orderBy(desc(workflows.updated_at))
-      .limit(limit + 1)
+      .limit(limit + 1);
 
-    const items: Workflow[] = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
+    const items: Workflow[] = rows.map(
+      (r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>)
+    );
     if (items.length <= limit) {
       const tools = items.filter((w: Workflow) => w.hasToolName());
       return [tools, ""];
@@ -245,39 +278,4 @@ export class Workflow extends DBModel {
     return row ? new Workflow(row as Record<string, unknown>) : null;
   }
 
-  /**
-   * Clone an existing workflow into a new `run_mode = "clip"` row owned by
-   * `ownerUserId`. The clone has an empty `tags` set and no tool_name, so it
-   * is invisible in standalone workflow listings.
-   *
-   * Returns the new persisted Workflow.
-   */
-  static async cloneAsClipPrivate(
-    sourceId: string,
-    ownerUserId: string
-  ): Promise<Workflow> {
-    const source = await Workflow.get<Workflow>(sourceId);
-    if (!source) {
-      throw new Error(`Source workflow ${sourceId} not found`);
-    }
-    const clone = new Workflow({
-      user_id: ownerUserId,
-      name: source.name,
-      description: source.description ?? "",
-      tags: [],
-      thumbnail: null,
-      thumbnail_url: null,
-      graph: source.graph,
-      settings: source.settings ?? null,
-      package_name: null,
-      path: null,
-      tool_name: null,
-      run_mode: "clip",
-      workspace_id: source.workspace_id ?? null,
-      html_app: null,
-      access: "private"
-    });
-    await clone.save();
-    return clone;
-  }
 }

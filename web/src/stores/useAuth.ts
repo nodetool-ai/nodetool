@@ -4,8 +4,7 @@ import { supabase } from "../lib/supabaseClient"; // Import Supabase client
 import type { Session, User, Provider } from "@supabase/supabase-js"; // Import Supabase types
 import { isLocalhost } from "../lib/env"; // Keep isLocalhost for potential dev bypass
 
-// Define Supabase provider types supported by the application
-export type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
+type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
 
 /**
  * Resolve the OAuth redirect URL.
@@ -35,8 +34,8 @@ export const getAuthRedirectUrl = (): string => {
           if (env) {
               configured = env.VITE_AUTH_REDIRECT_URL;
           }
-      } catch (e) {
-          // Ignore
+      } catch (_) {
+          // Ignore — import.meta may not be available in all environments
       }
   }
 
@@ -57,7 +56,7 @@ type SupabaseSubscription = {
 /**
  * Interface defining the structure of the authentication Zustand store.
  */
-export interface LoginStore {
+interface LoginStore {
   /** The current Supabase session object, or null if not logged in. */
   session: Session | null;
   /** The current Supabase user object derived from the session, or null. */

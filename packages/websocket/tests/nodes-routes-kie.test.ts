@@ -73,7 +73,7 @@ describe("Kie schema resolve route", () => {
       model_id: "bytedance/seedance-2",
       dynamic_properties: {
         prompt: "",
-        reference_image_urls: [],
+        reference_images: [],
         generate_audio: true,
         resolution: "720p",
         duration: 15
@@ -85,9 +85,9 @@ describe("Kie schema resolve route", () => {
           optional: true,
           description: "The text prompt or description for the video."
         },
-        reference_image_urls: {
+        reference_images: {
           type: "list",
-          type_args: [{ type: "str", type_args: [] }],
+          type_args: [{ type: "image", type_args: [] }],
           optional: true,
           description:
             "Please provide the URL of the uploaded file,A list of input image URLs."
@@ -136,6 +136,118 @@ describe("Kie schema resolve route", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json().model_id).toBe("bytedance/seedance-2");
+  });
+
+  it("maps Kie media URL arrays to media list handles", async () => {
+    const docs = `# Seedance 2 API Documentation
+
+### Model Parameter
+| Property | Value | Description |
+|----------|-------|-------------|
+| **Format** | \`bytedance/seedance-2\` | The exact model identifier for this API |
+
+### input Object Parameters
+
+#### reference_image_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,A list of input image URLs.
+- **Accepted File Types**: image/jpeg, image/png, image/webp, image/jpg
+- **Default Value**: \`["https://example.com/image.png"]\`
+
+#### reference_video_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,A list of input video URLs.
+- **Accepted File Types**: video/mp4, video/quicktime, video/x-matroska
+- **Default Value**: \`["https://example.com/video.mp4"]\`
+
+#### reference_audio_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,A list of input audio URLs.
+- **Accepted File Types**: audio/mpeg, audio/wav, audio/x-wav, audio/aac, audio/mp4, audio/ogg
+- **Default Value**: \`["https://example.com/audio.mp3"]\`
+`;
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/kie/resolve-dynamic-schema",
+      payload: { model_info: docs }
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      dynamic_properties: {
+        reference_images: [],
+        reference_videos: [],
+        reference_audios: []
+      },
+      dynamic_inputs: {
+        reference_images: {
+          type: "list",
+          type_args: [{ type: "image", type_args: [] }]
+        },
+        reference_videos: {
+          type: "list",
+          type_args: [{ type: "video", type_args: [] }]
+        },
+        reference_audios: {
+          type: "list",
+          type_args: [{ type: "audio", type_args: [] }]
+        }
+      }
+    });
+    expect(res.json().dynamic_inputs.reference_images.default).toBeUndefined();
+    expect(res.json().dynamic_inputs.reference_videos.default).toBeUndefined();
+    expect(res.json().dynamic_inputs.reference_audios.default).toBeUndefined();
+  });
+
+  it("maps generic Kie input_urls image arrays to images", async () => {
+    const docs = `# GPT Image 2 Image-to-Image API Documentation
+
+### Model Parameter
+| Property | Value | Description |
+|----------|-------|-------------|
+| **Format** | \`gpt-image-2-image\` | The exact model identifier for this API |
+
+### input Object Parameters
+
+#### prompt
+- **Type**: \`string\`
+- **Required**: Yes
+- **Description**: Describe the image edits.
+
+#### input_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,Input images to transform.
+- **Accepted File Types**: image/jpeg, image/png, image/webp
+- **Multiple Files**: Yes
+- **Default Value**: \`[]\`
+`;
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/kie/resolve-dynamic-schema",
+      payload: { model_info: docs }
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      model_id: "gpt-image-2-image",
+      dynamic_properties: {
+        images: []
+      },
+      dynamic_inputs: {
+        images: {
+          type: "list",
+          type_args: [{ type: "image", type_args: [] }]
+        }
+      }
+    });
+    expect(res.json().dynamic_properties.input_urls).toBeUndefined();
+    expect(res.json().dynamic_inputs.input_urls).toBeUndefined();
   });
 
   it("accepts JSON requests when the server parses bodies as raw buffers", async () => {
@@ -312,6 +424,103 @@ The \`callBackUrl\` parameter allows you to receive automatic notifications when
         image: {
           type: "image"
         }
+      }
+    });
+  });
+
+  it("resolves gemini-omni-video params from embedded OpenAPI YAML", async () => {
+    const docs = `# Gemini Omni Video
+
+| **Format** | \`gemini-omni-video\` |
+
+### input Object Parameters
+
+#### prompt
+- **Type**: \`string\`
+- **Required**: Yes
+- **Description**: Video prompt.
+
+#### image_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,Upload an image file to use as input for the API
+- **Accepted File Types**: image/jpeg, image/png, image/webp, image/jpg
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/jobs/createTask:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  enum:
+                    - gemini-omni-video
+                input:
+                  type: object
+                  required:
+                    - prompt
+                  properties:
+                    prompt:
+                      type: string
+                    image_urls:
+                      type: array
+                      items:
+                        type: string
+                        format: uri
+                    audio_ids:
+                      type: array
+                      items:
+                        type: string
+                    video_list:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            format: uri
+                          start:
+                            type: number
+                          ends:
+                            type: number
+                    character_ids:
+                      type: array
+                      items:
+                        type: string
+\`\`\`
+`;
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/kie/resolve-dynamic-schema",
+      payload: { model_info: docs }
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      model_id: "gemini-omni-video",
+      dynamic_inputs: {
+        video_list: {
+          type: "video_clip_list",
+          type_args: []
+        },
+        audio_ids: {
+          type: "list",
+          type_args: [{ type: "str", type_args: [] }]
+        },
+        character_ids: {
+          type: "list",
+          type_args: [{ type: "str", type_args: [] }]
+        }
+      },
+      dynamic_outputs: {
+        video: { type: "video" }
       }
     });
   });

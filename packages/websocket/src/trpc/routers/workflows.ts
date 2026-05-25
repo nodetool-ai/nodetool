@@ -23,7 +23,11 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
 import { withCacheBuster } from "../../lib/example-thumbnail.js";
-import { Workflow, WorkflowVersion, Job } from "@nodetool-ai/models";
+import {
+  Workflow,
+  WorkflowVersion,
+  Job
+} from "@nodetool-ai/models";
 import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
@@ -33,6 +37,11 @@ import { WorkflowRunner } from "@nodetool-ai/kernel";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
+import {
+  loadExampleGraph,
+  defaultExamplePackageName,
+  deriveExampleAssetsDir
+} from "../../example-workflows.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -117,6 +126,40 @@ function safeGraph(
   return null;
 }
 
+const OUTPUT_NODE_MEDIA_TYPES: Record<string, "image" | "video" | "audio"> = {
+  "nodetool.output.ImageOutput": "image",
+  "nodetool.output.VideoOutput": "video",
+  "nodetool.output.AudioOutput": "audio"
+};
+
+function findTerminalMediaOutputNodes(
+  workflow: WorkflowModel
+): Array<{ id: string; type: string; data?: Record<string, unknown> }> {
+  const graph = safeGraph(workflow.id, workflow.graph);
+  const nodes = (graph?.nodes ?? []) as Array<{
+    id: string;
+    type: string;
+    data?: Record<string, unknown>;
+  }>;
+  const edges = (graph?.edges ?? []) as Array<{ source?: string }>;
+  const terminalOutputNodeIds = new Set(
+    nodes
+      .filter((n) => n.type in OUTPUT_NODE_MEDIA_TYPES)
+      .map((n) => n.id)
+  );
+  for (const edge of edges) {
+    const sourceId = edge.source;
+    if (sourceId && terminalOutputNodeIds.has(sourceId)) {
+      terminalOutputNodeIds.delete(sourceId);
+    }
+  }
+  return nodes.filter((n) => terminalOutputNodeIds.has(n.id));
+}
+
+function hasTerminalMediaOutput(workflow: WorkflowModel): boolean {
+  return findTerminalMediaOutputNodes(workflow).length > 0;
+}
+
 // ── Rate-limit tracking for autosave ───────────────────────────────────────
 const lastAutosaveTime = new Map<string, number>();
 const AUTOSAVE_RATE_LIMIT_MS = 30_000;
@@ -179,17 +222,15 @@ interface ExampleMetadata {
   tags?: string[];
 }
 
-function deriveAssetsDir(examplesDir: string): string {
-  return nodePath.join(
-    nodePath.dirname(nodePath.dirname(examplesDir)),
-    "assets",
-    nodePath.basename(examplesDir)
-  );
-}
-
-function buildExamplesFromDir(examplesDir: string): unknown[] {
+function buildExamplesFromDir(
+  examplesDir: string,
+  examplesAssetsFallbackDir?: string
+): unknown[] {
   if (!existsSync(examplesDir)) return [];
-  const assetsDir = deriveAssetsDir(examplesDir);
+  const assetsDir = deriveExampleAssetsDir(
+    examplesDir,
+    examplesAssetsFallbackDir
+  );
   const now = new Date().toISOString();
   const workflows: unknown[] = [];
   let files: string[];
@@ -254,10 +295,18 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
 }
 
 function buildExampleWorkflows(
-  apiOptions: { examplesDir?: string; metadataRoots?: string[]; metadataMaxDepth?: number }
+  apiOptions: {
+    examplesDir?: string;
+    examplesAssetsFallbackDir?: string;
+    metadataRoots?: string[];
+    metadataMaxDepth?: number;
+  }
 ): unknown[] {
   if (apiOptions.examplesDir) {
-    return buildExamplesFromDir(apiOptions.examplesDir);
+    return buildExamplesFromDir(
+      apiOptions.examplesDir,
+      apiOptions.examplesAssetsFallbackDir
+    );
   }
   const loaded = loadPythonPackageMetadata({
     roots: apiOptions.metadataRoots,
@@ -298,31 +347,6 @@ function buildExampleWorkflows(
   return workflows;
 }
 
-function loadExampleGraph(
-  packageName: string,
-  exampleName: string,
-  apiOptions: { metadataRoots?: string[]; metadataMaxDepth?: number }
-): Record<string, unknown> | null {
-  const loaded = loadPythonPackageMetadata({
-    roots: apiOptions.metadataRoots,
-    maxDepth: apiOptions.metadataMaxDepth
-  });
-  const pkg = loaded.packages.find((p) => p.name === packageName);
-  if (!pkg?.sourceFolder) return null;
-  const examplePath = nodePath.join(
-    pkg.sourceFolder,
-    "nodetool",
-    "examples",
-    packageName,
-    `${exampleName}.json`
-  );
-  try {
-    const raw = readFileSync(examplePath, "utf8");
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
 
 // ── deriveWorkflowName ─────────────────────────────────────────────────────
 
@@ -364,9 +388,15 @@ export const workflowsRouter = router({
         runMode: input.run_mode,
         tag: input.tag
       });
+      let filtered = workflows;
+      if (input.mediaOutput) {
+        filtered = filtered.filter((w) => hasTerminalMediaOutput(w));
+      }
       return {
-        workflows: workflows.map((w) => toWorkflowResponse(w)),
-        next: cursor || null
+        workflows: filtered.map((w) => toWorkflowResponse(w)),
+        // mediaOutput filtering happens in memory after DB pagination, so cursor
+        // pagination is intentionally disabled for this mode.
+        next: input.mediaOutput ? null : cursor || null
       };
     }),
 
@@ -404,13 +434,13 @@ export const workflowsRouter = router({
       let graph = input.graph;
 
       // Optionally seed from example
-      if (
-        input.from_example_package &&
-        input.from_example_name &&
-        (!graph || graph.nodes?.length === 0)
-      ) {
+      if (input.from_example_name && (!graph || graph.nodes?.length === 0)) {
+        const examplePackage =
+          input.from_example_package ??
+          defaultExamplePackageName(ctx.apiOptions) ??
+          "nodetool-base";
         const example = loadExampleGraph(
-          input.from_example_package,
+          examplePackage,
           input.from_example_name,
           ctx.apiOptions
         );
@@ -823,23 +853,7 @@ export const workflowsRouter = router({
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
 
-      // NOTE: This map also lives in the timeline router (timeline.ts).
-      // Both should be kept in sync until extracted to a shared protocol constant.
-      const OUTPUT_NODE_MEDIA_TYPES: Record<string, "image" | "video" | "audio"> = {
-        "nodetool.output.ImageOutput": "image",
-        "nodetool.output.VideoOutput": "video",
-        "nodetool.output.AudioOutput": "audio"
-      };
-
-      const graph = safeGraph(workflow.id, workflow.graph);
-      const nodes = (graph?.nodes ?? []) as Array<{
-        id: string;
-        type: string;
-        data?: Record<string, unknown>;
-      }>;
-
-      const outputs = nodes
-        .filter((n) => n.type in OUTPUT_NODE_MEDIA_TYPES)
+      const outputs = findTerminalMediaOutputNodes(workflow)
         .map((n) => ({
           id: n.id,
           type: n.type,

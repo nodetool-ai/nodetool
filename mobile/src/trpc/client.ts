@@ -7,7 +7,7 @@
  * session / host configuration without a circular import.
  */
 
-import { createTRPCClient, httpBatchLink, type TRPCClientErrorLike } from '@trpc/client';
+import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
 import type { AppRouter } from '@nodetool-ai/websocket/trpc';
 
@@ -37,5 +37,3 @@ export function createMobileTRPCClient() {
     ],
   });
 }
-
-export type TRPCClientError = TRPCClientErrorLike<AppRouter>;

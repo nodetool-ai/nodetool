@@ -9,19 +9,23 @@ import {
   getPostgresDatabaseUrl,
   loadEnvironment
 } from "@nodetool-ai/config";
+import { createHTTPHandler } from "@trpc/server/adapters/standalone";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
+import {
+  registerBuiltInNodes,
+  applyProductionNodePolicy
+} from "./node-registry-setup.js";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection
 } from "./unified-websocket-runner.js";
+import { appRouter } from "./trpc/router.js";
+import { createContextFactory } from "./trpc/context.js";
 import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
 import { initDb, initPostgresDb } from "@nodetool-ai/models";
@@ -29,6 +33,10 @@ import { initDb, initPostgresDb } from "@nodetool-ai/models";
 loadEnvironment(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.."));
 
 const log = createLogger("nodetool.websocket.server");
+const DEMO_IMAGE_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==",
+  "base64"
+);
 
 function htmlPage(): string {
   return `<!doctype html>
@@ -1176,19 +1184,8 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     roots: metadataRoots,
     maxDepth: options.metadataMaxDepth ?? 8
   });
-  registerBaseNodes(registry);
-  registerElevenLabsNodes(registry);
-  if (process.env["NODETOOL_ENV"] !== "production") {
-    registerTransformersJsNodes(registry);
-  }
-  if (process.env["NODETOOL_ENV"] === "production") {
-    const skippedPrefixes = ["lib.tensorflow.", "transformers."];
-    for (const nodeType of registry.list()) {
-      if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
-        registry.unregister(nodeType);
-      }
-    }
-  }
+  registerBuiltInNodes(registry);
+  applyProductionNodePolicy(registry);
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,
@@ -1198,6 +1195,21 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     ...(examplesDir ? { examplesDir } : {})
   };
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
+  const trpcContextFactory = createContextFactory({
+    registry,
+    apiOptions: resolvedApiOptions,
+    pythonBridge: {} as Parameters<typeof createContextFactory>[0]["pythonBridge"],
+    getPythonBridgeReady: () => false
+  });
+  const trpcHandler = createHTTPHandler({
+    router: appRouter,
+    createContext: ({ req }) => {
+      (req as IncomingMessage & { userId?: string }).userId = "1";
+      return trpcContextFactory({
+        req: req as unknown as Parameters<typeof trpcContextFactory>[0]["req"]
+      });
+    }
+  });
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", `http://${host}:${port}`);
@@ -1242,6 +1254,26 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       res.statusCode = 200;
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify(example));
+      return;
+    }
+    if (
+      /^\/api\/storage\/asset-photo1(?:_thumb)?\.(?:jpg|jpeg|png)$/i.test(
+        url.pathname
+      )
+    ) {
+      res.statusCode = 200;
+      res.setHeader("content-type", "image/png");
+      res.setHeader("cache-control", "no-store");
+      res.end(DEMO_IMAGE_PNG);
+      return;
+    }
+    if (
+      url.pathname.startsWith("/trpc")
+    ) {
+      const originalUrl = req.url;
+      req.url = (req.url ?? "/").replace(/^\/trpc/, "") || "/";
+      void trpcHandler(req, res);
+      req.url = originalUrl;
       return;
     }
     if (

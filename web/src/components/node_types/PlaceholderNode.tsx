@@ -249,7 +249,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       node_type: resolvedType || "unknown",
       layout: "default",
       properties: mockProperties,
-      basic_fields: [],
       is_dynamic: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
@@ -276,10 +275,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       mockProperties
     ]
   );
-  const basicFields = mockProperties
-    .slice(0, 2)
-    .map((property) => property.name);
-
   const className = useMemo(
     () =>
       `node-body ${props.data.collapsed ? "collapsed" : ""}
@@ -356,7 +351,6 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       {mockProperties.length > 0 && (
         <NodeInputs
           nodeMetadata={mockMetadata}
-          basicFields={basicFields}
           id={props.id}
           nodeType={nodeType || ""}
           properties={mockProperties}

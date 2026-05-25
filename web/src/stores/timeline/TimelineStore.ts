@@ -31,13 +31,16 @@ import {
   snap,
   makeTrack,
   makeClip,
+  makeTrackEffect,
   createTimeOrderedUuid
 } from "@nodetool-ai/timeline";
 import type {
   TimelineSequence,
   TimelineTrack,
   TimelineClip,
-  TimelineMarker
+  TimelineMarker,
+  TrackEffect,
+  ClipBindingKind
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
@@ -52,7 +55,14 @@ const SNAP_THRESHOLD_PX = 8;
 export interface TimelineStoreState {
   // ── Document ─────────────────────────────────────────────────────────────
   sequenceId: string | null;
+  /** Latest server-side `updatedAt` for the loaded sequence; used as the
+   * `baseUpdatedAt` optimistic-concurrency token by autosave. */
+  baseUpdatedAt: string | null;
   fps: number;
+  /** Sequence width in pixels (project resolution). */
+  width: number;
+  /** Sequence height in pixels (project resolution). */
+  height: number;
   durationMs: number;
   tracks: TimelineTrack[];
   clips: TimelineClip[];
@@ -64,6 +74,8 @@ export interface TimelineStoreState {
   loadSequence: (seq: TimelineSequence) => void;
   /** Reset the store to an empty document. */
   reset: () => void;
+  /** Roll `baseUpdatedAt` forward after a successful server save. */
+  setBaseUpdatedAt: (updatedAt: string) => void;
 
   // ── Track mutations ──────────────────────────────────────────────────────
 
@@ -77,6 +89,25 @@ export interface TimelineStoreState {
   setTrackMuted: (trackId: string, muted: boolean) => void;
   setTrackSolo: (trackId: string, solo: boolean) => void;
   setTrackName: (trackId: string, name: string) => void;
+
+  // ── Track DSP effects ────────────────────────────────────────────────────
+
+  /** Append a new effect of the given type to the track's DSP chain. */
+  addTrackEffect: (trackId: string, type: TrackEffect["type"]) => void;
+  /** Patch a single effect by id. Type-narrowed at the call site. */
+  updateTrackEffect: (
+    trackId: string,
+    effectId: string,
+    patch: Partial<TrackEffect>
+  ) => void;
+  /** Remove an effect from the track's chain. */
+  removeTrackEffect: (trackId: string, effectId: string) => void;
+  /** Move an effect within the chain (oldIndex → newIndex). */
+  moveTrackEffect: (
+    trackId: string,
+    oldIndex: number,
+    newIndex: number
+  ) => void;
 
   // ── Clip mutations ───────────────────────────────────────────────────────
 
@@ -113,7 +144,11 @@ export interface TimelineStoreState {
    * Throws (and no-ops) if the result would produce a non-positive duration.
    */
   trimClipStart: (clipId: string, deltaMs: number) => void;
-  trimClipEnd: (clipId: string, deltaMs: number) => void;
+  trimClipEnd: (
+    clipId: string,
+    deltaMs: number,
+    maxSourceDurationMs?: number
+  ) => void;
 
   /** Split the clip at the given time. The clip must contain that time. */
   splitClipAtTime: (clipId: string, atMs: number) => void;
@@ -122,10 +157,17 @@ export interface TimelineStoreState {
   splitSelectedAtPlayhead: (currentTimeMs: number, selectedIds: Set<string>) => void;
 
   /**
-   * Duplicate selected clips (offset by `offsetMs`, default 0 = placed at same
-   * start — callers should apply a reasonable offset).
+   * Duplicate selected clips. Each duplicate is placed immediately after its
+   * source clip (startMs = source.startMs + source.durationMs + offsetMs).
+   * Default `offsetMs` of 0 means "right after"; pass a positive value to add
+   * a gap between source and duplicate.
+   *
+   * Returns the IDs of the newly created clips so callers can update selection.
    */
-  duplicateSelected: (selectedIds: Set<string>, offsetMs?: number) => void;
+  duplicateSelected: (
+    selectedIds: Set<string>,
+    offsetMs?: number
+  ) => string[];
 
   /** Delete selected clips. */
   deleteSelected: (selectedIds: Set<string>) => void;
@@ -149,9 +191,16 @@ export interface TimelineStoreState {
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
 
-  duplicateClipLinked: (clipId: string, deltaMs?: number) => void;
-
-  duplicateClipAsVariation: (clipId: string, deltaMs?: number) => Promise<string>;
+  /**
+   * Duplicate a clip. Both the source and the duplicate reference the same
+   * source workflow id; their `paramOverrides` are independent. Tweak the
+   * duplicate's overrides to get a variation.
+   *
+   * The duplicate is placed immediately after the source clip
+   * (startMs = source.startMs + source.durationMs + deltaMs). Default
+   * `deltaMs` of 0 means "right after"; pass a positive value for a gap.
+   */
+  duplicateClip: (clipId: string, deltaMs?: number) => Promise<string>;
 
   setClipLocked: (clipId: string, locked: boolean) => void;
 
@@ -192,11 +241,9 @@ export interface TimelineStoreState {
   setClipsOutputNode: (workflowId: string, selectedOutputNodeId: string) => void;
 
   /**
-   * Create a generated clip by cloning `sourceWorkflowId` into a
-   * `run_mode = "clip"` workflow row, then inserting the clip into the
-   * current sequence document.
-   *
-   * Returns the id of the newly created clip.
+   * Create a generated clip bound to `sourceWorkflowId` (no clone) and
+   * insert it into the current sequence document. Returns the id of the
+   * newly created clip.
    */
   addGeneratedClip: (
     sourceWorkflowId: string,
@@ -204,6 +251,76 @@ export interface TimelineStoreState {
     startMs: number,
     opts?: { selectedOutputNodeId?: string; mediaTypeOverride?: "overlay" }
   ) => Promise<string>;
+
+  /**
+   * Create a direct-generation clip (text-to-image / image-to-image) bound
+   * to a provider+model+prompt directly — no workflow. The clip is added
+   * locally; autosave persists it. Returns the id of the new clip.
+   */
+  addDirectGenClip: (opts: {
+    trackId: string;
+    startMs: number;
+    durationMs?: number;
+    mediaType?: "image" | "video" | "audio" | "overlay";
+    bindingKind?:
+      | "text-to-image"
+      | "image-to-image"
+      | "text-to-video"
+      | "text-to-audio";
+    prompt: string;
+    provider?: string;
+    model?: string;
+    voice?: string;
+    sourceClipId?: string | null;
+    width?: number;
+    height?: number;
+    strength?: number;
+    numInferenceSteps?: number;
+    name?: string;
+  }) => string;
+
+  /** Update a direct-gen clip's prompt. Marks the clip stale if already generated. */
+  setClipPrompt: (clipId: string, prompt: string) => void;
+
+  /** Update a direct-gen clip's provider + model. Marks stale if already generated. */
+  setClipDirectGenModel: (
+    clipId: string,
+    provider: string,
+    model: string
+  ) => void;
+
+  /** Update arbitrary direct-gen binding fields on a clip. Marks stale when applicable. */
+  patchClipBinding: (
+    clipId: string,
+    patch: Partial<
+      Pick<
+        TimelineClip,
+        | "bindingKind"
+        | "prompt"
+        | "negativePrompt"
+        | "provider"
+        | "model"
+        | "voice"
+        | "sourceClipId"
+        | "width"
+        | "height"
+        | "strength"
+        | "numInferenceSteps"
+        | "seed"
+      >
+    >
+  ) => void;
+
+  /**
+   * "Regenerate as a new clip" — duplicates the clip immediately to the
+   * right, preserving its full binding (workflow + paramOverrides, OR
+   * direct-gen prompt + model). The new clip starts in `draft` so the
+   * caller can immediately kick off `useGenerateClip(newClipId)`.
+   *
+   * The original clip is left untouched — useful when a clip has been
+   * split and you want a fresh roll without losing the existing render.
+   */
+  regenerateAsCopy: (clipId: string, deltaMs?: number) => string;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
@@ -217,7 +334,10 @@ type PartializedState = Pick<
 
 const emptyState = {
   sequenceId: null as string | null,
+  baseUpdatedAt: null as string | null,
   fps: 30,
+  width: 1920,
+  height: 1080,
   durationMs: 0,
   tracks: [] as TimelineTrack[],
   clips: [] as TimelineClip[],
@@ -236,8 +356,6 @@ export const createTimelineStore = (
   > = {}
 ) =>
   create<TimelineStoreState>()(
-    // @ts-expect-error zundo v2 / zustand v4 types are not fully compatible.
-    // Tracked in https://github.com/charkour/zundo/issues — same pattern as NodeStore.ts.
     temporal(
       (set, get) => ({
         ...emptyState,
@@ -248,7 +366,10 @@ export const createTimelineStore = (
         loadSequence: (seq) =>
           set({
             sequenceId: seq.id,
+            baseUpdatedAt: seq.updatedAt,
             fps: seq.fps,
+            width: seq.width,
+            height: seq.height,
             durationMs: seq.durationMs,
             tracks: seq.tracks,
             clips: seq.clips,
@@ -256,6 +377,8 @@ export const createTimelineStore = (
           }),
 
         reset: () => set({ ...emptyState }),
+
+        setBaseUpdatedAt: (updatedAt) => set({ baseUpdatedAt: updatedAt }),
 
         // ── Tracks ──────────────────────────────────────────────────────────
 
@@ -283,7 +406,7 @@ export const createTimelineStore = (
                 const t = byId.get(id);
                 return t ? { ...t, index } : null;
               })
-              .filter(Boolean) as TimelineTrack[];
+              .filter((t): t is TimelineTrack => t !== null);
             return { tracks: reordered };
           }),
 
@@ -327,6 +450,61 @@ export const createTimelineStore = (
             tracks: state.tracks.map((t) =>
               t.id === trackId ? { ...t, name } : t
             )
+          })),
+
+        // ── Track DSP effects ─────────────────────────────────────────────
+
+        addTrackEffect: (trackId, type) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = [...(t.effects ?? []), makeTrackEffect(type)];
+              return { ...t, effects };
+            })
+          })),
+
+        updateTrackEffect: (trackId, effectId, patch) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = (t.effects ?? []).map((e) =>
+                e.id === effectId
+                  ? ({ ...e, ...patch } as TrackEffect)
+                  : e
+              );
+              return { ...t, effects };
+            })
+          })),
+
+        removeTrackEffect: (trackId, effectId) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = (t.effects ?? []).filter(
+                (e) => e.id !== effectId
+              );
+              return { ...t, effects };
+            })
+          })),
+
+        moveTrackEffect: (trackId, oldIndex, newIndex) =>
+          set((state) => ({
+            tracks: state.tracks.map((t) => {
+              if (t.id !== trackId) return t;
+              const effects = [...(t.effects ?? [])];
+              if (
+                oldIndex < 0 ||
+                oldIndex >= effects.length ||
+                newIndex < 0 ||
+                newIndex >= effects.length ||
+                oldIndex === newIndex
+              ) {
+                return t;
+              }
+              const [moved] = effects.splice(oldIndex, 1);
+              effects.splice(newIndex, 0, moved);
+              return { ...t, effects };
+            })
           })),
 
         // ── Clips ───────────────────────────────────────────────────────────
@@ -436,14 +614,24 @@ export const createTimelineStore = (
             }
           }),
 
-        trimClipEnd: (clipId, deltaMs) =>
+        trimClipEnd: (clipId, deltaMs, maxSourceDurationMs) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
             if (!clip) {
               return state;
             }
             try {
-              const trimmed = trimClip(clip, "end", deltaMs);
+              // Clamp deltaMs so that outPointMs cannot exceed source duration.
+              let clampedDelta = deltaMs;
+              if (maxSourceDurationMs !== undefined) {
+                const currentOutPointMs =
+                  clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
+                const maxGrow = maxSourceDurationMs - currentOutPointMs;
+                if (clampedDelta > maxGrow) {
+                  clampedDelta = Math.max(0, maxGrow);
+                }
+              }
+              const trimmed = trimClip(clip, "end", clampedDelta);
               return {
                 clips: state.clips.map((c) =>
                   c.id === clipId ? trimmed : c
@@ -496,19 +684,24 @@ export const createTimelineStore = (
             return { clips: nextClips };
           }),
 
-        duplicateSelected: (selectedIds, offsetMs = 0) =>
+        duplicateSelected: (selectedIds, offsetMs = 0) => {
+          const newIds: string[] = [];
           set((state) => {
             const newClips = state.clips
               .filter((c) => selectedIds.has(c.id))
-              .map((c) =>
-                makeClip({
+              .map((c) => {
+                const id = createTimeOrderedUuid();
+                newIds.push(id);
+                return makeClip({
                   ...c,
-                  id: createTimeOrderedUuid(),
-                  startMs: c.startMs + offsetMs
-                })
-              );
+                  id,
+                  startMs: c.startMs + c.durationMs + offsetMs
+                });
+              });
             return { clips: [...state.clips, ...newClips] };
-          }),
+          });
+          return newIds;
+        },
 
         deleteSelected: (selectedIds) =>
           set((state) => ({
@@ -565,47 +758,10 @@ export const createTimelineStore = (
             };
           }),
 
-        duplicateClipLinked: (clipId, deltaMs = 0) =>
-          set((state) => {
-            const src = state.clips.find((c) => c.id === clipId);
-            if (!src) {
-              return state;
-            }
-            const newClip = makeClip({
-              ...src,
-              id: createTimeOrderedUuid(),
-              startMs: src.startMs + deltaMs,
-              paramOverrides: src.paramOverrides
-                ? structuredClone(src.paramOverrides)
-                : undefined,
-              status: "draft",
-              locked: false,
-              currentAssetId: undefined,
-              lastGeneratedHash: undefined,
-              versions: []
-            });
-            return { clips: [...state.clips, newClip] };
-          }),
-
-        duplicateClipAsVariation: async (clipId, deltaMs = 0) => {
+        duplicateClip: async (clipId, deltaMs = 0) => {
           const src = get().clips.find((c) => c.id === clipId);
           if (!src) {
             throw new Error(`Clip ${clipId} not found`);
-          }
-
-          let newWorkflowId: string | undefined;
-
-          if (src.workflowId) {
-            const original = await trpcClient.workflows.get.query({ id: src.workflowId });
-            const cloned = await trpcClient.workflows.create.mutate({
-              name: `${original.name} (variation)`,
-              access: original.access ?? "private",
-              graph: original.graph,
-              description: original.description,
-              tags: original.tags,
-              run_mode: "clip"
-            });
-            newWorkflowId = cloned.id;
           }
 
           let newClipId: string | undefined;
@@ -617,8 +773,8 @@ export const createTimelineStore = (
             const newClip = makeClip({
               ...currentSrc,
               id: createTimeOrderedUuid(),
-              startMs: currentSrc.startMs + deltaMs,
-              workflowId: newWorkflowId,
+              startMs: currentSrc.startMs + currentSrc.durationMs + deltaMs,
+              workflowId: currentSrc.workflowId,
               paramOverrides: currentSrc.paramOverrides
                 ? structuredClone(currentSrc.paramOverrides)
                 : undefined,
@@ -633,7 +789,9 @@ export const createTimelineStore = (
           });
 
           if (!newClipId) {
-            throw new Error(`Source clip ${clipId} was deleted before variation could be created`);
+            throw new Error(
+              `Source clip ${clipId} was deleted before duplicate could be created`
+            );
           }
           return newClipId;
         },
@@ -717,6 +875,111 @@ export const createTimelineStore = (
           }));
 
           return newClip.id;
+        },
+
+        addDirectGenClip: (opts) => {
+          const bindingKind: ClipBindingKind = opts.bindingKind ?? "text-to-image";
+          const mediaType = opts.mediaType ?? "image";
+          const durationMs = opts.durationMs ?? 4000;
+          const trimmedPrompt = opts.prompt.trim();
+          const fallbackName =
+            trimmedPrompt.length > 0
+              ? trimmedPrompt.slice(0, 40)
+              : bindingKind === "image-to-image"
+                ? "Image-to-Image"
+                : bindingKind === "text-to-video"
+                  ? "Text-to-Video"
+                  : bindingKind === "text-to-audio"
+                    ? "Text-to-Audio"
+                    : "Text-to-Image";
+
+          const clip = makeClip({
+            id: createTimeOrderedUuid(),
+            name: opts.name ?? fallbackName,
+            trackId: opts.trackId,
+            startMs: opts.startMs,
+            durationMs,
+            mediaType,
+            sourceType: "generated",
+            bindingKind,
+            prompt: opts.prompt,
+            provider: opts.provider,
+            model: opts.model,
+            voice: opts.voice,
+            sourceClipId: opts.sourceClipId ?? null,
+            width: opts.width,
+            height: opts.height,
+            strength: opts.strength,
+            numInferenceSteps: opts.numInferenceSteps,
+            status: "draft",
+            locked: false,
+            versions: []
+          });
+
+          set((state) => ({ clips: [...state.clips, clip] }));
+          return clip.id;
+        },
+
+        setClipPrompt: (clipId, prompt) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              // Mark stale once a render exists, so the inspector hints "regenerate".
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
+              return { ...c, prompt, status };
+            })
+          })),
+
+        setClipDirectGenModel: (clipId, provider, model) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
+              return { ...c, provider, model, status };
+            })
+          })),
+
+        patchClipBinding: (clipId, patch) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
+              return { ...c, ...patch, status };
+            })
+          })),
+
+        regenerateAsCopy: (clipId, deltaMs = 0) => {
+          let newId: string | undefined;
+          set((state) => {
+            const src = state.clips.find((c) => c.id === clipId);
+            if (!src) return state;
+            const clone = makeClip({
+              ...src,
+              id: createTimeOrderedUuid(),
+              startMs: src.startMs + src.durationMs + deltaMs,
+              // Clone independent overrides / binding so edits diverge.
+              paramOverrides: src.paramOverrides
+                ? structuredClone(src.paramOverrides)
+                : undefined,
+              // Reset render state so it generates fresh.
+              status: "draft",
+              locked: false,
+              currentAssetId: undefined,
+              lastGeneratedHash: undefined,
+              inPointMs: undefined,
+              outPointMs: undefined,
+              versions: []
+            });
+            newId = clone.id;
+            return { clips: [...state.clips, clone] };
+          });
+          if (!newId) {
+            throw new Error(`Clip ${clipId} not found`);
+          }
+          return newId;
         }
       }),
       {
@@ -746,12 +1009,3 @@ export const getTimelineTemporal = (): TemporalState<PartializedState> =>
   (useTimelineStore as unknown as { temporal: { getState: () => TemporalState<PartializedState> } })
     .temporal.getState();
 
-// ── Convenience selectors ──────────────────────────────────────────────────
-
-/** Returns only the clips belonging to a specific track (selector-stable). */
-export const useTrackClips = (trackId: string): TimelineClip[] =>
-  useTimelineStore(
-    (state) => state.clips.filter((c) => c.trackId === trackId),
-    // Prevent re-renders when the filtered result contains the same clip objects
-    (a, b) => a.length === b.length && a.every((c, i) => c === b[i])
-  );

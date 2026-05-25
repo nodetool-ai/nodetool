@@ -65,6 +65,14 @@ declare module "@mui/material/styles" {
       menuRadius?: string;
       menuShadow?: string;
     };
+    virtualScroll?: {
+      overscan?: {
+        small?: number;
+        normal?: number;
+        large?: number;
+        gridRow?: number;
+      };
+    };
   }
 
   interface Theme {
@@ -107,6 +115,14 @@ declare module "@mui/material/styles" {
       menuRadius: string;
       menuShadow: string;
     };
+    virtualScroll: {
+      overscan: {
+        small: number;
+        normal: number;
+        large: number;
+        gridRow: number;
+      };
+    };
   }
 
   // When using @mui/material with CSS variables, many APIs use CssVarsTheme
@@ -147,6 +163,14 @@ declare module "@mui/material/styles" {
       menuRadius?: string;
       menuShadow?: string;
     };
+    virtualScroll?: {
+      overscan?: {
+        small?: number;
+        normal?: number;
+        large?: number;
+        gridRow?: number;
+      };
+    };
   }
   interface CssVarsTheme {
     fontSizeGiant: string;
@@ -183,6 +207,14 @@ declare module "@mui/material/styles" {
       controlRadius: string;
       menuRadius: string;
       menuShadow: string;
+    };
+    virtualScroll: {
+      overscan: {
+        small: number;
+        normal: number;
+        large: number;
+        gridRow: number;
+      };
     };
   }
 

@@ -43,13 +43,14 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
 import { ActivityIndicator } from "./ActivityIndicator";
-import { StructuralDriftDialog } from "./Inspector/StructuralDriftDialog";
 import {
   useGeneratingCount,
   useFailedCount
 } from "../../stores/timeline/TimelineGenerationStore";
 import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFreshnessCheck";
 import { useTimelineGenerationSubscriptions } from "../../hooks/timeline/useGenerateClip";
+import { useLoadTimelineIntoStore } from "../../hooks/timeline/useLoadTimelineIntoStore";
+import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -146,7 +147,7 @@ const PreviewRegion: React.FC<{
     <FlexColumn
       css={previewRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "55 55 0", minWidth: 0 }}
+      sx={{ flex: "0 1 55%", minWidth: 0, width: 0 }}
     >
       {isLoading ? (
         <LoadingSpinner text="Loading sequence…" />
@@ -210,7 +211,7 @@ const InspectorRegion: React.FC = () => {
     <FlexColumn
       css={inspectorRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "45 45 0", minWidth: 0 }}
+      sx={{ flex: "0 1 45%", minWidth: 0, width: 0 }}
     >
       <TimelineInspector />
     </FlexColumn>
@@ -229,9 +230,15 @@ export const TimelineEditor: React.FC = memo(() => {
   const { data: sequence, isLoading, isError, refetch } =
     useTimeline(sequenceId);
 
-  // Workflow freshness check — runs on mount after returning from the node editor
-  const { driftItems, resolveDrift } = useWorkflowFreshnessCheck(sequenceId ?? null);
-  const currentDriftItem = driftItems[0] ?? null;
+  // Mirror the fetched sequence into the TimelineStore so store-bound
+  // components (Tracks, Inspector, ActivityIndicator) render its content.
+  useLoadTimelineIntoStore(sequence);
+
+  // Persist subsequent edits back via trpc.timeline.update (debounced).
+  useTimelineAutosave();
+
+  // Reconcile clips against current workflow state on mount.
+  useWorkflowFreshnessCheck(sequenceId ?? null);
   useTimelineGenerationSubscriptions();
 
   // Zoom ← wired to TimelineUIStore so TracksRegion + BottomStatusBar stay in sync
@@ -429,11 +436,6 @@ export const TimelineEditor: React.FC = memo(() => {
         failedCount={failedCount}
       />
 
-      {/* ── Structural drift dialog ────────────────────────────────── */}
-      <StructuralDriftDialog
-        driftItem={currentDriftItem}
-        onResolve={resolveDrift}
-      />
     </FlexColumn>
   );
 });

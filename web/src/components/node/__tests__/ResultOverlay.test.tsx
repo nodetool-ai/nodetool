@@ -13,22 +13,6 @@ jest.mock("../OutputRenderer", () => ({
   )
 }));
 
-// Mock NodeHistoryPanel
-jest.mock("../NodeHistoryPanel", () => ({
-  __esModule: true,
-  default: () => <div data-testid="node-history-panel" />
-}));
-
-// Mock NodeResultHistoryStore
-jest.mock("../../../stores/NodeResultHistoryStore", () => ({
-  EMPTY_HISTORY: [],
-  useNodeResultHistoryStore: (selector: any) => {
-    const mockState = {
-      getHistory: () => []
-    };
-    return selector ? selector(mockState) : mockState;
-  }
-}));
 
 const renderWithProviders = (component: React.ReactElement) => {
   return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);

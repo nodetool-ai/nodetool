@@ -134,6 +134,12 @@ export interface ValidationIssue {
   message: string;
 }
 
+export interface ProviderCost {
+  provider: string;
+  amount: number;
+  unit: string;
+}
+
 export interface NodeUpdate {
   type: "node_update";
   node_id: string;
@@ -143,6 +149,8 @@ export interface NodeUpdate {
   error?: string | null;
   result?: Record<string, unknown> | null;
   properties?: Record<string, unknown> | null;
+  /** Actual provider charge for the last completed run (when reported by the node). */
+  provider_cost?: ProviderCost | null;
   workflow_id?: string | null;
 }
 
@@ -172,12 +180,6 @@ export interface OutputUpdate {
   output_type: string;
   metadata: Record<string, unknown>;
   workflow_id?: string | null;
-}
-
-export interface PreviewUpdate {
-  type: "preview_update";
-  node_id: string;
-  value: unknown;
 }
 
 export interface SaveUpdate {
@@ -347,12 +349,16 @@ export type UnifiedCommandType =
   | "list_assets"
   | "get_asset"
   | "list_nodes"
-  | "get_node";
+  | "get_node"
+  | "generate_media";
 
 /**
  * Read-only RPC commands that require a `request_id` and return a single
  * `rpc_response` frame. Distinguished from streaming commands (run_job,
  * chat_message, etc.) which fire-and-forget and stream results back.
+ *
+ * `generate_media` is included here because the sketch editor and other
+ * non-chat callers want a single asset id back, not a streamed Message row.
  */
 export type RpcCommandType =
   | "list_workflows"
@@ -360,7 +366,8 @@ export type RpcCommandType =
   | "list_assets"
   | "get_asset"
   | "list_nodes"
-  | "get_node";
+  | "get_node"
+  | "generate_media";
 
 export interface WebSocketCommandEnvelope<
   C extends UnifiedCommandType = UnifiedCommandType,
@@ -414,6 +421,42 @@ export interface ListNodesRequest {
 
 export interface GetNodeRequest {
   node_type: string;
+}
+
+/**
+ * Request payload for the `generate_media` RPC. Drives the sketch editor's
+ * direct-generation layers (text-to-image and image-to-image) and the
+ * timeline's direct-gen clips (text-to-video, text-to-audio) — bypasses
+ * the chat path so no thread/Message row is created. Returns
+ * `{ asset_ids: string[] }`.
+ */
+export interface GenerateMediaRequest {
+  /**
+   * "image" = text-to-image; "image_edit" = image-to-image;
+   * "video" = text-to-video; "audio" = text-to-speech.
+   */
+  mode: "image" | "image_edit" | "video" | "audio";
+  provider: string;
+  model: string;
+  prompt: string;
+  /** Required when mode === "image_edit". Bytes are loaded server-side. */
+  source_asset_id?: string;
+  width?: number;
+  height?: number;
+  strength?: number;
+  num_inference_steps?: number;
+  /** Number of variations to request (1..8, clamped server-side). */
+  variations?: number;
+  /** TTS voice id, when mode === "audio". */
+  voice?: string;
+  /** Playback rate for TTS, when mode === "audio". */
+  speed?: number;
+  /** Requested audio container ("mp3", "wav", "flac", "ogg", "aac", "pcm"). */
+  audio_format?: string;
+}
+
+export interface GenerateMediaResponse {
+  asset_ids: string[];
 }
 
 export interface RpcErrorPayload {
@@ -492,7 +535,6 @@ export type ProcessingMessage =
   | NodeProgress
   | EdgeUpdate
   | OutputUpdate
-  | PreviewUpdate
   | SaveUpdate
   | BinaryUpdate
   | LogUpdate

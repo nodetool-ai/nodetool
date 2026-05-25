@@ -19,7 +19,6 @@ import {
   MoonshotProvider,
   AkiProvider,
   LMStudioProvider,
-  ClaudeAgentProvider,
   BaseProvider as BaseProviderClass
 } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
@@ -35,8 +34,7 @@ export const KNOWN_PROVIDERS = [
   "lmstudio",
   "groq",
   "moonshot",
-  "aki",
-  "claude_agent"
+  "aki"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
@@ -50,8 +48,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   lmstudio: "qwen/qwen3.5-9b",
   groq: "llama-3.3-70b-versatile",
   moonshot: "kimi-k2.5",
-  aki: "llama3_chat",
-  claude_agent: "claude-opus-4-6"
+  aki: "llama3_chat"
 };
 
 /** Resolve a secret: encrypted DB first (user "1"), then env var. */
@@ -98,8 +95,6 @@ export async function createProvider(
       return new AkiProvider({
         AKI_API_KEY: await resolveKey("AKI_API_KEY")
       });
-    case "claude_agent":
-      return new ClaudeAgentProvider();
     default:
       return new OllamaProvider({
         OLLAMA_API_URL:

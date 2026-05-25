@@ -38,39 +38,88 @@ titles_from_headings:
   strip_title: false
   collections: false
 
-# Navigation
+# Navigation (sidebar source of truth lives in _includes/sidebar.html;
+# this list mirrors section order for plugins and sitemap output)
 header_pages:
+  # Getting Started
   - index.md
-  - getting-started.md
-  - key-concepts.md
-  - user-interface.md
-  - workflow-editor.md
-  - image-editor.md
-  - vibecoding.md
-  - workflow-debugging.md
-  - mobile-app.md
-  - cookbook.md
-  - workflows/index.md
-  - comfyui-integration.md
-  - models-and-providers.md
-  - global-chat-agents.md
-  - deployment.md
-  - deployment-e2e-guide.md
-  - storage.md
-  - api-reference.md
-  - developer/index.md
-  - architecture.md
-  - installation.md
-  - troubleshooting.md
   - comparisons.md
-  - tips-and-tricks.md
+  - installation.md
+  - getting-started.md
+  # Core Concepts
+  - key-concepts.md
+  - workflow-editor.md
+  - nodes/index.md
+  - global-chat-agents.md
+  - models-and-providers.md
+  - glossary.md
+  # Workflow Editor
+  - user-interface.md
+  - editor-panels.md
+  - chain-editor.md
+  - workflow-graph-view.md
+  - workflow-debugging.md
+  - image-editor.md
+  - templates-gallery.md
+  - vibecoding.md
+  - comfyui-integration.md
+  # Chat & Agents
   - global-chat.md
+  - agent-config-schema.md
+  - agent-memory.md
   - long-term-memory.md
+  # Models & Providers
   - models.md
   - providers.md
   - huggingface.md
+  - models-manager.md
+  # Examples
+  - cookbook.md
+  - workflows/index.md
+  # Configuration
+  - configuration.md
+  - storage.md
+  - vector-storage.md
+  - indexing.md
+  - collections.md
   - asset-management.md
-  - nodes/index.md
+  - authentication.md
+  - security-hardening.md
+  - proxy.md
+  # Deployment
+  - deployment.md
+  - deployment-e2e-guide.md
+  - self-hosted-deployment.md
+  - docker-resource-management.md
+  - runpod-deployment.md
+  - gcp-deployment.md
+  - supabase-deployment.md
+  # CLI
+  - cli.md
+  - chat-cli.md
+  - agent-cli.md
+  - chat-server.md
+  - api-server.md
+  - terminal-websocket.md
+  # API Reference
+  - api-reference.md
+  - workflow-api.md
+  - websocket-api.md
+  - chat-api.md
+  # Developers
+  - developer/index.md
+  - architecture.md
+  - packages.md
+  - python-bridge-protocol.md
+  - execution-strategies.md
+  - node-packs.md
+  # Apps
+  - desktop-app.md
+  - electron-views.md
+  - mobile-app.md
+  # Help
+  - troubleshooting.md
+  - tips-and-tricks.md
 
 # Collections (optional, for organizing docs)
 # collections:

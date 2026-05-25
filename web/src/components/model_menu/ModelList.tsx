@@ -4,12 +4,11 @@ import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, useRef, memo } from "react";
 import {
-  Box,
   ListItemButton,
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Tooltip, EmptyState } from "../ui_primitives";
+import { FlexRow, Tooltip, EmptyState, Box } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -29,8 +28,7 @@ import { useNavigate } from "react-router-dom";
 
 import type { Theme } from "@mui/material/styles";
 
-const ROW_HEIGHT = 40;
-
+const ROW_HEIGHT = 50;
 const listStyles = (theme: Theme) =>
   css({
     overflowY: "auto",
@@ -134,7 +132,7 @@ function ModelList<TModel extends ModelSelectorModel>({
     count: models.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT,
-    overscan: 10,
+    overscan: theme.virtualScroll.overscan.large,
     getItemKey: (index) => `${models[index].provider}:${models[index].id}`,
   });
 
@@ -184,15 +182,14 @@ function ModelList<TModel extends ModelSelectorModel>({
               </ListItemIcon>
               <ListItemText
                 primary={
-                  <Box
+                  <FlexRow
+                    gap={0.75}
+                    align="center"
+                    justify="space-between"
+                    fullWidth
                     sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 0.75,
                       overflow: "hidden",
-                      minWidth: 0,
-                      width: "100%"
+                      minWidth: 0
                     }}
                   >
                     <span
@@ -295,7 +292,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                           </span>
                         </Tooltip>
                       )}
-                  </Box>
+                  </FlexRow>
                 }
                 secondary={
                   <span

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { Text } from "../ui_primitives";
 import { Task } from "../../stores/ApiTypes";
@@ -41,4 +41,4 @@ const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
   );
 };
 
-export default TaskPlanView;
+export default memo(TaskPlanView);

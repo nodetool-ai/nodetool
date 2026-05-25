@@ -2,10 +2,10 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, useMediaQuery } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
-import { useRightPanelStore, type RightPanelView } from "../../stores/RightPanelStore";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { memo, useCallback, useEffect } from "react";
 import isEqual from "fast-deep-equal";
 import { NodeContext } from "../../contexts/NodeContext";
@@ -14,46 +14,21 @@ import { useShallow } from "zustand/react/shallow";
 import { useNavigate } from "react-router-dom";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
-import { Workflow, WorkflowVersion, Node as GraphNode, Edge as GraphEdge } from "../../stores/ApiTypes";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import useMetadataStore from "../../stores/MetadataStore";
 import { setFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
-import type { NodeStore } from "../../stores/NodeStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import type { NodeStore } from "../../stores/NodeStore";
+import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
-import { TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH, TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import WorkflowAssistantChat from "./WorkflowAssistantChat";
-import LogPanel from "./LogPanel";
-import PanelHeadline from "../ui/PanelHeadline";
-
-import WorkspaceTree from "../workspaces/WorkspaceTree";
-import { VersionHistoryPanel } from "../version";
+import { PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ContextMenus from "../context_menus/ContextMenus";
-import WorkflowForm from "../workflows/WorkflowForm";
-import AgentPanel from "./AgentPanel";
-import { MobileBottomSheet, ToolbarIconButton } from "../ui_primitives";
-import { isProduction } from "../../lib/env";
+import { MobileBottomSheet, FlexColumn } from "../ui_primitives";
 
-const workspacesEnabled = !isProduction;
-const sandboxesEnabled = !isProduction;
-
-// Icons for mobile tab rail
-import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
-import ArticleIcon from "@mui/icons-material/Article";
-import FolderIcon from "@mui/icons-material/Folder";
-import HistoryIcon from "@mui/icons-material/History";
-import SettingsIcon from "@mui/icons-material/Settings";
-import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
-import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
-import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
-import SmartToyIcon from "@mui/icons-material/SmartToy";
-import TuneIcon from "@mui/icons-material/Tune";
-import SvgFileIcon from "../SvgFileIcon";
-
-const HEADER_AREA_HEIGHT = 77; // Total header area offset (AppHeader + toolbar row)
+const HEADER_AREA_HEIGHT = 77;
 
 const styles = (theme: Theme) =>
   css({
-    // Main container - fixed to right edge of viewport
     position: "fixed",
     right: 0,
     top: `${HEADER_AREA_HEIGHT}px`,
@@ -62,7 +37,6 @@ const styles = (theme: Theme) =>
     flexDirection: "row",
     zIndex: 1100,
 
-    // Drawer content area (appears left of toolbar)
     ".drawer-content": {
       height: "100%",
       backgroundColor: theme.vars.palette.background.default,
@@ -73,7 +47,6 @@ const styles = (theme: Theme) =>
       flexDirection: "column"
     },
 
-    // Resize handle on left edge of drawer
     ".panel-button": {
       width: `${PANEL_RESIZE_HANDLE_WIDTH}px`,
       position: "absolute",
@@ -99,35 +72,6 @@ const styles = (theme: Theme) =>
       }
     },
 
-    // Fixed toolbar on the right edge
-    ".vertical-toolbar": {
-      width: `${TOOLBAR_WIDTH}px`,
-      flexShrink: 0,
-      display: "flex",
-      flexDirection: "column",
-      gap: 0,
-      backgroundColor: theme.vars.palette.background.default,
-      borderLeft: `1px solid ${theme.vars.palette.divider}`,
-      paddingTop: "8px",
-
-      "& .MuiIconButton-root": {
-        padding: "14px",
-        borderRadius: "5px",
-        position: "relative",
-        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        "&.active svg": {
-          color: "var(--palette-primary-main)"
-        },
-        "& svg": {
-          display: "block",
-          width: "18px",
-          height: "18px",
-          fontSize: "18px"
-        }
-      }
-    },
-
-    // Inner content wrapper
     ".panel-inner-content": {
       display: "flex",
       flex: 1,
@@ -136,238 +80,13 @@ const styles = (theme: Theme) =>
     }
   });
 
-import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
-import JobsPanel from "./jobs/JobsPanel";
-import SandboxesPanel from "../dashboard/SandboxesPanel";
-import VerticalToolbar from "./VerticalToolbar";
-
-/* ------------------------------------------------------------------ */
-/*  ChatAgentPanel – renders either Workflow Chat or Agent directly    */
-/* ------------------------------------------------------------------ */
-
-interface ChatAgentPanelProps {
-  activeTab: "assistant" | "agent";
-  activeNodeStore: NodeStore | undefined;
-}
-
-const ChatAgentPanel = memo(function ChatAgentPanel({
-  activeTab,
-  activeNodeStore,
-}: ChatAgentPanelProps) {
-  if (activeTab === "assistant") {
-    return activeNodeStore ? (
-      <NodeContext.Provider value={activeNodeStore}>
-        <WorkflowAssistantChat />
-      </NodeContext.Provider>
-    ) : null;
-  }
-  return <AgentPanel />;
-});
-
-/* ------------------------------------------------------------------ */
-/*  MobilePanelRight – bottom-sheet variant used on small viewports    */
-/* ------------------------------------------------------------------ */
-
-const MOBILE_LAUNCHER_TOP = 48; // matches mobile AppHeader offset used in PanelLeft
-
-const mobileLauncherStyles = (theme: Theme) =>
-  css({
-    position: "fixed",
-    top: `${MOBILE_LAUNCHER_TOP}px`,
-    right: 8,
-    zIndex: 1100,
-    backgroundColor: theme.vars.palette.background.paper,
-    color: theme.vars.palette.text.primary,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-    padding: "8px",
-    borderRadius: "10px",
-    "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover
-    },
-    "&.active": {
-      backgroundColor: theme.vars.palette.primary.main,
-      color: theme.vars.palette.primary.contrastText,
-      "&:hover": {
-        backgroundColor: theme.vars.palette.primary.dark
-      }
-    },
-    "& svg": {
-      fontSize: "1.25rem"
-    }
-  });
-
-const mobileTabRailStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    flexWrap: "nowrap",
-    gap: "4px",
-    padding: "8px 12px",
-    overflowX: "auto",
-    WebkitOverflowScrolling: "touch",
-    "& .tab-button": {
-      padding: "6px 10px",
-      borderRadius: "var(--rounded-lg)",
-      color: theme.vars.palette.text.secondary,
-      minWidth: "auto",
-      flexShrink: 0,
-      "&.active": {
-        backgroundColor: `${theme.vars.palette.action.selected}66`,
-        color: theme.vars.palette.primary.main,
-        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}44 inset`
-      },
-      "& svg": {
-        fontSize: "1.1rem"
-      }
-    }
-  });
-
-const RIGHT_VIEW_LABELS: Record<RightPanelView, string> = {
-  inspector: "Inspector",
-  assistant: "Assistant",
-  agent: "Agent",
-  workspace: "Workspace",
-  versions: "Versions",
-  workflow: "Settings",
-  workflowAssets: "Assets",
-  sandboxes: "Sandboxes",
-  jobs: "Jobs",
-  logs: "Logs"
-};
-
-interface MobilePanelRightProps {
-  activeView: RightPanelView;
-  isVisible: boolean;
-  onOpen: () => void;
-  onClose: () => void;
-  setView: (view: RightPanelView) => void;
-  children: React.ReactNode;
-}
-
-const MobilePanelRight: React.FC<MobilePanelRightProps> = ({
-  activeView,
-  isVisible,
-  onOpen,
-  onClose,
-  setView,
-  children
-}) => {
-  const theme = useTheme();
-
-  const renderTabButton = (
-    view: RightPanelView,
-    label: string,
-    icon: React.ReactNode
-  ) => (
-    <ToolbarIconButton
-      icon={icon}
-      tooltip={label}
-      tooltipPlacement="bottom"
-      delay={TOOLTIP_ENTER_DELAY}
-      className="tab-button"
-      active={activeView === view}
-      onClick={() => setView(view)}
-      ariaLabel={label}
-      tabIndex={-1}
-    />
-  );
-
-  return (
-    <>
-      <ToolbarIconButton
-        icon={<TuneIcon />}
-        tooltip={isVisible ? "Close panel" : "Open inspector panel"}
-        className="panel-right-mobile-launcher"
-        active={isVisible}
-        css={mobileLauncherStyles(theme)}
-        onClick={isVisible ? onClose : onOpen}
-        ariaLabel={isVisible ? "Close panel" : "Open inspector panel"}
-        aria-expanded={isVisible}
-        tabIndex={-1}
-      />
-
-      <MobileBottomSheet
-        open={isVisible}
-        onClose={onClose}
-        title={RIGHT_VIEW_LABELS[activeView] ?? "Panel"}
-        ariaLabel="Inspector and workflow panels"
-        headerExtras={
-          <div css={mobileTabRailStyles(theme)}>
-            {renderTabButton("inspector", "Inspector", <CenterFocusWeakIcon />)}
-            {renderTabButton(
-              "assistant",
-              "Assistant",
-              <SvgFileIcon iconName="assistant" svgProp={{ width: 18, height: 18 }} />
-            )}
-            {renderTabButton("agent", "Agent", <SmartToyIcon />)}
-            {workspacesEnabled &&
-              renderTabButton("workspace", "Workspace", <FolderIcon />)}
-            {renderTabButton("workflow", "Settings", <SettingsIcon />)}
-            {renderTabButton("workflowAssets", "Assets", <FolderSpecialIcon />)}
-            {renderTabButton("versions", "Versions", <HistoryIcon />)}
-            {renderTabButton("logs", "Logs", <ArticleIcon />)}
-            {sandboxesEnabled &&
-              renderTabButton("sandboxes", "Sandboxes", <DesktopWindowsIcon />)}
-            {renderTabButton("jobs", "Jobs", <WorkHistoryIcon />)}
-          </div>
-        }
-      >
-        <Box
-          sx={{
-            height: "65vh",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden"
-          }}
-        >
-          {children}
-        </Box>
-      </MobileBottomSheet>
-    </>
-  );
-};
-
-MobilePanelRight.displayName = "MobilePanelRight";
-
-const PanelRight: React.FC = () => {
-  const theme = useTheme();
+/**
+ * Side-effect block: keep frontend tool runtime state in sync with workflow
+ * manager. Lives here because the editor mounts PanelRight on every workflow
+ * route. Renders nothing.
+ */
+const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const {
-    ref: panelRef,
-    size: panelSize,
-    isVisible,
-    isDragging,
-    handleMouseDown,
-    handlePanelToggle
-  } = useResizeRightPanel("right");
-
-  const activeView = useRightPanelStore((state) => state.panel.activeView);
-  const setActiveView = useRightPanelStore((state) => state.setActiveView);
-  const setVisibility = useRightPanelStore((state) => state.setVisibility);
-
-  // If a previous session persisted a production-disabled view, fall back to a safe default view.
-  useEffect(() => {
-    if (
-      (!workspacesEnabled && activeView === "workspace") ||
-      (!sandboxesEnabled && activeView === "sandboxes")
-    ) {
-      setActiveView("inspector");
-    }
-  }, [activeView, setActiveView]);
-
-  const activeNodeStore = useWorkflowManager((state) =>
-    state.currentWorkflowId
-      ? state.nodeStores[state.currentWorkflowId]
-      : undefined
-  );
-
-  // Get the current workflow reactively for the WorkflowForm
-  const currentWorkflow = useWorkflowManager((state) =>
-    state.currentWorkflowId
-      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ?? null
-      : null
-  );
   const {
     openWorkflows,
     currentWorkflowId,
@@ -383,24 +102,26 @@ const PanelRight: React.FC = () => {
     newWorkflow,
     createNew,
     searchTemplates,
-    copy,
-  } = useWorkflowManager(useShallow((state) => ({
-    openWorkflows: state.openWorkflows,
-    currentWorkflowId: state.currentWorkflowId,
-    getWorkflow: state.getWorkflow,
-    addWorkflow: state.addWorkflow,
-    removeWorkflow: state.removeWorkflow,
-    getNodeStore: state.getNodeStore,
-    updateWorkflow: state.updateWorkflow,
-    saveWorkflow: state.saveWorkflow,
-    getCurrentWorkflow: state.getCurrentWorkflow,
-    setCurrentWorkflowId: state.setCurrentWorkflowId,
-    fetchWorkflow: state.fetchWorkflow,
-    newWorkflow: state.newWorkflow,
-    createNew: state.createNew,
-    searchTemplates: state.searchTemplates,
-    copy: state.copy,
-  })));
+    copy
+  } = useWorkflowManager(
+    useShallow((state) => ({
+      openWorkflows: state.openWorkflows,
+      currentWorkflowId: state.currentWorkflowId,
+      getWorkflow: state.getWorkflow,
+      addWorkflow: state.addWorkflow,
+      removeWorkflow: state.removeWorkflow,
+      getNodeStore: state.getNodeStore,
+      updateWorkflow: state.updateWorkflow,
+      saveWorkflow: state.saveWorkflow,
+      getCurrentWorkflow: state.getCurrentWorkflow,
+      setCurrentWorkflowId: state.setCurrentWorkflowId,
+      fetchWorkflow: state.fetchWorkflow,
+      newWorkflow: state.newWorkflow,
+      createNew: state.createNew,
+      searchTemplates: state.searchTemplates,
+      copy: state.copy
+    }))
+  );
   const nodeMetadata = useMetadataStore((state) => state.metadata);
 
   const openWorkflow = useCallback(
@@ -417,7 +138,8 @@ const PanelRight: React.FC = () => {
 
   const runWorkflowById = useCallback(
     async (workflowId: string, params: Record<string, unknown> = {}) => {
-      const workflow = (await fetchWorkflow(workflowId)) ?? getWorkflow(workflowId);
+      const workflow =
+        (await fetchWorkflow(workflowId)) ?? getWorkflow(workflowId);
       if (!workflow) {
         throw new Error(`Workflow not found: ${workflowId}`);
       }
@@ -496,7 +218,7 @@ const PanelRight: React.FC = () => {
       newWorkflow,
       createNew,
       searchTemplates,
-      copy,
+      copy
     });
   }, [
     nodeMetadata,
@@ -519,209 +241,126 @@ const PanelRight: React.FC = () => {
     newWorkflow,
     createNew,
     searchTemplates,
-    copy,
+    copy
   ]);
 
-  const handleRestoreVersion = async (version: WorkflowVersion) => {
-    if (!activeNodeStore || !currentWorkflowId) {
-      return;
-    }
+  return null;
+});
 
-    const storeState = activeNodeStore.getState();
-    const workflow = storeState.getWorkflow();
+/**
+ * Selection-driven visibility for the inspector. Subscribes to the active
+ * workflow's node store and mirrors `selection > 0` onto the right panel's
+ * visibility — selecting a node opens the panel, deselecting closes it.
+ * Renders nothing.
+ */
+const InspectorVisibilitySync = memo(function InspectorVisibilitySync({
+  activeNodeStore
+}: {
+  activeNodeStore: NodeStore;
+}) {
+  const hasSelection = useStoreWithEqualityFn(
+    activeNodeStore,
+    (state) => state.nodes.some((node) => node.selected)
+  );
+  const setVisibility = useRightPanelStore((state) => state.setVisibility);
+  useEffect(() => {
+    setVisibility(hasSelection);
+  }, [hasSelection, setVisibility]);
+  return null;
+});
 
-    const [{ graphNodeToReactFlowNode }, { graphEdgeToReactFlowEdge }] = await Promise.all([
-      import("../../stores/graphNodeToReactFlowNode"),
-      import("../../stores/graphEdgeToReactFlowEdge")
-    ]);
+const PanelRight: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const {
+    ref: panelRef,
+    size: panelSize,
+    isVisible,
+    isDragging,
+    handleMouseDown
+  } = useResizeRightPanel("right");
 
-    const graph = version.graph;
-    const newNodes = graph.nodes.map((n) =>
-      graphNodeToReactFlowNode(
-        { ...workflow, graph: graph as unknown as Workflow["graph"] } as Workflow,
-        n as GraphNode
-      )
-    );
-    const newEdges = graph.edges.map((e) =>
-      graphEdgeToReactFlowEdge(e as GraphEdge)
-    );
+  const setVisibility = useRightPanelStore((state) => state.setVisibility);
 
-    storeState.setNodes(newNodes);
-    storeState.setEdges(newEdges);
-    storeState.setWorkflowDirty(true);
-  };
-
-  // Memoize toolbar toggle handlers to prevent unnecessary VerticalToolbar re-renders
-  const handleInspectorToggle = useCallback(() => handlePanelToggle("inspector"), [handlePanelToggle]);
-  const handleAssistantToggle = useCallback(() => handlePanelToggle("assistant"), [handlePanelToggle]);
-  const handleLogsToggle = useCallback(() => handlePanelToggle("logs"), [handlePanelToggle]);
-  const handleJobsToggle = useCallback(() => handlePanelToggle("jobs"), [handlePanelToggle]);
-  const handleWorkspaceToggle = useCallback(() => handlePanelToggle("workspace"), [handlePanelToggle]);
-  const handleVersionsToggle = useCallback(() => handlePanelToggle("versions"), [handlePanelToggle]);
-  const handleWorkflowToggle = useCallback(() => handlePanelToggle("workflow"), [handlePanelToggle]);
-  const handleWorkflowAssetsToggle = useCallback(() => handlePanelToggle("workflowAssets"), [handlePanelToggle]);
-  const handleSandboxesToggle = useCallback(() => handlePanelToggle("sandboxes"), [handlePanelToggle]);
-  const handleAgentToggle = useCallback(() => handlePanelToggle("agent"), [handlePanelToggle]);
+  const activeSubgraphTab = useSubgraphTabsStore((state) =>
+    state.activeKey
+      ? state.tabs.find((t) => t.key === state.activeKey)
+      : undefined
+  );
+  const workflowNodeStore = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]
+      : undefined
+  );
+  const activeNodeStore = activeSubgraphTab?.store ?? workflowNodeStore;
 
   const handleMobileSheetClose = useCallback(
     () => setVisibility(false),
     [setVisibility]
   );
-  const handleMobileSheetOpen = useCallback(
-    () => setVisibility(true),
-    [setVisibility]
-  );
-  const mobileSetView = useCallback(
-    (view: RightPanelView) => {
-      // On mobile, tapping a tab should always keep the sheet open and switch.
-      setActiveView(view);
-      setVisibility(true);
-    },
-    [setActiveView, setVisibility]
-  );
 
-  // The view-specific body is shared between desktop (in the fixed drawer) and
-  // mobile (inside a bottom sheet).
-  const panelBody = (
+  const inspectorBody = activeNodeStore ? (
     <ContextMenuProvider>
       <ReactFlowProvider>
-        {activeView === "logs" ? (
-          <LogPanel />
-        ) : activeView === "sandboxes" && sandboxesEnabled ? (
-          <SandboxesPanel />
-        ) : activeView === "jobs" ? (
-          <Box
-            className="jobs-panel"
-            sx={{
-              width: "100%",
-              height: "100%",
-              overflow: "auto",
-              padding: "0 1em"
-            }}
-          >
-            <PanelHeadline title="Jobs" />
-            <JobsPanel />
-          </Box>
-        ) : activeView === "workspace" && workspacesEnabled ? (
-          <Box
-            className="workspace-panel"
-            sx={{
-              width: "100%",
-              height: "100%",
-              overflow: "hidden"
-            }}
-          >
-            <WorkspaceTree />
-          </Box>
-        ) : activeView === "versions" ? (
-          currentWorkflowId ? (
-            <VersionHistoryPanel
-              workflowId={currentWorkflowId}
-              onRestore={handleRestoreVersion}
-              onClose={() => handlePanelToggle("versions")}
-            />
-          ) : null
-        ) : activeView === "workflow" ? (
-          activeNodeStore && currentWorkflowId && currentWorkflow ? (
-            <Box
-              className="workflow-panel"
-              sx={{
-                width: "100%",
-                height: "100%",
-                overflow: "auto"
-              }}
-            >
-              <WorkflowForm
-                workflow={currentWorkflow}
-                onClose={handleWorkflowToggle}
-              />
-            </Box>
-          ) : null
-        ) : activeView === "workflowAssets" ? (
-          <Box
-            className="workflow-assets-panel"
-            sx={{
-              width: "100%",
-              height: "100%",
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              padding: "0 1em"
-            }}
-          >
-            <PanelHeadline title="Workflow Assets" />
-            <Box className="workflow-assets-panel-inner" sx={{ flex: 1, overflow: "hidden" }}>
-              <WorkflowAssetPanel />
-            </Box>
-          </Box>
-        ) : (activeView === "assistant" || activeView === "agent") ? (
-          <ChatAgentPanel
-            activeTab={activeView}
-            activeNodeStore={activeNodeStore}
-          />
-        ) : (
-          activeNodeStore && (
-            <NodeContext.Provider value={activeNodeStore}>
-              <ContextMenus />
-              {activeView === "inspector" && <Inspector />}
-            </NodeContext.Provider>
-          )
-        )}
+        <NodeContext.Provider value={activeNodeStore}>
+          <ContextMenus />
+          <Inspector />
+        </NodeContext.Provider>
       </ReactFlowProvider>
     </ContextMenuProvider>
-  );
+  ) : null;
 
   if (isMobile) {
     return (
-      <MobilePanelRight
-        activeView={activeView}
-        isVisible={isVisible}
-        onOpen={handleMobileSheetOpen}
-        onClose={handleMobileSheetClose}
-        setView={mobileSetView}
-      >
-        {panelBody}
-      </MobilePanelRight>
+      <>
+        <FrontendToolRuntimeSync />
+        {activeNodeStore && (
+          <InspectorVisibilitySync activeNodeStore={activeNodeStore} />
+        )}
+        <MobileBottomSheet
+          open={isVisible}
+          onClose={handleMobileSheetClose}
+          title="Inspector"
+          ariaLabel="Inspector panel"
+        >
+          <FlexColumn
+            sx={{
+              height: "65vh",
+              overflow: "hidden"
+            }}
+          >
+            {inspectorBody}
+          </FlexColumn>
+        </MobileBottomSheet>
+      </>
     );
   }
 
   return (
-    <div css={styles(theme)} className="panel-right-container">
-      {/* Drawer content - appears left of toolbar when visible */}
+    <>
+      <FrontendToolRuntimeSync />
+      {activeNodeStore && (
+        <InspectorVisibilitySync activeNodeStore={activeNodeStore} />
+      )}
       {isVisible && (
-        <div
-          ref={panelRef}
-          className={`drawer-content ${isDragging ? "dragging" : ""}`}
-          style={{ width: `${panelSize - TOOLBAR_WIDTH}px` }}
-        >
-          {/* Resize handle on left edge */}
+        <div css={styles(theme)} className="panel-right-container">
           <div
-            className="panel-button"
-            onMouseDown={handleMouseDown}
-            role="slider"
-            aria-label="Resize panel"
-            tabIndex={-1}
-          />
-          <div className="panel-inner-content">{panelBody}</div>
+            ref={panelRef}
+            className={`drawer-content ${isDragging ? "dragging" : ""}`}
+            style={{ width: `${panelSize}px` }}
+          >
+            <div
+              className="panel-button"
+              onMouseDown={handleMouseDown}
+              role="slider"
+              aria-label="Resize panel"
+              tabIndex={-1}
+            />
+            <div className="panel-inner-content">{inspectorBody}</div>
+          </div>
         </div>
       )}
-
-      {/* Fixed toolbar - always on the right edge */}
-      <VerticalToolbar
-        handleInspectorToggle={handleInspectorToggle}
-        handleAssistantToggle={handleAssistantToggle}
-        handleLogsToggle={handleLogsToggle}
-        handleJobsToggle={handleJobsToggle}
-        handleWorkspaceToggle={handleWorkspaceToggle}
-        handleVersionsToggle={handleVersionsToggle}
-        handleWorkflowToggle={handleWorkflowToggle}
-        handleWorkflowAssetsToggle={handleWorkflowAssetsToggle}
-        handleSandboxesToggle={handleSandboxesToggle}
-        handleAgentToggle={handleAgentToggle}
-        activeView={activeView}
-        panelVisible={isVisible}
-      />
-    </div>
+    </>
   );
 };
 

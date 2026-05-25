@@ -134,14 +134,6 @@ describe("graphNodeToReactFlowNode", () => {
       expect(result.data.dynamic_outputs).toEqual({ output1: { type: "text" } });
     });
 
-    it("maps sync_mode to result", () => {
-      const workflow = createMockWorkflow();
-      const node = createMockGraphNode({ sync_mode: "on_change" });
-
-      const result = graphNodeToReactFlowNode(workflow, node);
-
-      expect(result.data.sync_mode).toBe("on_change");
-    });
 
     it("sets workflow_id in result data", () => {
       const workflow = createMockWorkflow({ id: "my-workflow-id" });
@@ -260,6 +252,45 @@ describe("graphNodeToReactFlowNode", () => {
       const result = graphNodeToReactFlowNode(workflow, graphNode);
 
       expect(result.data.collapsed).toBe(false);
+      expect(result.className).toBeUndefined();
+    });
+
+    it("restores collapsed from ui_properties and syncs RF shell className", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { collapsed: true }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.data.collapsed).toBe(true);
+      expect(result.className).toBe("collapsed");
+    });
+
+    it("pairs bypassed chrome with collapsed", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { bypassed: true, collapsed: true }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.className).toBe("bypassed collapsed");
+      expect(result.data.bypassed).toBe(true);
+      expect(result.data.collapsed).toBe(true);
+    });
+
+    it("when collapsed, keeps expanded height in data and uses strip for RF layout", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        ui_properties: { collapsed: true, height: 220, width: 300 }
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.height).toBe(40);
+      expect(result.style?.height).toBe(40);
+      expect(result.data.expandedHeightPx).toBe(220);
     });
   });
 

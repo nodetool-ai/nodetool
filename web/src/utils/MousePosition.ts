@@ -1,7 +1,4 @@
 let mousePosition = { x: 0, y: 0 };
-// Initialize previousPositionForDelta with the initial mousePosition.
-// The first delta will be {dx: 0, dy: 0} if getMouseDelta is called before any mouse move.
-let previousPositionForDelta = { ...mousePosition };
 
 // Wiggle detection state
 interface WigglePoint {
@@ -28,16 +25,8 @@ if (typeof document !== "undefined") {
 
 export const getMousePosition = (): { x: number; y: number } => mousePosition;
 
-export const getMouseDelta = (): { dx: number; dy: number } => {
-  const dx = mousePosition.x - previousPositionForDelta.x;
-  const dy = mousePosition.y - previousPositionForDelta.y;
-  // Update previousPositionForDelta to the current mouse position for the next call
-  previousPositionForDelta = { ...mousePosition };
-  return { dx, dy };
-};
-
 // Add a movement to wiggle detection (call this from drag events)
-export const addWiggleMovement = (x: number, y: number) => {
+export const addWiggleMovement = (x: number, y: number): void => {
   const now = Date.now();
   const newPoint: WigglePoint = { x, y, timestamp: now };
 
@@ -110,17 +99,11 @@ export const addWiggleMovement = (x: number, y: number) => {
 };
 
 // Check if currently wiggling
-export const isWiggling = () => isCurrentlyWiggling;
+export const isWiggling = (): boolean => isCurrentlyWiggling;
 
 // Reset wiggle detection (call when drag starts)
-export const resetWiggleDetection = () => {
+export const resetWiggleDetection = (): void => {
   wiggleHistory = [];
   isCurrentlyWiggling = false;
 };
 
-export const cleanupMousePositionListener = () => {
-  // Ensure this runs only in the browser
-  if (typeof document !== "undefined") {
-    document.removeEventListener("mousemove", updateMousePosition);
-  }
-};

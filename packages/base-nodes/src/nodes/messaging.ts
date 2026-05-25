@@ -1,11 +1,14 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 // ── Discord Nodes ───────────────────────────────────────────────────────────
 
 export class DiscordBotTrigger extends BaseNode {
   static readonly nodeType = "messaging.discord.DiscordBotTrigger";
   static readonly title = "Discord Bot Trigger";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly description =
     "Trigger node that listens for Discord messages from a bot account.\n\n    This trigger connects to Discord using a bot token and emits events\n    for incoming messages.";
   static readonly metadataOutputTypes = {
@@ -21,7 +24,19 @@ export class DiscordBotTrigger extends BaseNode {
   };
   static readonly requiredSettings = ["DISCORD_BOT_TOKEN"];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    message_id: { kind: "iteration", source: "__execution__", group: "messages" },
+    content: { kind: "iteration", source: "__execution__", group: "messages" },
+    author: { kind: "iteration", source: "__execution__", group: "messages" },
+    channel: { kind: "iteration", source: "__execution__", group: "messages" },
+    guild: { kind: "iteration", source: "__execution__", group: "messages" },
+    attachments: { kind: "iteration", source: "__execution__", group: "messages" },
+    timestamp: { kind: "iteration", source: "__execution__", group: "messages" },
+    source: { kind: "iteration", source: "__execution__", group: "messages" },
+    event_type: { kind: "iteration", source: "__execution__", group: "messages" }
+  };
+
   @prop({
     type: "int",
     default: 0,
@@ -103,6 +118,8 @@ export class DiscordBotTrigger extends BaseNode {
 export class DiscordSendMessage extends BaseNode {
   static readonly nodeType = "messaging.discord.DiscordSendMessage";
   static readonly title = "Discord Send Message";
+  static readonly inlineFields = ["channel_id"];
+  static readonly inputFields = ["content"];
   static readonly description =
     "Node that sends a message to a Discord channel using a bot token.";
   static readonly metadataOutputTypes = {
@@ -203,6 +220,8 @@ export class DiscordSendMessage extends BaseNode {
 export class TelegramBotTrigger extends BaseNode {
   static readonly nodeType = "messaging.telegram.TelegramBotTrigger";
   static readonly title = "Telegram Bot Trigger";
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
   static readonly description =
     "Trigger node that listens for Telegram messages using long polling.\n\n    This trigger connects to Telegram using a bot token and emits events\n    for incoming messages.";
   static readonly metadataOutputTypes = {
@@ -221,7 +240,22 @@ export class TelegramBotTrigger extends BaseNode {
   };
   static readonly requiredSettings = ["TELEGRAM_BOT_TOKEN"];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    update_id: { kind: "iteration", source: "__execution__", group: "messages" },
+    update_type: { kind: "iteration", source: "__execution__", group: "messages" },
+    message_id: { kind: "iteration", source: "__execution__", group: "messages" },
+    text: { kind: "iteration", source: "__execution__", group: "messages" },
+    caption: { kind: "iteration", source: "__execution__", group: "messages" },
+    entities: { kind: "iteration", source: "__execution__", group: "messages" },
+    chat: { kind: "iteration", source: "__execution__", group: "messages" },
+    from_user: { kind: "iteration", source: "__execution__", group: "messages" },
+    attachments: { kind: "iteration", source: "__execution__", group: "messages" },
+    timestamp: { kind: "iteration", source: "__execution__", group: "messages" },
+    source: { kind: "iteration", source: "__execution__", group: "messages" },
+    event_type: { kind: "iteration", source: "__execution__", group: "messages" }
+  };
+
   @prop({
     type: "int",
     default: 0,
@@ -334,6 +368,8 @@ export class TelegramBotTrigger extends BaseNode {
 export class TelegramSendMessage extends BaseNode {
   static readonly nodeType = "messaging.telegram.TelegramSendMessage";
   static readonly title = "Telegram Send Message";
+  static readonly inlineFields = ["chat_id"];
+  static readonly inputFields = ["text"];
   static readonly description =
     "Node that sends a message to a Telegram chat using a bot token.";
   static readonly metadataOutputTypes = {

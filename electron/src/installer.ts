@@ -134,8 +134,6 @@ async function promptForInstallLocation(
   defaults?: InstallationPreferences
 ): Promise<InstallationSelection> {
   const defaultLocation = defaults?.location ?? getDefaultInstallLocation();
-  // Use defaultBackend if you want to pass it to the renderer
-  const defaultBackend = defaults?.modelBackend ?? "ollama";
 
   return new Promise<InstallationSelection>((resolve, reject) => {
     createIpcMainHandler(
@@ -1030,8 +1028,6 @@ async function ensureCondaEnvironment(
 
 export {
   promptForInstallLocation,
-  installCondaEnvironment,
-  provisionCondaEnvironment,
   ensureCondaEnvironment,
   ensureLlamaCppInstalled,
   installCondaPackageBySpec,

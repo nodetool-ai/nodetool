@@ -206,31 +206,3 @@ export const computeGraphDiff = (
   };
 };
 
-/**
- * Generate a human-readable summary of the diff
- */
-export const getDiffSummary = (diff: GraphDiff): string => {
-  const parts: string[] = [];
-
-  if (diff.addedNodes.length > 0) {
-    parts.push(`+${diff.addedNodes.length} node(s)`);
-  }
-  if (diff.removedNodes.length > 0) {
-    parts.push(`-${diff.removedNodes.length} node(s)`);
-  }
-  if (diff.modifiedNodes.length > 0) {
-    parts.push(`~${diff.modifiedNodes.length} modified node(s)`);
-  }
-  if (diff.addedEdges.length > 0) {
-    parts.push(`+${diff.addedEdges.length} connection(s)`);
-  }
-  if (diff.removedEdges.length > 0) {
-    parts.push(`-${diff.removedEdges.length} connection(s)`);
-  }
-
-  if (parts.length === 0) {
-    return "No changes";
-  }
-
-  return parts.join(", ");
-};

@@ -12,16 +12,18 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import type { TimelineClip, TrackEffect } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 
 import { WebGPUCompositor } from "./gpu/compositor";
 import type { CompositeLayer, CompositorBlendMode } from "./gpu/types";
+import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -35,18 +37,40 @@ const COLD_POOL_SIZE = 4;
 const TOTAL_POOL_SIZE = HOT_POOL_SIZE + COLD_POOL_SIZE;
 /** Preload upcoming clips within this lookahead window (ms). */
 const PRELOAD_LOOKAHEAD_MS = 30_000;
+/** LRU cap on cached decoded <img> elements. Keeps memory bounded in long
+ *  sessions that touch many unique image assets. */
+const IMAGE_CACHE_MAX = 64;
+/**
+ * Top-of-UI track (lowest `track.index`) renders on top in the composite —
+ * matches Premiere / Resolve / FCP. Compositor draws layers from low z to
+ * high z, so we invert the UI index. Constant offset keeps numbers
+ * positive for DOM placeholder z-indices too.
+ */
+const LAYER_Z_BASE = 1000;
+const trackZ = (uiIndex: number): number => LAYER_Z_BASE - uiIndex;
 
 const compositorStyles = css({
   position: "relative",
   width: "100%",
   height: "100%",
   backgroundColor: "#000",
-  overflow: "hidden"
+  overflow: "hidden",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+});
+
+/**
+ * Holds the preview canvas at the sequence's fixed aspect ratio. The
+ * fit-rect is computed in JS each resize and applied as inline width /
+ * height; the parent flexbox letterboxes / pillarboxes whichever axis
+ * runs short.
+ */
+const frameStyles = css({
+  position: "relative"
 });
 
 const canvasStyles = css({
-  position: "absolute",
-  inset: 0,
   width: "100%",
   height: "100%",
   display: "block"
@@ -91,6 +115,10 @@ interface ActiveVideoSlot {
   blendMode: CompositorBlendMode;
   opacity: number;
   assetUrl: string;
+  transform?: TimelineClip["transform"];
+  borderRadius?: number;
+  effects?: TimelineClip["effects"];
+  trackEffects?: TrackEffect[];
 }
 
 interface ActiveImageLayer {
@@ -100,6 +128,10 @@ interface ActiveImageLayer {
   opacity: number;
   assetUrl: string;
   status: TimelineClip["status"];
+  transform?: TimelineClip["transform"];
+  borderRadius?: number;
+  effects?: TimelineClip["effects"];
+  trackEffects?: TrackEffect[];
 }
 
 function isClipActive(clip: TimelineClip, currentTimeMs: number): boolean {
@@ -107,6 +139,20 @@ function isClipActive(clip: TimelineClip, currentTimeMs: number): boolean {
     currentTimeMs >= clip.startMs &&
     currentTimeMs < clip.startMs + clip.durationMs
   );
+}
+
+/**
+ * Opacity multiplier for a clip given the playhead position. Implements
+ * the incoming `transitionIn` ramp (0→1 over `durationMs`). Returns 1 when
+ * no transition applies. Crossfade is the only type currently supported.
+ */
+function transitionOpacity(clip: TimelineClip, currentTimeMs: number): number {
+  const t = clip.transitionIn;
+  if (!t || t.durationMs <= 0) return 1;
+  const intoClip = currentTimeMs - clip.startMs;
+  if (intoClip >= t.durationMs) return 1;
+  if (intoClip <= 0) return 0;
+  return intoClip / t.durationMs;
 }
 
 function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
@@ -140,9 +186,18 @@ export const PreviewCompositor: React.FC = memo(() => {
   const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
   const isPlaying = useTimelinePlaybackStore((s) => s.isPlaying);
 
-  const { tracks, clips } = useTimelineStore(
-    (s) => ({ tracks: s.tracks, clips: s.clips }),
-    shallow
+  const { tracks, clips, sequenceWidth, sequenceHeight } = useTimelineStore(
+    useShallow((s) => ({
+      tracks: s.tracks,
+      clips: s.clips,
+      sequenceWidth: s.width,
+      sequenceHeight: s.height
+    }))
+  );
+
+  const patchClip = useTimelineStore((s) => s.patchClip);
+  const selectedClipId = useTimelineUIStore((s) =>
+    s.selectedClipIds.size === 1 ? [...s.selectedClipIds][0] : null
   );
 
   const assetUrlCache = useRef<Map<string, string>>(new Map());
@@ -176,16 +231,33 @@ export const PreviewCompositor: React.FC = memo(() => {
   // Hidden HTMLVideoElement pool — still browser-decoded, but never rendered.
   // Their pixels are uploaded each frame to GPU textures by the compositor.
   const videoRefs = useRef<HTMLVideoElement[]>([]);
+  /** Stable clipId → hot-slot index binding. Survives neighbor-clip churn
+   *  during transition overlaps so an active clip keeps its HTMLVideoElement
+   *  (no reload + seek glitch when the previous clip ends). */
+  const clipSlotMap = useRef<Map<string, number>>(new Map());
   const [poolReady, setPoolReady] = useState(false);
   const poolContainerRef = useRef<HTMLDivElement>(null);
 
   // Image element cache, keyed by URL — fed to the compositor as image layers.
+  // Capped LRU (insertion order = recency) to bound memory in long sessions.
   const imageElementCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
+  // Pending video-element seek closures, keyed by the element. Stored on a
+  // ref so the once-attached `loadedmetadata` listener always runs the most
+  // recent target rather than a stale snapshot.
+  const pendingSeeks = useRef<Map<HTMLVideoElement, () => void>>(new Map());
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const compositorRef = useRef<WebGPUCompositor | null>(null);
   const [gpuReady, setGpuReady] = useState(false);
   const [gpuFailed, setGpuFailed] = useState(false);
+
+  // Frame element CSS size and canvas backing size, mirrored into state so the
+  // transform gizmo overlay can map clip space → screen pixels.
+  const [frameSize, setFrameSize] = useState({ w: 0, h: 0 });
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
 
   useLayoutEffect(() => {
     const container = poolContainerRef.current;
@@ -209,6 +281,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     videoRefs.current = pool;
     setPoolReady(true);
 
+    const pendingSeeksMap = pendingSeeks.current;
     return () => {
       for (const el of pool) {
         el.pause();
@@ -218,6 +291,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         }
       }
       videoRefs.current = [];
+      pendingSeeksMap.clear();
       setPoolReady(false);
     };
   }, []);
@@ -256,26 +330,50 @@ export const PreviewCompositor: React.FC = memo(() => {
     };
   }, []);
 
-  // Keep the canvas backing-store sized to its CSS box (devicePixelRatio aware).
+  // Compute a fit-rect that preserves the sequence aspect inside the
+  // outer container. Drives both the frame element's CSS pixel dimensions
+  // (so the canvas + overlays sit on a fixed-aspect surface) and the
+  // canvas backing buffer (devicePixelRatio aware).
   useLayoutEffect(() => {
+    const container = containerRef.current;
+    const frame = frameRef.current;
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!container || !frame || !canvas) return;
     const apply = () => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const aspect =
+        sequenceWidth > 0 && sequenceHeight > 0
+          ? sequenceWidth / sequenceHeight
+          : 16 / 9;
+      const fitByWidth = { w: rect.width, h: rect.width / aspect };
+      const fit =
+        fitByWidth.h <= rect.height
+          ? fitByWidth
+          : { w: rect.height * aspect, h: rect.height };
+      frame.style.width = `${fit.w}px`;
+      frame.style.height = `${fit.h}px`;
+      setFrameSize((prev) =>
+        prev.w === fit.w && prev.h === fit.h ? prev : { w: fit.w, h: fit.h }
+      );
+
       const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      const w = Math.max(1, Math.floor(rect.width * dpr));
-      const h = Math.max(1, Math.floor(rect.height * dpr));
+      const w = Math.max(1, Math.floor(fit.w * dpr));
+      const h = Math.max(1, Math.floor(fit.h * dpr));
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
         compositorRef.current?.resize(w, h);
       }
+      setCanvasSize((prev) =>
+        prev.w === w && prev.h === h ? prev : { w, h }
+      );
     };
     apply();
     const ro = new ResizeObserver(apply);
-    ro.observe(canvas);
+    ro.observe(container);
     return () => ro.disconnect();
-  }, []);
+  }, [sequenceWidth, sequenceHeight]);
 
   const sortedTracks = useMemo(
     () => [...tracks].sort((a, b) => a.index - b.index),
@@ -305,48 +403,70 @@ export const PreviewCompositor: React.FC = memo(() => {
     for (const track of sortedTracks) {
       if (!track.visible) continue;
       const trackClips = clipsByTrackId.get(track.id) ?? [];
-      const clip = trackClips.find((c) => isClipActive(c, currentTimeMs));
-      if (!clip || clip.mediaType === "audio") continue;
+      // All clips overlapping the playhead. With transitions, two adjacent
+      // clips can be active simultaneously during the cross-fade overlap.
+      // Order by startMs so the outgoing (older) clip composites first and
+      // the incoming clip blends on top.
+      const activeClips = trackClips
+        .filter((c) => isClipActive(c, currentTimeMs))
+        .sort((a, b) => a.startMs - b.startMs);
 
-      const assetId = effectiveAssetId(clip);
-      const url = resolveUrl(assetId);
+      for (const clip of activeClips) {
+        if (clip.mediaType === "audio") continue;
 
-      if (clip.mediaType === "image" && track.type === "video") {
-        imageLayers.push({
-          clipId: clip.id,
-          trackIndex: track.index,
-          blendMode: resolveBlendMode(clip.blendMode),
-          opacity: clip.opacity ?? 1,
-          assetUrl: url ?? "",
-          status: clip.status
-        });
-        if (!url) {
-          placeholders.push({
-            clipId: clip.id,
-            trackIndex: track.index,
-            status: clip.status,
-            name: clip.name
-          });
-        }
-      } else if (
-        (clip.mediaType === "video" || clip.mediaType === "overlay") &&
-        (track.type === "video" || track.type === "overlay")
-      ) {
-        if (url && videoSlots.length < HOT_POOL_SIZE) {
-          videoSlots.push({
+        const assetId = effectiveAssetId(clip);
+        const url = resolveUrl(assetId);
+        const baseOpacity = clip.opacity ?? 1;
+        const opacity = baseOpacity * transitionOpacity(clip, currentTimeMs);
+
+        if (
+          clip.mediaType === "image" &&
+          (track.type === "video" || track.type === "overlay")
+        ) {
+          imageLayers.push({
             clipId: clip.id,
             trackIndex: track.index,
             blendMode: resolveBlendMode(clip.blendMode),
-            opacity: clip.opacity ?? 1,
-            assetUrl: url
-          });
-        } else if (!url) {
-          placeholders.push({
-            clipId: clip.id,
-            trackIndex: track.index,
+            opacity,
+            assetUrl: url ?? "",
             status: clip.status,
-            name: clip.name
+            transform: clip.transform,
+            borderRadius: clip.borderRadius,
+            effects: clip.effects,
+            trackEffects: track.effects
           });
+          if (!url) {
+            placeholders.push({
+              clipId: clip.id,
+              trackIndex: track.index,
+              status: clip.status,
+              name: clip.name
+            });
+          }
+        } else if (
+          (clip.mediaType === "video" || clip.mediaType === "overlay") &&
+          (track.type === "video" || track.type === "overlay")
+        ) {
+          if (url && videoSlots.length < HOT_POOL_SIZE) {
+            videoSlots.push({
+              clipId: clip.id,
+              trackIndex: track.index,
+              blendMode: resolveBlendMode(clip.blendMode),
+              opacity,
+              assetUrl: url,
+              transform: clip.transform,
+              borderRadius: clip.borderRadius,
+              effects: clip.effects,
+              trackEffects: track.effects
+            });
+          } else if (!url) {
+            placeholders.push({
+              clipId: clip.id,
+              trackIndex: track.index,
+              status: clip.status,
+              name: clip.name
+            });
+          }
         }
       }
     }
@@ -358,6 +478,45 @@ export const PreviewCompositor: React.FC = memo(() => {
     };
   }, [sortedTracks, clipsByTrackId, currentTimeMs, resolveUrl, urlCacheVersion]);
 
+  // Source dims + transform for the single selected clip, but only while it is
+  // actually rendered (active at the playhead) so the gizmo traces a visible
+  // box. Dimensions come from the already-decoded media elements.
+  const selectedGizmo = useMemo(() => {
+    if (!selectedClipId) return null;
+    const clip = clipById.get(selectedClipId);
+    if (!clip) return null;
+
+    let w = 0;
+    let h = 0;
+    const vSlot = activeVideoSlots.find((s) => s.clipId === selectedClipId);
+    const iLayer = activeImageLayers.find((l) => l.clipId === selectedClipId);
+    if (vSlot) {
+      const idx = clipSlotMap.current.get(selectedClipId);
+      const el = idx !== undefined ? videoRefs.current[idx] : undefined;
+      w = el?.videoWidth ?? 0;
+      h = el?.videoHeight ?? 0;
+    } else if (iLayer?.assetUrl) {
+      const img = imageElementCache.current.get(iLayer.assetUrl);
+      w = img?.naturalWidth ?? 0;
+      h = img?.naturalHeight ?? 0;
+    } else {
+      return null;
+    }
+    if (w <= 0 || h <= 0) return null;
+    return {
+      clipId: selectedClipId,
+      transform: clip.transform,
+      sourceWidth: w,
+      sourceHeight: h
+    };
+  }, [
+    selectedClipId,
+    clipById,
+    activeVideoSlots,
+    activeImageLayers,
+    urlCacheVersion
+  ]);
+
   // Drive the HTMLVideoElement pool (src/seek/play state). Same logic as
   // before, just without setting display/zIndex/blendMode — those are owned
   // by the GPU compositor now.
@@ -365,8 +524,28 @@ export const PreviewCompositor: React.FC = memo(() => {
     if (!poolReady) return;
     const pool = videoRefs.current;
 
-    activeVideoSlots.forEach((slot, slotIndex) => {
-      if (slotIndex >= pool.length) return;
+    // Stable clipId→hot-slot binding. Reuse existing assignments first,
+    // then fill empty slots for newly-active clips. Slots whose clip is no
+    // longer active become free for reuse.
+    const activeIds = new Set(activeVideoSlots.map((s) => s.clipId));
+    for (const [id] of clipSlotMap.current) {
+      if (!activeIds.has(id)) clipSlotMap.current.delete(id);
+    }
+    const usedSlots = new Set(clipSlotMap.current.values());
+    for (const slot of activeVideoSlots) {
+      if (clipSlotMap.current.has(slot.clipId)) continue;
+      for (let i = 0; i < HOT_POOL_SIZE; i++) {
+        if (!usedSlots.has(i)) {
+          clipSlotMap.current.set(slot.clipId, i);
+          usedSlots.add(i);
+          break;
+        }
+      }
+    }
+
+    activeVideoSlots.forEach((slot) => {
+      const slotIndex = clipSlotMap.current.get(slot.clipId);
+      if (slotIndex === undefined || slotIndex >= pool.length) return;
       const el = pool[slotIndex];
 
       if (el.getAttribute("data-asset") !== slot.assetUrl) {
@@ -376,32 +555,73 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
 
       const clip = clipById.get(slot.clipId);
-      const clipOffsetMs =
-        currentTimeMs - (clip?.startMs ?? 0) + (clip?.inPointMs ?? 0);
-      const targetSec = Math.max(0, clipOffsetMs / 1000);
+      // If the speed change has been baked into the asset, the asset already
+      // plays at the right rate; otherwise the source media is at original
+      // speed and 1 timeline second consumes `rate` source seconds.
+      const rate = clip?.speedBaked
+        ? 1
+        : Math.max(0.0001, clip?.speedMultiplier ?? 1);
+      const intoClipTimelineSec =
+        (currentTimeMs - (clip?.startMs ?? 0)) / 1000;
+      const targetSec = Math.max(
+        0,
+        intoClipTimelineSec * rate + (clip?.inPointMs ?? 0) / 1000
+      );
 
-      if (!isPlaying) {
-        if (Math.abs(el.currentTime - targetSec) > 0.04) {
-          el.currentTime = targetSec;
+      // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
+      // a subsequent play() can reject with AbortError. Defer until the
+      // element reports metadata; on next render the slot's pending closure
+      // (kept in pendingSeeks) re-runs with fresh state.
+      const applySeek = () => {
+        if (el.readyState < 1) return;
+        if (!isPlaying) {
+          if (Math.abs(el.currentTime - targetSec) > 0.04) {
+            el.currentTime = targetSec;
+          }
+        } else {
+          if (Math.abs(el.currentTime - targetSec) > 0.15) {
+            el.currentTime = targetSec;
+          }
         }
+        el.playbackRate = rate;
+
+        if (isPlaying && el.paused) {
+          void el.play().catch(() => {
+            // Autoplay blocked; continue scrubbing via currentTime.
+          });
+        } else if (!isPlaying && !el.paused) {
+          el.pause();
+        }
+      };
+
+      if (el.readyState >= 1) {
+        applySeek();
       } else {
-        if (Math.abs(el.currentTime - targetSec) > 0.15) {
-          el.currentTime = targetSec;
+        // Always stash the latest closure so the listener runs with the most
+        // recent target. Only attach the listener once; mark the element so
+        // re-runs of this effect don't pile up handlers.
+        pendingSeeks.current.set(el, applySeek);
+        if (el.getAttribute("data-seek-pending") !== "1") {
+          el.setAttribute("data-seek-pending", "1");
+          el.addEventListener(
+            "loadedmetadata",
+            () => {
+              el.removeAttribute("data-seek-pending");
+              const fn = pendingSeeks.current.get(el);
+              if (fn) {
+                pendingSeeks.current.delete(el);
+                fn();
+              }
+            },
+            { once: true }
+          );
         }
-      }
-      el.playbackRate = clip?.speedMultiplier ?? 1;
-
-      if (isPlaying && el.paused) {
-        void el.play().catch(() => {
-          // Autoplay blocked; continue scrubbing via currentTime.
-        });
-      } else if (!isPlaying && !el.paused) {
-        el.pause();
       }
     });
 
-    // Pause + clear unused hot-pool slots so their decoders go idle.
-    for (let i = activeVideoSlots.length; i < HOT_POOL_SIZE; i++) {
+    // Pause unused hot-pool slots so their decoders go idle.
+    for (let i = 0; i < HOT_POOL_SIZE; i++) {
+      if (usedSlots.has(i)) continue;
       const el = pool[i];
       if (el && !el.paused) el.pause();
     }
@@ -443,6 +663,9 @@ export const PreviewCompositor: React.FC = memo(() => {
       if (!url) return null;
       const cached = imageElementCache.current.get(url);
       if (cached) {
+        // Touch as most-recent for LRU ordering.
+        imageElementCache.current.delete(url);
+        imageElementCache.current.set(url, cached);
         return cached.complete && cached.naturalWidth > 0 ? cached : null;
       }
       const img = new Image();
@@ -454,6 +677,12 @@ export const PreviewCompositor: React.FC = memo(() => {
       };
       img.src = url;
       imageElementCache.current.set(url, img);
+      // Evict least-recently-used entries until under the cap.
+      while (imageElementCache.current.size > IMAGE_CACHE_MAX) {
+        const oldestKey = imageElementCache.current.keys().next().value;
+        if (oldestKey === undefined || oldestKey === url) break;
+        imageElementCache.current.delete(oldestKey);
+      }
       return null;
     },
     []
@@ -464,15 +693,24 @@ export const PreviewCompositor: React.FC = memo(() => {
     const out: CompositeLayer[] = [];
     const pool = videoRefs.current;
 
-    activeVideoSlots.forEach((slot, slotIndex) => {
+    activeVideoSlots.forEach((slot) => {
+      const slotIndex = clipSlotMap.current.get(slot.clipId);
+      if (slotIndex === undefined) return;
       const el = pool[slotIndex];
-      if (!el || el.readyState < 2) return; // HAVE_CURRENT_DATA
+      // Keep the layer in the list even if the video momentarily drops below
+      // HAVE_CURRENT_DATA (e.g. during a scrub seek). The compositor reuses
+      // the previously uploaded texture so we don't flash to black.
+      if (!el || el.videoWidth === 0) return;
       out.push({
         id: `v:${slot.clipId}`,
         source: el,
         opacity: slot.opacity,
         blendMode: slot.blendMode,
-        zIndex: slot.trackIndex
+        zIndex: trackZ(slot.trackIndex),
+        transform: slot.transform,
+        borderRadius: slot.borderRadius,
+        effects: slot.effects,
+        trackEffects: slot.trackEffects
       });
     });
 
@@ -485,21 +723,43 @@ export const PreviewCompositor: React.FC = memo(() => {
         source: img,
         opacity: layer.opacity,
         blendMode: layer.blendMode,
-        zIndex: layer.trackIndex
+        zIndex: trackZ(layer.trackIndex),
+        transform: layer.transform,
+        borderRadius: layer.borderRadius,
+        effects: layer.effects,
+        trackEffects: layer.trackEffects
       });
     }
 
     return out;
   }, [activeVideoSlots, activeImageLayers, ensureImageElement]);
 
-  // One-shot render whenever scene state changes (paused mode + scrubbing).
-  useEffect(() => {
+  const renderFrame = useCallback(() => {
     if (!gpuReady) return;
     const compositor = compositorRef.current;
     if (!compositor) return;
     compositor.setLayers(buildLayers());
     compositor.render();
   }, [gpuReady, buildLayers]);
+
+  // One-shot render whenever scene state changes (paused mode + scrubbing).
+  useEffect(() => {
+    renderFrame();
+  }, [renderFrame]);
+
+  // A paused scrub sets el.currentTime, which decodes the target frame
+  // asynchronously — so the one-shot render above runs before the frame is
+  // ready and paints a stale (or empty) texture. Re-composite once each video
+  // element fires `seeked`, when the decoded frame is actually available.
+  useEffect(() => {
+    if (!poolReady) return;
+    const pool = videoRefs.current;
+    const onSeeked = () => renderFrame();
+    pool.forEach((el) => el.addEventListener("seeked", onSeeked));
+    return () => {
+      pool.forEach((el) => el.removeEventListener("seeked", onSeeked));
+    };
+  }, [poolReady, renderFrame]);
 
   // While playing, drive a rAF render loop so video frame textures stay fresh
   // between AudioContext-clock store updates.
@@ -524,86 +784,102 @@ export const PreviewCompositor: React.FC = memo(() => {
     placeholderLayers.length > 0;
 
   return (
-    <div css={compositorStyles} data-testid="preview-compositor">
-      <canvas ref={canvasRef} css={canvasStyles} aria-hidden />
+    <div ref={containerRef} css={compositorStyles} data-testid="preview-compositor">
+      <div ref={frameRef} css={frameStyles}>
+        <canvas ref={canvasRef} css={canvasStyles} aria-hidden />
 
-      <div
-        ref={poolContainerRef}
-        style={{
-          position: "absolute",
-          width: 0,
-          height: 0,
-          overflow: "hidden",
-          pointerEvents: "none"
-        }}
-      />
-
-      {placeholderLayers.map((layer) => (
         <div
-          key={layer.clipId}
+          ref={poolContainerRef}
           style={{
             position: "absolute",
-            inset: 0,
-            zIndex: layer.trackIndex
+            width: 0,
+            height: 0,
+            overflow: "hidden",
+            pointerEvents: "none"
           }}
-        >
-          <div css={placeholderLayerStyles(theme)}>
-            <span style={{ fontSize: 24, opacity: 0.4 }}>▭</span>
-            <span style={{ fontSize: 11, opacity: 0.5 }}>{layer.name}</span>
-          </div>
-        </div>
-      ))}
+        />
 
-      {clips
-        .filter(
-          (c) =>
-            c.status === "stale" &&
-            isClipActive(c, currentTimeMs) &&
-            (c.mediaType === "video" ||
-              c.mediaType === "overlay" ||
-              c.mediaType === "image")
-        )
-        .map((c) => (
+        {selectedGizmo && (
+          <TransformGizmoOverlay
+            clipId={selectedGizmo.clipId}
+            transform={selectedGizmo.transform}
+            sourceWidth={selectedGizmo.sourceWidth}
+            sourceHeight={selectedGizmo.sourceHeight}
+            canvasWidth={canvasSize.w}
+            canvasHeight={canvasSize.h}
+            frameWidth={frameSize.w}
+            frameHeight={frameSize.h}
+            onChange={(id, next) => patchClip(id, { transform: next })}
+          />
+        )}
+
+        {placeholderLayers.map((layer) => (
           <div
-            key={`stale-${c.id}`}
-            css={overlayBadgeStyles("#c08000")}
-            style={{ zIndex: 9999 }}
+            key={layer.clipId}
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: trackZ(layer.trackIndex)
+            }}
           >
-            stale
+            <div css={placeholderLayerStyles(theme)}>
+              <span style={{ fontSize: 24, opacity: 0.4 }}>▭</span>
+              <span style={{ fontSize: 11, opacity: 0.5 }}>{layer.name}</span>
+            </div>
           </div>
         ))}
 
-      {clips
-        .filter(
-          (c) => c.status === "generating" && isClipActive(c, currentTimeMs)
-        )
-        .map((c) => (
+        {clips
+          .filter(
+            (c) =>
+              c.status === "stale" &&
+              isClipActive(c, currentTimeMs) &&
+              (c.mediaType === "video" ||
+                c.mediaType === "overlay" ||
+                c.mediaType === "image")
+          )
+          .map((c) => (
+            <div
+              key={`stale-${c.id}`}
+              css={overlayBadgeStyles("#c08000")}
+              style={{ zIndex: 9999 }}
+            >
+              stale
+            </div>
+          ))}
+
+        {clips
+          .filter(
+            (c) => c.status === "generating" && isClipActive(c, currentTimeMs)
+          )
+          .map((c) => (
+            <div
+              key={`gen-${c.id}`}
+              css={overlayBadgeStyles("#0055aa")}
+              style={{ zIndex: 9999 }}
+            >
+              generating…
+            </div>
+          ))}
+
+        {gpuFailed && (
           <div
-            key={`gen-${c.id}`}
-            css={overlayBadgeStyles("#0055aa")}
-            style={{ zIndex: 9999 }}
+            css={placeholderLayerStyles(theme)}
+            style={{ zIndex: 1, color: "#c08000" }}
           >
-            generating…
+            <span style={{ fontSize: 12 }}>WebGPU not available</span>
           </div>
-        ))}
+        )}
 
-      {gpuFailed && (
-        <div
-          css={placeholderLayerStyles(theme)}
-          style={{ zIndex: 1, color: "#c08000" }}
-        >
-          <span style={{ fontSize: 12 }}>WebGPU not available</span>
-        </div>
-      )}
-
-      {!hasAnything && !gpuFailed && (
-        <div css={placeholderLayerStyles(theme)} style={{ zIndex: 1 }}>
-          <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
-          <span style={{ fontSize: 12, opacity: 0.25 }}>
-            No media at {Math.round(currentTimeMs / 1000)}s
-          </span>
-        </div>
-      )}
+        {!hasAnything && !gpuFailed && (
+          <div css={placeholderLayerStyles(theme)} style={{ zIndex: 1 }}>
+            <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
+            <span style={{ fontSize: 12, opacity: 0.25 }}>
+              No media at {Math.round(currentTimeMs / 1000)}s
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 });

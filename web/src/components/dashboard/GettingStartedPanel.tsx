@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useMemo } from "react";
-import { Box } from "@mui/material";
+import React, { useCallback, useEffect, useMemo } from "react";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { css, keyframes } from "@emotion/react";
@@ -13,7 +12,7 @@ import {
 } from "../../stores/OnboardingStore";
 import { ONBOARDING_STEPS } from "../onboarding/steps";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { BORDER_RADIUS, EditorButton } from "../ui_primitives";
+import { BORDER_RADIUS, EditorButton, Box } from "../ui_primitives";
 
 const EDITOR_ROUTE_PREFIX = "/editor/";
 
@@ -297,7 +296,16 @@ const GettingStartedPanel: React.FC = () => {
   const navigate = useNavigate();
 
   const completed = useOnboardingStore((s) => s.completed);
+  const registerPanelMount = useOnboardingStore((s) => s.registerPanelMount);
+  const unregisterPanelMount = useOnboardingStore(
+    (s) => s.unregisterPanelMount
+  );
   const createNewWorkflow = useWorkflowManager((s) => s.createNew);
+
+  useEffect(() => {
+    registerPanelMount();
+    return () => unregisterPanelMount();
+  }, [registerPanelMount, unregisterPanelMount]);
 
   const navigateToStep = useCallback(
     async (id: OnboardingStepId) => {

@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Tooltip, ToolbarIconButton } from "../ui_primitives";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { memo, useMemo } from "react";
 
@@ -33,7 +32,7 @@ const styles = (theme: Theme, isBypassed: boolean) =>
           : theme.vars.palette.grey[500]
       },
       "& svg": {
-        fontSize: 16
+        fontSize: 20
       }
     }
   });
@@ -105,7 +104,8 @@ const BypassGroupButton: React.FC<BypassGroupButtonProps> = memo(({
         className="bypass-button"
         onClick={onClick}
       >
-        {isBypassed ? <VisibilityIcon /> : <VisibilityOffIcon />}
+        <PowerSettingsNewIcon />
+
       </ToolbarIconButton>
     </Tooltip>
   );

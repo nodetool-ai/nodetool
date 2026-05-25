@@ -47,18 +47,25 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   }
   return {
     ...actual,
+    Workflow: {
+      ...actual.Workflow,
+      find: vi.fn()
+    },
     TimelineSequence: StubTimelineSequence,
     createTimeOrderedUuid: () => "version-id"
   };
 });
 
-import { TimelineSequence } from "@nodetool-ai/models";
+import { TimelineSequence, Workflow } from "@nodetool-ai/models";
 
 const TS = TimelineSequence as unknown as {
   findById: ReturnType<typeof vi.fn>;
   listByUser: ReturnType<typeof vi.fn>;
   listByProject: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+};
+const WF = Workflow as unknown as {
+  find: ReturnType<typeof vi.fn>;
 };
 
 const createCaller = createCallerFactory(appRouter);
@@ -466,6 +473,68 @@ describe("timeline router", () => {
           versionId: "nope"
         })
       ).rejects.toThrow();
+    });
+  });
+
+  describe("clips", () => {
+    const clipDoc: TimelineDocument = {
+      tracks: [],
+      clips: [
+        {
+          id: "clip-1",
+          trackId: "t1",
+          name: "Generated",
+          startMs: 500,
+          durationMs: 1000,
+          mediaType: "video",
+          sourceType: "generated",
+          workflowId: "wf-1",
+          paramOverrides: { prompt: "hello" },
+          status: "generated",
+          locked: false,
+          versions: []
+        }
+      ],
+      markers: []
+    };
+
+    it("delete removes only the clip", async () => {
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(clipDoc) })
+      );
+      TS.update.mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.clips.delete({
+        id: "seq-1",
+        clipId: "clip-1"
+      });
+
+      expect(out.ok).toBe(true);
+      const updateArgs = TS.update.mock.calls[0]?.[1];
+      const persisted = JSON.parse(
+        updateArgs?.document as string
+      ) as TimelineDocument;
+      expect(persisted.clips).toHaveLength(0);
+    });
+
+    it("duplicate copies overrides and shares the workflow", async () => {
+      TS.findById.mockResolvedValue(
+        makeSeq({ document: JSON.stringify(clipDoc) })
+      );
+      TS.update.mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.clips.duplicate({
+        id: "seq-1",
+        clipId: "clip-1",
+        deltaMs: 2000
+      });
+
+      expect(out.id).toBe("version-id");
+      expect(out.workflowId).toBe("wf-1");
+      expect(out.startMs).toBe(2500);
+      expect(out.paramOverrides).toEqual({ prompt: "hello" });
     });
   });
 });

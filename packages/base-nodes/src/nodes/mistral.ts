@@ -50,7 +50,8 @@ export class ChatComplete extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["prompt", "model"];
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["prompt", "system_prompt"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
   static readonly exposeAsTool = true;
 
@@ -148,7 +149,8 @@ export class CodeComplete extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["prompt", "suffix"];
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["prompt"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
   static readonly exposeAsTool = true;
 
@@ -237,7 +239,8 @@ export class Embedding extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list"
   };
-  static readonly basicFields = ["input"];
+  static readonly inlineFields = ["input"];
+  static readonly inputFields: string[] = [];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
   static readonly exposeAsTool = true;
 
@@ -319,7 +322,8 @@ export class ImageToText extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["image", "prompt"];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
   static readonly exposeAsTool = true;
 
@@ -423,7 +427,8 @@ export class OCR extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly basicFields = ["image"];
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["image"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
   static readonly exposeAsTool = true;
 

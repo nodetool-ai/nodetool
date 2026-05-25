@@ -10,29 +10,31 @@ NodeTool ships a lightweight ingestion pipeline for semantic search and retrieva
 ## Overview
 
 - **Collection metadata** (`CollectionResponse` in `@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) stores ingest configuration, including an optional workflow ID.
-- **Vector store** -- the default backend is SQLite-vec (`@nodetool-ai/vectorstore` `packages/vectorstore/src/sqlite-vec-store.ts`), with a Chroma-compatible chunking helper in `packages/vectorstore/src/chroma-client.ts`.
+- **Vector store** -- the default backend is SQLite-vec (`@nodetool-ai/vectorstore` `packages/vectorstore/src/sqlite-vec-store.ts`). Embeddings flow through the `VectorProvider` abstraction — see [Vector Storage](vector-storage.md) for swapping backends (Pinecone, Supabase/pgvector).
 - **Indexing route** -- `indexFileToCollection()` (`@nodetool-ai/deploy` `packages/deploy/src/collection-routes.ts`) orchestrates ingestion based on collection metadata.
 
 ### Default Flow
 
 1. `indexFileToCollection()` resolves the target collection via `getCollection()` (`@nodetool-ai/vectorstore` `packages/vectorstore/src/index.ts`).
 2. If the collection specifies a custom workflow ID, the service executes it by constructing a `RunJobRequest` (`@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) with `CollectionInput` and `FileInput` nodes populated.
-3. Otherwise, it falls back to the default ingestion path, which splits the document with `splitDocument()` (`@nodetool-ai/vectorstore` `packages/vectorstore/src/chroma-client.ts`), embeds it, and stores embeddings in SQLite-vec.
+3. Otherwise, it falls back to the default ingestion path, which splits the document with `splitDocument()` (`@nodetool-ai/vectorstore`), embeds it, and stores embeddings in SQLite-vec.
 
 ### Messages & Progress
 
 While custom workflows run, the service streams `JobUpdate`, `NodeUpdate`, and progress messages (from `@nodetool-ai/protocol` `packages/protocol/src/messages.ts`). Tests under `packages/deploy/tests/collection-routes.test.ts` cover expected message sequences.
 
-## Configuring Chroma
+## Configuring the vector store
 
-Environment variables:
+The default backend is local SQLite-vec. Switch backends with `NODETOOL_VECTOR_PROVIDER`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `CHROMA_URL` | Remote Chroma server URL | `None` (use local DB) |
-| `CHROMA_PATH` | Local data directory | `~/.local/share/nodetool/chroma` |
+| `NODETOOL_VECTOR_PROVIDER` | `sqlite-vec`, `pinecone`, or `supabase` | `sqlite-vec` |
+| `VECTORSTORE_DB_PATH` | Local SQLite-vec database file | `~/.local/share/nodetool/vectorstore.db` |
+| `PINECONE_API_KEY` | Required when provider is `pinecone` | — |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Required when provider is `supabase` | — |
 
-The SQLite-vec store uses local storage by default. For remote Chroma (legacy), set `CHROMA_TOKEN` if authentication is required.
+See [Vector Storage](vector-storage.md) for backend-specific setup.
 
 ## Custom Ingestion Workflows
 
@@ -52,8 +54,8 @@ Return values can include summaries, metadata, or alternate embeddings. Review `
 ## Troubleshooting
 
 - **Missing collection metadata** – ensure the collection exists and includes the required `workflow` entry when using custom workflows.
-- **Chroma connection errors** – verify `CHROMA_URL`/`CHROMA_TOKEN` and network reachability; fall back to local mode by clearing the URL.
-- **Large files** – increase `CHROMA_PATH` disk quota or configure cloud storage; the default ingestion workflow streams chunks to reduce memory usage.
+- **Remote backend errors** – for `pinecone` or `supabase`, verify credentials and network reachability; fall back to local SQLite-vec by setting `NODETOOL_VECTOR_PROVIDER=sqlite-vec`.
+- **Large files** – ensure `VECTORSTORE_DB_PATH` has disk headroom, or move to a remote backend; the default ingestion workflow streams chunks to reduce memory usage.
 
 ## Related Documentation
 

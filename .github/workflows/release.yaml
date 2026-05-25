@@ -4,8 +4,19 @@ on:
   push:
     tags:
       - "v*"
+      - "!v*-nightly.*"
+  schedule:
+    - cron: "0 9 * * *"
   workflow_dispatch:
     inputs:
+      channel:
+        description: "Release channel"
+        required: false
+        default: stable
+        type: choice
+        options:
+          - stable
+          - nightly
       version:
         description: "Release version (without leading v). Leave empty to use the tag."
         required: false
@@ -16,7 +27,105 @@ permissions:
   contents: write
 
 jobs:
+  check_changes:
+    name: Check for changes since last nightly
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - id: check
+        name: Compare HEAD to last nightly tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          last_nightly_tag=$(git tag --list 'v*-nightly.*' --sort=-creatordate | head -n 1)
+          if [[ -z "$last_nightly_tag" ]]; then
+            echo "No previous nightly tag found. Proceeding with release."
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          last_nightly_sha=$(git rev-parse "$last_nightly_tag^{commit}")
+          head_sha=$(git rev-parse HEAD)
+          if [[ "$last_nightly_sha" == "$head_sha" ]]; then
+            echo "No changes since last nightly release ($last_nightly_tag). Skipping."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changes detected since $last_nightly_tag. Proceeding."
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  preflight:
+    name: Resolve release metadata
+    needs: [check_changes]
+    if: |
+      !failure() && !cancelled() &&
+      (github.event_name != 'schedule' || needs.check_changes.outputs.has_changes == 'true')
+    runs-on: ubuntu-latest
+    outputs:
+      release_channel: ${{ steps.meta.outputs.release_channel }}
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      release_name: ${{ steps.meta.outputs.name }}
+      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
+      make_latest: ${{ steps.meta.outputs.make_latest }}
+      update_manifest: ${{ steps.meta.outputs.update_manifest }}
+      update_mac_manifest: ${{ steps.meta.outputs.update_mac_manifest }}
+      update_linux_manifest: ${{ steps.meta.outputs.update_linux_manifest }}
+      ref: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: meta
+        name: Resolve release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "nightly" ) ]]; then
+            nightly_date="$(date -u -d "${{ github.run_started_at }}" +%Y%m%d)"
+            node scripts/resolve-nightly-release.mjs \
+              --date "$nightly_date" \
+              --run-number "${{ github.run_number }}" \
+              --sha "${{ github.sha }}" \
+              --github-output
+            echo "release_channel=nightly" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            echo "update_manifest=nightly.yml" >> "$GITHUB_OUTPUT"
+            echo "update_mac_manifest=nightly-mac.yml" >> "$GITHUB_OUTPUT"
+            echo "update_linux_manifest=nightly-linux.yml" >> "$GITHUB_OUTPUT"
+          else
+            if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -z "${{ github.event.inputs.version }}" ]]; then
+              echo "workflow_dispatch stable releases require the version input." >&2
+              exit 1
+            fi
+            raw="${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}"
+            version="${raw#v}"
+            echo "release_channel=stable" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "tag=v$version" >> "$GITHUB_OUTPUT"
+            echo "name=Nodetool v$version" >> "$GITHUB_OUTPUT"
+            if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+              echo "make_latest=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+              echo "make_latest=false" >> "$GITHUB_OUTPUT"
+            fi
+            echo "update_manifest=latest.yml" >> "$GITHUB_OUTPUT"
+            echo "update_mac_manifest=latest-mac.yml" >> "$GITHUB_OUTPUT"
+            echo "update_linux_manifest=latest-linux.yml" >> "$GITHUB_OUTPUT"
+          fi
+
   release-build:
+    needs: [preflight]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
@@ -30,13 +139,23 @@ jobs:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      VERSION: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}
+      VERSION: ${{ needs.preflight.outputs.version }}
+      RELEASE_CHANNEL: ${{ needs.preflight.outputs.release_channel }}
+      RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+      RELEASE_NAME: ${{ needs.preflight.outputs.release_name }}
+      RELEASE_PRERELEASE: ${{ needs.preflight.outputs.is_prerelease }}
+      RELEASE_MAKE_LATEST: ${{ needs.preflight.outputs.make_latest }}
+      UPDATE_MANIFEST: ${{ needs.preflight.outputs.update_manifest }}
+      UPDATE_MAC_MANIFEST: ${{ needs.preflight.outputs.update_mac_manifest }}
+      UPDATE_LINUX_MANIFEST: ${{ needs.preflight.outputs.update_linux_manifest }}
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
 
       - name: Print selected version
-        run: echo "Using VERSION=$VERSION"
+        run: echo "Using VERSION=$VERSION channel=$RELEASE_CHANNEL tag=$RELEASE_TAG"
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -45,7 +164,6 @@ jobs:
           cache: "npm"
 
       - name: Sync package versions to release tag
-        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.version != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -64,6 +182,10 @@ jobs:
               console.log(`Updated ${p} to ${version}`);
             }
           '
+
+      - name: Configure Electron update channel
+        shell: bash
+        run: node scripts/configure-electron-update-channel.mjs "$VERSION"
 
       - name: Install Apple Certificate
         if: matrix.os == 'macos-latest'
@@ -138,13 +260,6 @@ jobs:
           ls -lh nodetool-web-${VERSION_NO_V}.zip
           echo "archive_name=nodetool-web-${VERSION_NO_V}.zip" >> $GITHUB_OUTPUT
 
-      - name: Upload Web Build to GitHub Release
-        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: ${{ steps.create_archive.outputs.archive_name }}
-
       - name: Build Electron (Windows, unpacked)
         if: matrix.os == 'windows-latest'
         shell: bash -l {0}
@@ -199,11 +314,11 @@ jobs:
           echo "WIN_UNPACKED_ARCHIVE=${ARCHIVE_PATH}" >> "${GITHUB_ENV}"
 
       - name: Decide whether to sign (skip test tags)
-        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         shell: bash -l {0}
         run: |
           set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${RELEASE_TAG:-$GITHUB_REF_NAME}"
           SHOULD_SIGN="true"
           if echo "${TAG}" | grep -Eiq -- '-test'; then
             SHOULD_SIGN="false"
@@ -212,7 +327,7 @@ jobs:
           echo "Windows signing enabled: ${SHOULD_SIGN}"
 
       - name: Sign main app exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -226,7 +341,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed app exe back to unpacked directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -274,7 +389,7 @@ jobs:
           fi
 
       - name: Sign installer exe (SSL.com eSigner)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         uses: sslcom/esigner-codesign@develop
         with:
           command: sign
@@ -288,7 +403,7 @@ jobs:
           environment_name: PROD
 
       - name: Move signed installer back to dist directory
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -302,7 +417,7 @@ jobs:
           echo "Moved signed installer to ${INSTALLER_PATH}"
 
       - name: Update latest.yml sha512/size for signed installer (Windows)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
         shell: bash -l {0}
         run: |
           set -euo pipefail
@@ -317,10 +432,10 @@ jobs:
           const version = process.env.VERSION;
           const installerName = `Nodetool-Setup-${version}.exe`;
           const installerPath = process.env.INSTALLER_PATH;
-          const latestPath = path.join(distDir, "latest.yml");
+          const latestPath = path.join(distDir, process.env.UPDATE_MANIFEST || "latest.yml");
 
           if (!fs.existsSync(latestPath)) {
-            console.warn(`latest.yml not found at ${latestPath}; skipping update`);
+            console.warn(`update manifest not found at ${latestPath}; skipping update`);
             process.exit(0);
           }
           if (!fs.existsSync(installerPath)) {
@@ -355,27 +470,15 @@ jobs:
             });
           }
 
+          const staleBlockmapPath = `${installerPath}.blockmap`;
+          if (fs.existsSync(staleBlockmapPath)) {
+            fs.rmSync(staleBlockmapPath);
+            console.log(`Removed stale signed-installer blockmap: ${staleBlockmapPath}`);
+          }
+
           fs.writeFileSync(latestPath, yaml.dump(doc, { lineWidth: 120 }), "utf8");
-          console.log(`Updated latest.yml for signed installer: sha512=${sha512.slice(0, 16)}... size=${size}`);
+          console.log(`Updated ${path.basename(latestPath)} for signed installer: sha512=${sha512.slice(0, 16)}... size=${size}`);
           NODE
-
-      - name: Upload Windows assets to GitHub Release (signed)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: |
-            ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
-            ${{ env.DIST_DIR }}/latest.yml
-
-      - name: Upload Windows assets to GitHub Release (unsigned)
-        if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: |
-            ${{ env.DIST_DIR }}/Nodetool-Setup-${{ env.VERSION }}.exe
-            ${{ env.DIST_DIR }}/latest.yml
 
       - name: Build Electron (macOS/Linux)
         if: matrix.os != 'windows-latest'
@@ -457,19 +560,48 @@ jobs:
         run: |
           set -euo pipefail
           # Guard against electron-builder/dmgbuild regressions that silently
-          # drop files (e.g. the Electron Framework Mach-O) from the produced
-          # DMG. Mount each DMG, then assert the framework binary is present
-          # and large enough to be real (>50 MB).
+          # drop files from the produced artifacts. The observed failure mode:
+          # dmgbuild's auto-sized staging image is too small for the app's real
+          # on-disk footprint (thousands of small files inflate the HFS catalog),
+          # so `ditto` fails on the last large file (the ~150 MB Electron
+          # Framework Mach-O) with "No space left on device" — with ~130 GB of
+          # host disk still free. electron-builder only logs the stderr and
+          # continues, shipping a DMG that mounts fine yet aborts at launch
+          # ("Nodetool cannot be opened because of a problem"). The fix is the
+          # explicit `dmg.size` in electron-builder.json; this guard stays as the
+          # backstop. The smoke-launch above only exercises the *unpacked* app,
+          # so it cannot catch a broken DMG/zip. Mount each DMG and assert the
+          # framework binary is present and >50 MB; do the same for the .zip.
           fail=0
           shopt -s nullglob
+          find_framework_binary() {
+            local framework_dir="$1"
+            # Electron packaging can produce either a versioned framework layout
+            # or a framework-level binary symlink/copy depending on how
+            # electron-builder materializes the app bundle in each artifact.
+            local candidate_versioned="$framework_dir/Versions/A/Electron Framework"
+            local candidate_flat="$framework_dir/Electron Framework"
+            if [ -f "$candidate_versioned" ]; then
+              printf '%s\n' "$candidate_versioned"
+              return 0
+            fi
+            if [ -f "$candidate_flat" ]; then
+              printf '%s\n' "$candidate_flat"
+              return 0
+            fi
+            return 1
+          }
           for dmg in electron/dist/Nodetool-*.dmg; do
             echo "::group::Verify $dmg"
             mountpoint=$(hdiutil attach -nobrowse -readonly -plist "$dmg" \
               | /usr/bin/python3 -c "import sys,plistlib; p=plistlib.loads(sys.stdin.buffer.read()); print(next(e['mount-point'] for e in p['system-entities'] if 'mount-point' in e))")
-            fw="$mountpoint/Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
-            if [ ! -f "$fw" ]; then
-              echo "::error file=$dmg::Missing Electron Framework binary at Versions/A/"
-              ls -la "$mountpoint/Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/" || true
+            framework_dir="$mountpoint/Nodetool.app/Contents/Frameworks/Electron Framework.framework"
+            if ! fw="$(find_framework_binary "$framework_dir")"; then
+              echo "::error file=$dmg::Missing Electron Framework binary (checked Versions/A and framework-level Electron Framework)"
+              ls -la "$framework_dir/" || true
+              if [ -d "$framework_dir/Versions" ]; then
+                ls -la "$framework_dir/Versions/" || true
+              fi
               fail=1
             else
               size=$(stat -f %z "$fw")
@@ -477,7 +609,7 @@ jobs:
                 echo "::error file=$dmg::Electron Framework binary suspiciously small: ${size} bytes"
                 fail=1
               else
-                echo "  OK: Electron Framework $(($size / 1048576)) MB"
+                echo "  OK: Electron Framework $(($size / 1048576)) MB at $fw"
               fi
             fi
             hdiutil detach -quiet "$mountpoint" || hdiutil detach -force "$mountpoint" || true
@@ -486,11 +618,21 @@ jobs:
           # Also sanity-check the .zip (electron-updater consumes this).
           for zip in electron/dist/Nodetool-*.zip; do
             echo "::group::Verify $zip"
-            entry="Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
+            entry_versioned="Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
+            entry_flat="Nodetool.app/Contents/Frameworks/Electron Framework.framework/Electron Framework"
+            # Keep diagnostics concise while still showing enough context to debug.
+            # 120 lines ~= listing headers + ~100 entries, balancing debuggability
+            # with CI log volume.
+            diag_limit=120
             # Path contains spaces, so don't use $NF — match the first numeric line in the listing body.
-            size=$(unzip -l "$zip" "$entry" 2>/dev/null | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $1; exit}')
+            size=$(unzip -l "$zip" "$entry_versioned" 2>/dev/null | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $1; exit}')
+            if [ -z "${size:-}" ]; then
+              size=$(unzip -l "$zip" "$entry_flat" 2>/dev/null | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $1; exit}')
+            fi
             if [ -z "${size:-}" ] || [ "${size:-0}" -lt 52428800 ]; then
               echo "::error file=$zip::Electron Framework missing or too small in zip (size=${size:-0})"
+              unzip -l "$zip" "Nodetool.app/Contents/Frameworks/Electron Framework.framework/*" 2>/dev/null | sed -n "1,${diag_limit}p" || true
+              unzip -l "$zip" "Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/*" 2>/dev/null | sed -n "1,${diag_limit}p" || true
               fail=1
             else
               echo "  OK: Electron Framework $(($size / 1048576)) MB"
@@ -501,25 +643,6 @@ jobs:
             echo "::error::macOS artifact verification failed; refusing to upload."
             exit 1
           fi
-
-      - name: Upload macOS assets to GitHub Release
-        if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: |
-            electron/dist/*.dmg
-            electron/dist/*.zip
-            electron/dist/latest-mac.yml
-
-      - name: Upload Linux assets to GitHub Release
-        if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          files: |
-            electron/dist/*.AppImage
-            electron/dist/latest-linux.yml
 
       # ── Workflow artifacts (downloadable from the Actions run page) ────
       - name: Upload web build artifact
@@ -543,4 +666,120 @@ jobs:
             electron/dist/*.zip
             electron/dist/*.AppImage
             electron/dist/*.exe
-            electron/dist/latest*.yml
+            electron/dist/*.blockmap
+            electron/dist/*.yml
+
+  nightly-docker-tag:
+    name: Retag GHCR image for nightly
+    needs: [preflight]
+    if: ${{ !failure() && !cancelled() && needs.preflight.outputs.release_channel == 'nightly' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The `docker.yml` workflow already built and pushed
+      # `ghcr.io/nodetool-ai/nodetool:main-<short_sha>` when this commit landed
+      # on main. Reuse that manifest under the nightly version tag instead of
+      # rebuilding. `buildx imagetools create` only writes a new tag pointing
+      # at the existing manifest — no layer pulls or pushes.
+      - name: Retag main-<sha> to nightly version
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          short_sha="${SHA:0:7}"
+          src="ghcr.io/nodetool-ai/nodetool:main-${short_sha}"
+          version_tag="ghcr.io/nodetool-ai/nodetool:${VERSION}"
+          nightly_tag="ghcr.io/nodetool-ai/nodetool:nightly"
+
+          # The docker.yml build for the same commit may still be running.
+          # Poll for the source manifest before retagging.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if docker buildx imagetools inspect "$src" > /dev/null 2>&1; then
+              echo "Found source image: $src"
+              break
+            fi
+            echo "Source image $src not found yet (attempt $attempt/10); sleeping 60s..."
+            sleep 60
+          done
+
+          if ! docker buildx imagetools inspect "$src" > /dev/null 2>&1; then
+            echo "Source image $src never appeared; failing." >&2
+            exit 1
+          fi
+
+          docker buildx imagetools create \
+            --tag "$version_tag" \
+            --tag "$nightly_tag" \
+            "$src"
+
+          echo "Retagged $src -> $version_tag, $nightly_tag"
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [preflight, release-build]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.preflight.outputs.ref }}
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: '*'
+          merge-multiple: true
+          path: release-assets
+
+      - name: Validate release assets
+        run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}"
+
+      - name: Smoke-test updater manifests
+        run: node scripts/smoke-release-updater-assets.mjs release-assets "${{ needs.preflight.outputs.version }}" "${{ needs.preflight.outputs.release_channel }}"
+
+      # The win-unpacked zip is kept as a workflow artifact for debugging,
+      # but is intentionally NOT attached to the GitHub Release.
+      # Drop it from release-assets/ here so the publish step doesn't need a
+      # negation glob (which would fail when no win-unpacked zip is present
+      # and `fail_on_unmatched_files: true` is set).
+      - name: Drop win-unpacked archives from release assets
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          removed=0
+          for f in release-assets/*win-unpacked*.zip; do
+            echo "Removing from release-assets: $f"
+            rm -f "$f"
+            removed=$((removed + 1))
+          done
+          echo "Removed ${removed} win-unpacked archive(s)."
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.preflight.outputs.tag }}
+          name: ${{ needs.preflight.outputs.release_name }}
+          prerelease: ${{ needs.preflight.outputs.is_prerelease }}
+          make_latest: ${{ needs.preflight.outputs.make_latest }}
+          files: |
+            release-assets/*.zip
+            release-assets/*.dmg
+            release-assets/*.AppImage
+            release-assets/*.exe
+            release-assets/*.blockmap
+            release-assets/*.yml
+          fail_on_unmatched_files: true

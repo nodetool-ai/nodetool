@@ -2,10 +2,11 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useEffect, useState, useMemo, memo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import WorkflowToolbar from "./WorkflowToolbar";
+import CategorySearchBar from "../node_menu/CategorySearchBar";
 import WorkflowDeleteDialog from "./WorkflowDeleteDialog";
 import {
   Workflow,
@@ -31,6 +32,7 @@ const styles = (theme: Theme) =>
       height: "100%"
     },
 
+    ".search-header": {},
     ".toolbar-header": {
       position: "sticky",
       top: 0,
@@ -46,9 +48,9 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      padding: "0.75em 0.75em 1em",
       flex: 1,
-      overflow: "hidden"
+      overflow: "hidden",
+      paddingLeft: "0.5em"
     },
     // Toggle category
     ".toggle-category": {
@@ -77,13 +79,17 @@ const WorkflowList = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const [filterValue, setFilterValue] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<
     WorkflowAttributes[]
   >([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [toolsExpanded, setToolsExpanded] = useState(false);
   const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
   const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
@@ -298,6 +304,14 @@ const WorkflowList = () => {
         />
       )}
       <FlexColumn gap={0} fullHeight css={styles(theme)}>
+        <div className="search-header">
+          <CategorySearchBar
+            ref={searchRef}
+            value={filterValue}
+            onChange={setFilterValue}
+            placeholder="Search workflows..."
+          />
+        </div>
         <FlexRow
           className="toolbar-header"
           align="center"
@@ -305,7 +319,6 @@ const WorkflowList = () => {
           justify="space-between"
         >
           <WorkflowToolbar
-            setFilterValue={setFilterValue}
             showCheckboxes={showCheckboxes}
             toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
             selectedWorkflowsCount={selectedWorkflows.length}
@@ -318,8 +331,6 @@ const WorkflowList = () => {
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
             availableTags={availableTags}
-            compact={!toolsExpanded}
-            onExpand={() => setToolsExpanded(true)}
           />
         </FlexRow>
         <div className="status">

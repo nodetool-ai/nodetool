@@ -20,7 +20,6 @@ export interface MetadataNodeEntry {
   properties: MetadataProperty[];
   outputs: MetadataOutput[];
   the_model_info?: AnyRecord;
-  basic_fields?: string[];
 }
 
 interface MetadataProperty {

@@ -120,6 +120,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   const viewMode = useAssetGridStore((state) => state.viewMode);
 
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
 
   const [gridDimensions, setGridDimensions] = useState({
     columns: 1,
@@ -309,7 +310,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     count: rowCount,
     getScrollElement: () => listScrollRef.current,
     estimateSize: getRowHeight,
-    overscan: 4,
+    overscan: theme.virtualScroll.overscan.gridRow,
   });
 
   useEffect(() => {
@@ -321,7 +322,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     return (
       <div
         className="asset-grid-content"
-        css={styles(theme)}
+        css={cssStyles}
         ref={containerRef}
         onContextMenu={handleContextMenu}
         style={{
@@ -348,7 +349,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     return (
       <div
         className="asset-grid-content"
-        css={styles(theme)}
+        css={cssStyles}
         ref={containerRef}
         onContextMenu={handleContextMenu}
         style={{
@@ -372,7 +373,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   return (
     <div
       className="asset-grid-content"
-      css={styles(theme)}
+      css={cssStyles}
       ref={containerRef}
       onContextMenu={handleContextMenu}
       style={{

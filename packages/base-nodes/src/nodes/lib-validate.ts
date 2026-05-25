@@ -118,6 +118,8 @@ export class ValidateEmailNode extends BaseNode {
   static readonly title = "Validate Email";
   static readonly description =
     "Check whether a value is a syntactically valid email address.\n    validate, email, check";
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = { output: "bool" };
 
   @prop({ type: "str", default: "", title: "Value" })
@@ -133,6 +135,8 @@ export class ValidateURLNode extends BaseNode {
   static readonly title = "Validate URL";
   static readonly description =
     "Check whether a value is a syntactically valid absolute URL.\n    validate, url, link, check";
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = { output: "bool" };
 
   @prop({ type: "str", default: "", title: "Value" })
@@ -148,6 +152,8 @@ export class ValidateIPNode extends BaseNode {
   static readonly title = "Validate IP Address";
   static readonly description =
     "Check whether a value is a valid IPv4 or IPv6 address.\n    validate, ip, ipv4, ipv6, address, network";
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     is_ip: "bool",
     is_ipv4: "bool",
@@ -172,6 +178,8 @@ export class ValidateStringNode extends BaseNode {
   static readonly title = "Validate String";
   static readonly description =
     "Run several common string checks at once and return one bool per check.\n    validate, check, email, url, uuid, json, number";
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     is_email: "bool",
     is_url: "bool",
@@ -204,6 +212,8 @@ export class SanitizeStringNode extends BaseNode {
   static readonly title = "Sanitize String";
   static readonly description =
     "HTML-escape, trim, and lowercase/normalise a string. Also emits the normalised email when applicable.\n    sanitize, escape, html, xss, clean, trim";
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
   static readonly metadataOutputTypes = {
     escaped: "str",
     trimmed: "str",

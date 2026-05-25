@@ -47,24 +47,8 @@ export const videoFaceConfig: ModuleConfig = {
         audio: { propType: "audio" }
       }
     },
-    "pixverse-ai/lipsync": {
-      className: "Pixverse_Lipsync",
-      returnType: "video",
-      fieldOverrides: {
-        video: { propType: "video" },
-        audio: { propType: "audio" }
-      }
-    },
     "pixverse/lipsync": {
       className: "Pixverse_Lipsync_V2",
-      returnType: "video",
-      fieldOverrides: {
-        video: { propType: "video" },
-        audio: { propType: "audio" }
-      }
-    },
-    "latentlabs/latentsync": {
-      className: "LatentLabs_LatentSync",
       returnType: "video",
       fieldOverrides: {
         video: { propType: "video" },
@@ -111,15 +95,30 @@ export const videoFaceConfig: ModuleConfig = {
         target_image: { propType: "image" }
       }
     },
-    "fofr/face-swap-with-ideogram": {
-      className: "FaceSwapIdeogram",
-      returnType: "image",
-      fieldOverrides: { face_image: { propType: "image" } }
-    },
     "zsxkib/flash-face": {
       className: "FlashFace",
       returnType: "image",
       fieldOverrides: { face_image: { propType: "image" } }
+    },
+    "prunaai/p-video-avatar": {
+      className: "P_Video_Avatar",
+      returnType: "video"
+    },
+    "heygen/lipsync-precision": {
+      className: "HeyGen_Lipsync_Precision",
+      returnType: "video",
+      fieldOverrides: {
+        video: { propType: "video" },
+        audio: { propType: "audio" }
+      }
+    },
+    "heygen/lipsync-speed": {
+      className: "HeyGen_Lipsync_Speed",
+      returnType: "video",
+      fieldOverrides: {
+        video: { propType: "video" },
+        audio: { propType: "audio" }
+      }
     }
   }
 };

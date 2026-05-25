@@ -25,6 +25,8 @@ import AddIcon from "@mui/icons-material/Add";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
 import { ContextMenu, WarningBanner } from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
@@ -108,18 +110,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const theme = useTheme();
 
   // Get only the clip IDs for this track (stable list of ids)
-  const clipIds = useTimelineStore(
+  const clipIds = useStoreWithEqualityFn(
+    useTimelineStore,
     (s) =>
       s.clips
         .filter((c) => c.trackId === track.id)
         .map((c) => c.id),
     // Shallow-compare the resulting string array
-    (a, b) => a.length === b.length && a.every((id, i) => id === b[i])
+    (a: string[], b: string[]) =>
+      a.length === b.length && a.every((id, i) => id === b[i])
   );
 
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
   const clearSelection = useTimelineUIStore((s) => s.clearSelection);
+  const seek = useTimelinePlaybackStore((s) => s.seek);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
 
@@ -301,13 +306,18 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       e.currentTarget.setPointerCapture(e.pointerId);
       const rect = e.currentTarget.getBoundingClientRect();
+      const localX = e.clientX - rect.left;
       rbStartRef.current = {
-        x: e.clientX - rect.left,
+        x: localX,
         y: e.clientY - rect.top
       };
       isRubberBandingRef.current = true;
+
+      // Move the playhead to the clicked position.
+      const timeMs = Math.round((localX + scrollLeftPx) * msPerPx);
+      seek(timeMs);
     },
-    [clearSelection]
+    [clearSelection, scrollLeftPx, msPerPx, seek]
   );
 
   const handleLanePointerMove = useCallback(
@@ -326,8 +336,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       setRubberBand({ left, top, width, height });
 
-      // Compute which clips overlap the rubber-band
-      const rbStartMs = (left + e.currentTarget.scrollLeft) * msPerPx;
+      // Compute which clips overlap the rubber-band. The lane itself is not
+      // the scroll container — TracksRegion is — so e.currentTarget.scrollLeft
+      // is always 0. Use the UI store's tracked scroll offset instead.
+      const rbStartMs = (left + scrollLeftPx) * msPerPx;
       const rbEndMs = rbStartMs + width * msPerPx;
 
       // Read clips lazily to avoid subscribing to the full array in render
@@ -344,7 +356,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       setSelection(selected);
     },
-    [msPerPx, track.id, setSelection]
+    [msPerPx, scrollLeftPx, track.id, setSelection]
   );
 
   const handleLanePointerUp = useCallback(() => {
@@ -463,7 +475,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         <AddClipMenu
           trackId={track.id}
           startMs={addClipState.startMs}
-          mediaTypeOverride={track.type === "overlay" ? "overlay" : undefined}
+          trackType={track.type}
           anchorEl={addClipAnchorEl}
           onClose={handleAddClipClose}
         />

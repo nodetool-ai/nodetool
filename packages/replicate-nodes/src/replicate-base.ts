@@ -35,10 +35,10 @@ export function getReplicateApiKey(secrets: Record<string, string>): string {
 // Utility helpers
 // ---------------------------------------------------------------------------
 
-/** Recursively delete null/undefined/empty/zero keys from an object. */
+/** Recursively delete null/undefined/empty string keys from an object. */
 export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
-    if (obj[k] == null || obj[k] === "" || obj[k] === 0) {
+    if (obj[k] == null || obj[k] === "") {
       delete obj[k];
     } else if (typeof obj[k] === "object" && !Array.isArray(obj[k])) {
       removeNulls(obj[k] as Record<string, unknown>);
@@ -50,7 +50,13 @@ export function removeNulls(obj: Record<string, unknown>): void {
 export function isRefSet(ref: unknown): boolean {
   if (!ref || typeof ref !== "object") return false;
   const r = ref as Record<string, unknown>;
-  return Boolean(r.data || r.uri || r.asset_id);
+  return Boolean(r.data || r.uri);
+}
+
+interface UploadContext {
+  storage?: {
+    retrieve(uri: string): Promise<Uint8Array | null | undefined>;
+  } | null;
 }
 
 /**
@@ -62,7 +68,8 @@ export function isRefSet(ref: unknown): boolean {
  */
 export async function assetToUrl(
   ref: Record<string, unknown>,
-  apiKey?: string
+  apiKey?: string,
+  context?: UploadContext
 ): Promise<string | null> {
   const uri = ref.uri as string | undefined;
   if (uri) {
@@ -87,6 +94,15 @@ export async function assetToUrl(
     }
     // Local/relative paths: resolve via local server and upload
     if (apiKey && uri.startsWith("/")) {
+      const bytes = await context?.storage?.retrieve(uri);
+      if (bytes) {
+        return uploadBytesToReplicate(
+          apiKey,
+          bytes,
+          inferMime(ref),
+          filenameForMime(inferMime(ref))
+        );
+      }
       const port = process.env.PORT ?? "7777";
       const localUrl = `http://127.0.0.1:${port}${uri}`;
       try {
@@ -105,6 +121,24 @@ export async function assetToUrl(
   return null;
 }
 
+async function uploadBytesToReplicate(
+  apiKey: string,
+  bytes: Uint8Array,
+  contentType: string,
+  filename: string
+): Promise<string> {
+  const client = getClient(apiKey);
+  const blob = new Blob([bytes.slice().buffer as ArrayBuffer], {
+    type: contentType
+  });
+  const file = await client.files.create(blob, { filename });
+  const fileUrl = (file as unknown as Record<string, unknown>).urls as
+    | Record<string, string>
+    | undefined;
+  if (fileUrl?.get) return fileUrl.get;
+  throw new Error("No URL in upload response");
+}
+
 /**
  * Fetch a URL and upload the content to Replicate's files API.
  * Returns the Replicate-hosted URL that models can access.
@@ -121,16 +155,7 @@ async function uploadToReplicate(
     res.headers.get("content-type") || "application/octet-stream";
   const ext = contentType.split("/")[1]?.split(";")[0] || "bin";
 
-  const client = getClient(apiKey);
-  const file = await (client.files as any).create({
-    content: new Blob([bytes], { type: contentType }),
-    filename: `upload.${ext}`
-  });
-  const fileUrl = (file as unknown as Record<string, unknown>).urls as
-    | Record<string, string>
-    | undefined;
-  if (fileUrl?.get) return fileUrl.get;
-  throw new Error("No URL in upload response");
+  return uploadBytesToReplicate(apiKey, bytes, contentType, `upload.${ext}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -233,4 +258,9 @@ function inferMime(ref: Record<string, unknown>): string {
     default:
       return "application/octet-stream";
   }
+}
+
+function filenameForMime(mime: string): string {
+  const ext = mime.split("/")[1]?.split(";")[0] || "bin";
+  return `upload.${ext}`;
 }

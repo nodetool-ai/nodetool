@@ -73,6 +73,9 @@ const MAX_BRIDGE_FRAME_SIZE = Number(
 );
 const PYTHON_BRIDGE_ALLOWED_IN_PRODUCTION =
   process.env["NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION"] === "1";
+const DEFAULT_EXECUTE_TIMEOUT_MS = Number(
+  process.env["NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS"] ?? 12 * 60 * 1000
+);
 
 function isProductionMode(): boolean {
   return process.env["NODETOOL_ENV"] === "production";
@@ -172,7 +175,13 @@ export class PythonStdioBridge extends EventEmitter {
 
     return new Promise<void>((resolve, reject) => {
       const proc = spawn(candidate.command, args, {
-        stdio: ["pipe", "pipe", "pipe"]
+        stdio: ["pipe", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          TQDM_DISABLE: "1",
+          HF_HUB_DISABLE_PROGRESS_BARS: "1",
+          TRANSFORMERS_VERBOSITY: "error",
+        },
       });
       this._process = proc;
 
@@ -279,13 +288,17 @@ export class PythonStdioBridge extends EventEmitter {
     while (this._readBuffer.length >= 4) {
       const length = this._readBuffer.readUInt32BE(0);
       if (length > MAX_BRIDGE_FRAME_SIZE) {
-        this.emit(
-          "error",
+        const stderrHint = this.getRecentStderrSummary(6);
+        const desyncHint =
+          "This usually means the Python worker wrote non-protocol data to stdout " +
+          "(for example a library print/progress bar), desynchronizing the msgpack frame stream.";
+        this._failProtocol(
           new Error(
-            `Incoming Python bridge frame exceeds max size (${length} > ${MAX_BRIDGE_FRAME_SIZE})`
+            `Incoming Python bridge frame exceeds max size (${length} > ${MAX_BRIDGE_FRAME_SIZE}). ` +
+              desyncHint +
+              (stderrHint ? ` Recent stderr: ${stderrHint}` : "")
           )
         );
-        this.close();
         return;
       }
       if (this._readBuffer.length < 4 + length) break; // incomplete frame
@@ -295,9 +308,29 @@ export class PythonStdioBridge extends EventEmitter {
         const msg = msgpack.decode(payload) as Record<string, unknown>;
         this._handleMessage(msg);
       } catch (err) {
-        this.emit("error", new Error(`Failed to decode msgpack frame: ${err}`));
+        this._failProtocol(
+          new Error(`Failed to decode msgpack frame: ${err}`)
+        );
+        return;
       }
     }
+  }
+
+  private _rejectAllPending(error: Error): void {
+    for (const [, req] of this._pending) {
+      req.reject(error);
+    }
+    this._pending.clear();
+    for (const [, req] of this._pendingStream) {
+      req.reject(error);
+    }
+    this._pendingStream.clear();
+  }
+
+  private _failProtocol(error: Error): void {
+    log.error(error.message);
+    this._rejectAllPending(error);
+    this.close();
   }
 
   // ── Send ───────────────────────────────────────────────────────────
@@ -444,14 +477,58 @@ export class PythonStdioBridge extends EventEmitter {
     onProgress?: (event: ProgressEvent) => void
   ): Promise<ExecuteResult> {
     const requestId = randomUUID();
-    return new Promise<ExecuteResult>((resolve, reject) => {
+    const timeoutMs =
+      this._options.executeTimeoutMs ?? DEFAULT_EXECUTE_TIMEOUT_MS;
+
+    log.debug("Python bridge execute dispatched", { nodeType, requestId });
+
+    const executePromise = new Promise<ExecuteResult>((resolve, reject) => {
       this._pending.set(requestId, { resolve, reject, onProgress });
-      this._send({
-        type: "execute",
-        request_id: requestId,
-        data: { node_type: nodeType, fields, secrets, blobs }
-      });
+      try {
+        this._send({
+          type: "execute",
+          request_id: requestId,
+          data: { node_type: nodeType, fields, secrets, blobs }
+        });
+      } catch (err) {
+        this._pending.delete(requestId);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
+
+    if (timeoutMs <= 0) {
+      return executePromise;
+    }
+
+    let timer: NodeJS.Timeout | undefined;
+    const timeoutPromise = new Promise<ExecuteResult>((_, reject) => {
+      timer = setTimeout(() => {
+        if (!this._pending.has(requestId)) {
+          return;
+        }
+        this._pending.delete(requestId);
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone; cancel is best-effort.
+        }
+        const stderrHint = this.getRecentStderrSummary(4);
+        reject(
+          new Error(
+            `Python node "${nodeType}" timed out after ${timeoutMs}ms waiting for the worker.` +
+              (stderrHint ? ` Recent stderr: ${stderrHint}` : "")
+          )
+        );
+      }, timeoutMs);
+    });
+
+    try {
+      return await Promise.race([executePromise, timeoutPromise]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
   }
 
   async *executeStream(
@@ -813,6 +890,9 @@ export class PythonStdioBridge extends EventEmitter {
   // ── Shutdown ───────────────────────────────────────────────────────
 
   close(): void {
+    if (this._pending.size > 0 || this._pendingStream.size > 0) {
+      this._rejectAllPending(new Error("Python bridge closed"));
+    }
     if (this._process) {
       // Close stdin — the Python side will exit cleanly.
       this._process.stdin?.end();

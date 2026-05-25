@@ -78,8 +78,7 @@ modules:
       - -Dvapi=false
       - -Dgtk_doc=false
       - -Dintrospection=false
-      - -Dgcrypt=false
-      - -Dtpm2=disabled
+      - -Dtpm2=false
     cleanup:
       - /include
       - /lib/pkgconfig
@@ -95,14 +94,15 @@ modules:
     cleanup:
       - '*'
     build-commands:
-      - mkdir -p /app/bin /app/lib
+      - mkdir -p /app/bin /app/lib /app/include
       - cp -r bin/node bin/npm bin/npx /app/bin/
       - cp -r lib/node_modules /app/lib/
-      - cp -r include /app/include
+      - cp -r include/* /app/include/
+      - cp include/node/common.gypi /app/common.gypi
     sources:
       - type: archive
-        url: https://nodejs.org/dist/v24.13.1/node-v24.13.1-linux-x64.tar.xz
-        sha256: 30215f90ea3cd04dfbc06e762c021393fa173a1d392974298bbc871a8e461089
+        url: https://nodejs.org/dist/v22.22.1/node-v22.22.1-linux-x64.tar.xz
+        sha256: 9a6bc82f9b491279147219f6a18add1e18424dce90d41d2a5fcd69d4924ba3aa
         strip-components: 1
         only-arches:
           - x86_64
@@ -176,4 +176,3 @@ modules:
       # so '..' points to the repository root containing both web/ and electron/
       - type: dir
         path: ..
-

@@ -1,10 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Box } from "@mui/material";
 import { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text } from "../ui_primitives";
+import { Text, Box } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { isGettingStarted } from "../../utils/templateCategories";
 import WorkflowCard from "./WorkflowCard";

@@ -2,6 +2,51 @@ import { Asset } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 
+interface AssetResultBase {
+  uri: string;
+  asset_id: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface ImageResult extends AssetResultBase {
+  type: "image";
+}
+
+interface AudioResult extends AssetResultBase {
+  type: "audio";
+}
+
+interface VideoResult extends AssetResultBase {
+  type: "video";
+  duration?: number;
+}
+
+interface Model3DResult extends AssetResultBase {
+  type: "model_3d";
+  format?: string;
+}
+
+interface HtmlResult extends AssetResultBase {
+  type: "html";
+}
+
+interface DocumentResult extends AssetResultBase {
+  type: "document";
+}
+
+interface GenericAssetResult extends AssetResultBase {
+  type: "asset";
+}
+
+export type AssetResultValue =
+  | ImageResult
+  | AudioResult
+  | VideoResult
+  | Model3DResult
+  | HtmlResult
+  | DocumentResult
+  | GenericAssetResult;
+
 const MIME_EXTENSION_MAP: Record<string, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
@@ -40,7 +85,7 @@ const getAssetExtension = (asset: Asset): string => {
   return "";
 };
 
-export const assetToResultValue = (asset: Asset): Record<string, unknown> => {
+export const assetToResultValue = (asset: Asset): AssetResultValue => {
   const normalized = normalizeMimeType(asset.content_type);
   const extension = getAssetExtension(asset);
   const uri = `asset://${asset.id}${extension}`;
@@ -87,11 +132,11 @@ export const assetToResultValue = (asset: Asset): Record<string, unknown> => {
 
 export const groupWorkflowAssetsByNodeResult = (
   assets: Asset[]
-): Record<string, unknown[]> => {
-  const byNode: Record<string, unknown[]> = {};
+): Record<string, AssetResultValue[]> => {
+  const byNode: Record<string, AssetResultValue[]> = {};
 
   const sorted = [...assets]
-    .filter((asset) => !!asset.node_id)
+    .filter((asset): asset is Asset & { node_id: string } => !!asset.node_id)
     .sort((a, b) => {
       const aTime = new Date(a.created_at).getTime();
       const bTime = new Date(b.created_at).getTime();
@@ -102,7 +147,7 @@ export const groupWorkflowAssetsByNodeResult = (
     });
 
   for (const asset of sorted) {
-    const nodeId = asset.node_id as string;
+    const nodeId = asset.node_id;
     if (!byNode[nodeId]) {
       byNode[nodeId] = [];
     }

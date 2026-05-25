@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export interface AutosaveSettings {
+interface AutosaveSettings {
   enabled: boolean;
   intervalMinutes: number; // 1-60, default 10
   saveBeforeRun: boolean;
@@ -40,6 +40,12 @@ export interface Settings {
    */
   instantUpdate: boolean;
   editorViewMode: "graph" | "chain";
+  /**
+   * How the SketchNode opens the Image Editor when clicked:
+   * - "modal":      fullscreen modal portal inside the workflow editor (default).
+   * - "standalone": navigates to the standalone `/sketch/:documentId` route.
+   */
+  imageEditorOpenMode: "modal" | "standalone";
   autosave: AutosaveSettings;
 }
 
@@ -61,6 +67,7 @@ interface SettingsStore {
   setSoundNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
   setEditorViewMode: (value: "graph" | "chain") => void;
+  setImageEditorOpenMode: (value: "modal" | "standalone") => void;
   updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
@@ -79,6 +86,7 @@ export const defaultSettings: Settings = {
   soundNotifications: true,
   instantUpdate: false,
   editorViewMode: "graph",
+  imageEditorOpenMode: "modal",
   autosave: { ...defaultAutosaveSettings }
 };
 
@@ -197,6 +205,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             editorViewMode: value
+          }
+        })),
+      setImageEditorOpenMode: (value: "modal" | "standalone") =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            imageEditorOpenMode: value
           }
         })),
       updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>

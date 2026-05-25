@@ -62,8 +62,7 @@ export const config: ModuleConfig = {
         Style: {
           "3D_ANIMATION": "ANIMATION_3D"
         }
-      },
-      basicFields: ["image", "prompt", "resolution"]
+      }
     },
 
     "fal-ai/luma-dream-machine/image-to-video": {
@@ -105,8 +104,7 @@ export const config: ModuleConfig = {
         "Animate image sequences",
         "Create video from image pairs",
         "Produce smooth motion effects"
-      ],
-      basicFields: ["image"]
+      ]
     },
 
     "fal-ai/ai-avatar": {
@@ -121,8 +119,7 @@ export const config: ModuleConfig = {
         "Produce avatar presentations",
         "Create personalized video messages"
       ],
-      enumOverrides: { Resolution: "AIAvatarResolution" },
-      basicFields: ["image", "audio"]
+      enumOverrides: { Resolution: "AIAvatarResolution" }
     },
 
     "fal-ai/ai-avatar/single-text": {
@@ -143,8 +140,7 @@ export const config: ModuleConfig = {
         "Create virtual presenters",
         "Generate automated spokesperson videos"
       ],
-      enumOverrides: { Resolution: "AIAvatarSingleTextResolution" },
-      basicFields: ["image", "text"]
+      enumOverrides: { Resolution: "AIAvatarSingleTextResolution" }
     },
 
     "fal-ai/ai-avatar/multi-text": {
@@ -165,8 +161,7 @@ export const config: ModuleConfig = {
         "Create conversational content",
         "Generate multi-character scenes"
       ],
-      enumOverrides: { Resolution: "AIAvatarMultiTextResolution" },
-      basicFields: ["images", "texts"]
+      enumOverrides: { Resolution: "AIAvatarMultiTextResolution" }
     },
 
     "fal-ai/ai-avatar/multi": {
@@ -187,8 +182,7 @@ export const config: ModuleConfig = {
         "Create interactive characters",
         "Generate multi-avatar content"
       ],
-      enumOverrides: { Resolution: "AIAvatarMultiResolution" },
-      basicFields: ["images", "audio"]
+      enumOverrides: { Resolution: "AIAvatarMultiResolution" }
     },
 
     "fal-ai/bytedance/seedance/v1.5/pro/image-to-video": {
@@ -214,8 +208,7 @@ export const config: ModuleConfig = {
         Resolution: "SeeDanceV15ProResolution",
         AspectRatio: "SeeDanceV15ProAspectRatio",
         Duration: "SeeDanceV15ProDuration"
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     "fal-ai/bytedance/seedance/v1/pro/fast/image-to-video": {
@@ -241,8 +234,7 @@ export const config: ModuleConfig = {
         Resolution: "SeeDanceV1ProFastResolution",
         AspectRatio: "SeeDanceV1ProFastAspectRatio",
         Duration: "SeeDanceV1ProFastDuration"
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     "fal-ai/bytedance/seedance/v1/lite/reference-to-video": {
@@ -268,8 +260,7 @@ export const config: ModuleConfig = {
         Resolution: "SeeDanceV1LiteResolution",
         AspectRatio: "SeeDanceV1LiteAspectRatio",
         Duration: "SeeDanceV1LiteDuration"
-      },
-      basicFields: ["image", "reference"]
+      }
     },
 
     "fal-ai/bytedance/video-stylize": {
@@ -290,8 +281,7 @@ export const config: ModuleConfig = {
         "Produce style-transferred videos",
         "Create visually unique content"
       ],
-      enumOverrides: { Resolution: "ByteDanceVideoStylizeResolution" },
-      basicFields: ["image", "style"]
+      enumOverrides: { Resolution: "ByteDanceVideoStylizeResolution" }
     },
 
     "fal-ai/bytedance/omnihuman/v1.5": {
@@ -308,8 +298,7 @@ export const config: ModuleConfig = {
       enumOverrides: {
         Resolution: "OmniHumanV15Resolution",
         AspectRatio: "OmniHumanV15AspectRatio"
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     "fal-ai/cogvideox-5b/image-to-video": {
@@ -323,8 +312,7 @@ export const config: ModuleConfig = {
         "Produce high-quality video content",
         "Animate static images",
         "Generate motion from photos"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/stable-video": {
@@ -338,24 +326,9 @@ export const config: ModuleConfig = {
         "Produce reliable video outputs",
         "Animate images consistently",
         "Generate predictable videos"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
-    "fal-ai/hunyuan-video/image-to-video": {
-      className: "HunyuanImageToVideo",
-      docstring:
-        "Hunyuan Video generates high-quality videos from images with advanced AI.",
-      tags: ["video", "generation", "hunyuan", "tencent", "image-to-video"],
-      useCases: [
-        "Generate cinematic videos from images",
-        "Create high-quality animations",
-        "Produce professional video content",
-        "Animate images with detail",
-        "Generate advanced video effects"
-      ],
-      basicFields: ["image", "prompt"]
-    },
 
     "fal-ai/ltx-video/image-to-video": {
       className: "LTXImageToVideo",
@@ -368,8 +341,7 @@ export const config: ModuleConfig = {
         "Produce coherent video sequences",
         "Animate with temporal awareness",
         "Generate fluid motion videos"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/kling-video/v1/standard/image-to-video": {
@@ -384,31 +356,9 @@ export const config: ModuleConfig = {
         "Generate videos for web use",
         "Create moderate quality outputs"
       ],
-      enumOverrides: { Duration: "KlingVideoV1StandardDuration" },
-      basicFields: ["image", "prompt"]
+      enumOverrides: { Duration: "KlingVideoV1StandardDuration" }
     },
 
-    "fal-ai/kling-video/v1/pro/image-to-video": {
-      className: "KlingVideoV1ProImageToVideo",
-      docstring:
-        "Kling Video v1 Pro generates professional quality videos from images.",
-      tags: [
-        "video",
-        "generation",
-        "kling",
-        "pro",
-        "professional",
-        "image-to-video"
-      ],
-      useCases: [
-        "Generate professional videos",
-        "Create high-quality animations",
-        "Produce premium video content",
-        "Generate cinematic outputs",
-        "Create professional grade videos"
-      ],
-      basicFields: ["image", "prompt"]
-    },
 
     "fal-ai/pixverse/v5.6/transition": {
       className: "PixverseV56Transition",
@@ -425,8 +375,7 @@ export const config: ModuleConfig = {
       enumOverrides: {
         Resolution: "PixverseV56TransitionResolution",
         Duration: "PixverseV56TransitionDuration"
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     "fal-ai/vidu/q2/reference-to-video/pro": {
@@ -441,8 +390,7 @@ export const config: ModuleConfig = {
         "Generate videos matching examples",
         "Create professional reference-based content"
       ],
-      enumOverrides: { Resolution: "ViduQ2ReferenceToVideoProResolution" },
-      basicFields: ["image", "prompt"]
+      enumOverrides: { Resolution: "ViduQ2ReferenceToVideoProResolution" }
     },
 
     "wan/v2.6/image-to-video/flash": {
@@ -460,8 +408,7 @@ export const config: ModuleConfig = {
       enumOverrides: {
         Resolution: "WanV26FlashResolution",
         Duration: "WanV26FlashDuration"
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     "wan/v2.6/image-to-video": {
@@ -479,8 +426,7 @@ export const config: ModuleConfig = {
       enumOverrides: {
         Resolution: "WanV26Resolution",
         Duration: "WanV26Duration"
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     "fal-ai/ltx-2-19b/image-to-video": {
@@ -494,8 +440,7 @@ export const config: ModuleConfig = {
         "Produce superior video content",
         "Generate videos with powerful AI",
         "Create premium video animations"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/ltx-2-19b/image-to-video/lora": {
@@ -509,8 +454,7 @@ export const config: ModuleConfig = {
         "Produce domain-specific animations",
         "Generate with fine-tuned large model",
         "Create customized video animations"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/ltx-2-19b/distilled/image-to-video": {
@@ -524,8 +468,7 @@ export const config: ModuleConfig = {
         "Produce optimized video content",
         "Generate videos with good performance",
         "Create balanced quality-speed videos"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/ltx-2-19b/distilled/image-to-video/lora": {
@@ -539,8 +482,7 @@ export const config: ModuleConfig = {
         "Produce fast domain-specific videos",
         "Generate with optimized custom model",
         "Create quick customized animations"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/wan-move": {
@@ -554,8 +496,7 @@ export const config: ModuleConfig = {
         "Produce dynamic video content",
         "Generate moving scenes from stills",
         "Create motion animations"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/kandinsky5-pro/image-to-video": {
@@ -573,8 +514,7 @@ export const config: ModuleConfig = {
       enumOverrides: {
         Resolution: "Kandinsky5ProResolution",
         Duration: "Kandinsky5ProDuration"
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     "fal-ai/live-avatar": {
@@ -588,8 +528,7 @@ export const config: ModuleConfig = {
         "Generate lip-synced avatars",
         "Produce speaking character videos",
         "Create animated presenters"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/hunyuan-video-v1.5/image-to-video": {
@@ -604,8 +543,7 @@ export const config: ModuleConfig = {
         "Generate videos with AI excellence",
         "Create cutting-edge video animations"
       ],
-      enumOverrides: { Resolution: "HunyuanVideoV15Resolution" },
-      basicFields: ["image", "prompt"]
+      enumOverrides: { Resolution: "HunyuanVideoV15Resolution" }
     },
 
     "fal-ai/kling-video/o1/standard/image-to-video": {
@@ -620,8 +558,7 @@ export const config: ModuleConfig = {
         "Generate balanced quality videos",
         "Create standard tier animations"
       ],
-      enumOverrides: { Duration: "KlingVideoO1StandardDuration" },
-      basicFields: ["image", "prompt"]
+      enumOverrides: { Duration: "KlingVideoO1StandardDuration" }
     },
 
     "fal-ai/kling-video/o1/standard/reference-to-video": {
@@ -638,8 +575,7 @@ export const config: ModuleConfig = {
       ],
       enumOverrides: {
         Duration: "KlingVideoO1StandardReferenceToVideoDuration"
-      },
-      basicFields: ["image", "prompt"]
+      }
     },
 
     "fal-ai/kling-video/o3/standard/image-to-video": {
@@ -661,8 +597,7 @@ export const config: ModuleConfig = {
         "Produce efficient video content from photos",
         "Generate consistent video clips from images",
         "Create standard-tier visual storytelling"
-      ],
-      basicFields: ["image", "prompt", "duration"]
+      ]
     },
 
     "fal-ai/kling-video/o3/pro/image-to-video": {
@@ -684,8 +619,7 @@ export const config: ModuleConfig = {
         "Produce cinematic video clips from images",
         "Create high-fidelity marketing videos from photos",
         "Generate polished video sequences from images"
-      ],
-      basicFields: ["image", "prompt", "duration"]
+      ]
     },
 
     "fal-ai/kling-video/o3/standard/reference-to-video": {
@@ -699,8 +633,7 @@ export const config: ModuleConfig = {
         "Produce reference-guided content",
         "Generate videos matching examples",
         "Create standardized reference videos"
-      ],
-      basicFields: ["start_image", "prompt", "duration"]
+      ]
     },
 
     "fal-ai/kling-video/o3/pro/reference-to-video": {
@@ -714,8 +647,7 @@ export const config: ModuleConfig = {
         "Produce reference-guided professional content",
         "Generate videos matching premium examples",
         "Create polished reference-based video clips"
-      ],
-      basicFields: ["start_image", "prompt", "duration"]
+      ]
     },
 
     "fal-ai/kling-video/v2.6/pro/image-to-video": {
@@ -730,8 +662,7 @@ export const config: ModuleConfig = {
         "Generate advanced videos",
         "Create pro-tier animations"
       ],
-      enumOverrides: { Duration: "KlingVideoV26ProDuration" },
-      basicFields: ["image", "prompt"]
+      enumOverrides: { Duration: "KlingVideoV26ProDuration" }
     },
 
     "fal-ai/kling-video/ai-avatar/v2/standard": {
@@ -745,8 +676,7 @@ export const config: ModuleConfig = {
         "Generate avatar presentations",
         "Produce speaking character videos",
         "Create AI-driven avatars"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/kling-video/ai-avatar/v2/pro": {
@@ -760,8 +690,7 @@ export const config: ModuleConfig = {
         "Generate realistic avatar videos",
         "Produce premium speaking characters",
         "Create pro-grade AI avatars"
-      ],
-      basicFields: ["image", "prompt"]
+      ]
     },
 
     "fal-ai/creatify/aurora": {
@@ -783,8 +712,7 @@ export const config: ModuleConfig = {
         "Generate unique video effects",
         "Create visually impressive videos"
       ],
-      enumOverrides: { Resolution: "CreatifyAuroraResolution" },
-      basicFields: ["image", "prompt"]
+      enumOverrides: { Resolution: "CreatifyAuroraResolution" }
     },
 
     "fal-ai/pixverse/v5.5/effects": {
@@ -1243,19 +1171,6 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/decart/lucy-5b/image-to-video": {
-      className: "DecartLucy5bImageToVideo",
-      docstring:
-        "Lucy-5B is a model that can create 5-second I2V videos in under 5 seconds, achieving >1x RTF end-to-end",
-      tags: ["video", "animation", "image-to-video", "img2vid"],
-      useCases: [
-        "Animate static images",
-        "Create engaging social media content",
-        "Product demonstrations",
-        "Marketing and promotional videos",
-        "Visual storytelling"
-      ]
-    },
 
     "fal-ai/pixverse/v5/transition": {
       className: "PixverseV5Transition",
@@ -2220,8 +2135,7 @@ export const config: ModuleConfig = {
         "Generate product demonstration videos",
         "Produce marketing and promotional videos",
         "Transform images into cinematic animations"
-      ],
-      basicFields: ["start_image_url", "prompt", "duration"]
+      ]
     },
 
     "fal-ai/kling-video/v3/pro/image-to-video": {
@@ -2235,8 +2149,7 @@ export const config: ModuleConfig = {
         "Produce high-fidelity product showcase videos",
         "Animate images with enhanced visual quality",
         "Create premium video content for advertising"
-      ],
-      basicFields: ["start_image_url", "prompt", "duration"]
+      ]
     },
     "bytedance/seedance-2.0/image-to-video": {
       className: "BytedanceSeedance20ImageToVideo",

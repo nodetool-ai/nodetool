@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, useRef, useState, useEffect, memo } from "react";
-import { Box } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -13,7 +12,7 @@ import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ExpandCollapseButton, EmptyState, Text } from "../ui_primitives";
+import { ExpandCollapseButton, EmptyState, Text, Box } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface AssetListViewProps {
@@ -217,13 +216,14 @@ const styles = (theme: Theme) =>
     }
   });
 
-const AssetListView: React.FC<AssetListViewProps> = memo(({
+const AssetListView: React.FC<AssetListViewProps> = ({
   assets,
   onDoubleClick,
   containerWidth = 1200,
   isHorizontal = false
 }) => {
   const theme = useTheme();
+  const listStyles = useMemo(() => styles(theme), [theme]);
   const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
   const { selectedAssetIds, handleSelectAsset, handleDeselectAssets } =
     useAssetSelection(assets);
@@ -353,7 +353,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
       virtualListItems[index]?.type === "header"
         ? TYPE_SECTION_HEIGHT
         : ROW_HEIGHT,
-    overscan: 8,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => virtualListItems[index]?.key ?? index,
   });
 
@@ -497,7 +497,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
 
   if (assets.length === 0) {
     return (
-      <Box css={styles(theme)} className="asset-list-view">
+      <Box css={listStyles} className="asset-list-view">
         <EmptyState
           variant="no-data"
           title="No assets to display"
@@ -508,7 +508,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   }
 
   return (
-    <Box css={styles(theme)} className="asset-list-view">
+    <Box css={listStyles} className="asset-list-view">
       <div className="asset-list-container">
         <div className="asset-list-header">
           <div className="asset-header-icon-space"></div>
@@ -551,7 +551,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
       </div>
     </Box>
   );
-});
+};
 
 AssetListView.displayName = 'AssetListView';
 

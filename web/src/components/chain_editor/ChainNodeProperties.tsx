@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { createElement, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { Box } from "../ui_primitives";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { FlexRow } from "../ui_primitives/FlexRow";
 import { Text } from "../ui_primitives/Text";
@@ -83,6 +83,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
 }) => {
   const theme = useTheme();
   const store = useMemo(() => getEmptyStore(), []);
+  const cssStyles = useMemo(() => chainPropertyStyles(theme), [theme]);
 
   if (properties.length === 0) {
     return (
@@ -97,7 +98,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
   return (
     <NodeContext.Provider value={store}>
       <EditorUiProvider scope="inspector">
-        <div css={chainPropertyStyles(theme)}>
+        <div css={cssStyles}>
           {properties.map((prop, i) => {
             const isConnected = connectedInputs.includes(prop.name);
             const value = values[prop.name] ?? prop.default;

@@ -7,7 +7,6 @@ export const TOOLTIP_LEAVE_DELAY = 0;
 export const TOOLTIP_ENTER_NEXT_DELAY = 350;
 
 // NOTIFICATIONS
-export const NOTIFICATIONS_LIST_MAX_ITEMS = 100;
 export const NOTIFICATION_TIMEOUT_DEFAULT = 3000; // 3 seconds - default notification timeout
 export const NOTIFICATION_TIMEOUT_SHORT = 2000; // 2 seconds - brief success messages
 export const NOTIFICATION_TIMEOUT_MEDIUM = 4000; // 4 seconds - warnings and info messages
@@ -27,6 +26,7 @@ export const DUPLICATE_SPACING = 50;
 export const MIN_ZOOM = 0.12;
 export const MAX_ZOOM = 4.0;
 export const ZOOMED_OUT = 0.35;
+export const NODE_MENU_HOVER_INFO_DELAY_MS = 250;
 
 // MODEL
 export const DEFAULT_MODEL = "gpt-oss:20b";

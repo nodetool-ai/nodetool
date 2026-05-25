@@ -39,10 +39,16 @@
       "path": "../huggingface"
     },
     {
+      "path": "../image-editor"
+    },
+    {
       "path": "../kernel"
     },
     {
       "path": "../kie-nodes"
+    },
+    {
+      "path": "../topaz-nodes"
     },
     {
       "path": "../models"

@@ -6,6 +6,7 @@ import useContextMenu from "../../stores/ContextMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../nodes/useSelect";
+import { instantiatePaletteNode } from "../../utils/instantiatePaletteNode";
 
 /**
  * Configuration options for usePaneEvents hook.
@@ -65,8 +66,12 @@ export function usePaneEvents({ pendingNodeType, placementLabel: _placementLabel
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const createNode = useNodes((state) => state.createNode);
   const addNode = useNodes((state) => state.addNode);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
 
-  const nodeActions = useMemo(() => ({ createNode, addNode }), [createNode, addNode]);
+  const nodeActions = useMemo(
+    () => ({ createNode, addNode, updateNodeData }),
+    [createNode, addNode, updateNodeData]
+  );
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -104,9 +109,16 @@ export function usePaneEvents({ pendingNodeType, placementLabel: _placementLabel
           x: event.clientX,
           y: event.clientY
         });
-        const newNode = nodeActions.createNode(metadata, position);
+        const { node: newNode, afterAdd } = instantiatePaletteNode(
+          metadata,
+          position,
+          nodeActions.createNode
+        );
         newNode.selected = true;
         nodeActions.addNode(newNode);
+        if (afterAdd) {
+          nodeActions.updateNodeData(newNode.id, afterAdd);
+        }
         cancelPlacement();
         if (isMenuOpen) {
           closeNodeMenu();

@@ -36,7 +36,7 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
       setSelectedAssetIds(assetIds);
       const selectedAssets = assetIds
         .map((id) => sortedAssets.find((asset) => asset.id === id))
-        .filter(Boolean) as Asset[];
+        .filter((a): a is Asset => a !== undefined);
       setSelectedAssets(selectedAssets);
     },
     [setSelectedAssetIds, setSelectedAssets, sortedAssets]

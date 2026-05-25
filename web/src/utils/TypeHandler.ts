@@ -344,35 +344,3 @@ export const isCollectType = (type: TypeMetadata): boolean => {
   return true;
 };
 
-/**
- * Checks if a source type can be "collected" into a target list type.
- * This allows connecting an output of type T to an input of type list[T].
- *
- * @param source The source type (e.g., "image").
- * @param target The target type (e.g., "list[image]").
- * @returns True if the source type can be collected into the target type.
- */
-export const canCollect = (
-  source: TypeMetadata,
-  target: TypeMetadata
-): boolean => {
-  // Target must be a collect type (list[T] where T is not "any")
-  if (!isCollectType(target)) {
-    return false;
-  }
-
-  // Safety check for source
-  if (!source || !source.type) {
-    return false;
-  }
-
-  // Get the element type of the target list
-  // isCollectType already validates that type_args[0] exists, but add defensive check
-  const targetElementType = target.type_args?.[0];
-  if (!targetElementType) {
-    return false;
-  }
-
-  // Check if the source type is connectable to the element type
-  return isConnectable(source, targetElementType, true);
-};

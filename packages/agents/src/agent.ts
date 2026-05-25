@@ -32,7 +32,6 @@ import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
-import { rejectAgenticProvider } from "./reject-agentic-provider.js";
 import {
   type AgentOutputFormat,
   outputFormatDirective
@@ -250,7 +249,6 @@ export class Agent extends BaseAgent {
   taskPlan: TaskPlan | null = null;
 
   constructor(opts: AgentOptions) {
-    rejectAgenticProvider(opts.provider, "Agent");
     super({
       name: opts.name,
       objective: opts.objective,

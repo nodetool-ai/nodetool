@@ -91,7 +91,7 @@ function buildDisplayMarkdown(
   kind: "image" | "audio" | "video" | "file",
   label: string
 ): string {
-  const safeLabel = label.replace(/[\[\]]/g, "");
+  const safeLabel = label.replace(/[[\]]/g, "");
   switch (kind) {
     case "image":
       return `![${safeLabel}](${urlForMarkdown(url)})`;

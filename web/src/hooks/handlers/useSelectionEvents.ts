@@ -1,6 +1,7 @@
 import { useCallback, useRef, MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow, type Node } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
 import {
   getSelectionRect,
@@ -33,6 +34,7 @@ export function useSelectionEvents({
   const selectionEndRef = useRef<{ x: number; y: number } | null>(null);
 
   const { openContextMenu } = useContextMenu();
+  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const { updateNode, setEdgeSelectionState } = useNodes((state) => ({
     updateNode: state.updateNode,
     setEdgeSelectionState: state.setEdgeSelectionState
@@ -178,6 +180,9 @@ export function useSelectionEvents({
         const hasSelectedNode = reactFlowInstance
           .getNodes()
           .some((n) => n.selected);
+        if (!hasSelectedNode) {
+          closeNodeMenu();
+        }
         if (hasSelectedNode && !includeMarqueeEdges) {
           setSuppressNodeDrivenEdgeSelection(true);
           const allEdges = reactFlowInstance.getEdges();
@@ -193,6 +198,7 @@ export function useSelectionEvents({
       });
     },
     [
+      closeNodeMenu,
       onSelectionEndBase,
       projectMouseEventToFlow,
       reactFlowInstance,

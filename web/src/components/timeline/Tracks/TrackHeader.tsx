@@ -20,17 +20,24 @@ import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { Tooltip } from "../../ui_primitives";
+import {
+  DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
+  FX_PANEL_HEIGHT_PX
+} from "./trackHeight";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
 export const TRACK_HEADER_WIDTH_PX = 160;
 const MIN_TRACK_HEIGHT_PX = 40;
 const MAX_TRACK_HEIGHT_PX = 300;
-const DEFAULT_TRACK_HEIGHT_PX = 64;
+const DEFAULT_TRACK_HEIGHT_PX = SHARED_DEFAULT_TRACK_HEIGHT_PX;
 const RESIZE_HANDLE_HEIGHT_PX = 6;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -126,6 +133,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
   const setTrackSolo = useTimelineStore((s) => s.setTrackSolo);
   const setTrackHeight = useTimelineStore((s) => s.setTrackHeight);
   const setTrackName = useTimelineStore((s) => s.setTrackName);
+  const removeTrack = useTimelineStore((s) => s.removeTrack);
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
 
@@ -193,6 +201,21 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
   );
 
   const isAudioTrack = track.type === "audio";
+  const supportsEffects =
+    track.type === "audio" || track.type === "video";
+  const effectsCount = track.effects?.length ?? 0;
+  const hasActiveEffects =
+    track.effects?.some((e) => e.enabled) ?? false;
+
+  // ── Inline FX panel toggle ──────────────────────────────────────────────
+
+  const fxExpanded = useTimelineUIStore(
+    (s) => s.expandedFxTrackId === track.id
+  );
+  const toggleExpandedFx = useTimelineUIStore((s) => s.toggleExpandedFx);
+  const handleFxToggle = useCallback(() => {
+    toggleExpandedFx(track.id);
+  }, [toggleExpandedFx, track.id]);
 
   return (
     <div
@@ -242,7 +265,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
 
         {isAudioTrack && (
           <>
-            <Tooltip title={track.muted ? "Unmute" : "Mute"}>
+            <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
               <button
                 css={iconButtonStyles(theme, !track.muted)}
                 onClick={() => setTrackMuted(track.id, !track.muted)}
@@ -265,6 +288,42 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
             </Tooltip>
           </>
         )}
+
+        {supportsEffects && (
+          <Tooltip
+            title={
+              effectsCount === 0
+                ? "Effects chain (empty)"
+                : `Effects chain (${effectsCount})`
+            }
+          >
+            <button
+              css={iconButtonStyles(theme, hasActiveEffects || fxExpanded)}
+              onClick={handleFxToggle}
+              aria-label={fxExpanded ? "Hide effects chain" : "Show effects chain"}
+              aria-pressed={fxExpanded}
+              data-testid={`track-fx-${track.id}`}
+            >
+              <GraphicEqIcon />
+            </button>
+          </Tooltip>
+        )}
+
+        <Tooltip title="Remove track">
+          <button
+            css={iconButtonStyles(theme, true)}
+            onClick={() => {
+              if (
+                window.confirm(`Remove track "${track.name}" and all its clips?`)
+              ) {
+                removeTrack(track.id);
+              }
+            }}
+            aria-label="Remove track"
+          >
+            <DeleteOutlineIcon />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Height resize handle */}

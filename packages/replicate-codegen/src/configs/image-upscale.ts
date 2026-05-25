@@ -106,11 +106,6 @@ export const imageUpscaleConfig: ModuleConfig = {
       returnType: "image",
       fieldOverrides: { image: { propType: "image" } }
     },
-    "philz1337x/crystal-upscaler": {
-      className: "Crystal_Upscaler",
-      returnType: "image",
-      fieldOverrides: { image: { propType: "image" } }
-    },
     "recraft-ai/recraft-creative-upscale": {
       className: "Recraft_Creative_Upscale",
       returnType: "image",
@@ -153,6 +148,11 @@ export const imageUpscaleConfig: ModuleConfig = {
     },
     "zsyoaoa/invsr": {
       className: "InvSR",
+      returnType: "image",
+      fieldOverrides: { image: { propType: "image" } }
+    },
+    "philz1337x/clarity-pro-upscaler": {
+      className: "Clarity_Pro_Upscaler",
       returnType: "image",
       fieldOverrides: { image: { propType: "image" } }
     }

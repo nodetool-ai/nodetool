@@ -2,10 +2,8 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import PropertyField from "./node/PropertyField";
-import { Box } from "@mui/material";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
-import NodeExplorer from "./node/NodeExplorer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
@@ -14,8 +12,29 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "fast-deep-equal";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
-import { Caption, CloseButton, CollapsibleSection, ScrollArea, Text, Tooltip } from "./ui_primitives";
+import {
+  Caption,
+  CloseButton,
+  CollapsibleSection,
+  EditorButton,
+  ScrollArea,
+  Text,
+  Tooltip,
+  Box
+} from "./ui_primitives";
+import useNodeMenuStore from "../stores/NodeMenuStore";
+import { TOOLTIP_ENTER_DELAY } from "../config/constants";
+import FalPricingFooter from "./node/FalPricingFooter";
+import KieCreditsFooter from "./node/KieCreditsFooter";
+import { isKieNodeMetadata } from "../utils/isKieNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
+import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
+import { InspectorHeaderActionsProvider } from "../contexts/InspectorPropertyHeaderContext";
+import { canConfigureExposedPlacement } from "../utils/exposedInputs";
+import { useExposedInputToggle } from "../hooks/nodes/useExposedInputToggle";
+import usePropertyValidationStore from "../stores/PropertyValidationStore";
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
 
 const styles = (theme: Theme) =>
   css({
@@ -67,19 +86,34 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       fontWeight: 500
     },
-    ".namespace": {
-      fontSize: theme.fontSizeTiny,
-      color: theme.vars.palette.text.disabled,
+    ".namespace-button": {
+      alignSelf: "flex-start",
+      marginTop: theme.spacing(0.5),
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.secondary,
       fontFamily: "monospace",
       letterSpacing: "0.02em",
-      marginTop: theme.spacing(0.25)
+      fontWeight: 500,
+      textTransform: "none",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: theme.shape.borderRadius,
+      backgroundColor: theme.vars.palette.action.hover,
+      whiteSpace: "nowrap",
+      maxWidth: "100%",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      "&:hover": {
+        bgcolor: theme.vars.palette.action.selected,
+        color: theme.vars.palette.text.primary,
+        borderColor: theme.vars.palette.text.secondary
+      }
     },
     ".header-description": {
-      color: theme.vars.palette.text.secondary,
-      fontSize: theme.fontSizeTiny,
-      lineHeight: 1.4,
+      color: theme.vars.palette.text.primary,
+      fontSize: theme.fontSizeSmaller,
+      lineHeight: 1.45,
       marginTop: theme.spacing(0.5),
-      opacity: 0.8,
       whiteSpace: "pre-wrap"
     },
     ".description": {
@@ -116,8 +150,132 @@ const styles = (theme: Theme) =>
       position: "absolute",
       right: "0.5em",
       top: "0.5em"
+    },
+    ".property-row": {
+      width: "100%",
+      minWidth: 0
+    },
+    ".property-row .node-property": {
+      width: "100%",
+      minWidth: 0
+    },
+    ".property-row .inspector-header-toolbar.inspector-toolbar-hoverable": {
+      opacity: 0,
+      transition: "opacity 0.15s ease"
+    },
+    ".property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within":
+      {
+        opacity: 1
+      },
+    ".validation-banner": {
+      margin: "0.5em 0 0.75em",
+      padding: "0.5em 0.75em",
+      borderLeft: `3px solid ${theme.vars.palette.error.main}`,
+      backgroundColor: "var(--palette-error-overlay)",
+      borderRadius: "2px",
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.error.main
+    },
+    ".validation-banner .validation-banner-title": {
+      fontWeight: 600,
+      marginBottom: "0.25em",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.25em"
+    },
+    ".validation-banner .validation-banner-row": {
+      display: "block",
+      width: "100%",
+      textAlign: "left",
+      padding: "0.15em 0",
+      background: "transparent",
+      border: "none",
+      cursor: "pointer",
+      color: "inherit",
+      font: "inherit"
+    },
+    ".validation-banner .validation-banner-row:hover": {
+      textDecoration: "underline"
+    },
+    ".validation-banner .validation-banner-row-property": {
+      fontFamily: "var(--fontFamily2)",
+      fontWeight: 600
     }
   });
+
+interface ValidationErrorBannerProps {
+  workflowId: string | undefined;
+  nodeId: string;
+}
+
+const ValidationErrorBanner: React.FC<ValidationErrorBannerProps> = ({
+  workflowId,
+  nodeId
+}) => {
+  const errors = useStoreWithEqualityFn(
+    usePropertyValidationStore,
+    (state) => {
+      if (!workflowId) return [];
+      const prefix = `${workflowId}:${nodeId}:`;
+      const out: { property: string; message: string }[] = [];
+      for (const k in state.errors) {
+        if (k.startsWith(prefix)) {
+          out.push({
+            property: k.slice(prefix.length),
+            message: state.errors[k as `${string}:${string}:${string}`]
+          });
+        }
+      }
+      return out;
+    },
+    isEqual
+  );
+
+  const handleScrollToField = useCallback((property: string) => {
+    // Find the PropertyField inside the inspector and scroll it into view.
+    const root = document.querySelector(".inspector");
+    if (!root) return;
+    const target = root.querySelector(
+      `.node-property.has-validation-error[data-property="${CSS.escape(property)}"]`
+    );
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    // Fallback: scroll the banner itself into view (the message is here).
+    const banner = root.querySelector(".validation-banner");
+    if (banner instanceof HTMLElement) {
+      banner.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
+  if (errors.length === 0) return null;
+
+  return (
+    <div className="validation-banner" role="alert">
+      <div className="validation-banner-title">
+        <WarningAmberOutlinedIcon fontSize="small" />
+        {errors.length === 1 ? "1 issue" : `${errors.length} issues`} to fix
+      </div>
+      {errors.map((err) => (
+        <button
+          type="button"
+          key={`${err.property}::${err.message}`}
+          className="validation-banner-row"
+          onClick={() => handleScrollToField(err.property)}
+        >
+          {err.property ? (
+            <>
+              <span className="validation-banner-row-property">{err.property}</span>
+              {": "}
+            </>
+          ) : null}
+          {err.message}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 const Inspector: React.FC = () => {
   // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
@@ -130,6 +288,7 @@ const Inspector: React.FC = () => {
   const findNode = useNodes((state) => state.findNode);
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
+  const { cycleExposedInputPlacement, getPlacement } = useExposedInputToggle();
 
   // Optimize: Only subscribe to edges that are connected to selected nodes to avoid re-renders
   // when unrelated edges change. This is especially important for dynamic properties lookup.
@@ -158,7 +317,7 @@ const Inspector: React.FC = () => {
       selectedNodes
         .map((node) => ({
           node,
-          metadata: node.type ? getMetadata(node.type as string) : null
+          metadata: node.type ? getMetadata(node.type) : null
         }))
         .filter(
           (
@@ -235,23 +394,43 @@ const Inspector: React.FC = () => {
 
   // Define selectedNode and metadata early so callbacks can reference them
   const selectedNode = selectedNodes[0] || null;
-  const metadata = selectedNode
-    ? getMetadata(selectedNode.type as string)
+  const metadata = selectedNode?.type
+    ? getMetadata(selectedNode.type)
     : null;
 
-  if (selectedNodes.length === 0) {
-    return (
-      <EditorUiProvider scope="inspector">
-        <Box className="inspector" css={inspectorStyles}>
-          <Box className="top">
-            <ScrollArea className="top-content" direction="vertical">
-              <NodeExplorer />
-            </ScrollArea>
-          </Box>
-          <Box className="bottom"></Box>
-        </Box>
-      </EditorUiProvider>
+  const handleNamespaceClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (!metadata?.namespace) {
+        return;
+      }
+      e.stopPropagation();
+      useNodeMenuStore.getState().openNodeMenu({
+        x: e.clientX,
+        y: e.clientY,
+        selectedPath: metadata.namespace.split(".")
+      });
+    },
+    [metadata?.namespace]
+  );
+
+  // Connected target-handle names for the focused node, used to (a) gate the
+  // demotion confirmation prompt and (b) flag the toggle as "connected".
+  const connectedTargetHandles = useMemo(() => {
+    if (!selectedNode) {
+      return new Set<string>();
+    }
+    return new Set(
+      edges
+        .filter(
+          (edge): edge is typeof edge & { targetHandle: string } =>
+            edge.target === selectedNode.id && typeof edge.targetHandle === "string"
+        )
+        .map((edge) => edge.targetHandle)
     );
+  }, [edges, selectedNode]);
+
+  if (selectedNodes.length === 0) {
+    return null;
   }
 
   if (isMultiSelect) {
@@ -301,9 +480,10 @@ const Inspector: React.FC = () => {
                       propertyIndex={property.name}
                       showHandle={false}
                       isInspector={true}
-                      nodeType="inspector"
+                      nodeType={nodesWithMetadata[0].node.type ?? "inspector"}
                       data={nodesWithMetadata[0].node.data}
                       layout=""
+                      inspectorBatchNodeIds={multiNodeIds}
                       onValueChange={(newValue) =>
                         handleMultiPropertyChange(property.name, newValue)
                       }
@@ -328,27 +508,16 @@ const Inspector: React.FC = () => {
               )}
             </ScrollArea>
           </Box>
-          <div className="bottom"></div>
+          <div className="bottom">
+            <RunSelectedNodesSection />
+          </div>
         </Box>
       </EditorUiProvider>
     );
   }
 
   if (!selectedNode) {
-    return (
-      <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <ScrollArea className="top-content" direction="vertical">
-            <Box className="inspector-header">
-              <Caption size="smaller" color="muted">
-                Select a node to inspect
-              </Caption>
-            </Box>
-          </ScrollArea>
-        </Box>
-        <Box className="bottom"></Box>
-      </Box>
-    );
+    return null;
   }
 
   if (!metadata) {
@@ -370,7 +539,44 @@ const Inspector: React.FC = () => {
                   nodrag={false}
                 />
               </div>
-              <div className="namespace">{metadata.node_type}</div>
+              {metadata.fal_unit_pricing ? (
+                <Box sx={{ mt: 0.5 }}>
+                  <FalPricingFooter
+                    metadata={metadata}
+                    selected
+                    variant="inline"
+                    popoverResetDep={selectedNode.id}
+                  />
+                </Box>
+              ) : null}
+              {isKieNodeMetadata(metadata) ? (
+                <Box sx={{ mt: 0.5 }}>
+                  <KieCreditsFooter
+                    metadata={metadata}
+                    selected
+                    variant="inline"
+                    nodeId={selectedNode.id}
+                    workflowId={selectedNode.data.workflow_id}
+                    popoverResetDep={selectedNode.id}
+                  />
+                </Box>
+              ) : null}
+              {metadata.namespace ? (
+                <Tooltip
+                  delay={TOOLTIP_ENTER_DELAY}
+                  title="Browse related nodes in the node menu"
+                  placement="bottom"
+                  arrow
+                >
+                  <EditorButton
+                    variant="text"
+                    className="namespace-button"
+                    onClick={handleNamespaceClick}
+                  >
+                    {metadata.namespace}
+                  </EditorButton>
+                </Tooltip>
+              ) : null}
               {metadata.description && (
                 <CollapsibleSection
                   title={<Caption size="tiny" color="muted">Description</Caption>}
@@ -383,21 +589,70 @@ const Inspector: React.FC = () => {
                 </CollapsibleSection>
               )}
             </div>
-            {/* Base properties */}
-            {metadata.properties.map((property, index) => (
-              <PropertyField
-                key={`inspector-${property.name}-${selectedNode.id}`}
-                id={selectedNode.id}
-                value={selectedNode.data.properties[property.name]}
-                property={property}
-                propertyIndex={index.toString()}
-                showHandle={false}
-                isInspector={true}
-                nodeType="inspector"
-                data={selectedNode.data}
-                layout=""
-              />
-            ))}
+            {/* Validation errors banner — surfaces every issue for this
+                node so users see errors even when the field is on a handle
+                that has no Inspector row (output slots, dynamic inputs,
+                multi-edge list handles, graph-level issues). */}
+            <ValidationErrorBanner
+              workflowId={selectedNode.data.workflow_id}
+              nodeId={selectedNode.id}
+            />
+            {/* Property list — placement toggle cycles off → top → bottom
+                for all metadata properties (including input_fields /
+                inline_fields defaults). */}
+            {metadata.properties.map((property, index) => {
+              if (property.json_schema_extra?.hidden_in_inspector === true) {
+                return null;
+              }
+              const hasToggle = canConfigureExposedPlacement(
+                metadata,
+                property.name
+              );
+              const exposurePlacement = getPlacement(
+                selectedNode.id,
+                property.name
+              );
+              const connected = connectedTargetHandles.has(property.name);
+              const propertyRowClass = [
+                "property-row",
+                hasToggle && "has-visibility-toggle"
+              ]
+                .filter(Boolean)
+                .join(" ");
+              const visibilityToggle = hasToggle ? (
+                <PropertyVisibilityToggle
+                  placement={exposurePlacement}
+                  connected={connected}
+                  onToggle={() =>
+                    selectedNode &&
+                    cycleExposedInputPlacement(
+                      selectedNode.id,
+                      property.name
+                    )
+                  }
+                />
+              ) : null;
+              return (
+                <div
+                  className={propertyRowClass}
+                  key={`inspector-${property.name}-${selectedNode.id}`}
+                >
+                  <InspectorHeaderActionsProvider actions={visibilityToggle}>
+                    <PropertyField
+                      id={selectedNode.id}
+                      value={selectedNode.data.properties[property.name]}
+                      property={property}
+                      propertyIndex={index.toString()}
+                      showHandle={false}
+                      isInspector={true}
+                      nodeType={selectedNode.type ?? "inspector"}
+                      data={selectedNode.data}
+                      layout=""
+                    />
+                  </InspectorHeaderActionsProvider>
+                </div>
+              );
+            })}
 
             {/* Dynamic properties, if any */}
             {Object.entries(selectedNode.data.dynamic_properties || {}).map(
@@ -457,7 +712,7 @@ const Inspector: React.FC = () => {
                     propertyIndex={`dynamic-${index}`}
                     showHandle={false}
                     isInspector={true}
-                    nodeType="inspector"
+                    nodeType={selectedNode.type ?? "inspector"}
                     data={selectedNode.data}
                     layout=""
                     isDynamicProperty={true}
@@ -468,7 +723,9 @@ const Inspector: React.FC = () => {
             )}
           </ScrollArea>
         </Box>
-        <div className="bottom"></div>
+        <div className="bottom">
+          <RunSelectedNodesSection />
+        </div>
       </Box>
     </EditorUiProvider>
   );

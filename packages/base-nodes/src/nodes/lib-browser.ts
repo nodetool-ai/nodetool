@@ -14,6 +14,8 @@ export class WebFetchLibNode extends BaseNode {
     output: "str"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url", "selector"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -88,6 +90,8 @@ export class DownloadFileLibNode extends BaseNode {
     output: "bytes"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -129,6 +133,8 @@ export class BrowserLibNode extends BaseNode {
     metadata: "dict[str, any]"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -178,6 +184,8 @@ export class ScreenshotLibNode extends BaseNode {
     output: "image"
   };
   static readonly exposeAsTool = true;
+  static readonly inlineFields = ["url", "selector"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -247,7 +255,8 @@ export class SpiderCrawlLibNode extends BaseNode {
   };
   static readonly exposeAsTool = true;
 
-  static readonly isStreamingOutput = true;
+  static readonly inlineFields = ["start_url"];
+  static readonly inputFields = [];
   @prop({
     type: "str",
     default: "",

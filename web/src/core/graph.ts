@@ -340,10 +340,11 @@ export const autoLayout = async (
   // root group is processed last to ensure all group nodes are processed
   for (const groupId of groupOrder) {
     const groupNodes = nodeGroups[groupId] || [];
+    const groupNodeIds = new Set(groupNodes.map((n) => n.id));
     const groupEdges = edges.filter(
       (edge) =>
-        groupNodes.some((n) => n.id === edge.source) &&
-        groupNodes.some((n) => n.id === edge.target)
+        groupNodeIds.has(edge.source) &&
+        groupNodeIds.has(edge.target)
     );
 
     const graph = createElkGraph(groupNodes, groupEdges, groupId === "root");

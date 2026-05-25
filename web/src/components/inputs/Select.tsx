@@ -227,9 +227,9 @@ const Select: React.FC<SelectProps> = ({
   // Memoize styles to avoid recalculation on each render
   const styles = useMemo(() => selectStyles(theme), [theme]);
 
-  // Changed state styling for select-header
+  // Changed state — inset shadow so box size stays unchanged
   const changedStyle = changed
-    ? { borderRight: `2px solid ${theme.vars.palette.primary.main}` }
+    ? { boxShadow: `inset -2px 0 0 ${theme.vars.palette.primary.main}` }
     : undefined;
 
   // Memoize dropdown style object to prevent recreation on every render

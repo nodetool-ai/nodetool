@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Collapse, LinearProgress } from "@mui/material";
+import { Collapse, LinearProgress } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -16,14 +16,14 @@ import { FlexRow } from "../ui_primitives/FlexRow";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { Text } from "../ui_primitives/Text";
 import { Divider } from "../ui_primitives/Divider";
-import { ToolbarIconButton } from "../ui_primitives";
+import { ToolbarIconButton, Box } from "../ui_primitives";
 import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";
 import OutputRenderer from "../node/OutputRenderer";
 import useResultsStore, { hashKey } from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import type { ChainNode, InputSource } from "./chainTypes";
 
 interface ChainNodeCardProps {
@@ -88,15 +88,14 @@ function useNodeExecState(workflowId: string | null, nodeId: string) {
   ) as NodeStatus | undefined;
 
   const { progress, result } = useResultsStore(
-    (s) => {
+    useShallow((s) => {
       if (!workflowId) return { progress: undefined, result: undefined };
       const key = hashKey(workflowId, nodeId);
       return {
         progress: s.progress[key],
         result: s.outputResults[key] ?? s.results[key]
       };
-    },
-    shallow
+    })
   );
 
   const isRunning = status === "running" || status === "booting" || status === "starting";
@@ -114,11 +113,11 @@ function getOutputFromResult(result: unknown): unknown {
   return result;
 }
 
-export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
+export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNodeCard({
   node, index, totalNodes, workflowId, previousNodes,
   onToggleExpanded, onUpdateProperty, onSetOutput, onSetInputMapping,
   onRemove, onDuplicate, onMoveUp, onMoveDown,
-}) => {
+}) {
   const theme = useTheme();
   const nsColor = getNsColor(node.metadata.namespace);
 
@@ -274,4 +273,16 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
       </Collapse>
     </Box>
   );
-};
+}, (prev, next) => {
+  if (prev.node !== next.node) return false;
+  if (prev.index !== next.index) return false;
+  if (prev.totalNodes !== next.totalNodes) return false;
+  if (prev.workflowId !== next.workflowId) return false;
+  const pn = prev.previousNodes;
+  const nn = next.previousNodes;
+  if (pn.length !== nn.length) return false;
+  for (let i = 0; i < pn.length; i++) {
+    if (pn[i] !== nn[i]) return false;
+  }
+  return true;
+});

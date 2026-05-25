@@ -1,9 +1,3 @@
-import { format, isValid, parseISO } from "date-fns";
-
-interface Settings {
-  timeFormat: "12h" | "24h";
-}
-
 export function secondsToHMS(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   seconds %= 3600;
@@ -15,55 +9,6 @@ export function secondsToHMS(seconds: number): string {
   const paddedSeconds = String(seconds).padStart(2, "0");
 
   return `${paddedHours}:${paddedMinutes}:${paddedSeconds}`;
-}
-
-export function prettyDate(
-  dateStr: string | number | undefined,
-  formatStyle: "normal" | "verbose" = "normal",
-  settings?: Settings
-): string {
-  if (!dateStr) {
-    return "-";
-  }
-
-  // Handle numeric timestamp input
-  let date: Date;
-  if (typeof dateStr === "number") {
-    date = new Date(dateStr);
-  } else {
-    const compliantDateStr = dateStr.replace(" ", "T");
-    date = parseISO(compliantDateStr);
-  }
-
-  if (!isValid(date)) {
-    console.warn("Invalid date input");
-    return "Invalid Date";
-  }
-
-  const now = new Date();
-  const timeFormat = settings?.timeFormat || "12h";
-
-  if (formatStyle === "verbose") {
-    if (timeFormat === "24h") {
-      const datePattern =
-        date.getFullYear() === now.getFullYear()
-          ? "d. MMMM "
-          : "d MMMM yyyy";
-      return format(date, `${datePattern} | HH:mm`);
-    } else {
-      const datePattern =
-        date.getFullYear() === now.getFullYear()
-          ? "MMMM d"
-          : "yyyy MMMM d";
-      return format(date, `${datePattern} | hh:mm a`);
-    }
-  } else {
-    if (timeFormat === "24h") {
-      return format(date, "dd.MM.yyyy | HH:mm:ss");
-    } else {
-      return format(date, "yyyy-MM-dd | hh:mm:ss a");
-    }
-  }
 }
 
 export function relativeTime(date: Date | string): string {
@@ -93,13 +38,3 @@ export function relativeTime(date: Date | string): string {
   return "just now";
 }
 
-export function getTimestampForFilename(includeTime = true): string {
-  const now = new Date();
-  const iso = now.toISOString();
-  if (includeTime) {
-    // Format: yyyy-MM-dd_HH-mm-ss in UTC (from ISO string)
-    return iso.slice(0, 10) + "_" + iso.slice(11, 19).replace(/:/g, "-");
-  } else {
-    return iso.slice(0, 10);
-  }
-}

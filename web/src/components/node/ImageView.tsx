@@ -10,6 +10,7 @@ import { createImageUrl } from "../../utils/imageUtils";
 import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
+import { useMediaOverlaySuppressed } from "./MediaOverlayContext";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -20,6 +21,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const blobUrlRef = useRef<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const overlaySuppressed = useMediaOverlaySuppressed();
 
   const imageUrl = useMemo(() => {
     const result = createImageUrl(source, blobUrlRef.current);
@@ -184,31 +186,33 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         open={openViewer}
         onClose={handleCloseViewer}
       />
-      <div
-        className="image-view-actions"
-        style={actionsStyle}
-      >
-        <CopyAssetButton
-          contentType="image/png"
-          url={imageUrl}
-        />
-        <ToolbarIconButton
-          title="Download"
-          size="small"
-          onClick={handleDownload}
-          sx={iconButtonStyle}
+      {!overlaySuppressed && (
+        <div
+          className="image-view-actions"
+          style={actionsStyle}
         >
-          <DownloadIcon />
-        </ToolbarIconButton>
-        <ToolbarIconButton
-          title="Open in Viewer (double-click)"
-          size="small"
-          onClick={handleOpenInViewer}
-          sx={iconButtonStyle}
-        >
-          <OpenInNewIcon />
-        </ToolbarIconButton>
-      </div>
+          <CopyAssetButton
+            contentType="image/png"
+            url={imageUrl}
+          />
+          <ToolbarIconButton
+            title="Download"
+            size="small"
+            onClick={handleDownload}
+            sx={iconButtonStyle}
+          >
+            <DownloadIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            title="Open in Viewer (double-click)"
+            size="small"
+            onClick={handleOpenInViewer}
+            sx={iconButtonStyle}
+          >
+            <OpenInNewIcon />
+          </ToolbarIconButton>
+        </div>
+      )}
       <img
         ref={imageRef}
         src={imageUrl}
@@ -218,7 +222,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         onDoubleClick={handleDoubleClick}
         draggable={false}
       />
-      {imageDimensions && (
+      {!overlaySuppressed && imageDimensions && (
         <ImageDimensions
           width={imageDimensions.width}
           height={imageDimensions.height}

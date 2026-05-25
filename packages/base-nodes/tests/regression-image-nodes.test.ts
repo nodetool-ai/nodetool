@@ -23,8 +23,10 @@ import {
   GetMetadataNode,
   TextToImageNode,
   ImageToImageNode,
-  BatchToListNode
+  BatchToListNode,
+  ChannelsNode
 } from "../src/index.js";
+import { LevelsNode } from "../src/nodes/image.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -363,18 +365,26 @@ describe("TextToImageNode — provider params", () => {
     expect(node.resolution).toBe("2K");
   });
 
-  it("does not expose low-level sampler params", () => {
-    expect(TextToImageNode.basicFields).not.toContain("guidance_scale");
-    expect(TextToImageNode.basicFields).not.toContain("num_inference_steps");
-    expect(TextToImageNode.basicFields).not.toContain("seed");
-    expect(TextToImageNode.basicFields).not.toContain("safety_check");
-    expect(TextToImageNode.basicFields).not.toContain("width");
-    expect(TextToImageNode.basicFields).not.toContain("height");
-  });
-
-  it("basicFields surfaces aspect_ratio and resolution", () => {
-    expect(TextToImageNode.basicFields).toContain("aspect_ratio");
-    expect(TextToImageNode.basicFields).toContain("resolution");
+  it("keeps the node body compact: no inline fields, prompt is an input handle", () => {
+    expect(TextToImageNode.inlineFields).toEqual([]);
+    expect(TextToImageNode.inputFields).toEqual(
+      expect.arrayContaining(["prompt"])
+    );
+    // All sampler/composition controls (guidance_scale, num_inference_steps,
+    // seed, safety_check, width, height, aspect_ratio, resolution, ...)
+    // live in the Inspector and are intentionally not inline.
+    for (const field of [
+      "guidance_scale",
+      "num_inference_steps",
+      "seed",
+      "safety_check",
+      "width",
+      "height",
+      "aspect_ratio",
+      "resolution"
+    ]) {
+      expect(TextToImageNode.inlineFields).not.toContain(field);
+    }
   });
 });
 
@@ -436,5 +446,239 @@ describe("BatchToListNode — validation", () => {
     expect(result.output).toBeDefined();
     expect(Array.isArray(result.output)).toBe(true);
     expect((result.output as unknown[]).length).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. ChannelsNode — channel extraction
+// ---------------------------------------------------------------------------
+
+describe("ChannelsNode — channel extraction", () => {
+  async function makeRgbaImage(
+    r = 255,
+    g = 128,
+    b = 64,
+    a = 200
+  ): Promise<Record<string, unknown>> {
+    const buf = await sharp({
+      create: { width: 2, height: 2, channels: 4, background: { r, g, b, alpha: a / 255 } }
+    })
+      .png()
+      .toBuffer();
+    return {
+      type: "image",
+      data: buf.toString("base64"),
+      uri: ""
+    };
+  }
+
+  async function decodeChannel(output: Record<string, unknown>) {
+    const data = output.data as string;
+    const buf = Buffer.from(data, "base64");
+    const { data: raw, info } = await sharp(buf)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return { raw, info };
+  }
+
+  it("extracts red channel", async () => {
+    const img = await makeRgbaImage(255, 0, 0, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "red" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    expect(typeof output.data).toBe("string");
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(255);
+  });
+
+  it("extracts green channel", async () => {
+    const img = await makeRgbaImage(0, 255, 0, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "green" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(255);
+  });
+
+  it("extracts blue channel", async () => {
+    const img = await makeRgbaImage(0, 0, 255, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "blue" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(255);
+  });
+
+  it("extracts alpha channel", async () => {
+    const img = await makeRgbaImage(0, 0, 0, 128);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "alpha" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(128);
+  });
+
+  it("produces luminance / grayscale", async () => {
+    const img = await makeRgbaImage(100, 150, 200, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "luminance" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    // Luminance of (100,150,200) should be somewhere in between
+    expect(raw[0]).toBeGreaterThan(100);
+    expect(raw[0]).toBeLessThan(200);
+  });
+
+  it("passes the image through on unsupported channel", async () => {
+    // transformImage swallows sharp errors and returns the original image so
+    // the pipeline keeps flowing instead of dropping a workflow on a typo.
+    const img = await makeRgbaImage();
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "cyan" });
+    const result = (await node.process()) as { output: unknown };
+    expect(result.output).toBeDefined();
+  });
+
+  it("defaults to luminance when channel is not set", async () => {
+    const img = await makeRgbaImage(100, 150, 200, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 10. LevelsNode — LUT math, identity short-circuit, and channel handling
+// ---------------------------------------------------------------------------
+
+describe("LevelsNode — processing", () => {
+  it("returns original image when all params are at identity", async () => {
+    const png = await makePngBuffer(4, 4, 128, 64, 32);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new LevelsNode();
+    node.assign({ image: imgRef });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    expect(typeof output.data).toBe("string");
+    expect((output.data as string).length).toBeGreaterThan(0);
+
+    // Decode and verify pixels are unchanged
+    const inBuf = Buffer.from(imgRef.data as string, "base64");
+    const outBuf = Buffer.from(output.data as string, "base64");
+    const { data: inRaw } = await sharp(inBuf).raw().toBuffer({ resolveWithObject: true });
+    const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+    expect(inRaw.length).toBe(outRaw.length);
+    for (let i = 0; i < inRaw.length; i++) {
+      expect(outRaw[i]).toBe(inRaw[i]);
+    }
+  });
+
+  it("adjusts black/white points and changes pixels", async () => {
+    const png = await makePngBuffer(4, 4, 128, 64, 32);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new LevelsNode();
+    node.assign({
+      image: imgRef,
+      r_black: 64,
+      r_white: 192,
+      r_gamma: 1,
+      g_black: 0,
+      g_white: 255,
+      g_gamma: 1,
+      b_black: 0,
+      b_white: 255,
+      b_gamma: 1
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    expect(typeof output.data).toBe("string");
+    expect((output.data as string).length).toBeGreaterThan(0);
+
+    // Output should differ from input
+    const inBuf = Buffer.from(imgRef.data as string, "base64");
+    const outBuf = Buffer.from(output.data as string, "base64");
+    const { data: inRaw } = await sharp(inBuf).raw().toBuffer({ resolveWithObject: true });
+    const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+    let differs = false;
+    for (let i = 0; i < inRaw.length; i++) {
+      if (inRaw[i] !== outRaw[i]) {
+        differs = true;
+        break;
+      }
+    }
+    expect(differs).toBe(true);
+  });
+
+  it("applies gamma correctly", async () => {
+    const png = await makePngBuffer(4, 4, 128, 128, 128);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new LevelsNode();
+    node.assign({
+      image: imgRef,
+      r_black: 0,
+      r_white: 255,
+      r_gamma: 2,
+      g_black: 0,
+      g_white: 255,
+      g_gamma: 1,
+      b_black: 0,
+      b_white: 255,
+      b_gamma: 1
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    const outBuf = Buffer.from(output.data as string, "base64");
+    const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+    // Gamma 2 with invGamma = 1/2 brightens midtones: (128/255)^0.5 * 255 ≈ 181
+    expect(outRaw[0]).toBeGreaterThan(150);
+  });
+
+  it("handles grayscale input without crashing", async () => {
+    // Create a grayscale PNG by converting an RGB image to greyscale.
+    const grayBuf = await sharp({
+      create: { width: 4, height: 4, channels: 3, background: { r: 128, g: 128, b: 128 } }
+    })
+      .greyscale()
+      .png()
+      .toBuffer();
+    const imgRef = imageRefFromBuffer(grayBuf);
+
+    const node = new LevelsNode();
+    node.assign({
+      image: imgRef,
+      r_black: 0,
+      r_white: 255,
+      r_gamma: 1.5
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    expect(typeof output.data).toBe("string");
+    expect((output.data as string).length).toBeGreaterThan(0);
   });
 });

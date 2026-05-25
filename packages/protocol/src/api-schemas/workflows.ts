@@ -1,5 +1,60 @@
 import { z } from "zod";
 
+// ── WorkflowRunMode ──────────────────────────────────────────────────────────
+
+/**
+ * All recognised run_mode values for a workflow row.
+ *
+ * Standalone modes (appear in regular workflow listings):
+ *   "workflow" | null  — standard workflows (null is legacy, treated as "workflow")
+ *   "chat"             — chat-oriented workflows
+ *   "comfy"            — ComfyUI-compatible workflows
+ *   "app"              — HTML mini-app workflows
+ *   "tool"             — workflow exposed as an agent tool
+ *
+ * Embedded modes (excluded from standalone listings):
+ *   "clip"             — timeline clip (cloned from a standalone workflow)
+ *   "layer"            — image-editor layer workflow
+ *   "image"            — image-editor root workflow
+ */
+export const workflowRunModes = [
+  "workflow",
+  "chat",
+  "comfy",
+  "app",
+  "tool",
+  "clip",
+  "layer",
+  "image"
+] as const;
+
+export type WorkflowRunMode = (typeof workflowRunModes)[number];
+
+export const workflowRunModeSchema = z.enum(workflowRunModes);
+
+/**
+ * Run modes that appear in standalone workflow listings.
+ * Standalone listings use `run_mode IN ("workflow", null)` by default;
+ * explicit filters may include "chat", "comfy", "app", or "tool".
+ */
+export const STANDALONE_RUN_MODES = [
+  "workflow",
+  "chat",
+  "comfy",
+  "app",
+  "tool"
+] as const satisfies ReadonlyArray<WorkflowRunMode>;
+
+/**
+ * Run modes that are embedded/non-standalone — always excluded from
+ * regular workflow listings.
+ */
+export const EMBEDDED_RUN_MODES = [
+  "clip",
+  "layer",
+  "image"
+] as const satisfies ReadonlyArray<WorkflowRunMode>;
+
 // ── Graph shapes ─────────────────────────────────────────────────────────────
 // Validate the required fields of Node/Edge while allowing extra properties
 // to pass through (matches the `[key: string]: unknown` index signatures on
@@ -15,8 +70,7 @@ export const graphNode = z
     data: z.unknown().optional(),
     ui_properties: z.unknown().optional(),
     dynamic_properties: z.record(z.string(), z.unknown()).optional(),
-    dynamic_outputs: z.record(z.string(), z.unknown()).optional(),
-    sync_mode: z.string().optional()
+    dynamic_outputs: z.record(z.string(), z.unknown()).optional()
   })
   .passthrough();
 
@@ -72,6 +126,7 @@ export type WorkflowResponse = z.infer<typeof workflowResponse>;
 export const listInput = z.object({
   limit: z.number().int().min(1).default(100),
   run_mode: z.string().optional(),
+  mediaOutput: z.boolean().optional(),
   tag: z.string().optional(),
   cursor: z.string().optional()
 });

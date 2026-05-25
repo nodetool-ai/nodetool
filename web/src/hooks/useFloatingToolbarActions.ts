@@ -6,8 +6,8 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "./useAutosave";
 import useNodeMenuStore from "../stores/NodeMenuStore";
-import { useRightPanelStore } from "../stores/RightPanelStore";
 import { useBottomPanelStore } from "../stores/BottomPanelStore";
+import { usePanelStore } from "../stores/PanelStore";
 import { useMiniMapStore } from "../stores/MiniMapStore";
 
 /**
@@ -16,7 +16,25 @@ import { useMiniMapStore } from "../stores/MiniMapStore";
  *
  * @returns Object containing all toolbar action handlers
  */
-export const useFloatingToolbarActions = () => {
+export interface FloatingToolbarActions {
+  handleRun: () => Promise<void>;
+  handleStop: () => void;
+  handlePause: () => void;
+  handleResume: () => void;
+  handleSave: () => void;
+  handleDownload: () => void;
+  handleAutoLayout: () => void;
+  handleRunAsApp: () => void;
+  handleEditWorkflow: () => void;
+  handleToggleNodeMenu: () => void;
+  handleToggleTrace: () => void;
+  handleToggleMiniMap: () => void;
+  isWorkflowRunning: boolean;
+  isPaused: boolean;
+  isSuspended: boolean;
+}
+
+export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const navigate = useNavigate();
   const location = useLocation();
   const path = location.pathname;
@@ -44,8 +62,8 @@ export const useFloatingToolbarActions = () => {
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const isMenuOpen = useNodeMenuStore((state) => state.isMenuOpen);
 
-  const toggleWorkflowPanel = useRightPanelStore(
-    (state) => () => state.handleViewChange("workflow")
+  const handlePanelViewChange = usePanelStore(
+    (state) => state.handleViewChange
   );
 
   const toggleBottomPanel = useBottomPanelStore(
@@ -134,8 +152,8 @@ export const useFloatingToolbarActions = () => {
   }, [navigate, path]);
 
   const handleEditWorkflow = useCallback(() => {
-    toggleWorkflowPanel();
-  }, [toggleWorkflowPanel]);
+    handlePanelViewChange("settings");
+  }, [handlePanelViewChange]);
 
   const handleToggleNodeMenu = useCallback(() => {
     if (isMenuOpen) {

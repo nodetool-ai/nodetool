@@ -16,7 +16,17 @@
 import { describe, it, expect, vi } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
+import type { NodeAnalysis } from "../src/correlation-analysis.js";
 import type { NodeDescriptor, NodeUpdate } from "@nodetool-ai/protocol";
+
+// Minimal correlation analysis for nodes whose inputs are all scalar /
+// empty-scope. The correlated scheduler defaults each handle's scope to []
+// and repeatsPerKey to false, so this is faithful for these fixtures.
+const EMPTY_ANALYSIS: NodeAnalysis = {
+  invocationScope: [],
+  inputs: new Map(),
+  outputs: new Map()
+};
 
 // ---------------------------------------------------------------------------
 // Helpers (mirrored from actor.test.ts)
@@ -43,6 +53,7 @@ function createActor(
     node,
     inbox,
     executor,
+    correlation: EMPTY_ANALYSIS,
     sendOutputs: async (nodeId, outputs) => {
       sentOutputs.push({ nodeId, outputs });
     },

@@ -1,0 +1,78 @@
+/**
+ * Canvas module barrel export
+ *
+ * Focused hooks extracted from the monolithic SketchCanvas component.
+ */
+
+export { useCompositing } from "./useCompositing";
+export type { UseCompositingParams, UseCompositingResult } from "./useCompositing";
+
+export { useRuntimeBootstrap } from "./useRuntimeBootstrap";
+export type {
+  UseRuntimeBootstrapParams,
+  UseRuntimeBootstrapResult
+} from "./useRuntimeBootstrap";
+
+export { useTransformPreviewComposite } from "./useTransformPreviewComposite";
+export type {
+  UseTransformPreviewCompositeParams,
+  UseTransformPreviewCompositeResult
+} from "./useTransformPreviewComposite";
+
+export { useRedrawScheduler } from "./useRedrawScheduler";
+export type {
+  UseRedrawSchedulerParams,
+  UseRedrawSchedulerResult
+} from "./useRedrawScheduler";
+
+export { useLayerHydration } from "./useLayerHydration";
+export type {
+  UseLayerHydrationParams,
+  UseLayerHydrationResult
+} from "./useLayerHydration";
+
+export { useCanvasImperativeHandle } from "./useCanvasImperativeHandle";
+export type { UseCanvasImperativeHandleParams } from "./useCanvasImperativeHandle";
+
+export {
+  useOverlayRenderer,
+  selectionAntCanvasMarginCssPx
+} from "./useOverlayRenderer";
+export type {
+  UseOverlayRendererParams,
+  UseOverlayRendererResult
+} from "./useOverlayRenderer";
+
+export { usePointerHandlers } from "./usePointerHandlers";
+export type { UsePointerHandlersParams, UsePointerHandlersResult } from "./usePointerHandlers";
+
+export { useTransformPreviewBridge } from "./useTransformPreviewBridge";
+export type { UseTransformPreviewBridgeResult } from "./useTransformPreviewBridge";
+
+export { useCanvasOrchestration } from "./useCanvasOrchestration";
+export type {
+  UseCanvasOrchestrationParams,
+  UseCanvasOrchestrationResult
+} from "./useCanvasOrchestration";
+
+export {
+  DisplayFrameCoordinator,
+  DisplayTracer,
+  createInitialReadiness,
+  isInteractionReady
+} from "./DisplayFrameCoordinator";
+export type {
+  RedrawReason,
+  RedrawUrgency,
+  RedrawRequest,
+  DisplayTarget,
+  DisplayBackend,
+  InteractionReadiness,
+  TraceEventType,
+  TraceEvent,
+  FrameCoordinatorCallbacks
+} from "./DisplayFrameCoordinator";
+
+// Re-export ActiveStrokeInfo from its canonical home in the rendering module.
+export type { ActiveStrokeInfo } from "../rendering";
+

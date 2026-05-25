@@ -1,0 +1,803 @@
+/**
+ * PaintSession — shared, transform-aware paint/stroke session model.
+ *
+ * All common drawing tools (brush, pencil, eraser, and shape commit)
+ * route through this session. It owns:
+ *
+ *  - input sampling / session lifecycle (begin → move → end)
+ *  - document-space ↔ layer-space coordinate mapping
+ *  - stroke buffer creation and commit
+ *  - alpha-lock snapshot and restore
+ *  - Shift+click straight-line interpolation
+ *  - symmetry dispatch (delegates to ToolContext.withMirror)
+ *  - dirty-rect tracking for efficient compositing
+ *
+ * The actual brush evaluation (pixel placement) is delegated to a
+ * `PaintEngine`, making brush/pencil/eraser different engines/modes
+ * inside the same session model rather than separate pipelines.
+ *
+ * Overlay, cursor, and live preview stay on 2D by default.
+ */
+
+import type { Point, Layer, Selection } from "../types";
+import { IDENTITY_AFFINE } from "../types";
+import type { ToolContext, ToolPointerEvent } from "../tools/types";
+import type { PaintEngine } from "./PaintEngine";
+import type { ActiveStrokeInfo } from "../rendering";
+import { CoordinateMapper } from "./CoordinateMapper";
+import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
+import {
+  getDocumentViewportInLayerSpace,
+  getCanvasRasterBounds
+} from "../transform/geometry/layerGeometry";
+import { paintPressureForEngine } from "../drawingUtils";
+import {
+  coalescedStrokePressure,
+  normalizePointerPressure
+} from "../pointerPen";
+import {
+  applySelectionBlendRestore,
+  applySelectionMaskAlpha,
+  selectionHasAnyPixels,
+  selectionHasSoftEdges
+} from "../selection";
+import { restoreAlphaFromSnapshot } from "./alphaLock";
+import { clearLazyLeash, setLazyLeash } from "./lazyLeashState";
+
+// ─── Session state ──────────────────────────────────────────────────────────
+
+export interface PaintSessionSnapshot {
+  /** Alpha channel snapshot for alpha-lock restore. */
+  alphaSnapshot: ImageData | null;
+}
+
+// ─── Stroke buffer pool ─────────────────────────────────────────────────────
+// Reuse off-screen canvases between strokes to avoid the cost of
+// `document.createElement("canvas")` + GPU-backed surface allocation on every
+// pointer-down. The pool is module-scoped so it persists across sessions.
+
+const STROKE_BUFFER_POOL_MAX = 3;
+const strokeBufferPool: HTMLCanvasElement[] = [];
+
+/**
+ * Acquire a canvas from the pool sized to `width × height`.
+ * Returns a recycled canvas (cleared) when one is available,
+ * otherwise creates a new element.
+ */
+export function acquireStrokeBuffer(
+  width: number,
+  height: number
+): HTMLCanvasElement {
+  const canvas = strokeBufferPool.pop();
+  if (canvas) {
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    } else {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, width, height);
+      }
+    }
+    return canvas;
+  }
+  const fresh = window.document.createElement("canvas");
+  fresh.width = width;
+  fresh.height = height;
+  return fresh;
+}
+
+/**
+ * Return a stroke buffer to the pool for later reuse.
+ * Excess canvases beyond the pool limit are discarded to cap memory.
+ */
+export function releaseStrokeBuffer(canvas: HTMLCanvasElement): void {
+  if (strokeBufferPool.length < STROKE_BUFFER_POOL_MAX) {
+    strokeBufferPool.push(canvas);
+  }
+  // else: let GC reclaim it
+}
+
+// ─── PaintSession ───────────────────────────────────────────────────────────
+
+export class PaintSession {
+  // ── Read-only references during stroke ─────────────────────────────
+  private engine: PaintEngine;
+  private layer: Layer | null = null;
+  private mapper: CoordinateMapper = new CoordinateMapper({
+    layerTransform: { ...IDENTITY_AFFINE }
+  });
+
+  // ── Stroke state ──────────────────────────────────────────────────
+  private active = false;
+  private lastPoint: Point | null = null;
+  private lastSmoothedPoint: Point | null = null;
+  private currentPressure = 0.5;
+  /** Pointer type for the active stroke (pen/touch vs mouse). */
+  private strokePointerType: string | undefined = undefined;
+  private hasMoved = false;
+  private lastStrokeEnd: Point | null = null;
+
+  // ── Alpha lock ────────────────────────────────────────────────────
+  private alphaSnapshot: ImageData | null = null;
+
+  // ── Feathered selection mask (captured at stroke begin) ──────────
+  private selectionMask: Selection | null = null;
+  /** Captured layer pixels used to restore soft-edged selection falloff after commit. */
+  private selectionSnapshot: ImageData | null = null;
+
+  /** Snapshot of stroke buffer before the current Shift straight segment (for rubber-band updates). */
+  private shiftRubberBandBase: HTMLCanvasElement | null = null;
+
+  constructor(engine: PaintEngine) {
+    this.engine = engine;
+  }
+
+  /** Replace the engine (e.g. when switching between brush/pencil/eraser). */
+  setEngine(engine: PaintEngine): void {
+    this.engine = engine;
+  }
+
+  /** Get the last stroke endpoint for Shift+click behaviour. */
+  getLastStrokeEnd(): Point | null {
+    return this.lastStrokeEnd;
+  }
+
+  /** Whether a stroke is currently active. */
+  get isActive(): boolean {
+    return this.active;
+  }
+
+  // ─── Begin ────────────────────────────────────────────────────────
+
+  /**
+   * Start a new paint stroke.
+   *
+   * @returns `true` if the stroke was started, `false` if no active layer.
+   */
+  begin(ctx: ToolContext, event: ToolPointerEvent): boolean {
+    const { doc } = ctx;
+    const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+    if (!activeLayer) {
+      return false;
+    }
+
+    // Locked layers reject pixel edits (painting, erasing).
+    // Transform-only operations (move, nudge) bypass PaintSession entirely.
+    if (activeLayer.locked) {
+      return false;
+    }
+
+    this.layer = activeLayer;
+    this.strokePointerType = event.nativeEvent.pointerType;
+
+    // Detect shift-line continuation: an existing buffer on the same layer
+    // that was intentionally kept alive by a previous end() call.
+    const existingAtStart = ctx.activeStrokeRef.current;
+    const isShiftContinuation =
+      existingAtStart &&
+      existingAtStart.layerId === activeLayer.id &&
+      ctx.shiftHeldRef.current &&
+      this.lastStrokeEnd &&
+      this.engine.bufferMode === "buffered";
+
+    // Merge previous stroke onto the layer before the undo snapshot.
+    // 1) Deferred pointer-up merge may not have run yet (rAF ordering vs next down).
+    const strokePendingCommit = existingAtStart?.pendingCommit;
+    if (strokePendingCommit && existingAtStart) {
+      existingAtStart.pendingCommit = null;
+      strokePendingCommit();
+    }
+    // 2) Shift-chain buffer lives on the stroke canvas until the next non-shift begin.
+    if (this.engine.bufferMode === "buffered" && !isShiftContinuation) {
+      const leftover = ctx.activeStrokeRef.current;
+      if (leftover) {
+        this.flushShiftBuffer(ctx, leftover);
+      }
+    }
+
+    // Only push a history entry for the first stroke in a shift-chain.
+    if (!isShiftContinuation) {
+      ctx.onStrokeStart();
+    }
+    const rasterBounds = ensureLayerRasterBounds(
+      ctx,
+      activeLayer,
+      getDocumentViewportInLayerSpace(activeLayer, doc)
+    );
+
+    this.mapper = new CoordinateMapper({
+      layerTransform: activeLayer.transform ?? { x: 0, y: 0 },
+      rasterBounds
+    });
+
+    const pt = event.point;
+    this.lastPoint = pt;
+    this.lastSmoothedPoint = pt;
+    this.currentPressure = normalizePointerPressure(event.nativeEvent);
+    this.hasMoved = false;
+    this.active = true;
+
+    this.engine.beginStroke();
+    clearLazyLeash();
+
+    // ── Capture selection mask for selection-constrained painting ───
+    if (ctx.selection && selectionHasAnyPixels(ctx.selection)) {
+      this.selectionMask = ctx.selection;
+    } else {
+      this.selectionMask = null;
+    }
+
+    // ── Alpha-lock snapshot ──────────────────────────────────────────
+    if (activeLayer.alphaLock) {
+      const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
+      const snapCtx = layerCanvas.getContext("2d");
+      if (snapCtx) {
+        this.alphaSnapshot = snapCtx.getImageData(
+          0,
+          0,
+          layerCanvas.width,
+          layerCanvas.height
+        );
+      }
+    } else {
+      this.alphaSnapshot = null;
+    }
+
+    // ── Create stroke buffer (if engine wants one) ───────────────────
+    const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
+
+    if (!isShiftContinuation) {
+      const shouldBlendRestore =
+        this.selectionMask !== null && selectionHasSoftEdges(this.selectionMask);
+      if (shouldBlendRestore) {
+        const layerCtx = layerCanvas.getContext("2d");
+        this.selectionSnapshot = layerCtx
+          ? layerCtx.getImageData(0, 0, layerCanvas.width, layerCanvas.height)
+          : null;
+      } else {
+        this.selectionSnapshot = null;
+      }
+    }
+
+    if (this.engine.bufferMode === "buffered") {
+      // Reuse an existing buffer when Shift is held and the previous
+      // stroke left its buffer alive (shift-line continuation).  This
+      // keeps consecutive shift+click line segments in the same
+      // compositing pass so opacity doesn't stack at crossings.
+      if (!isShiftContinuation) {
+        const buffer = acquireStrokeBuffer(layerCanvas.width, layerCanvas.height);
+        const strokeOpacity = this.getStrokeOpacity(doc);
+        ctx.activeStrokeRef.current = {
+          layerId: activeLayer.id,
+          buffer,
+          opacity: strokeOpacity,
+          compositeOp: this.engine.compositeOp
+        };
+      }
+    }
+
+    // ── Get the target context (buffer or layer) ─────────────────────
+    const paintCanvas = this.getPaintCanvas(ctx, activeLayer.id);
+    const paintCtx = paintCanvas?.getContext("2d");
+    if (!paintCtx) {
+      return true;
+    }
+
+    const offset = this.mapper.offset;
+
+    // ── Shift+click: straight line from last stroke end ──────────────
+    if (ctx.shiftHeldRef.current && this.lastStrokeEnd) {
+      this.captureShiftRubberBandBase(ctx);
+      const from = this.mapper.docToLayer(this.lastStrokeEnd);
+      const localPt = this.mapper.docToLayer(pt);
+      this.drawStraightLine(ctx, paintCtx, from, localPt);
+    } else {
+      this.shiftRubberBandBase = null;
+      if (this.engine.dabOnDown) {
+        // Initial dab (e.g. pencil)
+        const localPt = this.mapper.docToLayer(pt);
+        ctx.withMirror(
+          paintCtx,
+          (f, t, c, branchIdx) =>
+            this.engine.evaluate(
+              f,
+              t,
+              c,
+              paintPressureForEngine(this.currentPressure, this.strokePointerType),
+              branchIdx
+            ),
+          localPt,
+          localPt
+        );
+      }
+    }
+
+    // For direct mode, notify runtime that layer pixels changed
+    if (this.engine.bufferMode === "direct") {
+      ctx.invalidateLayer?.(activeLayer.id);
+    }
+
+    // Defer composite to the next rAF instead of blocking the pointer-down
+    // handler with a synchronous full-document composite. The stroke buffer
+    // content is already written; the display will update on the next
+    // animation frame which is imperceptible to the user but avoids a
+    // ~5-15 ms main-thread stall at stroke start.
+    ctx.requestRedraw();
+
+    return true;
+  }
+
+  // ─── Move ─────────────────────────────────────────────────────────
+
+  move(
+    ctx: ToolContext,
+    _event: ToolPointerEvent,
+    coalescedPoints: ToolPointerEvent[]
+  ): void {
+    if (!this.active || !this.lastPoint || !this.layer) {
+      return;
+    }
+
+    const paintCanvas = this.getPaintCanvas(ctx, this.layer.id);
+    const paintCtx = paintCanvas?.getContext("2d");
+    if (!paintCtx) {
+      return;
+    }
+
+    const offset = this.mapper.offset;
+
+    const useShiftRubber =
+      ctx.shiftHeldRef.current &&
+      this.lastStrokeEnd &&
+      this.shiftRubberBandBase &&
+      this.engine.bufferMode === "buffered" &&
+      ctx.activeStrokeRef.current;
+
+    if (useShiftRubber) {
+      const stroke = ctx.activeStrokeRef.current!;
+      const base = this.shiftRubberBandBase;
+      const bctx = stroke.buffer.getContext("2d");
+      if (bctx && base && base.width === stroke.buffer.width && base.height === stroke.buffer.height) {
+        for (const ep of coalescedPoints) {
+          const pt = ep.point;
+          if (
+            !this.hasMoved &&
+            this.lastPoint &&
+            (pt.x !== this.lastPoint.x || pt.y !== this.lastPoint.y)
+          ) {
+            this.hasMoved = true;
+          }
+          this.currentPressure = coalescedStrokePressure(
+            {
+              pointerType: this.strokePointerType ?? "mouse",
+              pressure: ep.pressure
+            } as PointerEvent,
+            this.currentPressure || 0.5
+          );
+          bctx.clearRect(0, 0, stroke.buffer.width, stroke.buffer.height);
+          bctx.drawImage(base, 0, 0);
+          const from = this.mapper.docToLayer(this.lastStrokeEnd!);
+          const to = this.mapper.docToLayer(pt);
+          this.drawStraightLine(ctx, bctx, from, to);
+          this.lastPoint = pt;
+        }
+            ctx.requestRedraw();
+        return;
+      }
+    }
+
+    for (const ep of coalescedPoints) {
+      const pt = ep.point;
+
+      // Track if pointer has moved at all (for click-without-drag dab)
+      if (
+        !this.hasMoved &&
+        this.lastPoint &&
+        (pt.x !== this.lastPoint.x || pt.y !== this.lastPoint.y)
+      ) {
+        this.hasMoved = true;
+      }
+
+      const localPt = this.mapper.docToLayer(pt);
+      this.currentPressure = coalescedStrokePressure(
+        {
+          pointerType: this.strokePointerType ?? "mouse",
+          pressure: ep.pressure
+        } as PointerEvent,
+        this.currentPressure || 0.5
+      );
+
+      // Stabilize if the engine supports it
+      const smoothPt = this.engine.stabilize(localPt);
+
+      // Determine the "from" point
+      const from = this.resolveFromPoint();
+
+      const paintPressure = paintPressureForEngine(
+        this.currentPressure,
+        this.strokePointerType
+      );
+
+      ctx.withMirror(
+        paintCtx,
+        (f, t, c, branchIdx) =>
+          this.engine.evaluate(f, t, c, paintPressure, branchIdx),
+        from,
+        smoothPt
+      );
+
+      // Update tracked points
+      if (this.engine.hasStabilizer) {
+        this.lastSmoothedPoint = this.mapper.layerToDoc(smoothPt);
+      }
+      this.lastPoint = pt;
+    }
+
+    // ── Publish lazy-brush leash for cursor overlay ────────────────
+    // When the engine runs in lazy mode the brush tip lags behind the
+    // raw pointer; the overlay draws a connecting line. We only set
+    // the leash while the stroke is active so the cursor renderer can
+    // safely treat its absence as "no lazy in progress".
+    if (
+      this.engine.getAssistMode?.() === "lazy" &&
+      this.lastSmoothedPoint &&
+      this.lastPoint
+    ) {
+      setLazyLeash({
+        rawDoc: this.lastPoint,
+        tipDoc: this.lastSmoothedPoint
+      });
+    } else {
+      clearLazyLeash();
+    }
+
+    // For direct mode, notify runtime that layer pixels changed
+    if (this.engine.bufferMode === "direct") {
+      ctx.invalidateLayer?.(this.layer.id);
+    }
+
+
+    // ── Dirty-rect compositing ──────────────────────────────────────
+    const dirtyRect = this.engine.getDirtyRect();
+    if (dirtyRect && dirtyRect.minX < dirtyRect.maxX && dirtyRect.minY < dirtyRect.maxY) {
+      const doc = this.mapper.dirtyToDoc(dirtyRect);
+      ctx.redrawDirty(doc.x, doc.y, doc.w, doc.h);
+    } else {
+      ctx.requestRedraw();
+    }
+  }
+
+  // ─── End ──────────────────────────────────────────────────────────
+
+  end(ctx: ToolContext, event: ToolPointerEvent): void {
+    if (!this.active || !this.layer) {
+      return;
+    }
+
+    this.shiftRubberBandBase = null;
+
+    // Save stroke endpoint for Shift+click straight line
+    this.lastStrokeEnd = event.point;
+
+    const activeStroke = ctx.activeStrokeRef.current;
+    const layer = this.layer;
+
+    // ── Click-without-drag dab ──────────────────────────────────────
+    // Drawing into the buffer is cheap (GPU-side), so we do this now.
+    if (!this.hasMoved && activeStroke) {
+      const pt = event.point;
+      const localPt = this.mapper.docToLayer(pt);
+      const bufferCtx = activeStroke.buffer.getContext("2d");
+      if (bufferCtx) {
+        const offset = this.mapper.offset;
+        ctx.withMirror(
+          bufferCtx,
+          (f, t, c, branchIdx) =>
+            this.engine.evaluate(
+              f,
+              t,
+              c,
+              paintPressureForEngine(this.currentPressure, this.strokePointerType),
+              branchIdx
+            ),
+          localPt,
+          localPt
+        );
+      }
+    }
+
+    // ── Clear per-stroke state immediately ─────────────────────────
+    // Note: this.layer is cleared AFTER the branch below so that
+    // restoreAlphaLock (direct mode) still has access to it.
+    this.lastPoint = null;
+    this.lastSmoothedPoint = null;
+    this.hasMoved = false;
+    this.active = false;
+    clearLazyLeash();
+
+    // ── Shift-line continuation ─────────────────────────────────────
+    // When Shift is held at the end of a buffered stroke, keep the
+    // buffer alive so the next Shift+click line shares the same
+    // compositing pass.  This prevents opacity stacking at
+    // overlapping segments.
+    if (
+      activeStroke &&
+      ctx.shiftHeldRef.current &&
+      this.engine.bufferMode === "buffered"
+    ) {
+      // Don't merge yet — leave activeStrokeRef intact.
+      // The next begin() call will reuse it.
+      this.layer = null;
+      ctx.requestRedraw();
+      return;
+    }
+
+    if (activeStroke) {
+      // ── Defer buffer merge to rAF to avoid GPU→CPU stall ─────────
+      // The stroke buffer may be GPU-accelerated. The layer canvas uses
+      // willReadFrequently (CPU renderer). drawImage GPU→CPU blocks the
+      // input thread for ~5-15ms, causing cursor lag after each stroke.
+      //
+      // Instead we attach a pendingCommit closure; useCompositing drains
+      // it at the start of the next rAF before compositing, so the
+      // pointer-up handler returns with zero blocking work.
+      const capturedAlphaSnapshot = this.alphaSnapshot;
+      const capturedDirtyRect = this.engine.getDirtyRect();
+      const capturedSelMask = this.selectionMask;
+      const capturedSelectionSnapshot = this.selectionSnapshot;
+      const capturedOffset = { ...this.mapper.offset };
+      this.alphaSnapshot = null;
+      this.selectionMask = null;
+      this.selectionSnapshot = null;
+
+      activeStroke.pendingCommit = () => {
+        // Apply feathered selection mask alpha to the stroke buffer
+        if (capturedSelMask && !capturedSelectionSnapshot) {
+          applySelectionMaskAlpha(
+            activeStroke.buffer,
+            capturedSelMask,
+            capturedOffset.x,
+            capturedOffset.y
+          );
+        }
+
+        // Merge buffer → layer canvas (the expensive step)
+        const layerCanvas = ctx.getOrCreateLayerCanvas(layer.id);
+        const layerCtx = layerCanvas.getContext("2d");
+        if (layerCtx) {
+          layerCtx.save();
+          layerCtx.globalAlpha = activeStroke.opacity;
+          layerCtx.globalCompositeOperation = activeStroke.compositeOp;
+          layerCtx.drawImage(activeStroke.buffer, 0, 0);
+          layerCtx.restore();
+        }
+        // Return stroke buffer to pool before clearing the ref.
+        releaseStrokeBuffer(activeStroke.buffer);
+        ctx.activeStrokeRef.current = null;
+        ctx.invalidateLayer?.(layer.id);
+
+        // Alpha-lock: restore original alpha channel
+        if (layer.alphaLock && capturedAlphaSnapshot) {
+          const lCanvas = ctx.layerCanvasesRef.current.get(layer.id);
+          if (lCanvas) {
+            restoreAlphaFromSnapshot(lCanvas, capturedAlphaSnapshot, capturedDirtyRect);
+          }
+        }
+
+        if (capturedSelectionSnapshot && capturedSelMask) {
+          const lCanvas = ctx.layerCanvasesRef.current.get(layer.id);
+          if (lCanvas) {
+            applySelectionBlendRestore(
+              lCanvas,
+              capturedSelectionSnapshot,
+              capturedSelMask,
+              capturedOffset.x,
+              capturedOffset.y
+            );
+          }
+        }
+
+        // Finalize stroke. Pass committedBounds so handleStrokeEnd can
+        // batch-update both layer.data and layer.contentBounds in one rAF,
+        // avoiding the stale-data hydration caused by separate Zustand updates.
+        const committedBounds = getCanvasRasterBounds(
+          ctx.getOrCreateLayerCanvas(layer.id)
+        );
+        ctx.onStrokeEnd(layer.id, null, committedBounds ?? undefined);
+      };
+      this.layer = null;
+    } else {
+      // ── Direct mode: already committed, just finalize ─────────────
+      this.restoreAlphaLock(ctx);
+      this.layer = null;
+      const committedBounds = getCanvasRasterBounds(
+        ctx.getOrCreateLayerCanvas(layer.id)
+      );
+      ctx.onStrokeEnd(layer.id, null, committedBounds ?? undefined);
+    }
+
+    // Schedule the rAF that will drain pendingCommit and then composite.
+    ctx.requestRedraw();
+  }
+
+  // ─── Internals ────────────────────────────────────────────────────
+
+  /**
+   * Immediately merge and finalize a shift-chain buffer that was kept alive
+   * by a previous end() call.  Called when a new non-shift stroke starts
+   * while a leftover buffer still exists.
+   */
+  private flushShiftBuffer(
+    ctx: ToolContext,
+    stroke: ActiveStrokeInfo
+  ): void {
+    if (this.selectionMask && !this.selectionSnapshot) {
+      applySelectionMaskAlpha(
+        stroke.buffer,
+        this.selectionMask,
+        this.mapper.offset.x,
+        this.mapper.offset.y
+      );
+    }
+    const layerCanvas = ctx.layerCanvasesRef.current.get(stroke.layerId);
+    if (layerCanvas) {
+      const layerCtx = layerCanvas.getContext("2d");
+      if (layerCtx) {
+        layerCtx.save();
+        layerCtx.globalAlpha = stroke.opacity;
+        layerCtx.globalCompositeOperation = stroke.compositeOp;
+        layerCtx.drawImage(stroke.buffer, 0, 0);
+        layerCtx.restore();
+        if (this.selectionSnapshot && this.selectionMask) {
+          applySelectionBlendRestore(
+            layerCanvas,
+            this.selectionSnapshot,
+            this.selectionMask,
+            this.mapper.offset.x,
+            this.mapper.offset.y
+          );
+        }
+      }
+    }
+    // Return stroke buffer to pool before clearing the ref.
+    releaseStrokeBuffer(stroke.buffer);
+    ctx.activeStrokeRef.current = null;
+    this.selectionSnapshot = null;
+    this.selectionMask = null;
+    ctx.invalidateLayer?.(stroke.layerId);
+    const committedBounds = getCanvasRasterBounds(
+      ctx.getOrCreateLayerCanvas(stroke.layerId)
+    );
+    ctx.onStrokeEnd(stroke.layerId, null, committedBounds ?? undefined);
+  }
+
+  /** Return the paint target (stroke buffer or layer canvas). */
+  private getPaintCanvas(
+    ctx: ToolContext,
+    layerId: string
+  ): HTMLCanvasElement | null {
+    const activeStroke = ctx.activeStrokeRef.current;
+    if (activeStroke) {
+      return activeStroke.buffer;
+    }
+    return ctx.getOrCreateLayerCanvas(layerId);
+  }
+
+  /** Resolve the "from" point for the current segment. */
+  private resolveFromPoint(): Point {
+    if (this.engine.hasStabilizer) {
+      // Use last smoothed point when available, fall back to last raw point.
+      // lastPoint is guaranteed non-null during an active move (checked at
+      // the start of move()), so the fallback chain always resolves.
+      if (this.lastSmoothedPoint) {
+        return this.mapper.docToLayer(this.lastSmoothedPoint);
+      }
+      return this.mapper.docToLayer(this.lastPoint!);
+    }
+    // No stabilizer — use the raw last point (guaranteed non-null during move)
+    return this.mapper.docToLayer(this.lastPoint!);
+  }
+
+  /** Copy stroke buffer before drawing the current Shift straight segment. */
+  private captureShiftRubberBandBase(ctx: ToolContext): void {
+    const stroke = ctx.activeStrokeRef.current;
+    if (!stroke || this.engine.bufferMode !== "buffered") {
+      return;
+    }
+    const b = stroke.buffer;
+    if (!this.shiftRubberBandBase) {
+      this.shiftRubberBandBase = document.createElement("canvas");
+    }
+    if (
+      this.shiftRubberBandBase.width !== b.width ||
+      this.shiftRubberBandBase.height !== b.height
+    ) {
+      this.shiftRubberBandBase.width = b.width;
+      this.shiftRubberBandBase.height = b.height;
+    }
+    const bc = this.shiftRubberBandBase.getContext("2d");
+    if (!bc) {
+      return;
+    }
+    bc.clearRect(0, 0, b.width, b.height);
+    bc.drawImage(b, 0, 0);
+  }
+
+  /** Draw a straight line between two layer-local points. */
+  private drawStraightLine(
+    toolCtx: ToolContext,
+    paintCtx: CanvasRenderingContext2D,
+    from: Point,
+    to: Point
+  ): void {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const STRAIGHT_LINE_STEP_DIVISOR = 100;
+    const step = Math.max(
+      1,
+      Math.min(4, dist / STRAIGHT_LINE_STEP_DIVISOR)
+    );
+    const steps = Math.max(1, Math.ceil(dist / step));
+    let prev = from;
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const current = { x: from.x + dx * t, y: from.y + dy * t };
+      toolCtx.withMirror(
+        paintCtx,
+        (f, tt, c, branchIdx) =>
+          this.engine.evaluate(
+            f,
+            tt,
+            c,
+            paintPressureForEngine(this.currentPressure, this.strokePointerType),
+            branchIdx
+          ),
+        prev,
+        current
+      );
+      prev = current;
+    }
+  }
+
+  /** Restore the original alpha channel after alpha-locked painting. */
+  private restoreAlphaLock(ctx: ToolContext): void {
+    if (!this.layer || !this.layer.alphaLock || !this.alphaSnapshot) {
+      this.alphaSnapshot = null;
+      return;
+    }
+
+    const layerCanvas = ctx.layerCanvasesRef.current.get(this.layer.id);
+    if (!layerCanvas) {
+      this.alphaSnapshot = null;
+      return;
+    }
+
+    restoreAlphaFromSnapshot(
+      layerCanvas,
+      this.alphaSnapshot,
+      this.engine.getDirtyRect()
+    );
+
+    this.alphaSnapshot = null;
+  }
+
+  /** Get the stroke opacity from the current tool settings. */
+  private getStrokeOpacity(doc: {
+    toolSettings: {
+      brush: { opacity: number };
+      eraser: { opacity: number };
+    };
+  }): number {
+    switch (this.engine.engineId) {
+      case "brush":
+        return doc.toolSettings.brush.opacity;
+      case "eraser":
+        return doc.toolSettings.eraser.opacity;
+      default:
+        return 1;
+    }
+  }
+
+}

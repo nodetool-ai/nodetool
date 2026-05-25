@@ -1,6 +1,18 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import {
+  type BlendMode,
+  blendModeGpuId,
+  coerceBlendMode
+} from "@nodetool-ai/gpu";
+import {
+  compositeImageLayers,
+  type LayerTransform2D
+} from "@nodetool-ai/gpu/node";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import { RAW_RGBA_MIME, isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { encodeRawRgbaToPng } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,13 +35,12 @@ function toBytes(data: Uint8Array | string | undefined): Uint8Array {
   return Uint8Array.from(Buffer.from(b64, "base64"));
 }
 
-function imageBytes(image: unknown): Uint8Array {
-  if (!image || typeof image !== "object") return new Uint8Array();
-  return toBytes((image as ImageRefLike).data);
-}
-
 async function imageBytesAsync(image: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!image || typeof image !== "object") return new Uint8Array();
+  // Raw in-flight RGBA → encode to PNG so callers always get an encoded image.
+  if (isRawRgbaImage(image)) {
+    return encodeRawRgbaToPng(image.data, image.width, image.height);
+  }
   const ref = image as ImageRefLike;
   if (ref.data) return toBytes(ref.data);
   if (typeof ref.uri === "string" && ref.uri) {
@@ -77,6 +88,53 @@ function imageRef(data: Uint8Array, extras: Partial<ImageRef> = {}): ImageRef {
     type: "image",
     data: Buffer.from(data).toString("base64"),
     ...extras
+  };
+}
+
+interface RawRgba {
+  rgba: Uint8Array;
+  width: number;
+  height: number;
+}
+
+/**
+ * Build a raw-RGBA `ImageRef`: `data` carries straight-alpha RGBA8 pixels and
+ * `mimeType` marks it as the in-flight raw format (see {@link RAW_RGBA_MIME}).
+ * GPU ops emit this so an adjacent GPU op reuses the pixels via {@link decodeRgba}
+ * instead of decoding an encoded image; the bytes are lazily encoded to PNG at
+ * any boundary that needs a portable image.
+ */
+export function rawRgbaImageRef(
+  rgba: Uint8Array,
+  width: number,
+  height: number
+): ImageRef {
+  return { type: "image", data: rgba, mimeType: RAW_RGBA_MIME, width, height };
+}
+
+/**
+ * Decode an image input to straight-alpha RGBA. Reuses the pixels directly when
+ * the input is already raw (an upstream GPU op left them, no codec work);
+ * otherwise decodes the encoded bytes with sharp. Returns an empty buffer for
+ * missing/empty input.
+ */
+export async function decodeRgba(
+  image: unknown,
+  context?: ProcessingContext
+): Promise<RawRgba> {
+  if (isRawRgbaImage(image)) {
+    return { rgba: image.data, width: image.width, height: image.height };
+  }
+  const bytes = await imageBytesAsync(image, context);
+  if (bytes.length === 0) return { rgba: new Uint8Array(), width: 0, height: 0 };
+  const { data, info } = await sharp(bytes, { failOn: "none" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return {
+    rgba: new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+    width: info.width,
+    height: info.height
   };
 }
 
@@ -227,6 +285,8 @@ export class LoadImageFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = ["path"];
+  static readonly inputFields = [];
 
   @prop({
     type: "str",
@@ -261,8 +321,16 @@ export class LoadImageFolderNode extends BaseNode {
     path: "str",
     images: "list"
   };
+  static readonly inlineFields = ["folder"];
+  static readonly inputFields = [];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    image: { kind: "iteration", source: "__execution__", group: "items" },
+    path: { kind: "iteration", source: "__execution__", group: "items" },
+    images: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "str",
     default: "",
@@ -389,6 +457,8 @@ export class SaveImageFileImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = ["filename"];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -451,7 +521,7 @@ export class SaveImageFileImageNode extends BaseNode {
       }
     }
 
-    await fs.writeFile(p, imageBytes(this.image));
+    await fs.writeFile(p, await imageBytesAsync(this.image));
     return { output: p };
   }
 }
@@ -466,8 +536,16 @@ export class LoadImageAssetsNode extends BaseNode {
     name: "str",
     images: "list"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    image: { kind: "iteration", source: "__execution__", group: "items" },
+    name: { kind: "iteration", source: "__execution__", group: "items" },
+    images: { kind: "single", source: "__execution__" }
+  };
+
   @prop({
     type: "folder",
     default: {
@@ -506,6 +584,8 @@ export class SaveImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = ["name"];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -604,6 +684,8 @@ export class GetMetadataNode extends BaseNode {
     height: "int",
     channels: "int"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -668,6 +750,8 @@ export class BatchToListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[image]"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["batch"];
 
   @prop({
     type: "image",
@@ -716,6 +800,8 @@ export class ImagesToListNode extends BaseNode {
     output: "list[image]"
   };
   static readonly isDynamic = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
 
   async process(): Promise<Record<string, unknown>> {
     const out: unknown[] = [];
@@ -730,6 +816,84 @@ export class ImagesToListNode extends BaseNode {
       }
     }
     return { output: out };
+  }
+}
+
+/**
+ * Image / sketch editor node. Execution uses properties and per-layer outputs
+ * written by the web UI (flattened image, mask, optional exposed layers).
+ */
+export class ImageEditorNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.ImageEditor";
+  static readonly title = "Image Editor";
+  static readonly description =
+    "Layered sketch and image editor: draw, paint, mask, and composite.\n    sketch, image editor, draw, paint, layers, mask, canvas, composite\n\n    - Build masks for inpainting workflows\n    - Annotate or rough-in compositions before generation\n    - Per-layer inputs/outputs when exposed in the editor";
+  static readonly metadataOutputTypes = {
+    image: "image",
+    mask: "image",
+    layers: "list[image]"
+  };
+  static readonly isDynamic = true;
+  static readonly supportsDynamicOutputs = true;
+  static readonly inlineFields = ["sketch_data"];
+  static readonly inputFields = ["image", "mask"];
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Sketch data",
+    description: "Serialized editor document (managed by the UI)."
+  })
+  declare sketch_data: unknown;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Flattened composite (filled when you edit in the UI)."
+  })
+  declare image: unknown;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Mask",
+    description: "Mask output when configured in the editor."
+  })
+  declare mask: unknown;
+
+  @prop({
+    type: "list",
+    default: [],
+    title: "Layers",
+    description: "List of exposed layer image references."
+  })
+  declare layers: unknown;
+
+  async process(): Promise<Record<string, unknown>> {
+    const result: Record<string, unknown> = {
+      image: this.image,
+      mask: this.mask,
+      layers: Array.isArray(this.layers) ? this.layers : []
+    };
+    for (const [key, value] of this.dynamicProps) {
+      if (key.startsWith("layer_out_")) {
+        result[key] = value;
+      }
+    }
+    return result;
   }
 }
 
@@ -751,6 +915,8 @@ export class PasteNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image", "paste"];
 
   @prop({
     type: "image",
@@ -849,6 +1015,8 @@ export class ScaleNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -925,6 +1093,8 @@ export class ResizeNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -985,6 +1155,8 @@ export class CropNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1069,6 +1241,8 @@ export class FitNode extends TransformImageNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1129,12 +1303,8 @@ export class TextToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly basicFields = [
-    "model",
-    "prompt",
-    "aspect_ratio",
-    "resolution"
-  ];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt"];
   static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
@@ -1240,14 +1410,8 @@ export class ImageToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly basicFields = [
-    "model",
-    "image",
-    "prompt",
-    "strength",
-    "aspect_ratio",
-    "resolution"
-  ];
+  static readonly inlineFields = [];
+  static readonly inputFields = ["prompt", "image"];
   static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
@@ -1386,14 +1550,16 @@ export class ImageToImageNode extends BaseNode {
   }
 }
 
-export class RotateNode extends TransformImageNode {
-  static readonly nodeType = "nodetool.image.Rotate";
-  static readonly title = "Rotate";
+export class RotateAndFlipNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.RotateAndFlip";
+  static readonly title = "Rotate & Flip";
   static readonly description =
-    "Rotate an image by a specified angle in degrees.\n    image, rotate, angle, transform, orientation";
+    "Rotate and/or flip an image in a single step.\n    image, rotate, flip, mirror, orientation, transform";
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1405,7 +1571,7 @@ export class RotateNode extends TransformImageNode {
       metadata: null
     },
     title: "Image",
-    description: "The image to rotate."
+    description: "The image to rotate and flip."
   })
   declare image: any;
 
@@ -1419,10 +1585,30 @@ export class RotateNode extends TransformImageNode {
   })
   declare angle: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Flip Horizontal",
+    description: "Mirror left/right."
+  })
+  declare flip_horizontal: any;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Flip Vertical",
+    description: "Mirror top/bottom."
+  })
+  declare flip_vertical: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const angle = Number(this.angle ?? 0);
-    if (angle === 0) {
+    const flipH = !!this.flip_horizontal;
+    const flipV = !!this.flip_vertical;
+    if (angle === 0 && !flipH && !flipV) {
       const bytes = await imageBytesAsync(image, context);
       return {
         output: imageRef(bytes, {
@@ -1432,20 +1618,38 @@ export class RotateNode extends TransformImageNode {
         })
       };
     }
-    return transformImage(image, (instance) =>
-      instance.rotate(angle, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    , context);
+    return transformImage(
+      image,
+      (instance) => {
+        let pipeline = instance;
+        if (flipH) {
+          pipeline = pipeline.flop();
+        }
+        if (flipV) {
+          pipeline = pipeline.flip();
+        }
+        if (angle !== 0) {
+          pipeline = pipeline.rotate(angle, {
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          });
+        }
+        return pipeline;
+      },
+      context
+    );
   }
 }
 
-export class FlipNode extends TransformImageNode {
-  static readonly nodeType = "nodetool.image.Flip";
-  static readonly title = "Flip";
+export class ChannelsNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Channels";
+  static readonly title = "Channels";
   static readonly description =
-    "Flip an image horizontally or vertically.\n    image, flip, mirror, horizontal, vertical, transform";
+    "Extract a single channel from an image as a grayscale preview.\n    image, channel, red, green, blue, alpha, luminance";
   static readonly metadataOutputTypes = {
     output: "image"
   };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
 
   @prop({
     type: "image",
@@ -1457,25 +1661,977 @@ export class FlipNode extends TransformImageNode {
       metadata: null
     },
     title: "Image",
-    description: "The image to flip."
+    description: "The image to extract a channel from."
   })
   declare image: any;
 
   @prop({
     type: "str",
-    default: "horizontal",
-    title: "Direction",
-    description: "Flip direction.",
-    values: ["horizontal", "vertical"]
+    default: "luminance",
+    title: "Channel",
+    description: "Which channel to extract.",
+    values: ["red", "green", "blue", "alpha", "luminance"]
   })
-  declare direction: any;
+  declare channel: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const channel = String(this.channel ?? "luminance");
+
+    const output = (await transformImage(
+      image,
+      (instance) => {
+        if (channel === "luminance") {
+          return instance.grayscale();
+        }
+        if (
+          channel === "red" ||
+          channel === "green" ||
+          channel === "blue" ||
+          channel === "alpha"
+        ) {
+          return instance.ensureAlpha().extractChannel(channel);
+        }
+        throw new Error(`Unsupported channel: ${channel}`);
+      },
+      context
+    )) as Record<string, unknown>;
+    return { output };
+  }
+}
+
+export class BlurNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Blur";
+  static readonly title = "Blur";
+  static readonly description =
+    "Blur an image — Box, Gaussian, or horizontal Motion variants.\n    image, blur, gaussian, box, motion, filter";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to blur."
+  })
+  declare image: any;
+
+  @prop({
+    type: "str",
+    default: "gaussian",
+    title: "Type",
+    description: "Blur algorithm: gaussian (smooth), box (boxcar), motion (horizontal streak).",
+    values: ["gaussian", "box", "motion"]
+  })
+  declare blur_type: any;
+
+  @prop({
+    type: "int",
+    default: 5,
+    title: "Size",
+    description: "Blur amount (0 = none, 100 = max).",
+    min: 0,
+    max: 100
+  })
+  declare size: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const size = Math.max(0, Math.min(100, Math.round(Number(this.size ?? 0))));
+    const blurType = String(this.blur_type ?? "gaussian");
+
+    if (size <= 0) {
+      const bytes = await imageBytesAsync(image, context);
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      };
+    }
+
+    // sharp.convolve() requires kernel width AND height to be in [3, 1001];
+    // anything smaller throws "Invalid convolution kernel".
+    const odd = (n: number): number => (n % 2 === 0 ? n + 1 : n);
+
+    const output = (await transformImage(
+      image,
+      (instance) => {
+        if (blurType === "gaussian") {
+          const sigma = Math.max(0.3, size * 0.5);
+          return instance.blur(sigma);
+        }
+        if (blurType === "motion") {
+          // Horizontal motion blur: w columns of 1/w in a single middle row,
+          // top/bottom rows zero. Padded to 3 rows so sharp accepts it.
+          const w = odd(Math.max(3, size));
+          const kernel = new Array(3 * w).fill(0);
+          for (let i = 0; i < w; i++) kernel[w + i] = 1 / w;
+          return instance.convolve({ width: w, height: 3, kernel });
+        }
+        const k = odd(Math.max(3, Math.min(31, size)));
+        const kernel = new Array(k * k).fill(1 / (k * k));
+        return instance.convolve({ width: k, height: k, kernel });
+      },
+      context
+    )) as Record<string, unknown>;
+    return { output };
+  }
+}
+
+export class LevelsNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.Levels";
+  static readonly title = "Levels";
+  static readonly description =
+    "Adjust input black point, gamma, and white point per RGB channel.\n    image, levels, color, tone, curves";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to adjust."
+  })
+  declare image: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Red Black",
+    description: "Red channel input black point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare r_black: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Red Gamma",
+    description: "Red channel gamma (0.01–10).",
+    min: 0.01,
+    max: 10
+  })
+  declare r_gamma: any;
+
+  @prop({
+    type: "int",
+    default: 255,
+    title: "Red White",
+    description: "Red channel input white point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare r_white: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Green Black",
+    description: "Green channel input black point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare g_black: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Green Gamma",
+    description: "Green channel gamma (0.01–10).",
+    min: 0.01,
+    max: 10
+  })
+  declare g_gamma: any;
+
+  @prop({
+    type: "int",
+    default: 255,
+    title: "Green White",
+    description: "Green channel input white point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare g_white: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Blue Black",
+    description: "Blue channel input black point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare b_black: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Blue Gamma",
+    description: "Blue channel gamma (0.01–10).",
+    min: 0.01,
+    max: 10
+  })
+  declare b_gamma: any;
+
+  @prop({
+    type: "int",
+    default: 255,
+    title: "Blue White",
+    description: "Blue channel input white point (0–255).",
+    min: 0,
+    max: 255
+  })
+  declare b_white: any;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) {
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      };
+    }
+
+    const clamp255 = (n: number): number =>
+      Math.max(0, Math.min(255, Math.round(n)));
+    const clampGamma = (n: number): number =>
+      Math.max(0.01, Math.min(10, n));
+
+    const rBlack = clamp255(Number(this.r_black ?? 0));
+    const rWhite = clamp255(Number(this.r_white ?? 255));
+    const rGamma = clampGamma(Number(this.r_gamma ?? 1));
+    const gBlack = clamp255(Number(this.g_black ?? 0));
+    const gWhite = clamp255(Number(this.g_white ?? 255));
+    const gGamma = clampGamma(Number(this.g_gamma ?? 1));
+    const bBlack = clamp255(Number(this.b_black ?? 0));
+    const bWhite = clamp255(Number(this.b_white ?? 255));
+    const bGamma = clampGamma(Number(this.b_gamma ?? 1));
+
+    const identity =
+      rBlack === 0 && rWhite === 255 && rGamma === 1 &&
+      gBlack === 0 && gWhite === 255 && gGamma === 1 &&
+      bBlack === 0 && bWhite === 255 && bGamma === 1;
+    if (identity) {
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          ...this.transformMeta()
+        })
+      };
+    }
+
+    const buildLut = (black: number, gamma: number, white: number) => {
+      const lut = new Uint8Array(256);
+      const denom = Math.max(1, white - black);
+      const invGamma = 1 / gamma;
+      for (let i = 0; i < 256; i++) {
+        const t = Math.max(0, Math.min(1, (i - black) / denom));
+        lut[i] = clamp255(Math.pow(t, invGamma) * 255);
+      }
+      return lut;
+    };
+
+    const lutR = buildLut(rBlack, rGamma, rWhite);
+    const lutG = buildLut(gBlack, gGamma, gWhite);
+    const lutB = buildLut(bBlack, bGamma, bWhite);
+
+    try {
+      const { data: raw, info } = await sharp(bytes, { failOn: "none" })
+        .toColorspace("srgb")
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      const channels = info.channels;
+      const out = Buffer.allocUnsafe(raw.length);
+      for (let i = 0; i < raw.length; i += channels) {
+        out[i] = lutR[raw[i]];
+        out[i + 1] = lutG[raw[i + 1]];
+        out[i + 2] = lutB[raw[i + 2]];
+        if (channels >= 4) {
+          out[i + 3] = raw[i + 3];
+        }
+      }
+
+      const outputBytes = await sharp(out, {
+        raw: {
+          width: info.width,
+          height: info.height,
+          channels: info.channels
+        }
+      })
+        .png()
+        .toBuffer();
+      const meta = await metadataFor(outputBytes);
+      return {
+        output: imageRef(outputBytes, {
+          uri: image.uri ?? "",
+          mimeType: inferImageMime(image.uri, outputBytes),
+          width: meta.width,
+          height: meta.height
+        })
+      };
+    } catch (err) {
+      console.error("LevelsNode processing failed:", err);
+      return {
+        output: imageRef(bytes, {
+          uri: image.uri ?? "",
+          ...this.transformMeta()
+        })
+      };
+    }
+  }
+}
+
+type CompositorLayerState = {
+  opacity: number;
+  blend_mode: BlendMode;
+  visible: boolean;
+  /** Placement on the canvas, authored in the editor. Undefined → native. */
+  transform?: LayerTransform2D;
+};
+
+function compositorLayerTransform(raw: unknown): LayerTransform2D | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const num = (v: unknown, fallback: number): number =>
+    typeof v === "number" && Number.isFinite(v) ? v : fallback;
+  // A persisted transform must at least pin a position; scale defaults to 1.
+  if (typeof r.x !== "number" || typeof r.y !== "number") return undefined;
+  return {
+    x: r.x,
+    y: r.y,
+    scaleX: num(r.scaleX, 1),
+    scaleY: num(r.scaleY, 1),
+    rotation: num(r.rotation, 0)
+  };
+}
+
+function compositorLayerState(raw: unknown): CompositorLayerState {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const opacity =
+    typeof r.opacity === "number"
+      ? Math.max(0, Math.min(1, r.opacity))
+      : 1;
+  const visible = r.visible === undefined ? true : !!r.visible;
+  // Stored values are canonical blend modes; the legacy "over" name still
+  // resolves to "normal" via coerceBlendMode.
+  return {
+    opacity,
+    blend_mode: coerceBlendMode(r.blend_mode),
+    visible,
+    transform: compositorLayerTransform(r.transform)
+  };
+}
+
+/**
+ * Compositor — stacks multiple image layers with per-layer opacity and
+ * blend mode. Dynamic image inputs are named `image_0`, `image_1`, ...;
+ * the lowest-index input is the base (canvas), subsequent layers are
+ * composited on top in index order at (0, 0). Per-layer state lives in
+ * the `layers` list, indexed positionally against the sorted image
+ * inputs. Hidden / zero-opacity layers are skipped.
+ *
+ * Compositing runs on the GPU through the shared WebGPULayerCompositor (the
+ * same engine the sketch editor and timeline preview use), via Node.js Dawn —
+ * the blend math is identical to the browser path. WebGPU is required; there
+ * is no CPU fallback. Sharp is used only as the codec layer: decode each layer
+ * to straight-alpha RGBA on the way in, encode the composite to PNG on the
+ * way out.
+ */
+export class CompositorNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Compositor";
+  static readonly title = "Compositor";
+  static readonly description =
+    "Composite multiple image layers with per-layer opacity and blend mode.\n    image, compositor, blend, layers, mask";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly isDynamic = true;
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "list",
+    default: [],
+    title: "Layers",
+    description:
+      "Per-layer state (positional): { opacity, blend_mode, visible, transform }."
+  })
+  declare layers: unknown;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Canvas width",
+    description:
+      "Composite canvas width in pixels. 0 → use the first visible layer's width."
+  })
+  declare canvas_width: number;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Canvas height",
+    description:
+      "Composite canvas height in pixels. 0 → use the first visible layer's height."
+  })
+  declare canvas_height: number;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    type LayerInput = {
+      index: number;
+      image: ImageRefLike;
+      state: CompositorLayerState;
+    };
+    const layerStates = Array.isArray(this.layers) ? this.layers : [];
+
+    // Collect dynamic image_N inputs, sorted ascending by N. Position in
+    // that sorted list is the index into `layers` for per-layer state.
+    const collected: { index: number; image: ImageRefLike }[] = [];
+    for (const [key, value] of this.dynamicProps) {
+      const m = /^image_(\d+)$/.exec(key);
+      if (!m || !value || typeof value !== "object") continue;
+      collected.push({ index: Number(m[1]), image: value as ImageRefLike });
+    }
+    collected.sort((a, b) => a.index - b.index);
+
+    const inputs: LayerInput[] = collected.map((c, i) => ({
+      ...c,
+      state: compositorLayerState(layerStates[i])
+    }));
+
+    const visible = inputs.filter(
+      (l) => l.state.visible && l.state.opacity > 0
+    );
+
+    if (visible.length === 0) {
+      return {
+        output: imageRef(new Uint8Array(), {
+          uri: "",
+          width: undefined,
+          height: undefined
+        })
+      };
+    }
+
+    // Decode each visible layer to straight-alpha RGBA. Each layer is placed
+    // by its authored transform (default: top-left at the canvas origin).
+    const decoded: {
+      rgba: Uint8Array;
+      width: number;
+      height: number;
+      opacity: number;
+      blendModeId: number;
+      transform?: LayerTransform2D;
+    }[] = [];
+    for (const layer of visible) {
+      try {
+        // Reuses an upstream GPU op's raw RGBA when present (skips the PNG
+        // decode); otherwise decodes the encoded bytes.
+        const { rgba, width, height } = await decodeRgba(layer.image, context);
+        if (rgba.length === 0) continue;
+        decoded.push({
+          rgba,
+          width,
+          height,
+          opacity: layer.state.opacity,
+          blendModeId: blendModeGpuId(layer.state.blend_mode),
+          transform: layer.state.transform
+        });
+      } catch (err) {
+        // Undecodable input → skip this layer, keep the rest of the stack.
+        console.warn("CompositorNode: failed to decode layer, skipping.", err);
+      }
+    }
+
+    if (decoded.length === 0) {
+      return {
+        output: imageRef(new Uint8Array(), {
+          uri: "",
+          width: undefined,
+          height: undefined
+        })
+      };
+    }
+
+    // Canvas size: explicit props win; otherwise the first layer's size.
+    const canvasWidth =
+      Number(this.canvas_width) > 0
+        ? Math.floor(Number(this.canvas_width))
+        : decoded[0].width;
+    const canvasHeight =
+      Number(this.canvas_height) > 0
+        ? Math.floor(Number(this.canvas_height))
+        : decoded[0].height;
+
+    // Composite on the GPU through the shared WebGPULayerCompositor (the same
+    // engine the sketch editor and timeline preview use), via Node.js Dawn.
+    const result = await compositeImageLayers(
+      decoded,
+      canvasWidth,
+      canvasHeight
+    );
+
+    // Emit raw RGBA as the in-flight format — no eager PNG encode. An adjacent
+    // GPU op reuses the pixels directly; any boundary that needs a portable
+    // image (client preview, save, Python bridge) encodes to PNG lazily.
+    return {
+      output: rawRgbaImageRef(result.rgba, result.width, result.height)
+    };
+  }
+}
+
+/**
+ * Painter — paint an alpha mask atop a source image. The mask is
+ * authored interactively in the web UI; `mask_data` carries a base64
+ * PNG of the painted mask (alpha == painted opacity). On execution we
+ * decode `mask_data` into an image output (the mask itself) and emit
+ * the source image alongside for downstream pipelines.
+ *
+ * Plan §9.E9 / §12. Standalone (not an extension of the sketch node) so
+ * the bespoke body stays focused on the paint-on-image workflow.
+ */
+export class PainterNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Painter";
+  static readonly title = "Painter";
+  static readonly description =
+    "Paint an alpha mask on top of an image and output the mask.\n    image, painter, mask, brush, paint";
+  static readonly metadataOutputTypes = {
+    mask: "image",
+    image: "image"
+  };
+  static readonly inlineFields = ["mask_data"];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Source image painted on (passed through to output)."
+  })
+  declare image: unknown;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Mask data",
+    description:
+      "Base64-encoded PNG of the painted alpha mask. Managed by the UI.",
+    json_schema_extra: { hidden_in_inspector: true }
+  })
+  declare mask_data: unknown;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Canvas width",
+    description:
+      "Width of the paint canvas in pixels. Overwritten by the source image's width when an image is set."
+  })
+  declare canvas_width: number;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Canvas height",
+    description:
+      "Height of the paint canvas in pixels. Overwritten by the source image's height when an image is set."
+  })
+  declare canvas_height: number;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+
+    // Pass the source image through (resolved bytes if available) so
+    // downstream nodes that want the original image can branch off the
+    // Painter without re-loading the asset.
+    const imageBytes = await imageBytesAsync(image, context);
+    const imageOut = imageBytes.length > 0
+      ? imageRef(imageBytes, {
+          uri: image.uri ?? "",
+          width: image.width ?? undefined,
+          height: image.height ?? undefined
+        })
+      : { ...image };
+
+    // Decode the painted mask. Empty mask_data → blank mask matching
+    // image dimensions (alpha = 0 everywhere).
+    const maskStr = typeof this.mask_data === "string" ? this.mask_data : "";
+    const maskBytes = toBytes(maskStr);
+
+    if (maskBytes.length === 0) {
+      // Fall back to a transparent canvas. Prefer the source image's
+      // dimensions; otherwise use the user-configured canvas size; finally
+      // 1×1 if nothing is known.
+      const w = Math.max(
+        1,
+        Number(image.width ?? this.canvas_width ?? 1)
+      );
+      const h = Math.max(
+        1,
+        Number(image.height ?? this.canvas_height ?? 1)
+      );
+      try {
+        const blank = await sharp({
+          create: {
+            width: w,
+            height: h,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          }
+        })
+          .png()
+          .toBuffer();
+        const meta = await metadataFor(blank);
+        return {
+          mask: imageRef(blank, {
+            uri: "",
+            mimeType: "image/png",
+            width: meta.width,
+            height: meta.height
+          }),
+          image: imageOut
+        };
+      } catch {
+        return {
+          mask: imageRef(new Uint8Array(), { uri: "" }),
+          image: imageOut
+        };
+      }
+    }
+
+    // Re-encode the mask as PNG to normalize and pick up dimensions.
+    try {
+      const out = await sharp(maskBytes, { failOn: "none" })
+        .png()
+        .toBuffer();
+      const meta = await metadataFor(out);
+      return {
+        mask: imageRef(out, {
+          uri: "",
+          mimeType: "image/png",
+          width: meta.width,
+          height: meta.height
+        }),
+        image: imageOut
+      };
+    } catch {
+      return {
+        mask: imageRef(maskBytes, { uri: "" }),
+        image: imageOut
+      };
+    }
+  }
+}
+
+export class UpscaleImageNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Upscale";
+  static readonly title = "Upscale Image";
+  static readonly description =
+    "Increase the resolution and detail of an image using any supported upscaling provider.\n    image, upscale, super-resolution, enhance, AI";
+  static readonly metadataOutputTypes = { output: "image" };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+  static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
+
+  @prop({
+    type: "image_model",
+    default: {
+      type: "image_model",
+      provider: "fal_ai",
+      id: "fal-ai/clarity-upscaler",
+      name: "Clarity Upscaler",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The upscaling model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    description: "Input image to upscale"
+  })
+  declare image: any;
+
+  @prop({
+    type: "int",
+    default: 2,
+    title: "Scale",
+    description: "Target magnification factor",
+    values: [2, 4]
+  })
+  declare scale: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Optional guidance prompt for creative upscalers"
+  })
+  declare prompt: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
-    const direction = String(this.direction ?? "horizontal");
-    return transformImage(image, (instance) =>
-      direction === "vertical" ? instance.flip() : instance.flop()
-    , context);
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) throw new Error("The input image is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for image upscaling.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "upscale_image",
+      model: modelId,
+      params: {
+        image: bytes,
+        scale: Number(this.scale ?? 2) || undefined,
+        prompt: this.prompt ? String(this.prompt) : undefined
+      }
+    })) as Uint8Array;
+    const meta = await metadataFor(output);
+    return {
+      output: imageRef(output, {
+        mimeType: inferImageMime(image.uri, output),
+        width: meta.width,
+        height: meta.height
+      })
+    };
+  }
+}
+
+export class RemoveBackgroundNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.RemoveBackground";
+  static readonly title = "Remove Background";
+  static readonly description =
+    "Remove the background from an image, returning a cutout with transparency.\n    image, background, remove, matte, cutout, AI";
+  static readonly metadataOutputTypes = { output: "image" };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+  static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
+
+  @prop({
+    type: "image_model",
+    default: {
+      type: "image_model",
+      provider: "fal_ai",
+      id: "fal-ai/bria/background/remove",
+      name: "Bria Background Remove",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The background-removal model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    description: "Input image to remove the background from"
+  })
+  declare image: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) throw new Error("The input image is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for background removal.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "remove_background",
+      model: modelId,
+      params: { image: bytes }
+    })) as Uint8Array;
+    const meta = await metadataFor(output);
+    return {
+      output: imageRef(output, {
+        mimeType: inferImageMime(image.uri, output),
+        width: meta.width,
+        height: meta.height
+      })
+    };
+  }
+}
+
+export class RelightImageNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Relight";
+  static readonly title = "Relight Image";
+  static readonly description =
+    "Re-light a subject according to a text prompt using any supported relighting provider.\n    image, relight, lighting, AI";
+  static readonly metadataOutputTypes = { output: "image" };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image", "prompt"];
+  static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
+
+  @prop({
+    type: "image_model",
+    default: {
+      type: "image_model",
+      provider: "fal_ai",
+      id: "fal-ai/image-apps-v2/relighting",
+      name: "Relight",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The relighting model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    description: "Input image to relight"
+  })
+  declare image: any;
+
+  @prop({
+    type: "str",
+    default: "studio lighting from the left",
+    title: "Prompt",
+    description: "Description of the desired lighting"
+  })
+  declare prompt: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Negative Prompt",
+    description: "Text prompt describing what to avoid"
+  })
+  declare negative_prompt: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) throw new Error("The input image is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for image relighting.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "relight_image",
+      model: modelId,
+      params: {
+        image: bytes,
+        prompt: String(this.prompt ?? ""),
+        negative_prompt: this.negative_prompt
+      }
+    })) as Uint8Array;
+    const meta = await metadataFor(output);
+    return {
+      output: imageRef(output, {
+        mimeType: inferImageMime(image.uri, output),
+        width: meta.width,
+        height: meta.height
+      })
+    };
+  }
+}
+
+export class VectorizeImageNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Vectorize";
+  static readonly title = "Vectorize Image";
+  static readonly description =
+    "Convert a raster image into a scalable vector (SVG) using any supported vectorization provider.\n    image, vector, svg, vectorize, trace, AI";
+  static readonly metadataOutputTypes = { output: "svg_element" };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+  static readonly exposeAsTool = true;
+
+  @prop({
+    type: "image_model",
+    default: {
+      type: "image_model",
+      provider: "fal_ai",
+      id: "fal-ai/recraft/vectorize",
+      name: "Recraft Vectorize",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "The vectorization model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    description: "Input image to vectorize"
+  })
+  declare image: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const bytes = await imageBytesAsync(image, context);
+    if (bytes.length === 0) throw new Error("The input image is empty.");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasProviderSupport(context, providerId, modelId)) {
+      throw new Error("No provider available for image vectorization.");
+    }
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "vectorize_image",
+      model: modelId,
+      params: { image: bytes }
+    })) as Uint8Array;
+    return { output: { content: new TextDecoder().decode(output) } };
   }
 }
 
@@ -1493,8 +2649,17 @@ export const IMAGE_NODES = [
   ResizeNode,
   CropNode,
   FitNode,
-  RotateNode,
-  FlipNode,
+  RotateAndFlipNode,
+  ChannelsNode,
+  BlurNode,
+  LevelsNode,
   TextToImageNode,
-  ImageToImageNode
+  ImageToImageNode,
+  ImageEditorNode,
+  CompositorNode,
+  PainterNode,
+  UpscaleImageNode,
+  RemoveBackgroundNode,
+  RelightImageNode,
+  VectorizeImageNode
 ] as const;

@@ -128,7 +128,6 @@ FrontendToolRegistry.register({
         properties: resolvedProperties,
         dynamic_properties: {},
         dynamic_outputs: {},
-        sync_mode: "on_any",
         workflow_id: workflowId,
         selectable: true
       }

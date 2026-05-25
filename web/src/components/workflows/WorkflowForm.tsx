@@ -8,7 +8,6 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
-import PanelHeadline from "../ui/PanelHeadline";
 import { isProduction } from "../../lib/env";
 
 const workspacesEnabled = !isProduction;
@@ -37,9 +36,10 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       margin: 0,
-      padding: theme.spacing(3),
-      minWidth: "420px",
-      maxWidth: "500px"
+      padding: 0,
+      width: "100%",
+      maxWidth: "500px",
+      boxSizing: "border-box"
     },
     
     // Section grouping
@@ -199,9 +199,7 @@ interface WorkflowFormProps {
 
 const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
-  const { saveWorkflow } = useWorkflowManager((state) => ({
-    saveWorkflow: state.saveWorkflow
-  }));
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -262,8 +260,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
   return (
     <div css={styles(theme)} className="workflow-form">
-      <PanelHeadline title="Workflow Settings" />
-
       {/* Basic Information Section */}
       <div className="settings-section">
         <TextInput

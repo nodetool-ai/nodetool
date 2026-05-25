@@ -1,94 +1,22 @@
-import React, { useMemo, useState } from "react";
-import { Box } from "@mui/material";
-import { Text, TextInput } from "../../ui_primitives";
-import {
-  NODE_EDITOR_SHORTCUTS,
-  getShortcutTooltip,
-  SHORTCUT_CATEGORIES
-} from "../../../config/shortcuts";
-
-const categories = Object.keys(SHORTCUT_CATEGORIES) as Array<
-  keyof typeof SHORTCUT_CATEGORIES
->;
+import React from "react";
+import { FlexColumn } from "../../ui_primitives";
+import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
+import { ShortcutsSearchableList } from "./ShortcutsSearchableList";
 
 const ControlsShortcutsTab: React.FC = () => {
-  const [search, setSearch] = useState("");
-
-  const groupedShortcuts = useMemo(() => {
-    const lower = search.toLowerCase();
-    const groups = new Map<keyof typeof SHORTCUT_CATEGORIES, typeof NODE_EDITOR_SHORTCUTS>();
-    for (const cat of categories) {
-      groups.set(cat, []);
-    }
-    for (const s of NODE_EDITOR_SHORTCUTS) {
-      if (
-        lower &&
-        !s.title.toLowerCase().includes(lower) &&
-        !(s.description && s.description.toLowerCase().includes(lower))
-      ) {
-        continue;
-      }
-      groups.get(s.category)?.push(s);
-    }
-    return groups;
-  }, [search]);
-
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <TextInput
-        variant="outlined"
-        size="small"
-        placeholder="Search shortcuts"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-          mb: 2,
-          backgroundColor: "background.paper"
-        }}
+    <FlexColumn
+      fullHeight
+      sx={{
+        minHeight: 0
+      }}
+    >
+      <ShortcutsSearchableList
+        shortcuts={NODE_EDITOR_SHORTCUTS}
+        rootSx={{ flex: 1, minHeight: 0 }}
+        scrollSx={{ flex: 1, minHeight: 0 }}
       />
-      <Box sx={{ overflowY: "auto", pr: 1 }}>
-        {categories.map((cat) => {
-          const list = groupedShortcuts.get(cat);
-          if (!list || !list.length) {return null;}
-          return (
-            <Box key={cat} sx={{ mb: 3 }}>
-              <Text size="bigger" color="secondary" sx={{ mb: 4 }}>
-                {SHORTCUT_CATEGORIES[cat] ??
-                  cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </Text>
-              {list.map((s) => (
-                <Box
-                  key={s.slug}
-                  className="help-item"
-                  sx={{ display: "flex", alignItems: "center" }}
-                >
-                  {/* Title */}
-                  <Text sx={{ minWidth: 160 }}>{s.title}</Text>
-                  <Box sx={{ minWidth: 200 }}>
-                    {getShortcutTooltip(s.slug, undefined, "combo")}
-                  </Box>
-                  {/* Description */}
-                  {s.description && (
-                    <Text
-                      size="small"
-                      sx={{
-                        color: "var(--palette-grey-200)",
-                        fontWeight: 300
-                      }}
-                    >
-                      {s.description}
-                    </Text>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          );
-        })}
-      </Box>
-    </Box>
+    </FlexColumn>
   );
 };
 

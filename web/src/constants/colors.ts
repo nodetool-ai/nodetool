@@ -1,12 +1,12 @@
 // Theme-aligned color palette (paletteDark)
 export const colorPickerColors = [
   null, // Empty color
-  // Neutrals / background & text
-  "#0F1115", // background.default
-  "#161A22", // background.paper
-  "#C7D1E0", // text.secondary
-  "#FFFFFF", // text.primary
-  "#94A3B8", // text.disabled
+  // Neutrals — clearly stepped so each swatch reads as a distinct value
+  "#0F1115", // near-black
+  "#475569", // slate / dark grey
+  "#94A3B8", // mid grey
+  "#CBD5E1", // light grey
+  "#FFFFFF", // white
   // Primary scale
   "#93C5FD", // primary.light
   "#60A5FA", // primary.main

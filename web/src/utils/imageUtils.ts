@@ -12,6 +12,23 @@ export interface ImageSource {
 }
 
 /**
+ * Resolve a URI string to a fetchable URL.
+ * - `asset://{id}` → `${BASE_URL}/api/storage/{id}`.
+ * - `/api/...` → prefixed with `BASE_URL`.
+ * - Other absolute URIs (`data:`, `blob:`, `http:`, `https:`) returned as-is.
+ */
+const resolveUri = (uri: string): string => {
+  if (uri.startsWith("asset://")) {
+    const assetId = uri.slice("asset://".length);
+    return `${BASE_URL}/api/storage/${assetId}`;
+  }
+  if (uri.startsWith("/api/")) {
+    return `${BASE_URL}${uri}`;
+  }
+  return uri;
+};
+
+/**
  * Converts image data to a displayable URL.
  * Handles: URI strings, data URIs, base64 strings, Uint8Array, and number arrays.
  *
@@ -55,8 +72,7 @@ export const createImageUrl = (
 
   // Case 1: URI is provided
   if (uri) {
-    const resolved = uri.startsWith("/api/") ? `${BASE_URL}${uri}` : uri;
-    return { url: resolved, blobUrl: null };
+    return { url: resolveUri(uri), blobUrl: null };
   }
 
   if (!data) {
@@ -68,9 +84,10 @@ export const createImageUrl = (
     if (
       data.startsWith("data:") ||
       data.startsWith("blob:") ||
-      data.startsWith("http")
+      data.startsWith("http") ||
+      data.startsWith("asset://")
     ) {
-      return { url: data, blobUrl: null };
+      return { url: resolveUri(data), blobUrl: null };
     }
     if (data.startsWith("/")) {
       const resolved = data.startsWith("/api/") ? `${BASE_URL}${data}` : data;
