@@ -51,9 +51,12 @@ describe("color.solarize@1", () => {
   });
 
   it("uses per-channel select against the threshold in WGSL", () => {
-    expect(colorSolarizeV1.wgsl).toContain("select(src.r, 1.0 - src.r");
-    expect(colorSolarizeV1.wgsl).toContain("select(src.g, 1.0 - src.g");
-    expect(colorSolarizeV1.wgsl).toContain("select(src.b, 1.0 - src.b");
+    // After the premultiplied-invariant fix the shader thresholds the
+    // un-premultiplied `straight` color rather than `src.rgb` directly,
+    // but the per-channel `select` shape is unchanged.
+    expect(colorSolarizeV1.wgsl).toContain("select(straight.r, 1.0 - straight.r");
+    expect(colorSolarizeV1.wgsl).toContain("select(straight.g, 1.0 - straight.g");
+    expect(colorSolarizeV1.wgsl).toContain("select(straight.b, 1.0 - straight.b");
   });
 });
 
