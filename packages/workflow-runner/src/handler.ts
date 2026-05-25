@@ -17,7 +17,12 @@
  *   data: { ...ProcessingMessage }
  *   ...
  *   event: result
- * Note: request parse/validation errors are returned as JSON (4xx). Once the SSE Response is created, workflow failures are reported as an SSE `error` event (HTTP 200).
+ *   data: { ...RunResult }
+ *
+ * Note: request parse/validation errors are returned as JSON (4xx). Once
+ * the SSE Response is created, workflow failures are reported as an SSE
+ * `error` event (HTTP 200).
+ */
 
 import type { Platform, ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
