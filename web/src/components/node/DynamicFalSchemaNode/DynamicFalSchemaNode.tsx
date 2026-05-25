@@ -126,8 +126,6 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultButton={false}
           showInputsButton={false}
-          onShowResults={() => {}}
-          onShowInputs={() => {}}
           externalLink={data.endpoint_id ? `https://fal.ai/models/${data.endpoint_id}` : undefined}
           externalLinkTitle="View on fal.ai"
         />
@@ -161,7 +159,6 @@ const DynamicFalSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultOverlay={false}
           result={result}
-          onShowInputs={() => {}}
         />
       </FlexColumn>
     </FlexColumn>
