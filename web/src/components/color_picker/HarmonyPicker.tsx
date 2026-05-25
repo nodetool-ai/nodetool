@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { Text, Tooltip } from "../ui_primitives";
+import { Text, Tooltip, Box } from "../ui_primitives";
 import { CopyButton } from "../ui_primitives";
 import {
   HarmonyType,

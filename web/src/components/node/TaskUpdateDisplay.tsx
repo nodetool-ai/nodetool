@@ -3,8 +3,7 @@ import React from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, Box } from "../ui_primitives";
 import { TaskUpdate } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 

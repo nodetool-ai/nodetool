@@ -1,10 +1,10 @@
 import { useMemo, memo } from "react";
-import { Box, List, ListItem } from "@mui/material";
+import { List, ListItem } from "@mui/material";
 import { useRunningJobs } from "../../../hooks/useRunningJobs";
 import { Job } from "../../../stores/ApiTypes";
 import { groupByDate } from "../../../utils/groupByDate";
 import JobItem from "./JobItem";
-import { LoadingSpinner, Text, FlexColumn } from "../../ui_primitives";
+import { LoadingSpinner, Text, FlexColumn, Box } from "../../ui_primitives";
 
 const JobGroupHeader = memo(function JobGroupHeader({ label }: { label: string }) {
     return (

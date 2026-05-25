@@ -3,8 +3,7 @@ import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { Text } from "../../ui_primitives";
+import { Text, Box } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 
 const objectStyles = (theme: Theme) =>

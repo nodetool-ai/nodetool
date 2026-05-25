@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
-import { Box } from "@mui/material";
-import { Text, Tooltip, Divider } from "../ui_primitives";
+import { Text, Tooltip, Divider, Box } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";

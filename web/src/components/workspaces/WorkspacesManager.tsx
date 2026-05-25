@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   List,
   ListItem,
   ListItemText,
@@ -27,8 +26,10 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import {
+  Box,
   Chip,
   EditorButton,
+  FlexColumn,
   FlexRow,
   LoadingSpinner,
   Text,
@@ -395,7 +396,7 @@ const WorkspacesManager: React.FC = () => {
 
   return (
     <>
-      <Box css={styles(theme)} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <FlexColumn css={styles(theme)} sx={{ flex: 1, minHeight: 0 }}>
         <div className="workspaces-manager">
             {isLoading ? (
               <FlexRow
@@ -609,7 +610,7 @@ const WorkspacesManager: React.FC = () => {
               )}
             </div>
         </div>
-      </Box>
+      </FlexColumn>
 
       <FileBrowserDialog
         open={isFileBrowserOpen}

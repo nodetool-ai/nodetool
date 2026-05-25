@@ -13,7 +13,8 @@ import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
-import { Box, useMediaQuery } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
+import { FlexColumn } from "../ui_primitives";
 
 import TabsBar from "./TabsBar";
 import ChainEditorBridge from "../chain_editor/ChainEditorBridge";
@@ -525,21 +526,19 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
             style={{ flex: 1, minHeight: 0, minWidth: 0 }}
           >
             {activeFileTab && (
-              <Box
+              <FlexColumn
                 key={`file-${activeFileTab.asset.id}`}
+                fullWidth
+                fullHeight
                 sx={{
                   overflow: "hidden",
                   position: "absolute",
-                  width: "100%",
-                  height: "100%",
                   minHeight: 0,
-                  minWidth: 0,
-                  display: "flex",
-                  flexDirection: "column"
+                  minWidth: 0
                 }}
               >
                 <FileTabContent asset={activeFileTab.asset} />
-              </Box>
+              </FlexColumn>
             )}
             {activeSubgraphTab && !activeFileTab && (
               <SubgraphTabContent
@@ -555,17 +554,15 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                 !activeFileTab &&
                 !activeSubgraphTab;
               return (
-                <Box
+                <FlexColumn
                   key={workflow.id}
+                  fullWidth
+                  fullHeight
                   sx={{
                     overflow: "hidden",
                     position: "absolute",
-                    width: "100%",
-                    height: "100%",
                     minHeight: 0,
                     minWidth: 0,
-                    display: "flex",
-                    flexDirection: "column",
                     opacity: isActive ? 1 : 0,
                     pointerEvents: isActive ? "auto" : "none",
                     zIndex: isActive ? 1 : 0
@@ -609,7 +606,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                       </ReactFlowProvider>
                     )}
                   </NodeContext.Provider>
-                </Box>
+                </FlexColumn>
               );
             })}
           </div>

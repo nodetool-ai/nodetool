@@ -1,5 +1,6 @@
 import React, { memo } from "react";
-import { Box, Slider, Switch, Typography } from "@mui/material";
+import { Slider, Switch, Typography } from "@mui/material";
+import { FlexRow, Box } from "../../ui_primitives";
 import { sketchSliderSx } from "../sketchStyles";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {
@@ -108,12 +109,10 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
   const advancedBlock =
     settings.pressureSensitivity !== false ? (
       inlineRow ? (
-        <Box
+        <FlexRow
+          align="center"
+          wrap
           sx={{
-            display: "flex",
-            flexDirection: "row",
-            flexWrap: "wrap",
-            alignItems: "center",
             columnGap: 12,
             rowGap: 4
           }}
@@ -121,7 +120,7 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
           {affectsGroup}
           {lightEndRow}
           {curveRow}
-        </Box>
+        </FlexRow>
       ) : (
         <Box sx={{ mb: "4px" }}>
           {affectsGroup}

@@ -1,6 +1,5 @@
 import React, { memo } from "react";
-import { Box } from "@mui/material";
-import { Text, Caption, FlexColumn } from "../../ui_primitives";
+import { Text, Caption, FlexColumn, Box } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
@@ -59,14 +58,12 @@ export const DynamicReplicateContent: React.FC<DynamicReplicateContentProps> =
               </Caption>
             </Box>
           )}
-          <Box
+          <FlexColumn
             className="dynamic-replicate-inputs"
             sx={{
               flex: "1 1 auto",
               minHeight: 80,
               overflow: "visible",
-              display: "flex",
-              flexDirection: "column",
               visibility: "visible",
               "& .node-inputs": {
                 visibility: "visible"
@@ -110,7 +107,7 @@ export const DynamicReplicateContent: React.FC<DynamicReplicateContentProps> =
               data={data}
               showHandle={!isConstantNode}
             />
-          </Box>
+          </FlexColumn>
           {!isOutputNode && (
             <Box sx={{ flexShrink: 0 }}>
               <NodeOutputs

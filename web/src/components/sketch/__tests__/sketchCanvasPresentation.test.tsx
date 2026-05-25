@@ -18,7 +18,8 @@ import { TransformTool } from "../tools/TransformTool";
 jest.mock("@mui/material/styles", () => ({
   ...jest.requireActual("@mui/material/styles"),
   useTheme: () => ({
-    vars: { palette: { grey: { 800: "#424242" } } }
+    vars: { palette: { grey: { 800: "#424242" } } },
+    spacing: (n: number) => `${n * 8}px`
   })
 }));
 

@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
-import { Box } from "@mui/material";
-import { EditorButton, Text, Tooltip } from "../ui_primitives";
+import { EditorButton, Text, Tooltip, Box } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   NavigateNext as NavigateIcon

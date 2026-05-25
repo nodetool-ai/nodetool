@@ -2,7 +2,6 @@
 import { css } from "@emotion/react";
 import {
   Checkbox,
-  Box,
   Popover,
   PopoverOrigin
 } from "@mui/material";
@@ -12,7 +11,7 @@ import { useCollectionStore } from "../../../stores/CollectionStore";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, EditorButton, Chip } from "../../ui_primitives";
+import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, EditorButton, Chip, Box } from "../../ui_primitives";
 
 // Popover dimensions
 const POPOVER_WIDTH = 320;

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { createElement, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { Box } from "../ui_primitives";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { FlexRow } from "../ui_primitives/FlexRow";
 import { Text } from "../ui_primitives/Text";

@@ -1,6 +1,5 @@
 import React, { memo } from "react";
 import {
-  Box,
   Button,
   Checkbox,
   FormControlLabel,
@@ -9,6 +8,7 @@ import {
   Tooltip,
   Typography
 } from "@mui/material";
+import { FlexRow, Box } from "../../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -83,7 +83,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
         />
         <Typography className="setting-value">{saturation}</Typography>
       </Box>
-      <Box sx={{ display: "flex", gap: 0.5 }}>
+      <FlexRow gap={0.5}>
         <Button
           size="small"
           variant="outlined"
@@ -103,7 +103,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
         >
           Cancel
         </Button>
-      </Box>
+      </FlexRow>
     </>
   );
 });
@@ -227,7 +227,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         <Typography className="setting-label">Rotation</Typography>
         <Typography className="setting-value">{rotDeg}°</Typography>
       </Box>
-      <Box sx={{ display: "flex", gap: "2px", ml: 1 }}>
+      <FlexRow sx={{ gap: "2px", ml: 1 }}>
         <Tooltip title="Commit (Enter)" placement="bottom">
           <IconButton
             size="small"
@@ -260,7 +260,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
             <RestartAltIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
-      </Box>
+      </FlexRow>
     </>
   );
 });
@@ -288,7 +288,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
         Drag to outline the crop. Drag edges or corners to adjust. Press Enter
         or Apply to crop the canvas.
       </Typography>
-      <Box sx={{ display: "flex", gap: "2px", ml: 1 }}>
+      <FlexRow sx={{ gap: "2px", ml: 1 }}>
         <Tooltip title="Apply crop (Enter)" placement="bottom">
           <IconButton
             size="small"
@@ -311,7 +311,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
             <CloseIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
-      </Box>
+      </FlexRow>
     </>
   );
 });

@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useState, useRef, useEffect } from "react";
 import {
-  Box,
   Modal,
   TextField
 } from "@mui/material";
-import { LoadingSpinner, Dialog, EditorButton } from "../ui_primitives";
+import { LoadingSpinner, Dialog, EditorButton, Box } from "../ui_primitives";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 //css

@@ -3,7 +3,8 @@ import React, { useState, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Typography, Tabs, Tab } from "@mui/material";
+import { Typography, Tabs, Tab } from "@mui/material";
+import { Box } from "./ui_primitives";
 import ChatMarkdown from "./chat/message/ChatMarkdown";
 import { createStyles } from "./chat/thread/ChatThreadView.styles";
 

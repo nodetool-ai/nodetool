@@ -1,12 +1,11 @@
 import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import {
-  Box,
   Popover,
   List,
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Tooltip, ToolbarIconButton, Text } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Text, FlexRow, Box } from "../ui_primitives";
 import { useViewport, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -136,16 +135,15 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
 
   return (
     <>
-      <Box
+      <FlexRow
         data-testid="viewport-status-indicator"
+        gap={0.5}
+        align="center"
         sx={{
           position: "absolute",
           bottom: 16,
           right: 20,
           zIndex: 10,
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
           backgroundColor: theme.vars.palette.Paper.paper,
           backdropFilter: "blur(8px)",
           borderRadius: "var(--rounded-lg)",
@@ -232,7 +230,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           size="small"
           sx={zoomButtonSx}
         />
-      </Box>
+      </FlexRow>
 
       <Popover
         open={Boolean(zoomMenuAnchor)}

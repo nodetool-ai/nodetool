@@ -14,12 +14,11 @@
  */
 
 import React, { memo } from "react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
 import { SKETCH_SIZE } from "../sketchStyles";
-import { EmptyState } from "../../ui_primitives";
+import { EmptyState, Box } from "../../ui_primitives";
 import { GeneratedLayerPanel } from "./GeneratedLayerPanel";
 import { ImportedLayerPanel } from "./ImportedLayerPanel";
 import { PaintedLayerPanel } from "./PaintedLayerPanel";

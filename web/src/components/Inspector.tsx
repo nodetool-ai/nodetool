@@ -2,7 +2,6 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import PropertyField from "./node/PropertyField";
-import { Box } from "@mui/material";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
@@ -20,7 +19,8 @@ import {
   EditorButton,
   ScrollArea,
   Text,
-  Tooltip
+  Tooltip,
+  Box
 } from "./ui_primitives";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";

@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
-import { Box } from "@mui/material";
-import { Text, FlexRow } from "../ui_primitives";
+import { Text, FlexRow, Box } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 

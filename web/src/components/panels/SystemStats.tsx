@@ -1,11 +1,10 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Box,
   LinearProgress,
   Popover
 } from "@mui/material";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
-import { FlexColumn, ProgressBar, Tooltip } from "../ui_primitives";
+import { FlexColumn, ProgressBar, Tooltip, Box } from "../ui_primitives";
 
 // Memoized inline styles for progress bars
 const progressSx = {

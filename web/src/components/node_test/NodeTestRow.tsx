@@ -2,11 +2,10 @@ import React, { memo, useCallback, useState } from "react";
 import {
   IconButton,
   Chip,
-  Box,
   DialogTitle,
   DialogContent
 } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, FlexRow } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CloseIcon from "@mui/icons-material/Close";
 import type { NodeMetadata } from "../../stores/ApiTypes";
@@ -56,13 +55,12 @@ function NodeTestRowInner({
 
   return (
     <div style={{ ...style, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-      <Box
+      <FlexRow
+        gap={1}
+        align="center"
         sx={{
-          display: "flex",
-          alignItems: "center",
           height: 48,
           px: 1,
-          gap: 1,
           cursor: hasOutput ? "pointer" : "default",
           "&:hover": { bgcolor: "action.hover" }
         }}
@@ -162,7 +160,7 @@ function NodeTestRowInner({
                 })()
               : ""}
         </Text>
-      </Box>
+      </FlexRow>
 
       {modalOpen && hasOutput && (
         <Dialog open={modalOpen} onClose={handleClose} maxWidth="md" fullWidth>
@@ -184,7 +182,7 @@ function NodeTestRowInner({
                 {metadata.node_type}
               </Text>
             </span>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FlexRow gap={1} align="center">
               {result?.durationMs && (
                 <Chip
                   label={`${result.durationMs}ms`}
@@ -195,7 +193,7 @@ function NodeTestRowInner({
               <IconButton size="small" onClick={handleClose} aria-label="Close dialog">
                 <CloseIcon fontSize="small" />
               </IconButton>
-            </Box>
+            </FlexRow>
           </DialogTitle>
           <DialogContent sx={{ minHeight: 200 }}>
             {result?.error ? (

@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
-import { Box, Link } from "@mui/material";
-import { Chip, FlexRow, Tooltip, Text } from "../../ui_primitives";
+import { Link } from "@mui/material";
+import { Chip, FlexRow, Tooltip, Text, Box } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { ModelComponentProps } from "../ModelUtils";

@@ -1,7 +1,7 @@
-import { Box, Popover, List, ListItem } from "@mui/material";
+import { Popover, List, ListItem } from "@mui/material";
 import InfoIcon from "@mui/icons-material/Info";
 import { useState } from "react";
-import { FlexRow, FlexColumn, Text, Caption } from "../ui_primitives";
+import { FlexRow, FlexColumn, Text, Caption, Box } from "../ui_primitives";
 
 const CollectionHeader = () => {
   const [formatInfoAnchor, setFormatInfoAnchor] = useState<HTMLElement | null>(

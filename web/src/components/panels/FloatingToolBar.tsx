@@ -5,11 +5,10 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect } from "react";
 import {
   Fab,
-  Box,
   useMediaQuery,
-  Menu,
+  Menu
 } from "@mui/material";
-import { Tooltip, FlexRow } from "../ui_primitives";
+import { Tooltip, FlexRow, Box } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";

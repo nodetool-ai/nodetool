@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo } from "react";
-import { Box } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { EditorButton, Box } from "../ui_primitives";
 import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { type AssetTreeNode } from "../../stores/AssetStore";

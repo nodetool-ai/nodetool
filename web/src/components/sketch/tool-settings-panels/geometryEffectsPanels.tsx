@@ -1,11 +1,11 @@
 import React, { memo, useState } from "react";
 import {
-  Box,
   Checkbox,
   FormControlLabel,
   Slider,
   Typography
 } from "@mui/material";
+import { Box } from "../../ui_primitives";
 import {
   BlurSettings,
   CloneStampSampling,
