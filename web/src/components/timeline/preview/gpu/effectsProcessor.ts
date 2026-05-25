@@ -12,6 +12,7 @@ import {
   createGPUContextFromDevice,
   createExecutor,
   createLabeledTexture,
+  LabeledTexture,
   colorGradeV1,
   blurGaussianV1,
   sharpenUnsharpMaskV1,
@@ -19,8 +20,6 @@ import {
   chromaKeyV1,
   type GPUContext,
   type Executor,
-  type ExecutorDispatch,
-  type LabeledTexture,
   type ShaderModule
 } from "@nodetool-ai/gpu/pool";
 import * as d from "typegpu/data";
@@ -136,18 +135,53 @@ export class WebGPUEffectsProcessor {
       label: `preview-effects-${poolKey}`
     });
 
-    // Seed: copy source → textures[0]
-    encoder.copyTextureToTexture(
-      { texture: source },
-      { texture: pool.textures[0].texture },
-      { width, height }
-    );
-    pool.textures[0].markWritten();
-    pool.currentIndex = 0;
+    // Source arrives straight-alpha (uploaded with `premultipliedAlpha: false`).
+    // Wrap as a straight-labeled `LabeledTexture` and feed it to the first
+    // effect: the Executor's auto-bridge inserts `alphaStraightToPremulV1`
+    // ahead of effects that need premul input (everything except chromaKey),
+    // and chromaKey itself takes straight directly — so there's no redundant
+    // straight→premul→straight round-trip when chromaKey runs first.
+    const sourceLabeled = new LabeledTexture(source, {
+      label: `preview-effects-${poolKey}-src`,
+      format: "rgba8unorm",
+      width,
+      height,
+      meta: { colorSpace: "srgb", alpha: "straight", bindingKind: "texture_2d" }
+    });
+    let pendingFirst = true;
+
+    const step = <S extends AnyWgslStruct>(
+      module: ShaderModule<S>,
+      params: Infer<S>
+    ): void => {
+      const inputTex = pendingFirst
+        ? sourceLabeled
+        : pool.textures[pool.currentIndex];
+      const outIdx: 0 | 1 = pendingFirst
+        ? 0
+        : ((1 - pool.currentIndex) as 0 | 1);
+      const [wgX, wgY] = module.workgroupSize;
+      this.executor.encode({
+        ctx: this.ctx,
+        module,
+        encoder,
+        inputs: { source: inputTex },
+        output: pool.textures[outIdx],
+        params,
+        dispatch: {
+          kind: "compute",
+          x: Math.ceil(width / wgX),
+          y: Math.ceil(height / wgY),
+          z: 1
+        }
+      });
+      pool.currentIndex = outIdx;
+      pendingFirst = false;
+    };
 
     if (chromaKeyActive && chromaKey) {
       const [r, g, b] = hexToRgb(chromaKey.keyColor);
-      this.encodeStep(encoder, pool, chromaKeyV1, {
+      step(chromaKeyV1, {
         keyColor: d.vec3f(r, g, b),
         tolerance: chromaKey.tolerance,
         softness: chromaKey.softness,
@@ -155,29 +189,29 @@ export class WebGPUEffectsProcessor {
       });
     }
     if (colorActive) {
-      this.encodeStep(encoder, pool, colorGradeV1, { ...color });
+      step(colorGradeV1, { ...color });
     }
     if (blurActive) {
       const sigma = blurRadius / 3;
-      this.encodeStep(encoder, pool, blurGaussianV1, {
+      step(blurGaussianV1, {
         radius: blurRadius,
         sigma,
         direction: d.vec2f(1, 0)
       });
-      this.encodeStep(encoder, pool, blurGaussianV1, {
+      step(blurGaussianV1, {
         radius: blurRadius,
         sigma,
         direction: d.vec2f(0, 1)
       });
     }
     if (sharpenActive && sharpen) {
-      this.encodeStep(encoder, pool, sharpenUnsharpMaskV1, {
+      step(sharpenUnsharpMaskV1, {
         amount: sharpen.amount,
         threshold: sharpen.threshold
       });
     }
     if (vignetteActive && vignette) {
-      this.encodeStep(encoder, pool, vignetteV1, {
+      step(vignetteV1, {
         intensity: vignette.intensity,
         radius: vignette.radius,
         softness: vignette.softness
@@ -186,33 +220,6 @@ export class WebGPUEffectsProcessor {
 
     this.device.queue.submit([encoder.finish()]);
     return pool.textures[pool.currentIndex].texture;
-  }
-
-  private encodeStep<Schema extends AnyWgslStruct>(
-    encoder: GPUCommandEncoder,
-    pool: IntermediatePool,
-    module: ShaderModule<Schema>,
-    params: Infer<Schema>
-  ): void {
-    const inIdx = pool.currentIndex;
-    const outIdx = (1 - inIdx) as 0 | 1;
-    const [wgX, wgY] = module.workgroupSize;
-    const dispatch: ExecutorDispatch = {
-      kind: "compute",
-      x: Math.ceil(pool.width / wgX),
-      y: Math.ceil(pool.height / wgY),
-      z: 1
-    };
-    this.executor.encode({
-      ctx: this.ctx,
-      module,
-      encoder,
-      inputs: { source: pool.textures[inIdx] },
-      output: pool.textures[outIdx],
-      params,
-      dispatch
-    });
-    pool.currentIndex = outIdx;
   }
 
   private getPool(key: string, width: number, height: number): IntermediatePool {
