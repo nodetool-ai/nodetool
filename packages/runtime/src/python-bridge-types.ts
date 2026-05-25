@@ -42,6 +42,8 @@ export interface PythonBridgeOptions {
   workerArgs?: string[];
   autoRestart?: boolean;
   startupTimeoutMs?: number;
+  /** Max time to wait for a single node execute (0 = no timeout). */
+  executeTimeoutMs?: number;
 }
 
 export type StreamCallback = (chunk: Record<string, unknown>) => void;

@@ -26,6 +26,7 @@ import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
   PythonStdioBridge,
+  logPythonWorkerStderr,
   type NodeExecutor
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
@@ -110,7 +111,7 @@ function getRuntimeEnvironment(
       let pythonBridgeReady = false;
       pythonBridge.on("stderr", (msg: string) => {
         for (const line of msg.split("\n")) {
-          if (line.trim()) log.debug(`[python-worker] ${line}`);
+          logPythonWorkerStderr(line, log);
         }
       });
       pythonBridge.on("error", (err: Error) => {

@@ -25,7 +25,8 @@ import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-pro
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   initTelemetry,
-  PythonStdioBridge
+  PythonStdioBridge,
+  logPythonWorkerStderr
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import {
@@ -420,7 +421,7 @@ function logPythonBridgeDiagnostics(context: string): void {
 
 pythonBridge.on("stderr", (msg: string) => {
   for (const line of msg.split("\n")) {
-    if (line.trim()) log.debug(`[python-worker] ${line}`);
+    logPythonWorkerStderr(line, log);
   }
 });
 
