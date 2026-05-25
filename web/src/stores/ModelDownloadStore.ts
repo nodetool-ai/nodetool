@@ -4,6 +4,20 @@ import { QueryClient } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { useHfCacheStatusStore } from "./HfCacheStatusStore";
 
+interface DownloadProgressMessage {
+  repo_id?: string;
+  path?: string;
+  status?: Download["status"];
+  model_type?: string;
+  downloaded_bytes?: number;
+  total_bytes?: number;
+  total_files?: number;
+  downloaded_files?: number;
+  current_files?: string[];
+  error?: string;
+  message?: string;
+}
+
 interface SpeedDataPoint {
   bytes: number;
   timestamp: number;
@@ -193,7 +207,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
     if (ws) {
       ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+        const data: DownloadProgressMessage = JSON.parse(event.data);
         if (data.repo_id) {
           const id = data.path ? data.repo_id + "/" + data.path : data.repo_id;
           // Ignore progress for dismissed rows — otherwise removeDownload + next WS
