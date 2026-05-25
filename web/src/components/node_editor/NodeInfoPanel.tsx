@@ -4,10 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { shallow } from "zustand/shallow";
-import {
-  Box
-} from "@mui/material";
-import { Tooltip, Text, EditorButton, FlexRow, CloseButton } from "../ui_primitives";
+import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";

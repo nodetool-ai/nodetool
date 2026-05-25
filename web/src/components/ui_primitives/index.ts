@@ -180,6 +180,9 @@ export {
 export type { EditorUiScope } from "../editor_ui/EditorUiContext";
 
 // Layout primitives
+export { Box } from "./Box";
+export type { BoxProps } from "./Box";
+
 export { FlexColumn } from "./FlexColumn";
 export type { FlexColumnProps } from "./FlexColumn";
 

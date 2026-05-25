@@ -1,7 +1,6 @@
 import { memo, useCallback, forwardRef, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, Text, ToolbarIconButton, FlexRow, Box } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
@@ -89,7 +88,7 @@ const NodeItem = memo(
               {parsedDescription.description}
             </Text>
             {parsedDescription.tags.length > 0 && (
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
+              <FlexRow gap={0.5} wrap sx={{ mt: 1 }}>
                 {parsedDescription.tags.map((tag) => (
                   <Box
                     key={tag}
@@ -108,7 +107,7 @@ const NodeItem = memo(
                     {tag}
                   </Box>
                 ))}
-              </Box>
+              </FlexRow>
             )}
             {parsedDescription.useCases.raw && (
               <Box sx={{ mt: 1 }}>

@@ -12,9 +12,8 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Text, Caption, LoadingSpinner, Surface } from "../ui_primitives";
+import { Text, Caption, LoadingSpinner, Surface, Box } from "../ui_primitives";
 import {
   DataframeRef,
   NodeMetadata,

@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useCallback, memo } from "react";
-import { Box } from "@mui/material";
-import { EditorButton, Text } from "./ui_primitives";
+import { EditorButton, Text, Box } from "./ui_primitives";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
 

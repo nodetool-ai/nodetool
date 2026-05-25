@@ -8,7 +8,7 @@
  */
 
 import React, { memo } from "react";
-import { Box, IconButton } from "@mui/material";
+import { IconButton } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -22,7 +22,7 @@ import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
 import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
-import { StatusIndicator, Text, Tooltip } from "../ui_primitives";
+import { FlexColumn, FlexRow, StatusIndicator, Text, Tooltip, Box } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
 
@@ -295,11 +295,10 @@ const LayerItem: React.FC<LayerItemProps> = ({
             }}
           />
         ) : (
-          <Box
+          <FlexRow
+            align="center"
             sx={{
               flex: 1,
-              display: "flex",
-              alignItems: "center",
               gap: SKETCH_SPACING.sm,
               minWidth: 0
             }}
@@ -349,17 +348,15 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 size="small"
               />
             )}
-          </Box>
+          </FlexRow>
         )}
 
         {/* I/O indicator dots: visible only when input or output is hidden */}
         {!isGroup && (
-          <Box
+          <FlexColumn
+            align="center"
+            justify="center"
             sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
               gap: "3px",
               flexShrink: 0,
               width: 10,
@@ -400,7 +397,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 }}
               />
             </Tooltip>
-          </Box>
+          </FlexColumn>
         )}
 
         {/* Discrete cell mirrors thumbnail column — see `.layer-visibility-cell` in panel styles */}

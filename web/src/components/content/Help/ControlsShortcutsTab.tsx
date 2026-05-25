@@ -1,15 +1,13 @@
 import React from "react";
-import { Box } from "@mui/material";
+import { FlexColumn } from "../../ui_primitives";
 import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import { ShortcutsSearchableList } from "./ShortcutsSearchableList";
 
 const ControlsShortcutsTab: React.FC = () => {
   return (
-    <Box
+    <FlexColumn
+      fullHeight
       sx={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
         minHeight: 0
       }}
     >
@@ -18,7 +16,7 @@ const ControlsShortcutsTab: React.FC = () => {
         rootSx={{ flex: 1, minHeight: 0 }}
         scrollSx={{ flex: 1, minHeight: 0 }}
       />
-    </Box>
+    </FlexColumn>
   );
 };
 

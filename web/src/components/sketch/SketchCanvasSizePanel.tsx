@@ -10,7 +10,6 @@ import React, {
   useState
 } from "react";
 import {
-  Box,
   MenuItem,
   Select,
   Switch,
@@ -21,7 +20,7 @@ import {
 import CheckIcon from "@mui/icons-material/Check";
 import { CANVAS_PRESETS } from "./types";
 import { SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
-import { FlexRow, StateIconButton } from "../ui_primitives";
+import { FlexColumn, FlexRow, StateIconButton } from "../ui_primitives";
 
 function cycleArrayValue<T>(
   values: readonly T[],
@@ -151,7 +150,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
   );
 
   return (
-    <Box className="sketch-canvas-size-panel" sx={{ p: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+    <FlexColumn className="sketch-canvas-size-panel" padding={1} gap={1}>
       <FlexRow align="center" justify="space-between" sx={{ minHeight: 32 }}>
         <Typography sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textMuted }}>
           Resize handles
@@ -258,7 +257,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
           sx={{ flexShrink: 0 }}
         />
       </FlexRow>
-    </Box>
+    </FlexColumn>
   );
 };
 

@@ -1,6 +1,5 @@
 import React, { useMemo, useCallback } from "react";
-import { Box } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { FlexRow, Tooltip, Box } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { keyframes } from "@emotion/react";
@@ -67,14 +66,13 @@ const OverallDownloadProgress: React.FC = () => {
 
   return (
     <Tooltip title="Download Progress" delay={TOOLTIP_ENTER_DELAY}>
-      <Box
+      <FlexRow
         className="overall-download-progress"
         role="button"
         tabIndex={0}
         aria-label="Download Progress"
+        align="center"
         sx={{
-          display: "flex",
-          alignItems: "center",
           cursor: "pointer",
           gap: "6px",
           padding: "0 4px",
@@ -92,12 +90,11 @@ const OverallDownloadProgress: React.FC = () => {
         onClick={handleClick}
         onKeyDown={handleKeyDown}
       >
-        <Box
+        <FlexRow
           className="icon-container"
+          align="center"
+          justify="center"
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             "& svg": {
               width: "18px",
               height: "18px"
@@ -105,13 +102,12 @@ const OverallDownloadProgress: React.FC = () => {
           }}
         >
           <DownloadingIcon />
-        </Box>
+        </FlexRow>
         {progress > 0 && (
-          <Box
+          <FlexRow
             className="progress-container"
+            align="center"
             sx={{
-              display: "flex",
-              alignItems: "center",
               gap: "6px",
               minWidth: "80px"
             }}
@@ -150,9 +146,9 @@ const OverallDownloadProgress: React.FC = () => {
             >
               {progress.toFixed(0)}%
             </Box>
-          </Box>
+          </FlexRow>
         )}
-      </Box>
+      </FlexRow>
     </Tooltip>
   );
 };

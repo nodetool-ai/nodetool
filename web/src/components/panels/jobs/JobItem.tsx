@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box,
   ListItem,
   ListItemIcon,
   ListItemText,
   Collapse
 } from "@mui/material";
-import { FlexColumn, Text, LoadingSpinner, Tooltip, ToolbarIconButton } from "../../ui_primitives";
+import { FlexColumn, Text, LoadingSpinner, Tooltip, ToolbarIconButton, Box } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CancelIcon from "@mui/icons-material/Cancel";

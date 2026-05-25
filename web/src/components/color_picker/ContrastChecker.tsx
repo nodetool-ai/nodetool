@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { Text, Caption } from "../ui_primitives";
+import { Text, Caption, Box } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import {

@@ -5,7 +5,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Tabs,
   Tab,
-  Box,
   useMediaQuery
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -19,7 +18,9 @@ import {
   SelectField,
   Text,
   Tooltip,
-  EditorButton
+  EditorButton,
+  FlexColumn,
+  Box
 } from "../ui_primitives";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -490,13 +491,11 @@ function SettingsPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <Box
+    <FlexColumn
       className={`settings-page${isMobile ? " settings-page--mobile" : ""}`}
       sx={{
         flex: 1,
         minHeight: 0,
-        display: "flex",
-        flexDirection: "column",
         backgroundColor: theme.vars.palette.background.default
       }}
     >
@@ -998,7 +997,7 @@ function SettingsPage() {
             </div>
           </div>
       </Box>
-    </Box>
+    </FlexColumn>
   );
 }
 

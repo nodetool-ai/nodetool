@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Box } from "@mui/material";
+import { Box } from "../ui_primitives";
 import { memo } from "react";
 
 interface ImageDimensionsProps {

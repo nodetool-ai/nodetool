@@ -1,11 +1,10 @@
 import React, { memo, useCallback, useMemo } from "react";
 import {
   ListItem,
-  LinearProgress,
-  Box
+  LinearProgress
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, Text, Caption, Tooltip, LoadingSpinner, EditorButton } from "../ui_primitives";
+import { DeleteButton, FlexRow, Text, Caption, Tooltip, LoadingSpinner, EditorButton } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -203,14 +202,13 @@ const CollectionItem = ({
       }
     >
       {dragOverCollection === collection.name && (
-        <Box
+        <FlexRow
           className="drop-zone-overlay"
+          align="center"
+          justify="center"
           sx={{
             position: "absolute",
             inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             backgroundColor: "transparent",
             pointerEvents: "none",
             zIndex: 1
@@ -231,7 +229,7 @@ const CollectionItem = ({
             <UploadFileIcon sx={{ fontSize: "1.5rem" }} />
             Drop files to upload
           </Text>
-        </Box>
+        </FlexRow>
       )}
       <div style={containerStyle}>
         <Tooltip title={`Collection: ${collection.name}`}>

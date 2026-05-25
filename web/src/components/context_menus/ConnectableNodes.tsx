@@ -5,7 +5,6 @@ import { shallow } from "zustand/shallow";
 import {
   Menu,
   MenuItem,
-  Box,
   TextField,
   InputAdornment
 } from "@mui/material";
@@ -19,7 +18,7 @@ import { rankSearchNodes } from "../../utils/nodeSearch";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeItem from "../node_menu/NodeItem";
-import { Text, ToolbarIconButton } from "../ui_primitives";
+import { Text, ToolbarIconButton, Box } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { useTheme } from "@mui/material/styles";

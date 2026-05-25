@@ -6,7 +6,6 @@
 
 import React, { memo } from "react";
 import {
-  Box,
   List,
   ListItem,
   ListItemIcon,
@@ -15,7 +14,7 @@ import {
   AccordionSummary,
   AccordionDetails
 } from "@mui/material";
-import { Caption, Chip, Divider, Surface, Text } from "../ui_primitives";
+import { Caption, Chip, Divider, FlexRow, Surface, Text, Box } from "../ui_primitives";
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
@@ -44,12 +43,11 @@ const renderPropertyChange = (change: PropertyChange) => {
   };
 
   return (
-    <Box
+    <FlexRow
       key={change.key}
+      gap={1}
+      align="flex-start"
       sx={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 1,
         py: 0.5,
         pl: 2
       }}
@@ -75,7 +73,7 @@ const renderPropertyChange = (change: PropertyChange) => {
           {formatValue(change.newValue)}
         </Caption>
       </Box>
-    </Box>
+    </FlexRow>
   );
 };
 
@@ -133,13 +131,10 @@ const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = memo(({
       expandIcon={<ExpandMoreIcon />}
       sx={{ minHeight: 48 }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          width: "100%"
-        }}
+      <FlexRow
+        gap={1}
+        align="center"
+        fullWidth
       >
         <EditIcon color="warning" fontSize="small" />
         <Text size="small">
@@ -151,7 +146,7 @@ const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = memo(({
           color="warning"
           sx={{ height: 20, fontSize: "0.65rem", ml: "auto", mr: 1 }}
         />
-      </Box>
+      </FlexRow>
     </AccordionSummary>
     <AccordionDetails sx={{ pt: 0 }}>
       {nodeChange.changes.map((change) =>

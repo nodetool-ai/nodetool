@@ -17,7 +17,7 @@ import React, {
   useEffect,
   useState
 } from "react";
-import { Box } from "@mui/material";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import {
   parseColorToRgba,
   rgbToHsv,
@@ -564,7 +564,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
   return (
     <>
       {trianglePreviewScreen ? (
-        <Box
+        <FlexColumn
           aria-hidden
           sx={{
             position: "fixed",
@@ -572,9 +572,6 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
             top: trianglePreviewScreen.top,
             width: PREVIEW_SWATCH_WIDTH,
             zIndex: (theme) => theme.zIndex.tooltip,
-            display: "flex",
-            flexDirection: "column",
-            gap: 0,
             pointerEvents: "none",
             boxSizing: "border-box",
             borderRadius: PREVIEW_BORDER_RADIUS,
@@ -603,14 +600,13 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
               boxSizing: "border-box"
             }}
           />
-        </Box>
+        </FlexColumn>
       ) : null}
-      <Box
+      <FlexRow
+        align="center"
+        justify="center"
+        fullWidth
         sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
           py: "4px",
           position: "relative"
         }}
@@ -630,7 +626,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
         />
-      </Box>
+      </FlexRow>
     </>
   );
 };

@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { FlexColumn, Box } from "../../ui_primitives";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
 import { NodeErrors } from "../NodeErrors";
@@ -87,12 +87,10 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }
 
   return (
-    <Box
+    <FlexColumn
       className="dynamic-kie-schema-node"
+      fullHeight
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
         minHeight: 100,
         padding: "0 !important",
         border: `1px solid ${KIE_HEADER_COLOR}40`,
@@ -139,14 +137,12 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         status={statusValue}
       />
-      <Box
+      <FlexColumn
         className="node-content-container"
+        fullWidth
         sx={{
           flex: "1 1 auto",
-          minHeight: 120,
-          width: "100%",
-          display: "flex",
-          flexDirection: "column"
+          minHeight: 120
         }}
       >
         <DynamicKieSchemaContent
@@ -162,8 +158,8 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           result={result}
           onShowInputs={() => {}}
         />
-      </Box>
-    </Box>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

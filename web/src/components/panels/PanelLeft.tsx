@@ -3,10 +3,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   useMediaQuery
 } from "@mui/material";
-import { ToolbarIconButton } from "../ui_primitives";
+import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
@@ -237,13 +236,12 @@ const PanelContent = memo(function PanelContent({
 
   if (activeView === "nodes") {
     return (
-      <Box
+      <FlexColumn
+        fullWidth
+        fullHeight
         sx={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden"
+          overflow: "hidden",
+          margin: isMobile ? "0" : "0 0.5em"
         }}
       >
         {!isMobile && <PanelHeadline title="Nodes" />}
@@ -251,26 +249,24 @@ const PanelContent = memo(function PanelContent({
           activeSubcategory={activeNodeCategory}
           onSubcategoryChange={setActiveNodeCategory}
         />
-      </Box>
+      </FlexColumn>
     );
   }
 
   return (
     <>
       {activeView === "history" && (
-        <Box
+        <FlexColumn
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
-            
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            margin: isMobile ? "0" : "0 0.5em",
+            overflow: "hidden"
           }}
         >
           {!isMobile && <PanelHeadline title="History" />}
           <HistoryTilesPanel />
-        </Box>
+        </FlexColumn>
       )}
       {activeView === "favorites" && (
         <Box
@@ -319,22 +315,20 @@ const PanelContent = memo(function PanelContent({
         </Box>
       )}
       {activeView === "workflows" && (
-        <Box
+        <FlexColumn
           className="workflow-grid-container"
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
-            
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            margin: isMobile ? "0" : "0 1em",
+            overflow: "hidden"
           }}
         >
           {!isMobile && <PanelHeadline title="Workflows" />}
           <ScrollArea fullHeight>
             <WorkflowList />
           </ScrollArea>
-        </Box>
+        </FlexColumn>
       )}
       {activeView === "settings" && currentWorkflow && (
         <Box
@@ -350,19 +344,17 @@ const PanelContent = memo(function PanelContent({
         </Box>
       )}
       {activeView === "agent" && (
-        <Box
+        <FlexColumn
           className="agent-panel-container"
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            overflow: "hidden"
           }}
         >
           {!isMobile && <PanelHeadline title="Agent" />}
           <AgentPanel />
-        </Box>
+        </FlexColumn>
       )}
     </>
   );
@@ -501,11 +493,9 @@ const MobilePanelLeft: React.FC<{
           </div>
         }
       >
-        <Box
+        <FlexColumn
           sx={{
             height: "65vh",
-            display: "flex",
-            flexDirection: "column",
             overflow: "hidden"
           }}
         >
@@ -519,7 +509,7 @@ const MobilePanelLeft: React.FC<{
               isMobile
             />
           </ContextMenuProvider>
-        </Box>
+        </FlexColumn>
       </MobileBottomSheet>
     </>
   );
