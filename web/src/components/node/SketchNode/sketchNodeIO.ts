@@ -1,4 +1,4 @@
-export interface SketchNodeImageRef {
+interface SketchNodeImageRef {
   type: "image";
   uri: string;
   asset_id: string | null;

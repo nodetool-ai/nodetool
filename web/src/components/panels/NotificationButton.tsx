@@ -3,13 +3,12 @@ import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Box,
   Popover
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton } from "../ui_primitives";
+import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
 const popoverStyles = css({

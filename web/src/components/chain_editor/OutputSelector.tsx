@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import { Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import { Box } from "../ui_primitives";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";

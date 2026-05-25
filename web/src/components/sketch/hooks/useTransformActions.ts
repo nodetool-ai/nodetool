@@ -78,15 +78,15 @@ function snapshotLayersForHistory(
     return undefined;
   }
   const out: Record<string, HTMLCanvasElement | null> = {};
-  let any = false;
+  let hasSnapshot = false;
   for (const id of layerIds) {
     const snap = canvas.snapshotLayerCanvas(id);
     out[id] = snap;
     if (snap) {
-      any = true;
+      hasSnapshot = true;
     }
   }
-  return any ? out : undefined;
+  return hasSnapshot ? out : undefined;
 }
 
 export function useTransformActions({

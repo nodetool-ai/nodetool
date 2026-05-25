@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useEffect, useState, useCallback } from "react";
-import { Box } from "@mui/material";
-import { Text, Caption, LoadingSpinner } from "../ui_primitives";
+import { Text, Caption, LoadingSpinner, Box } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Asset } from "../../stores/ApiTypes";

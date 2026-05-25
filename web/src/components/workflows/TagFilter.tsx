@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { Box } from "@mui/material";
-import { EditorButton, Popover, Tooltip } from "../ui_primitives";
+import { EditorButton, FlexRow, Popover, Tooltip, Box } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -130,10 +129,9 @@ const TagFilter = memo(({
         placement="bottom-left"
         maxWidth={360}
       >
-        <Box
+        <FlexRow
+          wrap
           sx={{
-            display: "flex",
-            flexWrap: "wrap",
             gap: "6px",
             padding: "12px"
           }}
@@ -150,7 +148,7 @@ const TagFilter = memo(({
               {tag} <span style={{ opacity: 0.6, marginLeft: 6 }}>{count}</span>
             </EditorButton>
           ))}
-        </Box>
+        </FlexRow>
       </Popover>
     </Box>
   );

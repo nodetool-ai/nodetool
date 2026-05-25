@@ -4,12 +4,11 @@ import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, useRef, memo } from "react";
 import {
-  Box,
   ListItemButton,
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Tooltip, EmptyState } from "../ui_primitives";
+import { FlexRow, Tooltip, EmptyState, Box } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -183,15 +182,14 @@ function ModelList<TModel extends ModelSelectorModel>({
               </ListItemIcon>
               <ListItemText
                 primary={
-                  <Box
+                  <FlexRow
+                    gap={0.75}
+                    align="center"
+                    justify="space-between"
+                    fullWidth
                     sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 0.75,
                       overflow: "hidden",
-                      minWidth: 0,
-                      width: "100%"
+                      minWidth: 0
                     }}
                   >
                     <span
@@ -294,7 +292,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                           </span>
                         </Tooltip>
                       )}
-                  </Box>
+                  </FlexRow>
                 }
                 secondary={
                   <span

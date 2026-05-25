@@ -149,7 +149,7 @@ const buildConstantNode = ({
   };
 };
 
-export const CONSTANT_NODES: QuickActionDefinition[] = [
+const CONSTANT_NODES: QuickActionDefinition[] = [
   buildConstantNode({
     key: "constant-bool",
     label: "Bool",

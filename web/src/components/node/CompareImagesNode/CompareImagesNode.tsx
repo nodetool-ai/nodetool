@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo, useMemo, useRef } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Box } from "@mui/material";
-import { Text } from "../../ui_primitives";
+import { Text, Box } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";

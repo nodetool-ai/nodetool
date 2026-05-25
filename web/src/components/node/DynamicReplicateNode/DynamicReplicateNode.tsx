@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { FlexColumn, Box } from "../../ui_primitives";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
 import { NodeErrors } from "../NodeErrors";
@@ -87,12 +87,10 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }
 
   return (
-    <Box
+    <FlexColumn
       className="dynamic-replicate-node"
+      fullHeight
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
         minHeight: 100,
         padding: "0 !important",
         border: `1px solid ${REPLICATE_HEADER_COLOR}40`,
@@ -125,8 +123,6 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultButton={false}
           showInputsButton={false}
-          onShowResults={() => {}}
-          onShowInputs={() => {}}
         />
         <Box sx={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)" }}>
           <ReplicateSchemaLoader nodeId={id} data={data} />
@@ -139,14 +135,12 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         status={statusValue}
       />
-      <Box
+      <FlexColumn
         className="node-content-container"
+        fullWidth
         sx={{
           flex: "1 1 auto",
-          minHeight: 120,
-          width: "100%",
-          display: "flex",
-          flexDirection: "column"
+          minHeight: 120
         }}
       >
         <DynamicReplicateContent
@@ -160,10 +154,9 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultOverlay={false}
           result={result}
-          onShowInputs={() => {}}
         />
-      </Box>
-    </Box>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

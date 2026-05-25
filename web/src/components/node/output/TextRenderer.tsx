@@ -4,7 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
-import { Box, Collapse } from "@mui/material";
+import { Collapse } from "@mui/material";
+import { Box } from "../../ui_primitives";
 import { ReasoningToggle } from "../../common/ReasoningToggle";
 
 type Props = {

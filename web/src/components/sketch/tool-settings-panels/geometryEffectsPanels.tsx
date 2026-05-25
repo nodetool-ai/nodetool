@@ -1,11 +1,10 @@
 import React, { memo, useState } from "react";
 import {
-  Box,
   Checkbox,
   FormControlLabel,
-  Slider,
-  Typography
+  Slider
 } from "@mui/material";
+import { Box, Text } from "../../ui_primitives";
 import {
   BlurSettings,
   CloneStampSampling,
@@ -82,7 +81,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
         ))}
       </SketchModeToggle>
       <Box className="setting-row">
-        <Typography className="setting-label">Stroke</Typography>
+        <Text className="setting-label">Stroke</Text>
         <input
           type="color"
           className="color-input"
@@ -98,7 +97,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
         />
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">Width</Typography>
+        <Text className="setting-label">Width</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -107,9 +106,9 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
           value={settings.strokeWidth}
           onChange={(_, v) => onChange({ strokeWidth: v as number })}
         />
-        <Typography className="setting-value">
+        <Text className="setting-value">
           {settings.strokeWidth}
-        </Typography>
+        </Text>
       </Box>
       {canFill && (
         <>
@@ -122,12 +121,12 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
               />
             }
             label={
-              <Typography sx={{ fontSize: SKETCH_FONT.section }}>Fill</Typography>
+              <Text sx={{ fontSize: SKETCH_FONT.section }}>Fill</Text>
             }
           />
           {settings.filled && (
             <Box className="setting-row">
-              <Typography className="setting-label">Fill</Typography>
+              <Text className="setting-label">Fill</Text>
               <input
                 type="color"
                 className="color-input"
@@ -155,7 +154,7 @@ export const FillSettingsPanel = memo(function FillSettingsPanel({
 }: FillSettingsPanelProps) {
   return (
     <Box className="setting-row">
-      <Typography className="setting-label">Tolerance</Typography>
+      <Text className="setting-label">Tolerance</Text>
       <Slider
         sx={sketchSliderSx}
         size="small"
@@ -164,7 +163,7 @@ export const FillSettingsPanel = memo(function FillSettingsPanel({
         value={settings.tolerance}
         onChange={(_, v) => onChange({ tolerance: v as number })}
       />
-      <Typography className="setting-value">{settings.tolerance}</Typography>
+      <Text className="setting-value">{settings.tolerance}</Text>
     </Box>
   );
 });
@@ -176,7 +175,7 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
   return (
     <>
       <Box className="setting-row">
-        <Typography className="setting-label">Size</Typography>
+        <Text className="setting-label">Size</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -185,10 +184,10 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
           value={settings.size}
           onChange={(_, v) => onChange({ size: v as number })}
         />
-        <Typography className="setting-value">{settings.size}</Typography>
+        <Text className="setting-value">{settings.size}</Text>
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">Strength</Typography>
+        <Text className="setting-label">Strength</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -197,7 +196,7 @@ export const BlurSettingsPanel = memo(function BlurSettingsPanel({
           value={settings.strength}
           onChange={(_, v) => onChange({ strength: v as number })}
         />
-        <Typography className="setting-value">{settings.strength}</Typography>
+        <Text className="setting-value">{settings.strength}</Text>
       </Box>
     </>
   );
@@ -215,7 +214,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
   return (
     <>
       <Box className="setting-row">
-        <Typography className="setting-label">Start</Typography>
+        <Text className="setting-label">Start</Text>
         <Box
           sx={{ ...colorSwatchSx }}
           onClick={(e) => {
@@ -233,7 +232,7 @@ export const GradientSettingsPanel = memo(function GradientSettingsPanel({
         </Box>
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">End</Typography>
+        <Text className="setting-label">End</Text>
         <Box
           sx={{ ...colorSwatchSx }}
           onClick={(e) => {
@@ -287,7 +286,7 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
   return (
     <>
       <Box className="setting-row">
-        <Typography className="setting-label">Size</Typography>
+        <Text className="setting-label">Size</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -296,10 +295,10 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
           value={settings.size}
           onChange={(_, v) => onChange({ size: v as number })}
         />
-        <Typography className="setting-value">{settings.size}</Typography>
+        <Text className="setting-value">{settings.size}</Text>
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">Opacity</Typography>
+        <Text className="setting-label">Opacity</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -309,12 +308,12 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
           value={settings.opacity}
           onChange={(_, v) => onChange({ opacity: v as number })}
         />
-        <Typography className="setting-value">
+        <Text className="setting-value">
           {Math.round(settings.opacity * 100)}%
-        </Typography>
+        </Text>
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">Hardness</Typography>
+        <Text className="setting-label">Hardness</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -324,9 +323,9 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
           value={settings.hardness}
           onChange={(_, v) => onChange({ hardness: v as number })}
         />
-        <Typography className="setting-value">
+        <Text className="setting-value">
           {Math.round(settings.hardness * 100)}%
-        </Typography>
+        </Text>
       </Box>
       <SketchModeToggle
         value={settings.sampling}
@@ -339,9 +338,9 @@ export const CloneStampSettingsPanel = memo(function CloneStampSettingsPanel({
         <SketchModeOption value="active_layer">Active Layer</SketchModeOption>
         <SketchModeOption value="composited">All Layers</SketchModeOption>
       </SketchModeToggle>
-      <Typography sx={{ ...sketchHintTextSx, mt: 1 }}>
+      <Text sx={{ ...sketchHintTextSx, mt: 1 }}>
         Alt+click to set source point
-      </Typography>
+      </Text>
     </>
   );
 });

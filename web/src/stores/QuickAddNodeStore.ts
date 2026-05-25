@@ -19,7 +19,7 @@ import { create } from "zustand";
 import { NodeMetadata } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
 
-export interface QuickAddNodeState {
+interface QuickAddNodeState {
   /** Whether the Quick Add Node dialog is currently open */
   isOpen: boolean;
   /** Current search term in the dialog */

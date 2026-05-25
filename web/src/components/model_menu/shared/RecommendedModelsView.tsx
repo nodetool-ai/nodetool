@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo } from "react";
-import { Box, List } from "@mui/material";
-import { Caption, Text } from "../../ui_primitives";
+import { List } from "@mui/material";
+import { Caption, FlexColumn, Text, Box } from "../../ui_primitives";
 import ModelListItem from "../../hugging_face/model_list/ModelListItem";
 import ModelPackCard from "../../hugging_face/ModelPackCard";
 import type { ModelPack, UnifiedModel } from "../../../stores/ApiTypes";
@@ -85,13 +85,9 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
   }, [cacheStatuses, filteredModels]);
 
   return (
-    <Box
-      sx={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: 0
-      }}
+    <FlexColumn
+      fullHeight
+      sx={{ minHeight: 0 }}
     >
       <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.5 }}>
         {modelPacks.length > 0 && (
@@ -168,7 +164,7 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
           </Text>
         )}
       </Box>
-    </Box>
+    </FlexColumn>
   );
 };
 

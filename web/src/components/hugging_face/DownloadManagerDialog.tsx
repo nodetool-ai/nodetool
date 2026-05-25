@@ -2,13 +2,12 @@
 import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import {
-  Box,
   DialogTitle,
   DialogContent,
   DialogActions
 } from "@mui/material";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
-import { Dialog, CloseButton, Text, FlexColumn, Divider, EditorButton } from "../ui_primitives";
+import { Dialog, CloseButton, Text, FlexColumn, Divider, EditorButton, Box } from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";

@@ -12,7 +12,8 @@ jest.mock("../../../ui_primitives", () => ({
   LoadingSpinner: () => <span data-testid="loading-spinner" />,
   ToolbarIconButton: ({ children, onClick, disabled, ...props }: any) => (
     <button onClick={onClick} disabled={disabled} {...props}>{children}</button>
-  )
+  ),
+  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>
 }));
 
 jest.mock("../../../../contexts/NodeContext", () => ({

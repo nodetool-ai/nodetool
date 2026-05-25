@@ -6,13 +6,9 @@ import {
   Asset as ProtocolAsset,
   AssetList,
   AssetRef,
-  AssetUpdateRequest,
   ASRModel,
   AudioRef,
   CalendarEvent,
-  ChartConfig,
-  ChartData,
-  ChartSeries,
   Chunk,
   CollectionCreate,
   CollectionList,
@@ -40,17 +36,12 @@ import {
   LanguageModel,
   LlamaModel,
   LogUpdate,
-  MediaGenerationMode,
-  MediaGenerationRequest,
   Message,
   MessageAudioContent,
   MessageCreateRequest,
   MessageDocumentContent,
   MessageImageContent,
-  MessageImageUrlContent,
-  MessageList,
   MessageTextContent,
-  MessageThoughtContent,
   MessageVideoContent,
   Model3DRef,
   ModelPack,
@@ -71,10 +62,7 @@ import {
   Provider,
   ProviderInfo,
   RepoPath,
-  ResourceChangeMessage,
-  ResourceLimits,
   RunJobRequest,
-  RunStateInfo,
   SecretResponse,
   SettingWithValue,
   SettingsResponse,
@@ -109,11 +97,7 @@ import {
   WorkflowVersion,
   WorkflowVersionList,
   WorkflowVersionSaveType,
-  WorkspaceCreateRequest,
-  WorkspaceFileInfo,
-  WorkspaceListResponse,
-  WorkspaceResponse,
-  WorkspaceUpdateRequest
+  WorkspaceResponse
 } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
@@ -122,13 +106,9 @@ import {
 
 export type { AssetList };
 export type { AssetRef };
-export type { AssetUpdateRequest };
 export type { ASRModel };
 export type { AudioRef };
 export type { CalendarEvent };
-export type { ChartConfig };
-export type { ChartData };
-export type { ChartSeries };
 export type { CollectionCreate };
 export type { CollectionList };
 export type { CollectionResponse };
@@ -156,17 +136,12 @@ export type { JobUpdate };
 export type { LanguageModel };
 export type { LlamaModel };
 export type { LogUpdate };
-export type { MediaGenerationMode };
-export type { MediaGenerationRequest };
 export type { Message };
 export type { MessageAudioContent };
 export type { MessageCreateRequest };
 export type { MessageDocumentContent };
 export type { MessageImageContent };
-export type { MessageImageUrlContent };
-export type { MessageList };
 export type { MessageTextContent };
-export type { MessageThoughtContent };
 export type { MessageVideoContent };
 export type { Model3DRef };
 export type { ModelPack };
@@ -186,10 +161,7 @@ export type { Provider };
 export type { ProviderCost };
 export type { ProviderInfo };
 export type { RepoPath };
-export type { ResourceChangeMessage };
-export type { ResourceLimits };
 export type { RunJobRequest };
-export type { RunStateInfo };
 export type { SecretResponse };
 export type { SettingWithValue };
 export type { SettingsResponse };
@@ -223,11 +195,7 @@ export type { WorkflowToolList };
 export type { WorkflowVersion };
 export type { WorkflowVersionList };
 export type { WorkflowVersionSaveType };
-export type { WorkspaceCreateRequest };
-export type { WorkspaceFileInfo };
-export type { WorkspaceListResponse };
 export type { WorkspaceResponse };
-export type { WorkspaceUpdateRequest };
 
 // ---------------------------------------------------------------------------
 // Aliases for backward compatibility

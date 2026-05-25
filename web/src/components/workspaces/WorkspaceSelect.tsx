@@ -4,12 +4,9 @@ import React, { memo, useCallback } from "react";
 import {
   FormControl,
   Select,
-  MenuItem,
-  CircularProgress,
-  Box,
-  Divider
+  MenuItem
 } from "@mui/material";
-import { Text, Caption, FlexRow } from "../ui_primitives";
+import { Text, Caption, FlexRow, Box, Divider, LoadingSpinner } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
@@ -157,7 +154,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     if (isLoading) {
       return (
         <FlexRow css={styles(theme)} gap={1} align="center" sx={{ py: 1 }}>
-          <CircularProgress size={18} />
+          <LoadingSpinner size="small" />
           <Text size="small" color="secondary">
             Loading...
           </Text>

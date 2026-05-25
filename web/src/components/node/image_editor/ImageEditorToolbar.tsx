@@ -4,13 +4,10 @@ import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  IconButton,
   Slider,
-  Checkbox,
-  FormControlLabel,
-  Typography
+  FormControlLabel
 } from "@mui/material";
-import { Tooltip, Text, Caption } from "../../ui_primitives";
+import { Tooltip, Text, Caption, ToolbarIconButton, Checkbox } from "../../ui_primitives";
 
 // Icons
 import PanToolIcon from "@mui/icons-material/PanTool";
@@ -329,142 +326,142 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         <div className="toolbar-section">
           <Text className="section-title">Tools</Text>
           <div className="tools-grid">
-            <Tooltip title="Select / Pan (V)" placement="top">
-              <IconButton
+            <ToolbarIconButton
+                tooltip="Select / Pan (V)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "select" ? "active" : ""}`}
                 onClick={handleSelectTool("select")}
                 size="small"
                 aria-label="Select or Pan tool"
               >
                 <PanToolIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Crop (C)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Crop (C)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "crop" ? "active" : ""}`}
                 onClick={handleSelectTool("crop")}
                 size="small"
                 aria-label="Crop tool"
               >
                 <CropIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Draw / Paint (B)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Draw / Paint (B)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "draw" ? "active" : ""}`}
                 onClick={handleSelectTool("draw")}
                 size="small"
                 aria-label="Draw or Paint tool"
               >
                 <BrushIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Erase (E)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Erase (E)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "erase" ? "active" : ""}`}
                 onClick={handleSelectTool("erase")}
                 size="small"
                 aria-label="Erase tool"
               >
                 <AutoFixHighIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Fill (G)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Fill (G)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "fill" ? "active" : ""}`}
                 onClick={handleSelectTool("fill")}
                 size="small"
                 aria-label="Fill tool"
               >
                 <FormatColorFillIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Text (T)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Text (T)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "text" ? "active" : ""}`}
                 onClick={handleSelectTool("text")}
                 size="small"
                 aria-label="Text tool"
               >
                 <TextFieldsIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Rectangle (R)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Rectangle (R)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "rectangle" ? "active" : ""}`}
                 onClick={handleSelectTool("rectangle")}
                 size="small"
                 aria-label="Rectangle tool"
               >
                 <RectangleOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Ellipse (O)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Ellipse (O)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "ellipse" ? "active" : ""}`}
                 onClick={handleSelectTool("ellipse")}
                 size="small"
                 aria-label="Ellipse tool"
               >
                 <CircleOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Line (L)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Line (L)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "line" ? "active" : ""}`}
                 onClick={handleSelectTool("line")}
                 size="small"
                 aria-label="Line tool"
               >
                 <RemoveIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Arrow (A)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Arrow (A)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "arrow" ? "active" : ""}`}
                 onClick={handleSelectTool("arrow")}
                 size="small"
                 aria-label="Arrow tool"
               >
                 <ArrowRightAltIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Rectangle Select (M)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Rectangle Select (M)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "marquee-rect" ? "active" : ""}`}
                 onClick={handleSelectTool("marquee-rect")}
                 size="small"
               >
                 <HighlightAltIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Ellipse Select" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Ellipse Select"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "marquee-ellipse" ? "active" : ""}`}
                 onClick={handleSelectTool("marquee-ellipse")}
                 size="small"
               >
                 <SelectAllIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Lasso Select" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Lasso Select"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "lasso" ? "active" : ""}`}
                 onClick={handleSelectTool("lasso")}
                 size="small"
               >
                 <GestureIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Magic Wand (W)" placement="top">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Magic Wand (W)"
+                tooltipPlacement="top"
                 className={`tool-button ${tool === "magic-wand" ? "active" : ""}`}
                 onClick={handleSelectTool("magic-wand")}
                 size="small"
               >
                 <AutoFixNormalIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+              </ToolbarIconButton>
           </div>
         </div>
 
@@ -495,7 +492,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         {/* Selection Settings (shown when a selection tool is active) */}
         {(tool === "marquee-rect" || tool === "marquee-ellipse" || tool === "lasso" || tool === "magic-wand") && (
           <div className="toolbar-section">
-            <Typography className="section-title">Selection Settings</Typography>
+            <Text className="section-title">Selection Settings</Text>
 
             <div className="slider-container">
               <div className="slider-label">
@@ -504,16 +501,16 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               <div className="actions-row">
                 {(["replace", "add", "subtract", "intersect"] as SelectionMode[]).map((m) => (
                   <Tooltip key={m} title={m.charAt(0).toUpperCase() + m.slice(1)}>
-                    <IconButton
+                    <ToolbarIconButton
                       className={`action-button ${selectionSettings.mode === m ? "active" : ""}`}
                       onClick={() => onSelectionSettingsChange?.({ mode: m })}
                       size="small"
                       sx={selectionSettings.mode === m ? { bgcolor: "primary.main", color: "primary.contrastText" } : {}}
                     >
-                      <Typography variant="caption" sx={{ fontSize: "10px", fontWeight: 600 }}>
+                      <Caption sx={{ fontSize: "10px", fontWeight: 600 }}>
                         {m === "replace" ? "R" : m === "add" ? "+" : m === "subtract" ? "−" : "∩"}
-                      </Typography>
-                    </IconButton>
+                      </Caption>
+                    </ToolbarIconButton>
                   </Tooltip>
                 ))}
               </div>
@@ -570,37 +567,36 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </div>
 
             <div className="actions-row" style={{ marginTop: "8px" }}>
-              <Tooltip title="Select All (Ctrl+A)">
-                <IconButton
+              <ToolbarIconButton
+                  tooltip="Select All (Ctrl+A)"
                   className="action-button"
                   onClick={() => onAction("select-all")}
                   size="small"
                 >
                   <SelectAllIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+                </ToolbarIconButton>
               <Tooltip title="Deselect (Ctrl+D)">
                 <span>
-                  <IconButton
+                  <ToolbarIconButton
                     className="action-button"
                     onClick={() => onAction("deselect")}
                     disabled={!hasSelection}
                     size="small"
                   >
                     <DeselectIcon fontSize="small" />
-                  </IconButton>
+                  </ToolbarIconButton>
                 </span>
               </Tooltip>
               <Tooltip title="Invert Selection (Ctrl+Shift+I)">
                 <span>
-                  <IconButton
+                  <ToolbarIconButton
                     className="action-button"
                     onClick={() => onAction("invert-selection")}
                     disabled={!hasSelection}
                     size="small"
                   >
                     <InvertColorsIcon fontSize="small" />
-                  </IconButton>
+                  </ToolbarIconButton>
                 </span>
               </Tooltip>
             </div>
@@ -837,46 +833,42 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         <div className="toolbar-section">
           <Text className="section-title">Transform</Text>
           <div className="actions-row">
-            <Tooltip title="Rotate 90° CCW">
-              <IconButton
+            <ToolbarIconButton
+                tooltip="Rotate 90° CCW"
                 className="action-button"
                 onClick={handleRotateCCW}
                 size="small"
                 aria-label="Rotate 90 degrees counter-clockwise"
               >
                 <Rotate90DegreesCcwIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Rotate 90° CW">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Rotate 90° CW"
                 className="action-button"
                 onClick={handleRotateCW}
                 size="small"
                 aria-label="Rotate 90 degrees clockwise"
               >
                 <Rotate90DegreesCwIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Flip Horizontal">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Flip Horizontal"
                 className="action-button"
                 onClick={handleFlipH}
                 size="small"
                 aria-label="Flip image horizontally"
               >
                 <FlipIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Flip Vertical">
-              <IconButton
+              </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Flip Vertical"
                 className="action-button"
                 onClick={handleFlipV}
                 size="small"
                 aria-label="Flip image vertically"
               >
                 <FlipIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+              </ToolbarIconButton>
           </div>
         </div>
 
@@ -937,33 +929,32 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         <div className="toolbar-section">
           <Text className="section-title">View</Text>
           <div className="zoom-controls">
-            <IconButton
+            <ToolbarIconButton
               className="action-button"
               onClick={handleZoomOut}
               size="small"
               aria-label="Zoom out"
             >
               <ZoomOutIcon fontSize="small" />
-            </IconButton>
+            </ToolbarIconButton>
             <span className="zoom-value">{Math.round(zoom * 100)}%</span>
-            <IconButton
+            <ToolbarIconButton
               className="action-button"
               onClick={handleZoomIn}
               size="small"
               aria-label="Zoom in"
             >
               <ZoomInIcon fontSize="small" />
-            </IconButton>
-            <Tooltip title="Reset Zoom">
-              <IconButton
+            </ToolbarIconButton>
+            <ToolbarIconButton
+                tooltip="Reset Zoom"
                 className="action-button"
                 onClick={handleZoomReset}
                 size="small"
                 aria-label="Reset zoom to 100%"
               >
                 <RestartAltIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+              </ToolbarIconButton>
           </div>
         </div>
 
@@ -973,7 +964,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
           <div className="actions-row">
             <Tooltip title="Undo (Ctrl+Z)">
               <span>
-                <IconButton
+                <ToolbarIconButton
                   className="action-button"
                   onClick={onUndo}
                   disabled={!canUndo}
@@ -981,12 +972,12 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                   aria-label="Undo last action"
                 >
                   <UndoIcon fontSize="small" />
-                </IconButton>
+                </ToolbarIconButton>
               </span>
             </Tooltip>
             <Tooltip title="Redo (Ctrl+Y)">
               <span>
-                <IconButton
+                <ToolbarIconButton
                   className="action-button"
                   onClick={onRedo}
                   disabled={!canRedo}
@@ -994,19 +985,18 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                   aria-label="Redo last action"
                 >
                   <RedoIcon fontSize="small" />
-                </IconButton>
+                </ToolbarIconButton>
               </span>
             </Tooltip>
-            <Tooltip title="Reset to Original">
-              <IconButton
+            <ToolbarIconButton
+                tooltip="Reset to Original"
                 className="action-button"
                 onClick={handleReset}
                 size="small"
                 aria-label="Reset image to original"
               >
                 <RestartAltIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+              </ToolbarIconButton>
           </div>
         </div>
       </div>

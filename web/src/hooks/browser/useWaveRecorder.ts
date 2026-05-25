@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import WaveSurfer from "wavesurfer.js";
-import Record from "wavesurfer.js/dist/plugins/record";
+import RecordPlugin from "wavesurfer.js/dist/plugins/record";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { Asset } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
@@ -20,7 +20,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   const workflow = useNodes((state) => state.workflow);
   const micRef = useRef<HTMLDivElement | null>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
-  const recordRef = useRef<any | null>(null);
+  const recordRef = useRef<RecordPlugin | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -171,7 +171,7 @@ export function useWaveRecorder({ onChange }: WaveRecorderProps) {
   useEffect(() => {
     if (micRef.current && waveSurferRef.current === null) {
       const mimeType = `audio/${defaultFileType}`;
-      const recordPlugin = Record.create({ mimeType });
+      const recordPlugin = RecordPlugin.create({ mimeType });
       recordRef.current = recordPlugin;
 
       waveSurferRef.current = WaveSurfer.create({

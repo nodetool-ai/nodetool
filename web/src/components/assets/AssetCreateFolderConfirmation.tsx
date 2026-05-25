@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import {
-  TextField
-} from "@mui/material";
-import { Text, FlexRow, AlertBanner, Surface } from "../ui_primitives";
+import { Text, FlexRow, AlertBanner, Surface, TextInput } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -251,7 +248,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
               {showAlert}
             </AlertBanner>
           )}
-          <TextField
+          <TextInput
             className="asset-create-folder-input"
             inputRef={inputRef}
             value={folderName}

@@ -1,5 +1,5 @@
-import { Box, List, ListItem } from "@mui/material";
-import { Text, FlexColumn, Divider } from "../ui_primitives";
+import { List, ListItem } from "@mui/material";
+import { Text, FlexColumn, Divider, Box } from "../ui_primitives";
 
 const EmptyCollectionState = () => {
   return (
