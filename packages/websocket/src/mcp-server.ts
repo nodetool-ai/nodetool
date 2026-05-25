@@ -15,6 +15,11 @@ import {
 } from "@modelcontextprotocol/ext-apps/server";
 import { z } from "zod";
 import { getListAssetsAppHtml } from "./mcp-apps/list-assets-app.js";
+import { getListWorkflowsAppHtml } from "./mcp-apps/list-workflows-app.js";
+import { getGetWorkflowAppHtml } from "./mcp-apps/get-workflow-app.js";
+import { getListJobsAppHtml } from "./mcp-apps/list-jobs-app.js";
+import { getNodesAppHtml } from "./mcp-apps/nodes-app.js";
+import { getCollectionsAppHtml } from "./mcp-apps/collections-app.js";
 import { createLogger } from "@nodetool-ai/config";
 import { Workflow, Job, Asset } from "@nodetool-ai/models";
 import {
@@ -296,87 +301,8 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
 
   // ── Workflow tools ──────────────────────────────────────────────
 
-  server.tool(
-    "list_workflows",
-    "List workflows with flexible filtering.",
-    {
-      limit: z
-        .number()
-        .optional()
-        .default(100)
-        .describe("Maximum number of workflows to return"),
-      user_id: z.string().optional().default("1").describe("User ID")
-    },
-    async ({ limit, user_id }) => {
-      try {
-        const [workflows, next] = await Workflow.paginate(user_id, { limit });
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({
-                workflows: workflows.map((workflow) => toWorkflowResponse(workflow)),
-                next: next || null
-              })
-            }
-          ]
-        };
-      } catch (err: unknown) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: String(err) })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
-  );
-
-  server.tool(
-    "get_workflow",
-    "Get detailed information about a specific workflow.",
-    {
-      workflow_id: z.string().describe("The workflow ID"),
-      user_id: z.string().optional().default("1").describe("User ID")
-    },
-    async ({ workflow_id, user_id }) => {
-      try {
-        const workflow = await Workflow.find(user_id, workflow_id);
-        if (!workflow) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: JSON.stringify({ error: "Workflow not found" })
-              }
-            ],
-            isError: true
-          };
-        }
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify(toWorkflowResponse(workflow))
-            }
-          ]
-        };
-      } catch (err: unknown) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: String(err) })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
-  );
+  registerListWorkflowsApp(server);
+  registerGetWorkflowApp(server);
 
   server.tool(
     "run_workflow",
@@ -586,98 +512,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
 
   // ── Node tools ──────────────────────────────────────────────────
 
-  server.tool(
-    "list_nodes",
-    "List available nodes from installed packages.",
-    {
-      namespace: z.string().optional().describe("Filter by namespace prefix"),
-      limit: z
-        .number()
-        .optional()
-        .default(200)
-        .describe("Maximum number of nodes to return")
-    },
-    async ({ namespace, limit }) => {
-      try {
-        let nodes = await getUnifiedNodeMetadata(options);
-        if (namespace) {
-          nodes = nodes.filter((n) => n.namespace.startsWith(namespace));
-        }
-        nodes.sort((a, b) => a.node_type.localeCompare(b.node_type));
-        const result = nodes.slice(0, limit).map((n) => ({
-          node_type: n.node_type,
-          title: n.title,
-          description: n.description,
-          namespace: n.namespace
-        }));
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(result) }]
-        };
-      } catch (err: unknown) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: String(err) })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
-  );
-
-  server.tool(
-    "search_nodes",
-    "Search for nodes by name, description, or tags. Provider-specific nodes (openai.*, anthropic.*, etc.) are hidden by default; set include_provider_nodes:true to include them.",
-    {
-      query: z.array(z.string()).describe("Search keywords"),
-      n_results: z.number().optional().default(10).describe("Maximum results"),
-      namespace: z
-        .string()
-        .optional()
-        .describe(
-          "Optional namespace prefix to scope the search (e.g. 'nodetool.control')."
-        ),
-      include_provider_nodes: z
-        .boolean()
-        .optional()
-        .default(false)
-        .describe(
-          "Include provider-specific nodes. Default false — set true only when the user named a provider."
-        )
-    },
-    async ({ query, n_results, namespace, include_provider_nodes }) => {
-      try {
-        const nodes = await getUnifiedNodeMetadata(options);
-        const ranked = rankNodeMetadata(nodes, query, {
-          includeProviderNodes: include_provider_nodes,
-          namespacePrefix: namespace
-        });
-        const matches = ranked.slice(0, n_results).map(({ meta, score }) => ({
-          node_type: meta.node_type,
-          title: meta.title,
-          description: meta.description,
-          namespace: meta.namespace,
-          score
-        }));
-
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(matches) }]
-        };
-      } catch (err: unknown) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: String(err) })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
-  );
+  registerNodesApp(server, options);
 
   server.tool(
     "get_node_info",
@@ -719,50 +554,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
 
   // ── Job tools ───────────────────────────────────────────────────
 
-  server.tool(
-    "list_jobs",
-    "List jobs for user, optionally filtered by workflow.",
-    {
-      workflow_id: z.string().optional().describe("Filter by workflow ID"),
-      limit: z
-        .number()
-        .optional()
-        .default(100)
-        .describe("Maximum number of jobs to return"),
-      user_id: z.string().optional().default("1").describe("User ID")
-    },
-    async ({ workflow_id, limit, user_id }) => {
-      try {
-        const opts: {
-          limit: number;
-          workflowId?: string;
-        } = { limit };
-        if (workflow_id) opts.workflowId = workflow_id;
-        const [jobs, nextStartKey] = await Job.paginate(user_id, opts);
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({
-                jobs: jobs.map((job) => toJobResponse(job)),
-                next_start_key: nextStartKey || null
-              })
-            }
-          ]
-        };
-      } catch (err: unknown) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: String(err) })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
-  );
+  registerListJobsApp(server);
 
   server.tool(
     "get_job",
@@ -809,63 +601,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
 
   // ── Collection tools (sqlite-vec) ───────────────────────────────
 
-  server.tool(
-    "list_collections",
-    "List all vector database collections.",
-    {
-      limit: z
-        .number()
-        .optional()
-        .default(50)
-        .describe("Maximum collections to return")
-    },
-    async ({ limit }) => {
-      try {
-        const { getDefaultVectorProvider } = await import(
-          "@nodetool-ai/vectorstore"
-        );
-        const provider = getDefaultVectorProvider();
-        const collections = await provider.listCollections();
-        const result = await Promise.all(
-          collections.slice(0, limit).map(async (info) => {
-            const collection = await provider.getCollection({ name: info.name });
-            const count = await collection.count();
-            const metadata = info.metadata ?? {};
-            let workflowName: string | null = null;
-            const workflowId = metadata.workflow as string | undefined;
-            if (workflowId) {
-              const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-              if (workflow) workflowName = workflow.name;
-            }
-            return {
-              name: info.name,
-              count,
-              metadata,
-              workflow_name: workflowName
-            };
-          })
-        );
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ collections: result, count: result.length })
-            }
-          ]
-        };
-      } catch {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: "Vector store not available" })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
-  );
+  registerCollectionsApp(server);
 
   server.tool(
     "get_collection",
@@ -957,15 +693,49 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
   return server;
 }
 
-const LIST_ASSETS_UI_URI = "ui://nodetool/list-assets.html";
+// ── MCP App registrations ─────────────────────────────────────────
+//
+// Each `register*App` helper attaches an HTML view (the MCP App
+// extension) to a tool. Hosts that speak the extension render the
+// view; hosts that don't still receive the original JSON payload.
 
-/**
- * Register the `list_assets` tool with an MCP App UI attached.
- *
- * Hosts that speak the MCP Apps extension render the gallery view from
- * `LIST_ASSETS_UI_URI`. Hosts that don't still receive the same JSON
- * payload in the tool result and can display it as text.
- */
+const UI_URI = {
+  listAssets: "ui://nodetool/list-assets.html",
+  listWorkflows: "ui://nodetool/list-workflows.html",
+  getWorkflow: "ui://nodetool/get-workflow.html",
+  listJobs: "ui://nodetool/list-jobs.html",
+  nodes: "ui://nodetool/nodes.html",
+  collections: "ui://nodetool/collections.html"
+} as const;
+
+function appResource(
+  server: McpServer,
+  name: string,
+  uri: string,
+  description: string,
+  loadHtml: () => Promise<string>
+): void {
+  registerAppResource(server, name, uri, { description }, async () => ({
+    contents: [
+      { uri, mimeType: RESOURCE_MIME_TYPE, text: await loadHtml() }
+    ]
+  }));
+}
+
+function jsonResult(payload: unknown, isError = false) {
+  return {
+    content: [
+      { type: "text" as const, text: JSON.stringify(payload) }
+    ],
+    ...(isError ? { isError: true as const } : {}),
+    ...(isError ? {} : { structuredContent: payload as Record<string, unknown> })
+  };
+}
+
+function errResult(err: unknown) {
+  return jsonResult({ error: String(err instanceof Error ? err.message : err) }, true);
+}
+
 function registerListAssetsApp(server: McpServer): void {
   registerAppTool(
     server,
@@ -976,66 +746,269 @@ function registerListAssetsApp(server: McpServer): void {
       inputSchema: {
         parent_id: z.string().optional().describe("Filter by parent asset ID"),
         content_type: z.string().optional().describe("Filter by content type"),
-        limit: z
-          .number()
-          .optional()
-          .default(100)
-          .describe("Maximum number of assets to return"),
+        limit: z.number().optional().default(100).describe("Maximum number of assets to return"),
         user_id: z.string().optional().default("1").describe("User ID")
       },
-      _meta: { ui: { resourceUri: LIST_ASSETS_UI_URI } }
+      _meta: { ui: { resourceUri: UI_URI.listAssets } }
     },
     async ({ parent_id, content_type, limit, user_id }) => {
       try {
-        const opts: {
-          limit: number;
-          parentId?: string;
-          contentType?: string;
-        } = { limit };
+        const opts: { limit: number; parentId?: string; contentType?: string } = { limit };
         if (parent_id) opts.parentId = parent_id;
         if (content_type) opts.contentType = content_type;
         const [assets, next] = await Asset.paginate(user_id, opts);
-        const payload = {
+        return jsonResult({
           assets: await Promise.all(assets.map(toAssetResponse)),
           next: next || null
-        };
+        });
+      } catch (err: unknown) {
+        return errResult(err);
+      }
+    }
+  );
+  appResource(
+    server,
+    "NodeTool Asset Gallery",
+    UI_URI.listAssets,
+    "Interactive media gallery for NodeTool assets — images, video, audio and folders.",
+    getListAssetsAppHtml
+  );
+}
+
+function registerListWorkflowsApp(server: McpServer): void {
+  registerAppTool(
+    server,
+    "list_workflows",
+    {
+      description:
+        "List workflows with flexible filtering. Renders an inline gallery of workflow cards with thumbnails and a Run button in App-aware hosts.",
+      inputSchema: {
+        limit: z.number().optional().default(100).describe("Maximum workflows to return"),
+        user_id: z.string().optional().default("1").describe("User ID")
+      },
+      _meta: { ui: { resourceUri: UI_URI.listWorkflows } }
+    },
+    async ({ limit, user_id }) => {
+      try {
+        const [workflows, next] = await Workflow.paginate(user_id, { limit });
+        return jsonResult({
+          workflows: workflows.map((w) => toWorkflowResponse(w)),
+          next: next || null
+        });
+      } catch (err: unknown) {
+        return errResult(err);
+      }
+    }
+  );
+  appResource(
+    server,
+    "NodeTool Workflow Gallery",
+    UI_URI.listWorkflows,
+    "Visual gallery of NodeTool workflows.",
+    getListWorkflowsAppHtml
+  );
+}
+
+function registerGetWorkflowApp(server: McpServer): void {
+  registerAppTool(
+    server,
+    "get_workflow",
+    {
+      description:
+        "Get detailed information about a specific workflow. Renders an interactive pan/zoom graph view in App-aware hosts.",
+      inputSchema: {
+        workflow_id: z.string().describe("The workflow ID"),
+        user_id: z.string().optional().default("1").describe("User ID")
+      },
+      _meta: { ui: { resourceUri: UI_URI.getWorkflow } }
+    },
+    async ({ workflow_id, user_id }) => {
+      try {
+        const workflow = await Workflow.find(user_id, workflow_id);
+        if (!workflow) return errResult("Workflow not found");
+        return jsonResult(toWorkflowResponse(workflow));
+      } catch (err: unknown) {
+        return errResult(err);
+      }
+    }
+  );
+  appResource(
+    server,
+    "NodeTool Workflow Graph Viewer",
+    UI_URI.getWorkflow,
+    "Interactive pan/zoom graph view of a NodeTool workflow.",
+    getGetWorkflowAppHtml
+  );
+}
+
+function registerListJobsApp(server: McpServer): void {
+  registerAppTool(
+    server,
+    "list_jobs",
+    {
+      description:
+        "List jobs for user, optionally filtered by workflow. Renders an inline jobs dashboard with status pills and durations in App-aware hosts.",
+      inputSchema: {
+        workflow_id: z.string().optional().describe("Filter by workflow ID"),
+        limit: z.number().optional().default(100).describe("Maximum jobs to return"),
+        user_id: z.string().optional().default("1").describe("User ID")
+      },
+      _meta: { ui: { resourceUri: UI_URI.listJobs } }
+    },
+    async ({ workflow_id, limit, user_id }) => {
+      try {
+        const opts: { limit: number; workflowId?: string } = { limit };
+        if (workflow_id) opts.workflowId = workflow_id;
+        const [jobs, nextStartKey] = await Job.paginate(user_id, opts);
+        return jsonResult({
+          jobs: jobs.map((job) => toJobResponse(job)),
+          next_start_key: nextStartKey || null
+        });
+      } catch (err: unknown) {
+        return errResult(err);
+      }
+    }
+  );
+  appResource(
+    server,
+    "NodeTool Jobs Dashboard",
+    UI_URI.listJobs,
+    "Dashboard view of NodeTool background jobs with status, duration and errors.",
+    getListJobsAppHtml
+  );
+}
+
+function registerNodesApp(server: McpServer, options?: McpServerOptions): void {
+  registerAppTool(
+    server,
+    "list_nodes",
+    {
+      description:
+        "List available nodes from installed packages. Renders an inline node catalog with namespace tree and search in App-aware hosts.",
+      inputSchema: {
+        namespace: z.string().optional().describe("Filter by namespace prefix"),
+        limit: z.number().optional().default(200).describe("Maximum nodes to return")
+      },
+      _meta: { ui: { resourceUri: UI_URI.nodes } }
+    },
+    async ({ namespace, limit }) => {
+      try {
+        let nodes = await getUnifiedNodeMetadata(options);
+        if (namespace) nodes = nodes.filter((n) => n.namespace.startsWith(namespace));
+        nodes.sort((a, b) => a.node_type.localeCompare(b.node_type));
+        const result = nodes.slice(0, limit).map((n) => ({
+          node_type: n.node_type,
+          title: n.title,
+          description: n.description,
+          namespace: n.namespace
+        }));
         return {
-          content: [
-            { type: "text" as const, text: JSON.stringify(payload) }
-          ],
-          structuredContent: payload
+          content: [{ type: "text" as const, text: JSON.stringify(result) }]
         };
       } catch (err: unknown) {
-        return {
-          content: [
-            { type: "text" as const, text: JSON.stringify({ error: String(err) }) }
-          ],
-          isError: true
-        };
+        return errResult(err);
       }
     }
   );
 
-  registerAppResource(
+  registerAppTool(
     server,
-    "NodeTool Asset Gallery",
-    LIST_ASSETS_UI_URI,
+    "search_nodes",
     {
       description:
-        "Interactive media gallery for NodeTool assets — images, video, audio and folders."
+        "Search for nodes by name, description, or tags. Provider-specific nodes (openai.*, anthropic.*, etc.) are hidden by default; set include_provider_nodes:true to include them. Renders the same node catalog UI in App-aware hosts.",
+      inputSchema: {
+        query: z.array(z.string()).describe("Search keywords"),
+        n_results: z.number().optional().default(10).describe("Maximum results"),
+        namespace: z
+          .string()
+          .optional()
+          .describe("Optional namespace prefix to scope the search (e.g. 'nodetool.control')."),
+        include_provider_nodes: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe("Include provider-specific nodes. Default false — set true only when the user named a provider.")
+      },
+      _meta: { ui: { resourceUri: UI_URI.nodes } }
     },
-    async () => {
-      const html = await getListAssetsAppHtml();
-      return {
-        contents: [
-          {
-            uri: LIST_ASSETS_UI_URI,
-            mimeType: RESOURCE_MIME_TYPE,
-            text: html
-          }
-        ]
-      };
+    async ({ query, n_results, namespace, include_provider_nodes }) => {
+      try {
+        const nodes = await getUnifiedNodeMetadata(options);
+        const ranked = rankNodeMetadata(nodes, query, {
+          includeProviderNodes: include_provider_nodes,
+          namespacePrefix: namespace
+        });
+        const matches = ranked.slice(0, n_results).map(({ meta, score }) => ({
+          node_type: meta.node_type,
+          title: meta.title,
+          description: meta.description,
+          namespace: meta.namespace,
+          score
+        }));
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(matches) }]
+        };
+      } catch (err: unknown) {
+        return errResult(err);
+      }
     }
+  );
+
+  appResource(
+    server,
+    "NodeTool Node Catalog",
+    UI_URI.nodes,
+    "Browse and search NodeTool node types with namespace tree filtering.",
+    getNodesAppHtml
+  );
+}
+
+function registerCollectionsApp(server: McpServer): void {
+  registerAppTool(
+    server,
+    "list_collections",
+    {
+      description:
+        "List all vector database collections. Renders an inline collection browser with semantic search in App-aware hosts.",
+      inputSchema: {
+        limit: z.number().optional().default(50).describe("Maximum collections to return")
+      },
+      _meta: { ui: { resourceUri: UI_URI.collections } }
+    },
+    async ({ limit }) => {
+      try {
+        const { getDefaultVectorProvider } = await import(
+          "@nodetool-ai/vectorstore"
+        );
+        const provider = getDefaultVectorProvider();
+        const collections = await provider.listCollections();
+        const result = await Promise.all(
+          collections.slice(0, limit).map(async (info) => {
+            const collection = await provider.getCollection({ name: info.name });
+            const count = await collection.count();
+            const metadata = info.metadata ?? {};
+            let workflowName: string | null = null;
+            const workflowId = metadata.workflow as string | undefined;
+            if (workflowId) {
+              const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+              if (workflow) workflowName = workflow.name;
+            }
+            return { name: info.name, count, metadata, workflow_name: workflowName };
+          })
+        );
+        return jsonResult({ collections: result, count: result.length });
+      } catch {
+        return errResult("Vector store not available");
+      }
+    }
+  );
+  appResource(
+    server,
+    "NodeTool Collections",
+    UI_URI.collections,
+    "Browse NodeTool vector collections and run semantic queries inline.",
+    getCollectionsAppHtml
   );
 }
 

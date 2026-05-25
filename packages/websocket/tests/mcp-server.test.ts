@@ -138,7 +138,7 @@ describe("MCP Server", () => {
       }
     )._registeredTools;
     expect(tools.list_workflows.description).toBe(
-      "List workflows with flexible filtering."
+      "List workflows with flexible filtering. Renders an inline gallery of workflow cards with thumbnails and a Run button in App-aware hosts."
     );
   });
 
@@ -150,7 +150,7 @@ describe("MCP Server", () => {
       }
     )._registeredTools;
     expect(tools.get_workflow.description).toBe(
-      "Get detailed information about a specific workflow."
+      "Get detailed information about a specific workflow. Renders an interactive pan/zoom graph view in App-aware hosts."
     );
   });
 
