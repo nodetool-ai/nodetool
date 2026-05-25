@@ -1,20 +1,29 @@
 #!/usr/bin/env node
 /**
- * classify.ts — static import scanner for base-nodes.
+ * classify.ts — AST-based platform classifier for base-nodes.
  *
- * Walks every `src/nodes/*.ts` file, follows local relative imports
- * transitively, and matches every external **static** import against a
- * hardcoded list of native / runtime-restricted patterns. **Dynamic
- * imports** (`await import("sharp")`) do not demote the tag because the
- * module is loadable in any environment — the failure surfaces only at
- * the call site, which the node is expected to guard at runtime.
+ * Uses the TypeScript Compiler API to analyse each `src/nodes/*.ts`:
+ *
+ *   1. Walks imports transitively across local relative imports.
+ *   2. Distinguishes static (runtime), type-only (erased), and dynamic
+ *      imports. Type-only imports never demote — they compile away.
+ *   3. Matches external static imports against NATIVE_MATCHERS to
+ *      determine the server platform set.
+ *   4. Matches external imports (static OR dynamic) against
+ *      BROWSER_MATCHERS to claim browser support.
+ *   5. Inspects the AST for fetch / process.env / secret-identifier
+ *      references — none of which can fire on string literals or
+ *      comments, so the regex-era false positives (e.g. `fetch()`
+ *      inside a description string) are gone.
+ *   6. A server-portable module with no purity blockers AND no Node-only
+ *      dynamic imports is auto-promoted to UNIVERSAL.
  *
  * Output buckets:
- *   - SERVER (node, workers, edge)  — no native imports, server-portable
- *   - WORKERS+NODE                   — uses node:fs/promises only
- *   - HYBRID (node, browser)         — claims browser via WebGPU markers
- *   - UNIVERSAL                      — server-portable AND claims browser
- *   - NODE ONLY                      — native modules, subprocess, sync fs
+ *   UNIVERSAL       — node + workers + edge + browser
+ *   HYBRID          — node + browser (WebGPU markers)
+ *   SERVER          — node + workers + edge
+ *   WORKERS+NODE    — uses node:fs/promises only
+ *   NODE ONLY       — native modules, subprocess, sync fs
  *
  * Run with: tsx packages/base-nodes/scripts/classify.ts
  * Output: stdout table + JSON at /tmp/base-nodes-classification.json
@@ -23,6 +32,7 @@
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const NODES_DIR = resolve(HERE, "..", "src", "nodes");
@@ -31,14 +41,10 @@ const SRC_DIR = resolve(HERE, "..", "src");
 type Platform = "node" | "workers" | "edge" | "browser";
 
 const SERVER: readonly Platform[] = ["node", "workers", "edge"];
-const NODE_AND_BROWSER: readonly Platform[] = ["node", "browser"];
 
 interface NativeMatcher {
-  /** Regex match against an import specifier. */
   pattern: RegExp;
-  /** Human-readable reason this disqualifies the module. */
   reason: string;
-  /** Strictest server platforms still supported with this dep. */
   maxServerPlatforms: readonly Platform[];
 }
 
@@ -47,10 +53,7 @@ interface BrowserMatcher {
   reason: string;
 }
 
-/**
- * Patterns that demote the server platform set (static imports only).
- * Defaults: SERVER = ["node", "workers", "edge"] for a module with no matches.
- */
+/** Static-import patterns that demote the server platform set. */
 const NATIVE_MATCHERS: NativeMatcher[] = [
   // Hard native bindings — Node only.
   { pattern: /^sharp$/, reason: "sharp (libvips native)", maxServerPlatforms: ["node"] },
@@ -91,14 +94,11 @@ const NATIVE_MATCHERS: NativeMatcher[] = [
   // Async fs/promises — Workers compat polyfills it (limited).
   { pattern: /^node:fs\/promises$|^fs\/promises$/, reason: "node:fs/promises", maxServerPlatforms: ["node", "workers"] },
 
-  // tesseract.js — has both native (Node) and WASM builds; conservative.
-  { pattern: /^tesseract\.js-node$/, reason: "tesseract.js-node (native)", maxServerPlatforms: ["node"] },
+  // tesseract.js-node — native; tesseract.js (WASM) is a separate package.
+  { pattern: /^tesseract\.js-node$/, reason: "tesseract.js-node (native)", maxServerPlatforms: ["node"] }
 ];
 
-/**
- * Patterns that PROMOTE a module to claim browser support — markers of
- * a browser execution path (WebGPU, DOM, browser-only globals).
- */
+/** Import-spec patterns that PROMOTE a module to claim browser support. */
 const BROWSER_MATCHERS: BrowserMatcher[] = [
   { pattern: /^typegpu(?:\/|$)/, reason: "typegpu (WebGPU)" },
   { pattern: /^@webgpu\//, reason: "@webgpu/* (WebGPU)" },
@@ -106,89 +106,155 @@ const BROWSER_MATCHERS: BrowserMatcher[] = [
   { pattern: /^@nodetool-ai\/gpu(?:\/|$)/, reason: "@nodetool-ai/gpu (WebGPU shader pool)" }
 ];
 
-interface PurityBlocker {
-  pattern: RegExp;
-  reason: string;
+/** Identifier names whose mere reference signals secret access. */
+const SECRET_IDENTIFIERS = new Set([
+  "_secrets",
+  "getApiKey",
+  "getSecret",
+  "secretResolver"
+]);
+
+interface FileAnalysis {
+  /** Module specifiers from `import x from "y"` / `export ... from "y"` (runtime). */
+  staticImports: Set<string>;
+  /** Module specifiers from `await import("y")`. */
+  dynamicImports: Set<string>;
+  /** `fetch(...)` call anywhere in the file. */
+  usesFetch: boolean;
+  /** `process.env` referenced anywhere. */
+  usesProcessEnv: boolean;
+  /** Identifier reference to one of SECRET_IDENTIFIERS. */
+  secretRefs: Set<string>;
 }
 
-/**
- * Source-level patterns that block a server-portable module from being
- * promoted to UNIVERSAL. The intent: any module that calls out to the
- * network or reads env secrets has CORS / secret-exposure concerns in
- * the browser; only pure-computation modules are auto-promoted.
- *
- * We scan the module's source AND its transitively-imported local
- * sources — a helper that calls fetch demotes its parent.
- */
-const PURITY_BLOCKERS: PurityBlocker[] = [
-  { pattern: /\bfetch\s*\(/, reason: "fetch() call (browser CORS risk)" },
-  { pattern: /\bprocess\.env\b/, reason: "process.env (not available in browsers)" },
-  {
-    pattern: /\b_secrets\b|\bgetApiKey\b|\bsecretResolver\b/,
-    reason: "secret access (browsers can't hold secrets)"
+/** Parse a file and walk the AST once, collecting everything we care about. */
+function analyzeFile(filePath: string): FileAnalysis {
+  const result: FileAnalysis = {
+    staticImports: new Set(),
+    dynamicImports: new Set(),
+    usesFetch: false,
+    usesProcessEnv: false,
+    secretRefs: new Set()
+  };
+
+  let source: ts.SourceFile;
+  try {
+    source = ts.createSourceFile(
+      filePath,
+      readFileSync(filePath, "utf-8"),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS
+    );
+  } catch {
+    return result;
   }
-];
+
+  function addStaticIfNotTypeOnly(
+    spec: string,
+    isTypeOnly: boolean
+  ): void {
+    if (isTypeOnly) return;
+    result.staticImports.add(spec);
+  }
+
+  function visit(node: ts.Node): void {
+    // import x from "y";   import "y";   import type {...} from "y";
+    if (ts.isImportDeclaration(node)) {
+      const spec = node.moduleSpecifier;
+      if (ts.isStringLiteral(spec)) {
+        const isTypeOnly = node.importClause?.isTypeOnly ?? false;
+        addStaticIfNotTypeOnly(spec.text, isTypeOnly);
+      }
+    }
+    // export {x} from "y";   export * from "y";
+    else if (ts.isExportDeclaration(node) && node.moduleSpecifier) {
+      if (ts.isStringLiteral(node.moduleSpecifier)) {
+        addStaticIfNotTypeOnly(node.moduleSpecifier.text, node.isTypeOnly);
+      }
+    }
+    // CommonJS-style require("y") — rare in this codebase but cheap to detect.
+    else if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "require" &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      result.staticImports.add((node.arguments[0] as ts.StringLiteral).text);
+    }
+    // Dynamic import: import("y") — node.expression is ImportKeyword (a token, not an Identifier).
+    else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword
+    ) {
+      const arg = node.arguments[0];
+      if (arg && ts.isStringLiteral(arg)) {
+        result.dynamicImports.add(arg.text);
+      }
+    }
+    // fetch(...)   — only when the callee is the bare identifier `fetch`,
+    // not `obj.fetch(...)` or `myFetch(...)`.
+    else if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "fetch"
+    ) {
+      result.usesFetch = true;
+    }
+    // process.env or process.env.XXX   — match the inner `process.env` access.
+    else if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "process" &&
+      node.name.text === "env"
+    ) {
+      result.usesProcessEnv = true;
+    }
+    // process["env"]   — same thing via element access.
+    else if (
+      ts.isElementAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "process" &&
+      ts.isStringLiteral(node.argumentExpression) &&
+      node.argumentExpression.text === "env"
+    ) {
+      result.usesProcessEnv = true;
+    }
+    // Bare identifier reference to a known secret-related name.
+    else if (ts.isIdentifier(node) && SECRET_IDENTIFIERS.has(node.text)) {
+      // Skip when the identifier is the *name* in a declaration or a
+      // property name in an object literal — only count actual references.
+      const parent = node.parent;
+      const isDeclName =
+        (ts.isVariableDeclaration(parent) && parent.name === node) ||
+        (ts.isParameter(parent) && parent.name === node) ||
+        (ts.isPropertyAssignment(parent) && parent.name === node) ||
+        (ts.isPropertyDeclaration(parent) && parent.name === node) ||
+        (ts.isMethodDeclaration(parent) && parent.name === node) ||
+        (ts.isFunctionDeclaration(parent) && parent.name === node) ||
+        (ts.isMethodSignature(parent) && parent.name === node) ||
+        (ts.isPropertySignature(parent) && parent.name === node) ||
+        (ts.isImportSpecifier(parent) && parent.name === node);
+      if (!isDeclName) {
+        result.secretRefs.add(node.text);
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(source);
+  return result;
+}
 
 interface ModuleReport {
   file: string;
   platforms: readonly Platform[];
   reasons: string[];
   browserClaims: string[];
-  /** Reasons the module was NOT promoted from server to universal. */
   purityBlockers: string[];
   importedFiles: string[];
-}
-
-const STATIC_IMPORT_RE =
-  /(?:^|\n)\s*(?:import|export)(?:\s+type)?\s+(?:[\w*\s{},]+\s+from\s+)?["']([^"']+)["']/g;
-const DYNAMIC_IMPORT_RE = /import\s*\(\s*["']([^"']+)["']\s*\)/g;
-
-interface ImportSet {
-  static: Set<string>;
-  dynamic: Set<string>;
-}
-
-function readImports(file: string): ImportSet {
-  const content = readFileSync(file, "utf-8");
-  const result: ImportSet = { static: new Set(), dynamic: new Set() };
-  for (const m of content.matchAll(STATIC_IMPORT_RE)) result.static.add(m[1]);
-  for (const m of content.matchAll(DYNAMIC_IMPORT_RE)) result.dynamic.add(m[1]);
-  return result;
-}
-
-/**
- * Strip block/line comments and string literals from a source string so
- * purity matchers don't fire on documentation or description text that
- * happens to mention e.g. "fetch()" or "process.env".
- */
-function stripCommentsAndStrings(src: string): string {
-  // String regexes disallow newlines (JS strings can't span them without
-  // escaping) so an unterminated quote doesn't consume the rest of the
-  // file. Template literals can span newlines.
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1")
-    .replace(/"(?:[^"\\\n]|\\[\s\S])*"/g, '""')
-    .replace(/'(?:[^'\\\n]|\\[\s\S])*'/g, "''")
-    .replace(/`(?:[^`\\]|\\[\s\S])*`/g, "``");
-}
-
-function findPurityBlockers(files: Iterable<string>): string[] {
-  const hits: string[] = [];
-  for (const file of files) {
-    let src: string;
-    try {
-      src = stripCommentsAndStrings(readFileSync(file, "utf-8"));
-    } catch {
-      continue;
-    }
-    for (const b of PURITY_BLOCKERS) {
-      if (b.pattern.test(src)) {
-        hits.push(`${b.reason} (in ${file.replace(`${SRC_DIR}/`, "")})`);
-      }
-    }
-  }
-  return hits;
 }
 
 function isRelative(spec: string): boolean {
@@ -232,16 +298,22 @@ function union(
   return out;
 }
 
-/**
- * Classify a single entry file by walking its local import graph.
- * Only static imports demote the server set. Both static and dynamic
- * imports can promote browser via WebGPU markers — dynamic loading of a
- * WebGPU lib still implies a browser code path.
- */
+const analysisCache = new Map<string, FileAnalysis>();
+function getAnalysis(file: string): FileAnalysis {
+  let cached = analysisCache.get(file);
+  if (cached) return cached;
+  cached = analyzeFile(file);
+  analysisCache.set(file, cached);
+  return cached;
+}
+
 function classifyFile(entry: string): ModuleReport {
   const visited = new Set<string>();
   const staticExternals = new Set<string>();
   const dynamicExternals = new Set<string>();
+  let usesFetch = false;
+  let usesProcessEnv = false;
+  const secretRefs = new Set<string>();
   const stack: string[] = [entry];
 
   while (stack.length > 0) {
@@ -249,14 +321,12 @@ function classifyFile(entry: string): ModuleReport {
     if (visited.has(file)) continue;
     visited.add(file);
 
-    let imports: ImportSet;
-    try {
-      imports = readImports(file);
-    } catch {
-      continue;
-    }
+    const a = getAnalysis(file);
+    if (a.usesFetch) usesFetch = true;
+    if (a.usesProcessEnv) usesProcessEnv = true;
+    for (const r of a.secretRefs) secretRefs.add(r);
 
-    for (const spec of imports.static) {
+    for (const spec of a.staticImports) {
       if (isRelative(spec)) {
         const target = resolveRelative(file, spec);
         if (target && !visited.has(target)) stack.push(target);
@@ -264,7 +334,7 @@ function classifyFile(entry: string): ModuleReport {
         staticExternals.add(spec);
       }
     }
-    for (const spec of imports.dynamic) {
+    for (const spec of a.dynamicImports) {
       if (isRelative(spec)) {
         const target = resolveRelative(file, spec);
         if (target && !visited.has(target)) stack.push(target);
@@ -290,9 +360,7 @@ function classifyFile(entry: string): ModuleReport {
     }
   }
 
-  // WebGPU markers (static OR dynamic) claim browser. A static WebGPU
-  // import on a module that also imports `sharp` statically yields
-  // ["node", "browser"] — both platforms work, just via different paths.
+  // WebGPU markers (static OR dynamic) claim browser.
   const browserClaims: string[] = [];
   let claimsBrowser = false;
   for (const ext of [...staticExternals, ...dynamicExternals]) {
@@ -305,20 +373,20 @@ function classifyFile(entry: string): ModuleReport {
     }
   }
 
-  // Auto-promote to universal: a server-portable module (all 3 server
-  // platforms supported) that contains no fetch / env / secret access
-  // in its source, AND no dynamic imports of Node-only deps that would
-  // throw if executed in a browser.
+  // Universal promotion: pure-JS, server-portable, no Node-only dynamic
+  // imports. AST-based detection — no false positives from comments or
+  // strings that mention these symbols in descriptions.
   const isServerPortable =
     serverPlatforms.length === SERVER.length &&
     SERVER.every((p) => serverPlatforms.includes(p));
-
   const purityBlockers: string[] = [];
   if (isServerPortable) {
-    purityBlockers.push(...findPurityBlockers(visited));
-    // Dynamic imports of Node-only deps mean there's a runtime code path
-    // that can't execute in a browser — module loads fine, but functions
-    // throw. Demote out of universal in that case.
+    if (usesFetch) purityBlockers.push("fetch() call (browser CORS risk)");
+    if (usesProcessEnv)
+      purityBlockers.push("process.env (not available in browsers)");
+    for (const ref of secretRefs) {
+      purityBlockers.push(`${ref} (browsers can't hold secrets)`);
+    }
     for (const ext of dynamicExternals) {
       for (const m of NATIVE_MATCHERS) {
         if (m.pattern.test(ext) && !m.maxServerPlatforms.includes("workers")) {
@@ -390,6 +458,7 @@ function main(): void {
       if (showReasons) {
         for (const reason of r.reasons) console.log(`    · ${reason}`);
         for (const claim of r.browserClaims) console.log(`    + ${claim}`);
+        for (const b of r.purityBlockers) console.log(`    × ${b}`);
       }
     }
   };
