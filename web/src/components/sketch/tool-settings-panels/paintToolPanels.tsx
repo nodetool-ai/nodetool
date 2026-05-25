@@ -1,6 +1,7 @@
 import React, { memo, useState } from "react";
-import { Typography, Slider, Button } from "@mui/material";
-import { Box } from "../../ui_primitives";
+import { Slider } from "@mui/material";
+import { Box, Text } from "../../ui_primitives";
+import { EditorButton } from "../../editor_ui";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {
@@ -56,7 +57,7 @@ const AdvancedToggleButton: React.FC<{
   open: boolean;
   onToggle: () => void;
 }> = ({ open, onToggle }) => (
-  <Button
+  <EditorButton
     size="small"
     variant="text"
     onClick={onToggle}
@@ -74,7 +75,7 @@ const AdvancedToggleButton: React.FC<{
     startIcon={open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
   >
     Advanced
-  </Button>
+  </EditorButton>
 );
 
 interface BrushSettingsPanelProps {
@@ -251,7 +252,7 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
       </SketchModeToggle>
       {assistOn && (
         <Box className="setting-row">
-          <Typography className="setting-label">Strength</Typography>
+          <Text className="setting-label">Strength</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -261,9 +262,9 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
             value={assist.strength}
             onChange={(_, v) => updateAssist({ strength: v as number })}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(assist.strength * 100)}%
-          </Typography>
+          </Text>
         </Box>
       )}
       {uiPreset === "custom" && (
@@ -319,7 +320,7 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
       </SketchModeToggle>
       {snapOn && (
         <Box className="setting-row">
-          <Typography className="setting-label">Snap</Typography>
+          <Text className="setting-label">Snap</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -329,9 +330,9 @@ function StrokeAssistSettingsPanel<T extends StrokeAssistToolSettings>({
             value={assist.snapStrength}
             onChange={(_, v) => updateAssist({ snapStrength: v as number })}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(assist.snapStrength * 100)}%
-          </Typography>
+          </Text>
         </Box>
       )}
     </SettingGroup>
@@ -376,7 +377,7 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
         {!omitPaintSliders && (
           <>
             <Box className="setting-row setting-row--wide">
-              <Typography className="setting-label">Size</Typography>
+              <Text className="setting-label">Size</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -385,10 +386,10 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
                 value={settings.size}
                 onChange={(_, v) => onChange({ size: v as number })}
               />
-              <Typography className="setting-value">{settings.size}</Typography>
+              <Text className="setting-value">{settings.size}</Text>
             </Box>
             <Box className="setting-row">
-              <Typography className="setting-label">Opacity</Typography>
+              <Text className="setting-label">Opacity</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -398,14 +399,14 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
                 value={settings.opacity}
                 onChange={(_, v) => onChange({ opacity: v as number })}
               />
-              <Typography className="setting-value">
+              <Text className="setting-value">
                 {Math.round(settings.opacity * 100)}%
-              </Typography>
+              </Text>
             </Box>
           </>
         )}
         <Box className="setting-row">
-          <Typography className="setting-label">Hard</Typography>
+          <Text className="setting-label">Hard</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -415,14 +416,14 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
             value={settings.hardness}
             onChange={(_, v) => onChange({ hardness: v as number })}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(settings.hardness * 100)}%
-          </Typography>
+          </Text>
         </Box>
         {(settings.brushType === "round" || settings.brushType === "soft") && (
           <>
             <Box className="setting-row">
-              <Typography className="setting-label">Round</Typography>
+              <Text className="setting-label">Round</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -432,12 +433,12 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
                 value={settings.roundness ?? 1.0}
                 onChange={(_, v) => onChange({ roundness: v as number })}
               />
-              <Typography className="setting-value">
+              <Text className="setting-value">
                 {Math.round((settings.roundness ?? 1.0) * 100)}%
-              </Typography>
+              </Text>
             </Box>
             <Box className="setting-row">
-              <Typography className="setting-label">Angle</Typography>
+              <Text className="setting-label">Angle</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -447,9 +448,9 @@ export const BrushSettingsPanel = memo(function BrushSettingsPanel({
                 value={settings.angle ?? 0}
                 onChange={(_, v) => onChange({ angle: v as number })}
               />
-              <Typography className="setting-value">
+              <Text className="setting-value">
                 {settings.angle ?? 0}°
-              </Typography>
+              </Text>
             </Box>
           </>
         )}
@@ -510,7 +511,7 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
         {!omitPaintSliders && (
           <>
             <Box className="setting-row setting-row--wide">
-              <Typography className="setting-label">Size</Typography>
+              <Text className="setting-label">Size</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -519,10 +520,10 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
                 value={settings.size}
                 onChange={(_, v) => onChange({ size: v as number })}
               />
-              <Typography className="setting-value">{settings.size}</Typography>
+              <Text className="setting-value">{settings.size}</Text>
             </Box>
             <Box className="setting-row">
-              <Typography className="setting-label">Opacity</Typography>
+              <Text className="setting-label">Opacity</Text>
               <Slider
                 sx={sketchSliderSx}
                 size="small"
@@ -532,9 +533,9 @@ export const PencilSettingsPanel = memo(function PencilSettingsPanel({
                 value={settings.opacity}
                 onChange={(_, v) => onChange({ opacity: v as number })}
               />
-              <Typography className="setting-value">
+              <Text className="setting-value">
                 {Math.round(settings.opacity * 100)}%
-              </Typography>
+              </Text>
             </Box>
           </>
         )}
@@ -609,7 +610,7 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
       </SettingGroup>
       <SettingGroup>
         <Box className="setting-row setting-row--wide">
-          <Typography className="setting-label">Size</Typography>
+          <Text className="setting-label">Size</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -618,10 +619,10 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
             value={settings.size}
             onChange={(_, v) => onChange({ size: v as number })}
           />
-          <Typography className="setting-value">{settings.size}</Typography>
+          <Text className="setting-value">{settings.size}</Text>
         </Box>
         <Box className="setting-row">
-          <Typography className="setting-label">Opacity</Typography>
+          <Text className="setting-label">Opacity</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -631,12 +632,12 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
             value={settings.opacity}
             onChange={(_, v) => onChange({ opacity: v as number })}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(settings.opacity * 100)}%
-          </Typography>
+          </Text>
         </Box>
         <Box className="setting-row">
-          <Typography className="setting-label">Stabilize</Typography>
+          <Text className="setting-label">Stabilize</Text>
           <Slider
             sx={sketchSliderSx}
             size="small"
@@ -648,14 +649,14 @@ export const EraserSettingsPanel = memo(function EraserSettingsPanel({
             }
             onChange={(_, v) => setStabilizerStrength(v as number)}
           />
-          <Typography className="setting-value">
+          <Text className="setting-value">
             {Math.round(
               (assist.mode === "stabilizer"
                 ? assist.strength
                 : settings.stabilizer ?? 0) * 100
             )}
             %
-          </Typography>
+          </Text>
         </Box>
       </SettingGroup>
     </>

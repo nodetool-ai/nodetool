@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { TextField, InputAdornment } from "@mui/material";
+import { InputAdornment } from "@mui/material";
+import { TextInput } from "../ui_primitives";
 import { Box } from "../ui_primitives";
 import { useColorConversion } from "../../hooks/useColorConversion";
 import type { ColorMode } from "../../hooks/useColorConversion";
@@ -75,7 +76,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
       case "hex":
         return (
           <div className="color-input-row">
-            <TextField
+            <TextInput
               className="color-input hex-input"
               value={state.hexInput}
               onChange={(e) => handlers.handleHexChange(e.target.value)}
@@ -87,7 +88,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               }}
               placeholder="FFFFFF"
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               value={state.alphaInput}
               onChange={(e) => handlers.handleAlphaChange(e.target.value)}
@@ -108,7 +109,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
         return (
           <>
             <div className="color-input-row">
-              <TextField
+              <TextInput
                 className="color-input component-input"
                 label="R"
                 value={state.rgbInputs.r}
@@ -117,7 +118,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
                 size="small"
                 inputProps={{ min: 0, max: 255 }}
               />
-              <TextField
+              <TextInput
                 className="color-input component-input"
                 label="G"
                 value={state.rgbInputs.g}
@@ -126,7 +127,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
                 size="small"
                 inputProps={{ min: 0, max: 255 }}
               />
-              <TextField
+              <TextInput
                 className="color-input component-input"
                 label="B"
                 value={state.rgbInputs.b}
@@ -135,7 +136,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
                 size="small"
                 inputProps={{ min: 0, max: 255 }}
               />
-              <TextField
+              <TextInput
                 className="color-input component-input"
                 label="A"
                 value={state.alphaInput}
@@ -154,7 +155,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
       case "hsl":
         return (
           <div className="color-input-row">
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="H"
               value={state.hslInputs.h}
@@ -163,7 +164,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               size="small"
               inputProps={{ min: 0, max: 360 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="S"
               value={state.hslInputs.s}
@@ -175,7 +176,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               }}
               inputProps={{ min: 0, max: 100 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="L"
               value={state.hslInputs.l}
@@ -187,7 +188,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               }}
               inputProps={{ min: 0, max: 100 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="A"
               value={state.alphaInput}
@@ -205,7 +206,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
       case "hsb":
         return (
           <div className="color-input-row">
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="H"
               value={state.hsbInputs.h}
@@ -214,7 +215,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               size="small"
               inputProps={{ min: 0, max: 360 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="S"
               value={state.hsbInputs.s}
@@ -226,7 +227,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               }}
               inputProps={{ min: 0, max: 100 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="B"
               value={state.hsbInputs.b}
@@ -238,7 +239,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               }}
               inputProps={{ min: 0, max: 100 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="A"
               value={state.alphaInput}
@@ -256,7 +257,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
       case "cmyk":
         return (
           <div className="color-input-row">
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="C"
               value={state.cmykInputs.c}
@@ -265,7 +266,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               size="small"
               inputProps={{ min: 0, max: 100 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="M"
               value={state.cmykInputs.m}
@@ -274,7 +275,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               size="small"
               inputProps={{ min: 0, max: 100 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="Y"
               value={state.cmykInputs.y}
@@ -283,7 +284,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               size="small"
               inputProps={{ min: 0, max: 100 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="K"
               value={state.cmykInputs.k}
@@ -298,7 +299,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
       case "lab":
         return (
           <div className="color-input-row">
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="L"
               value={state.labInputs.l}
@@ -307,7 +308,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               size="small"
               inputProps={{ min: 0, max: 100 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="a"
               value={state.labInputs.a}
@@ -316,7 +317,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               size="small"
               inputProps={{ min: -128, max: 127 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="b"
               value={state.labInputs.b}
@@ -325,7 +326,7 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
               size="small"
               inputProps={{ min: -128, max: 127 }}
             />
-            <TextField
+            <TextInput
               className="color-input component-input"
               label="A"
               value={state.alphaInput}

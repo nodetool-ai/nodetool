@@ -5,10 +5,9 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Stack,
-  Chip
+  Stack
 } from "@mui/material";
-import { FlexRow, Box } from "../ui_primitives";
+import { FlexRow, Box, Chip } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import { TextInput, Text } from "../ui_primitives";
