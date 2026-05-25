@@ -142,13 +142,18 @@ fn fs_blend(@location(0) uv: vec2f) -> @location(0) vec4f {
 
   let da = dst.a;
   let sc = srcRaw.rgb;
-  let dc = dst.rgb;
+  // The accumulator stores premultiplied color (ad*Cd); the W3C formula needs
+  // straight Cd, so divide RGB by alpha before calling the blend functions.
+  // Non-normal modes (multiply, overlay, ...) silently produced wrong values
+  // before this un-premultiply was added.
+  let dc = select(vec3f(0.0), dst.rgb / max(da, 1.0 / 65535.0), da > 0.0);
   let blended = applyBlendMode(sc, dc, blendMode);
 
-  // W3C compositing:
-  //   Co = αs(1 - αd)·Cs + αs·αd·B(Cs, Cd) + (1 - αs)·αd·Cd
-  //   αo = αs + αd(1 - αs)
-  let co = sa * (1.0 - da) * sc + sa * da * blended + (1.0 - sa) * da * dc;
+  // W3C compositing in premul-output form:
+  //   Co_premul = as*(1 - ad)*Cs + as*ad*B(Cs, Cd) + (1 - as)*ad*Cd
+  // The third term (1 - as)*ad*Cd_straight equals (1 - as)*dst.rgb because
+  // dst.rgb is already premultiplied (ad*Cd).
+  let co = sa * (1.0 - da) * sc + sa * da * blended + (1.0 - sa) * dst.rgb;
   let ao = sa + da * (1.0 - sa);
   return vec4f(co, ao);
 }

@@ -117,7 +117,11 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let coords = vec2<i32>(i32(gid.x), i32(gid.y));
   let effects = layout.$.params;
   var color = textureLoad(layout.$.source, coords, 0);
-  var rgb = color.rgb;
+  // Input is premultiplied (rgb = a*C); the additive brightness / tint /
+  // shadows-highlights stages assume straight color. Un-premultiply first,
+  // run the full effect chain on straight RGB, then re-premultiply on store.
+  let safeA = max(color.a, 1.0 / 255.0);
+  var rgb = color.rgb / safeA;
 
   if (abs(effects.brightness) > 0.001) {
     rgb = clamp(rgb + vec3<f32>(effects.brightness), vec3<f32>(0.0), vec3<f32>(1.0));
@@ -158,7 +162,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     rgb = clamp(rgb + vec3<f32>(adj), vec3<f32>(0.0), vec3<f32>(1.0));
   }
 
-  textureStore(layout.$.outputTexture, coords, vec4<f32>(rgb, color.a));
+  textureStore(layout.$.outputTexture, coords, vec4<f32>(rgb * color.a, color.a));
 }
 `,
   io: {
