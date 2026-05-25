@@ -280,7 +280,7 @@ const getNumberProp = (obj: object, key: string): number | undefined => {
 };
 
 const setNumberProp = (obj: object, key: string, value: number): void => {
-  (obj as Record<string, number>)[key] = value;
+  (obj as Record<string, unknown>)[key] = value;
 };
 
 const getColorProp = (obj: object, key: string): THREE.Color | undefined => {
@@ -294,7 +294,7 @@ const getBoolProp = (obj: object, key: string): boolean | undefined => {
 };
 
 const setBoolProp = (obj: object, key: string, value: boolean): void => {
-  (obj as Record<string, boolean>)[key] = value;
+  (obj as Record<string, unknown>)[key] = value;
 };
 
 interface MaterialNumberSpec {
