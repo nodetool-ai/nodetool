@@ -1,7 +1,7 @@
 import { NodeMetadata, TypeMetadata, TypeName } from "../../stores/ApiTypes";
 import { isConnectable } from "../../utils/TypeHandler";
 
-export type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
+type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
 
 const hashType = (type: TypeMetadata): string => {
   if (type) {
