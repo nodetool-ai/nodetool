@@ -1,10 +1,17 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import AddIcon from "@mui/icons-material/Add";
+import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import WbSunnyOutlinedIcon from "@mui/icons-material/WbSunnyOutlined";
+import BlurOnOutlinedIcon from "@mui/icons-material/BlurOnOutlined";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { usePersistedFold } from "./usePersistedFold";
 import type {
   BlendMode,
@@ -22,32 +29,51 @@ import {
   EmptyState,
   FlexColumn,
   FlexRow,
-  FormField,
-  LabeledSwitch,
   NodeSelect,
   NodeSlider,
-  NodeTextField,
   NodeMenuItem,
   Panel,
   Text,
   Toast
 } from "../../ui_primitives";
+import { trackTypeAccent } from "../Tracks/trackVisuals";
+import {
+  ClipIdentityCard,
+  InspectorDivider,
+  InspectorHeader,
+  InspectorPillInput,
+  InspectorRow,
+  InspectorSectionTitle,
+  InspectorToggleRow,
+  formatTimecode,
+  parseSeconds,
+  parseTimecode
+} from "./InspectorPrimitives";
 import { ClipActions } from "./ClipActions";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";
+
+// ── Styles ─────────────────────────────────────────────────────────────────
 
 const containerStyles = css({
   width: "100%",
   minWidth: 0,
   maxWidth: "100%",
   boxSizing: "border-box",
-  padding: 8,
+  padding: "8px 12px 24px",
   overflow: "auto"
 });
-const sectionContentStyles = css({ padding: 8 });
 
-/** Stable IDs for the inspector-managed effects so they can round-trip in
- *  `clip.effects` without an add/remove UI. Each clip has at most one of each. */
+const sectionContentStyles = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: 2,
+  padding: "4px 0 10px"
+});
+
+// ── Effect IDs ─────────────────────────────────────────────────────────────
+
+/** Stable IDs so the inspector-owned effects round-trip in `clip.effects`. */
 const COLOR_EFFECT_ID = "inspector:color";
 const BLUR_EFFECT_ID = "inspector:blur";
 
@@ -58,7 +84,8 @@ const IDENTITY_TRANSFORM: ClipTransform = {
   anchor: { x: 0.5, y: 0.5 }
 };
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
 
 function findColorEffect(clip: TimelineClip): ClipColorEffect | undefined {
   return clip.effects?.find(
@@ -84,48 +111,12 @@ function upsertEffect(
   return [...existing, next];
 }
 
-/**
- * Numeric field with local draft state — only commits on blur or Enter.
- * Avoids patching the store on every keystroke.
- */
-const NumericField: React.FC<{
-  label: string;
-  value: number | undefined;
-  onCommit: (raw: string) => void;
-}> = ({ label, value, onCommit }) => {
-  const initial = value ?? "";
-  const [draft, setDraft] = useState<string>(String(initial));
-
-  // Re-sync when the underlying value changes (e.g. clip selection swap).
-  useEffect(() => {
-    setDraft(value == null ? "" : String(value));
-  }, [value]);
-
-  const commit = () => {
-    if (draft === String(value ?? "")) return;
-    onCommit(draft);
-  };
-
-  const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
-    if (e.key === "Enter") {
-      (e.target as HTMLInputElement).blur();
-    }
-  };
-
-  return (
-    <FormField label={label}>
-      <NodeTextField
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={handleKeyDown}
-      />
-    </FormField>
-  );
-};
+// ── Component ──────────────────────────────────────────────────────────────
 
 export const TimelineInspector: React.FC = memo(() => {
+  const theme = useTheme();
   const navigate = useNavigate();
+
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
   const clipId = selectedClipIds.size === 1 ? [...selectedClipIds][0] : null;
   const selectedCount = selectedClipIds.size;
@@ -141,45 +132,115 @@ export const TimelineInspector: React.FC = memo(() => {
   const [transitionOpen, setTransitionOpen] = usePersistedFold("transition");
   const [actionsOpen, setActionsOpen] = usePersistedFold("actions");
 
-  const clip = useTimelineStore((s) => (clipId ? s.clips.find((c) => c.id === clipId) : null));
-  const track = useTimelineStore((s) => (clip ? s.tracks.find((t) => t.id === clip.trackId) : null));
+  const clip = useTimelineStore((s) =>
+    clipId ? s.clips.find((c) => c.id === clipId) : null
+  );
+  const track = useTimelineStore((s) =>
+    clip ? s.tracks.find((t) => t.id === clip.trackId) : null
+  );
+  const fps = useTimelineStore((s) => s.fps);
   const deleteSelected = useTimelineStore((s) => s.deleteSelected);
+  const duplicateSelected = useTimelineStore((s) => s.duplicateSelected);
+  const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const patchClip = useTimelineStore((s) => s.patchClip);
+  const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
   const [toast, setToast] = useState<string | null>(null);
 
-  const onPatchNumber = useCallback((field: string, raw: string, min?: number, max?: number) => {
-    if (!clipId) return;
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed)) return;
-    const value = min != null && max != null ? clamp(parsed, min, max) : parsed;
-    patchClip(clipId, { [field]: value });
-  }, [clipId, patchClip]);
+  const onPatchNumber = useCallback(
+    (field: string, raw: string, min?: number, max?: number) => {
+      if (!clipId) return;
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed)) return;
+      const value =
+        min != null && max != null ? clamp(parsed, min, max) : parsed;
+      patchClip(clipId, { [field]: value });
+    },
+    [clipId, patchClip]
+  );
 
   const isAudio = clip?.mediaType === "audio";
   const isOverlay = track?.type === "overlay";
 
+  // ── Header action handlers ──────────────────────────────────────────────
+
+  const handleDuplicate = useCallback(() => {
+    if (!clipId) return;
+    duplicateSelected(new Set([clipId]));
+  }, [clipId, duplicateSelected]);
+
+  const handleSplitAtPlayhead = useCallback(() => {
+    if (!clip) return;
+    const at = currentTimeMs;
+    if (at > clip.startMs && at < clip.startMs + clip.durationMs) {
+      splitClipAtTime(clip.id, at);
+    } else {
+      setToast("Move the playhead inside the clip to split it.");
+    }
+  }, [clip, currentTimeMs, splitClipAtTime]);
+
+  const handleDelete = useCallback(() => {
+    if (!clipId) return;
+    deleteSelected(new Set([clipId]));
+  }, [clipId, deleteSelected]);
+
+  // ── Identity metadata ───────────────────────────────────────────────────
+
+  const accentColor = useMemo(
+    () => (track ? trackTypeAccent(theme, track.type) : undefined),
+    [track, theme]
+  );
+
+  const identityMeta = useMemo<string[]>(() => {
+    if (!clip) return [];
+    const parts: string[] = [clip.mediaType];
+    const secs = clip.durationMs / 1000;
+    parts.push(secs < 10 ? `${secs.toFixed(2)}s` : `${secs.toFixed(1)}s`);
+    if (clip.width && clip.height) {
+      parts.push(`${clip.width}×${clip.height}`);
+    }
+    return parts;
+  }, [clip]);
+
+  // ── Empty / multi-selection states ──────────────────────────────────────
+
   if (selectedCount === 0) {
-    return <EmptyState variant="empty" size="small" title="Inspector" description="Select a clip to inspect" />;
+    return (
+      <Panel css={containerStyles}>
+        <InspectorHeader eyebrow="Inspector" />
+        <EmptyState
+          variant="empty"
+          size="small"
+          title="No selection"
+          description="Select a clip on the timeline to edit its properties."
+        />
+      </Panel>
+    );
   }
 
   if (selectedCount > 1) {
     return (
-      <Panel sx={{ width: "100%", p: 1 }}>
-        <Text weight={500}>{selectedCount} clips selected</Text>
-        <FlexRow gap={1} sx={{ mt: 1 }}>
-          <EditorButton onClick={() => deleteSelected(selectedClipIds)}>Delete</EditorButton>
-          <EditorButton disabled>Lock</EditorButton>
-          <EditorButton disabled>Mute</EditorButton>
-        </FlexRow>
+      <Panel css={containerStyles}>
+        <InspectorHeader
+          eyebrow={`${selectedCount} Clips`}
+          actions={[
+            {
+              icon: <DeleteOutlineOutlinedIcon />,
+              label: "Delete selection",
+              onClick: () => deleteSelected(selectedClipIds),
+              variant: "danger"
+            }
+          ]}
+        />
+        <Text size="small" sx={{ px: 0.5, color: "text.secondary" }}>
+          Multi-clip editing is not yet supported.
+        </Text>
       </Panel>
     );
   }
 
   if (!clip) return null;
 
-  // Direct-gen clips (text-to-image / image-to-image / text-to-video /
-  // text-to-audio) get the prompt-driven inspector; workflow-bound generated
-  // clips get the workflow inputs view.
+  // Direct-gen and workflow-bound generated clips keep their bespoke panels.
   if (clip.sourceType === "generated") {
     if (
       clip.bindingKind === "text-to-image" ||
@@ -192,109 +253,290 @@ export const TimelineInspector: React.FC = memo(() => {
     return <GeneratedClipPanel clipId={clip.id} />;
   }
 
+  // ── Imported-clip inspector ─────────────────────────────────────────────
+
   return (
     <Panel css={containerStyles}>
-      <FlexColumn gap={1}>
-        <CollapsibleSection title="Media" open={mediaOpen} onToggle={setMediaOpen}>
-          <FlexColumn css={sectionContentStyles} gap={1}>
-            <Text size="small">Name: {clip.name}</Text>
-            <Text size="small">Type: {clip.mediaType}</Text>
-            <Text size="small">Asset: {clip.currentAssetId ?? "—"}</Text>
-          </FlexColumn>
-        </CollapsibleSection>
+      <InspectorHeader
+        eyebrow="Clip"
+        actions={[
+          {
+            icon: <AddIcon />,
+            label: "Duplicate clip",
+            onClick: handleDuplicate
+          },
+          {
+            icon: <ContentCutOutlinedIcon />,
+            label: "Split at playhead",
+            onClick: handleSplitAtPlayhead
+          },
+          {
+            icon: <DeleteOutlineOutlinedIcon />,
+            label: "Delete clip",
+            onClick: handleDelete,
+            variant: "danger"
+          }
+        ]}
+      />
 
-        <CollapsibleSection title="Timing" open={timingOpen} onToggle={setTimingOpen}>
-          <FlexColumn css={sectionContentStyles} gap={1}>
-            <NumericField label="Start (ms)" value={clip.startMs} onCommit={(v) => onPatchNumber("startMs", v, 0, Number.MAX_SAFE_INTEGER)} />
-            <NumericField label="Duration (ms)" value={clip.durationMs} onCommit={(v) => onPatchNumber("durationMs", v, 1, Number.MAX_SAFE_INTEGER)} />
-            <NumericField label="In point (ms)" value={clip.inPointMs ?? 0} onCommit={(v) => onPatchNumber("inPointMs", v, 0, Number.MAX_SAFE_INTEGER)} />
-            <NumericField label="Out point (ms)" value={clip.outPointMs ?? clip.durationMs} onCommit={(v) => onPatchNumber("outPointMs", v, 1, Number.MAX_SAFE_INTEGER)} />
-            <NumericField label="Speed" value={clip.speedMultiplier ?? 1} onCommit={(v) => onPatchNumber("speedMultiplier", v, 0.1, 8)} />
-          </FlexColumn>
-        </CollapsibleSection>
+      <ClipIdentityCard
+        name={clip.name}
+        metadata={identityMeta}
+        accentColor={accentColor}
+      />
 
-        <CollapsibleSection title="Render" open={renderOpen} onToggle={setRenderOpen}>
-          <FlexColumn css={sectionContentStyles} gap={1}>
-            {!isAudio && (
-              <FormField label="Opacity">
-                <NodeSlider min={0} max={1} step={0.01} value={clip.opacity ?? 1} onChange={(_e, value) => patchClip(clip.id, { opacity: Array.isArray(value) ? value[0] : value })} />
-              </FormField>
-            )}
-            {isOverlay && !isAudio && (
-              <FormField label="Blend mode">
-                <NodeSelect value={clip.blendMode ?? "normal"} onChange={(e) => patchClip(clip.id, { blendMode: e.target.value as BlendMode })}>
-                  {BLEND_MODES.map((mode) => <NodeMenuItem key={mode.value} value={mode.value}>{mode.label}</NodeMenuItem>)}
-                </NodeSelect>
-              </FormField>
-            )}
-            {isAudio && (
-              <>
-                <NumericField label="Volume (dB)" value={clip.volumeDb ?? 0} onCommit={(v) => onPatchNumber("volumeDb", v, -60, 12)} />
-                <NumericField label="Fade in (ms)" value={clip.fadeInMs ?? 0} onCommit={(v) => onPatchNumber("fadeInMs", v, 0, Math.floor(clip.durationMs / 2))} />
-                <NumericField label="Fade out (ms)" value={clip.fadeOutMs ?? 0} onCommit={(v) => onPatchNumber("fadeOutMs", v, 0, Math.floor(clip.durationMs / 2))} />
-              </>
-            )}
-          </FlexColumn>
-        </CollapsibleSection>
+      <CollapsibleSection
+        title={<InspectorSectionTitle title="Media" />}
+        open={mediaOpen}
+        onToggle={setMediaOpen}
+      >
+        <FlexColumn css={sectionContentStyles}>
+          <InspectorRow label="Type">
+            <InspectorPillInput
+              value={clip.mediaType}
+              onCommit={() => {
+                /* read-only — committed on change elsewhere */
+              }}
+              disabled
+              ariaLabel="Media type"
+            />
+          </InspectorRow>
+          <InspectorRow label="Asset">
+            <Text size="small" sx={{ color: "text.secondary" }}>
+              {clip.currentAssetId ?? "—"}
+            </Text>
+          </InspectorRow>
+        </FlexColumn>
+      </CollapsibleSection>
 
-        {!isAudio && (
-          <CollapsibleSection title="Transform" open={transformOpen} onToggle={setTransformOpen}>
-            <FlexColumn css={sectionContentStyles} gap={1}>
+      <InspectorDivider />
+
+      <CollapsibleSection
+        title={<InspectorSectionTitle title="Timing" />}
+        open={timingOpen}
+        onToggle={setTimingOpen}
+      >
+        <FlexColumn css={sectionContentStyles}>
+          <InspectorRow label="Start">
+            <InspectorPillInput
+              value={formatTimecode(clip.startMs, fps)}
+              onCommit={(raw) => {
+                const ms = parseTimecode(raw, fps);
+                if (ms == null) return;
+                patchClip(clip.id, { startMs: Math.max(0, ms) });
+              }}
+              minWidth={112}
+              ariaLabel="Start timecode"
+            />
+          </InspectorRow>
+          <InspectorRow label="Duration">
+            <InspectorPillInput
+              value={(clip.durationMs / 1000).toFixed(2)}
+              unit="s"
+              onCommit={(raw) => {
+                const ms = parseSeconds(raw);
+                if (ms == null || ms < 1) return;
+                patchClip(clip.id, { durationMs: ms });
+              }}
+              ariaLabel="Duration in seconds"
+            />
+          </InspectorRow>
+          <InspectorRow label="Speed">
+            <InspectorPillInput
+              value={(clip.speedMultiplier ?? 1).toFixed(2)}
+              unit="×"
+              onCommit={(raw) =>
+                onPatchNumber("speedMultiplier", raw, 0.1, 8)
+              }
+              ariaLabel="Playback speed"
+            />
+          </InspectorRow>
+          <InspectorToggleRow
+            label="Hidden"
+            checked={!!clip.hidden}
+            onChange={(next) => patchClip(clip.id, { hidden: next })}
+          />
+        </FlexColumn>
+      </CollapsibleSection>
+
+      <InspectorDivider />
+
+      <CollapsibleSection
+        title={<InspectorSectionTitle title="Render" />}
+        open={renderOpen}
+        onToggle={setRenderOpen}
+      >
+        <FlexColumn css={sectionContentStyles}>
+          {!isAudio && (
+            <InspectorRow label="Opacity">
+              <NodeSlider
+                min={0}
+                max={1}
+                step={0.01}
+                value={clip.opacity ?? 1}
+                onChange={(_e, value) =>
+                  patchClip(clip.id, {
+                    opacity: Array.isArray(value) ? value[0] : value
+                  })
+                }
+              />
+            </InspectorRow>
+          )}
+          {isOverlay && !isAudio && (
+            <InspectorRow label="Blend">
+              <NodeSelect
+                value={clip.blendMode ?? "normal"}
+                onChange={(e) =>
+                  patchClip(clip.id, {
+                    blendMode: e.target.value as BlendMode
+                  })
+                }
+              >
+                {BLEND_MODES.map((mode) => (
+                  <NodeMenuItem key={mode.value} value={mode.value}>
+                    {mode.label}
+                  </NodeMenuItem>
+                ))}
+              </NodeSelect>
+            </InspectorRow>
+          )}
+          {isAudio && (
+            <>
+              <InspectorRow label="Volume">
+                <InspectorPillInput
+                  value={(clip.volumeDb ?? 0).toFixed(1)}
+                  unit="dB"
+                  onCommit={(raw) => onPatchNumber("volumeDb", raw, -60, 12)}
+                  ariaLabel="Volume (dB)"
+                />
+              </InspectorRow>
+              <InspectorRow label="Fade in">
+                <InspectorPillInput
+                  value={((clip.fadeInMs ?? 0) / 1000).toFixed(2)}
+                  unit="s"
+                  onCommit={(raw) => {
+                    const ms = parseSeconds(raw);
+                    if (ms == null) return;
+                    onPatchNumber(
+                      "fadeInMs",
+                      String(ms),
+                      0,
+                      Math.floor(clip.durationMs / 2)
+                    );
+                  }}
+                  ariaLabel="Fade in (seconds)"
+                />
+              </InspectorRow>
+              <InspectorRow label="Fade out">
+                <InspectorPillInput
+                  value={((clip.fadeOutMs ?? 0) / 1000).toFixed(2)}
+                  unit="s"
+                  onCommit={(raw) => {
+                    const ms = parseSeconds(raw);
+                    if (ms == null) return;
+                    onPatchNumber(
+                      "fadeOutMs",
+                      String(ms),
+                      0,
+                      Math.floor(clip.durationMs / 2)
+                    );
+                  }}
+                  ariaLabel="Fade out (seconds)"
+                />
+              </InspectorRow>
+            </>
+          )}
+        </FlexColumn>
+      </CollapsibleSection>
+
+      {!isAudio && (
+        <>
+          <InspectorDivider />
+          <CollapsibleSection
+            title={<InspectorSectionTitle title="Transform" />}
+            open={transformOpen}
+            onToggle={setTransformOpen}
+          >
+            <FlexColumn css={sectionContentStyles}>
               {(() => {
                 const t = clip.transform ?? IDENTITY_TRANSFORM;
                 const setTransform = (next: ClipTransform) =>
                   patchClip(clip.id, { transform: next });
                 const setPos = (axis: "x" | "y", v: number) =>
-                  setTransform({ ...t, position: { ...t.position, [axis]: v } });
+                  setTransform({
+                    ...t,
+                    position: { ...t.position, [axis]: v }
+                  });
                 const setScale = (axis: "x" | "y", v: number) =>
-                  setTransform({ ...t, scale: { ...t.scale, [axis]: v } });
+                  setTransform({
+                    ...t,
+                    scale: { ...t.scale, [axis]: v }
+                  });
                 const setAnchor = (axis: "x" | "y", v: number) =>
-                  setTransform({ ...t, anchor: { ...t.anchor, [axis]: v } });
+                  setTransform({
+                    ...t,
+                    anchor: { ...t.anchor, [axis]: v }
+                  });
                 const setRotationDeg = (deg: number) =>
                   setTransform({ ...t, rotation: (deg * Math.PI) / 180 });
                 return (
                   <>
-                    <NumericField
-                      label="X (px)"
-                      value={t.position.x}
-                      onCommit={(v) => {
-                        const n = Number(v);
-                        if (Number.isFinite(n)) setPos("x", n);
-                      }}
-                    />
-                    <NumericField
-                      label="Y (px)"
-                      value={t.position.y}
-                      onCommit={(v) => {
-                        const n = Number(v);
-                        if (Number.isFinite(n)) setPos("y", n);
-                      }}
-                    />
-                    <NumericField
-                      label="Scale X"
-                      value={t.scale.x}
-                      onCommit={(v) => {
-                        const n = Number(v);
-                        if (Number.isFinite(n)) setScale("x", n);
-                      }}
-                    />
-                    <NumericField
-                      label="Scale Y"
-                      value={t.scale.y}
-                      onCommit={(v) => {
-                        const n = Number(v);
-                        if (Number.isFinite(n)) setScale("y", n);
-                      }}
-                    />
-                    <NumericField
-                      label="Rotation (deg)"
-                      value={(t.rotation * 180) / Math.PI}
-                      onCommit={(v) => {
-                        const n = Number(v);
-                        if (Number.isFinite(n)) setRotationDeg(n);
-                      }}
-                    />
-                    <FormField label={`Anchor X (${t.anchor.x.toFixed(2)})`}>
+                    <InspectorRow label="X">
+                      <InspectorPillInput
+                        value={t.position.x.toFixed(0)}
+                        unit="px"
+                        onCommit={(raw) => {
+                          const n = Number(raw);
+                          if (Number.isFinite(n)) setPos("x", n);
+                        }}
+                        ariaLabel="Position X"
+                      />
+                    </InspectorRow>
+                    <InspectorRow label="Y">
+                      <InspectorPillInput
+                        value={t.position.y.toFixed(0)}
+                        unit="px"
+                        onCommit={(raw) => {
+                          const n = Number(raw);
+                          if (Number.isFinite(n)) setPos("y", n);
+                        }}
+                        ariaLabel="Position Y"
+                      />
+                    </InspectorRow>
+                    <InspectorRow label="Scale X">
+                      <InspectorPillInput
+                        value={t.scale.x.toFixed(2)}
+                        unit="×"
+                        onCommit={(raw) => {
+                          const n = Number(raw);
+                          if (Number.isFinite(n)) setScale("x", n);
+                        }}
+                        ariaLabel="Scale X"
+                      />
+                    </InspectorRow>
+                    <InspectorRow label="Scale Y">
+                      <InspectorPillInput
+                        value={t.scale.y.toFixed(2)}
+                        unit="×"
+                        onCommit={(raw) => {
+                          const n = Number(raw);
+                          if (Number.isFinite(n)) setScale("y", n);
+                        }}
+                        ariaLabel="Scale Y"
+                      />
+                    </InspectorRow>
+                    <InspectorRow label="Rotation">
+                      <InspectorPillInput
+                        value={((t.rotation * 180) / Math.PI).toFixed(1)}
+                        unit="°"
+                        onCommit={(raw) => {
+                          const n = Number(raw);
+                          if (Number.isFinite(n)) setRotationDeg(n);
+                        }}
+                        ariaLabel="Rotation in degrees"
+                      />
+                    </InspectorRow>
+                    <InspectorRow label={`Anchor X (${t.anchor.x.toFixed(2)})`}>
                       <NodeSlider
                         min={0}
                         max={1}
@@ -304,8 +546,8 @@ export const TimelineInspector: React.FC = memo(() => {
                           setAnchor("x", Array.isArray(value) ? value[0] : value)
                         }
                       />
-                    </FormField>
-                    <FormField label={`Anchor Y (${t.anchor.y.toFixed(2)})`}>
+                    </InspectorRow>
+                    <InspectorRow label={`Anchor Y (${t.anchor.y.toFixed(2)})`}>
                       <NodeSlider
                         min={0}
                         max={1}
@@ -315,8 +557,8 @@ export const TimelineInspector: React.FC = memo(() => {
                           setAnchor("y", Array.isArray(value) ? value[0] : value)
                         }
                       />
-                    </FormField>
-                    <FormField label="Border radius (px)">
+                    </InspectorRow>
+                    <InspectorRow label="Radius">
                       <NodeSlider
                         min={0}
                         max={500}
@@ -324,31 +566,48 @@ export const TimelineInspector: React.FC = memo(() => {
                         value={clip.borderRadius ?? 0}
                         onChange={(_e, value) =>
                           patchClip(clip.id, {
-                            borderRadius: Array.isArray(value) ? value[0] : value
+                            borderRadius: Array.isArray(value)
+                              ? value[0]
+                              : value
                           })
                         }
                       />
-                    </FormField>
-                    <EditorButton
-                      onClick={() =>
-                        patchClip(clip.id, {
-                          transform: undefined,
-                          borderRadius: undefined
-                        })
-                      }
-                    >
-                      Reset transform
-                    </EditorButton>
+                    </InspectorRow>
+                    <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
+                      <EditorButton
+                        size="small"
+                        onClick={() =>
+                          patchClip(clip.id, {
+                            transform: undefined,
+                            borderRadius: undefined
+                          })
+                        }
+                      >
+                        Reset transform
+                      </EditorButton>
+                    </FlexRow>
                   </>
                 );
               })()}
             </FlexColumn>
           </CollapsibleSection>
-        )}
+        </>
+      )}
 
-        {!isAudio && (
-          <CollapsibleSection title="Color" open={colorOpen} onToggle={setColorOpen}>
-            <FlexColumn css={sectionContentStyles} gap={1}>
+      {!isAudio && (
+        <>
+          <InspectorDivider />
+          <CollapsibleSection
+            title={
+              <InspectorSectionTitle
+                title="Color"
+                icon={<WbSunnyOutlinedIcon />}
+              />
+            }
+            open={colorOpen}
+            onToggle={setColorOpen}
+          >
+            <FlexColumn css={sectionContentStyles}>
               {(() => {
                 const color = findColorEffect(clip);
                 const enabled = color?.enabled ?? false;
@@ -373,7 +632,10 @@ export const TimelineInspector: React.FC = memo(() => {
                 };
                 const slider = (
                   label: string,
-                  key: keyof Omit<ClipColorEffect, "id" | "type" | "enabled">,
+                  key: keyof Omit<
+                    ClipColorEffect,
+                    "id" | "type" | "enabled"
+                  >,
                   min: number,
                   max: number,
                   step: number,
@@ -381,7 +643,7 @@ export const TimelineInspector: React.FC = memo(() => {
                 ) => {
                   const v = color?.[key] ?? defaultV;
                   return (
-                    <FormField label={`${label} (${v.toFixed(2)})`}>
+                    <InspectorRow label={`${label} (${v.toFixed(2)})`}>
                       <NodeSlider
                         min={min}
                         max={max}
@@ -394,15 +656,15 @@ export const TimelineInspector: React.FC = memo(() => {
                           } as Partial<ClipColorEffect>)
                         }
                       />
-                    </FormField>
+                    </InspectorRow>
                   );
                 };
                 return (
                   <>
-                    <LabeledSwitch
-                      label="Enable color grading"
+                    <InspectorToggleRow
+                      label="Enable"
                       checked={enabled}
-                      onChange={(checked) => update({ enabled: checked })}
+                      onChange={(next) => update({ enabled: next })}
                     />
                     {slider("Brightness", "brightness", -1, 1, 0.01, 0)}
                     {slider("Contrast", "contrast", 0, 4, 0.01, 1)}
@@ -412,28 +674,43 @@ export const TimelineInspector: React.FC = memo(() => {
                     {slider("Tint", "tint", -1, 1, 0.01, 0)}
                     {slider("Shadows", "shadows", -1, 1, 0.01, 0)}
                     {slider("Highlights", "highlights", -1, 1, 0.01, 0)}
-                    <EditorButton
-                      disabled={!color}
-                      onClick={() =>
-                        patchClip(clip.id, {
-                          effects: clip.effects?.filter(
-                            (e) => e.id !== COLOR_EFFECT_ID
-                          )
-                        })
-                      }
-                    >
-                      Clear color effect
-                    </EditorButton>
+                    <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
+                      <EditorButton
+                        size="small"
+                        disabled={!color}
+                        onClick={() =>
+                          patchClip(clip.id, {
+                            effects: clip.effects?.filter(
+                              (e) => e.id !== COLOR_EFFECT_ID
+                            )
+                          })
+                        }
+                      >
+                        Clear color
+                      </EditorButton>
+                    </FlexRow>
                   </>
                 );
               })()}
             </FlexColumn>
           </CollapsibleSection>
-        )}
+        </>
+      )}
 
-        {!isAudio && (
-          <CollapsibleSection title="Blur" open={blurOpen} onToggle={setBlurOpen}>
-            <FlexColumn css={sectionContentStyles} gap={1}>
+      {!isAudio && (
+        <>
+          <InspectorDivider />
+          <CollapsibleSection
+            title={
+              <InspectorSectionTitle
+                title="Blur"
+                icon={<BlurOnOutlinedIcon />}
+              />
+            }
+            open={blurOpen}
+            onToggle={setBlurOpen}
+          >
+            <FlexColumn css={sectionContentStyles}>
               {(() => {
                 const blur = findBlurEffect(clip);
                 const enabled = blur?.enabled ?? false;
@@ -453,12 +730,12 @@ export const TimelineInspector: React.FC = memo(() => {
                 };
                 return (
                   <>
-                    <LabeledSwitch
-                      label="Enable blur"
+                    <InspectorToggleRow
+                      label="Enable"
                       checked={enabled}
-                      onChange={(checked) => updateBlur({ enabled: checked })}
+                      onChange={(next) => updateBlur({ enabled: next })}
                     />
-                    <FormField label={`Radius (${radius.toFixed(0)} px)`}>
+                    <InspectorRow label={`Radius (${radius.toFixed(0)} px)`}>
                       <NodeSlider
                         min={0}
                         max={20}
@@ -471,29 +748,39 @@ export const TimelineInspector: React.FC = memo(() => {
                           })
                         }
                       />
-                    </FormField>
-                    <EditorButton
-                      disabled={!blur}
-                      onClick={() =>
-                        patchClip(clip.id, {
-                          effects: clip.effects?.filter(
-                            (e) => e.id !== BLUR_EFFECT_ID
-                          )
-                        })
-                      }
-                    >
-                      Clear blur effect
-                    </EditorButton>
+                    </InspectorRow>
+                    <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
+                      <EditorButton
+                        size="small"
+                        disabled={!blur}
+                        onClick={() =>
+                          patchClip(clip.id, {
+                            effects: clip.effects?.filter(
+                              (e) => e.id !== BLUR_EFFECT_ID
+                            )
+                          })
+                        }
+                      >
+                        Clear blur
+                      </EditorButton>
+                    </FlexRow>
                   </>
                 );
               })()}
             </FlexColumn>
           </CollapsibleSection>
-        )}
+        </>
+      )}
 
-        {!isAudio && (
-          <CollapsibleSection title="Transition" open={transitionOpen} onToggle={setTransitionOpen}>
-            <FlexColumn css={sectionContentStyles} gap={1}>
+      {!isAudio && (
+        <>
+          <InspectorDivider />
+          <CollapsibleSection
+            title={<InspectorSectionTitle title="Transition" />}
+            open={transitionOpen}
+            onToggle={setTransitionOpen}
+          >
+            <FlexColumn css={sectionContentStyles}>
               {(() => {
                 const t = clip.transitionIn;
                 const type: "none" | "crossfade" = t?.type ?? "none";
@@ -511,7 +798,7 @@ export const TimelineInspector: React.FC = memo(() => {
                 };
                 return (
                   <>
-                    <FormField label="Type">
+                    <InspectorRow label="Type">
                       <NodeSelect
                         value={type}
                         onChange={(e) =>
@@ -521,26 +808,32 @@ export const TimelineInspector: React.FC = memo(() => {
                         <NodeMenuItem value="none">None</NodeMenuItem>
                         <NodeMenuItem value="crossfade">Crossfade</NodeMenuItem>
                       </NodeSelect>
-                    </FormField>
+                    </InspectorRow>
                     {type === "crossfade" && (
                       <>
-                        <NumericField
-                          label="Duration (ms)"
-                          value={duration}
-                          onCommit={(v) => {
-                            const n = Number(v);
-                            if (!Number.isFinite(n) || n < 0) return;
-                            patchClip(clip.id, {
-                              transitionIn: {
-                                type: "crossfade",
-                                durationMs: Math.max(0, Math.floor(n))
-                              }
-                            });
-                          }}
-                        />
-                        <Text size="small">
-                          Overlap this clip with the previous clip on the same
-                          track to see the cross-fade.
+                        <InspectorRow label="Duration">
+                          <InspectorPillInput
+                            value={(duration / 1000).toFixed(2)}
+                            unit="s"
+                            onCommit={(raw) => {
+                              const ms = parseSeconds(raw);
+                              if (ms == null) return;
+                              patchClip(clip.id, {
+                                transitionIn: {
+                                  type: "crossfade",
+                                  durationMs: Math.max(0, ms)
+                                }
+                              });
+                            }}
+                            ariaLabel="Transition duration"
+                          />
+                        </InspectorRow>
+                        <Text
+                          size="small"
+                          sx={{ px: 0.5, color: "text.secondary" }}
+                        >
+                          Overlap with the previous clip on the same track to
+                          see the cross-fade.
                         </Text>
                       </>
                     )}
@@ -549,19 +842,49 @@ export const TimelineInspector: React.FC = memo(() => {
               })()}
             </FlexColumn>
           </CollapsibleSection>
-        )}
+        </>
+      )}
 
-        <CollapsibleSection title="Actions" open={actionsOpen} onToggle={setActionsOpen}>
-          <FlexColumn css={sectionContentStyles} gap={1}>
-            <ClipActions clipId={clip.id} />
-            <EditorButton onClick={() => setToast("Replace media picker coming soon")}>Replace Media</EditorButton>
-            <EditorButton onClick={() => navigate("/assets")}>Reveal in Library</EditorButton>
-            <EditorButton onClick={() => setToast("Convert to Generated Clip will be wired in NOD-306")}>Convert to Generated Clip</EditorButton>
-          </FlexColumn>
-        </CollapsibleSection>
+      <InspectorDivider />
 
-      </FlexColumn>
-      <Toast open={toast !== null} message={toast ?? ""} onClose={() => setToast(null)} severity="info" />
+      <CollapsibleSection
+        title={<InspectorSectionTitle title="Actions" />}
+        open={actionsOpen}
+        onToggle={setActionsOpen}
+      >
+        <FlexColumn css={sectionContentStyles} gap={1}>
+          <ClipActions clipId={clip.id} />
+          <FlexRow gap={1} sx={{ px: 0.5, flexWrap: "wrap" }}>
+            <EditorButton
+              size="small"
+              onClick={() => setToast("Replace media picker coming soon")}
+            >
+              Replace media
+            </EditorButton>
+            <EditorButton
+              size="small"
+              onClick={() => navigate("/assets")}
+            >
+              Reveal in library
+            </EditorButton>
+            <EditorButton
+              size="small"
+              onClick={() =>
+                setToast("Convert to Generated Clip will be wired in NOD-306")
+              }
+            >
+              Convert to generated
+            </EditorButton>
+          </FlexRow>
+        </FlexColumn>
+      </CollapsibleSection>
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ""}
+        onClose={() => setToast(null)}
+        severity="info"
+      />
     </Panel>
   );
 });

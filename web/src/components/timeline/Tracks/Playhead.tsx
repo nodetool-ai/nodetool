@@ -2,14 +2,11 @@
 /**
  * Playhead
  *
- * Single absolute-positioned vertical line spanning all track lanes.
- * - The line + a 16px-wide invisible hit area around it are draggable —
- *   grab anywhere along the playhead, not just the small handle.
- * - The handle is a visible affordance at the top; it expands on hover
- *   and active drag.
- * - Click-and-drag uses a "jump-and-grab" pattern: pointerdown anywhere
- *   on the hit area starts the scrub from the current position; the
- *   pointer's delta drives currentTime from there.
+ * Vertical magenta line + timecode pill at the top, spanning all track lanes.
+ * - The 16px-wide invisible hit area around the line is draggable — grab
+ *   anywhere along the playhead, not just the pill.
+ * - The pill at the top is the visible affordance; it sits above the ruler.
+ * - Click-and-drag uses a "jump-and-grab" pattern.
  * - Keyboard: ArrowLeft/Right nudge ±1 frame; Shift +/- 10 frames;
  *   Home / End jump to the bounds.
  */
@@ -25,17 +22,16 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const LINE_WIDTH_PX = 2;
+const LINE_WIDTH_PX = 1.5;
 const HIT_AREA_WIDTH_PX = 16;
-const HANDLE_SIZE_PX = 14;
-const HANDLE_HOVER_SIZE_PX = 18;
+const PILL_HEIGHT_PX = 20;
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 /**
  * Outer hit area — invisibly wider than the line so the user can grab the
- * playhead anywhere along its full height. The visible 2px line is centred
- * inside via `::before`. The handle sits as a positioned child on top.
+ * playhead anywhere along its full height. The visible line is centred via
+ * `::before`. The pill sits as a positioned child on top.
  */
 const hitAreaStyles = (theme: Theme, dragging: boolean) =>
   css({
@@ -46,6 +42,7 @@ const hitAreaStyles = (theme: Theme, dragging: boolean) =>
     transform: `translateX(-${HIT_AREA_WIDTH_PX / 2}px)`,
     cursor: dragging ? "grabbing" : "ew-resize",
     touchAction: "none",
+    pointerEvents: "auto",
     zIndex: 10,
     "&::before": {
       content: '""',
@@ -55,36 +52,58 @@ const hitAreaStyles = (theme: Theme, dragging: boolean) =>
       left: "50%",
       transform: "translateX(-50%)",
       width: LINE_WIDTH_PX,
-      backgroundColor: theme.vars.palette.primary.main,
+      backgroundColor: theme.vars.palette.secondary.main,
+      boxShadow: `0 0 10px ${theme.vars.palette.secondary.main}66`,
       pointerEvents: "none"
     },
     "&:focus-visible": {
-      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outline: `2px solid ${theme.vars.palette.secondary.main}`,
       outlineOffset: 2
     }
   });
 
-const handleStyles = (theme: Theme, hovered: boolean, dragging: boolean) => {
-  const size =
-    hovered || dragging ? HANDLE_HOVER_SIZE_PX : HANDLE_SIZE_PX;
-  return css({
+const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
+  css({
     position: "absolute",
-    top: -size / 2 + 2,
+    top: 4,
     left: "50%",
     transform: "translateX(-50%)",
-    width: size,
-    height: size,
-    borderRadius: "50%",
-    backgroundColor: theme.vars.palette.primary.main,
-    boxShadow: dragging
-      ? `0 0 0 4px ${theme.vars.palette.primary.main}40`
-      : hovered
-        ? `0 0 0 3px ${theme.vars.palette.primary.main}30`
-        : "none",
-    transition: "width 80ms, height 80ms, box-shadow 80ms",
+    height: PILL_HEIGHT_PX,
+    padding: "0 8px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: PILL_HEIGHT_PX / 2,
+    backgroundColor: theme.vars.palette.secondary.main,
+    color: "rgba(8, 9, 10, 0.92)",
+    fontFamily:
+      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0",
+    whiteSpace: "nowrap",
+    boxShadow:
+      dragging || hovered
+        ? `0 0 0 3px ${theme.vars.palette.secondary.main}33, 0 4px 12px rgba(0,0,0,0.4)`
+        : "0 2px 6px rgba(0,0,0,0.35)",
+    transition: "box-shadow 120ms",
     pointerEvents: "none"
   });
-};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+/** Formats ms as HH:MM:SS:FF (frames) for the playhead pill. */
+function formatPlayheadTimecode(ms: number, fps: number): string {
+  const safeFps = Math.max(1, Math.round(fps));
+  const totalFrames = Math.max(0, Math.round((ms / 1000) * safeFps));
+  const ff = totalFrames % safeFps;
+  const totalSec = Math.floor(totalFrames / safeFps);
+  const ss = totalSec % 60;
+  const mm = Math.floor(totalSec / 60) % 60;
+  const hh = Math.floor(totalSec / 3600);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}:${pad(ff)}`;
+}
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -115,9 +134,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
       trackAreaOffsetPx + currentTimeMs / msPerPx - scrollLeftPx;
 
     // Drag baseline: where the pointer started and what currentTimeMs was
-    // at that moment. Delta is applied to that snapshot — so the pointer
-    // tracks the playhead exactly even if the store is being written
-    // concurrently elsewhere.
+    // at that moment.
     const dragStartXRef = useRef(0);
     const dragStartMsRef = useRef(0);
 
@@ -190,7 +207,13 @@ export const Playhead: React.FC<PlayheadProps> = memo(
         onPointerCancel={handlePointerUp}
         onKeyDown={handleKeyDown}
       >
-        <div css={handleStyles(theme, hovered, dragging)} aria-hidden />
+        <div
+          css={pillStyles(theme, dragging, hovered)}
+          aria-hidden
+          data-testid="playhead-pill"
+        >
+          {formatPlayheadTimecode(currentTimeMs, fps)}
+        </div>
       </div>
     );
   }

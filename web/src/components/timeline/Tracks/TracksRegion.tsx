@@ -68,18 +68,58 @@ const containerStyles = (theme: Theme) =>
 
 const toolbarStyles = (theme: Theme) =>
   css({
-    height: 32,
+    height: 36,
     flexShrink: 0,
-    padding: `0 ${theme.spacing(0.75)}`,
+    padding: "0 12px 0 8px",
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     backgroundColor: theme.vars.palette.background.paper
   });
 
-const headerColumnStyles = css({
-  flexShrink: 0,
-  overflowY: "hidden",
-  overflowX: "hidden"
-});
+const tracksSectionHeaderStyles = (theme: Theme) =>
+  css({
+    width: TRACK_HEADER_WIDTH_PX,
+    height: 28,
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "0 12px",
+    backgroundColor: theme.vars.palette.background.paper,
+    borderBottom: `1px solid ${theme.vars.palette.divider}`,
+    color: theme.vars.palette.text.secondary,
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    userSelect: "none"
+  });
+
+const trackCountChipStyles = (theme: Theme) =>
+  css({
+    marginLeft: "auto",
+    minWidth: 18,
+    height: 16,
+    padding: "0 5px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 4,
+    backgroundColor: theme.vars.palette.action.hover,
+    color: theme.vars.palette.text.secondary,
+    fontFamily:
+      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0"
+  });
+
+const headerColumnStyles = (theme: Theme) =>
+  css({
+    flexShrink: 0,
+    overflowY: "hidden",
+    overflowX: "hidden",
+    borderRight: `1px solid ${theme.vars.palette.divider}`
+  });
 
 const scrollableAreaStyles = css({
   flex: "1 1 auto",
@@ -183,9 +223,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       1000
     );
 
-    // Track area height minus ruler
+    // Track area height minus toolbar + ruler
+    const TOOLBAR_HEIGHT = 36;
     const RULER_HEIGHT = 28;
-    const lanesHeight = heightPx - RULER_HEIGHT;
+    const lanesHeight = Math.max(0, heightPx - TOOLBAR_HEIGHT - RULER_HEIGHT);
 
     // ── Scroll sync ────────────────────────────────────────────────────────
 
@@ -341,19 +382,30 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         {/* ── Tool toolbar (above the ruler) ──────────────────────────── */}
         <FlexRow
           align="center"
-          justify="center"
           gap={0.5}
           css={toolbarStyles(theme)}
           data-testid="timeline-toolbar"
         >
           <ToolToggle />
+          <div style={{ flex: "1 1 auto" }} />
+          <AddTrackButton />
         </FlexRow>
 
-        {/* ── Ruler (spans full width) ─────────────────────────────────── */}
-        <TimeRuler
-          totalWidthPx={totalWidthPx}
-          headerWidthPx={TRACK_HEADER_WIDTH_PX}
-        />
+        {/* ── Sub-header: TRACKS label + ruler ────────────────────────── */}
+        <FlexRow align="stretch" fullWidth>
+          <div css={tracksSectionHeaderStyles(theme)}>
+            <span>Tracks</span>
+            <span
+              css={trackCountChipStyles(theme)}
+              aria-label={`${tracks.length} tracks`}
+            >
+              {tracks.length}
+            </span>
+          </div>
+          <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+            <TimeRuler totalWidthPx={totalWidthPx} headerWidthPx={0} />
+          </div>
+        </FlexRow>
 
         {/* ── Track rows ──────────────────────────────────────────────── */}
         <FlexRow
@@ -366,7 +418,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           fullWidth
         >
           {/* Header column */}
-          <div css={headerColumnStyles}>
+          <div css={headerColumnStyles(theme)}>
             {tracks.map((track) => (
               <React.Fragment key={track.id}>
                 <TrackHeader track={track} />
@@ -378,7 +430,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 )}
               </React.Fragment>
             ))}
-            <AddTrackButton />
           </div>
 
           {/* Scrollable lanes */}
@@ -413,11 +464,30 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 </React.Fragment>
               ))}
             </div>
-
-            {/* Playhead overlaid on the lanes */}
-            <Playhead heightPx={lanesHeight} trackAreaOffsetPx={0} />
           </div>
         </FlexRow>
+
+        {/* Playhead overlay: spans ruler + lanes so the pill sits in the
+         *  ruler. Positioned at the TracksRegion level so it isn't clipped
+         *  by the scrollable area's overflow-y. The wrapper is
+         *  pointer-events:none so it doesn't swallow clicks on the ruler or
+         *  lanes; the Playhead's hit-area opts back into pointer events. */}
+        <div
+          style={{
+            position: "absolute",
+            top: TOOLBAR_HEIGHT,
+            bottom: 0,
+            left: TRACK_HEADER_WIDTH_PX,
+            right: 0,
+            pointerEvents: "none",
+            overflow: "hidden"
+          }}
+        >
+          <Playhead
+            heightPx={RULER_HEIGHT + lanesHeight}
+            trackAreaOffsetPx={0}
+          />
+        </div>
       </div>
     );
   }
