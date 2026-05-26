@@ -34,6 +34,7 @@ export const colorPosterizeV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: PosterizeParams,
   paramDefaults: { levels: 4 },

@@ -17,11 +17,13 @@ import type { AnyWgslStruct, Infer } from "typegpu/data";
 import type {
   BindingKind,
   IOContract,
+  LinearityMode,
   ShaderCategory,
   ShaderKind,
   ShaderSurface,
   UiHint
 } from "./types.js";
+import { validateWgslLinearity } from "./validate/wgslLinearity.js";
 
 /** Host-capability constraints a variant requires (Phase 3 scaffolding). */
 export interface VariantRequirements {
@@ -68,6 +70,12 @@ export interface ShaderModule<Schema extends AnyWgslStruct = AnyWgslStruct> {
   readonly surface: ShaderSurface;
   readonly category: ShaderCategory;
   readonly kind: ShaderKind;
+  /**
+   * Premul-invariant classification. Drives the static WGSL validator
+   * (load-time) and runtime debug pass (per-dispatch). See
+   * {@link LinearityMode}.
+   */
+  readonly linearity: LinearityMode;
 
   /** TypeGPU uniform schema — source of truth for the WGSL struct + packer. */
   readonly params: Schema;
@@ -104,6 +112,11 @@ export interface ShaderModuleSpec<Schema extends AnyWgslStruct> {
   category: ShaderCategory;
   /** Defaults to `"fragment"` — the image-in/image-out default. */
   kind?: ShaderKind;
+  /**
+   * Premul-invariant classification. Required — no default, so shader
+   * authors must classify their RGB math explicitly. See {@link LinearityMode}.
+   */
+  linearity: LinearityMode;
 
   params: Schema;
   paramDefaults: Infer<Schema>;
@@ -180,6 +193,22 @@ export function defineModule<Schema extends AnyWgslStruct>(
     names: "strict"
   });
 
+  // Item 3 of the invariant-enforcement plan: static premul check against the
+  // declared `linearity` tag, run on the resolved WGSL so it sees the final
+  // bindings. Failures throw — a misclassified module never reaches the
+  // registry. `NODETOOL_GPU_VALIDATE=off` disables it for emergency hotfixes.
+  const linearityCheck = validateWgslLinearity({
+    id: spec.id,
+    linearity: spec.linearity,
+    wgsl,
+    inputs: spec.io.inputs
+  });
+  if (!linearityCheck.ok) {
+    throw new Error(
+      `defineModule(${spec.id}): premul-invariant validation failed:\n  - ${linearityCheck.violations.join("\n  - ")}`
+    );
+  }
+
   const variants = spec.variants?.map<ShaderVariant>((v) => {
     const variantWgsl = v.rawWgsl
       ? v.wgsl
@@ -188,6 +217,17 @@ export function defineModule<Schema extends AnyWgslStruct>(
           externals: { layout: v.layout, ...v.externals },
           names: "strict"
         });
+    const variantCheck = validateWgslLinearity({
+      id: `${spec.id}#${v.name}`,
+      linearity: spec.linearity,
+      wgsl: variantWgsl,
+      inputs: spec.io.inputs
+    });
+    if (!variantCheck.ok) {
+      throw new Error(
+        `defineModule(${spec.id}, variant=${v.name}): premul-invariant validation failed:\n  - ${variantCheck.violations.join("\n  - ")}`
+      );
+    }
     return Object.freeze({
       name: v.name,
       bindingKinds: v.bindingKinds,
@@ -206,6 +246,7 @@ export function defineModule<Schema extends AnyWgslStruct>(
     surface: spec.surface,
     category: spec.category,
     kind,
+    linearity: spec.linearity,
     params: spec.params,
     paramDefaults: spec.paramDefaults,
     paramUi: spec.paramUi,

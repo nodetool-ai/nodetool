@@ -40,6 +40,7 @@ export const colorGradeV1 = defineModule({
   // and is the most-used per-clip color effect in the timeline.
   surface: "published",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "compute",
   params: ColorGradeParams,
   paramDefaults: {

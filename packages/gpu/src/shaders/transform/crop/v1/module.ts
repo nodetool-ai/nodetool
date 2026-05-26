@@ -40,6 +40,7 @@ export const transformCropV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: CropParams,
   paramDefaults: { originX: 0, originY: 0, width: 1, height: 1 },

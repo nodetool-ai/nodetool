@@ -42,6 +42,7 @@ export const mixerOutlineV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "mixer",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: OutlineParams,
   paramDefaults: { color: d.vec4f(0, 0, 0, 1), widthPx: 2, threshold: 0.5 },

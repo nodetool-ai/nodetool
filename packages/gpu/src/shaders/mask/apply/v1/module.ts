@@ -36,6 +36,7 @@ export const maskApplyV1 = defineModule({
   // every mask-producing module (`mask.fromImage`, `keyer.*`, recipes).
   surface: "published",
   category: "mask",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: MaskApplyParams,
   paramDefaults: { invert: 0 },

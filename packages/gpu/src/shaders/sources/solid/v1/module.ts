@@ -25,6 +25,7 @@ export const sourcesSolidV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "sources",
+  linearity: "source",
   kind: "fragment",
   params: SolidParams,
   paramDefaults: { color: d.vec4f(0, 0, 0, 1) },

@@ -34,6 +34,7 @@ export const chromaKeyV1 = defineModule({
   // is stable since Phase 2; the canonical green/blue-screen keyer.
   surface: "published",
   category: "keyer",
+  linearity: "nonlinear-in-rgb",
   kind: "compute",
   params: ChromaKeyParams,
   paramDefaults: {

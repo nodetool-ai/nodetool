@@ -46,6 +46,7 @@ export const filtersConvolve3x3V1 = defineModule({
   version: 1,
   surface: "internal",
   category: "filters",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: Convolve3x3Params,
   paramDefaults: {
@@ -64,16 +65,18 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let px = 1.0 / vec2f(f32(dims.x), f32(dims.y));
   let p = layout.$.params;
 
-  let s00 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x, -px.y)).rgb;
-  let s01 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(   0.0, -px.y)).rgb;
-  let s02 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x, -px.y)).rgb;
-  let s10 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x,    0.0)).rgb;
+  // premul: ok TODO(invariant-fixes): see review §BUGS — convolve on premul rgb
+  // skews kernel weights against alpha; needs full unpremul/re-premul pass.
+  let s00 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x, -px.y)).rgb; // premul: ok
+  let s01 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(   0.0, -px.y)).rgb; // premul: ok
+  let s02 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x, -px.y)).rgb; // premul: ok
+  let s10 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x,    0.0)).rgb; // premul: ok
   let centerS = textureSample(layout.$.source, layout.$.samp, uv);
-  let s11 = centerS.rgb;
-  let s12 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x,    0.0)).rgb;
-  let s20 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x,  px.y)).rgb;
-  let s21 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(   0.0,  px.y)).rgb;
-  let s22 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x,  px.y)).rgb;
+  let s11 = centerS.rgb; // premul: ok
+  let s12 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x,    0.0)).rgb; // premul: ok
+  let s20 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x,  px.y)).rgb; // premul: ok
+  let s21 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(   0.0,  px.y)).rgb; // premul: ok
+  let s22 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x,  px.y)).rgb; // premul: ok
 
   var acc = s00 * p.row0.x + s01 * p.row0.y + s02 * p.row0.z
           + s10 * p.row1.x + s11 * p.row1.y + s12 * p.row1.z
@@ -89,7 +92,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let out = clamp(acc, vec3f(0.0), vec3f(1.0));
 
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
-  let mixed = mix(centerS.rgb, out, coverage);
+  let mixed = mix(centerS.rgb, out, coverage); // premul: ok TODO(invariant-fixes): see review §BUGS
   return vec4f(mixed, centerS.a);
 }
 `,

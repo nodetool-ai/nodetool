@@ -36,6 +36,7 @@ export const colorBrightnessContrastV1 = defineModule({
   // its own published op for workflow nodes that only need brightness/contrast.
   surface: "published",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: BrightnessContrastParams,
   paramDefaults: { brightness: 0, contrast: 1 },
