@@ -93,8 +93,13 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "npm"
 
-      - name: Install system libraries for keytar
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0
+      - name: Install system libraries (keytar + CPU Vulkan driver)
+        # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
+        # Chromium can acquire a WebGPU adapter on GPU-less CI runners. The
+        # workflow-runner browser harness uses it to drive shader-pool tests
+        # (color.brightnessContrast, etc.) against the same module catalog
+        # the server uses on Node/Dawn.
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0 mesa-vulkan-drivers
 
       - name: Install all workspace dependencies
         run: npm ci

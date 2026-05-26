@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["@playwright/test", "vite/client"]
+    "types": ["@playwright/test", "vite/client", "@webgpu/types"]
   },
   "include": ["src/**/*.ts", "tests/**/*.ts", "*.config.ts"]
 }

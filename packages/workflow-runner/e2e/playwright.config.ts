@@ -26,7 +26,22 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] }
+      use: {
+        ...devices["Desktop Chrome"],
+        // Headless Chromium ships WebGPU behind a flag; enable it explicitly
+        // so the GPU-pool shader tests can acquire an adapter. On Linux CI
+        // we route through Vulkan (the runner installs `mesa-vulkan-drivers`
+        // which provides the lavapipe ICD); locally this falls back to the
+        // OS's default backend.
+        launchOptions: {
+          args: [
+            "--enable-unsafe-webgpu",
+            "--enable-features=Vulkan",
+            "--use-vulkan=swiftshader",
+            "--enable-features=WebGPUService"
+          ]
+        }
+      }
     }
   ],
   webServer: {

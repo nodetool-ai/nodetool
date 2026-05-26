@@ -119,3 +119,58 @@ test("a multi-edge graph aggregates two sources into one sink", async ({
   expect(result.status).toBe("completed");
   expect(result.outputs.joined).toEqual(["hello, world!"]);
 });
+
+/**
+ * WebGPU shader catalog runs against the browser's `navigator.gpu`. This is
+ * the test that proves the GPU pool isn't just Dawn-portable — the same
+ * `colorBrightnessContrastV1` module that runs server-side on Node also
+ * runs in a V8 isolate, and the readback matches the CPU reference. Skips
+ * with a warning when no adapter is available (e.g. CI runners without a
+ * Vulkan/Swiftshader driver installed) rather than failing hard.
+ */
+test("WebGPU shader catalog runs the brightness/contrast module in-browser", async ({
+  page
+}, testInfo) => {
+  const result = await page.evaluate(() =>
+    window.runBrightnessShaderInBrowser({
+      size: 4,
+      source: [128, 128, 128],
+      brightness: 0.2,
+      contrast: 1.5
+    })
+  );
+
+  if (!result.adapterFound) {
+    testInfo.skip(
+      true,
+      `No WebGPU adapter (headless Chromium without Vulkan): ${result.error ?? "unknown"}`
+    );
+    return;
+  }
+
+  expect(result.ok).toBe(true);
+  expect(result.outputPixel).toBeDefined();
+  // Allow ±1 LSB tolerance (the shader runs in linear premultiplied space,
+  // CPU reference works in straight; rounding noise can differ by one).
+  expect(result.maxAbsError ?? 999).toBeLessThanOrEqual(1);
+});
+
+/**
+ * Confirms the workflow-runner host actually has the Web Platform APIs we
+ * expect to use for asset round-trips inside browser workflows: same-origin
+ * fetch, Blob + `URL.createObjectURL`, IndexedDB, and SubtleCrypto. If a
+ * deployment target ships a stripped runtime (some edge platforms do), this
+ * fails early instead of inside a node's `process()`.
+ */
+test("standard Web Platform APIs are usable from harness code", async ({
+  page
+}) => {
+  const result = await page.evaluate(() => window.runWebApisInBrowser());
+
+  expect(result.error, result.error).toBeUndefined();
+  expect(result.fetch).toBe(true);
+  expect(result.blob).toBe(true);
+  expect(result.objectUrl).toBe(true);
+  expect(result.indexedDb).toBe(true);
+  expect(result.cryptoSubtle).toBe(true);
+});
