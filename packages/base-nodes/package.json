@@ -86,6 +86,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./platforms/browser": {
+      "nodetool-dev": "./src/platforms/browser.ts",
+      "types": "./dist/platforms/browser.d.ts",
+      "import": "./dist/platforms/browser.js",
+      "default": "./dist/platforms/browser.js"
     }
   },
   "license": "MIT",
