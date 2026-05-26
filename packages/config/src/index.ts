@@ -1,3 +1,5 @@
+export { IS_NODE, importNodeBuiltin, importHidden } from "./node-import.js";
+
 export {
   loadEnvironment,
   getEnv,

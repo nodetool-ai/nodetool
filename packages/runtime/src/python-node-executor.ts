@@ -27,9 +27,33 @@ interface PythonBridgeLike {
     onProgress?: (event: ProgressEvent) => void
   ): AsyncGenerator<ExecuteResult>;
 }
-import { readFile } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
-import { fileURLToPath } from "node:url";
+import { importNodeBuiltin } from "@nodetool-ai/config";
+
+const _nodeFsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
+  "node:fs/promises"
+);
+const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+  "node:crypto"
+);
+const _nodeUrl = await importNodeBuiltin<typeof import("node:url")>("node:url");
+
+function _notOnNode(api: string): never {
+  throw new Error(`${api} requires Node`);
+}
+const readFile = (
+  ...args: Parameters<typeof import("node:fs/promises").readFile>
+) =>
+  _nodeFsP
+    ? _nodeFsP.readFile(...args)
+    : _notOnNode("node:fs/promises.readFile");
+const randomUUID = (): string =>
+  _nodeCrypto?.randomUUID
+    ? _nodeCrypto.randomUUID()
+    : globalThis.crypto?.randomUUID
+      ? globalThis.crypto.randomUUID()
+      : _notOnNode("node:crypto.randomUUID");
+const fileURLToPath = (u: string | URL): string =>
+  _nodeUrl ? _nodeUrl.fileURLToPath(u) : _notOnNode("node:url.fileURLToPath");
 
 /** Media ref types that need blob conversion. */
 const MEDIA_TYPE_ALIASES: Record<string, string> = {
@@ -113,7 +137,7 @@ async function readUriBytes(uri: string): Promise<Uint8Array | null> {
 
   if (uri.startsWith("file://")) {
     try {
-      return await readFile(fileURLToPath(uri));
+      return (await readFile(fileURLToPath(uri))) as Uint8Array;
     } catch {
       return null;
     }
@@ -121,7 +145,7 @@ async function readUriBytes(uri: string): Promise<Uint8Array | null> {
 
   if (isAbsoluteFilePath(uri)) {
     try {
-      return await readFile(uri);
+      return (await readFile(uri)) as Uint8Array;
     } catch {
       return null;
     }

@@ -11,12 +11,27 @@
  *   - MessageEnvelope wrapping for metadata propagation.
  */
 
-import { randomUUID } from "crypto";
+import { importNodeBuiltin } from "@nodetool-ai/config";
 import type {
   CorrelationLineage,
   LineageDone,
   LineageScopeClosed
 } from "@nodetool-ai/protocol";
+
+const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+  "node:crypto"
+);
+
+function randomUUID(): string {
+  if (_nodeCrypto?.randomUUID) return _nodeCrypto.randomUUID();
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  // Fallback for older browsers: RFC4122 v4 via Math.random
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 import { tryProjectLineageKey, type Scope } from "./correlation-analysis.js";
 

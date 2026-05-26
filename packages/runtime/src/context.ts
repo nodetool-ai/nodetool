@@ -13,20 +13,73 @@
 import type { AssetRef, ProcessingMessage, ProviderCost } from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
 import { encodeRawImageRef } from "./image-codec.js";
-import { randomUUID } from "node:crypto";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import {
-  basename,
-  dirname,
-  extname,
-  isAbsolute,
-  join,
-  normalize,
-  relative,
-  resolve,
-  sep
-} from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { importNodeBuiltin } from "@nodetool-ai/config";
+
+// `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
+// lazily so this module loads in browser / Edge runtimes. The
+// `FileStorageAdapter`, `resolveWorkspacePath`, and `randomUUID`
+// fallback all degrade gracefully when these are unavailable.
+const nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+  "node:crypto"
+);
+const nodeFsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
+  "node:fs/promises"
+);
+const nodePath = await importNodeBuiltin<typeof import("node:path")>(
+  "node:path"
+);
+const nodeUrl = await importNodeBuiltin<typeof import("node:url")>("node:url");
+
+const randomUUID = nodeCrypto?.randomUUID
+  ? nodeCrypto.randomUUID
+  : (): string => {
+      const g = globalThis as { crypto?: { randomUUID?: () => string } };
+      if (g.crypto?.randomUUID) return g.crypto.randomUUID();
+      return `id_${Date.now().toString(36)}_${Math.random()
+        .toString(36)
+        .slice(2, 10)}`;
+    };
+
+// Eager local bindings; unavailable off-Node, throw at call time.
+function notOnNode(api: string): never {
+  throw new Error(
+    `${api} is unavailable in this runtime — configure a StorageAdapter instead`
+  );
+}
+const access = (...a: Parameters<typeof import("node:fs/promises").access>) =>
+  nodeFsP ? nodeFsP.access(...a) : notOnNode("node:fs/promises.access");
+const mkdir = (...a: Parameters<typeof import("node:fs/promises").mkdir>) =>
+  nodeFsP ? nodeFsP.mkdir(...a) : notOnNode("node:fs/promises.mkdir");
+const readFile = (
+  ...a: Parameters<typeof import("node:fs/promises").readFile>
+) => (nodeFsP ? nodeFsP.readFile(...a) : notOnNode("node:fs/promises.readFile"));
+const writeFile = (
+  ...a: Parameters<typeof import("node:fs/promises").writeFile>
+) =>
+  nodeFsP ? nodeFsP.writeFile(...a) : notOnNode("node:fs/promises.writeFile");
+
+const basename = (p: string, ext?: string): string =>
+  nodePath ? nodePath.basename(p, ext) : notOnNode("node:path.basename");
+const dirname = (p: string): string =>
+  nodePath ? nodePath.dirname(p) : notOnNode("node:path.dirname");
+const extname = (p: string): string =>
+  nodePath ? nodePath.extname(p) : notOnNode("node:path.extname");
+const isAbsolute = (p: string): boolean =>
+  nodePath ? nodePath.isAbsolute(p) : notOnNode("node:path.isAbsolute");
+const join = (...parts: string[]): string =>
+  nodePath ? nodePath.join(...parts) : notOnNode("node:path.join");
+const normalize = (p: string): string =>
+  nodePath ? nodePath.normalize(p) : notOnNode("node:path.normalize");
+const relative = (from: string, to: string): string =>
+  nodePath ? nodePath.relative(from, to) : notOnNode("node:path.relative");
+const resolve = (...parts: string[]): string =>
+  nodePath ? nodePath.resolve(...parts) : notOnNode("node:path.resolve");
+const sep = nodePath?.sep ?? "/";
+
+const fileURLToPath = (u: string | URL): string =>
+  nodeUrl ? nodeUrl.fileURLToPath(u) : notOnNode("node:url.fileURLToPath");
+const pathToFileURL = (p: string): URL =>
+  nodeUrl ? nodeUrl.pathToFileURL(p) : notOnNode("node:url.pathToFileURL");
 import type { BaseProvider } from "./providers/base-provider.js";
 import type {
   Message,
@@ -441,7 +494,7 @@ export class FileStorageAdapter implements StorageAdapter {
     const absolutePath = this.resolvePathFromUri(uri);
     if (!absolutePath) return null;
     try {
-      return await readFile(absolutePath);
+      return (await readFile(absolutePath)) as Uint8Array;
     } catch {
       // File not found or unreadable — caller handles null.
       return null;
@@ -474,7 +527,8 @@ export class FileStorageAdapter implements StorageAdapter {
     prefix: string,
     opts: { delimiter?: string } = {}
   ): Promise<StorageListResult> {
-    const { readdir: rd, stat: st } = await import("node:fs/promises");
+    if (!nodeFsP) throw new Error("LocalStorage.list requires Node");
+    const { readdir: rd, stat: st } = nodeFsP;
     const delimiter = opts.delimiter ?? null;
     const baseAbs = (() => {
       try {
@@ -529,7 +583,8 @@ export class FileStorageAdapter implements StorageAdapter {
   async delete(uri: string): Promise<boolean> {
     const absolutePath = this.resolvePathFromUri(uri);
     if (!absolutePath) return false;
-    const { unlink } = await import("node:fs/promises");
+    if (!nodeFsP) return false;
+    const { unlink } = nodeFsP;
     try {
       await unlink(absolutePath);
       return true;
@@ -541,7 +596,8 @@ export class FileStorageAdapter implements StorageAdapter {
   async stat(uri: string): Promise<StorageStat | null> {
     const absolutePath = this.resolvePathFromUri(uri);
     if (!absolutePath) return null;
-    const { stat: st } = await import("node:fs/promises");
+    if (!nodeFsP) return null;
+    const { stat: st } = nodeFsP;
     try {
       const s = await st(absolutePath);
       if (!s.isFile()) return null;
@@ -1774,7 +1830,7 @@ export class ProcessingContext {
 
   async sandboxToAsset(path: string): Promise<AssetRef> {
     const filePath = this.resolveSandboxFilePath(path);
-    const bytes = await readFile(filePath);
+    const bytes = (await readFile(filePath)) as Uint8Array;
     const contentType = ProcessingContext.guessMimeFromPath(filePath);
     const created = (await this.createAsset({
       name: basename(filePath),

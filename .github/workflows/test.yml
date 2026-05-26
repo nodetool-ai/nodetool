@@ -77,3 +77,47 @@ jobs:
 
       - name: Run shipped-workflow execution tests
         run: npm run test:integration
+
+  workflow-runner-e2e:
+    name: Workflow Runner Browser E2E
+    needs: quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install system libraries for keytar
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Rebuild native modules
+        run: npm rebuild better-sqlite3
+
+      - name: Build backend packages
+        run: npm run build:packages
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+        working-directory: packages/workflow-runner
+
+      - name: Run workflow-runner browser E2E tests
+        run: npm run test:e2e --workspace=@nodetool-ai/workflow-runner
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-runner-playwright-report
+          path: packages/workflow-runner/playwright-report
+          retention-days: 7

@@ -16,10 +16,13 @@
  * Image API docs: https://developer.topazlabs.com/getting-started/image-api-quickstart
  */
 
-import { createRequire } from "node:module";
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
 import { loadImageModels } from "./manifest-models.js";
+
+const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
+  "node:module"
+);
 import type {
   ImageModel,
   Message,
@@ -76,9 +79,10 @@ interface VariantInfo {
  */
 function buildVariantMap(): Map<string, VariantInfo> {
   const map = new Map<string, VariantInfo>();
+  if (!_nodeModule) return map;
   let manifest: TopazManifestEntry[] = [];
   try {
-    const req = createRequire(import.meta.url);
+    const req = _nodeModule.createRequire(import.meta.url);
     manifest = req(`${TOPAZ_MANIFEST_PKG}/${TOPAZ_MANIFEST_PATH}`);
   } catch (err) {
     log.warn(`Could not load Topaz manifest: ${err}`);

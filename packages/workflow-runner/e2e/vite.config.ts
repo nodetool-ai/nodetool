@@ -62,6 +62,15 @@ function stubNodeProtocolPlugin(): Plugin {
 export default defineConfig({
   root: resolve(import.meta.dirname),
   plugins: [stubNodeProtocolPlugin()],
+  define: {
+    // Browser-side modules don't have access to `process`. Shim a minimal
+    // object so top-level references (e.g. `process.env["NODETOOL_ENV"]`)
+    // don't throw on bundle init. Anything that needs real env vars must
+    // gate on IS_NODE / typeof process checks.
+    "process.env": "{}",
+    "process.platform": JSON.stringify("browser"),
+    "process.versions": "{}"
+  },
   resolve: {
     alias: [
       { find: "node:fs/promises", replacement: `${STUBS}/fs-promises-stub.js` },

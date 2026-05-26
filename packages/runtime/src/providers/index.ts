@@ -160,7 +160,9 @@ registerBuiltinProvider("deepseek", DeepSeekProvider, { DEEPSEEK_API_KEY: "" });
 registerBuiltinProvider("xai", XAIProvider, { XAI_API_KEY: "" });
 
 // Local-only providers — require local servers/CLIs, skip in production
-if (process.env["NODETOOL_ENV"] !== "production") {
+const _envProcess =
+  typeof process !== "undefined" ? process : { env: {} as Record<string, string | undefined> };
+if (_envProcess.env["NODETOOL_ENV"] !== "production") {
   // Ollama defaults to the standard local daemon port so the provider is
   // usable out-of-the-box. The URL is registered as an optionalKwarg so it
   // re-resolves from the secret store / env on every getProvider() call —
@@ -206,8 +208,8 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 // Fake provider for end-to-end testing without external API keys.
 // Opt-in via env flag — never enabled in production builds.
 if (
-  process.env["NODETOOL_ENV"] !== "production" &&
-  process.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
+  _envProcess.env["NODETOOL_ENV"] !== "production" &&
+  _envProcess.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
 ) {
   registerBuiltinProvider("fake", FakeProvider, {});
 }
