@@ -4,7 +4,7 @@
     "moduleName": "image",
     "modelId": "topaz/image/enhance",
     "title": "Topaz Enhance Image",
-    "description": "Topaz Image API — Precision Upscale / Enhance.\n\n    topaz, image, upscale, enhance, restore\n\n    Async /image/v1/enhance/async endpoint with Topaz precision models (Standard V2, High Fidelity V2/V3, Low Resolution V2, CGI, Text Refine). Supports face enhancement, sharpening, denoising, and subject-targeted application.",
+    "description": "Topaz Image API — Precision Upscale / Enhance.\n\n    topaz, image, upscale, enhance, restore\n\n    Multipart POST /image/v1/enhance/async with Topaz precision models (Standard V2, High Fidelity V2, Low Resolution V2, CGI, Text Refine). Supports face enhancement, sharpening, denoising, compression repair, and subject-targeted application. Any model-specific parameters that are not supported by the chosen model are ignored by the API.",
     "outputType": "image",
     "submitEndpoint": "https://api.topazlabs.com/image/v1/enhance/async",
     "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
@@ -16,7 +16,7 @@
         "name": "image",
         "type": "image",
         "title": "Image",
-        "description": "Source image to enhance.",
+        "description": "Source image to enhance. Supported formats: jpeg, png, tiff.",
         "required": true,
         "uploadField": true
       },
@@ -30,7 +30,6 @@
         "values": [
           "Standard V2",
           "High Fidelity V2",
-          "Upscale High Fidelity V3",
           "Low Resolution V2",
           "CGI",
           "Text Refine"
@@ -41,28 +40,20 @@
         "type": "int",
         "default": 0,
         "title": "Output Width",
-        "description": "Output width in pixels. Leave 0 to derive from scale.",
+        "description": "Output width in pixels (1-32000). 0 leaves height to drive proportional scaling.",
         "required": false,
-        "min": 0
+        "min": 0,
+        "max": 32000
       },
       {
         "name": "output_height",
         "type": "int",
         "default": 0,
         "title": "Output Height",
-        "description": "Output height in pixels. Leave 0 to derive from scale.",
+        "description": "Output height in pixels (1-32000). 0 leaves width to drive proportional scaling.",
         "required": false,
-        "min": 0
-      },
-      {
-        "name": "scale",
-        "type": "float",
-        "default": 2.0,
-        "title": "Scale",
-        "description": "Upscale factor when output_width and output_height are both 0.",
-        "required": false,
-        "min": 1.0,
-        "max": 6.0
+        "min": 0,
+        "max": 32000
       },
       {
         "name": "output_format",
@@ -72,6 +63,14 @@
         "description": "Encoded format of the returned image.",
         "required": false,
         "values": ["jpeg", "png", "tiff"]
+      },
+      {
+        "name": "crop_to_fill",
+        "type": "bool",
+        "default": false,
+        "title": "Crop To Fill",
+        "description": "Crop instead of letterbox when the output aspect differs from the source.",
+        "required": false
       },
       {
         "name": "face_enhancement",
@@ -86,7 +85,7 @@
         "type": "float",
         "default": 0.8,
         "title": "Face Enhancement Strength",
-        "description": "Intensity of face recovery (0 = off, 1 = strongest).",
+        "description": "Intensity of face recovery (0 = off, 1 = strongest). Required when face_enhancement=true.",
         "required": false,
         "min": 0.0,
         "max": 1.0
@@ -96,7 +95,7 @@
         "type": "float",
         "default": 0.3,
         "title": "Face Enhancement Creativity",
-        "description": "Realistic (0) ↔ creative (1) face recovery.",
+        "description": "Realistic (0) ↔ creative (1) face recovery. Required when face_enhancement=true.",
         "required": false,
         "min": 0.0,
         "max": 1.0
@@ -106,7 +105,7 @@
         "type": "float",
         "default": 0.0,
         "title": "Sharpen",
-        "description": "Sharpening strength.",
+        "description": "Sharpening strength (0-1).",
         "required": false,
         "min": 0.0,
         "max": 1.0
@@ -116,7 +115,7 @@
         "type": "float",
         "default": 0.0,
         "title": "Denoise",
-        "description": "Noise reduction strength.",
+        "description": "Noise reduction strength (0-1).",
         "required": false,
         "min": 0.0,
         "max": 1.0
@@ -126,7 +125,17 @@
         "type": "float",
         "default": 0.0,
         "title": "Fix Compression",
-        "description": "Reduce JPEG/compression artifacts.",
+        "description": "Reduce JPEG/compression artifacts (0-1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.0,
+        "title": "Strength",
+        "description": "Overall model strength (0.01-1). Too high can look unrealistic.",
         "required": false,
         "min": 0.0,
         "max": 1.0
@@ -136,7 +145,7 @@
         "type": "enum",
         "default": "",
         "title": "Subject Detection",
-        "description": "Apply enhancements only to a region.",
+        "description": "Restrict enhancements to a subject region.",
         "required": false,
         "values": ["", "foreground", "background", "all"]
       }
@@ -148,7 +157,7 @@
     "moduleName": "image",
     "modelId": "topaz/image/enhance-gen",
     "title": "Topaz Enhance Image (Generative)",
-    "description": "Topaz Image API — Generative Upscale (Redefine / Recover).\n\n    topaz, image, generative, upscale, prompt\n\n    Async /image/v1/enhance-gen/async endpoint. Prompt-guided enhancement with creativity and texture controls.",
+    "description": "Topaz Image API — Generative Upscale (Wonder / Bloom / Redefine).\n\n    topaz, image, generative, upscale, prompt\n\n    Multipart POST /image/v1/enhance-gen/async. Prompt-guided enhancement with creativity, texture, detail, and face recovery controls. Parameters not supported by the chosen model are ignored.",
     "outputType": "image",
     "submitEndpoint": "https://api.topazlabs.com/image/v1/enhance-gen/async",
     "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
@@ -171,14 +180,23 @@
         "title": "Model",
         "description": "Topaz generative model.",
         "required": false,
-        "values": ["Redefine"]
+        "values": [
+          "Standard MAX",
+          "Recover 3",
+          "Wonder",
+          "Wonder 2",
+          "Wonder 3",
+          "Redefine",
+          "Bloom Realism",
+          "Bloom Creative"
+        ]
       },
       {
         "name": "prompt",
         "type": "str",
         "default": "",
         "title": "Prompt",
-        "description": "Text describing the desired enhancement (max 1024 chars).",
+        "description": "Description of the desired enhancement (max 1024 chars). Ignored when autoprompt=true.",
         "required": false,
         "max": 1024
       },
@@ -195,7 +213,7 @@
         "type": "int",
         "default": 3,
         "title": "Creativity",
-        "description": "Creative liberty level.",
+        "description": "Creative liberty level (1-9). Low = high fidelity; high = more creative.",
         "required": false,
         "min": 1,
         "max": 9
@@ -205,7 +223,7 @@
         "type": "int",
         "default": 3,
         "title": "Texture",
-        "description": "Texture addition amount.",
+        "description": "Texture addition amount (1-5).",
         "required": false,
         "min": 1,
         "max": 5
@@ -215,25 +233,20 @@
         "type": "int",
         "default": 0,
         "title": "Output Width",
+        "description": "Output width in pixels (1-32000). 0 leaves height to drive scaling.",
         "required": false,
-        "min": 0
+        "min": 0,
+        "max": 32000
       },
       {
         "name": "output_height",
         "type": "int",
         "default": 0,
         "title": "Output Height",
+        "description": "Output height in pixels (1-32000). 0 leaves width to drive scaling.",
         "required": false,
-        "min": 0
-      },
-      {
-        "name": "scale",
-        "type": "float",
-        "default": 2.0,
-        "title": "Scale",
-        "required": false,
-        "min": 1.0,
-        "max": 4.0
+        "min": 0,
+        "max": 32000
       },
       {
         "name": "output_format",
@@ -242,6 +255,14 @@
         "title": "Output Format",
         "required": false,
         "values": ["jpeg", "png", "tiff"]
+      },
+      {
+        "name": "crop_to_fill",
+        "type": "bool",
+        "default": false,
+        "title": "Crop To Fill",
+        "description": "Crop instead of letterbox when the output aspect differs from the source.",
+        "required": false
       },
       {
         "name": "face_enhancement",
@@ -258,6 +279,59 @@
         "required": false,
         "min": 0.0,
         "max": 1.0
+      },
+      {
+        "name": "face_enhancement_creativity",
+        "type": "float",
+        "default": 0.3,
+        "title": "Face Enhancement Creativity",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "sharpen",
+        "type": "float",
+        "default": 0.0,
+        "title": "Sharpen",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "denoise",
+        "type": "float",
+        "default": 0.0,
+        "title": "Denoise",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "detail",
+        "type": "bool",
+        "default": false,
+        "title": "Add Detail",
+        "description": "Add a detail pass after the primary render.",
+        "required": false
+      },
+      {
+        "name": "detail_strength",
+        "type": "float",
+        "default": 1.0,
+        "title": "Detail Strength",
+        "description": "Strength of the detail pass (0-10). Required when detail=true.",
+        "required": false,
+        "min": 0.0,
+        "max": 10.0
+      },
+      {
+        "name": "subject_detection",
+        "type": "enum",
+        "default": "",
+        "title": "Subject Detection",
+        "required": false,
+        "values": ["", "foreground", "background", "all"]
       }
     ],
     "validation": []
@@ -267,12 +341,13 @@
     "moduleName": "video",
     "modelId": "topaz/video/enhance",
     "title": "Topaz Enhance Video",
-    "description": "Topaz Video API — full upload + process + download pipeline.\n\n    topaz, video, upscale, enhance, interpolate\n\n    Creates a job at /video/, accepts the upload URL, PUTs the source, completes the upload, polls /status, and downloads the result. Requires source metadata (resolution, frame rate, duration, frame count), probed locally via ffprobe.",
+    "description": "Topaz Video API — upscale / enhance pipeline.\n\n    topaz, video, upscale, enhance, restore\n\n    POST /video/ → PATCH /video/{id}/accept → multipart PUT upload → PATCH /video/{id}/complete-upload/ → GET /video/{id}/status. Requires source metadata (resolution, frame rate, duration, frame count), probed locally via ffprobe.",
     "outputType": "video",
+    "videoKind": "upscale",
     "requiredRuntimes": ["ffmpeg"],
     "submitEndpoint": "https://api.topazlabs.com/video/",
     "acceptEndpoint": "https://api.topazlabs.com/video/{request_id}/accept",
-    "completeEndpoint": "https://api.topazlabs.com/video/{request_id}/complete-upload",
+    "completeEndpoint": "https://api.topazlabs.com/video/{request_id}/complete-upload/",
     "statusEndpoint": "https://api.topazlabs.com/video/{request_id}/status",
     "pollInterval": 15000,
     "maxAttempts": 1000,
@@ -281,7 +356,7 @@
         "name": "video",
         "type": "video",
         "title": "Video",
-        "description": "Source video to enhance.",
+        "description": "Source video to enhance. mp4, mov, or mkv.",
         "required": true,
         "uploadField": true
       },
@@ -290,15 +365,53 @@
         "type": "enum",
         "default": "prob-4",
         "title": "Model",
-        "description": "Topaz video model.",
+        "description": "Topaz video upscale / enhancement model. Frame interpolation models live on the Interpolate Video node.",
         "required": false,
         "values": [
           "prob-4",
-          "apo-8",
+          "ahq-12",
+          "amq-13",
+          "alq-13",
+          "aaa-9",
+          "amqs-2",
+          "alqs-2",
+          "dtv-4",
+          "ddv-3",
+          "dtd-4",
+          "dtds-2",
+          "dtvs-2",
+          "ghq-5",
+          "gcg-5",
+          "iris-2",
+          "iris-3",
+          "thd-3",
+          "thf-4",
           "thm-2",
-          "iris-1",
-          "starlight-precise-2"
+          "rhea-1",
+          "nyx-3",
+          "nxf-1",
+          "nxl-1",
+          "nxhf-1",
+          "color-1"
         ]
+      },
+      {
+        "name": "video_type",
+        "type": "enum",
+        "default": "Progressive",
+        "title": "Video Type",
+        "description": "Frame/field type of the source.",
+        "required": false,
+        "values": ["Progressive", "Interlaced", "ProgressiveInterlaced"]
+      },
+      {
+        "name": "auto",
+        "type": "enum",
+        "default": "Auto",
+        "title": "Parameter Mode",
+        "description": "Auto = automatic estimation. Manual = use the values below. Relative = auto + manual offsets.",
+        "required": false,
+        "values": ["Auto", "Manual", "Relative"]
       },
       {
         "name": "output_width",
@@ -336,22 +449,223 @@
         "values": ["mp4", "mov", "mkv"]
       },
       {
-        "name": "audio_codec",
+        "name": "video_encoder",
+        "type": "enum",
+        "default": "H264",
+        "title": "Video Encoder",
+        "required": false,
+        "values": ["H264", "H265", "AV1", "VP9"]
+      },
+      {
+        "name": "dynamic_compression_level",
+        "type": "enum",
+        "default": "Mid",
+        "title": "Compression Level",
+        "description": "Automatic CQP selection. Use videoBitrate-style overrides via the API directly if you need a fixed bitrate.",
+        "required": false,
+        "values": ["Low", "Mid", "High"]
+      },
+      {
+        "name": "audio_mode",
         "type": "enum",
         "default": "copy",
-        "title": "Audio Codec",
+        "title": "Audio",
+        "description": "copy = keep source audio. aac/ac3/pcm = re-encode. none = drop audio.",
         "required": false,
-        "values": ["copy", "aac", "none"]
+        "values": ["copy", "aac", "ac3", "pcm", "none"]
+      },
+      {
+        "name": "crop_to_fit",
+        "type": "bool",
+        "default": false,
+        "title": "Crop To Fit",
+        "description": "Center-crop to the output dimensions instead of letterboxing.",
+        "required": false
+      },
+      {
+        "name": "compression",
+        "type": "float",
+        "default": 0.0,
+        "title": "Compression Recovery",
+        "description": "Strength of compression recovery (-1 to 1). Used when Parameter Mode is Manual/Relative.",
+        "required": false,
+        "min": -1.0,
+        "max": 1.0
+      },
+      {
+        "name": "details",
+        "type": "float",
+        "default": 0.0,
+        "title": "Details",
+        "description": "Detail reconstruction (-1 to 1).",
+        "required": false,
+        "min": -1.0,
+        "max": 1.0
+      },
+      {
+        "name": "noise",
+        "type": "float",
+        "default": 0.0,
+        "title": "Noise Reduction",
+        "description": "Noise reduction (-1 to 1).",
+        "required": false,
+        "min": -1.0,
+        "max": 1.0
+      },
+      {
+        "name": "halo",
+        "type": "float",
+        "default": 0.0,
+        "title": "Halo Reduction",
+        "description": "Halo reduction (-1 to 1).",
+        "required": false,
+        "min": -1.0,
+        "max": 1.0
+      },
+      {
+        "name": "blur",
+        "type": "float",
+        "default": 0.0,
+        "title": "Sharpness",
+        "description": "Sharpness applied to the result (-1 to 1).",
+        "required": false,
+        "min": -1.0,
+        "max": 1.0
+      },
+      {
+        "name": "recover_original_detail",
+        "type": "float",
+        "default": 0.0,
+        "title": "Recover Original Detail",
+        "description": "Reintroduce source detail into the output (0 to 1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      }
+    ],
+    "validation": []
+  },
+  {
+    "className": "InterpolateVideo",
+    "moduleName": "video",
+    "modelId": "topaz/video/interpolate",
+    "title": "Topaz Interpolate Video",
+    "description": "Topaz Video API — frame interpolation pipeline.\n\n    topaz, video, interpolate, slowmo, fps\n\n    Same multi-step pipeline as Enhance Video but with a Frame Interpolation filter. Use Apollo (apo-8) for general slow-motion or fps boosts, Chronos (chr-2 / chf-3) for higher-motion content, Aperture Flow (apf-2) as a lightweight default, and Aion (aion-1) for high-resolution / complex motion.",
+    "outputType": "video",
+    "videoKind": "interpolate",
+    "requiredRuntimes": ["ffmpeg"],
+    "submitEndpoint": "https://api.topazlabs.com/video/",
+    "acceptEndpoint": "https://api.topazlabs.com/video/{request_id}/accept",
+    "completeEndpoint": "https://api.topazlabs.com/video/{request_id}/complete-upload/",
+    "statusEndpoint": "https://api.topazlabs.com/video/{request_id}/status",
+    "pollInterval": 15000,
+    "maxAttempts": 1000,
+    "fields": [
+      {
+        "name": "video",
+        "type": "video",
+        "title": "Video",
+        "description": "Source video to interpolate.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "apo-8",
+        "title": "Model",
+        "description": "Frame interpolation model.",
+        "required": false,
+        "values": ["apo-8", "apf-2", "chf-3", "chr-2", "aion-1"]
       },
       {
         "name": "slowmo",
         "type": "float",
         "default": 1.0,
         "title": "Slow-mo Factor",
-        "description": "1.0 = no slow motion. >1 stretches duration.",
+        "description": "1.0 = no slow motion. >1 stretches duration (1-16).",
         "required": false,
-        "min": 0.1,
-        "max": 8.0
+        "min": 1.0,
+        "max": 16.0
+      },
+      {
+        "name": "fps",
+        "type": "float",
+        "default": 0,
+        "title": "Output FPS",
+        "description": "0 = same as source. Otherwise 15-240. Does not change duration.",
+        "required": false,
+        "min": 0,
+        "max": 240
+      },
+      {
+        "name": "duplicate",
+        "type": "bool",
+        "default": false,
+        "title": "Drop Duplicates",
+        "description": "Analyze input for duplicate frames and remove them before interpolation.",
+        "required": false
+      },
+      {
+        "name": "duplicate_threshold",
+        "type": "float",
+        "default": 0.01,
+        "title": "Duplicate Threshold",
+        "description": "Detection sensitivity for duplicates (0.001-0.1).",
+        "required": false,
+        "min": 0.001,
+        "max": 0.1
+      },
+      {
+        "name": "output_width",
+        "type": "int",
+        "default": 0,
+        "title": "Output Width",
+        "description": "0 = same as source.",
+        "required": false,
+        "min": 0
+      },
+      {
+        "name": "output_height",
+        "type": "int",
+        "default": 0,
+        "title": "Output Height",
+        "description": "0 = same as source.",
+        "required": false,
+        "min": 0
+      },
+      {
+        "name": "output_container",
+        "type": "enum",
+        "default": "mp4",
+        "title": "Container",
+        "required": false,
+        "values": ["mp4", "mov", "mkv"]
+      },
+      {
+        "name": "video_encoder",
+        "type": "enum",
+        "default": "H264",
+        "title": "Video Encoder",
+        "required": false,
+        "values": ["H264", "H265", "AV1", "VP9"]
+      },
+      {
+        "name": "dynamic_compression_level",
+        "type": "enum",
+        "default": "Mid",
+        "title": "Compression Level",
+        "required": false,
+        "values": ["Low", "Mid", "High"]
+      },
+      {
+        "name": "audio_mode",
+        "type": "enum",
+        "default": "copy",
+        "title": "Audio",
+        "description": "copy = keep source audio. aac/ac3/pcm = re-encode. none = drop audio.",
+        "required": false,
+        "values": ["copy", "aac", "ac3", "pcm", "none"]
       }
     ],
     "validation": []

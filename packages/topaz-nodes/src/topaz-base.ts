@@ -6,9 +6,18 @@
  *  - Video: create job (with probed source metadata) → accept → PUT upload
  *    (single- or multi-part) → complete-upload → poll status → download.
  *
- * Topaz authenticates with the `X-API-Key` header (not Bearer). Uses native
- * fetch (Node 18+) and the system `ffprobe` (installed via the package manager)
- * to probe source video metadata, which Topaz requires at job-creation time.
+ * Wire spec (from developer.topazlabs.com/reference/api-endpoints):
+ *  - Auth: `X-API-Key` header (not Bearer).
+ *  - Image status states: Pending | Processing | Completed | Cancelled | Failed.
+ *  - Image download response: { download_url, head_url, expiry }.
+ *  - Video status states: requested | accepted | initializing | preprocessing
+ *    | processing | postprocessing | complete | canceling | canceled | failed.
+ *  - Video accept response: { uploadId, urls[] }. The signed download URL on a
+ *    completed video request lives at `download.url` (nested).
+ *
+ * Uses native fetch (Node 18+) and the system `ffprobe` (installed via the
+ * package manager) to probe source video metadata, which Topaz requires at
+ * job-creation time.
  */
 
 import { execFile as execFileCb } from "node:child_process";
@@ -23,6 +32,8 @@ const execFile = promisify(execFileCb);
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const sleep = (ms: number): Promise<void> =>
   new Promise((r) => setTimeout(r, ms));
+
+export type TopazVideoKind = "upscale" | "interpolate";
 
 export interface TopazImageSpec {
   submitEndpoint: string;
@@ -39,6 +50,7 @@ export interface TopazVideoSpec {
   statusEndpoint: string;
   pollInterval: number;
   maxAttempts: number;
+  videoKind: TopazVideoKind;
 }
 
 export interface TopazVideoMetadata {
@@ -127,6 +139,16 @@ async function fetchWithRetry(
   return last as Response;
 }
 
+// Image API status states (per /reference/api-endpoints/image/status):
+//   Pending | Processing | Completed | Cancelled | Failed
+// Video API status states (per /reference/api-endpoints/video/get-request-status):
+//   requested | accepted | initializing | preprocessing | processing |
+//   postprocessing | complete | canceling | canceled | failed
+// We accept both vocabularies in one helper since callers point us at the
+// right endpoint and we lowercase the value before comparing.
+const SUCCESS_STATES = new Set(["completed", "complete"]);
+const FAILURE_STATES = new Set(["failed", "cancelled", "canceled"]);
+
 async function pollUntilTerminal(
   url: string,
   headers: Record<string, string>,
@@ -138,8 +160,8 @@ async function pollUntilTerminal(
     if (!resp.ok) throw new Error(`Topaz status poll failed: ${resp.status}`);
     const data = (await resp.json()) as Record<string, unknown>;
     const status = String(data.status ?? "").toLowerCase();
-    if (["completed", "succeeded", "success"].includes(status)) return data;
-    if (["failed", "error", "cancelled"].includes(status)) {
+    if (SUCCESS_STATES.has(status)) return data;
+    if (FAILURE_STATES.has(status)) {
       throw new Error(`Topaz job failed: ${JSON.stringify(data)}`);
     }
     await sleep(pollInterval);
@@ -354,7 +376,7 @@ export async function topazExecuteImageTask(
   form.set("image", blob, "input");
   for (const [k, v] of Object.entries(fields)) {
     if (v === null || v === undefined || v === "") continue;
-    // 0 for output_width/output_height means "derive from scale" — omit it.
+    // 0 for output_width/output_height means "infer from the other dim" — omit.
     if ((k === "output_width" || k === "output_height") && v === 0) continue;
     form.set(k, String(v));
   }
@@ -369,10 +391,13 @@ export async function topazExecuteImageTask(
       `Topaz submit failed: ${submit.status} ${await submit.text()}`
     );
   }
+  // Spec returns { process_id, source_id, eta }. The process_id is also
+  // available in the X-Process-ID response header.
   const submitJson = (await submit.json()) as Record<string, unknown>;
-  const processId = (submitJson.process_id ?? submitJson.id) as
-    | string
-    | undefined;
+  const processId =
+    (submitJson.process_id as string | undefined) ??
+    submit.headers?.get("X-Process-ID") ??
+    undefined;
   if (!processId) {
     throw new Error(
       `Topaz did not return a process_id: ${JSON.stringify(submitJson)}`
@@ -387,11 +412,12 @@ export async function topazExecuteImageTask(
     spec.maxAttempts
   );
 
+  // Spec: { download_url, head_url, expiry }.
   const downloadUrl = spec.downloadEndpoint.replace("{process_id}", processId);
   const dl = await fetchWithRetry(downloadUrl, { headers: authHeaders(apiKey) });
   if (!dl.ok) throw new Error(`Topaz download lookup failed: ${dl.status}`);
   const dlJson = (await dl.json()) as Record<string, unknown>;
-  const finalUrl = (dlJson.url ?? dlJson.download_url) as string | undefined;
+  const finalUrl = (dlJson.download_url ?? dlJson.url) as string | undefined;
   if (!finalUrl) {
     throw new Error(`No download URL in response: ${JSON.stringify(dlJson)}`);
   }
@@ -407,6 +433,110 @@ export async function topazExecuteImageTask(
 // Video executor
 // ---------------------------------------------------------------------------
 
+const INTERPOLATION_MODELS = new Set([
+  "apf-2",
+  "apo-8",
+  "chf-3",
+  "chr-2",
+  "aion-1"
+]);
+
+const AUDIO_MODE_MAP: Record<
+  string,
+  { audioTransfer: "Copy" | "Convert" | "None"; audioCodec?: "AAC" | "AC3" | "PCM" }
+> = {
+  copy: { audioTransfer: "Copy", audioCodec: "AAC" },
+  aac: { audioTransfer: "Convert", audioCodec: "AAC" },
+  ac3: { audioTransfer: "Convert", audioCodec: "AC3" },
+  pcm: { audioTransfer: "Convert", audioCodec: "PCM" },
+  none: { audioTransfer: "None" }
+};
+
+function num(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function buildUpscaleFilter(
+  fields: Record<string, unknown>
+): Record<string, unknown> {
+  const filter: Record<string, unknown> = { model: String(fields.model) };
+  if (fields.video_type) filter.videoType = String(fields.video_type);
+  if (fields.auto) filter.auto = String(fields.auto);
+  // Manual-mode tuning. The API ignores out-of-range or unsupported values
+  // for a given model — the swagger says these are the documented controls.
+  const numericMap: Record<string, string> = {
+    compression: "compression",
+    details: "details",
+    noise: "noise",
+    halo: "halo",
+    blur: "blur",
+    recover_original_detail: "recoverOriginalDetailValue"
+  };
+  for (const [src, dst] of Object.entries(numericMap)) {
+    const v = num(fields[src]);
+    if (v !== undefined && v !== 0) filter[dst] = v;
+  }
+  return filter;
+}
+
+function buildInterpolationFilter(
+  fields: Record<string, unknown>
+): Record<string, unknown> {
+  const filter: Record<string, unknown> = { model: String(fields.model) };
+  const slowmo = num(fields.slowmo);
+  if (slowmo !== undefined && slowmo !== 1) filter.slowmo = slowmo;
+  const fps = num(fields.fps);
+  if (fps !== undefined && fps > 0) filter.fps = fps;
+  if (fields.duplicate) filter.duplicate = true;
+  const threshold = num(fields.duplicate_threshold);
+  if (threshold !== undefined && fields.duplicate) {
+    filter.duplicateThreshold = threshold;
+  }
+  return filter;
+}
+
+function buildVideoFilters(
+  spec: TopazVideoSpec,
+  fields: Record<string, unknown>
+): Array<Record<string, unknown>> {
+  if (spec.videoKind === "interpolate") {
+    return [buildInterpolationFilter(fields)];
+  }
+  // Default to upscale when the model code is a known upscale model.
+  if (INTERPOLATION_MODELS.has(String(fields.model))) {
+    // Caller wired a frame-interpolation model into the Enhance node. Build
+    // the appropriate filter so the API call still succeeds.
+    return [buildInterpolationFilter(fields)];
+  }
+  return [buildUpscaleFilter(fields)];
+}
+
+function buildVideoOutput(
+  fields: Record<string, unknown>,
+  sourceMeta: TopazVideoMetadata
+): Record<string, unknown> {
+  const audioMode = String(fields.audio_mode ?? "copy").toLowerCase();
+  const audio = AUDIO_MODE_MAP[audioMode] ?? AUDIO_MODE_MAP.copy;
+
+  const output: Record<string, unknown> = {
+    resolution: {
+      width: num(fields.output_width) || sourceMeta.resolution.width,
+      height: num(fields.output_height) || sourceMeta.resolution.height
+    },
+    frameRate: num(fields.output_frame_rate) || sourceMeta.frameRate,
+    container: String(fields.output_container ?? "mp4"),
+    videoEncoder: String(fields.video_encoder ?? "H264"),
+    // One of dynamicCompressionLevel or videoBitrate is required.
+    dynamicCompressionLevel: String(fields.dynamic_compression_level ?? "Mid"),
+    audioTransfer: audio.audioTransfer
+  };
+  if (audio.audioCodec) output.audioCodec = audio.audioCodec;
+  if (fields.crop_to_fit) output.cropToFit = true;
+  return output;
+}
+
 export async function topazExecuteVideoTask(
   apiKey: string,
   spec: TopazVideoSpec,
@@ -414,22 +544,8 @@ export async function topazExecuteVideoTask(
   videoBytes: Uint8Array,
   sourceMeta: TopazVideoMetadata
 ): Promise<Uint8Array> {
-  const slowmo = Number(fields.slowmo ?? 1);
-  const filters: Array<Record<string, unknown>> = [{ model: fields.model }];
-  if (slowmo && slowmo !== 1) filters[0].slowmo = slowmo;
-
-  const audioCodec = String(fields.audio_codec ?? "copy");
-  const output = {
-    resolution: {
-      width: Number(fields.output_width) || sourceMeta.resolution.width,
-      height: Number(fields.output_height) || sourceMeta.resolution.height
-    },
-    frameRate: Number(fields.output_frame_rate) || sourceMeta.frameRate,
-    container: String(fields.output_container ?? "mp4"),
-    audioCodec,
-    audioTransfer: audioCodec === "copy" ? "copy" : "encode"
-  };
-
+  const filters = buildVideoFilters(spec, fields);
+  const output = buildVideoOutput(fields, sourceMeta);
   const createBody = { source: sourceMeta, output, filters };
 
   // 1. Create request
@@ -444,14 +560,14 @@ export async function topazExecuteVideoTask(
     );
   }
   const createJson = (await create.json()) as Record<string, unknown>;
-  const requestId = (createJson.id ?? createJson.requestID) as
+  const requestId = (createJson.requestId ?? createJson.id) as
     | string
     | undefined;
   if (!requestId) {
     throw new Error(`No request ID returned: ${JSON.stringify(createJson)}`);
   }
 
-  // 2. Accept → get upload URL(s)
+  // 2. Accept → get multi-part upload URLs
   const accept = await fetchWithRetry(
     spec.acceptEndpoint.replace("{request_id}", requestId),
     { method: "PATCH", headers: authHeaders(apiKey) }
@@ -462,7 +578,9 @@ export async function topazExecuteVideoTask(
     );
   }
   const acceptJson = (await accept.json()) as Record<string, unknown>;
-  const uploadUrls = (acceptJson.uploadUrls ??
+  // Spec: { uploadId, urls[] }. Tolerate legacy shapes just in case.
+  const uploadUrls = (acceptJson.urls ??
+    acceptJson.uploadUrls ??
     (acceptJson.uploadUrl ? [acceptJson.uploadUrl] : [])) as string[];
   if (!uploadUrls.length) {
     throw new Error(`No upload URL returned: ${JSON.stringify(acceptJson)}`);
@@ -515,8 +633,10 @@ export async function topazExecuteVideoTask(
     spec.maxAttempts
   );
 
-  // 6. Download result
-  const downloadUrl = (final.downloadUrl ??
+  // 6. Download result. Spec: { download: { url, expiresIn, expiresAt } }.
+  const download = (final.download ?? {}) as Record<string, unknown>;
+  const downloadUrl = (download.url ??
+    final.downloadUrl ??
     final.download_url ??
     final.url) as string | undefined;
   if (!downloadUrl) {
