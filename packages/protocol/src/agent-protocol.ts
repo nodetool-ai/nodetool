@@ -45,6 +45,14 @@ export interface AgentSessionOptions {
   workspacePath?: string;
   resumeSessionId?: string;
   modelParams?: AgentModelParams;
+  /**
+   * Per-session opt-in for long-term memory. When `true`, the session
+   * resolves a `LongTermMemory` instance on its first send and folds
+   * recalled items into the prompt for every subsequent turn. When
+   * `false` or omitted, memory stays disabled regardless of any
+   * environment defaults.
+   */
+  memoryEnabled?: boolean;
 }
 
 export interface AgentModelsRequest {
@@ -152,6 +160,12 @@ export type AgentClientMessage =
       command: "stop_execution";
       request_id: string;
       session_id: string;
+    }
+  | {
+      command: "set_memory_enabled";
+      request_id: string;
+      session_id: string;
+      enabled: boolean;
     }
   | {
       command: "close_session";
@@ -279,6 +293,18 @@ export function validateAgentClientMessage(
         return {
           ok: false,
           error: `${obj.command}: \`session_id\` must be a string`,
+        };
+      }
+      return { ok: true, value: obj as unknown as AgentClientMessage };
+    case "set_memory_enabled":
+      if (
+        typeof obj.session_id !== "string" ||
+        typeof obj.enabled !== "boolean"
+      ) {
+        return {
+          ok: false,
+          error:
+            "set_memory_enabled: `session_id` (string) and `enabled` (boolean) are required",
         };
       }
       return { ok: true, value: obj as unknown as AgentClientMessage };

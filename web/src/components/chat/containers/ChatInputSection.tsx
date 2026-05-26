@@ -64,6 +64,8 @@ type ChatInputSectionProps = {
   onAgentModeToggle?: (enabled: boolean) => void;
   agentPlanner?: AgentPlanner;
   onAgentPlannerChange?: (planner: AgentPlanner) => void;
+  memoryEnabled?: boolean;
+  onMemoryToggle?: (enabled: boolean) => void;
   allowedProviders?: string[];
   requireToolSupport?: boolean;
   variant?: ChatComposerVariant;
@@ -85,6 +87,8 @@ const ChatInputSection = ({
   onAgentModeToggle,
   agentPlanner,
   onAgentPlannerChange,
+  memoryEnabled,
+  onMemoryToggle,
   allowedProviders,
   requireToolSupport,
   selectedTools,
@@ -125,6 +129,8 @@ const ChatInputSection = ({
             onAgentModeToggle={onAgentModeToggle}
             agentPlanner={agentPlanner}
             onAgentPlannerChange={onAgentPlannerChange}
+            memoryEnabled={memoryEnabled}
+            onMemoryToggle={onMemoryToggle}
             allowedProviders={allowedProviders}
             requireToolSupport={requireToolSupport}
             selectedTools={selectedTools}

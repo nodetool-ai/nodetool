@@ -103,6 +103,12 @@ export interface AgentSdkProvider {
      * (anthropic / openai / gemini / …). Ignored by harness providers.
      */
     chatProviderId?: string;
+    /**
+     * For the "llm" provider only — opt in to long-term memory recall +
+     * extraction for this session. Default-off; harness providers
+     * ignore it.
+     */
+    memoryEnabled?: boolean;
   }): AgentQuerySession;
   listSessions(
     options: AgentListSessionsRequest,

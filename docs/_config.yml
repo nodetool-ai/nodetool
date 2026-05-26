@@ -67,6 +67,7 @@ header_pages:
   - global-chat.md
   - agent-config-schema.md
   - agent-memory.md
+  - long-term-memory.md
   # Models & Providers
   - models.md
   - providers.md

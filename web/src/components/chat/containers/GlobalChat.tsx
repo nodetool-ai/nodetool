@@ -54,6 +54,10 @@ const GlobalChat: React.FC = () => {
       currentLogUpdate: state.currentLogUpdate
     }))
   );
+  const memoryEnabled = useGlobalChatStore((state) => state.memoryEnabled);
+  const setMemoryEnabled = useGlobalChatStore(
+    (state) => state.setMemoryEnabled
+  );
 
   const {
     currentThreadId,
@@ -678,6 +682,8 @@ const GlobalChat: React.FC = () => {
               onAgentModeToggle={setAgentMode}
               agentPlanner={agentPlanner}
               onAgentPlannerChange={setAgentPlanner}
+              memoryEnabled={memoryEnabled}
+              onMemoryToggle={setMemoryEnabled}
               currentPlanningUpdate={currentPlanningUpdate}
               currentTaskUpdate={taskUpdateForDisplay}
               currentLogUpdate={currentLogUpdate}
