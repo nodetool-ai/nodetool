@@ -92,6 +92,10 @@ const WorkflowList = () => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
   const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
+  const shiftKeyRef = useRef(shiftKeyPressed);
+  shiftKeyRef.current = shiftKeyPressed;
+  const controlKeyRef = useRef(controlKeyPressed);
+  controlKeyRef.current = controlKeyPressed;
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 1000;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
@@ -132,9 +136,8 @@ const WorkflowList = () => {
     }
 
     if (showFavoritesOnly) {
-      filtered = filtered.filter((workflow) =>
-        favoriteWorkflowIds.includes(workflow.id)
-      );
+      const favSet = new Set(favoriteWorkflowIds);
+      filtered = filtered.filter((workflow) => favSet.has(workflow.id));
     }
 
     // Filter by selected tags (workflow must have ALL selected tags)
@@ -159,7 +162,7 @@ const WorkflowList = () => {
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyPressed || shiftKeyPressed) { return; }
+      if (controlKeyRef.current || shiftKeyRef.current) { return; }
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
@@ -168,7 +171,7 @@ const WorkflowList = () => {
         setSelectedWorkflows([]);
       }
     },
-    [controlKeyPressed, shiftKeyPressed]
+    [controlKeyRef, shiftKeyRef]
   );
 
   const onDelete = useCallback((workflow: Workflow) => {
@@ -286,19 +289,36 @@ const WorkflowList = () => {
     setShowFavoritesOnly((prev) => !prev);
   }, []);
 
+  const handleCloseDeleteDialog = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+  }, []);
 
+  const handleCloseEditModal = useCallback(() => {
+    setWorkflowToEdit(null);
+  }, []);
+
+  const handleToggleCheckboxes = useCallback(() => {
+    setShowCheckboxes((prev) => !prev);
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    setWorkflowsToDelete(
+      workflows.filter((w) => selectedWorkflows.includes(w.id))
+    );
+    setIsDeleteDialogOpen(true);
+  }, [workflows, selectedWorkflows]);
 
   return (
     <>
       <WorkflowDeleteDialog
         open={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
+        onClose={handleCloseDeleteDialog}
         workflowsToDelete={workflowsToDelete}
       />
       {workflowToEdit && (
         <WorkflowFormModal
           open={!!workflowToEdit}
-          onClose={() => setWorkflowToEdit(null)}
+          onClose={handleCloseEditModal}
           workflow={workflowToEdit}
           availableTags={availableTags}
         />
@@ -320,14 +340,9 @@ const WorkflowList = () => {
         >
           <WorkflowToolbar
             showCheckboxes={showCheckboxes}
-            toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
+            toggleCheckboxes={handleToggleCheckboxes}
             selectedWorkflowsCount={selectedWorkflows.length}
-            onBulkDelete={() => {
-              setWorkflowsToDelete(
-                workflows.filter((w) => selectedWorkflows.includes(w.id))
-              );
-              setIsDeleteDialogOpen(true);
-            }}
+            onBulkDelete={handleBulkDelete}
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
             availableTags={availableTags}

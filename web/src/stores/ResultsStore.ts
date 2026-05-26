@@ -177,16 +177,15 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     counter?: number
   ) => {
     const key = hashKey(workflowId, edgeId);
-    set((state) => {
-      const existing = state.edges[key];
-      const newCounter = counter !== undefined ? counter : existing?.counter;
-      return {
-        edges: {
-          ...state.edges,
-          [key]: { status, counter: newCounter }
-        }
-      };
-    });
+    const existing = get().edges[key];
+    const newCounter = counter !== undefined ? counter : existing?.counter;
+    if (existing && existing.status === status && existing.counter === newCounter) return;
+    set((state) => ({
+      edges: {
+        ...state.edges,
+        [key]: { status, counter: newCounter }
+      }
+    }));
   },
   /**
    * Get the status for an edge.
