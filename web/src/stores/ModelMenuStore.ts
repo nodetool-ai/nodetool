@@ -25,14 +25,6 @@ export interface ModelSelectorModel {
   supported_tasks?: string[];
 }
 
-export type ModelType =
-  | LanguageModel
-  | ImageModel
-  | TTSModel
-  | ASRModel
-  | VideoModel
-  | EmbeddingModel;
-
 interface ModelMenuState<
   TModel extends ModelSelectorModel = LanguageModel
 > {

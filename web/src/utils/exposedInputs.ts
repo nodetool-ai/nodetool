@@ -153,17 +153,7 @@ export const addExposedInput = (
   propertyName: string
 ): string[] => addToList(current, propertyName);
 
-export const addExposedInputLabeled = (
-  current: string[] | undefined,
-  propertyName: string
-): string[] => addToList(current, propertyName);
-
 export const removeExposedInput = (
-  current: string[] | undefined,
-  propertyName: string
-): string[] => removeFromList(current, propertyName);
-
-export const removeExposedInputLabeled = (
   current: string[] | undefined,
   propertyName: string
 ): string[] => removeFromList(current, propertyName);
@@ -228,19 +218,6 @@ export const applyExposedPlacementTarget = (
   }
   return patch;
 };
-
-/** @deprecated Use applyExposedPlacementTarget. */
-export const patchExposedInputPlacement = (
-  data: ExposedInputPlacementData,
-  propertyName: string,
-  placement: ExposedInputPlacement | null
-): ExposedInputListsPatch =>
-  applyExposedPlacementTarget(
-    { input_fields: [], inline_fields: [] },
-    data,
-    propertyName,
-    placement
-  );
 
 /** All inspector-listed properties may cycle placement (not only advanced). */
 export const canConfigureExposedPlacement = (
