@@ -58,14 +58,15 @@ const laneStyles = (
     width: "100%",
     height: heightPx,
     flexShrink: 0,
-    backgroundColor: visible
-      ? theme.vars.palette.background.default
-      : theme.vars.palette.action.disabledBackground,
-    borderBottom: `1px solid ${isDragReject
-      ? theme.vars.palette.error.main
-      : isDragOver
-        ? theme.vars.palette.primary.main
-        : theme.vars.palette.divider}`,
+    backgroundColor: theme.vars.palette.background.default,
+    opacity: visible ? 1 : 0.55,
+    borderBottom: `1px solid ${
+      isDragReject
+        ? theme.vars.palette.error.main
+        : isDragOver
+          ? theme.vars.palette.primary.main
+          : theme.vars.palette.divider
+    }`,
     outline: isDragOver
       ? `2px solid ${theme.vars.palette.primary.main}`
       : isDragReject
@@ -74,19 +75,14 @@ const laneStyles = (
     outlineOffset: "-2px",
     overflow: "hidden",
     cursor: isRubberBanding ? "crosshair" : "default",
-    // Subtle alternating stripe
-    "&:nth-of-type(even)": {
-      backgroundColor: visible
-        ? theme.vars.palette.background.paper
-        : theme.vars.palette.action.disabledBackground
-    }
+    transition: "opacity 120ms"
   });
 
 const rubberBandStyles = (theme: Theme) =>
   css({
     position: "absolute",
-    border: `1px solid ${theme.vars.palette.primary.main}`,
-    backgroundColor: `${theme.vars.palette.primary.main}22`,
+    border: `1px solid ${theme.vars.palette.secondary.main}`,
+    backgroundColor: `${theme.vars.palette.secondary.main}22`,
     pointerEvents: "none",
     zIndex: 20
   });

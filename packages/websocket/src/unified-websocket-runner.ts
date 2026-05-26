@@ -12,6 +12,7 @@ import {
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { resourceEvents, type ResourceChangePayload } from "./resource-events.js";
+import { createSystemStatsSampler } from "./system-stats.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
@@ -968,13 +969,7 @@ export class UnifiedWebSocketRunner {
     this.pythonBridge = options.pythonBridge;
     this.getPythonBridgeReady = options.getPythonBridgeReady;
     this.apiOptions = options.apiOptions;
-    this.getSystemStats =
-      options.getSystemStats ??
-      (() => ({
-        timestamp: Date.now(),
-        process_uptime_sec: process.uptime(),
-        memory: process.memoryUsage()
-      }));
+    this.getSystemStats = options.getSystemStats ?? createSystemStatsSampler();
   }
 
   async connect(
@@ -5087,14 +5082,18 @@ export class UnifiedWebSocketRunner {
 
   private startStatsBroadcast(): void {
     this.stopStatsBroadcast();
-    this.statsTimer = setInterval(() => {
+    const send = () => {
       this.sendMessage({
         type: "system_stats",
         stats: this.getSystemStats()
       }).catch((err) => {
         log.warn("Failed to send system stats", { error: String(err) });
       });
-    }, 30_000);
+    };
+    // Fire an initial sample ~1s after connect so the sampler has a delta to
+    // report — then keep emitting on a regular cadence.
+    setTimeout(send, 1000);
+    this.statsTimer = setInterval(send, 5_000);
   }
 
   private stopStatsBroadcast(): void {

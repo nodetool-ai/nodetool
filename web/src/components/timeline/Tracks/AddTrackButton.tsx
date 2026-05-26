@@ -2,10 +2,10 @@
 /**
  * AddTrackButton
  *
- * Small button rendered at the bottom of the track header column. Click opens
- * a popover with the four track types (video / audio / overlay / subtitle).
- * Selecting one calls `TimelineStore.addTrack(type)`, which appends a new
- * track with an auto-generated name.
+ * Compact "+ Track" affordance in the timeline toolbar. Opens a popover with
+ * the four track types (video / audio / overlay / subtitle); selecting one
+ * calls `TimelineStore.addTrack(type)`, which appends a new track with an
+ * auto-generated name.
  */
 
 import React, { memo, useCallback, useState } from "react";
@@ -14,42 +14,41 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import AudiotrackIcon from "@mui/icons-material/Audiotrack";
-import LayersIcon from "@mui/icons-material/Layers";
-import SubtitlesIcon from "@mui/icons-material/Subtitles";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
+import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { Popover } from "../../ui_primitives";
-import { TRACK_HEADER_WIDTH_PX } from "./TrackHeader";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
 const buttonStyles = (theme: Theme) =>
   css({
-    width: TRACK_HEADER_WIDTH_PX,
-    flexShrink: 0,
-    display: "flex",
+    display: "inline-flex",
     alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing(0.5),
-    height: 32,
-    background: "none",
-    border: "none",
-    borderRight: `1px solid ${theme.vars.palette.divider}`,
-    borderBottom: `1px solid ${theme.vars.palette.divider}`,
+    gap: 6,
+    height: 24,
+    padding: "0 10px 0 8px",
+    background: "transparent",
+    border: "1px solid transparent",
     color: theme.vars.palette.text.secondary,
     cursor: "pointer",
-    fontSize: theme.typography.body2.fontSize,
+    fontSize: 12,
+    fontWeight: 500,
+    letterSpacing: "0.01em",
     fontFamily: theme.typography.fontFamily,
-    padding: 0,
+    borderRadius: 6,
+    transition: "background-color 120ms, color 120ms, border-color 120ms",
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,
-      color: theme.vars.palette.text.primary
+      color: theme.vars.palette.text.primary,
+      borderColor: theme.vars.palette.divider
     },
     "& svg": {
-      fontSize: 16
+      fontSize: 14
     }
   });
 
@@ -62,13 +61,25 @@ interface TrackTypeOption {
 }
 
 const TRACK_TYPES: TrackTypeOption[] = [
-  { type: "video", label: "Video", icon: <VideocamIcon fontSize="small" /> },
-  { type: "audio", label: "Audio", icon: <AudiotrackIcon fontSize="small" /> },
-  { type: "overlay", label: "Overlay", icon: <LayersIcon fontSize="small" /> },
+  {
+    type: "video",
+    label: "Video",
+    icon: <VideocamOutlinedIcon fontSize="small" />
+  },
+  {
+    type: "audio",
+    label: "Audio",
+    icon: <AudiotrackOutlinedIcon fontSize="small" />
+  },
+  {
+    type: "overlay",
+    label: "Overlay",
+    icon: <LayersOutlinedIcon fontSize="small" />
+  },
   {
     type: "subtitle",
     label: "Subtitle",
-    icon: <SubtitlesIcon fontSize="small" />
+    icon: <SubtitlesOutlinedIcon fontSize="small" />
   }
 ];
 
