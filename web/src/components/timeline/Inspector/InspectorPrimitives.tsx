@@ -519,7 +519,7 @@ export function parseTimecode(input: string, fps: number): number | null {
   if (/^\d+(\.\d+)?$/.test(trimmed)) {
     const n = Number(trimmed);
     if (!Number.isFinite(n) || n < 0) return null;
-    return n;
+    return Math.round(n);
   }
   const parts = trimmed.split(":").map((p) => p.trim());
   if (parts.some((p) => !/^\d+$/.test(p))) return null;

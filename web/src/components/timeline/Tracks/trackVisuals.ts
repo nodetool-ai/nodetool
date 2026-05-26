@@ -112,3 +112,19 @@ export function trackIndexWithinType(
   }
   return i || 1;
 }
+
+/**
+ * Precompute a map from trackId → per-type index (1-based) in a single O(n) pass.
+ * Avoids calling trackIndexWithinType per-header which results in O(n²).
+ */
+export function buildTypedIndexMap(
+  tracks: readonly TimelineTrack[]
+): Map<string, number> {
+  const result = new Map<string, number>();
+  const counters: Partial<Record<TrackTypeKey, number>> = {};
+  for (const t of tracks) {
+    counters[t.type] = (counters[t.type] ?? 0) + 1;
+    result.set(t.id, counters[t.type]!);
+  }
+  return result;
+}

@@ -19,6 +19,7 @@ import type { Theme } from "@mui/material/styles";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { formatTimecode } from "../Inspector/InspectorPrimitives";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -91,19 +92,6 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
   });
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-/** Formats ms as HH:MM:SS:FF (frames) for the playhead pill. */
-function formatPlayheadTimecode(ms: number, fps: number): string {
-  const safeFps = Math.max(1, Math.round(fps));
-  const totalFrames = Math.max(0, Math.round((ms / 1000) * safeFps));
-  const ff = totalFrames % safeFps;
-  const totalSec = Math.floor(totalFrames / safeFps);
-  const ss = totalSec % 60;
-  const mm = Math.floor(totalSec / 60) % 60;
-  const hh = Math.floor(totalSec / 3600);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(hh)}:${pad(mm)}:${pad(ss)}:${pad(ff)}`;
-}
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -212,7 +200,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
           aria-hidden
           data-testid="playhead-pill"
         >
-          {formatPlayheadTimecode(currentTimeMs, fps)}
+          {formatTimecode(currentTimeMs, fps)}
         </div>
       </div>
     );

@@ -26,7 +26,7 @@
  * Horizontal scroll: native overflow-x scroll on the scrollable panel.
  */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -47,6 +47,7 @@ import { FlexColumn, FlexRow } from "../../ui_primitives";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
+import { buildTypedIndexMap } from "./trackVisuals";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -350,6 +351,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       (s) => s.expandedFxTrackId
     );
 
+    // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
+    const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
+
     const totalTracksHeight = tracks.reduce(
       (sum, t) =>
         sum +
@@ -421,7 +425,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <div css={headerColumnStyles(theme)}>
             {tracks.map((track) => (
               <React.Fragment key={track.id}>
-                <TrackHeader track={track} />
+                <TrackHeader track={track} typedIndex={typedIndexMap.get(track.id) ?? 1} />
                 {expandedFxTrackId === track.id && (
                   <div
                     style={{ height: FX_PANEL_HEIGHT_PX }}

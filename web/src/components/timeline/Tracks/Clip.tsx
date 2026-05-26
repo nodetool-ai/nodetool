@@ -992,7 +992,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   );
 };
 
-/** "4.6s" for sub-minute, "1:23" for ≥1 min. Visible on selected clips. */
+/** "4.6s" for sub-minute, "1:23" for ≥1 min. Shown when clip width ≥ compact threshold. */
 function formatClipDuration(durationMs: number): string {
   if (durationMs < 60_000) {
     const sec = durationMs / 1000;

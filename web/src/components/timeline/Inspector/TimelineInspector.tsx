@@ -144,6 +144,7 @@ export const TimelineInspector: React.FC = memo(() => {
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const patchClip = useTimelineStore((s) => s.patchClip);
   const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+  const setSelection = useTimelineUIStore((s) => s.setSelection);
   const [toast, setToast] = useState<string | null>(null);
 
   const onPatchNumber = useCallback(
@@ -165,8 +166,9 @@ export const TimelineInspector: React.FC = memo(() => {
 
   const handleDuplicate = useCallback(() => {
     if (!clipId) return;
-    duplicateSelected(new Set([clipId]));
-  }, [clipId, duplicateSelected]);
+    const newIds = duplicateSelected(new Set([clipId]));
+    if (newIds.length > 0) setSelection(newIds);
+  }, [clipId, duplicateSelected, setSelection]);
 
   const handleSplitAtPlayhead = useCallback(() => {
     if (!clip) return;
@@ -181,7 +183,8 @@ export const TimelineInspector: React.FC = memo(() => {
   const handleDelete = useCallback(() => {
     if (!clipId) return;
     deleteSelected(new Set([clipId]));
-  }, [clipId, deleteSelected]);
+    setSelection([]);
+  }, [clipId, deleteSelected, setSelection]);
 
   // ── Identity metadata ───────────────────────────────────────────────────
 
