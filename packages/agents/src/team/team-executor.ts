@@ -426,7 +426,10 @@ export class TeamExecutor {
           result = { error: `Unknown tool: ${toolCall.name}` };
         } else {
           try {
-            result = await tool.process(this.context, toolCall.args);
+            result = await tool.process(
+              this.context,
+              Tool.stripMessage(toolCall.args)
+            );
           } catch (e) {
             result = { error: String(e) };
           }

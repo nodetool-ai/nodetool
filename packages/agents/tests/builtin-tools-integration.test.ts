@@ -154,7 +154,21 @@ describe("BUILTIN_TOOL_CLASSES", () => {
       const pt = tool.toProviderTool();
       expect(pt.name).toBe(tool.name);
       expect(pt.description).toBe(tool.description);
-      expect(pt.inputSchema).toBe(tool.inputSchema);
+      // The base class injects a `_message` field for the LLM's user-facing
+      // status, so the provider schema's `properties` is a superset of the
+      // tool's declared properties.
+      const ptSchema = pt.inputSchema as Record<string, unknown>;
+      const declared = tool.inputSchema as Record<string, unknown>;
+      expect(ptSchema["type"]).toBe(declared["type"]);
+      const ptProps = (ptSchema["properties"] ?? {}) as Record<string, unknown>;
+      const declaredProps = (declared["properties"] ?? {}) as Record<
+        string,
+        unknown
+      >;
+      for (const key of Object.keys(declaredProps)) {
+        expect(ptProps[key]).toEqual(declaredProps[key]);
+      }
+      expect(ptProps["_message"]).toMatchObject({ type: "string" });
     }
   });
 });

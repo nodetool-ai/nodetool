@@ -722,7 +722,7 @@ class UIToolProxy extends Tool {
       type: "tool_call",
       tool_call_id: toolCallId,
       name: this.name,
-      args: params
+      args: Tool.stripMessage(params)
     });
 
     try {
@@ -738,7 +738,9 @@ class UIToolProxy extends Tool {
     }
   }
 
-  userMessage(_params: Record<string, unknown>): string {
+  userMessage(params: Record<string, unknown>): string {
+    const llm = Tool.extractMessage(params);
+    if (llm) return llm;
     return `Executing frontend tool: ${this.name}`;
   }
 }
@@ -4136,14 +4138,29 @@ export class UnifiedWebSocketRunner {
             node_id?: string;
             message?: string;
           };
+          // The LLM's user-facing status is carried as `_message` inside
+          // `args`; we surface it on `message` and strip it from args before
+          // forwarding/persisting so it doesn't appear twice in the UI.
+          const rawArgs = tc.args ?? {};
+          const llmMessage =
+            typeof rawArgs["_message"] === "string"
+              ? String(rawArgs["_message"]).trim() || null
+              : null;
+          const args = (() => {
+            if (!("_message" in rawArgs)) return rawArgs;
+            const copy = { ...rawArgs };
+            delete copy["_message"];
+            return copy;
+          })();
+          const message = tc.message ?? llmMessage ?? `Calling ${tc.name}...`;
           await this.sendMessage({
             type: "tool_call_update",
             thread_id: threadId,
             workflow_id: workflowId,
             tool_call_id: tc.tool_call_id ?? null,
             name: tc.name,
-            message: tc.message ?? `Calling ${tc.name}...`,
-            args: tc.args,
+            message,
+            args,
             step_id: tc.step_id ?? null,
             node_id: tc.node_id ?? null,
             agent_execution_id: agentExecutionId
@@ -4157,8 +4174,8 @@ export class UnifiedWebSocketRunner {
               type: "tool_call_update",
               tool_call_id: tc.tool_call_id ?? null,
               name: tc.name,
-              message: tc.message ?? `Calling ${tc.name}...`,
-              args: tc.args ?? {},
+              message,
+              args,
               step_id: tc.step_id ?? null,
               node_id: tc.node_id ?? null
             },

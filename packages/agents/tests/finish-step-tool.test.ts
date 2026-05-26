@@ -148,29 +148,35 @@ describe("FinishStepTool", () => {
       const tool = new FinishStepTool();
       const providerTool = tool.toProviderTool();
 
-      expect(providerTool).toEqual({
-        name: "finish_step",
-        description: tool.description,
-        inputSchema: tool.inputSchema
+      expect(providerTool.name).toBe("finish_step");
+      expect(providerTool.description).toBe(tool.description);
+      const schema = providerTool.inputSchema as Record<string, unknown>;
+      expect(schema["type"]).toBe("object");
+      expect(schema["required"]).toEqual(["result"]);
+      const properties = schema["properties"] as Record<string, unknown>;
+      expect(properties["result"]).toEqual({
+        type: "string",
+        description: "The result of the step."
       });
+      // _message field is injected by the base class for user-facing status.
+      expect(properties["_message"]).toMatchObject({ type: "string" });
     });
   });
 });
 
 describe("Tool (base class)", () => {
   describe("toProviderTool()", () => {
-    it("returns {name, description, inputSchema}", () => {
+    it("returns {name, description, inputSchema} with _message injected", () => {
       const tool = new StubTool();
       const providerTool = tool.toProviderTool();
 
-      expect(providerTool).toEqual({
-        name: "stub_tool",
-        description: "A stub tool for testing",
-        inputSchema: {
-          type: "object",
-          properties: { foo: { type: "string" } }
-        }
-      });
+      expect(providerTool.name).toBe("stub_tool");
+      expect(providerTool.description).toBe("A stub tool for testing");
+      const schema = providerTool.inputSchema as Record<string, unknown>;
+      expect(schema["type"]).toBe("object");
+      const properties = schema["properties"] as Record<string, unknown>;
+      expect(properties["foo"]).toEqual({ type: "string" });
+      expect(properties["_message"]).toMatchObject({ type: "string" });
     });
   });
 
@@ -178,6 +184,28 @@ describe("Tool (base class)", () => {
     it("returns 'Running {name}' by default", () => {
       const tool = new StubTool();
       expect(tool.userMessage({})).toBe("Running stub_tool");
+    });
+
+    it("prefers an LLM-authored _message arg over the default", () => {
+      const tool = new StubTool();
+      expect(tool.userMessage({ _message: "Doing the thing" })).toBe(
+        "Doing the thing"
+      );
+    });
+  });
+
+  describe("stripMessage() / extractMessage()", () => {
+    it("extracts a trimmed _message string and strips it from args", () => {
+      const args = { foo: "bar", _message: "  Status text  " };
+      expect(Tool.extractMessage(args)).toBe("Status text");
+      expect(Tool.stripMessage(args)).toEqual({ foo: "bar" });
+    });
+
+    it("ignores empty or non-string _message", () => {
+      expect(Tool.extractMessage({ _message: "" })).toBeNull();
+      expect(Tool.extractMessage({ _message: 42 })).toBeNull();
+      expect(Tool.extractMessage({})).toBeNull();
+      expect(Tool.extractMessage(null)).toBeNull();
     });
   });
 

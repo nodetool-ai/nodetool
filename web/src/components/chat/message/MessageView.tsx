@@ -59,6 +59,19 @@ const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
 });
 PrettyJson.displayName = "PrettyJson";
 
+// LLM-authored status field — surfaced as `tc.message`; hide from raw args.
+const TOOL_USER_MESSAGE_FIELD = "_message";
+
+function visibleArgs(
+  args: Record<string, unknown> | null | undefined
+): Record<string, unknown> | null {
+  if (!args) return null;
+  if (!(TOOL_USER_MESSAGE_FIELD in args)) return args;
+  const out = { ...args };
+  delete out[TOOL_USER_MESSAGE_FIELD];
+  return out;
+}
+
 /**
  * ToolCallCard - Memoized component for displaying tool calls.
  * Extracted outside MessageView to prevent recreation on every render.
@@ -70,7 +83,11 @@ const ToolCallCard: React.FC<{
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
-  const hasArgs = tc.args && Object.keys(tc.args).length > 0;
+  const displayArgs = useMemo(
+    () => visibleArgs(tc.args as Record<string, unknown> | null | undefined),
+    [tc.args]
+  );
+  const hasArgs = displayArgs && Object.keys(displayArgs).length > 0;
   const hasDetails = !!hasArgs;
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
 
@@ -105,7 +122,7 @@ const ToolCallCard: React.FC<{
         {hasArgs && (
           <FlexColumn gap={0.25} sx={{ marginTop: "2px" }}>
             <Caption className="tool-section-title">Arguments</Caption>
-            <PrettyJson value={tc.args} />
+            <PrettyJson value={displayArgs} />
           </FlexColumn>
         )}
       </Collapse>
