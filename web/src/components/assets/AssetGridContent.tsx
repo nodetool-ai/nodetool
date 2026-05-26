@@ -20,6 +20,7 @@ import {
   calculateRowCount,
   getItemsForRow,
   getExtraFooterSpace,
+  isAssetItem,
   DIVIDER_HEIGHT
 } from "./assetGridUtils";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
@@ -108,7 +109,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   // users actually see and therefore the order that shift-range selection must
   // follow.
   const visualOrderAssets = useMemo(() => {
-    return preparedItems.filter((item) => !item.isDivider) as Asset[];
+    return preparedItems.filter(isAssetItem);
   }, [preparedItems]);
 
   // Use the *visual* order for the selection algorithm so shift-click works

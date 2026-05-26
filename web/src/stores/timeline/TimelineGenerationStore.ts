@@ -89,6 +89,16 @@ const STORAGE_KEY = "timeline-generation-jobs:v1";
 const canUseSessionStorage = (): boolean =>
   typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
 
+function isClipJobEntry(value: unknown): value is ClipJobState {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "status" in value &&
+    "clipId" in value &&
+    "jobId" in value
+  );
+}
+
 const loadPersistedClipJobs = (): Record<string, ClipJobState> => {
   if (!canUseSessionStorage()) {
     return {};
@@ -98,12 +108,20 @@ const loadPersistedClipJobs = (): Record<string, ClipJobState> => {
     if (!raw) {
       return {};
     }
-    const parsed = JSON.parse(raw) as Record<string, ClipJobState>;
-    return Object.fromEntries(
-      Object.entries(parsed).filter(([, value]) =>
-        value.status === "queued" || value.status === "running"
-      )
-    );
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return {};
+    const result: Record<string, ClipJobState> = {};
+    for (const [key, value] of Object.entries(
+      parsed as Record<string, unknown>
+    )) {
+      if (
+        isClipJobEntry(value) &&
+        (value.status === "queued" || value.status === "running")
+      ) {
+        result[key] = value;
+      }
+    }
+    return result;
   } catch {
     return {};
   }
