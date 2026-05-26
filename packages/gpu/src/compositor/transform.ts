@@ -29,16 +29,32 @@ export interface LayerTransform2D {
   rotation: number;
 }
 
-/** Transform that places a `width`×`height` layer's top-left at the origin. */
+/**
+ * Default placement for a layer with no explicit transform: contain-fit
+ * centered on the canvas, never upscaled.
+ *
+ * Scale is `min(canvasW/layerW, canvasH/layerH, 1)` — large layers shrink to
+ * fit, smaller layers keep their native size. The layer center is pinned to
+ * the canvas center. For a same-size base layer this reduces to scale=1 with
+ * the top-left at the canvas origin (the historical "untransformed paste"),
+ * so single-layer pipelines are unaffected.
+ */
 export function defaultLayerTransform(
-  width: number,
-  height: number
+  layerWidth: number,
+  layerHeight: number,
+  canvasWidth: number,
+  canvasHeight: number
 ): LayerTransform2D {
+  const safeLW = Math.max(1, layerWidth);
+  const safeLH = Math.max(1, layerHeight);
+  const safeCW = Math.max(1, canvasWidth);
+  const safeCH = Math.max(1, canvasHeight);
+  const scale = Math.min(safeCW / safeLW, safeCH / safeLH, 1);
   return {
-    x: width / 2,
-    y: height / 2,
-    scaleX: 1,
-    scaleY: 1,
+    x: safeCW / 2,
+    y: safeCH / 2,
+    scaleX: scale,
+    scaleY: scale,
     rotation: 0
   };
 }

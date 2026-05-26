@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   WebGPULayerCompositor,
+  defaultLayerTransform,
   layerTransformToInverseAffine,
   type LayerTransform2D
 } from "@nodetool-ai/gpu/webgpu";
@@ -198,13 +199,8 @@ export function useWebGPUPreview(
       const source = getOrUploadTexture(device, layer);
       if (!source) continue;
       const transform =
-        layer.transform ?? {
-          x: layer.width / 2,
-          y: layer.height / 2,
-          scaleX: 1,
-          scaleY: 1,
-          rotation: 0
-        };
+        layer.transform ??
+        defaultLayerTransform(layer.width, layer.height, width, height);
       compositor.renderBlendPass(encoder, read, write, {
         source,
         opacity: layer.opacity,
