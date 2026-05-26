@@ -67,12 +67,16 @@
 /* Resized nodes: clip overflowing params at the bottom (y) while side handles
    can still protrude horizontally (x). Collapsed nodes override in collapsed.css. */
 .react-flow__node .node-content-container {
-  overflow: visible clip;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-x: visible;
+  overflow-y: clip;
 }
 
-@supports not (overflow: clip) {
+@supports not (overflow-y: clip) {
   .react-flow__node .node-content-container {
-    overflow: visible hidden;
+    overflow-y: hidden;
   }
 }
 
