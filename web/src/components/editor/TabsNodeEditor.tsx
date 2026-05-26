@@ -352,7 +352,9 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const [storageOpenIds, setStorageOpenIds] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem("openWorkflows");
-      return raw ? (JSON.parse(raw) as string[]) : [];
+      if (!raw) return [];
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed as string[] : [];
     } catch {
       return [];
     }

@@ -32,6 +32,7 @@ export const filtersPixelateV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "filters",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: PixelateParams,
   paramDefaults: { cellSize: 8 },

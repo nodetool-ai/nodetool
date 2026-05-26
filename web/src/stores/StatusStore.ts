@@ -74,6 +74,7 @@ const useStatusStore = create<StatusStore>((set, get) => ({
    */
   setStatus: (workflowId: string, nodeId: string, status: StatusValue) => {
     const key = hashKey(workflowId, nodeId);
+    if (get().statuses[key] === status) return;
     set({ statuses: { ...get().statuses, [key]: status } });
   },
 

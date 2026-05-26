@@ -36,6 +36,7 @@ export const maskApplyV1 = defineModule({
   // every mask-producing module (`mask.fromImage`, `keyer.*`, recipes).
   surface: "published",
   category: "mask",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: MaskApplyParams,
   paramDefaults: { invert: 0 },
@@ -52,7 +53,10 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   if (layout.$.params.invert > 0.5) {
     coverage = 1.0 - coverage;
   }
-  return vec4f(src.rgb, src.a * coverage);
+  // Source is premultiplied (rgb = a*C). Scaling alpha by coverage requires
+  // scaling RGB by the same factor so the output stays valid premultiplied
+  // (rgb <= a). Without this, a 50% mask on opaque white produced rgb=1, a=0.5.
+  return vec4f(src.rgb * coverage, src.a * coverage);
 }
 `,
   io: {

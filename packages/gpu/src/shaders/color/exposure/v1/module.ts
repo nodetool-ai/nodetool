@@ -33,6 +33,7 @@ export const colorExposureV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "color",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: ExposureParams,
   paramDefaults: { stops: 0 },

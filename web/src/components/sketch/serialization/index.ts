@@ -138,13 +138,16 @@ export function deserializeDocument(
     return null;
   }
   try {
-    const parsed = JSON.parse(json) as SketchDocument;
+    const parsed: unknown = JSON.parse(json);
     if (
-      parsed &&
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "version" in parsed &&
       typeof parsed.version === "number" &&
+      "layers" in parsed &&
       Array.isArray(parsed.layers)
     ) {
-      return normalizeSketchDocument(parsed);
+      return normalizeSketchDocument(parsed as SketchDocument);
     }
     return null;
   } catch {

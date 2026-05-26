@@ -4,6 +4,12 @@ export type AssetOrDivider =
   | { isDivider: true; type: string; count: number }
   | (Asset & { isDivider: false; type: string });
 
+export function isAssetItem(
+  item: AssetOrDivider
+): item is Asset & { isDivider: false; type: string } {
+  return !item.isDivider;
+}
+
 export const getFooterHeight = (size: number): number => {
   switch (size) {
     case 1:

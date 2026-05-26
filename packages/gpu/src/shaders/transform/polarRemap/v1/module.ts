@@ -37,6 +37,7 @@ export const transformPolarRemapV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: PolarRemapParams,
   paramDefaults: { mode: 0 },

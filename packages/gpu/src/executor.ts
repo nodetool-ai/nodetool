@@ -26,6 +26,10 @@ import type { TgpuBindGroupLayout } from "typegpu";
 import type { AnyWgslStruct, Infer } from "typegpu/data";
 import type { GPUCapabilities, GPUContext } from "./context.js";
 import {
+  encodePremulValidationPass,
+  isPremulDebugEnabled
+} from "./debug/premulValidator.js";
+import {
   FULLSCREEN_TRIANGLE_VERTEX,
   FULLSCREEN_VERTEX_ENTRY
 } from "./fullscreenQuad.js";
@@ -513,6 +517,24 @@ export function createExecutor(): Executor {
         encodeFragment(effectiveArgs, resolved);
       } else {
         encodeCompute(effectiveArgs, resolved, effectiveArgs.dispatch);
+      }
+      // Item 5 of the shader-pool invariant enforcement plan: when
+      // NODETOOL_GPU_DEBUG contains "premul", encode a scan of the output
+      // texture that flags texels violating rgb ≤ a, rgb ≥ 0, no NaN. Only
+      // makes sense for premul outputs (straight outputs are by definition
+      // unrelated to the premul invariant). The gate short-circuits to a
+      // single boolean check when the flag is off — zero overhead in
+      // production.
+      if (
+        isPremulDebugEnabled() &&
+        effectiveArgs.module.io.output.alpha === "premultiplied"
+      ) {
+        encodePremulValidationPass({
+          ctx: effectiveArgs.ctx,
+          module: effectiveArgs.module,
+          encoder: effectiveArgs.encoder,
+          output: effectiveArgs.output
+        });
       }
     } finally {
       // Release after recording — queue ordering keeps the scratch reads

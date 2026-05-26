@@ -22,6 +22,7 @@ import VideocamIcon from "@mui/icons-material/Videocam";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
@@ -126,6 +127,8 @@ export interface MediaChatComposerProps {
   onAgentPlannerChange?: (
     planner: import("./AgentModeSelector").AgentPlanner
   ) => void;
+  memoryEnabled?: boolean;
+  onMemoryToggle?: (enabled: boolean) => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
   allowedProviders?: string[];
@@ -162,6 +165,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   onAgentModeToggle,
   agentPlanner,
   onAgentPlannerChange,
+  memoryEnabled,
+  onMemoryToggle,
   selectedModel,
   onModelChange,
   allowedProviders,
@@ -841,6 +846,16 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               />
               {onToolsChange && (
                 <ToolsSelector value={selectedTools} onChange={onToolsChange} />
+              )}
+              {onMemoryToggle && (
+                <MediaControlChip
+                  icon={<PsychologyOutlinedIcon fontSize="small" />}
+                  label={memoryEnabled ? "Memory: on" : "Memory: off"}
+                  active={!!memoryEnabled}
+                  showChevron={false}
+                  onClick={() => onMemoryToggle(!memoryEnabled)}
+                  emphasis={memoryEnabled ? "primary" : "default"}
+                />
               )}
               <LanguageModelMenuDialog
                 open={languageModelOpen}

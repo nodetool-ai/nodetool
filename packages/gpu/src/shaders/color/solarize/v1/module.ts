@@ -33,6 +33,7 @@ export const colorSolarizeV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: SolarizeParams,
   paramDefaults: { threshold: 0.5 },
@@ -47,13 +48,18 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
   let t = layout.$.params.threshold;
+  // Threshold the underlying straight color so the comparison against t is
+  // alpha-independent; otherwise transparent pixels (premultiplied near 0)
+  // are below threshold even when their underlying color is bright.
+  let safeA = max(src.a, 1.0 / 255.0);
+  let straight = src.rgb / safeA;
   let inverted = vec3f(
-    select(src.r, 1.0 - src.r, src.r > t),
-    select(src.g, 1.0 - src.g, src.g > t),
-    select(src.b, 1.0 - src.b, src.b > t)
+    select(straight.r, 1.0 - straight.r, straight.r > t),
+    select(straight.g, 1.0 - straight.g, straight.g > t),
+    select(straight.b, 1.0 - straight.b, straight.b > t)
   );
-  let mixed = mix(src.rgb, inverted, coverage);
-  return vec4f(mixed, src.a);
+  let mixedStraight = mix(straight, inverted, coverage);
+  return vec4f(mixedStraight * src.a, src.a);
 }
 `,
   io: {

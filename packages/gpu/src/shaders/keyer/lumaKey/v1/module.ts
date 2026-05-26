@@ -38,6 +38,7 @@ export const keyerLumaKeyV1 = defineModule({
   // schema is the workhorse op for matte-from-brightness workflows.
   surface: "published",
   category: "keyer",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: LumaKeyParams,
   paramDefaults: { low: 0, high: 1, softness: 0.05, invert: 0 },
@@ -54,7 +55,12 @@ export const keyerLumaKeyV1 = defineModule({
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let p = layout.$.params;
-  let luma = dot(src.rgb, vec3f(0.299, 0.587, 0.114));
+  // Input is premultiplied; compute luma on the underlying straight color so
+  // the band thresholds don't drift with a. Rec. 709 weights match the
+  // declared linear color space (Rec. 601 is the gamma-space coefficient set).
+  let safeA = max(src.a, 1.0 / 255.0);
+  let straight = src.rgb / safeA;
+  let luma = dot(straight, vec3f(0.2126, 0.7152, 0.0722));
   let soft = max(p.softness, 0.0001);
   let lowEdge = smoothstep(p.low - soft, p.low + soft, luma);
   let highEdge = 1.0 - smoothstep(p.high - soft, p.high + soft, luma);
@@ -62,7 +68,8 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   if (p.invert > 0.5) {
     coverage = 1.0 - coverage;
   }
-  return vec4f(src.rgb, src.a * coverage);
+  // Multiply RGB by coverage too so the result stays valid premultiplied.
+  return vec4f(src.rgb * coverage, src.a * coverage);
 }
 `,
   io: {

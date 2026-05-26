@@ -38,6 +38,7 @@ export const colorHsbV1 = defineModule({
   // model for color adjustment; schema matches that vocabulary exactly.
   surface: "published",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: HsbParams,
   paramDefaults: { hue: 0, saturation: 1, brightness: 1 },
@@ -94,13 +95,19 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
   let p = layout.$.params;
-  var hsv = rgb2hsv(clamp(src.rgb, vec3f(0.0), vec3f(1.0)));
+  // Operate on the straight color: rgb2hsv's V channel is max(r,g,b), so a
+  // premultiplied input reports a*V_true and the saturation/brightness
+  // multipliers act against the wrong magnitude. Re-premultiply on store so
+  // the output stays valid premul.
+  let safeA = max(src.a, 1.0 / 255.0);
+  let straight = src.rgb / safeA;
+  var hsv = rgb2hsv(clamp(straight, vec3f(0.0), vec3f(1.0)));
   hsv.x = fract(hsv.x + p.hue / 360.0);
   hsv.y = clamp(hsv.y * p.saturation, 0.0, 1.0);
   hsv.z = clamp(hsv.z * p.brightness, 0.0, 1.0);
   let processed = clamp(hsv2rgb(hsv), vec3f(0.0), vec3f(1.0));
-  let mixed = mix(src.rgb, processed, coverage);
-  return vec4f(mixed, src.a);
+  let mixedStraight = mix(straight, processed, coverage);
+  return vec4f(mixedStraight * src.a, src.a);
 }
 `,
   io: {

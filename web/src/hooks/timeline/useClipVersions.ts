@@ -42,20 +42,6 @@ export const useClipVersions = (
     { enabled: !!(sequenceId && clipId), staleTime: 30_000 }
   );
 
-/** Append a new clip version; invalidates the versions list on success. */
-export const useAppendClipVersion = () => {
-  const utils = trpc.useUtils();
-  return trpc.timeline.versions.append.useMutation({
-    onSuccess: (_version, vars) => {
-      utils.timeline.versions.list.invalidate({
-        id: vars.id,
-        clipId: vars.clipId
-      });
-      utils.timeline.get.invalidate({ id: vars.id });
-    }
-  });
-};
-
 /** Toggle the favorite flag on a clip version. */
 export const useSetClipVersionFavorite = () => {
   const utils = trpc.useUtils();

@@ -37,6 +37,7 @@ export const transformTileV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: TileParams,
   paramDefaults: { tilesX: 2, tilesY: 2, wrap: 1 },

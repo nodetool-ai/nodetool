@@ -29,6 +29,7 @@ export const alphaStraightToPremulV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "alpha",
+  linearity: "linear-in-rgb",
   kind: "compute",
   params: ConvertParams,
   paramDefaults: { _unused: 0 },

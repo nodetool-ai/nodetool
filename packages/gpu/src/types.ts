@@ -48,6 +48,29 @@ export type ColorSpaceTag = "linear" | "srgb";
 export type AlphaMode = "premultiplied" | "straight";
 
 /**
+ * Premul-invariant classification for a module's RGB math.
+ *
+ * - `linear-in-rgb` — the shader's RGB output is a linear function of its RGB
+ *   input (scale, add, lerp, convolution with normalized weights). Safe to
+ *   apply directly to premultiplied input; preserves the rgb ≤ a invariant.
+ * - `nonlinear-in-rgb` — the shader applies a nonlinear function to RGB (pow,
+ *   log, hue rotate, threshold, posterize). MUST unpremultiply before the op
+ *   and re-premultiply after, otherwise output violates rgb ≤ a.
+ * - `alpha-only` — the shader does not read or write RGB (only alpha math,
+ *   RGB output is zero or pass-through).
+ * - `source` — no RGB input (generator); responsibility for premul-valid
+ *   output rests on the source itself.
+ *
+ * This tag is read by the static WGSL validator (load-time) and the runtime
+ * debug pass (per-dispatch).
+ */
+export type LinearityMode =
+  | "linear-in-rgb"
+  | "nonlinear-in-rgb"
+  | "alpha-only"
+  | "source";
+
+/**
  * How a binding is presented to WGSL. Phase 1 ships `texture_2d`; `texture_external`
  * (camera/video fast path) arrives with variants in Phase 3. Kept a string
  * enum until a module needs format/dimension discrimination (deferred).

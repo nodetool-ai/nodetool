@@ -132,7 +132,7 @@ const styles = (theme: Theme) =>
   });
 
 const DataframeProperty = ({
-  value,
+  value = {} as DataframeRef,
   onChange,
   nodeType: _nodeType,
   property,

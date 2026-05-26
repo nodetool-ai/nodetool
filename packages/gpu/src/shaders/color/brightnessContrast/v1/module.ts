@@ -36,6 +36,7 @@ export const colorBrightnessContrastV1 = defineModule({
   // its own published op for workflow nodes that only need brightness/contrast.
   surface: "published",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: BrightnessContrastParams,
   paramDefaults: { brightness: 0, contrast: 1 },
@@ -51,9 +52,15 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
   let p = layout.$.params;
-  let adjusted = clamp((src.rgb - vec3f(0.5)) * p.contrast + vec3f(0.5) + vec3f(p.brightness), vec3f(0.0), vec3f(1.0));
-  let mixed = mix(src.rgb, adjusted, coverage);
-  return vec4f(mixed, src.a);
+  // Brightness/contrast is a straight-color formula; un-premultiply first so
+  // the operation acts on the underlying color, then re-premultiply on store.
+  // Applying the formula to premultiplied RGB silently scales each adjustment
+  // by a and breaks the rgb <= a invariant for transparent regions.
+  let safeA = max(src.a, 1.0 / 255.0);
+  let straight = src.rgb / safeA;
+  let adjusted = clamp((straight - vec3f(0.5)) * p.contrast + vec3f(0.5) + vec3f(p.brightness), vec3f(0.0), vec3f(1.0));
+  let mixedStraight = mix(straight, adjusted, coverage);
+  return vec4f(mixedStraight * src.a, src.a);
 }
 `,
   io: {
