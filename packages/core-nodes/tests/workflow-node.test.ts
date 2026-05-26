@@ -3,7 +3,8 @@ import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { NodeRegistry, hasStreamingOutput } from "@nodetool-ai/node-sdk";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 import { ProcessingContext } from "@nodetool-ai/runtime";
-import { registerBaseNodes, WorkflowNode } from "../src/index.js";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { WorkflowNode } from "@nodetool-ai/core-nodes";
 
 function makeRegistry(): NodeRegistry {
   const registry = new NodeRegistry();

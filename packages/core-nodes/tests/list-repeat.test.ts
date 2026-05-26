@@ -7,7 +7,7 @@ import {
   RepeatCountNode,
   RepeatValueStreamNode,
   ForEachNode
-} from "../src/index.js";
+} from "@nodetool-ai/core-nodes";
 
 describe("list nodes", () => {
   it("RangeNode produces [0..count-1] when stop is default", async () => {

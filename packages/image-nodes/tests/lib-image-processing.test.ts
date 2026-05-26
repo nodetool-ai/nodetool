@@ -16,7 +16,7 @@ import {
   LIB_IMAGE_DRAW_NODES,
   LIB_IMAGE_ENHANCE_NODES,
   LIB_IMAGE_FILTER_NODES
-} from "../src/index.js";
+} from "@nodetool-ai/image-nodes";
 
 const RGB_CHANNEL_NEAR_ZERO_THRESHOLD = 5;
 const RGB_CHANNEL_NEAR_MAX_THRESHOLD = 250;

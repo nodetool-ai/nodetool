@@ -3,7 +3,7 @@ import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import { ProcessingContext } from "@nodetool-ai/runtime";
-import { registerBaseNodes } from "../src/index.js";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 
 /**
  * End-to-end integration tests for SubgraphNode.

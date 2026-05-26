@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/data-nodes",
   "version": "0.7.0-rc.23",
-  "description": "NodeTool data nodes — dataframes (CSV), RSS feeds, charts",
+  "description": "NodeTool data nodes \u2014 dataframes (CSV), RSS feeds, charts",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,6 +21,7 @@
     "papaparse": "^5.5.3"
   },
   "devDependencies": {
+    "@nodetool-ai/kernel": "*",
     "@types/node": "^22.0.0",
     "@types/papaparse": "^5.5.2",
     "typescript": "^5.7.2",
@@ -32,8 +33,23 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./nodes/*": {
+      "nodetool-dev": "./src/nodes/*.ts",
+      "types": "./dist/nodes/*.d.ts",
+      "import": "./dist/nodes/*.js",
+      "default": "./dist/nodes/*.js"
+    },
+    "./lib/*": {
+      "nodetool-dev": "./src/lib/*.ts",
+      "types": "./dist/lib/*.d.ts",
+      "import": "./dist/lib/*.js",
+      "default": "./dist/lib/*.js"
     }
   },
   "license": "MIT",
-  "files": ["dist", "README.md"]
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

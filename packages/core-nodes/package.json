@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/core-nodes",
   "version": "0.7.0-rc.23",
-  "description": "Core NodeTool nodes — pure-JS logic, control flow, constants, list, input, subgraph",
+  "description": "Core NodeTool nodes \u2014 pure-JS logic, control flow, constants, list, input, subgraph",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,6 +20,7 @@
     "@nodetool-ai/vectorstore": "*"
   },
   "devDependencies": {
+    "@nodetool-ai/audio-nodes": "*",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
@@ -30,8 +31,23 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./nodes/*": {
+      "nodetool-dev": "./src/nodes/*.ts",
+      "types": "./dist/nodes/*.d.ts",
+      "import": "./dist/nodes/*.js",
+      "default": "./dist/nodes/*.js"
+    },
+    "./lib/*": {
+      "nodetool-dev": "./src/lib/*.ts",
+      "types": "./dist/lib/*.d.ts",
+      "import": "./dist/lib/*.js",
+      "default": "./dist/lib/*.js"
     }
   },
   "license": "MIT",
-  "files": ["dist", "README.md"]
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

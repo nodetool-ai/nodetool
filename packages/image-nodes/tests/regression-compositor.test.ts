@@ -13,7 +13,7 @@
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
-import { CompositorNode } from "../src/index.js";
+import { CompositorNode } from "@nodetool-ai/image-nodes";
 
 // CompositorNode emits raw RGBA (mimeType=RAW_RGBA_MIME) as its in-flight
 // format — no eager PNG encode. Tests read `out.data` as a Uint8Array

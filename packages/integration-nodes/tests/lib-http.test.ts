@@ -7,7 +7,7 @@ import {
   HttpPutNode,
   HttpPatchNode,
   HttpDeleteNode
-} from "../src/index.js";
+} from "@nodetool-ai/integration-nodes";
 
 describe("lib.http nodes", () => {
   it("HttpGetTextNode has correct metadata", () => {

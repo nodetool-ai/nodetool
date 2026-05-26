@@ -7,7 +7,7 @@ import {
   ImageToVideoGeminiNode,
   TextToSpeechGeminiNode,
   TranscribeGeminiNode
-} from "@nodetool-ai/llm-nodes";
+} from "@nodetool-ai/llm-nodes/gemini";
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;

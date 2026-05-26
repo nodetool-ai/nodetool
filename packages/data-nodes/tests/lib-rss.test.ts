@@ -3,7 +3,7 @@ import http from "node:http";
 import {
   FetchRSSFeedLibNode,
   ExtractFeedMetadataLibNode
-} from "../src/index.js";
+} from "@nodetool-ai/data-nodes";
 
 const RSS_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">

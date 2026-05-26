@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { NodeRegistry, hasStreamingOutput } from "@nodetool-ai/node-sdk";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import { ProcessingContext } from "@nodetool-ai/runtime";
-import { registerBaseNodes, SubgraphNode } from "../src/index.js";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { SubgraphNode } from "@nodetool-ai/core-nodes";
 
 function makeRegistry(): NodeRegistry {
   const registry = new NodeRegistry();

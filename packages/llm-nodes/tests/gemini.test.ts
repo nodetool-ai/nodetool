@@ -8,7 +8,7 @@ import {
   TextToSpeechGeminiNode,
   TranscribeGeminiNode,
   GEMINI_NODES
-} from "@nodetool-ai/llm-nodes";
+} from "@nodetool-ai/llm-nodes/gemini";
 
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();

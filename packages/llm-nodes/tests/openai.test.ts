@@ -11,7 +11,7 @@ import {
   RealtimeAgentNode,
   RealtimeTranscriptionNode,
   OPENAI_NODES
-} from "@nodetool-ai/llm-nodes";
+} from "@nodetool-ai/llm-nodes/openai";
 
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();

@@ -123,7 +123,7 @@ const {
   GetVideoInfoNode,
   TrimVideoNode,
   AddAudioVideoNode
-} = await import("../src/index.js");
+} = await import("@nodetool-ai/video-nodes");
 
 function videoRef(bytes: number[]) {
   return {

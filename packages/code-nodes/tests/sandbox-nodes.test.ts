@@ -66,7 +66,8 @@ vi.mock("@nodetool-ai/llm-nodes", async (importOriginal) => {
   };
 });
 
-describe("sandbox nodes", () => {
+// Requires Docker — skip when unavailable in CI / dev shells.
+describe.skipIf(!process.env.HAS_DOCKER)("sandbox nodes", () => {
   beforeAll(async () => {
     const mod = await import("@nodetool-ai/code-nodes");
     SandboxShellNode = mod.SandboxShellNode;

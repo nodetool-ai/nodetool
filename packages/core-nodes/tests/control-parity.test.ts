@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { WorkflowRunner, Graph } from "@nodetool-ai/kernel";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import {
-  registerBaseNodes,
   ChunkNode,
   CollectNode,
   CountStreamNode,
@@ -15,12 +15,12 @@ import {
   ForEachNode,
   IfNode,
   LastNode,
-  OutputNode,
   RerouteNode,
   TakeNode,
   TakeWhileNode,
   TapNode
-} from "../src/index.js";
+} from "@nodetool-ai/core-nodes";
+import { OutputNode } from "@nodetool-ai/audio-nodes";
 
 function makeRegistry(): NodeRegistry {
   const registry = new NodeRegistry();

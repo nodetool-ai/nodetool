@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/text-nodes",
   "version": "0.7.0-rc.23",
-  "description": "NodeTool text-processing nodes — text manipulation, NLP, markdown, HTML parse, SVG",
+  "description": "NodeTool text-processing nodes \u2014 text manipulation, NLP, markdown, HTML parse, SVG",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -38,8 +38,23 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./nodes/*": {
+      "nodetool-dev": "./src/nodes/*.ts",
+      "types": "./dist/nodes/*.d.ts",
+      "import": "./dist/nodes/*.js",
+      "default": "./dist/nodes/*.js"
+    },
+    "./lib/*": {
+      "nodetool-dev": "./src/lib/*.ts",
+      "types": "./dist/lib/*.d.ts",
+      "import": "./dist/lib/*.js",
+      "default": "./dist/lib/*.js"
     }
   },
   "license": "MIT",
-  "files": ["dist", "README.md"]
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

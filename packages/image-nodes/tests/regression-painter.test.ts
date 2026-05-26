@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
-import { PainterNode } from "../src/index.js";
+import { PainterNode } from "@nodetool-ai/image-nodes";
 
 async function solidPng(
   w: number,

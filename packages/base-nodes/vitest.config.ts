@@ -12,12 +12,7 @@ export default defineConfig({
     }
   },
   test: {
-    // Tests in this package are pending migration to their owning split
-    // packages (core-nodes, llm-nodes, image-nodes, etc.). Until then,
-    // they're disabled — they reference the original `../src/nodes/*`
-    // file layout which no longer exists. The new packages have their
-    // own test suites covering the same code.
-    include: ["tests/__placeholder__.test.ts"],
+    include: ["tests/**/*.test.ts"],
     exclude: ["tests/e2e/**/*.test.ts"],
     passWithNoTests: true
   }

@@ -14,7 +14,7 @@ import {
   TensorflowCocoSsdDetectNode,
   TensorflowQnaNode,
   LIB_TENSORFLOW_NODES
-} from "../src/index.js";
+} from "@nodetool-ai/automation-nodes";
 
 describe("TensorFlow.js nodes — registration & interface", () => {
   it("exports a stable list of node classes", () => {

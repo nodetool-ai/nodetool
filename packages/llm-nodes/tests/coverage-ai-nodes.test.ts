@@ -17,7 +17,7 @@ import {
   TeamAgentNode,
   TeamLeadNode,
   TEAM_NODES
-} from "../src/index.js";
+} from "@nodetool-ai/llm-nodes";
 
 function metadataDefaults(NodeCls: any) {
   const metadata = getNodeMetadata(NodeCls);

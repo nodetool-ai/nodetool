@@ -5,7 +5,6 @@ import {
   AddColumnNode,
   AggregateNode,
   AppendDataframeNode,
-  ConstantStringNode,
   DropDuplicatesNode,
   DropNANode,
   ExtractColumnNode,
@@ -15,12 +14,13 @@ import {
   FromListNode,
   ImportCSVNode,
   MergeDataframeNode,
-  OutputNode,
   RenameNode,
   SelectColumnNode,
   SortByColumnNode,
   ToListNode
-} from "../src/index.js";
+} from "@nodetool-ai/data-nodes";
+import { ConstantStringNode } from "@nodetool-ai/core-nodes";
+import { OutputNode } from "@nodetool-ai/audio-nodes";
 
 async function run<
   T extends {

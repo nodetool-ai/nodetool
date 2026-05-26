@@ -10,7 +10,7 @@ import {
   TranscribeNode,
   RealtimeAgentNode,
   RealtimeTranscriptionNode
-} from "@nodetool-ai/llm-nodes";
+} from "@nodetool-ai/llm-nodes/openai";
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;

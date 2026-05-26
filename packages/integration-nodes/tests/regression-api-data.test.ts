@@ -18,16 +18,13 @@ import {
   AggregateNode,
   DropNANode,
   JoinDataframeNode
-} from "../src/index.js";
+} from "@nodetool-ai/data-nodes";
 import {
   ChartGeneratorNode,
   SVGGeneratorNode
 } from "@nodetool-ai/llm-nodes";
-import {
-  ConstantDateTimeNode,
-  GetDocumentsNode,
-  SelectLibNode
-} from "../src/index.js";
+import { ConstantDateTimeNode, GetDocumentsNode } from "@nodetool-ai/core-nodes";
+import { SelectLibNode } from "@nodetool-ai/integration-nodes";
 
 // ---------------------------------------------------------------------------
 // Helpers
