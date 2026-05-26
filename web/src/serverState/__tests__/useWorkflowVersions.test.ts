@@ -34,17 +34,24 @@ describe("useWorkflowVersions", () => {
   });
 
   describe("workflowVersionsQueryKey", () => {
-    it("returns a tuple with workflow id", () => {
-      expect(workflowVersionsQueryKey("wf-1")).toEqual([
+    it("returns a tuple with workflow id and limit", () => {
+      expect(workflowVersionsQueryKey("wf-1", 100)).toEqual([
         "workflow",
         "wf-1",
-        "versions"
+        "versions",
+        100
       ]);
     });
 
     it("returns different keys for different ids", () => {
-      const key1 = workflowVersionsQueryKey("a");
-      const key2 = workflowVersionsQueryKey("b");
+      const key1 = workflowVersionsQueryKey("a", 100);
+      const key2 = workflowVersionsQueryKey("b", 100);
+      expect(key1).not.toEqual(key2);
+    });
+
+    it("returns different keys for different limits", () => {
+      const key1 = workflowVersionsQueryKey("a", 50);
+      const key2 = workflowVersionsQueryKey("a", 100);
       expect(key1).not.toEqual(key2);
     });
   });
@@ -75,7 +82,7 @@ describe("useWorkflowVersions", () => {
       renderHook(() => useWorkflowVersions("wf-123"));
       expect(mockUseQuery).toHaveBeenCalledWith(
         expect.objectContaining({
-          queryKey: ["workflow", "wf-123", "versions"]
+          queryKey: ["workflow", "wf-123", "versions", 100]
         })
       );
     });
@@ -84,7 +91,7 @@ describe("useWorkflowVersions", () => {
       renderHook(() => useWorkflowVersions(null));
       expect(mockUseQuery).toHaveBeenCalledWith(
         expect.objectContaining({
-          queryKey: ["workflow", "none", "versions"]
+          queryKey: ["workflow", "none", "versions", 100]
         })
       );
     });

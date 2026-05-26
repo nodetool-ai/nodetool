@@ -107,6 +107,17 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       letterSpacing: "0.01em"
     },
+    ".inspector-namespace-button": {
+      background: "transparent",
+      border: "none",
+      padding: 0,
+      cursor: "pointer",
+      color: "inherit",
+      font: "inherit",
+      minWidth: 0,
+      display: "inline-flex",
+      alignItems: "center"
+    },
     ".inspector-namespace-text": {
       whiteSpace: "nowrap",
       overflow: "hidden",
@@ -844,27 +855,28 @@ const Inspector: React.FC = () => {
               {metadata.title}
             </div>
             {metadata.namespace ? (
-              <Tooltip
-                delay={TOOLTIP_ENTER_DELAY}
-                title="Browse this namespace in the node menu"
-                placement="bottom-start"
-              >
-                <button
-                  type="button"
-                  onClick={handleNamespaceClick}
-                  className="inspector-namespace"
-                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+              <div className="inspector-namespace">
+                <Tooltip
+                  delay={TOOLTIP_ENTER_DELAY}
+                  title="Browse this namespace in the node menu"
+                  placement="bottom-start"
                 >
-                  <span className="inspector-namespace-text">
-                    {metadata.namespace}
-                  </span>
-                  <CopyButton
-                    value={metadata.namespace}
-                    tooltip="Copy node type"
-                    buttonSize="small"
-                  />
-                </button>
-              </Tooltip>
+                  <button
+                    type="button"
+                    onClick={handleNamespaceClick}
+                    className="inspector-namespace-button"
+                  >
+                    <span className="inspector-namespace-text">
+                      {metadata.namespace}
+                    </span>
+                  </button>
+                </Tooltip>
+                <CopyButton
+                  value={metadata.namespace}
+                  tooltip="Copy namespace"
+                  buttonSize="small"
+                />
+              </div>
             ) : null}
           </div>
           <div className="inspector-head-close">
