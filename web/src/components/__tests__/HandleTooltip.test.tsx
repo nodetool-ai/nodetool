@@ -14,8 +14,7 @@ jest.mock('../../utils/MousePosition', () => ({
 }));
 
 jest.mock('../../config/data_types', () => ({
-  colorForType: jest.fn(() => '#ff0000'),
-  textColorForType: jest.fn(() => '#ffffff')
+  colorForType: jest.fn(() => '#ff0000')
 }));
 
 jest.mock('react-dom', () => ({

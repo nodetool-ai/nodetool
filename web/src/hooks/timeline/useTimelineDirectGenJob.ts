@@ -53,14 +53,6 @@ const clearInFlight = (clipId: string): void => {
   }
 };
 
-/** Test-only: drop all in-flight subscriptions. */
-export const __resetTimelineDirectGenForTests = (): void => {
-  for (const teardown of inFlight.values()) {
-    teardown();
-  }
-  inFlight.clear();
-};
-
 function fail(clipId: string): void {
   useTimelineStore.getState().patchClip(clipId, { status: "failed" });
 }

@@ -10,7 +10,6 @@
 export type {
   AgentProvider,
   AgentModelDescriptor,
-  AgentModelParams,
   AgentSessionOptions,
   AgentModelsRequest,
   AgentListSessionsRequest,

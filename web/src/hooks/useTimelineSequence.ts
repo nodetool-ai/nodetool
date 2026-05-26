@@ -24,16 +24,6 @@ export const useTimeline = (id: string | null | undefined) =>
     { enabled: !!id, staleTime: 30_000 }
   );
 
-/** Fetch versions for a specific clip inside a sequence. */
-export const useClipVersions = (
-  sequenceId: string | null | undefined,
-  clipId: string | null | undefined
-) =>
-  trpc.timeline.versions.list.useQuery(
-    { id: sequenceId ?? "", clipId: clipId ?? "" },
-    { enabled: !!(sequenceId && clipId), staleTime: 30_000 }
-  );
-
 /** Create a new timeline sequence. List + detail caches refresh automatically. */
 export const useCreateTimeline = () => {
   const utils = trpc.useUtils();
@@ -45,16 +35,3 @@ export const useCreateTimeline = () => {
   });
 };
 
-/** Append a new clip version inside a sequence document. */
-export const useAppendClipVersion = () => {
-  const utils = trpc.useUtils();
-  return trpc.timeline.versions.append.useMutation({
-    onSuccess: (_version, vars) => {
-      utils.timeline.versions.list.invalidate({
-        id: vars.id,
-        clipId: vars.clipId
-      });
-      utils.timeline.get.invalidate({ id: vars.id });
-    }
-  });
-};
