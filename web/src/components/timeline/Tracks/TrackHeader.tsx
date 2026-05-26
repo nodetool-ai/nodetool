@@ -31,8 +31,7 @@ import {
 } from "./trackHeight";
 import {
   trackTypeMeta,
-  trackTypeAccent,
-  trackIndexWithinType
+  trackTypeAccent
 } from "./trackVisuals";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -194,9 +193,11 @@ const resizeHandleStyles = (theme: Theme) =>
 
 export interface TrackHeaderProps {
   track: TimelineTrack;
+  /** Pre-computed 1-based index within the track's type group. */
+  typedIndex: number;
 }
 
-export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
+export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex }) => {
   const theme = useTheme();
 
   const setTrackVisible = useTimelineStore((s) => s.setTrackVisible);
@@ -206,13 +207,11 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
   const setTrackHeight = useTimelineStore((s) => s.setTrackHeight);
   const setTrackName = useTimelineStore((s) => s.setTrackName);
   const removeTrack = useTimelineStore((s) => s.removeTrack);
-  const tracks = useTimelineStore((s) => s.tracks);
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
   const meta = trackTypeMeta(track.type);
   const accent = trackTypeAccent(theme, track.type);
   const TypeIcon = meta.Icon;
-  const typedIndex = trackIndexWithinType(tracks, track.id);
 
   // ── Inline name edit ────────────────────────────────────────────────────
 
