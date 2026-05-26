@@ -35,12 +35,19 @@ const APP_CSS = `
 .crumbs { display: flex; gap: 4px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
 .crumbs button { background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; font: inherit; }
 .crumbs span.sep { color: var(--muted); }
+.load-more { display: flex; justify-content: center; margin-top: 16px; }
+.load-more button { background: var(--accent); color: white; border: none; border-radius: 8px;
+  padding: 10px 20px; font: inherit; cursor: pointer; font-weight: 500; transition: opacity 0.15s; }
+.load-more button:hover { opacity: 0.9; }
+.load-more button:disabled { opacity: 0.5; cursor: default; }
 `;
 
 const APP_BODY = `
 let allAssets = [];
 let currentFilter = "all";
 let crumbs = [{ id: null, name: "All assets" }];
+let nextCursor = null;
+let loadingMore = false;
 
 function categoryOf(asset) {
   const ct = asset.content_type || "";
@@ -55,17 +62,21 @@ function renderTile(asset) {
   const cat = categoryOf(asset);
   const thumb = el("div", { class: "thumb" });
 
+  const thumbSrc = asset.thumb_data_url || asset.thumb_url || null;
   if (cat === "folder") {
     thumb.appendChild(el("span", { class: "folder-icon" }, "📁"));
-  } else if (cat === "image" && (asset.thumb_url || asset.get_url)) {
-    thumb.appendChild(el("img", { loading: "lazy", src: asset.thumb_url || asset.get_url, alt: asset.name || "" }));
+  } else if (cat === "image" && (thumbSrc || asset.get_url)) {
+    thumb.appendChild(el("img", { loading: "lazy", src: thumbSrc || asset.get_url, alt: asset.name || "" }));
   } else if (cat === "video") {
-    if (asset.thumb_url) thumb.appendChild(el("img", { loading: "lazy", src: asset.thumb_url, alt: asset.name || "" }));
+    if (thumbSrc) thumb.appendChild(el("img", { loading: "lazy", src: thumbSrc, alt: asset.name || "" }));
     thumb.appendChild(el("div", { class: "play" }, "▶"));
     if (asset.duration) thumb.appendChild(el("div", { class: "badge" }, formatDuration(asset.duration)));
   } else if (cat === "audio") {
-    thumb.appendChild(el("span", { class: "file-icon" }, "🎵"));
+    if (thumbSrc) thumb.appendChild(el("img", { loading: "lazy", src: thumbSrc, alt: asset.name || "" }));
+    else thumb.appendChild(el("span", { class: "file-icon" }, "🎵"));
     if (asset.duration) thumb.appendChild(el("div", { class: "badge" }, formatDuration(asset.duration)));
+  } else if (thumbSrc) {
+    thumb.appendChild(el("img", { loading: "lazy", src: thumbSrc, alt: asset.name || "" }));
   } else {
     thumb.appendChild(el("span", { class: "file-icon" }, "📄"));
   }
@@ -105,6 +116,8 @@ function openAsset(asset, cat) {
 
 async function drillInto(folder) {
   crumbs.push({ id: folder.id, name: folder.name || folder.id });
+  allAssets = [];
+  nextCursor = null;
   showEmpty("Loading…");
   try {
     const result = await app.callServerTool({
@@ -121,6 +134,8 @@ async function drillInto(folder) {
 async function navigateTo(index) {
   crumbs = crumbs.slice(0, index + 1);
   const target = crumbs[crumbs.length - 1];
+  allAssets = [];
+  nextCursor = null;
   showEmpty("Loading…");
   try {
     const args = target.id ? { parent_id: target.id } : {};
@@ -129,6 +144,29 @@ async function navigateTo(index) {
   } catch (err) {
     showError("Navigation failed: " + (err && err.message ? err.message : String(err)));
   }
+}
+
+async function loadMore() {
+  if (!nextCursor || loadingMore) return;
+  loadingMore = true;
+  render();
+  try {
+    const target = crumbs[crumbs.length - 1];
+    const args = { start_key: nextCursor };
+    if (target.id) args.parent_id = target.id;
+    const result = await app.callServerTool({ name: "list_assets", arguments: args });
+    const data = parseToolResult(result);
+    if (data && Array.isArray(data.assets)) {
+      allAssets = allAssets.concat(data.assets);
+      nextCursor = data.next || null;
+    }
+  } catch (err) {
+    showError("Load more failed: " + (err && err.message ? err.message : String(err)));
+    return;
+  } finally {
+    loadingMore = false;
+  }
+  render();
 }
 
 function render() {
@@ -174,6 +212,19 @@ function render() {
   const grid = el("div", { class: "mcp-grid" });
   for (const asset of filtered) grid.appendChild(renderTile(asset));
   root.appendChild(grid);
+
+  if (nextCursor) {
+    const wrap = el("div", { class: "load-more" });
+    const btn = el(
+      "button",
+      { type: "button" },
+      loadingMore ? "Loading…" : "Load more"
+    );
+    if (loadingMore) btn.setAttribute("disabled", "true");
+    btn.addEventListener("click", loadMore);
+    wrap.appendChild(btn);
+    root.appendChild(wrap);
+  }
 }
 
 function makeFilter(key, label) {
@@ -187,6 +238,7 @@ function ingest(data) {
   if (!data) { showEmpty("No data returned."); return; }
   if (data.error) { showError(data.error); return; }
   allAssets = Array.isArray(data.assets) ? data.assets : [];
+  nextCursor = data.next || null;
   render();
 }
 

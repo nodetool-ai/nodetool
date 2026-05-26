@@ -138,7 +138,7 @@ describe("MCP Server", () => {
       }
     )._registeredTools;
     expect(tools.list_workflows.description).toBe(
-      "List workflows with flexible filtering. Renders an inline gallery of workflow cards with thumbnails and a Run button in App-aware hosts."
+      "List workflows. Returns inline base64 thumbnails for hosts that render images (e.g. Claude Desktop) and renders an interactive gallery in App-aware hosts. Supports cursor pagination via start_key — pass the previous response's `next` value to fetch the next page."
     );
   });
 
@@ -150,7 +150,7 @@ describe("MCP Server", () => {
       }
     )._registeredTools;
     expect(tools.get_workflow.description).toBe(
-      "Get detailed information about a specific workflow. Renders an interactive pan/zoom graph view in App-aware hosts."
+      "Get detailed information about a specific workflow. Returns the workflow's thumbnail inline as an image block when available, plus an interactive pan/zoom graph view in App-aware hosts."
     );
   });
 

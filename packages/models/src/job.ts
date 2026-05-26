@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.job`.
  */
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, lt } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { jobs } from "./schema/jobs.js";
@@ -239,17 +239,25 @@ export class Job extends DBModel {
     userId: string,
     opts: {
       cursor?: string;
+      startKey?: string;
       limit?: number;
       status?: JobStatus;
       workflowId?: string;
     } = {}
   ): Promise<[Job[], string]> {
     const { limit = 50, status, workflowId } = opts;
+    const startKey = opts.startKey ?? opts.cursor;
     const db = getDb();
 
     const conditions = [eq(jobs.user_id, userId)];
     if (status) conditions.push(eq(jobs.status, status));
     if (workflowId) conditions.push(eq(jobs.workflow_id, workflowId));
+    if (startKey) {
+      const cursorRow = await Job.get<Job>(startKey);
+      if (cursorRow && cursorRow.user_id === userId) {
+        conditions.push(lt(jobs.updated_at, cursorRow.updated_at));
+      }
+    }
 
     const rows = await db
       .select()
