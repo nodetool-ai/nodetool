@@ -117,23 +117,26 @@ describe("premultiplied invariant: color modules", () => {
   for (const { name, module } of PREMUL_INVARIANT_MODULES) {
     describe(name, () => {
       it("operates on straight RGB (un-premultiplies before the op)", () => {
-        // Look for the un-premultiply step. Fragment shaders typically name
-        // the sampled texel `src`; the compute-kind grade module names it
-        // `color`. Either form is acceptable.
+        // Accepts either the hand-rolled pattern (`src.rgb / a` /
+        // `color.rgb / a`) or the typed-helper pattern (`unpremul(`), which
+        // wraps the same divide inside `WGSL_PREMUL_HELPERS`. Both leave
+        // straight RGB on the stack for the subsequent op.
         const wgsl = module.wgsl;
         const hasSrcDiv = /src\.rgb\s*\/\s*[a-zA-Z_]/.test(wgsl);
         const hasColorDiv = /color\.rgb\s*\/\s*[a-zA-Z_]/.test(wgsl);
-        expect(hasSrcDiv || hasColorDiv).toBe(true);
+        const hasUnpremulCall = /\bunpremul\s*\(/.test(wgsl);
+        expect(hasSrcDiv || hasColorDiv || hasUnpremulCall).toBe(true);
       });
 
       it("re-premultiplies the result before storing", () => {
-        // The final stored RGB must be multiplied by alpha so rgb <= a holds.
-        // Match an explicit `* src.a` / `* color.a` re-premultiply, or the
-        // compact `vec3f(src.a) - …` form which yields valid premul directly.
+        // Accepts an explicit `* src.a` / `* color.a` re-premultiply, the
+        // compact `vec3f(src.a) - …` form, or a `premul(` call from the
+        // typed-helper bundle (which expands to `* s.v.a`).
         const wgsl = module.wgsl;
         const hasRemul = /\*\s*(src|color)\.a\b/.test(wgsl);
         const hasCompact = /vec3f\(\s*(src|color)\.a\s*\)\s*-/.test(wgsl);
-        expect(hasRemul || hasCompact).toBe(true);
+        const hasPremulCall = /\bpremul\s*\(/.test(wgsl);
+        expect(hasRemul || hasCompact || hasPremulCall).toBe(true);
       });
 
       it("keeps alpha contract premultiplied → premultiplied", () => {

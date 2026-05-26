@@ -340,6 +340,16 @@ describe.skipIf(!device)("premultiplied invariant harness (GPU)", () => {
   const cases: Case[] = [];
   for (const module of ALL_SHADERS) {
     const unsupported = moduleUsesUnsupportedBinding(module);
+    // The harness only validates premultiplied outputs — `rgb ≤ a` is
+    // meaningless for straight-alpha outputs (e.g. `alpha.premulToStraight`),
+    // where straight RGB can legitimately exceed alpha.
+    const straightOutput = module.io.output.alpha === "straight";
+    const baseSkip =
+      unsupported != null
+        ? `unsupported binding kind ${unsupported}`
+        : straightOutput
+          ? "output is straight-alpha; premul invariant does not apply"
+          : null;
     const isSource = Object.keys(module.io.inputs).length === 0;
     if (isSource) {
       cases.push({
@@ -347,9 +357,7 @@ describe.skipIf(!device)("premultiplied invariant harness (GPU)", () => {
         fixture: null,
         label: `${moduleKey(module.id, module.version)} :: <no input>`,
         expectedToFail: false,
-        skipReason: unsupported
-          ? `unsupported binding kind ${unsupported}`
-          : null
+        skipReason: baseSkip
       });
       continue;
     }
@@ -360,9 +368,7 @@ describe.skipIf(!device)("premultiplied invariant harness (GPU)", () => {
         fixture,
         label: `${moduleKey(module.id, module.version)} :: ${fixture.name}`,
         expectedToFail: KNOWN_VIOLATIONS.has(key),
-        skipReason: unsupported
-          ? `unsupported binding kind ${unsupported}`
-          : null
+        skipReason: baseSkip
       });
     }
   }
