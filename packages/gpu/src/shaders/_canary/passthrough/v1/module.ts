@@ -10,6 +10,7 @@
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
+import { WGSL_PREMUL_HELPERS } from "../../../../shared/premulWgsl.js";
 
 const PassthroughParams = d.struct({
   tint: d.vec4f
@@ -26,6 +27,7 @@ export const passthroughV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "_canary",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: PassthroughParams,
   paramDefaults: { tint: d.vec4f(1, 1, 1, 1) },
@@ -42,10 +44,15 @@ export const passthroughV1 = defineModule({
     }
   },
   wgsl: /* wgsl */ `
+${WGSL_PREMUL_HELPERS}
+
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let c = textureSample(layout.$.source, layout.$.samp, uv);
-  return c * layout.$.params.tint;
+  let src = samplePremul(layout.$.source, layout.$.samp, uv);
+  // Tint is a per-channel multiplier applied in premul space — a linear op,
+  // so the typed Premul value passes through without an unpremul round-trip.
+  let tinted = Premul(src.v * layout.$.params.tint);
+  return tinted.v;
 }
 `,
   io: {

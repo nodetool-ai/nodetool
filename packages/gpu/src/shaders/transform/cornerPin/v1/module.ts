@@ -50,6 +50,7 @@ export const transformCornerPinV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: CornerPinParams,
   // Identity homography: H = I (h22 = 1 implicit).

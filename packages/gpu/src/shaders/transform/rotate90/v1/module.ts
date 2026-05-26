@@ -42,6 +42,7 @@ export const transformRotate90V1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: Rotate90Params,
   paramDefaults: { turns: 1 },

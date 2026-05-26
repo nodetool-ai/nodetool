@@ -43,6 +43,7 @@ export const colorChannelShuffleV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: ChannelShuffleParams,
   paramDefaults: { rFrom: 0, gFrom: 1, bFrom: 2, aFrom: 3 },

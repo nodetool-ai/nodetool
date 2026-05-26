@@ -9,6 +9,7 @@
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
+import { WGSL_PREMUL_HELPERS } from "../../../../shared/premulWgsl.js";
 
 export const InvertParams = d.struct({
   amount: d.f32
@@ -35,6 +36,7 @@ export const colorInvertV1 = defineModule({
   // canonical mask slot; no near-term split or rename in sight.
   surface: "published",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: InvertParams,
   paramDefaults: { amount: 1 },
@@ -44,19 +46,22 @@ export const colorInvertV1 = defineModule({
   layout,
   samplers: { samp: samplerDescriptor },
   wgsl: /* wgsl */ `
+${WGSL_PREMUL_HELPERS}
+
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let src = textureSample(layout.$.source, layout.$.samp, uv);
+  // Input is premultiplied. The typed helpers force us through unpremul()
+  // before touching channels — the prior hand-rolled "safeA = max(a, 1/255);
+  // straight = rgb/safeA; invert; re-premultiply" dance is now expressed as
+  // unpremul/premul calls that can't be skipped accidentally.
+  let p = samplePremul(layout.$.source, layout.$.samp, uv);
+  let s = unpremul(p);
+  let inverted = Straight(vec4f(vec3f(1.0) - s.v.rgb, s.v.a));
+  let invPremul = premul(inverted);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
-  // Input is premultiplied. Invert in straight space then re-premultiply so
-  // the output stays valid premul (rgb <= a). The naive (1 - rgb) form
-  // produced rgb > a on partially transparent pixels (e.g. transparent black
-  // (0,0,0,0) inverted to (1,1,1,0), an invalid premul "white").
-  let safeA = max(src.a, 1.0 / 255.0);
-  let straight = src.rgb / safeA;
-  let invertedStraight = vec3f(1.0) - straight;
-  let mixedStraight = mix(straight, invertedStraight, coverage * layout.$.params.amount);
-  return vec4f(mixedStraight * src.a, src.a);
+  // Linear mix between two premul values is itself a premul-safe linear op,
+  // so it's correct to lerp src.v ↔ invPremul.v directly.
+  return mix(p.v, invPremul.v, coverage * layout.$.params.amount);
 }
 `,
   io: {

@@ -34,6 +34,7 @@ export const blurGaussianV1 = defineModule({
   // Phase 3 `filters.glow` recipe.
   surface: "published",
   category: "filters",
+  linearity: "linear-in-rgb",
   kind: "compute",
   params: BlurParams,
   paramDefaults: { radius: 0, sigma: 0, direction: d.vec2f(1, 0) },

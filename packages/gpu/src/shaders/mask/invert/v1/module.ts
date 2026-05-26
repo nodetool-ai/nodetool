@@ -29,6 +29,7 @@ export const maskInvertV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "mask",
+  linearity: "alpha-only",
   kind: "fragment",
   params: NoParams,
   paramDefaults: { unused: 0 },

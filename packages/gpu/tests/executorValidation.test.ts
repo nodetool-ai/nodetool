@@ -26,6 +26,7 @@ const linearPremul = defineModule({
   version: 1,
   surface: "internal",
   category: "_canary",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: Params,
   paramDefaults: { x: 0 },
