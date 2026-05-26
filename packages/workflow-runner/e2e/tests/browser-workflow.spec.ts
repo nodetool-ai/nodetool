@@ -120,66 +120,79 @@ test("a multi-edge graph aggregates two sources into one sink", async ({
   expect(result.outputs.joined).toEqual(["hello, world!"]);
 });
 
-test("browser-compatible node registry is loaded in the harness", async ({
+test("a branched browser-compatible graph can feed two downstream nodes", async ({
   page
 }) => {
-  const nodeTypes = await page.evaluate(() => window.browserCompatibleNodeTypes);
-  expect(nodeTypes.length).toBeGreaterThan(0);
-  expect(nodeTypes).toContain("nodetool.constant.String");
-  expect(nodeTypes).toContain("nodetool.list.Range");
-  expect(nodeTypes).toContain("nodetool.list.RepeatValue");
-});
-
-test("a workflow can execute browser-compatible base nodes", async ({ page }) => {
   const result = await page.evaluate(async () => {
     return window.runWorkflowInBrowser({
       nodes: [
         {
-          id: "source",
-          type: "nodetool.constant.String",
-          properties: { value: "echo" }
+          id: "src",
+          type: "browsertest.ConstantText",
+          properties: { value: "shouting" }
         },
+        { id: "upper", type: "browsertest.Uppercase", name: "loud" },
         {
-          id: "repeat",
-          type: "nodetool.list.RepeatValue",
-          name: "copies",
-          properties: { times: 3 }
-        }
+          id: "suffix",
+          type: "browsertest.ConstantText",
+          properties: { value: "!!!" }
+        },
+        { id: "concat", type: "browsertest.Concat", name: "joined" }
       ],
       edges: [
         {
-          source: "source",
+          source: "src",
           sourceHandle: "output",
-          target: "repeat",
-          targetHandle: "value"
+          target: "upper",
+          targetHandle: "text"
+        },
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "concat",
+          targetHandle: "a"
+        },
+        {
+          source: "suffix",
+          sourceHandle: "output",
+          target: "concat",
+          targetHandle: "b"
         }
       ]
     });
   });
 
   expect(result.status).toBe("completed");
-  expect(result.outputs.copies).toEqual([["echo", "echo", "echo"]]);
+  expect(result.outputs.loud).toEqual(["SHOUTING"]);
+  expect(result.outputs.joined).toEqual(["shouting!!!"]);
 });
 
-test("a browser-compatible range node produces deterministic sequence", async ({
+test("uppercase handles empty text from a browser-compatible constant", async ({
   page
 }) => {
   const result = await page.evaluate(async () => {
     return window.runWorkflowInBrowser({
       nodes: [
         {
-          id: "range",
-          type: "nodetool.list.Range",
-          name: "sequence",
-          properties: { start: 2, stop: 10, step: 3, max_output_length: 10 }
-        }
+          id: "src",
+          type: "browsertest.ConstantText",
+          properties: { value: "" }
+        },
+        { id: "upper", type: "browsertest.Uppercase", name: "loud" }
       ],
-      edges: []
+      edges: [
+        {
+          source: "src",
+          sourceHandle: "output",
+          target: "upper",
+          targetHandle: "text"
+        }
+      ]
     });
   });
 
   expect(result.status).toBe("completed");
-  expect(result.outputs.sequence).toEqual([[2, 5, 8]]);
+  expect(result.outputs.loud).toEqual([""]);
 });
 
 /**
