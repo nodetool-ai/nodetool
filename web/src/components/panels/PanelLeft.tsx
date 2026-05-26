@@ -13,6 +13,7 @@ import { memo, useCallback } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
+import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
 import AgentPanel from "./AgentPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
@@ -105,54 +106,49 @@ const styles = (
       flexShrink: 0,
       display: "flex",
       flexDirection: "column",
-      gap: 6,
+      gap: "8px",
       backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      paddingTop: "8px",
+      paddingTop: "10px",
+      paddingBottom: "10px",
+
+      "& .toolbar-divider": {
+        height: "1px",
+        margin: "8px 10px",
+        backgroundColor: theme.vars.palette.divider
+      },
 
       "& .MuiIconButton-root, .MuiButton-root": {
-        padding: "10px",
-        borderRadius: "var(--rounded-lg)",
-        position: "relative",
-        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        willChange: "transform, box-shadow",
+        padding: "8px",
+        margin: "0 6px",
+        borderRadius: "8px",
         backgroundColor: "transparent",
+        transition:
+          "background-color 140ms ease-out, color 140ms ease-out",
+
         "& svg": {
-          fontSize: "1.25rem",
-          "[data-mui-color-scheme='dark'] &": {
-            color: theme.vars.palette.grey[100]
+          fontSize: "1.125rem",
+          color: theme.vars.palette.text.secondary,
+          transition: "color 140ms ease-out"
+        },
+
+        "&:hover": {
+          backgroundColor: theme.vars.palette.action.hover,
+          "& svg": {
+            color: theme.vars.palette.text.primary
           }
         },
 
         "&.active": {
-          backgroundColor: `${theme.vars.palette.action.selected}66`,
-          boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}44 inset`
-        },
-        "&.active svg": {
-          color: theme.vars.palette.primary.main
-        },
-        "&:hover": {
-          backgroundColor: `${theme.vars.palette.action.hover}66`,
-          boxShadow: `0 4px 18px ${theme.vars.palette.action.hover}30`,
-          transform: "scale(1.02)",
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-            background: `linear-gradient(135deg, ${theme.vars.palette.primary.main}20, transparent)`,
-            borderRadius: "var(--rounded-lg)"
-          },
-          "& svg, & .icon-container svg": {
-            transform: "scale(1.05)",
-            filter: `drop-shadow(0 0 6px ${theme.vars.palette.primary.main}33)`
+          backgroundColor: theme.vars.palette.action.selected,
+          "& svg": {
+            color: theme.vars.palette.text.primary
           }
         },
-        "&:active": {
-          transform: "scale(0.98)",
-          boxShadow: `0 2px 10px ${theme.vars.palette.action.hover}24`
+
+        "&:focus-visible": {
+          outline: `2px solid ${theme.vars.palette.primary.main}`,
+          outlineOffset: "-2px"
         }
       }
     },
@@ -192,6 +188,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         onCategoryClick={onViewChange}
       />
       <div style={{ flexGrow: 1 }} />
+      <div className="toolbar-divider" aria-hidden />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
         <ToolbarIconButton
@@ -324,7 +321,12 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          {!isMobile && <PanelHeadline title="Workflows" />}
+          {!isMobile && (
+            <PanelHeadline
+              title="Workflows"
+              actions={<CreateWorkflowButton />}
+            />
+          )}
           <ScrollArea fullHeight>
             <WorkflowList />
           </ScrollArea>
@@ -490,6 +492,7 @@ const MobilePanelLeft: React.FC<{
             </Tooltip>
 
             <Box sx={{ flex: 1 }} />
+            {activeView === "workflows" && <CreateWorkflowButton />}
           </div>
         }
       >

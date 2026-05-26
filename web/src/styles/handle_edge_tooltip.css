@@ -289,7 +289,8 @@
 }
 .react-flow__node .react-flow__handle-left {
   transform-origin: right center;
-  left: -6px;
+  /* -6px (visual overhang) - node-body padding so handle sits on the outer edge */
+  left: calc(-6px - var(--node-body-padding, 0px));
   top: 5px;
   border-left: 1px solid var(--palette-grey-700);
   border-top: 1px solid var(--palette-grey-700);
@@ -301,7 +302,7 @@
   border-right: 1px solid var(--palette-grey-700);
   border-top: 1px solid var(--palette-grey-700);
   border-bottom: 1px solid var(--palette-grey-700);
-  right: -6px;
+  right: calc(-6px - var(--node-body-padding, 0px));
   top: 5px;
   border-radius: 0 2px 2px 0;
 }
@@ -538,7 +539,7 @@ ul.multi-outputs li::marker {
 }
 
 .handle-tooltip-name {
-  font-size: var(--fontSizeNormal);
+  font-size: var(--fontSizeSmaller);
   font-weight: bold;
   border: 0;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
@@ -558,7 +559,7 @@ ul.multi-outputs li::marker {
 }
 
 .handle-tooltip-type {
-  font-size: var(--fontSizeSmaller);
+  font-size: var(--fontSizeTinyer);
   font-family: var(--fontFamily2, monospace);
   opacity: 0.8;
   padding: 0 0.35em;

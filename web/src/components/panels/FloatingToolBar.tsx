@@ -138,24 +138,25 @@ const styles = (theme: Theme) =>
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: "8px",
-    padding: "8px 12px",
+    gap: "2px",
+    padding: "6px 8px",
     backgroundColor: theme.vars.palette.grey[900],
-    borderRadius: "var(--rounded-xxl)",
-    border: `1px solid ${theme.vars.palette.grey[700]}`,
+    borderRadius: "999px",
+    border: `1px solid ${theme.vars.palette.grey[800]}`,
     boxShadow: `0 4px 20px ${theme.vars.palette.common.black}1A`,
 
     ".floating-action-button": {
-      width: "44px",
-      height: "44px",
+      width: "36px",
+      height: "36px",
+      minHeight: "36px",
       position: "relative",
-      borderRadius: "var(--rounded-xxl)",
+      borderRadius: "var(--rounded-circle)",
       border: "none",
       boxShadow: "none",
       transition: "all 0.15s ease-out",
 
       "& svg": {
-        fontSize: "22px"
+        fontSize: "20px"
       },
 
       "&:hover": {
@@ -167,10 +168,17 @@ const styles = (theme: Theme) =>
       }
     },
 
+    /* Run button stays larger to remain the focal point */
     ".floating-action-button.primary": {
+      width: "44px",
+      height: "44px",
+      minHeight: "44px",
+      "& svg": {
+        fontSize: "24px"
+      },
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
-      borderRadius: "var(--rounded-xxl)",
+      borderRadius: "var(--rounded-circle)",
       boxShadow: `0 4px 16px ${theme.vars.palette.success.main}50, 0 0 20px ${theme.vars.palette.success.main}30`,
       position: "relative",
       overflow: "visible",
@@ -228,24 +236,23 @@ const styles = (theme: Theme) =>
     },
 
     ".floating-action-button.stop": {
-      backgroundColor: theme.vars.palette.grey[700],
+      backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
       "&:hover": {
-        backgroundColor: theme.vars.palette.warning.main,
-        color: theme.vars.palette.warning.contrastText
+        backgroundColor: theme.vars.palette.grey[800],
+        color: theme.vars.palette.warning.main
       },
       "&.active": {
-        backgroundColor: theme.vars.palette.warning.main,
-        color: theme.vars.palette.warning.contrastText
+        color: theme.vars.palette.warning.main
       }
     },
 
-    /* Node menu button: secondary prominent, distinct color */
+    /* Node menu button: flat to match the rest of the toolbar */
     ".floating-action-button.node-menu": {
-      backgroundColor: theme.vars.palette.grey[800],
+      backgroundColor: "transparent",
       color: theme.vars.palette.grey[300],
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700],
+        backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]
       }
     },
@@ -575,9 +582,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         <Box
           css={css({
             width: "1px",
-            height: "24px",
-            backgroundColor: theme.vars.palette.grey[700],
-            margin: "0 4px"
+            height: "20px",
+            backgroundColor: theme.vars.palette.grey[800],
+            margin: "0 6px"
           })}
         />
 

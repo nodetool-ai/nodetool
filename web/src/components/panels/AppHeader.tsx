@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
       backdropFilter: "blur(12px)",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: `0 4px 30px ${theme.vars.palette.grey[900]}1a`,
-      paddingLeft: "8px",
+      paddingLeft: "0",
       position: "fixed",
       top: 0,
       left: 0,
@@ -126,8 +126,14 @@ const styles = (theme: Theme) =>
     ".logo-container": {
       display: "flex",
       alignItems: "center",
+      paddingLeft: "2px",
       marginRight: "16px",
-      cursor: "pointer"
+      cursor: "pointer",
+      opacity: 0.55,
+      transition: "opacity 150ms ease-out",
+      "&:hover": {
+        opacity: 1
+      }
     },
     ".buttons-right": {
       display: "flex",
@@ -335,9 +341,11 @@ const TemplatesButton = memo(function TemplatesButton({
           height: "1.75em",
           minWidth: "auto",
           borderRadius: "var(--rounded-md)",
-          color: "var(--palette-text-default)",
+          color: "var(--palette-text-secondary)",
           border: "1px solid transparent",
           gap: "6px",
+          transition:
+            "color 150ms ease-out, background-color 150ms ease-out",
           "& .templates-icon": {
             width: "16px",
             height: "16px",
@@ -346,13 +354,12 @@ const TemplatesButton = memo(function TemplatesButton({
           "&:hover": {
             backgroundColor: "var(--palette-action-hover)",
             color: "var(--palette-text-primary)",
-            borderColor: "transparent",
+            borderColor: "transparent"
           },
           "&.active": {
-
-            color: "var(--palette-primary-contrastText)",
-            backgroundColor: "var(--palette-primary-main)",
-            borderColor: "var(--palette-primary-main)",
+            color: "var(--palette-text-primary)",
+            backgroundColor: "var(--palette-action-selected)",
+            borderColor: "transparent"
           }
         }}
         className={`nav-button templates-button ${isActive ? "active" : ""}`}
