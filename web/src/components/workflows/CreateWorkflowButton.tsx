@@ -32,7 +32,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const CreateWorkflowButton: React.FC = () => {
+const CreateWorkflowButton = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

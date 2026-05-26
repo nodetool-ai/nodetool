@@ -5,8 +5,8 @@ import {
   WorkflowVersionList
 } from "../stores/ApiTypes";
 
-export const workflowVersionsQueryKey = (workflowId: string) =>
-  ["workflow", workflowId, "versions"] as const;
+export const workflowVersionsQueryKey = (workflowId: string, limit: number) =>
+  ["workflow", workflowId, "versions", limit] as const;
 
 export const useWorkflowVersions = (
   workflowId: string | null | undefined,
@@ -16,8 +16,8 @@ export const useWorkflowVersions = (
 
   const query = useQuery({
     queryKey: workflowId
-      ? workflowVersionsQueryKey(workflowId)
-      : ["workflow", "none", "versions"],
+      ? workflowVersionsQueryKey(workflowId, limit)
+      : ["workflow", "none", "versions", limit],
     queryFn: async (): Promise<WorkflowVersionList> => {
       const data = await trpcClient.workflows.versions.list.query({
         id: workflowId as string,
@@ -32,7 +32,7 @@ export const useWorkflowVersions = (
   const invalidate = () => {
     if (workflowId) {
       queryClient.invalidateQueries({
-        queryKey: workflowVersionsQueryKey(workflowId)
+        queryKey: ["workflow", workflowId, "versions"]
       });
     }
   };
