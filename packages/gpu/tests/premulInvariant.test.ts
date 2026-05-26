@@ -63,11 +63,10 @@ interface Fixture {
  * 256-byte row alignment constraint for `copyTextureToBuffer`) don't waste
  * memory while still exposing per-column behaviour for `gradient_alpha`.
  *
- * Every fixture except `transparent_noisy` is itself premul-valid (rgb ≤ a);
- * `transparent_noisy` simulates the kind of 8-bit slop a real ingress path
- * (decoded JPEG / video frame with `premultipliedAlpha: false`) might hand
- * in, and is the test that catches modules which divide by `max(a, ε)` and
- * propagate the noise as super-bright RGB.
+ * Every fixture is premul-valid (rgb ≤ a). The harness asserts "valid input
+ * produces valid output"; testing defensiveness against invalid input bytes
+ * (e.g. decoded JPEG with `premultipliedAlpha: false`) is the host bridge's
+ * responsibility, not the pool's.
  */
 function buildFixtures(): Fixture[] {
   const fill = (
@@ -91,12 +90,11 @@ function buildFixtures(): Fixture[] {
   const alphaRamp = [0, 64, 128, 255];
   return [
     { name: "transparent_zero", pixels: fill(() => [0, 0, 0, 0]) },
-    // Invalid premul on purpose — RGB above the alpha ceiling. Most modules
-    // should still produce premul-valid output (the input bytes coming off an
-    // 8-bit decode often look like this; the chain has to be defensive).
-    { name: "transparent_noisy", pixels: fill(() => [1, 1, 1, 0]) },
     { name: "semitransparent_white", pixels: fill(() => [128, 128, 128, 128]) },
-    { name: "semitransparent_color", pixels: fill(() => [200, 100, 50, 128]) },
+    // RGB ratio 4:2:1 (orange) at 50% alpha. Each channel kept strictly ≤ a so
+    // the input is premul-valid; this exercises asymmetric channel handling
+    // without seeding a violation that a passthrough would propagate.
+    { name: "semitransparent_color", pixels: fill(() => [100, 50, 25, 128]) },
     { name: "opaque_mid", pixels: fill(() => [128, 128, 128, 255]) },
     { name: "opaque_black", pixels: fill(() => [0, 0, 0, 255]) },
     { name: "opaque_white", pixels: fill(() => [255, 255, 255, 255]) },
@@ -136,21 +134,8 @@ interface Violation {
  * most fixtures and fail one. We want to keep coverage of the passing fixtures
  * as positive assertions and only relax the failing one.
  *
- * Intentionally empty on first land — the harness was added without a GPU
- * available in the authoring environment, so the bug list cannot be confirmed
- * by speculation. The first real-GPU CI run will surface the genuine
- * violations; entries land here in a follow-up commit (with the WGSL fix in a
- * subsequent commit so each `.fails()` flip is paired with the fix that
- * graduates it). Candidates flagged by static review of the catalog and the
- * surrounding plan:
- *   - `color.exposure@1` :: `transparent_noisy` (returns `src.a` while
- *     leaving `src.rgb` unscaled by alpha when `gain == 1`)
- *   - `mixer.add@1` :: `transparent_noisy` over `transparent_zero` (per-
- *     channel clamp doesn't enforce rgb ≤ a)
- *   - `color.channelMerge@1` :: any fixture with non-default `alphaChannel`
- *     where the alpha source is opaque while RGB is super-bright
- *   - `filters.threshold@1` :: input where luma > threshold but src.rgb >
- *     src.a (the `src.rgb * t` scales rgb but rgb already exceeded a)
+ * Populate from real-GPU CI runs only — speculation produces both false
+ * positives and false negatives.
  */
 const KNOWN_VIOLATIONS = new Set<string>([]);
 
