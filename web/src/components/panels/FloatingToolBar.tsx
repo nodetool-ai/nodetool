@@ -604,7 +604,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             isWorkflowRunning ? (
               <RunningTime
                 isRunning={isWorkflowRunning}
-                timerKey={workflow?.id ?? "default"}
+                timerKey={workflow?.id}
               />
             ) : (
               <PlayArrow />

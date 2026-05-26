@@ -2,8 +2,6 @@ import { renderHook, act } from "@testing-library/react";
 import { useRunningTime } from "../useRunningTime";
 
 describe("useRunningTime", () => {
-  const getTimerKey = () => expect.getState().currentTestName ?? "test";
-
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -13,12 +11,12 @@ describe("useRunningTime", () => {
   });
 
   it("initializes with 0 seconds when not running", () => {
-    const { result } = renderHook(() => useRunningTime(false, getTimerKey()));
+    const { result } = renderHook(() => useRunningTime(false, "test-initial"));
     expect(result.current).toBe(0);
   });
 
   it("starts counting when isRunning becomes true", () => {
-    const { result } = renderHook(() => useRunningTime(true, getTimerKey()));
+    const { result } = renderHook(() => useRunningTime(true, "test-start"));
 
     expect(result.current).toBe(0);
 
@@ -30,7 +28,7 @@ describe("useRunningTime", () => {
   });
 
   it("increments seconds every second", () => {
-    const { result } = renderHook(() => useRunningTime(true, getTimerKey()));
+    const { result } = renderHook(() => useRunningTime(true, "test-increment"));
 
     act(() => {
       jest.advanceTimersByTime(3000);
@@ -41,7 +39,7 @@ describe("useRunningTime", () => {
 
   it("resets to 0 when isRunning becomes false", () => {
     const { result, rerender } = renderHook(
-      ({ isRunning }) => useRunningTime(isRunning, getTimerKey()),
+      ({ isRunning }) => useRunningTime(isRunning, "test-reset"),
       { initialProps: { isRunning: true } }
     );
 
@@ -58,7 +56,7 @@ describe("useRunningTime", () => {
 
   it("restarts counting from 0 when isRunning toggles", () => {
     const { result, rerender } = renderHook(
-      ({ isRunning }) => useRunningTime(isRunning, getTimerKey()),
+      ({ isRunning }) => useRunningTime(isRunning, "test-toggle"),
       { initialProps: { isRunning: true } }
     );
 
@@ -83,7 +81,7 @@ describe("useRunningTime", () => {
 
   it("handles rapid toggles", () => {
     const { result, rerender } = renderHook(
-      ({ isRunning }) => useRunningTime(isRunning, getTimerKey()),
+      ({ isRunning }) => useRunningTime(isRunning, "test-rapid-toggle"),
       { initialProps: { isRunning: true } }
     );
 
@@ -104,7 +102,7 @@ describe("useRunningTime", () => {
   });
 
   it("keeps counting after remount while still running", () => {
-    const timerKey = getTimerKey();
+    const timerKey = "test-remount";
     const { result, unmount } = renderHook(() => useRunningTime(true, timerKey));
 
     act(() => {
@@ -121,5 +119,24 @@ describe("useRunningTime", () => {
       jest.advanceTimersByTime(2000);
     });
     expect(remounted.result.current).toBe(5);
+  });
+
+  it("clears persisted timer when workflow is not running", () => {
+    const timerKey = "test-stop-clears";
+    const running = renderHook(() => useRunningTime(true, timerKey));
+
+    act(() => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(running.result.current).toBe(3);
+
+    running.unmount();
+
+    const stopped = renderHook(() => useRunningTime(false, timerKey));
+    expect(stopped.result.current).toBe(0);
+    stopped.unmount();
+
+    const restarted = renderHook(() => useRunningTime(true, timerKey));
+    expect(restarted.result.current).toBe(0);
   });
 });

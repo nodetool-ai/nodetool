@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
 const persistedStartTimes = new Map<string, number>();
+const MAX_PERSISTED_TIMERS = 200;
 
 /**
  * Hook to track elapsed time for a running workflow.
@@ -11,16 +12,28 @@ const persistedStartTimes = new Map<string, number>();
  */
 export const useRunningTime = (
   isRunning: boolean,
-  timerKey = "default"
+  timerKey?: string
 ): number => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isRunning) {
-      const persistedStart = persistedStartTimes.get(timerKey);
+      const persistedStart =
+        timerKey === undefined ? undefined : persistedStartTimes.get(timerKey);
       const startTime = persistedStart ?? Date.now();
-      persistedStartTimes.set(timerKey, startTime);
+
+      if (timerKey) {
+        if (
+          persistedStart === undefined &&
+          persistedStartTimes.size >= MAX_PERSISTED_TIMERS
+        ) {
+          const oldestKey = persistedStartTimes.keys().next().value as string;
+          persistedStartTimes.delete(oldestKey);
+        }
+        persistedStartTimes.set(timerKey, startTime);
+      }
+
       startTimeRef.current = startTime;
       setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
 
@@ -33,7 +46,9 @@ export const useRunningTime = (
 
       return () => clearInterval(interval);
     } else {
-      persistedStartTimes.delete(timerKey);
+      if (timerKey) {
+        persistedStartTimes.delete(timerKey);
+      }
       startTimeRef.current = null;
       setElapsedSeconds(0);
     }
