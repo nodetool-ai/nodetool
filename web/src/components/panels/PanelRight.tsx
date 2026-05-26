@@ -11,7 +11,8 @@ import isEqual from "fast-deep-equal";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useShallow } from "zustand/react/shallow";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -26,13 +27,15 @@ import ContextMenus from "../context_menus/ContextMenus";
 import { MobileBottomSheet, FlexColumn } from "../ui_primitives";
 
 const HEADER_AREA_HEIGHT = 77;
+// Matches HEADER_HEIGHT in PanelBottom — the bar still occupies this when collapsed.
+const BOTTOM_PANEL_HEADER_HEIGHT = 32;
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, bottomOffset: number) =>
   css({
     position: "fixed",
     right: 0,
     top: `${HEADER_AREA_HEIGHT}px`,
-    height: `calc(100vh - ${HEADER_AREA_HEIGHT}px)`,
+    height: `calc(100vh - ${HEADER_AREA_HEIGHT}px - ${bottomOffset}px)`,
     display: "flex",
     flexDirection: "row",
     zIndex: 1100,
@@ -282,6 +285,20 @@ const PanelRight: React.FC = () => {
 
   const setVisibility = useRightPanelStore((state) => state.setVisibility);
 
+  const { pathname } = useLocation();
+  const bottomPanelSize = useBottomPanelStore((state) => state.panel.panelSize);
+  const bottomPanelVisible = useBottomPanelStore(
+    (state) => state.panel.isVisible
+  );
+  // Mirror PanelBottom: it only mounts under /editor and collapses to the
+  // header bar when not visible. Subtract whatever it actually occupies so
+  // the inspector's bottom (Runs section) isn't covered.
+  const bottomOffset = !pathname.startsWith("/editor")
+    ? 0
+    : bottomPanelVisible
+      ? bottomPanelSize
+      : BOTTOM_PANEL_HEADER_HEIGHT;
+
   const activeSubgraphTab = useSubgraphTabsStore((state) =>
     state.activeKey
       ? state.tabs.find((t) => t.key === state.activeKey)
@@ -343,7 +360,10 @@ const PanelRight: React.FC = () => {
         <InspectorVisibilitySync activeNodeStore={activeNodeStore} />
       )}
       {isVisible && (
-        <div css={styles(theme)} className="panel-right-container">
+        <div
+          css={styles(theme, bottomOffset)}
+          className="panel-right-container"
+        >
           <div
             ref={panelRef}
             className={`drawer-content ${isDragging ? "dragging" : ""}`}

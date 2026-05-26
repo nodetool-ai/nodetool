@@ -242,7 +242,7 @@ const TabHeader = ({
             }}
           />
         ) : (
-          <span className="tab-name" style={{ marginRight: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+          <>
             {isRunning && (
               <CircularProgress
                 size={12}
@@ -253,24 +253,19 @@ const TabHeader = ({
                 }}
               />
             )}
-            {workflow.name}
+            <span className="tab-name">{workflow.name}</span>
             {isWorkflowDirty && (
               <span
-                className="dirty-indicator"
-                style={{
-                  color: "var(--palette-warning-main)",
-                  fontWeight: "bold",
-                  marginLeft: "2px"
-                }}
-              >
-                *
-              </span>
+                className="dirty-dot"
+                role="img"
+                aria-label="unsaved changes"
+              />
             )}
-          </span>
+          </>
         )}
         <CloseIcon
           className="close-icon"
-          sx={{ fontSize: 16 }}
+          aria-label={`Close ${workflow.name}`}
           onClick={handleClose}
         />
       </div>

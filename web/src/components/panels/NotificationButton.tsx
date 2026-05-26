@@ -70,13 +70,14 @@ const NotificationButton: React.FC = React.memo(() => {
     <div className="notifications-container">
       <NotificationBadge
         count={unreadCount}
-        color="error"
+        color="secondary"
+        dot
         tooltip="Notifications"
         ariaLabel={getNotificationButtonLabel(unreadCount)}
       >
         <ToolbarIconButton
           className="notification-button command-button command-icon"
-          icon={<NotificationsIcon sx={{ fontSize: "18px" }} className="notification-icon" />}
+          icon={<NotificationsIcon className="notification-icon" />}
           tooltip=""
           onClick={handleNotificationClick}
           ariaLabel={getNotificationButtonLabel(unreadCount)}

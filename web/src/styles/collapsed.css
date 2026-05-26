@@ -10,6 +10,7 @@
   min-height: var(--node-collapsed-min-height) !important;
   max-height: var(--node-collapsed-max-height) !important;
   overflow: var(--node-collapsed-overflow) !important;
+  padding: 0 !important;
 }
 
 .react-flow__node.collapsed {

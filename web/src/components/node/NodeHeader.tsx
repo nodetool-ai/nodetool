@@ -119,17 +119,17 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     () =>
       css({
         width: "100%",
-        minHeight: "32px",
+        minHeight: "24px",
         backgroundColor: "transparent",
         color: "var(--palette-text-secondary)",
         margin: 0,
-        padding: "0 6px",
+        padding: 0,
         borderRadius:
           "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0",
         borderBottom: "none",
         transition: "background-color 0.2s ease-in-out, opacity 0.15s",
         ".header-left": {
-          padding: "2px 2px",
+          padding: 0,
           flex: 1,
           minWidth: 0
         },
