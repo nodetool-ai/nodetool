@@ -17,6 +17,8 @@
  */
 
 import { WorkflowRunner, type NodeExecutor } from "@nodetool-ai/kernel";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { ALL_BROWSER_NODES } from "@nodetool-ai/base-nodes/platforms/browser";
 import type {
   Edge,
   NodeDescriptor,
@@ -103,9 +105,17 @@ declare global {
       check: BrightnessPixelCheck
     ) => Promise<BrightnessShaderResult>;
     runWebApisInBrowser: () => Promise<WebApiResult>;
+    browserCompatibleNodeTypes: string[];
     runtimeName: string;
   }
 }
+
+const browserRegistry = new NodeRegistry();
+for (const NodeClass of ALL_BROWSER_NODES) {
+  browserRegistry.register(NodeClass);
+}
+
+window.browserCompatibleNodeTypes = browserRegistry.list();
 
 window.runtimeName =
   typeof navigator !== "undefined" ? navigator.userAgent : "unknown";
@@ -128,7 +138,11 @@ window.runWorkflowInBrowser = async (
   const runner = new WorkflowRunner(jobId, {
     resolveExecutor: (node) => {
       const factory = executors[node.type];
-      return factory ? factory(node) : passthrough;
+      if (factory) return factory(node);
+      if (browserRegistry.has(node.type)) {
+        return browserRegistry.resolve(node);
+      }
+      return passthrough;
     }
   });
 

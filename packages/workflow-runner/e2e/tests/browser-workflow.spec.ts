@@ -120,6 +120,68 @@ test("a multi-edge graph aggregates two sources into one sink", async ({
   expect(result.outputs.joined).toEqual(["hello, world!"]);
 });
 
+test("browser-compatible node registry is loaded in the harness", async ({
+  page
+}) => {
+  const nodeTypes = await page.evaluate(() => window.browserCompatibleNodeTypes);
+  expect(nodeTypes.length).toBeGreaterThan(0);
+  expect(nodeTypes).toContain("nodetool.constant.String");
+  expect(nodeTypes).toContain("nodetool.list.Range");
+  expect(nodeTypes).toContain("nodetool.list.RepeatValue");
+});
+
+test("a workflow can execute browser-compatible base nodes", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    return window.runWorkflowInBrowser({
+      nodes: [
+        {
+          id: "source",
+          type: "nodetool.constant.String",
+          properties: { value: "echo" }
+        },
+        {
+          id: "repeat",
+          type: "nodetool.list.RepeatValue",
+          name: "copies",
+          properties: { times: 3 }
+        }
+      ],
+      edges: [
+        {
+          source: "source",
+          sourceHandle: "output",
+          target: "repeat",
+          targetHandle: "value"
+        }
+      ]
+    });
+  });
+
+  expect(result.status).toBe("completed");
+  expect(result.outputs.copies).toEqual([["echo", "echo", "echo"]]);
+});
+
+test("a browser-compatible range node produces deterministic sequence", async ({
+  page
+}) => {
+  const result = await page.evaluate(async () => {
+    return window.runWorkflowInBrowser({
+      nodes: [
+        {
+          id: "range",
+          type: "nodetool.list.Range",
+          name: "sequence",
+          properties: { start: 2, stop: 10, step: 3, max_output_length: 10 }
+        }
+      ],
+      edges: []
+    });
+  });
+
+  expect(result.status).toBe("completed");
+  expect(result.outputs.sequence).toEqual([[2, 5, 8]]);
+});
+
 /**
  * WebGPU shader catalog runs against the browser's `navigator.gpu`. This is
  * the test that proves the GPU pool isn't just Dawn-portable — the same
