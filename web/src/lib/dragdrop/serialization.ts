@@ -10,6 +10,25 @@ import type { DragData, DragDataType } from "./types";
 /** Custom MIME type for internal drag data */
 export const DRAG_DATA_MIME = "application/x-nodetool-drag";
 
+const VALID_DRAG_TYPES: ReadonlySet<string> = new Set<DragDataType>([
+  "create-node",
+  "asset",
+  "assets-multiple",
+  "file",
+  "tab",
+  "collection-file"
+]);
+
+function isDragData(value: unknown): value is DragData {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    typeof value.type === "string" &&
+    VALID_DRAG_TYPES.has(value.type)
+  );
+}
+
 /** Legacy key mapping for backward compatibility */
 const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   "create-node": "create-node",
@@ -52,7 +71,8 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   const unified = dataTransfer.getData(DRAG_DATA_MIME);
   if (unified) {
     try {
-      return JSON.parse(unified) as DragData;
+      const parsed: unknown = JSON.parse(unified);
+      if (isDragData(parsed)) return parsed;
     } catch {
       // Failed to parse unified format, fall through to legacy
     }
@@ -74,10 +94,11 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   const selectedAssetIds = dataTransfer.getData("selectedAssetIds");
   if (selectedAssetIds) {
     try {
-      const ids = JSON.parse(selectedAssetIds) as string[];
+      const ids: unknown = JSON.parse(selectedAssetIds);
+      if (!Array.isArray(ids)) return null;
       return {
         type: "assets-multiple",
-        payload: ids,
+        payload: ids as string[],
         metadata: { count: ids.length }
       };
     } catch {

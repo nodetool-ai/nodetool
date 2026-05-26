@@ -62,6 +62,16 @@ const STORAGE_KEY = "sketch-generation-jobs:v1";
 const canUseSessionStorage = (): boolean =>
   typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
 
+function isLayerJobEntry(value: unknown): value is LayerJobState {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "status" in value &&
+    "layerId" in value &&
+    "jobId" in value
+  );
+}
+
 const loadPersistedLayerJobs = (): Record<string, LayerJobState> => {
   if (!canUseSessionStorage()) {
     return {};
@@ -71,12 +81,20 @@ const loadPersistedLayerJobs = (): Record<string, LayerJobState> => {
     if (!raw) {
       return {};
     }
-    const parsed = JSON.parse(raw) as Record<string, LayerJobState>;
-    return Object.fromEntries(
-      Object.entries(parsed).filter(
-        ([, value]) => value.status === "queued" || value.status === "running"
-      )
-    );
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return {};
+    const result: Record<string, LayerJobState> = {};
+    for (const [key, value] of Object.entries(
+      parsed as Record<string, unknown>
+    )) {
+      if (
+        isLayerJobEntry(value) &&
+        (value.status === "queued" || value.status === "running")
+      ) {
+        result[key] = value;
+      }
+    }
+    return result;
   } catch {
     return {};
   }
