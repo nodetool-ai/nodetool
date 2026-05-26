@@ -23,7 +23,7 @@ import {
   isAlphanumeric,
   escapeHtml,
   normalizeEmail
-} from "../src/nodes/lib-validate.js";
+} from "@nodetool-ai/core-nodes";
 
 // ---------------------------------------------------------------------------
 // Pure validators

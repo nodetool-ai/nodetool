@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { runAgentLoop } from "../src/nodes/agents.js";
+import { runAgentLoop } from "@nodetool-ai/llm-nodes";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 function createMockContext(providerFactory: () => any): ProcessingContext {

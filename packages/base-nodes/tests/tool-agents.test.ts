@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   makeExecuteBashTool,
   makeSetOutputTool
-} from "../src/nodes/tool-agents.js";
+} from "@nodetool-ai/code-nodes";
 import { mkdtemp, writeFile, rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -28,7 +28,7 @@ import {
   VectorStoreAgentNode,
   YtDlpDownloaderAgentNode,
   TOOL_AGENT_NODES
-} from "../src/nodes/tool-agents.js";
+} from "@nodetool-ai/code-nodes";
 
 describe("Tool agent node registration", () => {
   it("exports 19 tool agent nodes", () => {

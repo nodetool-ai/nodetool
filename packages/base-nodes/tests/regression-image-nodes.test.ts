@@ -26,7 +26,7 @@ import {
   BatchToListNode,
   ChannelsNode
 } from "../src/index.js";
-import { LevelsNode } from "../src/nodes/image.js";
+import { LevelsNode } from "@nodetool-ai/image-nodes";
 
 // ---------------------------------------------------------------------------
 // Helpers

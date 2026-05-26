@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { encodePcm16Wav, parseWavBytes } from "../src/lib/audio-wav.js";
+import { encodePcm16Wav, parseWavBytes } from "@nodetool-ai/audio-nodes";
 
 describe("encodePcm16Wav", () => {
   it("wraps PCM bytes in a parseable RIFF/WAVE container", () => {

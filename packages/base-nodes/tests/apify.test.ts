@@ -9,7 +9,7 @@ import {
   ApifyTwitterScraperNode,
   ApifyLinkedInScraperNode,
   APIFY_NODES
-} from "../src/nodes/apify.js";
+} from "@nodetool-ai/integration-nodes";
 
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();

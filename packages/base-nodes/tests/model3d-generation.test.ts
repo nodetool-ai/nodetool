@@ -4,11 +4,11 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   ImageTo3DNode,
   TextTo3DNode
-} from "../src/nodes/model3d/generation.js";
+} from "@nodetool-ai/video-nodes";
 import {
   DEFAULT_IMAGE_TO_3D_MODEL,
   DEFAULT_TEXT_TO_3D_MODEL
-} from "../src/nodes/model3d/defaults.js";
+} from "@nodetool-ai/video-nodes";
 
 function makeContextWithProvider(provider: {
   textTo3D?: ReturnType<typeof vi.fn>;

@@ -10,7 +10,7 @@ import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
 
-import { rawRgbaImageRef, decodeRgba } from "../src/nodes/image.js";
+import { rawRgbaImageRef, decodeRgba } from "@nodetool-ai/image-nodes";
 
 // `imageBytesAsync` is module-internal; exercise it through decodeRgba's
 // encoded path and a direct PNG round-trip instead.

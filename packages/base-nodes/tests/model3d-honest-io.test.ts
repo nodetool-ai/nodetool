@@ -16,7 +16,7 @@ import {
   RepairMeshNode,
   TextTo3DNode,
   Transform3DNode
-} from "../src/nodes/model3d.js";
+} from "@nodetool-ai/video-nodes";
 
 function pad4(length: number): number {
   return (4 - (length % 4)) % 4;

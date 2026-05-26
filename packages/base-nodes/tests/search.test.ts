@@ -8,7 +8,7 @@ import {
   GoogleLensNode,
   GoogleMapsNode,
   GoogleShoppingNode
-} from "../src/nodes/search.js";
+} from "@nodetool-ai/integration-nodes";
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;

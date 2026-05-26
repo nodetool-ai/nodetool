@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CodeNode } from "../src/nodes/code-node.js";
+import { CodeNode } from "@nodetool-ai/code-nodes";
 
 function run(code: string, inputs: Record<string, unknown> = {}) {
   const node = new CodeNode({ code, ...inputs });

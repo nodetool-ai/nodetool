@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ToStringNode } from "../src/nodes/text-extra.js";
+import { ToStringNode } from "@nodetool-ai/text-nodes";
 
 describe("ToStringNode generic conversion", () => {
   it("returns empty string for undefined in repr mode", async () => {

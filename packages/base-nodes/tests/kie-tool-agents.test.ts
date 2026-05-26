@@ -21,7 +21,7 @@ import {
   VectorStoreAgentNode,
   YtDlpDownloaderAgentNode,
   TOOL_AGENT_NODES
-} from "../src/nodes/tool-agents.js";
+} from "@nodetool-ai/code-nodes";
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;

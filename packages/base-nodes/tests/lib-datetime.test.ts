@@ -17,7 +17,7 @@ import {
   diffUnits,
   startOf,
   endOf
-} from "../src/nodes/lib-datetime.js";
+} from "@nodetool-ai/core-nodes";
 
 // ---------------------------------------------------------------------------
 // parseDate

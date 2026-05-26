@@ -109,7 +109,7 @@ import {
   EXTENDED_PLACEHOLDER_NODES,
   titleFromNodeType,
   makePlaceholderNode
-} from "../src/nodes/extended-placeholders.js";
+} from "@nodetool-ai/core-nodes";
 
 // ============================================================
 // CONTROL NODES

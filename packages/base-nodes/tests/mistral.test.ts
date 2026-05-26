@@ -6,7 +6,7 @@ import {
   ImageToText,
   OCR,
   MISTRAL_NODES
-} from "../src/nodes/mistral.js";
+} from "@nodetool-ai/llm-nodes";
 
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();

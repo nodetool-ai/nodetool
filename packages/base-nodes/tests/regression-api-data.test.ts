@@ -12,8 +12,8 @@ import {
   ApifyTwitterScraperNode,
   ApifyLinkedInScraperNode,
   APIFY_NODES
-} from "../src/nodes/apify.js";
-import { GoogleSearchNode } from "../src/nodes/search.js";
+} from "@nodetool-ai/integration-nodes";
+import { GoogleSearchNode } from "@nodetool-ai/integration-nodes";
 import {
   AggregateNode,
   DropNANode,
@@ -22,7 +22,7 @@ import {
 import {
   ChartGeneratorNode,
   SVGGeneratorNode
-} from "../src/nodes/generators.js";
+} from "@nodetool-ai/llm-nodes";
 import {
   ConstantDateTimeNode,
   GetDocumentsNode,

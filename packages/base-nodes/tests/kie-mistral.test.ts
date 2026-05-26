@@ -5,7 +5,7 @@ import {
   Embedding,
   ImageToText,
   OCR
-} from "../src/nodes/mistral.js";
+} from "@nodetool-ai/llm-nodes";
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;

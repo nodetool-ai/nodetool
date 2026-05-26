@@ -15,7 +15,7 @@ import {
   GradientLibNode,
   TransformLibNode,
   ClipPathLibNode
-} from "../src/nodes/lib-svg.js";
+} from "@nodetool-ai/text-nodes";
 
 describe("SVGToImageLibNode", () => {
   it("creates an SVG document and returns it as PNG with image metadata", async () => {

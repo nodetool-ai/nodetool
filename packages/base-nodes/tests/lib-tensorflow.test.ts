@@ -131,7 +131,7 @@ describe("TensorFlow.js — image ref decoding", () => {
 
   it("bytesFromString accepts raw base64", async () => {
     const { bytesFromString } = await import(
-      "../src/nodes/lib-tensorflow.js"
+      "@nodetool-ai/automation-nodes"
     );
     const bytes = bytesFromString(RED_PIXEL_PNG_BASE64);
     expect(bytes.length).toBeGreaterThan(0);
@@ -144,7 +144,7 @@ describe("TensorFlow.js — image ref decoding", () => {
 
   it("bytesFromString strips a data:image/png;base64 prefix", async () => {
     const { bytesFromString } = await import(
-      "../src/nodes/lib-tensorflow.js"
+      "@nodetool-ai/automation-nodes"
     );
     const bytes = bytesFromString(
       `data:image/png;base64,${RED_PIXEL_PNG_BASE64}`
@@ -155,7 +155,7 @@ describe("TensorFlow.js — image ref decoding", () => {
 
   it("resolveImageBuffer decodes data: URIs in image.uri", async () => {
     const { resolveImageBuffer } = await import(
-      "../src/nodes/lib-tensorflow.js"
+      "@nodetool-ai/automation-nodes"
     );
     const buf = await resolveImageBuffer({
       uri: `data:image/png;base64,${RED_PIXEL_PNG_BASE64}`
@@ -166,7 +166,7 @@ describe("TensorFlow.js — image ref decoding", () => {
 
   it("resolveImageBuffer resolves asset_id through context.storage", async () => {
     const { resolveImageBuffer } = await import(
-      "../src/nodes/lib-tensorflow.js"
+      "@nodetool-ai/automation-nodes"
     );
     const expected = Buffer.from(RED_PIXEL_PNG_BASE64, "base64");
     const seen: string[] = [];

@@ -6,7 +6,7 @@ import {
   TelegramBotTrigger,
   TelegramSendMessage,
   MESSAGING_NODES
-} from "../src/nodes/messaging.js";
+} from "@nodetool-ai/integration-nodes";
 
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();

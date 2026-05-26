@@ -8,7 +8,7 @@ import {
   ApifyYouTubeScraperNode,
   ApifyTwitterScraperNode,
   ApifyLinkedInScraperNode
-} from "../src/nodes/apify.js";
+} from "@nodetool-ai/integration-nodes";
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;

@@ -1,8 +1,8 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
-let SandboxShellNode: (typeof import("../src/nodes/sandbox.js"))["SandboxShellNode"];
-let SandboxFileNode: (typeof import("../src/nodes/sandbox.js"))["SandboxFileNode"];
+let SandboxShellNode: (typeof import("@nodetool-ai/code-nodes"))["SandboxShellNode"];
+let SandboxFileNode: (typeof import("@nodetool-ai/code-nodes"))["SandboxFileNode"];
 
 const mocks = vi.hoisted(() => {
   const client = {
@@ -58,8 +58,8 @@ vi.mock("@nodetool-ai/sandbox", () => {
   };
 });
 
-vi.mock("../src/nodes/agents.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/nodes/agents.js")>();
+vi.mock("@nodetool-ai/llm-nodes", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@nodetool-ai/llm-nodes")>();
   return {
     ...actual,
     runAgentLoop: mocks.runAgentLoop
@@ -68,7 +68,7 @@ vi.mock("../src/nodes/agents.js", async (importOriginal) => {
 
 describe("sandbox nodes", () => {
   beforeAll(async () => {
-    const mod = await import("../src/nodes/sandbox.js");
+    const mod = await import("@nodetool-ai/code-nodes");
     SandboxShellNode = mod.SandboxShellNode;
     SandboxFileNode = mod.SandboxFileNode;
   });
@@ -197,7 +197,7 @@ describe("sandbox nodes", () => {
 
   it("registers 22 browser agent tools (11 local + 11 sandbox)", async () => {
     const { resolveBuiltinAgentTool } = await import(
-      "../src/nodes/agent-tool-hydration.js"
+      "@nodetool-ai/llm-nodes"
     );
     const actions = [
       "view",
@@ -220,7 +220,7 @@ describe("sandbox nodes", () => {
 
   it("registers sandbox shell + file agent tools globally", async () => {
     const { resolveBuiltinAgentTool } = await import(
-      "../src/nodes/agent-tool-hydration.js"
+      "@nodetool-ai/llm-nodes"
     );
     const shellNames = [
       "sandbox_shell_exec",

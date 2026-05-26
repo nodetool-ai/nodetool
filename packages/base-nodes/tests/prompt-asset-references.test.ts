@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { expandAssetReferences } from "../src/nodes/agents.js";
+import { expandAssetReferences } from "@nodetool-ai/llm-nodes";
 
 describe("expandAssetReferences", () => {
   it("returns a single text block when there is no asset reference", () => {

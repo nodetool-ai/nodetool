@@ -1,0 +1,61 @@
+{
+  "name": "@nodetool-ai/llm-nodes",
+  "version": "0.7.0-rc.23",
+  "description": "NodeTool LLM provider + agent nodes (OpenAI, Anthropic via agents SDK, Gemini, Mistral)",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/nodes-utils": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./openai": {
+      "nodetool-dev": "./src/nodes/openai.ts",
+      "types": "./dist/nodes/openai.d.ts",
+      "import": "./dist/nodes/openai.js",
+      "default": "./dist/nodes/openai.js"
+    },
+    "./gemini": {
+      "nodetool-dev": "./src/nodes/gemini.ts",
+      "types": "./dist/nodes/gemini.d.ts",
+      "import": "./dist/nodes/gemini.js",
+      "default": "./dist/nodes/gemini.js"
+    },
+    "./mistral": {
+      "nodetool-dev": "./src/nodes/mistral.ts",
+      "types": "./dist/nodes/mistral.d.ts",
+      "import": "./dist/nodes/mistral.js",
+      "default": "./dist/nodes/mistral.js"
+    },
+    "./agents": {
+      "nodetool-dev": "./src/nodes/agents.ts",
+      "types": "./dist/nodes/agents.d.ts",
+      "import": "./dist/nodes/agents.js",
+      "default": "./dist/nodes/agents.js"
+    }
+  },
+  "license": "MIT",
+  "files": ["dist", "README.md"]
+}

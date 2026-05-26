@@ -20,14 +20,14 @@ import {
   DropShadowNode,
   GlowNode,
   AddBlendNode
-} from "../src/nodes/lib-image-effects.js";
-import { ChromaKeyNode, LumaKeyNode } from "../src/nodes/lib-image-keyer.js";
+} from "@nodetool-ai/image-nodes";
+import { ChromaKeyNode, LumaKeyNode } from "@nodetool-ai/image-nodes";
 import {
   MaskApplyNode,
   MaskFromImageNode,
   MaskInvertNode
-} from "../src/nodes/lib-image-mask.js";
-import { ChannelShuffleNode, ChannelMergeNode } from "../src/nodes/lib-image-channel.js";
+} from "@nodetool-ai/image-nodes";
+import { ChannelShuffleNode, ChannelMergeNode } from "@nodetool-ai/image-nodes";
 import {
   OffsetNode,
   PadNode,
@@ -37,21 +37,21 @@ import {
   PolarRemapNode,
   DisplaceNode,
   SpherizeNode
-} from "../src/nodes/lib-image-warp.js";
+} from "@nodetool-ai/image-nodes";
 import {
   LinearGradientNode,
   RadialGradientNode,
   AngularGradientNode,
   DiamondGradientNode,
   CheckerboardNode
-} from "../src/nodes/lib-image-generators.js";
+} from "@nodetool-ai/image-nodes";
 import {
   ThresholdNode,
   PixelateNode,
   GaussianBlurNode,
   UnsharpMaskNode,
   VignetteNode
-} from "../src/nodes/lib-image-filter-extras.js";
+} from "@nodetool-ai/image-nodes";
 import {
   InvertNode,
   BrightnessContrastNode,
@@ -60,7 +60,7 @@ import {
   PosterizeNode,
   GradeNode,
   ChannelSplitNode
-} from "../src/nodes/lib-image-color.js";
+} from "@nodetool-ai/image-nodes";
 
 async function gpuAvailable(): Promise<boolean> {
   try {

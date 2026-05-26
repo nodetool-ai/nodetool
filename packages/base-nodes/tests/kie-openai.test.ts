@@ -11,7 +11,7 @@ import {
   TranscribeNode,
   RealtimeAgentNode,
   RealtimeTranscriptionNode
-} from "../src/nodes/openai.js";
+} from "@nodetool-ai/llm-nodes";
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;
