@@ -1,11 +1,7 @@
 /**
  * @jest-environment node
  */
-import {
-  trackTypeMeta,
-  trackIndexWithinType,
-  buildTypedIndexMap
-} from "../trackVisuals";
+import { trackTypeMeta, buildTypedIndexMap } from "../trackVisuals";
 
 const makeTrack = (
   id: string,
@@ -51,35 +47,6 @@ describe("trackTypeMeta", () => {
   });
 });
 
-describe("trackIndexWithinType", () => {
-  const tracks = [
-    makeTrack("v1", "video", 0),
-    makeTrack("a1", "audio", 1),
-    makeTrack("v2", "video", 2),
-    makeTrack("a2", "audio", 3),
-    makeTrack("v3", "video", 4)
-  ];
-
-  it("returns 1-based index within same type", () => {
-    expect(trackIndexWithinType(tracks as never[], "v1")).toBe(1);
-    expect(trackIndexWithinType(tracks as never[], "v2")).toBe(2);
-    expect(trackIndexWithinType(tracks as never[], "v3")).toBe(3);
-  });
-
-  it("counts independently per type", () => {
-    expect(trackIndexWithinType(tracks as never[], "a1")).toBe(1);
-    expect(trackIndexWithinType(tracks as never[], "a2")).toBe(2);
-  });
-
-  it("returns 1 for missing track id", () => {
-    expect(trackIndexWithinType(tracks as never[], "nonexistent")).toBe(1);
-  });
-
-  it("returns 1 for empty track list", () => {
-    expect(trackIndexWithinType([], "v1")).toBe(1);
-  });
-});
-
 describe("buildTypedIndexMap", () => {
   const tracks = [
     makeTrack("v1", "video", 0),
@@ -94,13 +61,13 @@ describe("buildTypedIndexMap", () => {
     expect(map.size).toBe(5);
   });
 
-  it("assigns per-type indices matching trackIndexWithinType", () => {
+  it("assigns 1-based indices per track type", () => {
     const map = buildTypedIndexMap(tracks as never[]);
-    for (const t of tracks) {
-      expect(map.get(t.id)).toBe(
-        trackIndexWithinType(tracks as never[], t.id)
-      );
-    }
+    expect(map.get("v1")).toBe(1);
+    expect(map.get("v2")).toBe(2);
+    expect(map.get("a1")).toBe(1);
+    expect(map.get("a2")).toBe(2);
+    expect(map.get("o1")).toBe(1);
   });
 
   it("returns empty map for empty tracks", () => {
