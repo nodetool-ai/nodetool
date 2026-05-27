@@ -1,11 +1,10 @@
 import type { ProcessingContext } from "./context.js";
-import { isRawRgbaImage } from "@nodetool-ai/protocol";
-import { encodeRawRgbaToPng } from "./image-codec.js";
 import type {
   ExecuteInputBlobs,
   ExecuteResult,
   ProgressEvent
 } from "./python-bridge-types.js";
+import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.python-node-executor");
@@ -27,9 +26,7 @@ interface PythonBridgeLike {
     onProgress?: (event: ProgressEvent) => void
   ): AsyncGenerator<ExecuteResult>;
 }
-import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { fileURLToPath } from "node:url";
 
 /** Media ref types that need blob conversion. */
 const MEDIA_TYPE_ALIASES: Record<string, string> = {
@@ -75,104 +72,8 @@ function isMediaRef(value: unknown): value is { uri: string; type?: string } {
   );
 }
 
-type MediaRefValue = {
-  uri: string;
-  type?: string;
-  asset_id?: string | null;
-};
-
 function isMediaRefList(value: unknown): value is MediaRefValue[] {
   return Array.isArray(value) && value.every(isMediaRef);
-}
-
-const ASSET_ID_EXTENSION_CANDIDATES: Record<string, string[]> = {
-  image: ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"],
-  audio: ["wav", "mp3", "ogg", "m4a", "aac", "flac"],
-  video: ["mp4", "webm", "mov", "avi", "mpeg", "mkv"],
-  model3d: ["glb", "gltf", "obj", "fbx"]
-};
-
-function isAbsoluteFilePath(uri: string): boolean {
-  return (
-    /^[A-Za-z]:[\\/]/.test(uri) || uri.startsWith("\\\\") || uri.startsWith("/")
-  );
-}
-
-async function readUriBytes(uri: string): Promise<Uint8Array | null> {
-  if (uri.startsWith("data:")) {
-    const parts = uri.split(",", 2);
-    if (parts.length !== 2) {
-      return null;
-    }
-    const [header, data] = parts;
-    const bytes = header.includes(";base64")
-      ? Buffer.from(data, "base64")
-      : Buffer.from(decodeURIComponent(data), "utf-8");
-    return new Uint8Array(bytes);
-  }
-
-  if (uri.startsWith("file://")) {
-    try {
-      return await readFile(fileURLToPath(uri));
-    } catch {
-      return null;
-    }
-  }
-
-  if (isAbsoluteFilePath(uri)) {
-    try {
-      return await readFile(uri);
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
-
-async function loadMediaRefBytes(
-  value: MediaRefValue,
-  context?: ProcessingContext
-): Promise<Uint8Array | null> {
-  // Raw in-flight RGBA → encode to PNG; Python expects a real image.
-  if (isRawRgbaImage(value)) {
-    return encodeRawRgbaToPng(value.data, value.width, value.height);
-  }
-
-  // Inline base64 data takes priority over uri
-  const data = (value as Record<string, unknown>).data;
-  if (typeof data === "string" && data.length > 0) {
-    return new Uint8Array(Buffer.from(data, "base64"));
-  }
-  if (data instanceof Uint8Array) {
-    return data;
-  }
-
-  if (!value.uri) {
-    return null;
-  }
-
-  if (context?.storage) {
-    const candidates = new Set<string>();
-    candidates.add(value.uri);
-
-    if (value.asset_id) {
-      const refType = (value.type ?? "").toLowerCase();
-      const extensions = ASSET_ID_EXTENSION_CANDIDATES[refType] ?? ["bin"];
-      for (const extension of extensions) {
-        candidates.add(`/api/storage/${value.asset_id}.${extension}`);
-      }
-    }
-
-    for (const candidate of candidates) {
-      const stored = await context.storage.retrieve(candidate);
-      if (stored !== null) {
-        return stored;
-      }
-    }
-  }
-
-  return readUriBytes(value.uri);
 }
 
 export class PythonNodeExecutor {

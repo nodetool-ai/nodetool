@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { FlexRow, Text } from "../ui_primitives";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Text } from "../ui_primitives/Text";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";

@@ -102,10 +102,10 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(
 // NOTE: This function is now in utils/timeFormat.ts and imported above
 
 // Running time display component
-const RunningTime: React.FC<{ isRunning: boolean }> = memo(
-  function RunningTime({ isRunning }) {
+const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
+  function RunningTime({ isRunning, timerKey }) {
     const theme = useTheme();
-    const elapsedSeconds = useRunningTime(isRunning);
+    const elapsedSeconds = useRunningTime(isRunning, timerKey);
     const { text, sizeKey } = formatRunningTime(elapsedSeconds);
     const fontSizeMap = {
       smaller: theme.fontSizeSmaller,
@@ -602,7 +602,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         <ToolbarButton
           icon={
             isWorkflowRunning ? (
-              <RunningTime isRunning={isWorkflowRunning} />
+              <RunningTime
+                isRunning={isWorkflowRunning}
+                timerKey={workflow?.id}
+              />
             ) : (
               <PlayArrow />
             )
