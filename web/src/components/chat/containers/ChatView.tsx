@@ -11,7 +11,8 @@ import {
   PlanningUpdate,
   TaskUpdate,
   LogUpdate,
-  LanguageModel
+  LanguageModel,
+  TodoItem
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
@@ -148,6 +149,11 @@ type ChatViewProps = {
   useExternalComposer?: boolean;
 };
 
+// Stable empty-array sentinel so the Zustand selector below returns the same
+// reference across renders when the current thread has no todos — returning a
+// fresh `[]` triggered React's "Maximum update depth exceeded" loop.
+const NO_TODOS: TodoItem[] = [];
+
 const ChatView = ({
   status,
   progress,
@@ -234,7 +240,7 @@ const ChatView = ({
 
   const todos = useGlobalChatStore((state) => {
     const id = state.currentThreadId;
-    return id ? state.todosByThread[id] ?? [] : [];
+    return (id && state.todosByThread[id]) || NO_TODOS;
   });
   const showTodoSidebar = todos.length > 0;
 
