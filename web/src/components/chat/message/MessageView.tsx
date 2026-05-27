@@ -103,23 +103,27 @@ const ToolCallCard: React.FC<{
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
   const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
 
-  // For run_subtask we lift `title` / `instructions` out of args into headline
-  // and expanded body; the remaining args (tools allowlist, output_schema)
-  // still show as raw JSON for power users.
+  // For run_subtask we lift `description` / `prompt` (Claude-Code Task naming)
+  // out of args into headline + expanded body. Tolerate the older
+  // `title`/`instructions` keys for messages already in the DB.
   const rawArgs = (tc.args as Record<string, unknown> | null | undefined) ?? null;
-  const subtaskTitle = isSubtask && typeof rawArgs?.title === "string"
-    ? (rawArgs.title as string).trim()
-    : null;
-  const subtaskInstructions =
-    isSubtask && typeof rawArgs?.instructions === "string"
-      ? (rawArgs.instructions as string).trim()
+  const pickString = (key: string) =>
+    typeof rawArgs?.[key] === "string"
+      ? (rawArgs[key] as string).trim() || null
       : null;
+  const subtaskTitle = isSubtask
+    ? pickString("description") ?? pickString("title")
+    : null;
+  const subtaskInstructions = isSubtask
+    ? pickString("prompt") ?? pickString("instructions")
+    : null;
   const displayArgs = useMemo(() => {
     const base = visibleArgs(rawArgs);
     if (!isSubtask || !base) return base;
     const stripped: Record<string, unknown> = { ...base };
-    delete stripped["title"];
-    delete stripped["instructions"];
+    for (const k of ["description", "prompt", "title", "instructions"]) {
+      delete stripped[k];
+    }
     return Object.keys(stripped).length > 0 ? stripped : null;
   }, [rawArgs, isSubtask]);
 

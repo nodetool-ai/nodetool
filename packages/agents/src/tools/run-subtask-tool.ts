@@ -50,16 +50,20 @@ export interface RunSubtaskToolOptions {
 }
 
 const RUN_SUBTASK_DESCRIPTION = [
-  "Spawn a focused subtask handled by a fresh agent loop.",
+  "Spawn a focused subtask handled by a fresh agent loop. Modeled on Claude",
+  "Code's Task tool: the subtask returns the subagent's final assistant",
+  "message as plain text.",
   "",
-  "Call this when the work needs a self-contained execution with its own focus —",
-  "research a question end-to-end, perform a multi-step transformation, gather",
-  "structured information. Emit multiple `run_subtask` calls in one turn to",
-  "run independent subtasks concurrently.",
+  "Call this when work warrants its own focused execution — research a",
+  "question end-to-end, perform a multi-step transformation, draft a",
+  "self-contained artifact. Emit multiple `run_subtask` calls in one turn",
+  "to run independent subtasks concurrently. Subtasks can themselves call",
+  "`run_subtask` up to the recursion depth limit.",
   "",
-  "The subtask inherits the parent's tools by default; set `tools` to restrict.",
-  "Set `output_schema` to require a structured JSON result instead of free text.",
-  "Subtasks can themselves call `run_subtask` up to the recursion depth limit."
+  "The subtask inherits the parent's full toolset. If you need a specific",
+  "output shape (e.g. JSON), say so inside `instructions` — do not request a",
+  "schema here. The subagent will write the result; you'll receive that",
+  "text verbatim and can quote or parse it."
 ].join("\n");
 
 export class RunSubtaskTool extends Tool {
@@ -68,29 +72,18 @@ export class RunSubtaskTool extends Tool {
   readonly inputSchema = {
     type: "object",
     properties: {
-      title: {
+      description: {
         type: "string",
         description:
-          "Short user-facing label for the subtask (5-12 words). Shown in the UI card."
+          "Short user-facing label for the subtask (3-7 words). Shown in the UI card."
       },
-      instructions: {
+      prompt: {
         type: "string",
         description:
-          "What the subtask should accomplish. Self-contained — the subtask does not see the parent's chat history."
-      },
-      tools: {
-        type: "array",
-        items: { type: "string" },
-        description:
-          "Optional: restrict the subtask's toolset to these names. `run_subtask` and memory tools are always allowed."
-      },
-      output_schema: {
-        type: "object",
-        description:
-          "Optional JSON schema for a structured result. If omitted, the subtask returns free text."
+          "Full task description for the subagent. Self-contained — the subagent does not see the parent's chat history. If you need a structured response, say so here (e.g. \"reply as JSON with fields x, y, z\")."
       }
     },
-    required: ["title", "instructions"],
+    required: ["description", "prompt"],
     additionalProperties: false
   };
 
@@ -112,8 +105,9 @@ export class RunSubtaskTool extends Tool {
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const title = typeof params.title === "string" ? params.title.trim() : "";
-    return title ? `Running subtask: ${title}` : "Running subtask";
+    const desc =
+      typeof params.description === "string" ? params.description.trim() : "";
+    return desc ? `Running subtask: ${desc}` : "Running subtask";
   }
 
   async process(
@@ -131,13 +125,14 @@ export class RunSubtaskTool extends Tool {
       };
     }
 
-    const title = typeof params.title === "string" ? params.title.trim() : "";
-    const instructions =
-      typeof params.instructions === "string" ? params.instructions.trim() : "";
-    if (!instructions) {
+    const description =
+      typeof params.description === "string" ? params.description.trim() : "";
+    const prompt =
+      typeof params.prompt === "string" ? params.prompt.trim() : "";
+    if (!prompt) {
       return {
-        error: "missing_instructions",
-        message: "`instructions` is required and must be a non-empty string."
+        error: "missing_prompt",
+        message: "`prompt` is required and must be a non-empty string."
       };
     }
 
@@ -147,9 +142,7 @@ export class RunSubtaskTool extends Tool {
         : null;
     const childDepth = currentDepth + 1;
 
-    const childTools = this.buildChildToolset(params.tools);
-
-    const outputSchema = this.coerceOutputSchema(params.output_schema);
+    const childTools = this.buildChildToolset();
 
     // Child context with bumped depth. Copy preserves _onMessage (telemetry
     // listener) and clones variables so depth mutations stay local.
@@ -157,13 +150,12 @@ export class RunSubtaskTool extends Tool {
     childCtx.set(SUBTASK_DEPTH_KEY, childDepth);
 
     const agent = new MultiModeAgent({
-      name: title || "subtask",
-      objective: instructions,
+      name: description || "subtask",
+      objective: prompt,
       provider: this.provider,
       model: this.model,
       mode: "loop",
       tools: childTools,
-      outputSchema,
       maxIterations: this.maxIterations
     });
 
@@ -209,7 +201,7 @@ export class RunSubtaskTool extends Tool {
     if (errorMessage) {
       return {
         error: "subtask_failed",
-        title: title || null,
+        description: description || null,
         message: errorMessage
       };
     }
@@ -217,16 +209,16 @@ export class RunSubtaskTool extends Tool {
     if (finalResult === null || finalResult === undefined) {
       return {
         error: "subtask_no_result",
-        title: title || null,
+        description: description || null,
         message:
-          "Subtask ended without producing a result. The model may have terminated without calling finish_step (when an output_schema is set) or without emitting a final assistant message."
+          "Subtask ended without producing a final assistant message."
       };
     }
 
     return finalResult;
   }
 
-  private buildChildToolset(raw: unknown): Tool[] {
+  private buildChildToolset(): Tool[] {
     const inherited = this.parentToolsFn();
 
     // The runner builds the root toolset by snapshotting `serverTools`
@@ -234,32 +226,8 @@ export class RunSubtaskTool extends Tool {
     // an array that does NOT include `run_subtask`. Make sure the child can
     // recurse by stitching `this` in if missing — depth refusal still gates
     // actual recursion at runtime via SUBTASK_DEPTH_KEY.
-    const withSelf = inherited.some((t) => t.name === "run_subtask")
+    return inherited.some((t) => t.name === "run_subtask")
       ? inherited
       : [this, ...inherited];
-
-    if (!Array.isArray(raw) || raw.length === 0) return withSelf;
-
-    const allow = new Set<string>();
-    for (const name of raw) {
-      if (typeof name === "string") allow.add(name);
-    }
-
-    // run_subtask and memory_* are always allowed so the child can recurse and
-    // read shared memory without the model having to remember to whitelist
-    // them in every call.
-    return withSelf.filter(
-      (t) =>
-        allow.has(t.name) ||
-        t.name === "run_subtask" ||
-        t.name.startsWith("memory_")
-    );
-  }
-
-  private coerceOutputSchema(raw: unknown): Record<string, unknown> | undefined {
-    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-      return raw as Record<string, unknown>;
-    }
-    return undefined;
   }
 }

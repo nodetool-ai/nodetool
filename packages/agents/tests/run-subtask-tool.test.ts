@@ -73,17 +73,17 @@ describe("RunSubtaskTool", () => {
       expect(tool.description.length).toBeGreaterThan(0);
       const schema = tool.inputSchema as Record<string, unknown>;
       expect(schema.type).toBe("object");
-      expect(schema.required).toEqual(["title", "instructions"]);
+      expect(schema.required).toEqual(["description", "prompt"]);
     });
 
-    it("renders a useful userMessage using the title arg", () => {
+    it("renders a useful userMessage using the description arg", () => {
       const tool = new RunSubtaskTool({
         provider: createMockProvider([]),
         model: "mock",
         parentTools: () => [],
         forwardMessage: () => {}
       });
-      expect(tool.userMessage({ title: "Research X" })).toBe(
+      expect(tool.userMessage({ description: "Research X" })).toBe(
         "Running subtask: Research X"
       );
       expect(tool.userMessage({})).toBe("Running subtask");
@@ -91,7 +91,7 @@ describe("RunSubtaskTool", () => {
   });
 
   describe("input validation", () => {
-    it("returns an error when instructions are missing", async () => {
+    it("returns an error when prompt is missing", async () => {
       const tool = new RunSubtaskTool({
         provider: createMockProvider([]),
         model: "mock",
@@ -100,9 +100,9 @@ describe("RunSubtaskTool", () => {
       });
       const ctx = makeCtx();
       const result = (await tool.process(ctx, {
-        title: "hello"
+        description: "hello"
       })) as Record<string, unknown>;
-      expect(result.error).toBe("missing_instructions");
+      expect(result.error).toBe("missing_prompt");
     });
   });
 
@@ -118,8 +118,8 @@ describe("RunSubtaskTool", () => {
       const ctx = makeCtx();
       ctx.set(SUBTASK_DEPTH_KEY, 2);
       const result = (await tool.process(ctx, {
-        title: "deep",
-        instructions: "Try to recurse",
+        description: "deep",
+        prompt: "Try to recurse",
         [TOOL_CALL_ID_FIELD]: "tc_outer"
       })) as Record<string, unknown>;
       expect(result.error).toBe("max_recursion_depth_reached");
@@ -147,8 +147,8 @@ describe("RunSubtaskTool", () => {
       ctx.set(SUBTASK_DEPTH_KEY, 0);
 
       const result = await tool.process(ctx, {
-        title: "answer-once",
-        instructions: "Just say something",
+        description: "answer-once",
+        prompt: "Just say something",
         [TOOL_CALL_ID_FIELD]: "tc_outer"
       });
 
@@ -209,8 +209,8 @@ describe("RunSubtaskTool", () => {
       ctx.set(SUBTASK_DEPTH_KEY, 0);
 
       await tool.process(ctx, {
-        title: "level-1",
-        instructions: "do thing",
+        description: "level-1",
+        prompt: "do thing",
         [TOOL_CALL_ID_FIELD]: "tc_root"
       });
 
@@ -233,8 +233,8 @@ describe("RunSubtaskTool", () => {
       ctx.set(SUBTASK_DEPTH_KEY, 0);
 
       await tool.process(ctx, {
-        title: "shallow",
-        instructions: "do a thing",
+        description: "shallow",
+        prompt: "do a thing",
         [TOOL_CALL_ID_FIELD]: "tc_root"
       });
 
@@ -245,9 +245,8 @@ describe("RunSubtaskTool", () => {
     });
   });
 
-  describe("tool restriction", () => {
-    it("filters parent tools to the allowlist (plus run_subtask + memory_*)", async () => {
-      // Build a minimal Tool stub set
+  describe("tool inheritance", () => {
+    it("passes the parent's full toolset to the child (no allowlist)", async () => {
       const make = (name: string): any => ({
         name,
         description: name,
@@ -260,12 +259,9 @@ describe("RunSubtaskTool", () => {
       const parentTools = [
         make("browser"),
         make("memory_read"),
-        make("write_file"),
-        make("run_subtask")
+        make("write_file")
       ];
 
-      // Capture which tools the child agent sees by reading the provider's
-      // received `tools` argument on the first call.
       let capturedToolNames: string[] = [];
       const provider = createMockProvider([
         [{ type: "chunk", content: "ok", done: true }]
@@ -291,18 +287,21 @@ describe("RunSubtaskTool", () => {
       ctx.set(SUBTASK_DEPTH_KEY, 0);
 
       await tool.process(ctx, {
-        title: "restricted",
-        instructions: "do thing",
-        tools: ["browser"],
+        description: "inherits",
+        prompt: "do thing",
         [TOOL_CALL_ID_FIELD]: "tc_outer"
       });
 
-      // browser was allow-listed; memory_read and run_subtask are always
-      // allowed; write_file should be filtered out.
-      expect(capturedToolNames).toContain("browser");
-      expect(capturedToolNames).toContain("memory_read");
-      expect(capturedToolNames).toContain("run_subtask");
-      expect(capturedToolNames).not.toContain("write_file");
+      // All parent tools are inherited; run_subtask is stitched in so the
+      // child can itself recurse.
+      expect(capturedToolNames).toEqual(
+        expect.arrayContaining([
+          "browser",
+          "memory_read",
+          "write_file",
+          "run_subtask"
+        ])
+      );
     });
   });
 });
