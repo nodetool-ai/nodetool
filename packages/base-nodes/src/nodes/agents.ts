@@ -17,7 +17,7 @@ import type {
   OutputCorrelation,
   ProcessingMessage
 } from "@nodetool-ai/protocol";
-import { MultiModeAgent, Tool as AgentTool } from "@nodetool-ai/agents";
+import { Agent, Tool as AgentTool } from "@nodetool-ai/agents";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 
 type MessagePart = { type?: string; text?: string };
@@ -1006,7 +1006,7 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
 
 /**
  * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool-ai/agents).
- * This bridges the tool systems so MultiModeAgent can use tools defined in the node graph.
+ * This bridges the tool systems so Agent can use tools defined in the node graph.
  */
 class ToolLikeAdapter extends AgentTool {
   readonly name: string;
@@ -2295,8 +2295,8 @@ export class AgentNode extends BaseNode {
     default: "loop",
     title: "Mode",
     description:
-      "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks.\n• multi-agent: auto‑specialises a team of sub‑agents (count controlled by Num Agents) that collaborate on the objective using the chosen Team Strategy. Best for open‑ended objectives that benefit from different roles working together.",
-    values: ["loop", "plan", "multi-agent"]
+      "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks.",
+    values: ["loop", "plan"]
   })
   declare mode: string;
 
@@ -2395,27 +2395,6 @@ export class AgentNode extends BaseNode {
   })
   declare max_turns: number;
 
-  @prop({
-    type: "int",
-    default: 3,
-    title: "Num Agents",
-    description:
-      "Number of sub‑agents to auto‑specialise when Mode is multi-agent. The planner inspects the objective and creates this many distinct roles (e.g. researcher, writer, critic), each with its own skill set, that then collaborate via the Team Strategy. Ignored in loop and plan modes. More agents allow more division of labour but increase token usage and coordination overhead.",
-    min: 2,
-    max: 10
-  })
-  declare num_agents: number;
-
-  @prop({
-    type: "enum",
-    default: "coordinator",
-    title: "Team Strategy",
-    description:
-      "How the auto‑specialised sub‑agents collaborate when Mode is multi-agent. Ignored in other modes.\n\n• coordinator: the first agent acts as a project manager — it decomposes the objective into tasks on a shared task board, and the remaining agents claim and execute them. Best for well‑defined goals where you want predictable orchestration.\n• autonomous: every agent sees the full objective and self‑organises, claiming tasks, posting messages, and creating new tasks as needed without a central planner. Best for open‑ended exploration.\n• hybrid: a coordinator seeds an initial plan, but worker agents may also create their own subtasks while executing. Balances structure with flexibility.",
-    values: ["coordinator", "autonomous", "hybrid"]
-  })
-  declare team_strategy: string;
-
   /**
    * Build the tool list for this run. Override in subclasses to inject
    * additional tools (e.g. sandbox shell/file/browser tools) alongside the
@@ -2463,15 +2442,10 @@ export class AgentNode extends BaseNode {
       throw new Error("Processing context is required");
     }
 
-    // --- Multi-mode dispatch for "plan" and "multi-agent" modes ---
+    // --- Dispatch to Agent (TaskPlanner → ParallelTaskExecutor → CompilerAgent) for "plan" mode ---
     const agentMode = String(this.mode ?? "loop").trim();
-    if (agentMode === "plan" || agentMode === "multi-agent") {
-      yield* this.genProcessMultiMode(
-        context,
-        providerId,
-        modelId,
-        agentMode as "plan" | "multi-agent"
-      );
+    if (agentMode === "plan") {
+      yield* this.genProcessPlanMode(context, providerId, modelId);
       return;
     }
 
@@ -2885,14 +2859,13 @@ export class AgentNode extends BaseNode {
   }
 
   /**
-   * Dispatch to MultiModeAgent for "plan" and "multi-agent" modes.
+   * Dispatch to Agent for "plan" mode.
    * Converts ToolLike[] to AgentTool[] and bridges ProcessingMessage to node outputs.
    */
-  private async *genProcessMultiMode(
+  private async *genProcessPlanMode(
     context: ProcessingContext,
     providerId: string,
-    modelId: string,
-    mode: "plan" | "multi-agent"
+    modelId: string
   ): AsyncGenerator<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? "");
     const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
@@ -2905,32 +2878,23 @@ export class AgentNode extends BaseNode {
       rawTools.push(...controlTools);
     }
 
-    // Convert ToolLike[] to AgentTool[] for MultiModeAgent
+    // Convert ToolLike[] to AgentTool[] for Agent
     const agentTools = rawTools.map((t) => new ToolLikeAdapter(t));
 
     const provider = await context.getProvider(providerId);
 
-    const agent = new MultiModeAgent({
+    const agent = new Agent({
       name: `AgentNode_${this.__node_id ?? "default"}`,
       objective: prompt,
       provider,
       model: modelId,
-      mode,
       tools: agentTools,
       systemPrompt: system,
       maxTokenLimit: Number(this.max_tokens ?? 8192),
       outputSchema: getStructuredOutputSchema(this) ?? undefined,
-      // Plan mode options
       planningModel: modelId,
       maxSteps: 10,
-      maxStepIterations: 5,
-      // Multi-agent options
-      numSubAgents: Number(this.num_agents ?? 3),
-      teamStrategy: (this.team_strategy ?? "coordinator") as
-        | "coordinator"
-        | "autonomous"
-        | "hybrid",
-      maxConcurrency: 5
+      maxStepIterations: 5
     });
 
     let lastText = "";
@@ -2969,7 +2933,7 @@ export class AgentNode extends BaseNode {
         }
       } else if (pmsg.type === "log_update") {
         const p = pmsg as any;
-        log.info("MultiModeAgent log", {
+        log.info("Agent log", {
           nodeId: this.__node_id ?? null,
           content: p.content
         });

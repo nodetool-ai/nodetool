@@ -87,44 +87,7 @@ function makeOutput(name: string, type: string): OutputSlot {
   return { name, type: makeType(type), stream: false } as OutputSlot;
 }
 
-const KNOWN_METADATA: Record<string, Partial<NodeMetadata>> = {
-  "nodetool.team.AgentPool": {
-    title: "AgentPool",
-    namespace: "nodetool.team",
-    node_type: "nodetool.team.AgentPool",
-    properties: [makeProp("agents", "list")],
-    outputs: [makeOutput("agents", "list")],
-    inline_fields: ["agents"]
-  },
-  "nodetool.team.TaskBoard": {
-    title: "TaskBoard",
-    namespace: "nodetool.team",
-    node_type: "nodetool.team.TaskBoard",
-    properties: [makeProp("tasks", "list")],
-    outputs: [makeOutput("board", "any"), makeOutput("task_ids", "list")],
-    inline_fields: ["tasks"]
-  },
-  "nodetool.team.Team": {
-    title: "Team",
-    namespace: "nodetool.team",
-    node_type: "nodetool.team.Team",
-    properties: [
-      makeProp("agents", "list"),
-      makeProp("board", "any"),
-      makeProp("objective", "str"),
-      makeProp("strategy", "str", "autonomous"),
-      makeProp("max_iterations", "int", 50),
-      makeProp("max_concurrency", "int", 3)
-    ],
-    outputs: [
-      makeOutput("result", "str"),
-      makeOutput("board_snapshot", "any"),
-      makeOutput("messages", "list"),
-      makeOutput("events", "list")
-    ],
-    inline_fields: ["objective", "strategy", "max_iterations"]
-  }
-};
+const KNOWN_METADATA: Record<string, Partial<NodeMetadata>> = {};
 
 function inferMetadata(
   nodeType: string,

@@ -30,8 +30,11 @@ import { TaskPlanner } from "./task-planner.js";
 import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
+import { GraphPlanner } from "./graph-planner.js";
+import { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   type AgentOutputFormat,
   outputFormatDirective
@@ -229,6 +232,20 @@ export interface AgentOptions {
    * best-effort basis when the run finishes. Defaults to `false`.
    */
   autoPersistMemory?: boolean;
+  /**
+   * Use the graph-native planner: build a DAG of nodes directly instead of a
+   * TaskPlan. Requires {@link registry}. When set, planning emits a workflow
+   * graph executed by {@link AgentWorkflowRunner}.
+   */
+  useGraphPlanner?: boolean;
+  /** Node registry required when {@link useGraphPlanner} is true. */
+  registry?: NodeRegistry;
+  /**
+   * Configured BaseProvider instances by id. When supplied, the GraphPlanner
+   * exposes a `find_model` tool so the agent can pick a real model+provider
+   * for generic AI nodes (TextToImage, TextToVideo, etc.).
+   */
+  providers?: Record<string, BaseProvider>;
 }
 
 export class Agent extends BaseAgent {
@@ -245,6 +262,9 @@ export class Agent extends BaseAgent {
   private readonly initialTask?: Task;
   private readonly longTermMemory: LongTermMemory | null;
   private readonly autoPersistMemory: boolean;
+  private readonly useGraphPlanner: boolean;
+  private readonly registry?: NodeRegistry;
+  private readonly providers?: Record<string, BaseProvider>;
   /** The multi-task plan, set after planning. */
   taskPlan: TaskPlan | null = null;
 
@@ -274,6 +294,9 @@ export class Agent extends BaseAgent {
     this.initialTask = opts.task;
     this.longTermMemory = opts.longTermMemory ?? null;
     this.autoPersistMemory = opts.autoPersistMemory === true;
+    this.useGraphPlanner = opts.useGraphPlanner === true;
+    this.registry = opts.registry;
+    this.providers = opts.providers;
     if (opts.task) {
       this.task = opts.task;
     }
@@ -508,6 +531,12 @@ export class Agent extends BaseAgent {
       return;
     }
 
+    // Graph-native planner: build DAG of nodes directly.
+    if (this.useGraphPlanner && this.registry) {
+      yield* this.executeGraphPlan(context, mergedSystemPrompt);
+      return;
+    }
+
     // Plan: use TaskPlanner to decompose the objective into parallel tasks
     log.info("Planning phase started", { name: this.name });
     yield {
@@ -632,6 +661,84 @@ export class Agent extends BaseAgent {
 
     log.info("Agent completed", { name: this.name });
     this.persistAgentRunMemory();
+  }
+
+  /**
+   * Graph-native plan: build a DAG of nodes via GraphPlanner, then execute it
+   * with AgentWorkflowRunner.
+   */
+  private async *executeGraphPlan(
+    context: ProcessingContext,
+    systemPrompt: string | undefined
+  ): AsyncGenerator<ProcessingMessage> {
+    log.info("Graph planning phase started", { name: this.name });
+
+    yield {
+      type: "log_update",
+      node_id: "graph_planner",
+      node_name: this.name,
+      content: `Building workflow graph for: ${this.objective.slice(0, 100)}...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const planner = new GraphPlanner({
+      provider: this.provider,
+      model: this.planningModel,
+      registry: this.registry!,
+      tools: this.tools,
+      systemPrompt,
+      outputSchema: this.outputSchema,
+      inputs: this.inputs,
+      providers: this.providers
+    });
+
+    const planGen = planner.plan(this.objective, context);
+    let planResult = await planGen.next();
+    while (!planResult.done) {
+      yield planResult.value;
+      planResult = await planGen.next();
+    }
+    const graphData = planResult.value;
+
+    if (!graphData) {
+      throw new Error("GraphPlanner failed to build a workflow graph.");
+    }
+
+    log.info("Graph planning complete", {
+      name: this.name,
+      nodes: graphData.nodes.length,
+      edges: graphData.edges.length
+    });
+
+    yield {
+      type: "log_update",
+      node_id: "graph_executor",
+      node_name: this.name,
+      content: `Executing workflow: ${graphData.nodes.length} nodes, ${graphData.edges.length} edges...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const runner = new AgentWorkflowRunner({
+      provider: this.provider,
+      model: this.model,
+      registry: this.registry!,
+      tools: [...this.tools],
+      context,
+      systemPrompt,
+      maxTokenLimit: this.maxTokenLimit,
+      maxStepIterations: this.maxStepIterations,
+      inputs: this.inputs
+    });
+
+    for await (const item of runner.execute(graphData)) {
+      if (item.type === "step_result") {
+        const sr = item as StepResult;
+        if (sr.is_task_result) {
+          this.results = sr.result;
+        }
+      }
+      yield item;
+    }
   }
 
   /**

@@ -12,11 +12,13 @@
  * subtask copies the parent context and increments the counter.
  */
 
+import { randomUUID } from "node:crypto";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
-import { MultiModeAgent } from "../multi-mode-agent.js";
+import { StepExecutor } from "../step-executor.js";
+import type { Step, Task } from "../types.js";
 
 /** Context variable carrying the current subtask depth (0 at the chat root). */
 export const SUBTASK_DEPTH_KEY = "__subtask_depth";
@@ -149,12 +151,27 @@ export class RunSubtaskTool extends Tool {
     const childCtx = context.copy();
     childCtx.set(SUBTASK_DEPTH_KEY, childDepth);
 
-    const agent = new MultiModeAgent({
-      name: description || "subtask",
-      objective: prompt,
+    // Subtask runs as a single unstructured Step — no schema, no planning.
+    // StepExecutor's no-tool-call path captures the final assistant text.
+    const step: Step = {
+      id: randomUUID(),
+      instructions: prompt,
+      completed: false,
+      dependsOn: [],
+      logs: []
+    };
+    const task: Task = {
+      id: randomUUID(),
+      title: description || "subtask",
+      steps: [step]
+    };
+
+    const executor = new StepExecutor({
+      task,
+      step,
+      context: childCtx,
       provider: this.provider,
       model: this.model,
-      mode: "loop",
       tools: childTools,
       maxIterations: this.maxIterations
     });
@@ -163,7 +180,7 @@ export class RunSubtaskTool extends Tool {
     let errorMessage: string | null = null;
 
     try {
-      for await (const item of agent.execute(childCtx)) {
+      for await (const item of executor.execute()) {
         // Tag every child event so the renderer can nest cards. We mutate a
         // shallow clone — the original event object is shared with whoever
         // emitted it inside the child agent.

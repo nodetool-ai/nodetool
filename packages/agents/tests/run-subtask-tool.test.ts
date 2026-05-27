@@ -12,9 +12,9 @@ function makeCtx(): ProcessingContext {
 }
 
 /**
- * Minimal mock BaseProvider — just enough surface for MultiModeAgent's
- * "loop" mode to drive a StepExecutor. The provider replays a queued
- * sequence of stream events per `generateMessages` call.
+ * Minimal mock BaseProvider — just enough surface for the subtask's
+ * StepExecutor. The provider replays a queued sequence of stream events
+ * per `generateMessages` call.
  */
 function createMockProvider(
   responseSequence: Array<

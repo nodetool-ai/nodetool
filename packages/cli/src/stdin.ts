@@ -22,7 +22,7 @@ import readline from "node:readline";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
-import { MultiModeAgent, RunSubtaskTool } from "@nodetool-ai/agents";
+import { RunSubtaskTool } from "@nodetool-ai/agents";
 import type { Tool } from "@nodetool-ai/agents/tool";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";

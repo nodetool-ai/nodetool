@@ -43,7 +43,7 @@ describe("agents index exports", () => {
 
     // Agents
     expect(mod.BaseAgent).toBeDefined();
-    expect(mod.SimpleAgent).toBeDefined();
+    expect(mod.Agent).toBeDefined();
 
     // Planning & orchestration
     expect(mod.TaskPlanner).toBeDefined();

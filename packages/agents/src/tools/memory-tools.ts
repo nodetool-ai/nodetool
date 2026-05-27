@@ -14,9 +14,9 @@
  *   3. `memory_write` — publishes a value to the `shared:` namespace so other
  *      agents and steps can discover it via `memory_list`.
  *
- * These three tools are auto-attached to every {@link StepExecutor} and to
- * {@link TeamExecutor}'s shared tool list. Authors of custom executors should
- * call `getMemoryTools()` and append the result to their tool array.
+ * These three tools are auto-attached to every {@link StepExecutor}. Authors
+ * of custom executors should call `getMemoryTools()` and append the result to
+ * their tool array.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";

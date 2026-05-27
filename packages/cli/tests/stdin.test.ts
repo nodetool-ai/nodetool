@@ -58,11 +58,6 @@ vi.mock("@nodetool-ai/agents", () => ({
     // eslint-disable-next-line @typescript-eslint/require-await
     async *execute(_ctx?: unknown) {}
   },
-  MultiModeAgent: class {
-    constructor(public opts: unknown) {}
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *execute(_ctx?: unknown) {}
-  },
   RunSubtaskTool: class {
     name = "run_subtask";
     description = "run a subtask";
