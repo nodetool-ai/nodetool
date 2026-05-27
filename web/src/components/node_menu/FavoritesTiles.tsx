@@ -17,6 +17,17 @@ import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 
+const tooltipHintStyle: CSSProperties = {
+  fontSize: "0.7rem",
+  opacity: 0.75,
+  marginTop: "4px"
+};
+
+const favoriteTileStyle: CSSProperties = {
+  background:
+    "linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.05))"
+};
+
 const tileStyles = (theme: Theme) =>
   css({
     "&": {
@@ -341,13 +352,7 @@ const FavoritesTiles = memo(function FavoritesTiles({
               title={
                 <div>
                   <div>{displayName}</div>
-                  <div
-                    style={{
-                      fontSize: "0.7rem",
-                      opacity: 0.75,
-                      marginTop: "4px"
-                    }}
-                  >
+                  <div style={tooltipHintStyle}>
                     Click to place · Drag to canvas
                   </div>
                 </div>
@@ -364,12 +369,7 @@ const FavoritesTiles = memo(function FavoritesTiles({
                 onClick={handleTileClick}
                 onMouseEnter={handleTileMouseEnter}
                 data-node-type={nodeType}
-                style={
-                  {
-                    background:
-                      "linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.05))"
-                  } as CSSProperties
-                }
+                style={favoriteTileStyle}
               >
                 <ToolbarIconButton
                   icon={<CloseIcon fontSize="small" />}
