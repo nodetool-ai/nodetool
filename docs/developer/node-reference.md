@@ -28,9 +28,8 @@ export class SimpleNode extends BaseNode {
   @prop({ type: "int", default: 100, title: "Threshold", min: 0, max: 255 })
   declare threshold: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const value = String(inputs.input_value ?? this.input_value ?? "");
-    return { output: `Result: ${value}` };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: `Result: ${String(this.input_value ?? "")}` };
   }
 }
 
@@ -54,13 +53,11 @@ export class MultiOutputNode extends BaseNode {
   @prop({ type: "any", default: [], title: "Value" })
   declare value: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const condition = Boolean(inputs.condition ?? this.condition ?? false);
-    const value = inputs.value ?? this.value ?? null;
-    if (condition) {
-      return { if_true: value, if_false: null };
+  async process(): Promise<Record<string, unknown>> {
+    if (this.condition) {
+      return { if_true: this.value, if_false: null };
     }
-    return { if_true: null, if_false: value };
+    return { if_true: null, if_false: this.value };
   }
 }
 
@@ -81,14 +78,12 @@ export class StreamingNode extends BaseNode {
   @prop({ type: "list[any]", default: [], title: "Input List" })
   declare input_list: any;
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(
-    inputs: Record<string, unknown>
-  ): AsyncGenerator<Record<string, unknown>> {
-    const values = (inputs.input_list ?? this.input_list ?? []) as unknown[];
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const values = (this.input_list ?? []) as unknown[];
     const list = Array.isArray(values) ? values : [values];
     for (const [index, item] of list.entries()) {
       yield { output: item, index };
@@ -118,10 +113,8 @@ export class CollectorNode extends BaseNode {
     this._items = [];
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("input_item" in inputs) {
-      this._items.push(inputs.input_item);
-    }
+  async process(): Promise<Record<string, unknown>> {
+    this._items.push(this.input_item);
     return { output: [...this._items] };
   }
 }
@@ -204,21 +197,16 @@ declare config: any;
 
 ## ProcessingContext Essentials
 
-The optional second argument to `process()` is a **`ProcessingContext`** from `@nodetool-ai/runtime`. It provides access to secrets, provider predictions, and runtime services.
+The optional argument to `process()` and `genProcess()` is a **`ProcessingContext`** from `@nodetool-ai/runtime`. It provides access to provider predictions, secrets, and runtime services. Property values for declared `@prop` fields are assigned to `this` before `process()` is called — read them directly from `this.<field>`.
 
 ```ts
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
-async process(
-  inputs: Record<string, unknown>,
-  context?: ProcessingContext
-): Promise<Record<string, unknown>> {
+async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
 
-  // Access injected secrets (requires static requiredSettings)
-  const apiKey =
-    (inputs._secrets as Record<string, string>)?.MY_API_KEY ||
-    process.env.MY_API_KEY ||
-    "";
+  // Access injected secrets (requires static requiredSettings).
+  // The base class resolves keys from context and exposes them on this._secrets.
+  const apiKey = this._secrets.MY_API_KEY ?? process.env.MY_API_KEY ?? "";
 
   // Run a provider prediction (image generation, TTS, etc.)
   if (context && typeof context.runProviderPrediction === "function") {
@@ -242,12 +230,12 @@ async process(
     }
   }
 
-  // Resolve a secret manually
+  // Resolve a secret manually (bypasses requiredSettings)
   if (context && typeof context.getSecret === "function") {
     const secret = await context.getSecret("SOME_KEY");
   }
 
-  return { output: result };
+  return { output: "result" };
 }
 ```
 
@@ -283,6 +271,8 @@ function audioRefFromBytes(data: Uint8Array, uri?: string): Record<string, unkno
 }
 ```
 
+`@nodetool-ai/runtime` exports a shared `loadMediaRefBytes(ref, context?)` helper that handles `data`, `uri`, and storage-backed refs in one call.
+
 ## Static Class Properties
 
 ```ts
@@ -308,7 +298,7 @@ static readonly isStreamingInput = true;
 static readonly syncMode = "zip_all" as const;   // wait for all inputs (default)
 static readonly syncMode = "on_any" as const;     // fire on any single input
 
-// Declare required secrets
+// Declare required secrets — injected onto this._secrets
 static readonly requiredSettings = ["OPENAI_API_KEY"];
 
 // Set basic fields shown first in UI
@@ -334,20 +324,18 @@ async finalize(): Promise<void> {}
 
 ```ts
 // Single output
-async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+async process(): Promise<Record<string, unknown>> {
   return { output: "result" };
 }
 
 // Multiple outputs
-async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+async process(): Promise<Record<string, unknown>> {
   return { text: "hello", score: 0.95 };
 }
 
 // Streaming (generator)
-async *genProcess(
-  inputs: Record<string, unknown>
-): AsyncGenerator<Record<string, unknown>> {
-  for (const item of items) {
+async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  for (const [i, item] of items.entries()) {
     yield { output: item, index: i };
   }
 }
@@ -418,8 +406,8 @@ export class MyNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Value" })
   declare value: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    return { output: String(inputs.value ?? this.value ?? "").toUpperCase() };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: String(this.value ?? "").toUpperCase() };
   }
 }
 
@@ -430,7 +418,7 @@ import { MyNode } from "../src/nodes/my-nodes.js";
 describe("MyNode", () => {
   it("uppercases input", async () => {
     const node = new MyNode({ value: "hello" });
-    const result = await node.process({ value: "hello" });
+    const result = await node.process();
     expect(result.output).toBe("HELLO");
   });
 });
@@ -441,10 +429,10 @@ describe("MyNode", () => {
 1. All `process()` and `genProcess()` methods must be **async**
 2. Always declare **`metadataOutputTypes`** -- it drives the UI output connectors
 3. Use **`@prop`** for every input -- it provides validation, defaults, and UI hints
-4. Resolve inputs with `inputs.field ?? this.field ?? default`
+4. Read input values from `this.<field>` -- the engine assigns them before `process()` runs
 5. Return a plain object whose keys match the `metadataOutputTypes` keys
 6. Use **`genProcess()`** with `yield` for streaming outputs
 7. Use **`initialize()`** to reset state in stateful / collector nodes
-8. Declare **`requiredSettings`** for API keys; read them from `inputs._secrets`
+8. Declare **`requiredSettings`** for API keys; read them from `this._secrets`
 9. Node discovery is automatic when classes are registered in the package index
 10. Test with `vitest` -- nodes are plain classes, easy to instantiate and call

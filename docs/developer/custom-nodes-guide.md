@@ -212,11 +212,8 @@ The SDK uses **legacy (experimental) decorators** without runtime metadata emiss
 Every node extends `BaseNode` and declares its inputs with `@prop`. The runtime assigns properties on the instance *before* calling `process()` — your method reads inputs from `this.<field>`, **not** from a parameter.
 
 ```ts
-import {
-  BaseNode,
-  prop,
-  type ProcessingContext
-} from "@nodetool-ai/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 export class AddOffsetNode extends BaseNode {
   // ── Identity ────────────────────────────────────────────────
@@ -411,7 +408,7 @@ Output keys returned by `process()` must match keys in `metadataOutputTypes` —
 The `context` passed to `process()` and `genProcess()` is your gateway to everything the runtime owns: secrets, storage, cache, HTTP, providers, messages. You only need it when a node has side effects.
 
 ```ts
-import type { ProcessingContext } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 ```
 
 ### Identity
@@ -488,7 +485,8 @@ const n = context.get<number>("counter", 0);
 For nodes that produce results incrementally, override `genProcess` and set `isStreamingOutput`:
 
 ```ts
-import { BaseNode, prop, type ProcessingContext } from "@nodetool-ai/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 export class WordStreamNode extends BaseNode {
   static readonly nodeType = "mypack.text.WordStream";
