@@ -74,6 +74,9 @@ import {
   Task,
   TaskPlan,
   TaskUpdate,
+  TodoItem,
+  TodoStatus,
+  TodoUpdate,
   TextRef,
   Thread,
   ThreadCreateRequest,
@@ -173,6 +176,9 @@ export type { SystemStats };
 export type { Task };
 export type { TaskPlan };
 export type { TaskUpdate };
+export type { TodoItem };
+export type { TodoStatus };
+export type { TodoUpdate };
 export type { TextRef };
 export type { Thread };
 export type { ThreadCreateRequest };

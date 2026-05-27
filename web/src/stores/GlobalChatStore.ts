@@ -21,7 +21,8 @@ import {
   PlanningUpdate,
   LogUpdate,
   Thread,
-  LanguageModel
+  LanguageModel,
+  TodoItem
 } from "./ApiTypes";
 import { isLocalhost } from "../lib/env";
 import { trpcClient } from "../trpc/client";
@@ -131,6 +132,11 @@ export interface GlobalChatState {
   // Log updates
   currentLogUpdate: LogUpdate | null;
   setLogUpdate: (update: LogUpdate | null) => void;
+
+  // Per-thread todo lists (TodoWrite-style checklist)
+  todosByThread: Record<string, TodoItem[]>;
+  setTodosForThread: (threadId: string, todos: TodoItem[]) => void;
+  clearTodosForThread: (threadId: string) => void;
 
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
@@ -271,6 +277,20 @@ const useGlobalChatStore = create<GlobalChatState>()(
       currentLogUpdate: null,
       setLogUpdate: (update: LogUpdate | null) =>
         set({ currentLogUpdate: update }),
+
+      // Per-thread todo lists
+      todosByThread: {},
+      setTodosForThread: (threadId: string, todos: TodoItem[]) =>
+        set((state) => ({
+          todosByThread: { ...state.todosByThread, [threadId]: todos }
+        })),
+      clearTodosForThread: (threadId: string) =>
+        set((state) => {
+          if (!(threadId in state.todosByThread)) return state;
+          const next = { ...state.todosByThread };
+          delete next[threadId];
+          return { todosByThread: next };
+        }),
 
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,
@@ -784,12 +804,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
             const { [threadId]: threadUnsubscribe, ...remainingSubscriptions } =
               state.wsThreadSubscriptions;
             threadUnsubscribe?.();
+            const { [threadId]: _deletedTodos, ...remainingTodos } =
+              state.todosByThread;
 
             const newState: Partial<GlobalChatState> = {
               threads: remainingThreads,
               messageCache: remainingCache,
               messageCursors: remainingCursors,
-              wsThreadSubscriptions: remainingSubscriptions
+              wsThreadSubscriptions: remainingSubscriptions,
+              todosByThread: remainingTodos
             };
 
             // If deleting current thread, switch to another or create new

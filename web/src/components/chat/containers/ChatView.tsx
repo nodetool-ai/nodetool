@@ -16,6 +16,8 @@ import {
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import ComposerSlot from "../composer/ComposerSlot";
+import { TodoSidebar } from "../sidebar/TodoSidebar";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
@@ -29,10 +31,18 @@ const styles = (theme: Theme) =>
       maxHeight: "100%",
       width: "100%",
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "row",
       overflow: "hidden",
       minHeight: 0,
-      padding: "0 20px 20px 20px"
+      padding: "0 0 20px 20px"
+    },
+    ".chat-main": {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      paddingRight: 20
     },
     "&::before": {
       content: '""',
@@ -222,51 +232,63 @@ const ChatView = ({
     ]
   );
 
+  const todos = useGlobalChatStore((state) => {
+    const id = state.currentThreadId;
+    return id ? state.todosByThread[id] ?? [] : [];
+  });
+  const showTodoSidebar = todos.length > 0;
+
   return (
     <div className="chat-view" css={styles(theme)}>
-      <div className="chat-thread-container">
-        {messages.length > 0 ? (
-          <ChatThreadView
-            messages={messages}
-            status={status}
-            progress={progress}
-            total={total}
-            progressMessage={progressMessage}
-            runningToolCallId={runningToolCallId}
-            runningToolMessage={runningToolMessage}
-            currentPlanningUpdate={currentPlanningUpdate}
-            currentTaskUpdate={currentTaskUpdate}
-            currentLogUpdate={currentLogUpdate}
-            onInsertCode={onInsertCode}
+      <div className="chat-main">
+        <div className="chat-thread-container">
+          {messages.length > 0 ? (
+            <ChatThreadView
+              messages={messages}
+              status={status}
+              progress={progress}
+              total={total}
+              progressMessage={progressMessage}
+              runningToolCallId={runningToolCallId}
+              runningToolMessage={runningToolMessage}
+              currentPlanningUpdate={currentPlanningUpdate}
+              currentTaskUpdate={currentTaskUpdate}
+              currentLogUpdate={currentLogUpdate}
+              onInsertCode={onInsertCode}
+            />
+          ) : (
+            noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
+          )}
+        </div>
+
+        {useExternalComposer ? (
+          <ComposerSlot
+            className="chat-input-section"
+            onSend={handleSendMessage}
           />
         ) : (
-          noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
+          <ChatInputSection
+            status={status}
+            showToolbar={showToolbar}
+            onSendMessage={handleSendMessage}
+            onStop={onStop}
+            onNewChat={onNewChat}
+            selectedTools={selectedTools}
+            onToolsChange={onToolsChange}
+            selectedCollections={selectedCollections}
+            onCollectionsChange={onCollectionsChange}
+            selectedModel={model}
+            onModelChange={onModelChange}
+            memoryEnabled={memoryEnabled}
+            onMemoryToggle={onMemoryToggle}
+            allowedProviders={allowedProviders}
+            requireToolSupport={requireToolSupport}
+            variant={composerVariant}
+            composerToolbar={composerToolbar}
+          />
         )}
       </div>
-
-      {useExternalComposer ? (
-        <ComposerSlot className="chat-input-section" onSend={handleSendMessage} />
-      ) : (
-        <ChatInputSection
-          status={status}
-          showToolbar={showToolbar}
-          onSendMessage={handleSendMessage}
-          onStop={onStop}
-          onNewChat={onNewChat}
-          selectedTools={selectedTools}
-          onToolsChange={onToolsChange}
-          selectedCollections={selectedCollections}
-          onCollectionsChange={onCollectionsChange}
-          selectedModel={model}
-          onModelChange={onModelChange}
-          memoryEnabled={memoryEnabled}
-          onMemoryToggle={onMemoryToggle}
-          allowedProviders={allowedProviders}
-          requireToolSupport={requireToolSupport}
-          variant={composerVariant}
-          composerToolbar={composerToolbar}
-        />
-      )}
+      {showTodoSidebar && <TodoSidebar todos={todos} />}
     </div>
   );
 };

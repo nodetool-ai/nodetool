@@ -485,6 +485,7 @@ function graphToComfyPrompt(graph: {
 function createRuntimeContext(opts: {
   jobId: string;
   workflowId?: string | null;
+  threadId?: string | null;
   userId: string;
   workspaceDir: string | null;
   assetOutputMode?:
@@ -2208,6 +2209,7 @@ export class UnifiedWebSocketRunner {
         : tmpdir();
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
+      threadId: threadId || null,
       userId,
       workspaceDir: chatWorkspaceDir
     });

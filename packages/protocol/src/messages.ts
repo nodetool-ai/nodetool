@@ -308,6 +308,21 @@ export interface Chunk {
   subtask_depth?: number | null;
 }
 
+export type TodoStatus = "pending" | "in_progress" | "completed";
+
+export interface TodoItem {
+  content: string;
+  status: TodoStatus;
+}
+
+export interface TodoUpdate {
+  type: "todo_update";
+  thread_id?: string | null;
+  workflow_id?: string | null;
+  node_id?: string | null;
+  todos: TodoItem[];
+}
+
 export interface Prediction {
   type: "prediction";
   id: string;
@@ -570,7 +585,8 @@ export type ProcessingMessage =
   | PlanningUpdate
   | Chunk
   | Prediction
-  | LLMCallUpdate;
+  | LLMCallUpdate
+  | TodoUpdate;
 
 /**
  * Literal union of every `type` discriminator value.

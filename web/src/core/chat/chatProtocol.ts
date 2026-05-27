@@ -108,6 +108,7 @@ import {
   Prediction,
   StepResult,
   TaskUpdate,
+  TodoUpdate,
   ToolCallUpdate
 } from "../../stores/ApiTypes";
 import {
@@ -158,6 +159,7 @@ export type MsgpackData =
   | Message
   | ToolCallUpdate
   | TaskUpdate
+  | TodoUpdate
   | PlanningUpdate
   | OutputUpdate
   | StepResult
@@ -1196,6 +1198,17 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyOutputUpdate, data as OutputUpdate);
   } else if (data.type === "tool_call_update") {
     applyReducer(applyToolCallUpdate, data as ToolCallUpdate);
+  } else if (data.type === "todo_update") {
+    const todoData = data as TodoUpdate;
+    const threadId = todoData.thread_id ?? get().currentThreadId;
+    if (threadId) {
+      set((state) => ({
+        todosByThread: {
+          ...state.todosByThread,
+          [threadId]: todoData.todos ?? []
+        }
+      }));
+    }
   } else if (data.type === "message") {
     const messageData = data as Message;
     const currentThreadId = get().currentThreadId;
