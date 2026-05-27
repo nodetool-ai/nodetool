@@ -161,8 +161,9 @@ const StandaloneChat: React.FC = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  // Side panel states (for desktop spacing) - only left panel since no PanelRight
-  const leftPanel = usePanelStore((s) => s.panel);
+  const leftPanelVisible = usePanelStore((s) => s.panel.isVisible);
+  const leftPanelSize = usePanelStore((s) => s.panel.panelSize);
+  const leftPanelMinWidth = usePanelStore((s) => s.panel.minWidth);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -387,9 +388,9 @@ const StandaloneChat: React.FC = () => {
         // Add horizontal padding on desktop to avoid left panel
         paddingLeft: isMobile
           ? 0
-          : leftPanel.isVisible
-          ? `${leftPanel.panelSize}px`
-          : `${leftPanel.minWidth}px`,
+          : leftPanelVisible
+          ? `${leftPanelSize}px`
+          : `${leftPanelMinWidth}px`,
         // No right padding since there's no PanelRight
         paddingRight: 0,
         overflow: "hidden",
