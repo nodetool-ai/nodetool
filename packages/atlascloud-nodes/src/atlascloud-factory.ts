@@ -95,10 +95,66 @@ type ProcessContext = Parameters<BaseNode["process"]>[0] & {
 
 function looksLikePublicUrl(s: unknown): s is string {
   if (typeof s !== "string") return false;
-  if (!/^https?:\/\//i.test(s)) return false;
-  if (/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)/i.test(s))
+  return isSafeHttpUrl(s);
+}
+
+/**
+ * Validate an http(s) URL for outbound fetching from the workflow runtime.
+ *
+ * Returns false for any host that points back at the runtime host or its
+ * private network — defense against SSRF via user-controllable asset URIs.
+ * Workflow inputs (ImageRef.uri etc.) can be set by anyone who can submit a
+ * graph; without this check, the worker would happily proxy requests to
+ *   - localhost / loopback (any service bound to 127.0.0.1)
+ *   - RFC1918 private space (10.*, 172.16-31.*, 192.168.*)
+ *   - 169.254.169.254 (AWS / GCP / Azure instance metadata)
+ *   - IPv6 loopback / link-local / unique-local equivalents
+ *
+ * Note: this is hostname-string-based, not a resolved-IP check, so it can be
+ * bypassed by a public DNS name that resolves to a private IP (DNS rebinding).
+ * That's a known limitation — fixing it properly requires resolving DNS in
+ * the same socket dance as the eventual fetch(). The string check is what
+ * the canonical fal/replicate/topaz providers use today.
+ */
+function isSafeHttpUrl(uri: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(uri);
+  } catch {
     return false;
-  return true;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+  return !isPrivateOrLocalHost(u.hostname);
+}
+
+function isPrivateOrLocalHost(hostname: string): boolean {
+  // URL.hostname returns IPv6 wrapped in brackets ("[::1]") on Node — strip
+  // before pattern matching so the v6 cases below work on the bare form.
+  let h = hostname.toLowerCase();
+  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
+  if (h === "" || h === "localhost") return true;
+
+  // IPv4 dotted quad
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (v4) {
+    const o1 = Number(v4[1]);
+    const o2 = Number(v4[2]);
+    if (o1 === 0) return true; // 0.0.0.0/8 — "this network"
+    if (o1 === 10) return true; // RFC1918
+    if (o1 === 127) return true; // loopback
+    if (o1 === 169 && o2 === 254) return true; // link-local incl. cloud metadata
+    if (o1 === 172 && o2 >= 16 && o2 <= 31) return true; // RFC1918
+    if (o1 === 192 && o2 === 168) return true; // RFC1918
+    if (o1 === 100 && o2 >= 64 && o2 <= 127) return true; // CGNAT
+    return false;
+  }
+
+  // IPv6 — URL.hostname returns bracket-stripped form (e.g. "::1", "fe80::1")
+  if (h === "::1" || h === "::") return true;
+  if (h.startsWith("fe80:") || h.startsWith("fe80::")) return true; // link-local
+  // ULA range fc00::/7 — first nibble is f, second is c or d
+  if (/^f[cd][0-9a-f]{2}:/i.test(h)) return true;
+  return false;
 }
 
 function bytesToDataUri(bytes: Uint8Array, mime: string): string {
@@ -168,7 +224,10 @@ export async function resolveAssetForAtlas(
     }
   }
 
-  if (r.uri && /^https?:\/\//i.test(r.uri)) {
+  // Direct fetch fallback. Use the same private-host guard as the
+  // pass-through path so a workflow can't trick the worker into proxying
+  // requests to internal services / cloud metadata endpoints.
+  if (r.uri && isSafeHttpUrl(r.uri)) {
     const res = await fetch(r.uri);
     if (res.ok) {
       const bytes = new Uint8Array(await res.arrayBuffer());
@@ -189,9 +248,11 @@ export async function resolveAssetForAtlas(
  * Coerce a UI-serialized value back to the type AtlasCloud's worker expects.
  * NodeTool serializes numeric dropdowns as strings; AtlasCloud rejects `"5"`
  * when it wants `5`. Coerce here so the user doesn't see opaque worker errors.
+ *
+ * Callers must filter out null/undefined before invoking — the factory does
+ * this in its field loop, so there's no defensive guard here.
  */
 function coerceScalar(v: unknown, type: AtlasFieldType): unknown {
-  if (v === null || v === undefined) return v;
   switch (type) {
     case "int": {
       if (typeof v === "number") return Math.trunc(v);

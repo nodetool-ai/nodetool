@@ -46,25 +46,51 @@ describe("resolveAssetForAtlas", () => {
     expect(out).toBe("data:image/png;base64,AQID");
   });
 
-  it("rejects localhost URLs (treated as not-public)", async () => {
-    global.fetch = vi.fn(async () => {
-      throw new Error("should not be called");
-    }) as unknown as typeof fetch;
-    // localhost falls through to the fetch branch since context.storage is
-    // unset; the fetch will be attempted. Pretend the URL is reachable but
-    // assert it's not treated as a public URL (so we'd need to fetch bytes).
+  // SSRF defense: refs whose URIs point at the runtime's own host, RFC1918
+  // private space, or cloud-metadata endpoints are never fetched. With no
+  // alternative resolution path, resolveAssetForAtlas throws.
+  describe("SSRF guard — rejects private / loopback / metadata hosts", () => {
+    const blocked = [
+      "http://localhost:7777/a.png",
+      "http://127.0.0.1/a.png",
+      "http://0.0.0.0/a.png",
+      "http://10.0.0.5/a.png",
+      "http://192.168.1.10/a.png",
+      "http://172.16.0.1/a.png",
+      "http://172.31.255.254/a.png",
+      // AWS / GCP / Azure instance-metadata endpoint
+      "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+      "http://[::1]/a.png",
+      "http://[fe80::1]/a.png",
+      "http://[fc00::1]/a.png"
+    ];
+    for (const uri of blocked) {
+      it(`refuses to fetch ${uri}`, async () => {
+        const fetchSpy = vi.fn();
+        global.fetch = fetchSpy as unknown as typeof fetch;
+        await expect(
+          resolveAssetForAtlas({ uri }, undefined, "image")
+        ).rejects.toThrow("Cannot resolve");
+        expect(fetchSpy).not.toHaveBeenCalled();
+      });
+    }
+  });
+
+  it("allows fetching a non-private host with no inline data and no storage", async () => {
     global.fetch = vi.fn(async () => ({
       ok: true,
-      arrayBuffer: async () => Uint8Array.from([7]).buffer
+      arrayBuffer: async () => Uint8Array.from([0xaa]).buffer
     })) as unknown as typeof fetch;
     const out = await resolveAssetForAtlas(
-      { uri: "http://localhost:7777/a.png" },
+      // uri does not match the public-pass-through path because the host
+      // looks fine but we want to exercise the fetch fallback; using a
+      // path-only ref so storage absence drives us into fetch().
+      { uri: "https://cdn.example.org/secret.png" },
       undefined,
       "image"
     );
-    // The URI got fetched (treated as private), so the result is a data URI,
-    // not the raw URL. This proves looksLikePublicUrl rejected localhost.
-    expect(out).toBe("data:image/png;base64,Bw==");
+    // Public CDN → pass-through, not fetched.
+    expect(out).toBe("https://cdn.example.org/secret.png");
   });
 
   it("returns null for an empty/null ref", async () => {

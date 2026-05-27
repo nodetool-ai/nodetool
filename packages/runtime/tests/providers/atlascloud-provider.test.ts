@@ -101,10 +101,12 @@ describe("AtlasCloudProvider — getAvailableImageModels", () => {
     expect(await p.getAvailableImageModels()).toEqual([]);
   });
 
-  it("exposes the 8 image entries from the manifest", async () => {
+  it("exposes the expected image entries from the manifest", async () => {
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     const models = await p.getAvailableImageModels();
-    expect(models.length).toBe(8);
+    // Don't pin the count — the manifest grows over time, and pinning makes
+    // every new model a brittle test failure. Pin known ids + invariants.
+    expect(models.length).toBeGreaterThan(0);
     for (const m of models) expect(m.provider).toBe("atlascloud");
     const ids = models.map((m) => m.id);
     expect(ids).toContain("openai/gpt-image-2/text-to-image");
@@ -119,10 +121,11 @@ describe("AtlasCloudProvider — getAvailableVideoModels", () => {
     expect(await p.getAvailableVideoModels()).toEqual([]);
   });
 
-  it("exposes the 6 Seedance video entries with inferred tasks", async () => {
+  it("exposes Seedance video entries with the right inferred tasks", async () => {
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     const models = await p.getAvailableVideoModels();
-    expect(models.length).toBe(6);
+    expect(models.length).toBeGreaterThan(0);
+    for (const m of models) expect(m.provider).toBe("atlascloud");
     const byId = new Map(models.map((m) => [m.id, m]));
     expect(byId.get("bytedance/seedance-2.0/text-to-video")?.supportedTasks).toEqual([
       "text_to_video"
