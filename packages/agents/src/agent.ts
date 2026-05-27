@@ -25,7 +25,6 @@ import type {
   Chunk
 } from "@nodetool-ai/protocol";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
-import { BaseAgent } from "./base-agent.js";
 import { TaskPlanner } from "./task-planner.js";
 import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
@@ -34,6 +33,7 @@ import { GraphPlanner } from "./graph-planner.js";
 import { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
+import { DEFAULT_TOKEN_LIMIT } from "./constants.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   type AgentOutputFormat,
@@ -248,7 +248,18 @@ export interface AgentOptions {
   providers?: Record<string, BaseProvider>;
 }
 
-export class Agent extends BaseAgent {
+export class Agent {
+  readonly name: string;
+  readonly objective: string;
+  readonly provider: BaseProvider;
+  readonly model: string;
+  readonly tools: Tool[];
+  readonly inputs: Record<string, unknown>;
+  readonly systemPrompt: string;
+  readonly maxTokenLimit: number;
+  results: unknown = null;
+  task: Task | null = null;
+
   private readonly description: string;
   private readonly planningModel: string;
   private readonly reasoningModel: string;
@@ -269,16 +280,14 @@ export class Agent extends BaseAgent {
   taskPlan: TaskPlan | null = null;
 
   constructor(opts: AgentOptions) {
-    super({
-      name: opts.name,
-      objective: opts.objective,
-      provider: opts.provider,
-      model: opts.model,
-      tools: opts.tools,
-      inputs: opts.inputs,
-      systemPrompt: opts.systemPrompt,
-      maxTokenLimit: opts.maxTokenLimit
-    });
+    this.name = opts.name;
+    this.objective = opts.objective;
+    this.provider = opts.provider;
+    this.model = opts.model;
+    this.tools = opts.tools ?? [];
+    this.inputs = opts.inputs ?? {};
+    this.systemPrompt = opts.systemPrompt ?? "";
+    this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.description = opts.description ?? "";
     this.planningModel = opts.planningModel ?? opts.model;
     this.reasoningModel = opts.reasoningModel ?? opts.model;

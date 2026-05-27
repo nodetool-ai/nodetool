@@ -222,7 +222,6 @@ export { AgentExecutor } from "./agent-executor.js";
 export type { AgentExecutorOptions } from "./agent-executor.js";
 
 // Agents
-export { BaseAgent } from "./base-agent.js";
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
 export type { AgentSkill, AgentOptions } from "./agent.js";
 
