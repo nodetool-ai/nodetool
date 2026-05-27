@@ -65,14 +65,12 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       expect(mockOnSendMessage).toHaveBeenCalledWith(
         content,
-        "test message",
-        false
-      );
+        "test message"      );
       expect(result.current.queuedMessage).toBeNull();
     });
 
@@ -88,14 +86,13 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       expect(mockOnSendMessage).not.toHaveBeenCalled();
       expect(result.current.queuedMessage).toEqual({
         content,
-        prompt: "test message",
-        agentMode: false
+        prompt: "test message"
       });
     });
 
@@ -111,14 +108,13 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", true);
+        result.current.sendMessage(content, "test message");
       });
 
       expect(mockOnSendMessage).not.toHaveBeenCalled();
       expect(result.current.queuedMessage).toEqual({
         content,
-        prompt: "test message",
-        agentMode: true
+        prompt: "test message"
       });
     });
 
@@ -135,11 +131,11 @@ describe("useMessageQueue", () => {
       const content2 = createMockContent("second message");
 
       act(() => {
-        result.current.sendMessage(content1, "first message", false);
+        result.current.sendMessage(content1, "first message");
       });
 
       act(() => {
-        result.current.sendMessage(content2, "second message", false);
+        result.current.sendMessage(content2, "second message");
       });
 
       // Should still have first message queued
@@ -159,7 +155,7 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       // Run animation frame
@@ -188,7 +184,7 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       expect(mockOnSendMessage).not.toHaveBeenCalled();
@@ -198,9 +194,7 @@ describe("useMessageQueue", () => {
 
       expect(mockOnSendMessage).toHaveBeenCalledWith(
         content,
-        "test message",
-        false
-      );
+        "test message"      );
       expect(result.current.queuedMessage).toBeNull();
     });
 
@@ -220,7 +214,7 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       expect(mockOnSendMessage).not.toHaveBeenCalled();
@@ -230,9 +224,7 @@ describe("useMessageQueue", () => {
 
       expect(mockOnSendMessage).toHaveBeenCalledWith(
         content,
-        "test message",
-        false
-      );
+        "test message"      );
       expect(result.current.queuedMessage).toBeNull();
     });
 
@@ -252,7 +244,7 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       // Stop loading but still streaming
@@ -263,9 +255,7 @@ describe("useMessageQueue", () => {
       rerender({ isLoading: false, isStreaming: false });
       expect(mockOnSendMessage).toHaveBeenCalledWith(
         content,
-        "test message",
-        false
-      );
+        "test message"      );
     });
   });
 
@@ -282,7 +272,7 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       expect(result.current.queuedMessage).not.toBeNull();
@@ -331,7 +321,7 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       act(() => {
@@ -346,9 +336,7 @@ describe("useMessageQueue", () => {
 
       expect(mockOnSendMessage).toHaveBeenCalledWith(
         content,
-        "test message",
-        false
-      );
+        "test message"      );
     });
 
     it("does nothing when no message is queued", () => {
@@ -381,7 +369,7 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       act(() => {
@@ -416,46 +404,14 @@ describe("useMessageQueue", () => {
       const content = createMockContent("test message");
 
       act(() => {
-        result.current.sendMessage(content, "test message", false);
+        result.current.sendMessage(content, "test message");
       });
 
       expect(mockOnSendMessage1).not.toHaveBeenCalled();
       expect(mockOnSendMessage2).toHaveBeenCalledWith(
         content,
-        "test message",
-        false
-      );
+        "test message"      );
     });
   });
 
-  describe("agentMode parameter", () => {
-    it("preserves agentMode value through queue", () => {
-      const { result, rerender } = renderHook(
-        ({ isLoading }) =>
-          useMessageQueue({
-            isLoading,
-            isStreaming: false,
-            onSendMessage: mockOnSendMessage
-          }),
-        {
-          initialProps: { isLoading: true }
-        }
-      );
-
-      const content = createMockContent("test message");
-
-      act(() => {
-        result.current.sendMessage(content, "test message", true);
-      });
-
-      // Stop loading
-      rerender({ isLoading: false });
-
-      expect(mockOnSendMessage).toHaveBeenCalledWith(
-        content,
-        "test message",
-        true
-      );
-    });
-  });
 });

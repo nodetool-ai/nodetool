@@ -55,7 +55,7 @@ import {
   type ComfyExecutionHandle
 } from "@nodetool-ai/runtime";
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
-import type { Chunk } from "@nodetool-ai/protocol";
+import type { Chunk, ProcessingMessage } from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -63,6 +63,7 @@ import type {
   RpcErrorPayload
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
+import { RunSubtaskTool } from "@nodetool-ai/agents";
 import {
   createDefaultLongTermMemory,
   formatMemoryForPrompt,
@@ -561,18 +562,34 @@ function createRuntimeContext(opts: {
 }
 
 /**
- * Default system prompt for regular chat — matches Python's REGULAR_SYSTEM_PROMPT.
+ * System prompt for the unified chat agent. The agent decides for itself how
+ * deep to go: answer directly when it can, call a single tool when one
+ * suffices, or call `run_subtask` to spin up a focused child loop for
+ * multi-step / parallel work. Planning is not forced — it is one of the
+ * choices the agent can make.
  */
-const REGULAR_SYSTEM_PROMPT = `You are a helpful assistant.
+const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in clear, concise prose.
 
-# IMAGE TOOLS
-When using image tools, you will get an image url as result.
-ALWAYS EMBED THE IMAGE AS MARKDOWN IMAGE TAG.
+# How to think about effort
+- For simple questions, answer directly without any tool calls.
+- When one tool suffices, call it and reply.
+- When work needs a focused multi-step sub-execution (research a topic
+  end-to-end, transform a document, gather structured data), call
+  \`run_subtask\` with a tight \`title\` and \`instructions\`. The subtask runs
+  as its own agent loop with the same tools.
+- For independent parallel work, emit multiple \`run_subtask\` calls in one
+  turn — they run concurrently. Siblings spawned in the same turn cannot
+  read each other's results; sequence dependent work across turns.
+- Subtasks can themselves call \`run_subtask\` (bounded recursion). Don't
+  decompose work that you could just do directly.
+
+# Image and media
+When tools return media URLs, embed them as markdown image / link tags.
 
 # File types
-References to documents, images, videos or audio files are objects with following structure:
-- type: either document, image, video, audio
-- uri: either local "file:///path/to/file" or "http://"
+References to documents, images, videos, or audio files have the shape:
+- \`type\`: document | image | video | audio
+- \`uri\`: \`file:///path/to/file\` or \`http(s)://...\`
 `;
 
 export interface WebSocketReceiveFrame {
@@ -682,69 +699,6 @@ class ToolBridge {
   }
 }
 
-/**
- * Proxy tool that forwards execution to the frontend via ToolBridge.
- * Mirrors Python's UIToolProxy from messaging/ui_tool_proxy.py.
- */
-class UIToolProxy extends Tool {
-  readonly name: string;
-  readonly description: string;
-  readonly inputSchema: Record<string, unknown>;
-
-  private bridge: ToolBridge;
-  private sendMsg: (msg: Record<string, unknown>) => Promise<void>;
-
-  constructor(
-    manifest: Record<string, unknown>,
-    bridge: ToolBridge,
-    sendMsg: (msg: Record<string, unknown>) => Promise<void>
-  ) {
-    super();
-    this.name = typeof manifest.name === "string" ? manifest.name : "";
-    this.description =
-      typeof manifest.description === "string"
-        ? manifest.description
-        : "UI tool";
-    this.inputSchema =
-      typeof manifest.parameters === "object" && manifest.parameters !== null
-        ? (manifest.parameters as Record<string, unknown>)
-        : {};
-    this.bridge = bridge;
-    this.sendMsg = sendMsg;
-  }
-
-  async process(
-    _context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const toolCallId = randomUUID();
-    await this.sendMsg({
-      type: "tool_call",
-      tool_call_id: toolCallId,
-      name: this.name,
-      args: Tool.stripMessage(params)
-    });
-
-    try {
-      const payload = await this.bridge.createWaiter(toolCallId, 60_000);
-      if ((payload as Record<string, unknown>).ok) {
-        return (payload as Record<string, unknown>).result ?? {};
-      }
-      return {
-        error: `Frontend tool execution failed: ${(payload as Record<string, unknown>).error ?? "Unknown error"}`
-      };
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : String(err) };
-    }
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const llm = Tool.extractMessage(params);
-    if (llm) return llm;
-    return `Executing frontend tool: ${this.name}`;
-  }
-}
-
 export interface UnifiedWebSocketRunnerOptions {
   userId?: string;
   authToken?: string;
@@ -781,9 +735,8 @@ export interface UnifiedWebSocketRunnerOptions {
    */
   validateNode?: NodeValidator;
   /**
-   * Optional NodeRegistry. When supplied, agent-mode chat routes through the
-   * graph-native MultiModeAgent → GraphPlanner path, biasing node selection
-   * toward `nodetool.*` core nodes and exposing a `find_model` tool.
+   * Optional NodeRegistry. When supplied, MCP node tools surfaced to the
+   * chat agent (`list_nodes`, `search_nodes`, etc.) read from this registry.
    */
   nodeRegistry?: NodeRegistry;
   /**
@@ -851,51 +804,6 @@ export class UnifiedWebSocketRunner {
       return texts.length > 0 ? texts.join(" ") : fallback;
     }
     return fallback;
-  }
-
-  /**
-   * Run one final LLM call to present structured agent results as readable
-   * markdown. Falls back to formatted JSON if the call fails.
-   */
-  private async presentStructuredResults(
-    provider: BaseProvider,
-    model: string,
-    objective: string,
-    resultsJson: string,
-    threadId: string
-  ): Promise<string> {
-    const messages: ProviderMessage[] = [
-      {
-        role: "user",
-        content: `You completed the following task:\n"${objective}"\n\nHere are the structured results:\n\`\`\`json\n${resultsJson}\n\`\`\`\n\nPresent these results to the user in clear, well-formatted markdown. Be concise — do not repeat the raw JSON. Focus on readability.`
-      }
-    ];
-
-    try {
-      let content = "";
-      for await (const item of provider.generateMessagesTraced({
-        messages,
-        model
-      })) {
-        if ("type" in item && item.type === "chunk") {
-          const chunk = item as { content?: string };
-          content += chunk.content ?? "";
-          // Stream chunks to client so the user sees the response forming
-          await this.sendMessage({
-            type: "chunk",
-            content: chunk.content ?? "",
-            done: false,
-            thread_id: threadId
-          });
-        }
-      }
-      return content || resultsJson;
-    } catch (err) {
-      log.warn("Failed to present structured results via LLM, using JSON fallback", {
-        error: err instanceof Error ? err.message : String(err)
-      });
-      return resultsJson;
-    }
   }
 
   private inferOutputType(value: unknown): string {
@@ -1093,6 +1001,48 @@ export class UnifiedWebSocketRunner {
       return JSON.parse(message.text) as Record<string, unknown>;
     }
     return null;
+  }
+
+  /**
+   * If `event` is a tool_call_update, also emit a synthetic assistant message
+   * whose `tool_calls` array contains this call. The chat UI renders a
+   * persistent ToolCallCard from messages with tool_calls; tool_call_update
+   * by itself only drives transient "now running" state. We skip events that
+   * already carry `agent_execution_id` because those are routed to
+   * ExecutionTree via the agent_execution path.
+   */
+  private async emitSyntheticToolCallCard(
+    event: Record<string, unknown>
+  ): Promise<void> {
+    if (event["type"] !== "tool_call_update") return;
+    const toolCallId = event["tool_call_id"];
+    const name = event["name"];
+    if (typeof toolCallId !== "string" || typeof name !== "string") return;
+    if (!toolCallId || !name) return;
+    const args =
+      event["args"] && typeof event["args"] === "object"
+        ? (event["args"] as Record<string, unknown>)
+        : {};
+    const message =
+      typeof event["message"] === "string" ? event["message"] : null;
+    await this.sendMessage({
+      type: "message",
+      role: "assistant",
+      content: null,
+      tool_calls: [
+        {
+          id: toolCallId,
+          name,
+          args,
+          message,
+          result: null
+        }
+      ],
+      parent_tool_call_id: event["parent_tool_call_id"] ?? null,
+      subtask_depth: event["subtask_depth"] ?? null,
+      thread_id: event["thread_id"] ?? null,
+      workflow_id: event["workflow_id"] ?? null
+    });
   }
 
   /**
@@ -2091,8 +2041,7 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    // Route to workflow processor when workflow_target or workflow_id is set — matches Python's handle_message_impl
-    // This check comes BEFORE agent_mode, matching Python's routing priority.
+    // Route to workflow processor when workflow_target or workflow_id is set.
     const workflowTarget =
       typeof data.workflow_target === "string" ? data.workflow_target : null;
     if (workflowTarget === "workflow" || workflowId) {
@@ -2122,13 +2071,6 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    // Route to agent mode if requested — matches Python's handle_message_impl
-    const agentMode = data.agent_mode === true || data.agent_mode === "true";
-    if (agentMode) {
-      await this.handleAgentMessage(data, requestSeq);
-      return;
-    }
-
     // Load history from DB, filter out agent_execution — matches Python's get_chat_history_from_db
     const [dbMessages] = await Message.paginate(threadId, { limit: 1000 });
     const chatHistory: ProviderMessage[] = [];
@@ -2154,11 +2096,73 @@ export class UnifiedWebSocketRunner {
       toolNames
     });
 
-    // Resolve server-side Tool instances for execution
+    // Resolve server-side Tool instances for execution. When the client
+    // sends no explicit tool list (the new default — server picks the
+    // toolbelt), populate it with the standard chat-agent defaults plus the
+    // recursive-decomposition primitive injected further below.
     let serverTools: Tool[] = [];
     if (toolNames.length > 0 && this.resolveTools) {
       serverTools = await this.resolveTools(toolNames, userId);
+    } else if (toolNames.length === 0) {
+      const {
+        ReadFileTool: DefReadFile,
+        WriteFileTool: DefWriteFile,
+        BrowserTool: DefBrowser,
+        GoogleSearchTool: DefSearch,
+        getAllMcpTools: defGetAllMcpTools,
+        registerBuiltinTools: defRegisterBuiltins
+      } = await import("@nodetool-ai/agents");
+      defRegisterBuiltins();
+      const chatProviders = await this.getConfiguredProviders(userId);
+      serverTools = [
+        new DefReadFile(),
+        new DefWriteFile(),
+        new DefBrowser(),
+        new DefSearch(),
+        ...defGetAllMcpTools({
+          registry: this.nodeRegistry,
+          providers: chatProviders
+        })
+      ];
     }
+    // Inject the recursive-decomposition primitive. The agent calls
+    // `run_subtask` when it judges a piece of work needs its own focused loop;
+    // child events stream back tagged with `parent_tool_call_id` so the UI can
+    // nest cards. We close over the current toolset so the child inherits it.
+    {
+      const baseTools = serverTools.slice();
+      const subtaskThreadId = threadId;
+      const subtaskWorkflowId = workflowId;
+      const forwardSubtaskMessage = async (msg: ProcessingMessage) => {
+        const enriched: Record<string, unknown> = {
+          ...(msg as unknown as Record<string, unknown>)
+        };
+        if (enriched.thread_id == null) enriched.thread_id = subtaskThreadId;
+        if (enriched.workflow_id == null) enriched.workflow_id = subtaskWorkflowId;
+        try {
+          await this.sendMessage(enriched);
+          // Tool calls inside a subtask only arrive here as transient
+          // tool_call_update events; the chat UI needs a persistent assistant
+          // message with tool_calls to render a ToolCallCard. Emit a synthetic
+          // one so child tool calls show up as cards nested below the parent
+          // run_subtask card.
+          await this.emitSyntheticToolCallCard(enriched);
+        } catch (err) {
+          log.warn("Failed to forward subtask event", {
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
+      };
+      serverTools.unshift(
+        new RunSubtaskTool({
+          provider,
+          model,
+          parentTools: () => baseTools,
+          forwardMessage: forwardSubtaskMessage
+        })
+      );
+    }
+
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));
     log.info("Resolved server tools", {
       requested: toolNames,
@@ -2212,7 +2216,7 @@ export class UnifiedWebSocketRunner {
     if (chatHistory.length === 0 || chatHistory[0].role !== "system") {
       chatHistory.unshift({
         role: "system",
-        content: REGULAR_SYSTEM_PROMPT,
+        content: CHAT_AGENT_SYSTEM_PROMPT,
         toolCallId: null,
         toolCalls: null,
         threadId: null
@@ -3872,8 +3876,8 @@ export class UnifiedWebSocketRunner {
   /**
    * Build the map of configured BaseProvider instances for the given user.
    * Cached per user — invalidate by clearing `configuredProvidersCache`.
-   * Used to expose `find_model` to the GraphPlanner agent so it can pick a
-   * real model+provider for generic AI nodes.
+   * Used by MCP tools (`find_model`, media generation) that need provider
+   * access.
    */
   private async getConfiguredProviders(
     userId: string
@@ -3905,518 +3909,6 @@ export class UnifiedWebSocketRunner {
     );
     this.configuredProvidersCache.set(userId, result);
     return result;
-  }
-
-  /**
-   * Handle agent mode messages.
-   * Mirrors Python's AgentMessageProcessor.process().
-   *
-   * Creates an Agent with the user's objective and streams execution events
-   * (Chunk, ToolCallUpdate, TaskUpdate, PlanningUpdate, LogUpdate, StepResult)
-   * to the client. Messages with type "message" are persisted to DB.
-   */
-  private async handleAgentMessage(
-    data: Record<string, unknown>,
-    requestSeq?: number
-  ): Promise<void> {
-    const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
-    const providerId = data.provider as string;
-    const model = data.model as string;
-    const workflowId =
-      typeof data.workflow_id === "string" ? data.workflow_id : null;
-    const userId = this.userId ?? "1";
-
-    const provider = await this.resolveProvider!(providerId, userId);
-
-    // Extract objective from content
-    const objective = this.extractTextContent(
-      data.content,
-      "Complete the requested task"
-    );
-
-    // Generate unique execution ID — matches Python
-    const agentExecutionId = randomUUID();
-
-    // Resolve tools — matches Python's tool resolution
-    const {
-      MultiModeAgent,
-      ReadFileTool,
-      WriteFileTool,
-      BrowserTool,
-      GoogleSearchTool,
-      getAllMcpTools,
-      resolveTool,
-      registerBuiltinTools
-    } = await import("@nodetool-ai/agents");
-
-    // Ensure the global tool registry is populated with all built-in tools,
-    // so `resolveTool(name)` works for any builtin selected by the client.
-    // Idempotent — only the first call does real work.
-    registerBuiltinTools();
-
-    let selectedTools: Tool[] = [];
-    const rawToolNames = Array.isArray(data.tools)
-      ? (data.tools as string[]).filter((t) => typeof t === "string")
-      : [];
-
-    // Build configured providers up-front so both `getAllMcpTools` and the
-    // MultiModeAgent below share the same map. Cached per-user in
-    // `getConfiguredProviders`. Independent of the NodeRegistry — the
-    // multi-task planner needs `find_model` and the media-generation tools
-    // even when no registry is wired (i.e. graph mode is unavailable).
-    const agentProviders = await this.getConfiguredProviders(userId);
-
-    if (rawToolNames.length > 0) {
-      // User explicitly specified tools — resolve by name
-      for (const name of rawToolNames) {
-        const tool = resolveTool(name);
-        if (tool) selectedTools.push(tool);
-      }
-      log.debug("Selected tools for agent", {
-        tools: selectedTools.map((t) => t.name)
-      });
-    } else {
-      // No tools specified — use the current built-in defaults plus NodeTool's
-      // MCP-style backend tools. When a NodeRegistry is wired up, the MCP
-      // helper swaps the REST search/list/get tools for the in-process biased
-      // versions and adds `find_model`, so any agent loop (not just the
-      // GraphPlanner) gets the same node-selection bias.
-      selectedTools = [
-        new ReadFileTool(),
-        new WriteFileTool(),
-        new BrowserTool(),
-        new GoogleSearchTool(),
-        ...getAllMcpTools({
-          registry: this.nodeRegistry,
-          providers: agentProviders
-        })
-      ];
-      log.debug("Using default + MCP tools for agent", {
-        count: selectedTools.length
-      });
-    }
-
-    // Server-side tools from resolveTools option
-    if (rawToolNames.length > 0 && this.resolveTools) {
-      const serverTools = await this.resolveTools(rawToolNames, userId);
-      for (const st of serverTools) {
-        if (!selectedTools.find((t) => t.name === st.name)) {
-          selectedTools.push(st);
-        }
-      }
-    }
-
-    // Include UI proxy tools if client provided a manifest via tool bridge — matches Python
-    if (Object.keys(this.clientToolsManifest).length > 0) {
-      const sendMsg = this.sendMessage.bind(this);
-      for (const [, manifest] of Object.entries(this.clientToolsManifest)) {
-        try {
-          selectedTools.push(
-            new UIToolProxy(manifest, this.toolBridge, sendMsg)
-          );
-        } catch (err) {
-          log.warn("Failed to register UI tool proxy", {
-            error: err instanceof Error ? err.message : String(err)
-          });
-        }
-      }
-      log.debug("Added UI tool proxies to agent", {
-        count: Object.keys(this.clientToolsManifest).length
-      });
-    }
-
-    // Create ProcessingContext for agent execution
-    const agentWorkspaceDir =
-      workflowId && this.workspaceResolver
-        ? await this.workspaceResolver(workflowId, userId)
-        : tmpdir();
-    const ctx = createRuntimeContext({
-      jobId: randomUUID(),
-      userId,
-      workspaceDir: agentWorkspaceDir,
-      // `temp_url` materializes any asset-like value (image/audio/video refs
-      // with inline `data` bytes) to a real /api/storage/<id>.<ext> URL via
-      // the temp adapter. Without this the agent context defaults to
-      // `python`, which leaves binary data inline — when those results are
-      // JSON-stringified and shown to the structured-results presenter the
-      // LLM dutifully echoes the base64 back as `data:image/png;base64,...`
-      // markdown.
-      assetOutputMode: "temp_url"
-    });
-
-    const maxStepIterations =
-      typeof data.max_step_iterations === "number" &&
-      data.max_step_iterations > 0
-        ? Math.floor(data.max_step_iterations)
-        : 20;
-    const maxSteps =
-      typeof data.max_steps === "number" && data.max_steps > 0
-        ? Math.floor(data.max_steps)
-        : undefined;
-
-    // Pick the planner. Explicit `agent_planner` from the client wins; if
-    // omitted, default to "graph" when a NodeRegistry is wired (the
-    // workflow-builder path) and "multi" otherwise (TaskPlanner →
-    // ParallelTaskExecutor). Either way the request only reaches the
-    // graph path when a registry is actually available.
-    const requestedPlanner =
-      data.agent_planner === "graph" || data.agent_planner === "multi"
-        ? data.agent_planner
-        : null;
-    const defaultPlanner: "graph" | "multi" = this.nodeRegistry
-      ? "graph"
-      : "multi";
-    const plannerType = requestedPlanner ?? defaultPlanner;
-    const useGraphPlanner = plannerType === "graph" && !!this.nodeRegistry;
-    if (requestedPlanner === "graph" && !this.nodeRegistry) {
-      log.warn(
-        "Client requested graph planner but no NodeRegistry is wired — falling back to multi-task planner."
-      );
-    }
-
-    const markdownOutputSchema = {
-      type: "object",
-      properties: {
-        markdown: {
-          type: "string",
-          description: "The markdown content of the response"
-        }
-      },
-      required: ["markdown"]
-    } as const;
-
-    try {
-      // Both planner types route through MultiModeAgent in plan mode; the
-      // `useGraphPlanner` flag picks GraphPlanner vs TaskPlanner under the
-      // hood. The legacy plain `Agent` is no longer used for agent_mode.
-      const agent = new MultiModeAgent({
-        name: "Assistant",
-        objective,
-        provider,
-        model,
-        mode: "plan",
-        tools: selectedTools,
-        useGraphPlanner,
-        registry: useGraphPlanner ? this.nodeRegistry : undefined,
-        providers: useGraphPlanner ? agentProviders : undefined,
-        maxStepIterations,
-        ...(maxSteps !== undefined ? { maxSteps } : {}),
-        outputSchema: markdownOutputSchema
-      });
-
-      for await (const item of agent.execute(ctx)) {
-        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
-          return;
-
-        const msgType = (item as { type?: string }).type;
-
-        if (msgType === "chunk") {
-          // Stream text chunks to client
-          const chunk = item as {
-            type: string;
-            content?: string;
-            done?: boolean;
-            thinking?: boolean;
-            thread_id?: string;
-          };
-          await this.sendMessage({
-            type: "chunk",
-            content: chunk.content ?? "",
-            done: chunk.done ?? false,
-            thinking: chunk.thinking ?? false,
-            thread_id: chunk.thread_id ?? threadId
-          });
-        } else if (msgType === "tool_call_update") {
-          // Forward tool call updates live AND persist them as an
-          // agent_execution message so that reopening a thread preserves the
-          // full per-step debug trace (which tools were called, with what args).
-          const tc = item as {
-            name: string;
-            args: Record<string, unknown>;
-            tool_call_id?: string;
-            step_id?: string;
-            node_id?: string;
-            message?: string;
-          };
-          // The LLM's user-facing status is carried as `_message` inside
-          // `args`; we surface it on `message` and strip it from args before
-          // forwarding/persisting so it doesn't appear twice in the UI.
-          const rawArgs = tc.args ?? {};
-          const llmMessage =
-            typeof rawArgs["_message"] === "string"
-              ? String(rawArgs["_message"]).trim() || null
-              : null;
-          const args = (() => {
-            if (!("_message" in rawArgs)) return rawArgs;
-            const copy = { ...rawArgs };
-            delete copy["_message"];
-            return copy;
-          })();
-          const message = tc.message ?? llmMessage ?? `Calling ${tc.name}...`;
-          await this.sendMessage({
-            type: "tool_call_update",
-            thread_id: threadId,
-            workflow_id: workflowId,
-            tool_call_id: tc.tool_call_id ?? null,
-            name: tc.name,
-            message,
-            args,
-            step_id: tc.step_id ?? null,
-            node_id: tc.node_id ?? null,
-            agent_execution_id: agentExecutionId
-          });
-          const persisted: Record<string, unknown> = {
-            type: "message",
-            role: "agent_execution",
-            execution_event_type: "tool_call_update",
-            agent_execution_id: agentExecutionId,
-            content: {
-              type: "tool_call_update",
-              tool_call_id: tc.tool_call_id ?? null,
-              name: tc.name,
-              message,
-              args,
-              step_id: tc.step_id ?? null,
-              node_id: tc.node_id ?? null
-            },
-            thread_id: threadId,
-            workflow_id: workflowId,
-            provider: providerId,
-            model,
-            agent_mode: true
-          };
-          await this.saveMessageToDb(persisted);
-        } else if (msgType === "task_update") {
-          // Send task update as agent_execution message — persisted by _run_processor pattern
-          const tu = item as { task?: unknown; step?: unknown; event?: string };
-          const contentDict = {
-            type: "task_update",
-            event: tu.event,
-            task: tu.task ?? null,
-            step: tu.step ?? null
-          };
-          const msg: Record<string, unknown> = {
-            type: "message",
-            role: "agent_execution",
-            execution_event_type: "task_update",
-            agent_execution_id: agentExecutionId,
-            content: contentDict,
-            thread_id: threadId,
-            workflow_id: workflowId,
-            provider: providerId,
-            model,
-            agent_mode: true
-          };
-          await this.saveMessageToDb(msg);
-          await this.sendMessage(msg);
-        } else if (msgType === "planning_update") {
-          // Send planning update as agent_execution message
-          const pu = item as {
-            phase?: string;
-            status?: string;
-            content?: string;
-            node_id?: string;
-          };
-          const contentDict = {
-            type: "planning_update",
-            phase: pu.phase,
-            status: pu.status,
-            content: pu.content,
-            node_id: pu.node_id
-          };
-          const msg: Record<string, unknown> = {
-            type: "message",
-            role: "agent_execution",
-            execution_event_type: "planning_update",
-            agent_execution_id: agentExecutionId,
-            content: contentDict,
-            thread_id: threadId,
-            workflow_id: workflowId,
-            provider: providerId,
-            model,
-            agent_mode: true
-          };
-          await this.saveMessageToDb(msg);
-          await this.sendMessage(msg);
-
-          // Also send persistent LogUpdate for completed phases — matches Python
-          if (pu.status === "Success" || pu.status === "Failed") {
-            const logMsg: Record<string, unknown> = {
-              type: "message",
-              role: "agent_execution",
-              execution_event_type: "log_update",
-              agent_execution_id: agentExecutionId,
-              content: {
-                type: "log_update",
-                node_id: pu.node_id ?? "agent",
-                node_name: "Agent",
-                content: `${pu.phase}: ${pu.content ?? ""}`,
-                severity: pu.status === "Failed" ? "error" : "info"
-              },
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model,
-              agent_mode: true
-            };
-            await this.saveMessageToDb(logMsg);
-            await this.sendMessage(logMsg);
-          }
-        } else if (msgType === "log_update") {
-          // Forward log updates as agent_execution messages
-          const lu = item as {
-            node_id?: string;
-            node_name?: string;
-            content?: string;
-            severity?: string;
-          };
-          const msg: Record<string, unknown> = {
-            type: "message",
-            role: "agent_execution",
-            execution_event_type: "log_update",
-            agent_execution_id: agentExecutionId,
-            content: {
-              type: "log_update",
-              node_id: lu.node_id,
-              node_name: lu.node_name,
-              content: lu.content,
-              severity: lu.severity
-            },
-            thread_id: threadId,
-            workflow_id: workflowId,
-            provider: providerId,
-            model,
-            agent_mode: true
-          };
-          await this.saveMessageToDb(msg);
-          await this.sendMessage(msg);
-        } else if (msgType === "step_result") {
-          const sr = item as {
-            step?: unknown;
-            result?: unknown;
-            error?: string;
-            is_task_result?: boolean;
-          };
-          // Only forward non-task step results — task result handled via agent.results
-          if (!sr.is_task_result) {
-            const contentDict = {
-              type: "step_result",
-              result: sr.result,
-              step: sr.step ?? null,
-              error: sr.error,
-              is_task_result: sr.is_task_result
-            };
-            const msg: Record<string, unknown> = {
-              type: "message",
-              role: "agent_execution",
-              execution_event_type: "step_result",
-              agent_execution_id: agentExecutionId,
-              content: contentDict,
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model,
-              agent_mode: true
-            };
-            await this.saveMessageToDb(msg);
-            await this.sendMessage(msg);
-          }
-        }
-      }
-
-      // Normalize final agent output — matches Python.
-      // First materialize any asset-like values (ImageRef/AudioRef/VideoRef
-      // with inline `data` bytes) to real `/api/storage/<id>.<ext>` URIs so
-      // the structured-results presenter sees clean references, not raw
-      // base64 to echo into markdown.
-      const rawResults = agent.getResults();
-      const results =
-        rawResults != null && typeof rawResults === "object"
-          ? await ctx.normalizeOutputValue(rawResults, "temp_url")
-          : rawResults;
-      let content: string;
-      if (typeof results === "string") {
-        content = results;
-      } else if (
-        results &&
-        typeof results === "object" &&
-        "markdown" in results
-      ) {
-        const md = (results as Record<string, unknown>).markdown;
-        content = typeof md === "string" ? md : String(results);
-      } else if (results != null && typeof results === "object") {
-        // Structured result — run one more LLM call to present it
-        const resultsJson = JSON.stringify(results, null, 2);
-        content = await this.presentStructuredResults(
-          provider,
-          model,
-          objective,
-          resultsJson,
-          threadId
-        );
-      } else {
-        content = results != null ? String(results) : "";
-      }
-
-      // Send final assistant message — persisted
-      const finalMsg: Record<string, unknown> = {
-        type: "message",
-        role: "assistant",
-        content,
-        thread_id: threadId,
-        workflow_id: workflowId,
-        provider: providerId,
-        model,
-        agent_mode: true
-      };
-      await this.saveMessageToDb(finalMsg);
-      await this.sendMessage(finalMsg);
-
-      // Signal completion
-      await this.sendMessage({
-        type: "chunk",
-        content: "",
-        done: true,
-        thread_id: threadId,
-        workflow_id: workflowId
-      });
-
-      log.debug("Agent execution complete", { threadId });
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      log.error("Agent execution error", { threadId, error: errMsg });
-
-      await this.sendMessage({
-        type: "error",
-        message: `Agent execution error: ${errMsg}`,
-        error_type: "agent_error",
-        thread_id: threadId,
-        workflow_id: workflowId
-      });
-
-      // Signal completion even on error
-      await this.sendMessage({
-        type: "chunk",
-        content: "",
-        done: true,
-        thread_id: threadId,
-        workflow_id: workflowId
-      });
-
-      // Return error assistant message
-      const errorFinalMsg: Record<string, unknown> = {
-        type: "message",
-        role: "assistant",
-        content: `Agent execution error: ${errMsg}`,
-        thread_id: threadId,
-        workflow_id: workflowId,
-        provider: providerId,
-        model,
-        agent_mode: true
-      };
-      await this.saveMessageToDb(errorFinalMsg);
-      await this.sendMessage(errorFinalMsg);
-    }
   }
 
   async handleInference(

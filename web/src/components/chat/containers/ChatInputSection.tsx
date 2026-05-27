@@ -7,7 +7,6 @@ import MediaChatComposer from "../composer/MediaChatComposer";
 import ChatComposer from "../composer/ChatComposer";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 import type { MediaGenerationRequest } from "../types/media.types";
-import type { AgentPlanner } from "../composer/AgentModeSelector";
 
 export type ChatComposerVariant = "media" | "simple";
 
@@ -49,7 +48,6 @@ type ChatInputSectionProps = {
   onSendMessage: (
     content: MessageContent[],
     prompt: string,
-    agentMode: boolean,
     mediaGeneration?: MediaGenerationRequest
   ) => Promise<void> | void;
   onStop?: () => void;
@@ -60,10 +58,6 @@ type ChatInputSectionProps = {
   onCollectionsChange?: (collections: string[]) => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
-  agentMode?: boolean;
-  onAgentModeToggle?: (enabled: boolean) => void;
-  agentPlanner?: AgentPlanner;
-  onAgentPlannerChange?: (planner: AgentPlanner) => void;
   memoryEnabled?: boolean;
   onMemoryToggle?: (enabled: boolean) => void;
   allowedProviders?: string[];
@@ -83,10 +77,6 @@ const ChatInputSection = ({
   onNewChat,
   selectedModel,
   onModelChange,
-  agentMode,
-  onAgentModeToggle,
-  agentPlanner,
-  onAgentPlannerChange,
   memoryEnabled,
   onMemoryToggle,
   allowedProviders,
@@ -113,7 +103,6 @@ const ChatInputSection = ({
             onSendMessage={onSendMessage}
             onStop={onStop}
             onNewChat={onNewChat}
-            agentMode={agentMode}
             toolbarNode={composerToolbar}
           />
         ) : (
@@ -125,10 +114,6 @@ const ChatInputSection = ({
             onNewChat={onNewChat}
             selectedModel={selectedModel}
             onModelChange={onModelChange}
-            agentMode={agentMode}
-            onAgentModeToggle={onAgentModeToggle}
-            agentPlanner={agentPlanner}
-            onAgentPlannerChange={onAgentPlannerChange}
             memoryEnabled={memoryEnabled}
             onMemoryToggle={onMemoryToggle}
             allowedProviders={allowedProviders}

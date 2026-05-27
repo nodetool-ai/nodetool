@@ -3,10 +3,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
-import {
-  AgentModeSelector,
-  type AgentPlanner
-} from "../composer/AgentModeSelector";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
@@ -108,10 +104,6 @@ interface ChatToolBarProps {
   onToolsChange?: (tools: string[]) => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
-  agentMode?: boolean;
-  onAgentModeToggle?: (enabled: boolean) => void;
-  agentPlanner?: AgentPlanner;
-  onAgentPlannerChange?: (planner: AgentPlanner) => void;
   memoryEnabled?: boolean;
   onMemoryToggle?: (enabled: boolean) => void;
   selectedCollections?: string[];
@@ -125,10 +117,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   onToolsChange,
   selectedModel,
   onModelChange,
-  agentMode,
-  onAgentModeToggle,
-  agentPlanner,
-  onAgentPlannerChange,
   memoryEnabled,
   onMemoryToggle,
   selectedCollections,
@@ -140,7 +128,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
 
   const hasToolsSection = onToolsChange;
   const hasModelSection = onModelChange;
-  const hasAgentSection = onAgentModeToggle;
 
   return (
     <div className={`chat-tool-bar ${embedded ? "embedded" : ""}`} css={[styles(theme), embedded && css({
@@ -217,20 +204,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
         </>
       )}
 
-      {/* Agent Mode Selector */}
-      {hasAgentSection && (
-        <>
-          <div className="toolbar-divider" />
-          <div className="toolbar-group">
-            <AgentModeSelector
-              agentMode={agentMode || false}
-              onToggle={onAgentModeToggle}
-              agentPlanner={agentPlanner}
-              onPlannerChange={onAgentPlannerChange}
-            />
-          </div>
-        </>
-      )}
     </div>
   );
 };

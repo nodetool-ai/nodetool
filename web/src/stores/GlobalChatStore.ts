@@ -96,20 +96,6 @@ export interface GlobalChatState {
   messageCursors: Record<string, string | null>; // threadId -> next cursor
   isLoadingMessages: boolean;
 
-  // Agent mode
-  agentMode: boolean;
-  setAgentMode: (enabled: boolean) => void;
-  /**
-   * Which planner to use when `agentMode` is true:
-   * - `"graph"` — GraphPlanner builds a workflow DAG of nodes (preferred when
-   *   the server has a NodeRegistry; uses the curated `nodetool.*` core
-   *   nodes plus `find_model`).
-   * - `"multi"` — TaskPlanner builds a parallel task DAG; each task is an
-   *   LLM step run by ParallelTaskExecutor.
-   */
-  agentPlanner: "multi" | "graph";
-  setAgentPlanner: (planner: "multi" | "graph") => void;
-
   // Long-term memory opt-in
   /**
    * When true, the server resolves a per-user, per-thread `LongTermMemory`
@@ -229,12 +215,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
       messageCache: {},
       messageCursors: {},
       isLoadingMessages: false,
-
-      // Agent mode
-      agentMode: false,
-      setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
-      agentPlanner: "multi",
-      setAgentPlanner: (planner) => set({ agentPlanner: planner }),
 
       memoryEnabled: false,
       setMemoryEnabled: (enabled: boolean) => set({ memoryEnabled: enabled }),
@@ -483,18 +463,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const {
           currentThreadId,
           workflowId,
-          agentMode,
-          agentPlanner,
           memoryEnabled,
           selectedModel,
           selectedTools,
           selectedCollections,
           sendMessageTimeoutId
         } = get();
-        // Graph planner is hidden in the UI; coerce any persisted "graph"
-        // value back to "multi" so we never send the broken planner.
-        const effectiveAgentPlanner: "multi" | "graph" =
-          agentPlanner === "graph" ? "multi" : agentPlanner;
+        // Agent mode is no longer a UI toggle — every chat session runs the
+        // unified LLM-with-tools loop, and the agent decides for itself
+        // whether to escalate via `run_subtask`. `agent_mode` and
+        // `agent_planner` are no longer sent on the wire.
         const outgoing = message as ChatOutgoingMessage;
         const mediaGeneration = outgoing.media_generation ?? null;
 
@@ -560,8 +538,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const messageForCache: Message = {
           ...message,
           thread_id: threadId,
-          agent_mode: agentMode,
-          agent_planner: agentMode ? effectiveAgentPlanner : undefined,
           memory_enabled: memoryEnabled,
           ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
         } as Message;
@@ -576,10 +552,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
           ...message,
           workflow_id: message.workflow_id ?? workflowId ?? null,
           thread_id: threadId,
-          agent_mode: agentMode,
-          // Only send agent_planner when agent_mode is on; the server picks a
-          // sensible default otherwise.
-          agent_planner: agentMode ? effectiveAgentPlanner : undefined,
           memory_enabled: memoryEnabled,
           model: isMediaGeneration
             ? mediaGeneration?.model ?? message.model ?? selectedModel?.id

@@ -391,7 +391,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-14T09:30:00Z",
     model: null,
     provider: null,
-    agent_mode: false
   },
   {
     id: "msg-story-2",
@@ -402,7 +401,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-14T09:31:00Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
-    agent_mode: false
   },
   {
     id: "msg-story-3",
@@ -413,7 +411,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-14T09:42:00Z",
     model: null,
     provider: null,
-    agent_mode: false
   },
   {
     id: "msg-story-4",
@@ -430,7 +427,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-14T09:43:30Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
-    agent_mode: false
   },
   {
     id: "msg-code-1",
@@ -442,7 +438,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-13T14:00:00Z",
     model: null,
     provider: null,
-    agent_mode: false
   },
   {
     id: "msg-code-2",
@@ -459,7 +454,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-13T14:01:30Z",
     model: "gpt-4o",
     provider: "openai",
-    agent_mode: false
   },
   {
     id: "msg-recipe-1",
@@ -470,7 +464,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-12T18:15:00Z",
     model: null,
     provider: null,
-    agent_mode: false
   },
   {
     id: "msg-recipe-2",
@@ -487,7 +480,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-12T18:16:00Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
-    agent_mode: false
   },
   {
     id: "msg-launch-1",
@@ -498,7 +490,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-09T08:45:00Z",
     model: null,
     provider: null,
-    agent_mode: true
   },
   {
     id: "msg-launch-2",
@@ -515,7 +506,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-09T08:47:30Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
-    agent_mode: true
   }
 ];
 

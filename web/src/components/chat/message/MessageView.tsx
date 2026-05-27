@@ -30,6 +30,7 @@ import {
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import { Collapse } from "@mui/material";
 
 
@@ -61,16 +62,33 @@ PrettyJson.displayName = "PrettyJson";
 
 // LLM-authored status field — surfaced as `tc.message`; hide from raw args.
 const TOOL_USER_MESSAGE_FIELD = "_message";
+// Reserved field StepExecutor injects to pass the LLM's tool_call_id through
+// to tools that need it (e.g., run_subtask for nesting). Hide from display.
+const TOOL_CALL_ID_FIELD = "_tool_call_id";
 
 function visibleArgs(
   args: Record<string, unknown> | null | undefined
 ): Record<string, unknown> | null {
   if (!args) return null;
-  if (!(TOOL_USER_MESSAGE_FIELD in args)) return args;
-  const out = { ...args };
-  delete out[TOOL_USER_MESSAGE_FIELD];
-  return out;
+  let out: Record<string, unknown> | null = null;
+  if (TOOL_USER_MESSAGE_FIELD in args) {
+    out = out ?? { ...args };
+    delete out[TOOL_USER_MESSAGE_FIELD];
+  }
+  if (TOOL_CALL_ID_FIELD in args) {
+    out = out ?? { ...args };
+    delete out[TOOL_CALL_ID_FIELD];
+  }
+  return out ?? args;
 }
+
+/**
+ * `run_subtask` is the recursive-decomposition primitive. We render its
+ * tool-call card differently from generic tools: the LLM-provided `title`
+ * becomes the headline, `instructions` go into the expanded section, and a
+ * tree icon signals that this card represents a deeper sub-execution.
+ */
+const RUN_SUBTASK_TOOL_NAME = "run_subtask";
 
 /**
  * ToolCallCard - Memoized component for displaying tool calls.
@@ -83,24 +101,78 @@ const ToolCallCard: React.FC<{
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
-  const displayArgs = useMemo(
-    () => visibleArgs(tc.args as Record<string, unknown> | null | undefined),
-    [tc.args]
-  );
-  const hasArgs = displayArgs && Object.keys(displayArgs).length > 0;
-  const hasDetails = !!hasArgs;
+  const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
+
+  // For run_subtask we lift `title` / `instructions` out of args into headline
+  // and expanded body; the remaining args (tools allowlist, output_schema)
+  // still show as raw JSON for power users.
+  const rawArgs = (tc.args as Record<string, unknown> | null | undefined) ?? null;
+  const subtaskTitle = isSubtask && typeof rawArgs?.title === "string"
+    ? (rawArgs.title as string).trim()
+    : null;
+  const subtaskInstructions =
+    isSubtask && typeof rawArgs?.instructions === "string"
+      ? (rawArgs.instructions as string).trim()
+      : null;
+  const displayArgs = useMemo(() => {
+    const base = visibleArgs(rawArgs);
+    if (!isSubtask || !base) return base;
+    const stripped: Record<string, unknown> = { ...base };
+    delete stripped["title"];
+    delete stripped["instructions"];
+    return Object.keys(stripped).length > 0 ? stripped : null;
+  }, [rawArgs, isSubtask]);
+
+  const hasArgs = !!displayArgs && Object.keys(displayArgs).length > 0;
+  const hasDetails = !!hasArgs || (isSubtask && !!subtaskInstructions);
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
 
   const handleToggleOpen = useCallback(() => {
     setOpen((v) => !v);
   }, []);
 
+  const headline = isSubtask && subtaskTitle
+    ? subtaskTitle
+    : formatToolName(tc.name);
+  const headlineLabel = isSubtask
+    ? subtaskTitle
+      ? "Subtask"
+      : "Subtask"
+    : null;
+
   return (
-    <div className={`tool-call-card${isRunning ? " running" : ""}`}>
+    <div
+      className={`tool-call-card${isRunning ? " running" : ""}${
+        isSubtask ? " run-subtask" : ""
+      }`}
+    >
       <FlexRow className="tool-call-header" align="center" justify="space-between" fullWidth gap={0.5}>
         <FlexRow align="center" gap={0.5} sx={{ minWidth: 0 }}>
-          <Text component="span" size="small" weight={600} className="tool-call-name" truncate>
-            {formatToolName(tc.name)}
+          {isSubtask && (
+            <AccountTreeOutlinedIcon
+              fontSize="small"
+              className="subtask-icon"
+              aria-hidden
+            />
+          )}
+          {headlineLabel && (
+            <Text
+              component="span"
+              size="small"
+              weight={600}
+              className="tool-call-badge"
+            >
+              {headlineLabel}
+            </Text>
+          )}
+          <Text
+            component="span"
+            size="small"
+            weight={isSubtask ? 500 : 600}
+            className="tool-call-name"
+            truncate
+          >
+            {headline}
           </Text>
           {(isRunning || tc.message) && (
             <Text component="span" size="small" className="tool-message" truncate>
@@ -119,12 +191,24 @@ const ToolCallCard: React.FC<{
         )}
       </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
-        {hasArgs && (
-          <FlexColumn gap={0.25} sx={{ marginTop: "2px" }}>
-            <Caption className="tool-section-title">Arguments</Caption>
-            <PrettyJson value={displayArgs} />
-          </FlexColumn>
-        )}
+        <FlexColumn gap={0.5} sx={{ marginTop: "4px" }}>
+          {isSubtask && subtaskInstructions && (
+            <FlexColumn gap={0.25}>
+              <Caption className="tool-section-title">Instructions</Caption>
+              <Text size="small" className="subtask-instructions">
+                {subtaskInstructions}
+              </Text>
+            </FlexColumn>
+          )}
+          {hasArgs && (
+            <FlexColumn gap={0.25}>
+              <Caption className="tool-section-title">
+                {isSubtask ? "Other arguments" : "Arguments"}
+              </Caption>
+              <PrettyJson value={displayArgs} />
+            </FlexColumn>
+          )}
+        </FlexColumn>
       </Collapse>
     </div>
   );

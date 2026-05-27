@@ -97,12 +97,6 @@ type ChatViewProps = {
   onModelChange?: (model: LanguageModel) => void;
   onStop?: () => void;
   onNewChat?: () => void;
-  agentMode?: boolean;
-  onAgentModeToggle?: (enabled: boolean) => void;
-  agentPlanner?: import("../composer/AgentModeSelector").AgentPlanner;
-  onAgentPlannerChange?: (
-    planner: import("../composer/AgentModeSelector").AgentPlanner
-  ) => void;
   memoryEnabled?: boolean;
   onMemoryToggle?: (enabled: boolean) => void;
   helpMode?: boolean;
@@ -118,11 +112,7 @@ type ChatViewProps = {
   noMessagesPlaceholder?: React.ReactNode;
   onInsertCode?: (text: string, language?: string) => void;
   allowedProviders?: string[];
-  /**
-   * Hide non-tool-capable models in the composer's language model picker.
-   * The composer auto-enables this whenever `agentMode` is on; pass `true`
-   * here to force-filter regardless of agent mode.
-   */
+  /** Hide non-tool-capable models in the composer's language model picker. */
   requireToolSupport?: boolean;
   workflowId?: string | null;
   /**
@@ -164,10 +154,6 @@ const ChatView = ({
   onModelChange,
   onStop,
   onNewChat,
-  agentMode,
-  onAgentModeToggle,
-  agentPlanner,
-  onAgentPlannerChange,
   memoryEnabled,
   onMemoryToggle,
   helpMode = false,
@@ -191,7 +177,6 @@ const ChatView = ({
     async (
       content: MessageContent[],
       prompt: string,
-      messageAgentMode: boolean,
       mediaGeneration?: MediaGenerationRequest
     ) => {
       try {
@@ -212,7 +197,6 @@ const ChatView = ({
           tools: selectedTools.length > 0 ? selectedTools : undefined,
           collections:
             selectedCollections.length > 0 ? selectedCollections : undefined,
-          agent_mode: messageAgentMode,
           help_mode: helpMode,
           graph: graph,
           workflow_id: workflowId ?? undefined,
@@ -275,10 +259,6 @@ const ChatView = ({
           onCollectionsChange={onCollectionsChange}
           selectedModel={model}
           onModelChange={onModelChange}
-          agentMode={agentMode}
-          onAgentModeToggle={onAgentModeToggle}
-          agentPlanner={agentPlanner}
-          onAgentPlannerChange={onAgentPlannerChange}
           memoryEnabled={memoryEnabled}
           onMemoryToggle={onMemoryToggle}
           allowedProviders={allowedProviders}

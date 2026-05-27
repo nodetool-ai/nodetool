@@ -6,7 +6,7 @@
  * handle_message_impl routing logic.
  *
  * Gaps covered:
- *   1. Routing priority: workflow_target/workflow_id checked BEFORE agent_mode
+ *   1. Routing priority: workflow_target/workflow_id checked first
  *   2. handleWorkflowMessage: runs workflow, streams events, builds response
  *   3. _detect_message_input_names: scans graph for MessageInput/MessageListInput
  *   4. _create_response_message: converts workflow outputs to typed Message content
@@ -160,7 +160,7 @@ function streamingResolver(nodeType: string) {
 
 // ── 1. Routing priority ─────────────────────────────────────────────
 
-describe("Routing priority: workflow_id/workflow_target before agent_mode", () => {
+describe("Routing priority: workflow_id/workflow_target", () => {
   let ws: MockWS;
 
   beforeEach(() => {
@@ -168,7 +168,7 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
     ws = new MockWS();
   });
 
-  it("routes to workflow processor when workflow_target='workflow' even if agent_mode=true", async () => {
+  it("routes to workflow processor when workflow_target='workflow'", async () => {
     const workflow = await Workflow.create({
       user_id: "1",
       name: "Test WF",
@@ -198,7 +198,6 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
         content: "do something",
         workflow_id: workflow.id,
         workflow_target: "workflow",
-        agent_mode: true, // should be ignored since workflow_target is set
         provider: "mock",
         model: "m"
       }

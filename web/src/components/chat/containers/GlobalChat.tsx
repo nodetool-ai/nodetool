@@ -98,10 +98,6 @@ const GlobalChat: React.FC = () => {
   );
 
   const {
-    agentMode,
-    setAgentMode,
-    agentPlanner,
-    setAgentPlanner,
     currentPlanningUpdate,
     currentTaskUpdate,
     currentTaskUpdateThreadId,
@@ -109,10 +105,6 @@ const GlobalChat: React.FC = () => {
     workflowId
   } = useGlobalChatStore(
     useShallow((state) => ({
-      agentMode: state.agentMode,
-      setAgentMode: state.setAgentMode,
-      agentPlanner: state.agentPlanner,
-      setAgentPlanner: state.setAgentPlanner,
       currentPlanningUpdate: state.currentPlanningUpdate,
       currentTaskUpdate: state.currentTaskUpdate,
       currentTaskUpdateThreadId: state.currentTaskUpdateThreadId,
@@ -382,13 +374,12 @@ const GlobalChat: React.FC = () => {
         content: [{ type: "text", text: suggestion }],
         tools: selectedTools.length > 0 ? selectedTools : undefined,
         collections:
-          selectedCollections.length > 0 ? selectedCollections : undefined,
-        agent_mode: agentMode
+          selectedCollections.length > 0 ? selectedCollections : undefined
       }).catch((err) => {
         console.error("Failed to send suggestion:", err);
       });
     },
-    [sendMessage, selectedModel, selectedTools, selectedCollections, agentMode]
+    [sendMessage, selectedModel, selectedTools, selectedCollections]
   );
 
   const welcomePlaceholder = useMemo(
@@ -678,10 +669,6 @@ const GlobalChat: React.FC = () => {
               onModelChange={setSelectedModel}
               onStop={stopGeneration}
               onNewChat={handleNewChat}
-              agentMode={agentMode}
-              onAgentModeToggle={setAgentMode}
-              agentPlanner={agentPlanner}
-              onAgentPlannerChange={setAgentPlanner}
               memoryEnabled={memoryEnabled}
               onMemoryToggle={setMemoryEnabled}
               currentPlanningUpdate={currentPlanningUpdate}

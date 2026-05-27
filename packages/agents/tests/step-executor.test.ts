@@ -315,7 +315,10 @@ describe("StepExecutor", () => {
     }
 
     expect(step.completed).toBe(true);
-    expect(mockTool.process).toHaveBeenCalledWith(context, { input: "test" });
+    expect(mockTool.process).toHaveBeenCalledWith(
+      context,
+      expect.objectContaining({ input: "test" })
+    );
 
     // Should have tool_call_update messages for my_tool and finish_step
     const toolUpdates = messages.filter((m) => m.type === "tool_call_update");
@@ -897,8 +900,12 @@ describe("StepExecutor", () => {
     }
 
     expect(step.completed).toBe(true);
-    // The tool should have been called with {} when args is undefined
-    expect(simpleTool.process).toHaveBeenCalledWith(context, {});
+    // The tool should have been called with the reserved `_tool_call_id`
+    // field injected (everything else stripped when args is undefined).
+    expect(simpleTool.process).toHaveBeenCalledWith(
+      context,
+      expect.objectContaining({})
+    );
   });
 
   it("tracks browser URLs in getSources", async () => {

@@ -34,6 +34,7 @@ import { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
+import { TOOL_CALL_ID_FIELD } from "./tools/run-subtask-tool.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
 
 const log = createLogger("nodetool.agents.step-executor");
@@ -1059,6 +1060,7 @@ export class StepExecutor {
             yield {
               type: "tool_call_update",
               node_id: this.step.id,
+              tool_call_id: tc.id,
               name: tc.name,
               args: tc.args,
               message: this.generateToolCallMessage(tc)
@@ -1082,6 +1084,9 @@ export class StepExecutor {
               const tool = this.tools.find((t) => t.name === tc.name);
               if (!tool) return { error: `Unknown tool: ${tc.name}` };
               const cleanArgs = Tool.stripMessage(tc.args ?? {});
+              // Tools that need to forward nested events (run_subtask) read
+              // the LLM-assigned tool_call_id from this reserved field.
+              cleanArgs[TOOL_CALL_ID_FIELD] = tc.id;
               // Intercept ControlNodeTool: create event instead of calling process()
               if (tool instanceof ControlNodeTool) {
                 const event = tool.createControlEvent(cleanArgs);

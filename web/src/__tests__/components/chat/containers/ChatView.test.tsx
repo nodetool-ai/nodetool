@@ -79,8 +79,7 @@ jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
           onClick={() =>
             onSendMessage(
               [{ type: "text", text: "Test message" }],
-              "Test message",
-              false
+              "Test message"
             )
           }
         >
@@ -307,7 +306,6 @@ describe("ChatView", () => {
           content: [{ type: "text", text: "Test message" }],
           tools: undefined,
           collections: undefined,
-          agent_mode: false,
           help_mode: false,
           graph: undefined,
           workflow_id: undefined,
@@ -443,18 +441,6 @@ describe("ChatView", () => {
   describe("Toolbar and Controls", () => {
     it("passes showToolbar prop to ChatInputSection", () => {
       renderWithProviders(<ChatView {...baseProps} showToolbar={false} />);
-
-      expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
-    });
-
-    it("passes agent mode props to ChatInputSection", () => {
-      renderWithProviders(
-        <ChatView
-          {...baseProps}
-          agentMode={true}
-          onAgentModeToggle={jest.fn()}
-        />
-      );
 
       expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
     });

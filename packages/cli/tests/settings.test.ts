@@ -110,16 +110,7 @@ describe("DEFAULT_SETTINGS.model (detectDefaultModel)", () => {
 // ─── DEFAULT_SETTINGS shape ────────────────────────────────────────────────────
 
 describe("DEFAULT_SETTINGS structure", () => {
-  it("has agentMode defaulting to \"off\"", async () => {
-    vi.resetModules();
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
-    vi.stubEnv("OPENAI_API_KEY", "");
-    vi.stubEnv("GEMINI_API_KEY", "");
-    const { DEFAULT_SETTINGS } = await import("../src/settings.js");
-    expect(DEFAULT_SETTINGS.agentMode).toBe("off");
-  });
-
-  it("migrates legacy agentMode:true + agentPlanner:graph to \"graph\"", async () => {
+  it("strips legacy agentMode + agentPlanner from persisted settings", async () => {
     vi.resetModules();
     vi.stubEnv("ANTHROPIC_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "test-openai");
@@ -129,52 +120,19 @@ describe("DEFAULT_SETTINGS structure", () => {
     await mkdir(settingsDir, { recursive: true });
     await writeFile(
       join(settingsDir, "chat-settings.json"),
-      JSON.stringify({ agentMode: true, agentPlanner: "graph" })
+      JSON.stringify({
+        provider: "openai",
+        agentMode: true,
+        agentPlanner: "graph"
+      })
     );
 
     vi.doMock("node:os", () => ({ homedir: () => tmpDir }));
     const { loadSettings } = await import("../src/settings.js");
-    const loaded = await loadSettings();
-    expect(loaded.agentMode).toBe("graph");
+    const loaded = (await loadSettings()) as Record<string, unknown>;
+    expect("agentMode" in loaded).toBe(false);
     expect("agentPlanner" in loaded).toBe(false);
-  });
-
-  it("migrates legacy agentMode:true + agentPlanner:multi to \"plan\"", async () => {
-    vi.resetModules();
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
-    vi.stubEnv("OPENAI_API_KEY", "test-openai");
-    vi.stubEnv("GEMINI_API_KEY", "");
-
-    const settingsDir = join(tmpDir, ".nodetool");
-    await mkdir(settingsDir, { recursive: true });
-    await writeFile(
-      join(settingsDir, "chat-settings.json"),
-      JSON.stringify({ agentMode: true, agentPlanner: "multi" })
-    );
-
-    vi.doMock("node:os", () => ({ homedir: () => tmpDir }));
-    const { loadSettings } = await import("../src/settings.js");
-    const loaded = await loadSettings();
-    expect(loaded.agentMode).toBe("plan");
-  });
-
-  it("migrates legacy agentMode:false to \"off\"", async () => {
-    vi.resetModules();
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
-    vi.stubEnv("OPENAI_API_KEY", "test-openai");
-    vi.stubEnv("GEMINI_API_KEY", "");
-
-    const settingsDir = join(tmpDir, ".nodetool");
-    await mkdir(settingsDir, { recursive: true });
-    await writeFile(
-      join(settingsDir, "chat-settings.json"),
-      JSON.stringify({ agentMode: false, agentPlanner: "graph" })
-    );
-
-    vi.doMock("node:os", () => ({ homedir: () => tmpDir }));
-    const { loadSettings } = await import("../src/settings.js");
-    const loaded = await loadSettings();
-    expect(loaded.agentMode).toBe("off");
+    expect(loaded.provider).toBe("openai");
   });
 
   it("includes a non-empty enabledTools array by default", async () => {
@@ -217,7 +175,6 @@ describe("loadSettings", () => {
     const loaded = await loadSettings();
     expect(loaded.provider).toBe(DEFAULT_SETTINGS.provider);
     expect(loaded.model).toBe(DEFAULT_SETTINGS.model);
-    expect(loaded.agentMode).toBe(DEFAULT_SETTINGS.agentMode);
   });
 
   it("merges persisted settings with defaults", async () => {
@@ -233,8 +190,7 @@ describe("loadSettings", () => {
       join(settingsDir, "chat-settings.json"),
       JSON.stringify({
         provider: "gemini",
-        model: "gemini-pro",
-        agentMode: "plan"
+        model: "gemini-pro"
       })
     );
 
@@ -244,7 +200,6 @@ describe("loadSettings", () => {
     const loaded = await loadSettings();
     expect(loaded.provider).toBe("gemini");
     expect(loaded.model).toBe("gemini-pro");
-    expect(loaded.agentMode).toBe("plan");
     // Default keys should still be present
     expect(Array.isArray(loaded.enabledTools)).toBe(true);
   });
@@ -284,11 +239,10 @@ describe("saveSettings", () => {
     const { saveSettings, loadSettings } = await import("../src/settings.js");
 
     // Save a partial update
-    await saveSettings({ provider: "anthropic", agentMode: "plan" });
+    await saveSettings({ provider: "anthropic" });
     const loaded = await loadSettings();
 
     expect(loaded.provider).toBe("anthropic");
-    expect(loaded.agentMode).toBe("plan");
     // model should still be set (coming from defaults)
     expect(typeof loaded.model).toBe("string");
     expect(loaded.model.length).toBeGreaterThan(0);

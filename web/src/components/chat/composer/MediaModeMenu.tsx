@@ -13,7 +13,6 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import TuneIcon from "@mui/icons-material/Tune";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import PsychologyIcon from "@mui/icons-material/Psychology";
 import CheckIcon from "@mui/icons-material/Check";
 import {
   Caption,
@@ -22,26 +21,17 @@ import {
   Text
 } from "../../ui_primitives";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
-import type { AgentPlanner } from "./AgentModeSelector";
 
 interface MediaModeMenuProps {
   anchorEl: HTMLElement | null;
   open: boolean;
   onClose: () => void;
   value: MediaMode;
-  agentMode: boolean;
-  agentPlanner?: AgentPlanner;
-  onChange: (
-    mode: MediaMode,
-    agentMode: boolean,
-    agentPlanner?: AgentPlanner
-  ) => void;
+  onChange: (mode: MediaMode) => void;
 }
 
-type ModeItemId = MediaMode | "agent_multi";
-
 interface ModeItem {
-  id: ModeItemId;
+  id: MediaMode;
   label: string;
   description?: string;
   icon: React.ReactNode;
@@ -53,13 +43,6 @@ const MODES: ModeItem[] = [
     id: "chat",
     label: "Chat",
     icon: <ChatBubbleOutlineIcon fontSize="small" />,
-    enabled: true
-  },
-  {
-    id: "agent_multi",
-    label: "Agent (Multi-task)",
-    description: "Plan and run parallel LLM tasks",
-    icon: <PsychologyIcon fontSize="small" />,
     enabled: true
   },
   {
@@ -160,15 +143,15 @@ const styles = (theme: Theme) =>
 
 /**
  * Popover menu shown when the user clicks the "Mode" chip in the media
- * composer. Mirrors the MODE popover from the reference screenshots.
+ * composer. Lists the media-generation modes (chat, image, video, …).
+ * Agent mode is no longer a media-menu option — the chat agent always runs
+ * the unified LLM-with-tools loop and decomposes via `run_subtask` on its own.
  */
 const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
   anchorEl,
   open,
   onClose,
   value,
-  agentMode,
-  agentPlanner = "multi",
   onChange
 }) => {
   const theme = useTheme();
@@ -190,16 +173,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
           Mode
         </Caption>
         {MODES.map((m) => {
-          // Graph planner is hidden; treat persisted "graph" as "multi" so
-          // existing users with that value see the multi-task row selected.
-          const effectivePlanner =
-            agentPlanner === "graph" ? "multi" : agentPlanner;
-          const selected =
-            m.id === "agent_multi"
-              ? value === "chat" && agentMode && effectivePlanner === "multi"
-              : m.id === "chat"
-                ? value === "chat" && !agentMode
-                : m.id === value;
+          const selected = m.id === value;
           return (
             <div
               key={m.id}
@@ -211,11 +185,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
                 if (!m.enabled) {
                   return;
                 }
-                if (m.id === "agent_multi") {
-                  onChange("chat", true, "multi");
-                } else {
-                  onChange(m.id as MediaMode, false);
-                }
+                onChange(m.id);
                 onClose();
               }}
             >

@@ -286,7 +286,6 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
           tools: selectedTools.length > 0 ? selectedTools : undefined,
           collections:
             selectedCollections.length > 0 ? selectedCollections : undefined,
-          agent_mode: false,
           help_mode: false,
           workflow_assistant: true
         } as Message);

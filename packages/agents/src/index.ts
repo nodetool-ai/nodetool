@@ -169,6 +169,15 @@ export type { ControlNodeInfo } from "./tools/control-tool.js";
 export { CreatePlanTool } from "./tools/create-plan-tool.js";
 export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 export {
+  RunSubtaskTool,
+  SUBTASK_DEPTH_KEY,
+  TOOL_CALL_ID_FIELD
+} from "./tools/run-subtask-tool.js";
+export type {
+  RunSubtaskToolOptions,
+  ForwardMessage
+} from "./tools/run-subtask-tool.js";
+export {
   PlanBuilder,
   AddTaskTool,
   RemoveTaskTool,
