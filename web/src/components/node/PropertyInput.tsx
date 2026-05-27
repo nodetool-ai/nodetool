@@ -209,9 +209,9 @@ export function getComponentForProperty(
   // Explicit `json_schema_extra.type` opts into a custom renderer regardless
   // of base type or attached enum values (e.g. media_aspect_ratio_image
   // wants the chip-style picker even though `values` is set).
-  if (property.json_schema_extra?.type) {
+  if (typeof property.json_schema_extra?.type === "string") {
     const overrideComponent = customComponentForType(
-      property.json_schema_extra.type as string
+      property.json_schema_extra.type
     );
     if (overrideComponent) {
       return overrideComponent;
@@ -229,8 +229,8 @@ export function getComponentForProperty(
     return EnumProperty;
   }
 
-  if (property.json_schema_extra?.type) {
-    return componentForType(property.json_schema_extra.type as string);
+  if (typeof property.json_schema_extra?.type === "string") {
+    return componentForType(property.json_schema_extra.type);
   }
 
   switch (property.type.type) {

@@ -19,17 +19,54 @@ function applyInverse(
 }
 
 describe("layerTransformToInverseAffine", () => {
-  it("default transform maps canvas px 1:1 onto texels (top-left at origin)", () => {
+  it("default transform on same-size canvas is a 1:1 top-left paste", () => {
     const w = 100;
     const h = 60;
     const m = layerTransformToInverseAffine(
-      defaultLayerTransform(w, h),
+      defaultLayerTransform(w, h, w, h),
       w,
       h
     );
-    expect(applyInverse(m, 0, 0)).toEqual({ tx: 0, ty: 0 });
-    expect(applyInverse(m, 50, 30)).toEqual({ tx: 50, ty: 30 });
-    expect(applyInverse(m, w, h)).toEqual({ tx: w, ty: h });
+    expect(applyInverse(m, 0, 0).tx).toBeCloseTo(0);
+    expect(applyInverse(m, 0, 0).ty).toBeCloseTo(0);
+    expect(applyInverse(m, 50, 30).tx).toBeCloseTo(50);
+    expect(applyInverse(m, 50, 30).ty).toBeCloseTo(30);
+    expect(applyInverse(m, w, h).tx).toBeCloseTo(w);
+    expect(applyInverse(m, w, h).ty).toBeCloseTo(h);
+  });
+
+  it("default transform contain-fits a layer larger than the canvas, centered", () => {
+    // 200×200 layer on 100×100 canvas → scale = 0.5, centered.
+    const t = defaultLayerTransform(200, 200, 100, 100);
+    expect(t.scaleX).toBeCloseTo(0.5);
+    expect(t.scaleY).toBeCloseTo(0.5);
+    expect(t.x).toBeCloseTo(50);
+    expect(t.y).toBeCloseTo(50);
+    // Canvas center maps to layer texel center (100, 100).
+    const m = layerTransformToInverseAffine(t, 200, 200);
+    const center = applyInverse(m, 50, 50);
+    expect(center.tx).toBeCloseTo(100);
+    expect(center.ty).toBeCloseTo(100);
+    // Canvas top-left maps to layer texel (0, 0).
+    const tl = applyInverse(m, 0, 0);
+    expect(tl.tx).toBeCloseTo(0);
+    expect(tl.ty).toBeCloseTo(0);
+  });
+
+  it("default transform keeps small layers at native size, centered", () => {
+    // 40×40 layer on 100×100 canvas → scale = 1 (no upscale), centered.
+    const t = defaultLayerTransform(40, 40, 100, 100);
+    expect(t.scaleX).toBeCloseTo(1);
+    expect(t.scaleY).toBeCloseTo(1);
+    expect(t.x).toBeCloseTo(50);
+    expect(t.y).toBeCloseTo(50);
+  });
+
+  it("default transform contains anisotropic layers preserving aspect ratio", () => {
+    // 200×100 layer on 100×100 canvas → scale = min(0.5, 1, 1) = 0.5.
+    const t = defaultLayerTransform(200, 100, 100, 100);
+    expect(t.scaleX).toBeCloseTo(0.5);
+    expect(t.scaleY).toBeCloseTo(0.5);
   });
 
   it("translation moves the sampled region", () => {

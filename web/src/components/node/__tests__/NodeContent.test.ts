@@ -3,7 +3,6 @@ jest.mock("../NodeInputs", () => ({ NodeInputs: () => null }));
 jest.mock("../NodeOutputs", () => ({ NodeOutputs: () => null }));
 jest.mock("../NodeProgress", () => ({ __esModule: true, default: () => null }));
 jest.mock("../NodePropertyForm", () => ({ __esModule: true, default: () => null }));
-jest.mock("../ResultOverlay", () => ({ __esModule: true, default: () => null }));
 jest.mock("../../../hooks/nodes/useDynamicProperty", () => ({
   useDynamicProperty: () => ({ handleAddProperty: jest.fn() })
 }));
