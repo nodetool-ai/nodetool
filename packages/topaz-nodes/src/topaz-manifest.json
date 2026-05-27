@@ -4,7 +4,7 @@
     "moduleName": "image",
     "modelId": "topaz/image/enhance",
     "title": "Topaz Enhance Image",
-    "description": "Topaz Image API — Precision Upscale / Enhance.\n\n    topaz, image, upscale, enhance, restore\n\n    Multipart POST /image/v1/enhance/async with Topaz precision models (Standard V2, High Fidelity V2, Low Resolution V2, CGI, Text Refine). Supports face enhancement, sharpening, denoising, compression repair, and subject-targeted application. Any model-specific parameters that are not supported by the chosen model are ignored by the API.",
+    "description": "Topaz Image API — Precision Upscale / Enhance.\n\n    topaz, image, upscale, enhance, restore\n\n    Multipart POST /image/v1/enhance/async with Topaz precision models. Supports face enhancement, sharpening, denoising, compression repair, and subject-targeted application. Parameters not supported by the chosen model are ignored by the API.",
     "outputType": "image",
     "submitEndpoint": "https://api.topazlabs.com/image/v1/enhance/async",
     "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
@@ -30,8 +30,12 @@
         "values": [
           "Standard V2",
           "High Fidelity V2",
+          "Upscale High Fidelity V3",
           "Low Resolution V2",
           "CGI",
+          "Transparency Upscale",
+          "Detail",
+          "Faces",
           "Text Refine"
         ]
       },
@@ -187,8 +191,8 @@
           "Wonder 2",
           "Wonder 3",
           "Redefine",
-          "Bloom Realism",
-          "Bloom Creative"
+          "Bloom",
+          "Bloom Realism"
         ]
       },
       {
@@ -337,11 +341,409 @@
     "validation": []
   },
   {
+    "className": "SharpenImage",
+    "moduleName": "image",
+    "modelId": "topaz/image/sharpen",
+    "title": "Topaz Sharpen Image",
+    "description": "Topaz Image API — Standard Sharpen.\n\n    topaz, image, sharpen, blur\n\n    Multipart POST /image/v1/sharpen/async. Standard sharpening models for general use, portraits, wildlife, and motion/lens blur recovery. Parameters not supported by the chosen model are ignored.",
+    "outputType": "image",
+    "submitEndpoint": "https://api.topazlabs.com/image/v1/sharpen/async",
+    "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
+    "downloadEndpoint": "https://api.topazlabs.com/image/v1/download/{process_id}",
+    "pollInterval": 3000,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Source image to sharpen.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "Sharpen",
+        "title": "Model",
+        "description": "Standard sharpening model.",
+        "required": false,
+        "values": [
+          "Sharpen",
+          "Strong",
+          "Auto Sharpen",
+          "Portrait",
+          "Wildlife",
+          "Natural",
+          "Refocus",
+          "Motion Blur",
+          "Lens Blur V2"
+        ]
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.5,
+        "title": "Strength",
+        "description": "Sharpening strength (0-1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "denoise",
+        "type": "float",
+        "default": 0.0,
+        "title": "Denoise",
+        "description": "Noise reduction applied before sharpening (0-1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "required": false,
+        "values": ["jpeg", "png", "tiff"]
+      }
+    ],
+    "validation": []
+  },
+  {
+    "className": "SharpenImageGenerative",
+    "moduleName": "image",
+    "modelId": "topaz/image/sharpen-gen",
+    "title": "Topaz Sharpen Image (Generative)",
+    "description": "Topaz Image API — Generative Sharpen.\n\n    topaz, image, sharpen, blur, generative\n\n    Multipart POST /image/v1/sharpen-gen/async. Super Focus V2/V3 models recover severely blurred images using diffusion.",
+    "outputType": "image",
+    "submitEndpoint": "https://api.topazlabs.com/image/v1/sharpen-gen/async",
+    "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
+    "downloadEndpoint": "https://api.topazlabs.com/image/v1/download/{process_id}",
+    "pollInterval": 3000,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Source image to sharpen.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "Super Focus V3",
+        "title": "Model",
+        "description": "Generative sharpening model.",
+        "required": false,
+        "values": ["Super Focus V2", "Super Focus V3"]
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.5,
+        "title": "Strength",
+        "description": "Recovery strength (0-1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "creativity",
+        "type": "int",
+        "default": 3,
+        "title": "Creativity",
+        "description": "Creative liberty level (1-9). Low = high fidelity; high = more creative.",
+        "required": false,
+        "min": 1,
+        "max": 9
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "required": false,
+        "values": ["jpeg", "png", "tiff"]
+      }
+    ],
+    "validation": []
+  },
+  {
+    "className": "DenoiseImage",
+    "moduleName": "image",
+    "modelId": "topaz/image/denoise",
+    "title": "Topaz Denoise Image",
+    "description": "Topaz Image API — Standard Denoise.\n\n    topaz, image, denoise, noise\n\n    Multipart POST /image/v1/denoise/async. Normal / Strong / Extreme models for varying noise levels.",
+    "outputType": "image",
+    "submitEndpoint": "https://api.topazlabs.com/image/v1/denoise/async",
+    "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
+    "downloadEndpoint": "https://api.topazlabs.com/image/v1/download/{process_id}",
+    "pollInterval": 3000,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Source image to denoise.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "Normal",
+        "title": "Model",
+        "description": "Denoise model.",
+        "required": false,
+        "values": ["Normal", "Strong", "Extreme"]
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.5,
+        "title": "Strength",
+        "description": "Denoise strength (0-1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "sharpen",
+        "type": "float",
+        "default": 0.0,
+        "title": "Sharpen",
+        "description": "Sharpening applied after denoise (0-1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "required": false,
+        "values": ["jpeg", "png", "tiff"]
+      }
+    ],
+    "validation": []
+  },
+  {
+    "className": "DenoiseImageGenerative",
+    "moduleName": "image",
+    "modelId": "topaz/image/denoise-gen",
+    "title": "Topaz Denoise Image (Generative)",
+    "description": "Topaz Image API — Generative Denoise.\n\n    topaz, image, denoise, generative\n\n    Multipart POST /image/v1/denoise-gen/async. Denoise Max for highest-quality denoising with intelligent detail recovery.",
+    "outputType": "image",
+    "submitEndpoint": "https://api.topazlabs.com/image/v1/denoise-gen/async",
+    "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
+    "downloadEndpoint": "https://api.topazlabs.com/image/v1/download/{process_id}",
+    "pollInterval": 3000,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Source image to denoise.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "Denoise Max",
+        "title": "Model",
+        "description": "Generative denoise model.",
+        "required": false,
+        "values": ["Denoise Max"]
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.5,
+        "title": "Strength",
+        "description": "Denoise strength (0-1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "creativity",
+        "type": "int",
+        "default": 3,
+        "title": "Creativity",
+        "description": "Creative liberty level (1-9).",
+        "required": false,
+        "min": 1,
+        "max": 9
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "required": false,
+        "values": ["jpeg", "png", "tiff"]
+      }
+    ],
+    "validation": []
+  },
+  {
+    "className": "AdjustLighting",
+    "moduleName": "image",
+    "modelId": "topaz/image/lighting",
+    "title": "Topaz Adjust Lighting",
+    "description": "Topaz Image API — Color & Lighting.\n\n    topaz, image, lighting, color, white-balance, colorize\n\n    Multipart POST /image/v1/lighting/async. Adjust Lighting (exposure), White Balance, and Colorize (B&W → color).",
+    "outputType": "image",
+    "submitEndpoint": "https://api.topazlabs.com/image/v1/lighting/async",
+    "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
+    "downloadEndpoint": "https://api.topazlabs.com/image/v1/download/{process_id}",
+    "pollInterval": 3000,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Source image to adjust.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "Adjust V2",
+        "title": "Model",
+        "description": "Lighting / color model.",
+        "required": false,
+        "values": ["Adjust V2", "White Balance", "Colorize"]
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.5,
+        "title": "Strength",
+        "description": "Adjustment strength (0-1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "required": false,
+        "values": ["jpeg", "png", "tiff"]
+      }
+    ],
+    "validation": []
+  },
+  {
+    "className": "RestoreImage",
+    "moduleName": "image",
+    "modelId": "topaz/image/restore-gen",
+    "title": "Topaz Restore Image",
+    "description": "Topaz Image API — Generative Restore / Cleanup.\n\n    topaz, image, restore, dust, scratch, cleanup\n\n    Multipart POST /image/v1/restore-gen/async. Automatic dust & scratch / blemish cleanup.",
+    "outputType": "image",
+    "submitEndpoint": "https://api.topazlabs.com/image/v1/restore-gen/async",
+    "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
+    "downloadEndpoint": "https://api.topazlabs.com/image/v1/download/{process_id}",
+    "pollInterval": 3000,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Source image to restore.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "Dust-Scratch V2",
+        "title": "Model",
+        "description": "Restoration model.",
+        "required": false,
+        "values": ["Dust-Scratch V2"]
+      },
+      {
+        "name": "strength",
+        "type": "float",
+        "default": 0.5,
+        "title": "Strength",
+        "description": "Cleanup strength (0-1).",
+        "required": false,
+        "min": 0.0,
+        "max": 1.0
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "required": false,
+        "values": ["jpeg", "png", "tiff"]
+      }
+    ],
+    "validation": []
+  },
+  {
+    "className": "MatteImage",
+    "moduleName": "image",
+    "modelId": "topaz/image/matting",
+    "title": "Topaz Matte Image",
+    "description": "Topaz Image API — Matting / Background Removal.\n\n    topaz, image, matte, background, removal, subject\n\n    Multipart POST /image/v1/matting/async. Subject isolation (Object) or clean background removal (RemoveBG).",
+    "outputType": "image",
+    "submitEndpoint": "https://api.topazlabs.com/image/v1/matting/async",
+    "statusEndpoint": "https://api.topazlabs.com/image/v1/status/{process_id}",
+    "downloadEndpoint": "https://api.topazlabs.com/image/v1/download/{process_id}",
+    "pollInterval": 3000,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "description": "Source image.",
+        "required": true,
+        "uploadField": true
+      },
+      {
+        "name": "model",
+        "type": "enum",
+        "default": "RemoveBG",
+        "title": "Model",
+        "description": "Matting model. Object = subject isolation; RemoveBG = clean background removal.",
+        "required": false,
+        "values": ["Object", "RemoveBG"]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Use png to preserve transparency.",
+        "required": false,
+        "values": ["png", "tiff"]
+      }
+    ],
+    "validation": []
+  },
+  {
     "className": "EnhanceVideo",
     "moduleName": "video",
     "modelId": "topaz/video/enhance",
     "title": "Topaz Enhance Video",
-    "description": "Topaz Video API — upscale / enhance pipeline.\n\n    topaz, video, upscale, enhance, restore\n\n    POST /video/ → PATCH /video/{id}/accept → multipart PUT upload → PATCH /video/{id}/complete-upload/ → GET /video/{id}/status. Requires source metadata (resolution, frame rate, duration, frame count), probed locally via ffprobe.",
+    "description": "Topaz Video API — upscale / enhance pipeline.\n\n    topaz, video, upscale, enhance, restore, starlight, astra\n\n    POST /video/ → PATCH /video/{id}/accept → multipart PUT upload → PATCH /video/{id}/complete-upload/ → GET /video/{id}/status. Requires source metadata (resolution, frame rate, duration, frame count), probed locally via ffprobe. Includes Proteus, Artemis, Dione, Gaia, Iris, Theia, Rhea, Nyx (denoise), Themis (motion deblur), color, plus generative Starlight (slp-2.5, slhq-1, slm-1, wonder-1, slf-2) and Astra (ast-2).",
     "outputType": "video",
     "videoKind": "upscale",
     "requiredRuntimes": ["ffmpeg"],
@@ -369,29 +771,38 @@
         "required": false,
         "values": [
           "prob-4",
+          "pnat-1",
+          "rhea-1",
+          "rxl-1",
+          "thd-3",
+          "thf-4",
           "ahq-12",
           "amq-13",
           "alq-13",
-          "aaa-9",
           "amqs-2",
           "alqs-2",
-          "dtv-4",
-          "ddv-3",
-          "dtd-4",
-          "dtds-2",
-          "dtvs-2",
-          "ghq-5",
-          "gcg-5",
+          "aaa-9",
           "iris-2",
           "iris-3",
-          "thd-3",
-          "thf-4",
-          "thm-2",
-          "rhea-1",
+          "gcg-5",
+          "ghq-5",
+          "ganim-1",
+          "ddv-3",
+          "dtv-4",
+          "dtd-4",
+          "dtvs-2",
+          "dtds-2",
+          "slp-2.5",
+          "slhq-1",
+          "slm-1",
+          "wonder-1",
+          "slf-2",
+          "ast-2",
           "nyx-3",
-          "nxf-1",
-          "nxl-1",
           "nxhf-1",
+          "nxl-1",
+          "nxf-1",
+          "thm-2",
           "color-1"
         ]
       },
@@ -550,7 +961,7 @@
     "moduleName": "video",
     "modelId": "topaz/video/interpolate",
     "title": "Topaz Interpolate Video",
-    "description": "Topaz Video API — frame interpolation pipeline.\n\n    topaz, video, interpolate, slowmo, fps\n\n    Same multi-step pipeline as Enhance Video but with a Frame Interpolation filter. Use Apollo (apo-8) for general slow-motion or fps boosts, Chronos (chr-2 / chf-3) for higher-motion content, Aperture Flow (apf-2) as a lightweight default, and Aion (aion-1) for high-resolution / complex motion.",
+    "description": "Topaz Video API — frame interpolation pipeline.\n\n    topaz, video, interpolate, slowmo, fps\n\n    Same multi-step pipeline as Enhance Video but with a Frame Interpolation filter. Apollo (apo-8) general slow-motion / fps boost; Apollo Fast (apf-2) speed variant; Chronos (chr-2) natural slow-mo for real-world footage; Chronos Fast (chf-3) speed variant; Aion (aion-1) extreme slow-mo for complex 4K+ motion.",
     "outputType": "video",
     "videoKind": "interpolate",
     "requiredRuntimes": ["ffmpeg"],
@@ -576,7 +987,7 @@
         "title": "Model",
         "description": "Frame interpolation model.",
         "required": false,
-        "values": ["apo-8", "apf-2", "chf-3", "chr-2", "aion-1"]
+        "values": ["apo-8", "apf-2", "chr-2", "chf-3", "aion-1"]
       },
       {
         "name": "slowmo",
