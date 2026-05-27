@@ -6,7 +6,7 @@ description: "Architectural patterns for building TypeScript nodes: single-outpu
 
 ## Overview
 
-This guide covers the key implementation patterns you will encounter when building custom nodes for NodeTool. Every node extends **`BaseNode`** from `@nodetool-ai/node-sdk`, declares its inputs with the **`@prop`** decorator, and implements a `process()` or `genProcess()` method that receives an `inputs` record and returns an outputs record.
+This guide covers the key implementation patterns you will encounter when building custom nodes for NodeTool. Every node extends **`BaseNode`** from `@nodetool-ai/node-sdk`, declares its inputs with the **`@prop`** decorator, and implements a `process()` or `genProcess()` method that reads input values from `this.<field>` and returns an outputs record. The optional argument is a `ProcessingContext` from `@nodetool-ai/runtime`.
 
 ---
 
@@ -32,10 +32,7 @@ export class ConstantStringNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Value" })
   declare value: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    if ("value" in inputs) {
-      return { output: inputs.value };
-    }
+  async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? "" };
   }
 }
@@ -44,7 +41,7 @@ export class ConstantStringNode extends BaseNode {
 Key points:
 
 - **`metadataOutputTypes`** maps each output key to its type string (`"str"`, `"int"`, `"float"`, `"bool"`, `"image"`, `"audio"`, etc.).
-- Input resolution follows the pattern `inputs.field ?? this.field ?? default`.
+- The engine assigns connected input values onto the instance before calling `process()`, so read them as `this.field`.
 - The return value is always `Record<string, unknown>` -- a plain object whose keys match the output names.
 
 ---
@@ -77,14 +74,11 @@ export class IfNode extends BaseNode {
   @prop({ type: "any", default: [], title: "Value" })
   declare value: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const condition = Boolean(inputs.condition ?? this.condition ?? false);
-    const value = inputs.value ?? this.value ?? null;
-
-    if (condition) {
-      return { if_true: value, if_false: null };
+  async process(): Promise<Record<string, unknown>> {
+    if (this.condition) {
+      return { if_true: this.value, if_false: null };
     }
-    return { if_true: null, if_false: value };
+    return { if_true: null, if_false: this.value };
   }
 }
 ```
@@ -120,16 +114,13 @@ export class ForEachNode extends BaseNode {
   @prop({ type: "list[any]", default: [], title: "Input List" })
   declare input_list: any;
 
-  async process(_inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async *genProcess(
-    inputs: Record<string, unknown>
-  ): AsyncGenerator<Record<string, unknown>> {
-    const values = (inputs.input_list ?? this.input_list ?? []) as unknown[];
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const values = (this.input_list ?? []) as unknown[];
     const list = Array.isArray(values) ? values : [values];
-
     for (const [index, item] of list.entries()) {
       yield { output: item, index };
     }
@@ -139,7 +130,7 @@ export class ForEachNode extends BaseNode {
 
 Key points:
 
-- You must still provide a `process()` stub (it can return `{}`).
+- You must still provide a `process()` stub (it can return `{}`) — the base class requires it.
 - Each `yield` sends one batch of outputs to downstream nodes.
 - Set `isStreamingOutput = true` so the engine knows to iterate the generator.
 
@@ -147,23 +138,21 @@ Key points:
 
 ## Stateful Collector
 
-Some nodes accumulate values across multiple invocations within a single workflow run. Use **`syncMode = "on_any"`** to fire on every incoming value, and **`initialize()`** to reset state at the start of each run.
+Some nodes accumulate values across multiple invocations within a single workflow run. Use **`syncMode = "on_any"`** (when the node should fire on each incoming value) and **`initialize()`** to reset state at the start of each run.
 
-This pattern is taken from `CollectTextNode` in `base-nodes/src/nodes/text.ts`:
+This pattern is taken from `CollectTextNode` in `base-nodes/src/nodes/text-extra.ts`:
 
 ```ts
 export class CollectTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Collect";
-  static readonly title = "Collect";
+  static readonly title = "Collect Text";
   static readonly description =
-    "Collects a stream of text inputs into a single concatenated string.\n" +
-    "    text, collect, list, stream, aggregate";
+    "Collects streaming text inputs into a single concatenated string.\n" +
+    "    text, collect, stream, aggregate";
 
   static readonly metadataOutputTypes = {
     output: "str",
   };
-
-  static readonly syncMode = "on_any" as const;
 
   private _items: string[] = [];
 
@@ -177,19 +166,17 @@ export class CollectTextNode extends BaseNode {
     this._items = [];
   }
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const separator = String(inputs.separator ?? this.separator ?? "");
-    if ("input_item" in inputs) {
-      this._items.push(String(inputs.input_item ?? ""));
-    }
-    return { output: this._items.join(separator) };
+  async process(): Promise<Record<string, unknown>> {
+    this._items.push(String(this.input_item ?? ""));
+    const sep = String(this.separator ?? "");
+    return { output: this._items.join(sep) };
   }
 }
 ```
 
 Key points:
 
-- **`syncMode`** controls when the node fires. `"zip_all"` (the default) waits for all inputs; `"on_any"` fires as soon as any single input arrives.
+- **`syncMode`** controls when the node fires. `"zip_all"` (the default) waits for matched values on all inputs; `"on_any"` fires as soon as any single input arrives.
 - Private instance fields (like `_items`) hold state between invocations.
 - **`initialize()`** runs once at the start of each workflow execution -- use it to clear accumulated state.
 
@@ -199,7 +186,7 @@ Key points:
 
 Images, audio, and video are passed between nodes as **ref objects** -- plain objects with `uri`, `data`, and metadata fields. Nodes load bytes from the ref and return new refs after processing.
 
-This pattern is taken from `ResizeNode` in `base-nodes/src/nodes/image.ts`:
+`@nodetool-ai/runtime` provides a shared `loadMediaRefBytes(ref, context?)` helper. The pattern below shows the manual equivalent for reference:
 
 ```ts
 import sharp from "sharp";
@@ -231,11 +218,10 @@ export class ResizeNode extends BaseNode {
   @prop({ type: "int", default: 512, title: "Height", min: 0, max: 4096 })
   declare height: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const image = inputs.image ?? this.image ?? {};
-    const bytes = await imageBytesAsync(image);
-    const width = Number(inputs.width ?? this.width ?? 512);
-    const height = Number(inputs.height ?? this.height ?? 512);
+  async process(): Promise<Record<string, unknown>> {
+    const bytes = await imageBytesAsync(this.image ?? {});
+    const width = Number(this.width ?? 512);
+    const height = Number(this.height ?? 512);
 
     const outputBytes = await sharp(bytes).resize(width, height).toBuffer();
     return {
@@ -278,19 +264,19 @@ This pattern is taken from `FilterNumberNode` in `base-nodes/src/nodes/numbers.t
 declare filter_type: any;
 ```
 
-In your `process()` method, cast the value from `inputs`:
+In your `process()` method, read and cast the value from `this`:
 
 ```ts
-const filterType = String(inputs.filter_type ?? this.filter_type ?? "greater_than");
+const filterType = String(this.filter_type ?? "greater_than");
 ```
 
 ---
 
 ## Secret Access
 
-Nodes that call external APIs declare the keys they need in **`requiredSettings`**. The engine injects matching secrets into `inputs._secrets` before calling `process()`.
+Nodes that call external APIs declare the keys they need in **`requiredSettings`**. Before calling `process()`, the base class resolves each key from the runtime's secret store via `ProcessingContext.getSecret()` and exposes them as **`this._secrets`**.
 
-This pattern is taken from the OpenAI nodes in `base-nodes/src/nodes/openai.ts`:
+This pattern is adapted from the OpenAI nodes in `base-nodes/src/nodes/openai.ts`:
 
 ```ts
 export class EmbeddingNode extends BaseNode {
@@ -300,11 +286,14 @@ export class EmbeddingNode extends BaseNode {
 
   static readonly requiredSettings = ["OPENAI_API_KEY"];
 
-  // ... @prop declarations ...
+  @prop({ type: "str", default: "", title: "Input" })
+  declare input: any;
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  static readonly metadataOutputTypes = { output: "list[float]" };
+
+  async process(): Promise<Record<string, unknown>> {
     const apiKey =
-      (inputs._secrets as Record<string, string>)?.OPENAI_API_KEY ||
+      this._secrets.OPENAI_API_KEY ||
       process.env.OPENAI_API_KEY ||
       "";
     if (!apiKey) throw new Error("OPENAI_API_KEY is not configured");
@@ -315,7 +304,7 @@ export class EmbeddingNode extends BaseNode {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ input: inputs.input ?? this.input, model: "text-embedding-3-small" }),
+      body: JSON.stringify({ input: this.input, model: "text-embedding-3-small" }),
     });
     const data = await response.json();
     return { output: data.data[0].embedding };
@@ -326,7 +315,7 @@ export class EmbeddingNode extends BaseNode {
 Key points:
 
 - **`requiredSettings`** is a static string array of secret key names.
-- The base class `_injectSecrets()` method resolves secrets from the runtime's secret store and merges them into `inputs._secrets`.
+- The base class resolves each key from the active `ProcessingContext` and assigns them to `this._secrets` before `process()` runs.
 - Always fall back to `process.env` for local development.
 
 ---
@@ -335,13 +324,13 @@ Key points:
 
 ### Input Resolution
 
-Always resolve inputs with the three-level fallback:
+Property values for `@prop` fields are populated on the instance before `process()` is called. Resolve with:
 
 ```ts
-const value = inputs.field ?? this.field ?? defaultValue;
+const value = this.field ?? defaultValue;
 ```
 
-This ensures the node works whether the value comes from a connected edge (`inputs`), a manually set property (`this`), or the declared default.
+The engine handles connected edges, manually set values, and declared defaults — by the time `process()` runs, `this.field` already holds the effective value.
 
 ### Async / Await
 

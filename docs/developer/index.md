@@ -43,11 +43,14 @@ Export a `register(registry)` function from your package and NodeTool discovers 
 - **[Custom Nodes Guide](custom-nodes-guide.md)** -- **Start here!** End-to-end guide for authoring, packaging, and distributing TypeScript node packs.
 - [TypeScript DSL Guide](ts-dsl-guide.md) -- Type-safe workflow definitions with auto-generated factory functions.
 
-### Custom Node Development (Python)
+### Custom Node Reference (TypeScript)
 
 - [Node Implementation Quick Reference](node-reference.md) -- Templates and common `@prop` / `process()` patterns.
 - [Node Implementation Patterns](node-patterns.md) -- Architectural patterns: multi-output, streaming, stateful, secrets.
-- [Node Implementation Examples](node-examples.md) -- Real-world examples from the codebase.
+
+### Python Nodes
+
+- [Node Implementation Examples](node-examples.md) -- Python node examples for the Python bridge.
 
 ### Advanced
 

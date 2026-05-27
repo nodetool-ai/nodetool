@@ -33,7 +33,7 @@ This is useful for:
 The simplest way to add suspension to a workflow is using the `WaitNode`:
 
 ```typescript
-import { WaitNode } from "@nodetool-ai/base-nodes/nodes/triggers";
+import { WaitNode } from "@nodetool-ai/base-nodes";
 
 // Create a wait node that suspends the workflow
 const waitNode = new WaitNode();
@@ -67,7 +67,7 @@ When resumed, the WaitNode outputs:
 For more control, create your own suspendable node by extending `SuspendableNode`:
 
 ```typescript
-import { SuspendableState } from "@nodetool-ai/kernel/suspendable";
+import { SuspendableState } from "@nodetool-ai/kernel";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 class ApprovalNode extends BaseNode {
@@ -79,7 +79,7 @@ class ApprovalNode extends BaseNode {
   // Compose a SuspendableState helper for this node
   private _suspend = new SuspendableState(ApprovalNode.nodeType);
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     // Check if resuming from suspension
     if (this._suspend.isResuming()) {
       const savedState = this._suspend.getSavedState();
@@ -244,7 +244,7 @@ When user clicks Resume:
 ## Example: Webhook Callback
 
 ```typescript
-import { SuspendableState } from "@nodetool-ai/kernel/suspendable";
+import { SuspendableState } from "@nodetool-ai/kernel";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 class WebhookWaitNode extends BaseNode {
@@ -255,7 +255,7 @@ class WebhookWaitNode extends BaseNode {
 
   private _suspend = new SuspendableState(WebhookWaitNode.nodeType);
 
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
+  async process(): Promise<Record<string, unknown>> {
     if (this._suspend.isResuming()) {
       const state = this._suspend.getSavedState();
       return {
