@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { FlexColumn } from "../ui_primitives";
 import { NodeInputs } from "./NodeInputs";
 import { NodeOutputs } from "./NodeOutputs";
@@ -197,13 +197,24 @@ const NodeContent: React.FC<NodeContentProps> = ({
     data.dynamic_properties
   );
 
-  // Body routing (plan §4.1):
-  //   bespoke registry (Track E)
-  //     → content-card registry  (PR 4+)
-  //       → generic body (this component's default layout)
-  // Utility nodes (control flow, constants, etc.) intentionally never appear
-  // in either registry and stay on the generic body forever.
-  const allProperties = nodeMetadata.properties ?? [];
+  const properties = nodeMetadata.properties;
+  const { allProperties, inlineProperties, inputProperties } = useMemo(() => {
+    const all = properties ?? [];
+    const inlineFieldNames = new Set(
+      resolveInlineFieldNames(nodeMetadata, data).filter(
+        (n) => !(isSnippetCodeNode(nodeType, data) && n === "code")
+      )
+    );
+    const inputFieldNames = new Set(
+      resolveExposedInputNames(nodeMetadata, data)
+    );
+    return {
+      allProperties: all,
+      inlineProperties: all.filter((p) => inlineFieldNames.has(p.name)),
+      inputProperties: all.filter((p) => inputFieldNames.has(p.name))
+    };
+  }, [properties, nodeMetadata, data, nodeType]);
+
   const BespokeBody = getBespokeBody(nodeMetadata);
   if (BespokeBody) {
     return (
@@ -247,23 +258,6 @@ const NodeContent: React.FC<NodeContentProps> = ({
       />
     );
   }
-
-  // Split properties by classification:
-  //   inline_fields → full PropertyField rows (handle + label + editor)
-  //   input_fields  → handle-only (rendered in HandleColumn on the left edge)
-  //   default       → Inspector only (hidden in node body)
-  // Code nodes in snippet mode hide their `code` property from the inline
-  // list — the snippet editor itself replaces that editor surface.
-  const inlineFieldNames = resolveInlineFieldNames(nodeMetadata, data).filter(
-    (n) => !(isSnippetCodeNode(nodeType, data) && n === "code")
-  );
-  const inputFieldNames = resolveExposedInputNames(nodeMetadata, data);
-  const inlineProperties = allProperties.filter((p) =>
-    inlineFieldNames.includes(p.name)
-  );
-  const inputProperties = allProperties.filter((p) =>
-    inputFieldNames.includes(p.name)
-  );
 
   return (
     <FlexColumn

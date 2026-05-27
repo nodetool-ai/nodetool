@@ -77,7 +77,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      padding: `${theme.spacing(1)} ${theme.spacing(0.5)} ${theme.spacing(0.5)}`,
       minHeight: 0
     },
     // Text variant inherits the node body color instead of the dark media

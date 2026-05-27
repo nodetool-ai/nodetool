@@ -32,7 +32,10 @@ import {
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
-import { TimelineAssetPanel } from "./TimelineAssetPanel";
+import {
+  TimelineAssetPanel,
+  TimelineAssetPanelRail
+} from "./TimelineAssetPanel";
 import {
   useCreateTimeline,
   useTimeline,
@@ -86,6 +89,11 @@ const assetPanelRegionStyles = css({
   flex: "0 0 280px",
   minWidth: 240,
   maxWidth: 360,
+  overflow: "hidden"
+});
+
+const assetPanelRailRegionStyles = css({
+  flex: "0 0 auto",
   overflow: "hidden"
 });
 
@@ -244,6 +252,7 @@ export const TimelineEditor: React.FC = memo(() => {
   // Zoom ← wired to TimelineUIStore so TracksRegion + BottomStatusBar stay in sync
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const setZoom = useTimelineUIStore((s) => s.setZoom);
+  const assetPanelVisible = useTimelineUIStore((s) => s.assetPanelVisible);
   // Convert msPerPx to a dimensionless ratio for ZoomControls (1 = default zoom)
   const zoom = DEFAULT_MS_PER_PX / msPerPx;
   const handleZoomChange = useCallback(
@@ -392,9 +401,15 @@ export const TimelineEditor: React.FC = memo(() => {
         css={middleAreaStyles(theme)}
         sx={{ flex: "1 1 auto", overflow: "hidden" }}
       >
-        <div css={assetPanelRegionStyles}>
-          <TimelineAssetPanel />
-        </div>
+        {assetPanelVisible ? (
+          <div css={assetPanelRegionStyles}>
+            <TimelineAssetPanel />
+          </div>
+        ) : (
+          <div css={assetPanelRailRegionStyles}>
+            <TimelineAssetPanelRail />
+          </div>
+        )}
         <PreviewRegion
           isLoading={isLoading}
           sequence={sequence}

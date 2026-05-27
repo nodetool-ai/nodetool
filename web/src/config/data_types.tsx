@@ -928,11 +928,6 @@ export function colorForType(type: string): string {
   return bundledDataTypeForTypeName(n)?.color || stringToColor(type);
 }
 
-export function textColorForType(type: string): string {
-  const n = normalizeTypeName(type.replace(/^nodetool\./, ""));
-  return bundledDataTypeForTypeName(n)?.textColor || "#eee";
-}
-
 export function descriptionForType(type: string): string {
   const n = normalizeTypeName(type.replace(/^nodetool\./, ""));
   return bundledDataTypeForTypeName(n)?.description || "";

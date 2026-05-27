@@ -212,6 +212,27 @@ export { BaseAgent } from "./base-agent.js";
 export { SimpleAgent } from "./simple-agent.js";
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
 export type { AgentSkill, AgentOptions } from "./agent.js";
+
+// Long-term memory (cross-session, automatically queried)
+export {
+  LongTermMemory,
+  formatMemoryForPrompt,
+  createDefaultLongTermMemory
+} from "./long-term-memory.js";
+export type {
+  LongTermMemoryItem,
+  LongTermMemoryOptions,
+  CreateDefaultLongTermMemoryOptions,
+  MemoryKind as LongTermMemoryKind
+} from "./long-term-memory.js";
+export {
+  LtmRecallTool,
+  LtmRememberTool,
+  getLongTermMemoryTools,
+  LTM_TOOL_NAMES,
+  setLongTermMemory,
+  getLongTermMemory
+} from "./tools/ltm-tools.js";
 export { MultiModeAgent } from "./multi-mode-agent.js";
 export type { MultiModeAgentOptions } from "./multi-mode-agent.js";
 export { SubAgentPlanner } from "./sub-agent-planner.js";

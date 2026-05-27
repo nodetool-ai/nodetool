@@ -221,6 +221,7 @@ export class TextToVideoNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "video_model",
@@ -327,6 +328,7 @@ export class ImageToVideoNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["image", "prompt"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "image",
@@ -2601,6 +2603,7 @@ export class VideoToVideoNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["video", "prompt"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "video_model",
@@ -2682,6 +2685,7 @@ export class LipSyncNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["video", "audio"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "video_model",

@@ -12,6 +12,7 @@ import {
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { resourceEvents, type ResourceChangePayload } from "./resource-events.js";
+import { createSystemStatsSampler } from "./system-stats.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
@@ -62,6 +63,11 @@ import type {
   RpcErrorPayload
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
+import {
+  createDefaultLongTermMemory,
+  formatMemoryForPrompt,
+  type LongTermMemory
+} from "@nodetool-ai/agents";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonStdioBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
@@ -963,13 +969,7 @@ export class UnifiedWebSocketRunner {
     this.pythonBridge = options.pythonBridge;
     this.getPythonBridgeReady = options.getPythonBridgeReady;
     this.apiOptions = options.apiOptions;
-    this.getSystemStats =
-      options.getSystemStats ??
-      (() => ({
-        timestamp: Date.now(),
-        process_uptime_sec: process.uptime(),
-        memory: process.memoryUsage()
-      }));
+    this.getSystemStats = options.getSystemStats ?? createSystemStatsSampler();
   }
 
   async connect(
@@ -2232,6 +2232,44 @@ export class UnifiedWebSocketRunner {
       }
     }
 
+    // Resolve long-term memory if the renderer opted in for this turn. The
+    // helper is default-off; we only build it when the wire flag is true so
+    // a missing/false flag matches the legacy behaviour exactly. Failures
+    // are logged and swallowed — a memory hiccup must not break the turn.
+    const memoryEnabled =
+      data.memory_enabled === true || data.memory_enabled === "true";
+    let longTermMemory: LongTermMemory | null = null;
+    if (memoryEnabled) {
+      try {
+        longTermMemory = await createDefaultLongTermMemory({
+          userId,
+          namespace: "chat",
+          workspaceId: threadId || undefined,
+          extractionProvider: provider,
+          extractionModel: model,
+          enabled: true
+        });
+      } catch (err) {
+        log.warn("Long-term memory init failed for chat turn", {
+          threadId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+        longTermMemory = null;
+      }
+    }
+    let memoryContext = "";
+    if (longTermMemory && longTermMemory.isReady() && userContent) {
+      try {
+        const recalled = await longTermMemory.recall(userContent);
+        memoryContext = formatMemoryForPrompt(recalled);
+      } catch (err) {
+        log.warn("Long-term memory recall failed", {
+          threadId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+
     let content = "";
     let unprocessedMessages: ProviderMessage[] = [];
 
@@ -2254,6 +2292,18 @@ export class UnifiedWebSocketRunner {
             collectionContext
           );
           collectionContext = ""; // Clear after first use
+        }
+
+        // Long-term memory recall is injected on the first iteration only.
+        // Like the collection context, the recalled block is ephemeral —
+        // it goes on the wire to the provider but is NOT persisted into
+        // the chat history (the persisted snapshot was captured above).
+        if (memoryContext) {
+          messagesToSend = this.addCollectionContext(
+            messagesToSend,
+            memoryContext
+          );
+          memoryContext = "";
         }
 
         const stream = provider.generateMessagesTraced({
@@ -2500,6 +2550,27 @@ export class UnifiedWebSocketRunner {
       };
       await this.saveMessageToDb(finalMsgData);
       await this.sendMessage(finalMsgData);
+
+      // Mine the completed turn for new long-term memories. Fire-and-forget
+      // so a slow extraction call never blocks the renderer; failures are
+      // already logged inside rememberConversation.
+      if (longTermMemory && longTermMemory.isReady() && content) {
+        const snapshot: ProviderMessage[] = [
+          ...chatHistory,
+          {
+            role: "assistant",
+            content,
+            toolCalls: null,
+            toolCallId: null,
+            threadId
+          }
+        ];
+        void longTermMemory
+          .rememberConversation(snapshot, { source: "chat" })
+          .catch(() => {
+            /* already logged inside rememberConversation */
+          });
+      }
 
       log.debug("Chat complete", { threadId, chars: content.length });
     } catch (err) {
@@ -5011,14 +5082,18 @@ export class UnifiedWebSocketRunner {
 
   private startStatsBroadcast(): void {
     this.stopStatsBroadcast();
-    this.statsTimer = setInterval(() => {
+    const send = () => {
       this.sendMessage({
         type: "system_stats",
         stats: this.getSystemStats()
       }).catch((err) => {
         log.warn("Failed to send system stats", { error: String(err) });
       });
-    }, 30_000);
+    };
+    // Fire an initial sample ~1s after connect so the sampler has a delta to
+    // report — then keep emitting on a regular cadence.
+    setTimeout(send, 1000);
+    this.statsTimer = setInterval(send, 5_000);
   }
 
   private stopStatsBroadcast(): void {

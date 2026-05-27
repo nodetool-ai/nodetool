@@ -392,6 +392,93 @@ describe("processChat", () => {
     expect(assistantMsg?.content).toBe("visible text");
   });
 
+  it("injects long-term memory as a system message before the user turn", async () => {
+    const provider = createMockProvider([[chunk("ack")]]);
+
+    const recall = vi.fn(async () => [
+      {
+        id: "m1",
+        text: "User prefers TypeScript",
+        kind: "preference" as const,
+        importance: 0.8,
+        source: "test",
+        createdAt: 1,
+        lastAccessedAt: 1,
+        accessCount: 0,
+        score: 0.9
+      }
+    ]);
+    const rememberConversation = vi.fn(async () => 0);
+    const ltm = {
+      isReady: () => true,
+      recall,
+      rememberConversation
+    };
+
+    const captured: Message[][] = [];
+    const wrapped = {
+      ...provider,
+      generateMessagesTraced: async function* (args: any) {
+        captured.push(JSON.parse(JSON.stringify(args.messages)));
+        yield* (provider as any).generateMessagesTraced(args);
+      }
+    };
+
+    const messages: Message[] = [
+      { role: "system", content: "You are a helpful assistant." }
+    ];
+    await processChat({
+      userInput: "hi",
+      messages,
+      model: "test-model",
+      provider: wrapped as any,
+      context: createMockContext(),
+      longTermMemory: ltm as any
+    });
+
+    // recall is called with the user input
+    expect(recall).toHaveBeenCalledWith("hi");
+
+    // The provider sees: original system, memory system, then user
+    const firstCall = captured[0];
+    expect(firstCall.length).toBe(3);
+    expect(firstCall[0].role).toBe("system");
+    expect(firstCall[0].content).toContain("helpful assistant");
+    expect(firstCall[1].role).toBe("system");
+    expect(firstCall[1].content).toContain("<recalled-memories>");
+    expect(firstCall[1].content).toContain("User prefers TypeScript");
+    expect(firstCall[2].role).toBe("user");
+
+    // The persisted `messages` array does NOT include the memory message
+    expect(messages.some((m) => m.content?.toString().includes("<recalled-memories>")))
+      .toBe(false);
+    expect(messages.some((m) => m.content?.toString().includes("User prefers TypeScript")))
+      .toBe(false);
+
+    // remember is fired-and-forget; allow the microtask queue to flush.
+    await new Promise((r) => setImmediate(r));
+    expect(rememberConversation).toHaveBeenCalled();
+  });
+
+  it("skips memory injection when LTM is not ready", async () => {
+    const provider = createMockProvider([[chunk("ack")]]);
+    const recall = vi.fn();
+    const ltm = {
+      isReady: () => false,
+      recall,
+      rememberConversation: vi.fn()
+    };
+    await processChat({
+      userInput: "hi",
+      messages: [],
+      model: "test-model",
+      provider,
+      context: createMockContext(),
+      longTermMemory: ltm as any
+    });
+    expect(recall).not.toHaveBeenCalled();
+  });
+
   it("returns empty assistant message when only thinking chunks are present", async () => {
     const provider = createMockProvider([
       [thinkingChunk("only thinking, no visible output")]

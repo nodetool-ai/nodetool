@@ -14,7 +14,6 @@ import { useSettingsStore } from "../stores/SettingsStore";
 import { useVersionHistoryStore } from "../stores/VersionHistoryStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { Node, Edge, Workflow } from "../stores/ApiTypes";
-import { workflowVersionsQueryKey } from "../serverState/useWorkflowVersions";
 import { v4 as uuidv4 } from "uuid";
 import { trpcClient } from "../trpc/client";
 
@@ -172,7 +171,7 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
 
         // Invalidate versions query so the version list refreshes
         queryClient.invalidateQueries({
-          queryKey: workflowVersionsQueryKey(workflowId!)
+          queryKey: ["workflow", workflowId!, "versions"]
         });
 
         addNotification({

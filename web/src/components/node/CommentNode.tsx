@@ -60,13 +60,6 @@ function getContrastTextColor(hexColor: string): string {
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
-export type CustomText = {
-  text: string;
-  bold?: boolean;
-  italic?: boolean;
-  size?: "-" | "+";
-};
-
 const styles = (theme: Theme) =>
   css({
     width: "100%",

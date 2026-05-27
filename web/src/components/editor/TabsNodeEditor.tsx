@@ -49,26 +49,26 @@ const styles = (theme: Theme) =>
     "& .tabs-container": {
       display: "flex",
       backgroundColor: theme.vars.palette.c_tabs_header,
-      backdropFilter: "blur(12px)",
-      alignItems: "center",
+      alignItems: "stretch",
       position: "relative",
-      padding: "4px 0px 0px 10px",
+      paddingLeft: "28px",
+      height: "34px",
       width: "100%",
       WebkitAppRegion: "drag",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      userSelect: "none"
     },
     "& .tabs": {
       flex: 1,
       zIndex: 1000,
       display: "flex",
       flexWrap: "nowrap",
-      minHeight: "32px",
+      alignItems: "stretch",
       overflowX: "auto",
       overflowY: "hidden",
       whiteSpace: "nowrap",
       scrollbarWidth: "none",
       msOverflowStyle: "none",
-      // backdropFilter: "blur(8px)",
       position: "relative",
       WebkitAppRegion: "drag",
 
@@ -78,70 +78,80 @@ const styles = (theme: Theme) =>
     },
     "& .tab": {
       WebkitAppRegion: "no-drag",
-      padding: "0px 20px",
-      height: "32px",
+      padding: "0 12px 0 14px",
+      height: "34px",
       display: "flex",
       flexWrap: "nowrap",
-      lineHeight: "1.1em",
       alignItems: "center",
-      gap: "8px",
-      minWidth: "80px",
+      gap: "10px",
+      minWidth: "170px",
       flex: "0 0 auto",
-      cursor: "pointer",
+      cursor: "default",
       color: theme.vars.palette.text.secondary,
       background: "transparent",
-      borderRadius: "8px 8px 0 0",
-      border: `1px solid transparent`,
-      borderBottom: "none",
-      fontSize: "13px",
-      letterSpacing: "0.3px",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
+      fontSize: "12.5px",
+      fontWeight: 400,
+      lineHeight: 1,
+      transition: "color 120ms, background-color 120ms",
       position: "relative",
-      marginRight: "4px",
       boxSizing: "border-box",
 
-      "&::before": {
-        content: '""',
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: "1px",
-        background: theme.vars.palette.divider,
-        opacity: 0,
-        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-      },
-
       "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.primary,
-        borderColor: theme.vars.palette.divider,
-        "&::before": {
-          opacity: 1
-        }
+        backgroundColor: "rgba(255,255,255,0.03)"
       },
 
       "&.active": {
         color: theme.vars.palette.text.primary,
-        background: theme.vars.palette.action.selected,
+        backgroundColor: "var(--c_editor_bg_color)",
         zIndex: 2,
-        borderColor: theme.vars.palette.divider,
-        boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.1)",
+        "&:hover": {
+          backgroundColor: "var(--c_editor_bg_color)"
+        },
         "&::before": {
-          background: theme.vars.palette.primary.main,
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
           height: "1px",
-          opacity: 1
+          background: theme.vars.palette.primary.main
         }
       },
 
+      "& .tab-name": {
+        flex: 1,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        minWidth: 0
+      },
+
+      "& .dirty-dot": {
+        width: "6px",
+        height: "6px",
+        borderRadius: "50%",
+        backgroundColor: theme.vars.palette.primary.main,
+        marginLeft: "-4px",
+        flexShrink: 0,
+        display: "inline-block"
+      },
+
       "& .close-icon": {
-        opacity: 0.4,
-        transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
-        fontSize: "14px",
+        width: "18px",
+        height: "18px",
+        padding: "4px",
+        boxSizing: "border-box",
+        borderRadius: "3px",
+        fontSize: "10px",
+        color: theme.vars.palette.text.disabled,
+        cursor: "pointer",
+        flexShrink: 0,
+        transition: "color 120ms, background-color 120ms",
         "&:hover": {
-          opacity: 1,
-          transform: "scale(1.1) rotate(90deg)",
-          color: "var(--palette-primary-main)"
+          color: theme.vars.palette.text.primary,
+          backgroundColor: "rgba(255,255,255,0.06)"
         }
       }
     },
@@ -151,8 +161,10 @@ const styles = (theme: Theme) =>
       left: 0,
       top: "20%",
       bottom: "20%",
+      right: "auto",
+      height: "auto",
       width: "2px",
-      background: `${"var(--palette-primary-main)"}`,
+      background: "var(--palette-primary-main)",
       boxShadow: "none"
     },
     "& .tab.drop-target-right::after": {
@@ -162,7 +174,7 @@ const styles = (theme: Theme) =>
       top: "20%",
       bottom: "20%",
       width: "2px",
-      background: `${"var(--palette-primary-main)"}`,
+      background: "var(--palette-primary-main)",
       boxShadow: "none"
     },
     "& .editor-container": {
@@ -186,12 +198,12 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       width: "24px",
-      height: "30px",
-      background: theme.vars.palette.background.default,
+      height: "34px",
+      background: "transparent",
       border: "none",
       cursor: "pointer",
-      color: theme.vars.palette.text.secondary,
-      transition: "all 0.1s ease-in-out",
+      color: theme.vars.palette.text.disabled,
+      transition: "color 120ms, background-color 120ms",
       padding: 0,
       flexShrink: 0,
       visibility: "visible",
@@ -202,15 +214,19 @@ const styles = (theme: Theme) =>
 
       "&:hover": {
         color: theme.vars.palette.text.primary,
-        background: theme.vars.palette.action.hover
+        backgroundColor: "rgba(255,255,255,0.03)"
       },
 
       "&:disabled": {
         opacity: 0.3,
         "&:hover": {
-          color: theme.vars.palette.text.secondary,
-          background: theme.vars.palette.background.default
+          color: theme.vars.palette.text.disabled,
+          background: "transparent"
         }
+      },
+
+      "& svg": {
+        fontSize: "16px"
       }
     },
     "& .new-workflow-button": {
@@ -218,29 +234,25 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       width: "36px",
-      height: "30px",
-      background: theme.vars.palette.primary.main,
+      height: "34px",
+      background: "transparent",
       border: "none",
+      borderRight: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
-      marginTop: "1px",
-      borderRadius: "8px 8px 0 0",
       padding: 0,
-      marginLeft: "10px",
-      transition: "all 0.1s ease-in-out",
+      color: theme.vars.palette.text.disabled,
+      transition: "color 120ms, background-color 120ms",
       WebkitAppRegion: "no-drag",
       position: "relative",
       zIndex: 1001,
-      "& svg path": {
-        color: theme.vars.palette.primary.contrastText
-      },
 
       "&:hover": {
-        color: theme.vars.palette.primary.contrastText,
-        background: theme.vars.palette.primary.dark
+        color: theme.vars.palette.text.primary,
+        backgroundColor: "rgba(255,255,255,0.03)"
       },
 
       "& svg": {
-        fontSize: "20px"
+        fontSize: "14px"
       }
     },
     "& .window-controls": {
@@ -352,7 +364,9 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const [storageOpenIds, setStorageOpenIds] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem("openWorkflows");
-      return raw ? (JSON.parse(raw) as string[]) : [];
+      if (!raw) return [];
+      const parsed: unknown = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed as string[] : [];
     } catch {
       return [];
     }

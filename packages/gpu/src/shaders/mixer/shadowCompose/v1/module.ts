@@ -41,6 +41,7 @@ export const mixerShadowComposeV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "mixer",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: ShadowComposeParams,
   paramDefaults: {

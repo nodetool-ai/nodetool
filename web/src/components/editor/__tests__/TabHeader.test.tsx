@@ -134,7 +134,7 @@ describe("TabHeader", () => {
   it("shows dirty indicator when workflow is dirty", () => {
     mockNodeStore.getState = jest.fn(() => ({ workflowIsDirty: true }));
     renderWithTheme(<TabHeader {...mockProps} />);
-    const dirtyIndicator = screen.getByText("*");
+    const dirtyIndicator = screen.getByLabelText("unsaved changes");
     expect(dirtyIndicator).toBeInTheDocument();
   });
 

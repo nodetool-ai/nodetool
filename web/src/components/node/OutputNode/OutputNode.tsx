@@ -34,7 +34,8 @@ const styles = (theme: Theme) =>
         display: "flex",
         flexDirection: "column",
         overflow: "visible",
-        padding: 0,
+        "--node-body-padding": "8px",
+        padding: "var(--node-body-padding)",
         width: "100%",
         height: "100%",
         minWidth: "150px",
@@ -44,10 +45,11 @@ const styles = (theme: Theme) =>
         border: `1px solid ${theme.vars.palette.grey[700]}`
       },
       "&.output-node": {
-        padding: 0,
         margin: 0,
         "&.collapsed": {
-          ...NODE_COLLAPSED_LAYOUT
+          ...NODE_COLLAPSED_LAYOUT,
+          "--node-body-padding": "0px",
+          padding: "0 !important"
         },
         "&.collapsed .node-header ~ *": {
           display: "none !important"
@@ -99,14 +101,10 @@ const styles = (theme: Theme) =>
       {
         height: "fit-content !important"
       },
-      // header
+      // header — inherit minHeight from NodeHeader; parent padding provides spacing
       ".node-header": {
         width: "100%",
-        minHeight: "unset",
-        top: 0,
-        left: 0,
         margin: 0,
-        padding: 0,
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {

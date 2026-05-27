@@ -34,7 +34,12 @@
 import { randomUUID } from "node:crypto";
 
 import { processChat } from "@nodetool-ai/chat";
-import { GraphPlanner, Tool } from "@nodetool-ai/agents";
+import {
+  GraphPlanner,
+  Tool,
+  createDefaultLongTermMemory,
+  type LongTermMemory
+} from "@nodetool-ai/agents";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   ProcessingContext,
@@ -358,6 +363,13 @@ interface LlmAgentSessionOptions {
   systemPrompt?: string;
   /** Existing thread id to resume; otherwise a new thread is created lazily. */
   threadId?: string;
+  /**
+   * Per-session opt-in for long-term memory. The renderer surfaces a
+   * toggle for this. When omitted, defaults to the global env gate
+   * (`NODETOOL_MEMORY_ENABLED`). When explicitly `false`, memory stays
+   * inert for the whole session even if the env gate is on.
+   */
+  memoryEnabled?: boolean;
 }
 
 /**
@@ -400,6 +412,19 @@ class LlmAgentSession implements AgentQuerySession {
   private readonly systemPrompt: string;
   private readonly userId: string;
   private threadId: string;
+  /**
+   * Long-term memory bound to this session. Resolved lazily on the first
+   * send() so secret lookups happen at most once per session — not every
+   * turn. `undefined` means "not yet resolved"; `null` means "resolved and
+   * not configured" (e.g. no embedding provider).
+   */
+  private longTermMemory: LongTermMemory | null | undefined = undefined;
+  /**
+   * Tri-state opt-in: `undefined` → fall back to env (default off);
+   * `true` → force-enable; `false` → force-disable. Mutable via
+   * {@link setMemoryEnabled} so the toggle can flip mid-session.
+   */
+  private memoryEnabled: boolean | undefined;
 
   constructor(opts: LlmAgentSessionOptions) {
     if (!opts.userId) {
@@ -412,6 +437,17 @@ class LlmAgentSession implements AgentQuerySession {
     // Lazy: thread row is created on first send so we don't write to the DB
     // for sessions the user opens but never sends a message in.
     this.threadId = opts.threadId ?? "";
+    this.memoryEnabled = opts.memoryEnabled;
+  }
+
+  /**
+   * Flip the memory opt-in for subsequent sends. Drops any cached
+   * resolution so the next send() re-resolves under the new flag.
+   */
+  setMemoryEnabled(enabled: boolean | undefined): void {
+    if (this.memoryEnabled === enabled) return;
+    this.memoryEnabled = enabled;
+    this.longTermMemory = undefined;
   }
 
   /**
@@ -556,6 +592,36 @@ class LlmAgentSession implements AgentQuerySession {
         userId: this.userId,
       });
 
+      // Best-effort long-term memory. Resolved once per session and cached
+      // on the instance so secret lookups don't repeat on every send(). A
+      // `null` cache value means "checked, not configured" — also reused.
+      if (this.longTermMemory === undefined) {
+        try {
+          this.longTermMemory = await createDefaultLongTermMemory({
+            userId: this.userId,
+            namespace: "chat",
+            // Scope per chat thread so memories from one conversation don't
+            // bleed into an unrelated thread for the same user. When no
+            // thread id is available (one-shot session), fall back to the
+            // shared bucket — but the env gate for opting in still applies.
+            workspaceId: this.threadId || undefined,
+            extractionProvider: provider,
+            extractionModel: this.model,
+            // Honour the per-session opt-in from the renderer. `undefined`
+            // means "use the env default" (which is itself default-off).
+            enabled: this.memoryEnabled
+          });
+        } catch (err) {
+          this.longTermMemory = null;
+          log.warn(
+            `Long-term memory init failed (session ${sessionId}): ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
+        }
+      }
+      const longTermMemory = this.longTermMemory;
+
       let assistantText = "";
       // The renderer dedupes assistant messages by `uuid` and replaces in
       // place (see web/src/stores/AgentStore.ts). To make streaming text
@@ -574,6 +640,7 @@ class LlmAgentSession implements AgentQuerySession {
         tools,
         threadId: this.threadId,
         signal: this.abortController.signal,
+        longTermMemory,
         callbacks: {
           onChunk: (text) => {
             assistantText += text;
@@ -766,6 +833,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
     resumeSessionId?: string;
     systemPrompt?: string;
     chatProviderId?: string;
+    memoryEnabled?: boolean;
   }): AgentQuerySession {
     if (!options.chatProviderId) {
       throw new Error(
@@ -783,6 +851,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
       // The renderer's `resumeSessionId` is our DB thread id — `send()`
       // hydrates from `Message.paginate(threadId)` on first call.
       threadId: options.resumeSessionId,
+      memoryEnabled: options.memoryEnabled,
     });
   }
 

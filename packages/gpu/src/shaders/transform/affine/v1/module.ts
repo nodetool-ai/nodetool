@@ -48,6 +48,7 @@ export const transformAffineV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: AffineParams,
   // Identity inverse affine = passthrough.

@@ -38,6 +38,7 @@ export const transformOffsetV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: OffsetParams,
   paramDefaults: { dx: 0, dy: 0, wrap: 0 },

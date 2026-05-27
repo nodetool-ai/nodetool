@@ -12,6 +12,8 @@ import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
 import CollectionsSelector from "../composer/CollectionsSelector";
 import { LanguageModel } from "../../../stores/ApiTypes";
+import { StateIconButton } from "../../ui_primitives/StateIconButton";
+import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 
 const styles = (theme: Theme) =>
   css({
@@ -110,6 +112,8 @@ interface ChatToolBarProps {
   onAgentModeToggle?: (enabled: boolean) => void;
   agentPlanner?: AgentPlanner;
   onAgentPlannerChange?: (planner: AgentPlanner) => void;
+  memoryEnabled?: boolean;
+  onMemoryToggle?: (enabled: boolean) => void;
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
   allowedProviders?: string[];
@@ -125,6 +129,8 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   onAgentModeToggle,
   agentPlanner,
   onAgentPlannerChange,
+  memoryEnabled,
+  onMemoryToggle,
   selectedCollections,
   onCollectionsChange,
   allowedProviders,
@@ -189,6 +195,27 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
 
       {/* Spacer to push agent toggle to the right */}
       {!embedded && <div className="toolbar-spacer" />}
+
+      {/* Memory Toggle — sits next to agent mode so the two trust-boundary
+          settings (autonomous tool calls, cross-session memory) live together. */}
+      {onMemoryToggle && (
+        <>
+          <div className="toolbar-divider" />
+          <div className="toolbar-group">
+            <StateIconButton
+              icon={<PsychologyOutlinedIcon fontSize="small" />}
+              tooltip={
+                memoryEnabled
+                  ? "Long-term memory: ON — recalls facts from prior sessions and mines new ones after each turn"
+                  : "Long-term memory: OFF — this session won't recall or store memories"
+              }
+              isActive={!!memoryEnabled}
+              onClick={() => onMemoryToggle(!memoryEnabled)}
+              size="small"
+            />
+          </div>
+        </>
+      )}
 
       {/* Agent Mode Selector */}
       {hasAgentSection && (

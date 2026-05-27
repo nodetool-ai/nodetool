@@ -805,9 +805,9 @@ const ReactFlowWrapper = ({
       >
         <Background
           id={workflowId}
-          gap={100}
-          offset={4}
-          size={8}
+          gap={25}
+          offset={1}
+          size={3}
           color={theme.vars.palette.c_editor_grid_color}
           lineWidth={1}
           style={backgroundStyle}

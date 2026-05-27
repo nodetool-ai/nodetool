@@ -34,6 +34,7 @@ export const maskFromImageV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "mask",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: MaskFromImageParams,
   paramDefaults: { mode: 1, invert: 0 },

@@ -9,7 +9,6 @@ import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useShallow } from "zustand/react/shallow";
 import Help from "../content/Help/Help";
 import SettingsButton from "../menus/SettingsButton";
-import SystemStatsDisplay from "./SystemStats";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 import { isProduction } from "../../lib/env";
@@ -18,22 +17,43 @@ import { HelpButton, Box } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
-    ".command-icon": {
-      color: theme.vars.palette.text.primary,
-      padding: "0 4px",
-      minWidth: "32px",
-      height: "32px",
+    "&": {
+      display: "flex",
+      alignItems: "center",
+      gap: "2px"
+    },
+    // Unified styling for every button inside the right cluster, regardless
+    // of which primitive it comes from (EditorButton, IconButton, ToolbarIconButton).
+    "& .MuiIconButton-root, & .MuiButtonBase-root": {
+      minWidth: "28px",
+      width: "28px",
+      height: "28px",
+      padding: 0,
+      margin: 0,
+      color: theme.vars.palette.text.secondary,
+      backgroundColor: "transparent",
+      border: "1px solid transparent",
       borderRadius: "var(--rounded-md)",
-      transition: "all 0.2s ease-out",
+      transition:
+        "color 150ms ease-out, background-color 150ms ease-out, transform 0ms",
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)"
+        color: theme.vars.palette.text.primary,
+        backgroundColor: theme.vars.palette.action.hover,
+        borderColor: "transparent",
+        transform: "none"
       },
-      "& svg, & .MuiSvgIcon-root": {
-        display: "block",
-        width: "18px",
-        height: "18px",
-        fontSize: "18px"
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: "1px"
       }
+    },
+    // Override AppHeader's stray icon margin so icon-only buttons are
+    // visually centered, not nudged left.
+    "& svg, & .MuiSvgIcon-root": {
+      width: "16px",
+      height: "16px",
+      fontSize: "16px",
+      margin: 0
     }
   });
 
@@ -65,12 +85,7 @@ const RightSideButtons: React.FC = () => {
 
   return (
     <Box className="buttons-right" css={styles(theme)}>
-      {!isProduction && !isMobile && (
-        <>
-          <SystemStatsDisplay />
-          <OverallDownloadProgress />
-        </>
-      )}
+      {!isProduction && !isMobile && <OverallDownloadProgress />}
       <ThemeToggleButton />
       <NotificationButton />
       <Help open={helpOpen} handleClose={handleCloseHelp} />

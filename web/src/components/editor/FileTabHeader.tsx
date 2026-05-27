@@ -117,21 +117,11 @@ const FileTabHeader = ({
         onMouseDown={handleMouseDown}
         onAuxClick={handleAuxClick}
       >
-        <span
-          className="tab-name"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-            marginRight: "4px"
-          }}
-        >
-          {getFileIcon(asset.content_type || "")}
-          {asset.name}
-        </span>
+        {getFileIcon(asset.content_type || "")}
+        <span className="tab-name">{asset.name}</span>
         <CloseIcon
           className="close-icon"
-          sx={{ fontSize: 16 }}
+          aria-label={`Close ${asset.name}`}
           onClick={handleClose}
         />
       </div>

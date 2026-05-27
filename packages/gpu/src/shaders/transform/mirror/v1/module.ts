@@ -31,6 +31,7 @@ export const transformMirrorV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: MirrorParams,
   paramDefaults: { axes: 1 },

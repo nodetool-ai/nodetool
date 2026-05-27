@@ -38,6 +38,7 @@ export const keyerLumaKeyV1 = defineModule({
   // schema is the workhorse op for matte-from-brightness workflows.
   surface: "published",
   category: "keyer",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: LumaKeyParams,
   paramDefaults: { low: 0, high: 1, softness: 0.05, invert: 0 },

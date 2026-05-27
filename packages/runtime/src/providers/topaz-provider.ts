@@ -30,8 +30,6 @@ import type {
 const log = createLogger("nodetool.runtime.providers.topaz");
 
 const TOPAZ_ENHANCE_ENDPOINT = "https://api.topazlabs.com/image/v1/enhance/async";
-const TOPAZ_ENHANCE_GEN_ENDPOINT =
-  "https://api.topazlabs.com/image/v1/enhance-gen/async";
 const TOPAZ_STATUS_ENDPOINT =
   "https://api.topazlabs.com/image/v1/status/{process_id}";
 const TOPAZ_DOWNLOAD_ENDPOINT =
@@ -44,7 +42,13 @@ const TOPAZ_MANIFEST_PKG = "@nodetool-ai/topaz-nodes";
 const TOPAZ_MANIFEST_PATH = "topaz-manifest.json";
 
 /** Manifest endpoint IDs (must match topaz-manifest.json modelId values). */
+const ENHANCE_MANIFEST_ID = "topaz/image/enhance";
 const ENHANCE_GEN_MANIFEST_ID = "topaz/image/enhance-gen";
+/** Only upscale/enhance endpoints are exposed as ImageModels (upscale task). */
+const UPSCALE_MANIFEST_IDS = new Set([
+  ENHANCE_MANIFEST_ID,
+  ENHANCE_GEN_MANIFEST_ID
+]);
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const sleep = (ms: number): Promise<void> =>
@@ -58,6 +62,7 @@ interface TopazManifestEntry {
   modelId?: string;
   title?: string;
   outputType?: string;
+  submitEndpoint?: string;
   fields?: TopazManifestField[];
 }
 
@@ -86,10 +91,12 @@ function buildVariantMap(): Map<string, VariantInfo> {
   }
   for (const entry of manifest) {
     if (entry.outputType !== "image" || !entry.modelId) continue;
+    // Only expose enhance / enhance-gen as upscale models. Sharpen, denoise,
+    // lighting, restore, matting endpoints have their own nodes and aren't
+    // "upscale" operations from the provider's perspective.
+    if (!UPSCALE_MANIFEST_IDS.has(entry.modelId)) continue;
     const generative = entry.modelId === ENHANCE_GEN_MANIFEST_ID;
-    const endpoint = generative
-      ? TOPAZ_ENHANCE_GEN_ENDPOINT
-      : TOPAZ_ENHANCE_ENDPOINT;
+    const endpoint = entry.submitEndpoint ?? TOPAZ_ENHANCE_ENDPOINT;
     const modelField = entry.fields?.find((f) => f.name === "model");
     const variants = modelField?.values?.length
       ? modelField.values
@@ -180,6 +187,8 @@ export class TopazProvider extends BaseProvider {
     const variantMap = this.getVariantMap();
     const out: ImageModel[] = [];
     for (const m of base) {
+      // Skip non-upscale endpoints (sharpen / denoise / lighting / matting / ...).
+      if (!UPSCALE_MANIFEST_IDS.has(m.id)) continue;
       const variants = [...variantMap.entries()].filter(
         ([, v]) => v.endpointId === m.id
       );
