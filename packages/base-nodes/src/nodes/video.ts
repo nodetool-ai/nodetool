@@ -2,6 +2,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -21,22 +22,8 @@ function videoBytes(video: unknown): Uint8Array {
 
 async function videoBytesAsync(video: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!video || typeof video !== "object") return new Uint8Array();
-  const ref = video as VideoRefLike;
-  if (ref.data) return toBytes(ref.data);
-  if (typeof ref.uri === "string" && ref.uri) {
-    if (context?.storage) {
-      const stored = await context.storage.retrieve(ref.uri);
-      if (stored !== null) return new Uint8Array(stored);
-    }
-    if (ref.uri.startsWith("file://")) {
-      return new Uint8Array(await fs.readFile(filePath(ref.uri)));
-    }
-    if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
-      const response = await fetch(ref.uri);
-      return new Uint8Array(await response.arrayBuffer());
-    }
-  }
-  return new Uint8Array();
+  const bytes = await loadMediaRefBytes(video as VideoRefLike, context);
+  return bytes ?? new Uint8Array();
 }
 
 async function imageBytesAsync(
@@ -44,27 +31,8 @@ async function imageBytesAsync(
   context?: ProcessingContext
 ): Promise<Uint8Array> {
   if (!image || typeof image !== "object") return new Uint8Array();
-  const ref = image as ImageRefLike;
-  if (ref.data) return toBytes(ref.data);
-  if (typeof ref.uri === "string" && ref.uri) {
-    const uri = ref.uri;
-    const dataUriMatch = uri.match(/^data:[^;]*;base64,(.+)$/s);
-    if (dataUriMatch) {
-      return new Uint8Array(Buffer.from(dataUriMatch[1], "base64"));
-    }
-    if (context?.storage) {
-      const stored = await context.storage.retrieve(uri);
-      if (stored !== null) return new Uint8Array(stored);
-    }
-    if (uri.startsWith("file://")) {
-      return new Uint8Array(await fs.readFile(filePath(uri)));
-    }
-    if (uri.startsWith("http://") || uri.startsWith("https://")) {
-      const response = await fetch(uri);
-      return new Uint8Array(await response.arrayBuffer());
-    }
-  }
-  return new Uint8Array();
+  const bytes = await loadMediaRefBytes(image as ImageRefLike, context);
+  return bytes ?? new Uint8Array();
 }
 
 function filePath(uriOrPath: string): string {
