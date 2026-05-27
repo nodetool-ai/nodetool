@@ -22,7 +22,7 @@ export function useExposedInputToggle() {
       if (!node?.type) {
         return null;
       }
-      const metadata = getMetadata(node.type as string);
+      const metadata = getMetadata(node.type);
       if (!metadata) {
         return null;
       }
@@ -50,7 +50,7 @@ export function useExposedInputToggle() {
         return false;
       }
       return canConfigureExposedPlacement(
-        getMetadata(node.type as string),
+        getMetadata(node.type),
         propertyName
       );
     },
@@ -68,7 +68,7 @@ export function useExposedInputToggle() {
         if (!node?.type) {
           continue;
         }
-        const nodeMeta = getMetadata(node.type as string);
+        const nodeMeta = getMetadata(node.type);
         if (!canConfigureExposedPlacement(nodeMeta, propertyName)) {
           continue;
         }
