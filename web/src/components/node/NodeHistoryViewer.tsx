@@ -145,10 +145,11 @@ const styles = (theme: Theme) =>
         borderColor: theme.vars.palette.primary.main
       }
     },
-    ".thumb img": {
+    ".thumb img, .thumb video": {
       width: "100%",
       height: "100%",
-      objectFit: "cover"
+      objectFit: "cover",
+      display: "block"
     },
     ".thumb-label": {
       position: "absolute",
@@ -328,7 +329,9 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           <div className="grid nodrag nopan" role="list" aria-label="Output history">
             {mediaAssets.map((asset, i) => {
               const isImage = asset.content_type?.startsWith("image/");
-              const thumbUrl = asset.thumb_url || asset.get_url || "";
+              const isVideo = asset.content_type?.startsWith("video/");
+              const imgUrl = asset.thumb_url || asset.get_url || "";
+              const videoUrl = asset.get_url || "";
               return (
                 <div
                   key={asset.id}
@@ -336,8 +339,20 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                   role="listitem"
                   onClick={() => handleSelectThumb(i)}
                 >
-                  {isImage && thumbUrl ? (
-                    <img src={thumbUrl} alt={asset.name || asset.id} />
+                  {isImage && imgUrl ? (
+                    <img src={imgUrl} alt={asset.name || asset.id} />
+                  ) : isVideo && (asset.thumb_url || videoUrl) ? (
+                    asset.thumb_url ? (
+                      <img src={asset.thumb_url} alt={asset.name || asset.id} />
+                    ) : (
+                      <video
+                        src={`${videoUrl}#t=0.1`}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        aria-label={asset.name || asset.id}
+                      />
+                    )
                   ) : (
                     <div style={{
                       width: "100%",
