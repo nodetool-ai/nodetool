@@ -131,14 +131,17 @@ const ToolCallCard: React.FC<{
     setOpen((v) => !v);
   }, []);
 
-  const headline = isSubtask && subtaskTitle
-    ? subtaskTitle
-    : formatToolName(tc.name);
-  const headlineLabel = isSubtask
-    ? subtaskTitle
-      ? "Subtask"
-      : "Subtask"
-    : null;
+  // For subtasks we keep the title + "Subtask" badge as the headline. For
+  // regular tool calls we drop the tool name entirely and let the LLM-authored
+  // `tc.message` carry the row — falling back to the formatted tool name only
+  // when no message was provided.
+  const liveMessage = isRunning ? runningToolMessage || tc.message : tc.message;
+  const fallbackName = formatToolName(tc.name);
+  const headline = isSubtask
+    ? subtaskTitle || fallbackName
+    : liveMessage || fallbackName;
+  const showSeparateMessage = isSubtask && !!liveMessage;
+  const headlineLabel = isSubtask ? "Subtask" : null;
 
   return (
     <div
@@ -168,15 +171,15 @@ const ToolCallCard: React.FC<{
           <Text
             component="span"
             size="small"
-            weight={isSubtask ? 500 : 600}
+            weight={isSubtask ? 500 : 400}
             className="tool-call-name"
             truncate
           >
             {headline}
           </Text>
-          {(isRunning || tc.message) && (
+          {showSeparateMessage && (
             <Text component="span" size="small" className="tool-message" truncate>
-              {isRunning ? runningToolMessage || tc.message : tc.message}
+              {liveMessage}
             </Text>
           )}
           {isRunning && <LoadingSpinner size="small" />}
