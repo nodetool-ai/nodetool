@@ -1084,9 +1084,9 @@ export class StepExecutor {
               const tool = this.tools.find((t) => t.name === tc.name);
               if (!tool) return { error: `Unknown tool: ${tc.name}` };
               const cleanArgs = Tool.stripMessage(tc.args ?? {});
-              // Tools that need to forward nested events (run_subtask) read
-              // the LLM-assigned tool_call_id from this reserved field.
-              cleanArgs[TOOL_CALL_ID_FIELD] = tc.id;
+              if (tool.needsToolCallId) {
+                cleanArgs[TOOL_CALL_ID_FIELD] = tc.id;
+              }
               // Intercept ControlNodeTool: create event instead of calling process()
               if (tool instanceof ControlNodeTool) {
                 const event = tool.createControlEvent(cleanArgs);

@@ -27,6 +27,14 @@ export abstract class Tool {
   abstract readonly inputSchema: Record<string, unknown>;
 
   /**
+   * Opt-in: when `true`, {@link StepExecutor} injects the LLM-assigned
+   * `tool_call_id` into the args under the reserved `_tool_call_id` field
+   * before calling {@link process}. Only tools that need to forward nested
+   * events (currently {@link RunSubtaskTool}) should set this.
+   */
+  readonly needsToolCallId: boolean = false;
+
+  /**
    * Execute the tool with the given parameters.
    */
   abstract process(

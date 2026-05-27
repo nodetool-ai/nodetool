@@ -38,6 +38,7 @@ import AgentExecutionView from "./AgentExecutionView";
 import MediaOutputGroup, { isMediaOnlyContent } from "./MediaOutputGroup";
 import { formatToolName } from "../../../utils/formatUtils";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
+import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -59,28 +60,6 @@ const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
   return <pre className="pretty-json">{text}</pre>;
 });
 PrettyJson.displayName = "PrettyJson";
-
-// LLM-authored status field — surfaced as `tc.message`; hide from raw args.
-const TOOL_USER_MESSAGE_FIELD = "_message";
-// Reserved field StepExecutor injects to pass the LLM's tool_call_id through
-// to tools that need it (e.g., run_subtask for nesting). Hide from display.
-const TOOL_CALL_ID_FIELD = "_tool_call_id";
-
-function visibleArgs(
-  args: Record<string, unknown> | null | undefined
-): Record<string, unknown> | null {
-  if (!args) return null;
-  let out: Record<string, unknown> | null = null;
-  if (TOOL_USER_MESSAGE_FIELD in args) {
-    out = out ?? { ...args };
-    delete out[TOOL_USER_MESSAGE_FIELD];
-  }
-  if (TOOL_CALL_ID_FIELD in args) {
-    out = out ?? { ...args };
-    delete out[TOOL_CALL_ID_FIELD];
-  }
-  return out ?? args;
-}
 
 /**
  * `run_subtask` is the recursive-decomposition primitive. We render its

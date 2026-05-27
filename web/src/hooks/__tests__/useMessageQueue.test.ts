@@ -68,9 +68,7 @@ describe("useMessageQueue", () => {
         result.current.sendMessage(content, "test message");
       });
 
-      expect(mockOnSendMessage).toHaveBeenCalledWith(
-        content,
-        "test message"      );
+      expect(mockOnSendMessage).toHaveBeenCalledWith(content, "test message");
       expect(result.current.queuedMessage).toBeNull();
     });
 
@@ -192,9 +190,7 @@ describe("useMessageQueue", () => {
       // Stop loading
       rerender({ isLoading: false, isStreaming: false });
 
-      expect(mockOnSendMessage).toHaveBeenCalledWith(
-        content,
-        "test message"      );
+      expect(mockOnSendMessage).toHaveBeenCalledWith(content, "test message");
       expect(result.current.queuedMessage).toBeNull();
     });
 
@@ -222,9 +218,7 @@ describe("useMessageQueue", () => {
       // Stop streaming
       rerender({ isLoading: false, isStreaming: false });
 
-      expect(mockOnSendMessage).toHaveBeenCalledWith(
-        content,
-        "test message"      );
+      expect(mockOnSendMessage).toHaveBeenCalledWith(content, "test message");
       expect(result.current.queuedMessage).toBeNull();
     });
 
@@ -253,9 +247,7 @@ describe("useMessageQueue", () => {
 
       // Stop streaming
       rerender({ isLoading: false, isStreaming: false });
-      expect(mockOnSendMessage).toHaveBeenCalledWith(
-        content,
-        "test message"      );
+      expect(mockOnSendMessage).toHaveBeenCalledWith(content, "test message");
     });
   });
 
@@ -334,9 +326,7 @@ describe("useMessageQueue", () => {
       // Simulate the streaming state changing to stopped
       rerender({ isLoading: false, isStreaming: false });
 
-      expect(mockOnSendMessage).toHaveBeenCalledWith(
-        content,
-        "test message"      );
+      expect(mockOnSendMessage).toHaveBeenCalledWith(content, "test message");
     });
 
     it("does nothing when no message is queued", () => {
@@ -408,10 +398,7 @@ describe("useMessageQueue", () => {
       });
 
       expect(mockOnSendMessage1).not.toHaveBeenCalled();
-      expect(mockOnSendMessage2).toHaveBeenCalledWith(
-        content,
-        "test message"      );
+      expect(mockOnSendMessage2).toHaveBeenCalledWith(content, "test message");
     });
   });
-
 });

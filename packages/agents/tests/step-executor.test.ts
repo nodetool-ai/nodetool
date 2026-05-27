@@ -900,12 +900,8 @@ describe("StepExecutor", () => {
     }
 
     expect(step.completed).toBe(true);
-    // The tool should have been called with the reserved `_tool_call_id`
-    // field injected (everything else stripped when args is undefined).
-    expect(simpleTool.process).toHaveBeenCalledWith(
-      context,
-      expect.objectContaining({})
-    );
+    // No `needsToolCallId` opt-in and args were undefined → cleanArgs is {}.
+    expect(simpleTool.process).toHaveBeenCalledWith(context, {});
   });
 
   it("tracks browser URLs in getSources", async () => {

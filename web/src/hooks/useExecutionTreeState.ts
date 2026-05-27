@@ -15,19 +15,11 @@ import type {
   PlanningUpdate
 } from "../stores/ApiTypes";
 import type { StepToolCall } from "../stores/GlobalChatStore";
+import { visibleToolArgs } from "../core/chat/toolCallFields";
 
-// LLM-authored user status — surfaced via tc.message; hidden from raw args.
-const TOOL_USER_MESSAGE_FIELD = "_message";
-
-function visibleArgs(
+const visibleArgs = (
   args: Record<string, unknown> | null | undefined
-): Record<string, unknown> {
-  if (!args) return {};
-  if (!(TOOL_USER_MESSAGE_FIELD in args)) return args;
-  const out = { ...args };
-  delete out[TOOL_USER_MESSAGE_FIELD];
-  return out;
-}
+): Record<string, unknown> => visibleToolArgs(args) ?? {};
 
 // ---------------------------------------------------------------------------
 // State types

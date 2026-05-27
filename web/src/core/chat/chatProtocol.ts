@@ -9,22 +9,7 @@
  * the store while message handling remains testable.
  */
 
-/**
- * Reserved tool-call arg field carrying the LLM-authored user-facing status.
- * The backend already surfaces it on `ToolCallUpdate.message`; we strip it
- * from the args we display so it doesn't show up twice in the UI.
- */
-const TOOL_USER_MESSAGE_FIELD = "_message";
-
-function stripUserMessageField(
-  args: Record<string, unknown> | null | undefined
-): Record<string, unknown> | null {
-  if (!args) return null;
-  if (!(TOOL_USER_MESSAGE_FIELD in args)) return args;
-  const out = { ...args };
-  delete out[TOOL_USER_MESSAGE_FIELD];
-  return out;
-}
+import { visibleToolArgs } from "./toolCallFields";
 
 /**
  * Chunk deduplication cache to prevent duplicate chunks from being processed
@@ -611,7 +596,7 @@ const applyToolCallUpdate = (
   // The LLM-authored status lives in args._message and is mirrored onto
   // `update.message`. Strip it from the args we display so the user doesn't
   // see the status field duplicated under "Arguments".
-  const displayArgs = stripUserMessageField(update.args);
+  const displayArgs = visibleToolArgs(update.args);
 
   let agentExecutionToolCalls:
     | GlobalChatState["agentExecutionToolCalls"]

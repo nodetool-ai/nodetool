@@ -71,6 +71,7 @@ const RUN_SUBTASK_DESCRIPTION = [
 export class RunSubtaskTool extends Tool {
   readonly name = "run_subtask";
   readonly description = RUN_SUBTASK_DESCRIPTION;
+  readonly needsToolCallId = true;
   readonly inputSchema = {
     type: "object",
     properties: {
