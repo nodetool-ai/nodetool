@@ -152,7 +152,10 @@ describe("FinishStepTool", () => {
       expect(providerTool.description).toBe(tool.description);
       const schema = providerTool.inputSchema as Record<string, unknown>;
       expect(schema["type"]).toBe("object");
-      expect(schema["required"]).toEqual(["result"]);
+      // FinishStepTool sets additionalProperties:false, so the base class
+      // mirrors the injected `_message` field into `required` to satisfy
+      // OpenAI strict structured-output validation.
+      expect(schema["required"]).toEqual(["result", "_message"]);
       const properties = schema["properties"] as Record<string, unknown>;
       expect(properties["result"]).toEqual({
         type: "string",
@@ -177,6 +180,32 @@ describe("Tool (base class)", () => {
       const properties = schema["properties"] as Record<string, unknown>;
       expect(properties["foo"]).toEqual({ type: "string" });
       expect(properties["_message"]).toMatchObject({ type: "string" });
+      // Lenient schema (no `additionalProperties: false`) keeps `_message`
+      // optional so older models can omit it.
+      expect(schema["required"]).toBeUndefined();
+    });
+
+    it("marks _message required when the schema is strict (additionalProperties:false)", () => {
+      class StrictTool extends Tool {
+        readonly name = "strict_tool";
+        readonly description = "Strict-schema tool";
+        readonly inputSchema = {
+          type: "object",
+          properties: { x: { type: "string" } },
+          required: ["x"],
+          additionalProperties: false
+        };
+        async process(
+          _ctx: ProcessingContext,
+          params: Record<string, unknown>
+        ): Promise<unknown> {
+          return params;
+        }
+      }
+      const pt = new StrictTool().toProviderTool();
+      const schema = pt.inputSchema as Record<string, unknown>;
+      expect(schema["additionalProperties"]).toBe(false);
+      expect(schema["required"]).toEqual(["x", "_message"]);
     });
   });
 

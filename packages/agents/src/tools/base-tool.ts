@@ -117,7 +117,7 @@ function injectUserMessageField(
     (schema["properties"] as Record<string, unknown> | undefined) ?? {};
   if (USER_MESSAGE_FIELD in existingProperties) return schema;
 
-  return {
+  const out: Record<string, unknown> = {
     ...schema,
     properties: {
       ...existingProperties,
@@ -127,4 +127,20 @@ function injectUserMessageField(
       }
     }
   };
+
+  // Schemas that opt into OpenAI strict structured-output (`additionalProperties:
+  // false`) require every key in `properties` to also appear in `required`.
+  // Mirror `_message` into `required` for those tools so the provider doesn't
+  // reject the schema at upload time. For lenient schemas we keep `_message`
+  // optional so older models can omit it without a hard failure.
+  if (schema["additionalProperties"] === false) {
+    const existingRequired = Array.isArray(schema["required"])
+      ? (schema["required"] as string[])
+      : [];
+    if (!existingRequired.includes(USER_MESSAGE_FIELD)) {
+      out["required"] = [...existingRequired, USER_MESSAGE_FIELD];
+    }
+  }
+
+  return out;
 }
