@@ -264,12 +264,8 @@ function setupAutoUpdaterEvents(): void {
           body: `Version ${info.version} has been downloaded. Click to restart and install.`,
         });
         notification.on("click", () => {
-          const win = getMainWindow();
-          if (win) {
-            if (win.isMinimized()) win.restore();
-            win.show();
-            win.focus();
-          }
+          logMessage("User clicked update notification — restarting to install");
+          autoUpdater.quitAndInstall();
         });
         notification.show();
       }
