@@ -180,12 +180,18 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
       flattenToDataUrl: () => canvasRef.current?.flattenToDataUrl() ?? "",
       getMaskDataUrl: () => canvasRef.current?.getMaskDataUrl() ?? null,
       setLayerData: (layerId, data) =>
-        canvasRef.current?.setLayerData(layerId, data)
+        canvasRef.current?.setLayerData(layerId, data),
+      clearActiveLayer: () => session.canvasActions.handleClearLayer()
     });
     return () => {
       clearCanvasGetters();
     };
-  }, [session.canvasRef, setCanvasGetters, clearCanvasGetters]);
+  }, [
+    session.canvasRef,
+    session.canvasActions,
+    setCanvasGetters,
+    clearCanvasGetters
+  ]);
 
   // Reconcile bindings on document load: stale-mark layers whose source
   // workflow changed, merge paramOverrides against current Input* nodes,

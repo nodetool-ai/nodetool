@@ -20,6 +20,7 @@ import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
 import { selectionAntCanvasMarginCssPx } from "./sketchCanvasHooks";
 import { cursorStyleForTool } from "./sketchCursorStyle";
 import { TransformGizmo } from "./transform/gizmo/TransformGizmo";
+import { SelectionActionBar } from "./SelectionActionBar";
 import type { TransformTool } from "./tools/TransformTool";
 
 export { cursorStyleForTool } from "./sketchCursorStyle";
@@ -250,6 +251,8 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
         />
         {/* React/SVG gizmo for the TransformTool (declarative, viewport-aware). */}
         <TransformGizmo containerRef={containerRef} tool={transformTool} />
+        {/* Floating contextual toolbar anchored to the active selection. */}
+        <SelectionActionBar containerRef={containerRef} />
         {/* Canvas resize handles */}
         {onCanvasResize && (
           <SketchCanvasResizeHandles
