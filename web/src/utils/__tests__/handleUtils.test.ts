@@ -210,10 +210,31 @@ describe("handleUtils", () => {
       });
     });
 
-    it("should return undefined for dynamic properties on non-dynamic nodes", () => {
+    it("should find instance dynamic_properties on non-dynamic nodes (e.g. Agent template inputs)", () => {
       const dynamicProperties = { dynamic_input: "test_value" };
       const node = createMockNode("test", {}, dynamicProperties);
       const handle = findInputHandle(node, "dynamic_input", mockNodeMetadata); // Non-dynamic metadata
+
+      expect(handle).toEqual({
+        name: "dynamic_input",
+        type: {
+          type: "any",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
+        isDynamic: true
+      });
+    });
+
+    it("should not treat dynamic-output-only keys as input handles", () => {
+      const node = createMockNode(
+        "test",
+        { result: mockDynamicTypeMetadata },
+        { result: "stale value" }
+      );
+      const handle = findInputHandle(node, "result", mockNodeMetadata);
 
       expect(handle).toBeUndefined();
     });
@@ -433,13 +454,24 @@ describe("handleUtils", () => {
       ]);
     });
 
-    it("should not return dynamic handles for non-dynamic nodes", () => {
+    it("should include instance dynamic_properties on non-dynamic nodes (e.g. Agent template inputs)", () => {
       const dynamicProperties = { dynamic1: "value1" };
       const node = createMockNode("test", {}, dynamicProperties);
       const handles = getAllInputHandles(node, mockNodeMetadata); // Non-dynamic metadata
 
-      expect(handles).toHaveLength(2); // Only static handles
-      expect(handles.every((h) => !h.isDynamic)).toBe(true);
+      expect(handles).toHaveLength(3); // 2 static + 1 dynamic property
+      const dynamicHandle = handles.find((h) => h.name === "dynamic1");
+      expect(dynamicHandle).toEqual({
+        name: "dynamic1",
+        type: {
+          type: "any",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
+        isDynamic: true
+      });
     });
 
     it("should include instance dynamic_inputs on non-dynamic nodes (sketch / Image Editor)", () => {
@@ -512,12 +544,10 @@ describe("handleUtils", () => {
       ).toBe(false);
     });
 
-    it("should return false for dynamic properties on non-dynamic nodes", () => {
+    it("should return true for instance dynamic_properties on non-dynamic nodes (e.g. Agent template inputs)", () => {
       const dynamicProperties = { dynamic_input: "test_value" };
       const node = createMockNode("test", {}, dynamicProperties);
-      expect(hasInputHandle(node, "dynamic_input", mockNodeMetadata)).toBe(
-        false
-      );
+      expect(hasInputHandle(node, "dynamic_input", mockNodeMetadata)).toBe(true);
     });
 
     it("should return false for non-existent handles", () => {

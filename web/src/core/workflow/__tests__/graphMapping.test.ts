@@ -192,6 +192,19 @@ describe("graphMapping helpers", () => {
       expect(target?.data.dynamic_properties).toEqual({});
       expect(sanitizedEdges).toHaveLength(0);
     });
+
+    it("keeps edges to existing dynamic_properties on non-dynamic target nodes (Agent template inputs)", () => {
+      const target = makeNode("b", "test");
+      target.data.dynamic_properties = { brief: "" };
+      const nodes = [makeNode("a", "test"), target];
+      const edges = [makeEdge("e1", "a", "b", "output", "brief")];
+
+      const { edges: sanitizedEdges } = sanitizeGraph(nodes, edges, {
+        test: baseMetadata
+      });
+
+      expect(sanitizedEdges).toHaveLength(1);
+    });
   });
 
   describe("exposedInputs auto-promotion", () => {
