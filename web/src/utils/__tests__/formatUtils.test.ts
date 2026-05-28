@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { formatFileSize, SIZE_FILTERS, type SizeFilterKey } from '../formatUtils';
+import { formatFileSize, formatDuration, SIZE_FILTERS, type SizeFilterKey } from '../formatUtils';
 
 describe('formatFileSize', () => {
   test('formats bytes correctly', () => {
@@ -68,6 +68,32 @@ describe('formatFileSize', () => {
     expect(formatFileSize(1023)).toBe('1023 B');
     expect(formatFileSize(1024)).toBe('1 KB');
     expect(formatFileSize(1025)).toBe('1 KB');
+  });
+});
+
+describe('formatDuration', () => {
+  test('formats sub-second durations as ms', () => {
+    expect(formatDuration(0)).toBe('0ms');
+    expect(formatDuration(420)).toBe('420ms');
+    expect(formatDuration(999)).toBe('999ms');
+  });
+
+  test('formats seconds with one decimal', () => {
+    expect(formatDuration(1000)).toBe('1s');
+    expect(formatDuration(1240)).toBe('1.2s');
+    expect(formatDuration(59500)).toBe('59.5s');
+  });
+
+  test('formats minutes with zero-padded seconds', () => {
+    expect(formatDuration(60000)).toBe('1m 00s');
+    expect(formatDuration(64000)).toBe('1m 04s');
+    expect(formatDuration(125000)).toBe('2m 05s');
+  });
+
+  test('returns null for invalid input', () => {
+    expect(formatDuration(-1)).toBeNull();
+    expect(formatDuration(NaN)).toBeNull();
+    expect(formatDuration(Infinity)).toBeNull();
   });
 });
 

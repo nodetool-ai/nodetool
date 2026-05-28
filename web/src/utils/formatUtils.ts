@@ -17,6 +17,28 @@ export function formatFileSize(bytes: number, decimals: number = 1): string {
 }
 
 /**
+ * Format a millisecond duration into a compact human-readable string.
+ * Examples: 420 → "420ms", 1240 → "1.2s", 64000 → "1m 04s".
+ * @param ms - Duration in milliseconds
+ * @returns Formatted string, or null for non-finite / negative input
+ */
+export function formatDuration(ms: number): string | null {
+  if (!Number.isFinite(ms) || ms < 0) {
+    return null;
+  }
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
+  const totalSeconds = ms / 1000;
+  if (totalSeconds < 60) {
+    return `${parseFloat(totalSeconds.toFixed(1))}s`;
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.round(totalSeconds % 60);
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+}
+
+/**
  * Size filter categories with human-readable labels
  */
 export const SIZE_FILTERS = [

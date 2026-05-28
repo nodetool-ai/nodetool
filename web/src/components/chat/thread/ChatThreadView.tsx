@@ -48,6 +48,8 @@ interface ChatThreadViewProps {
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
   onInsertCode?: (text: string, language?: string) => void;
+  /** Render per-message avatar + header meta (full-page chat only). */
+  showMessageMeta?: boolean;
 }
 
 const SCROLL_THRESHOLD = 50;
@@ -239,7 +241,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
-  onInsertCode
+  onInsertCode,
+  showMessageMeta = false
 }) => {
   const theme = useTheme();
 
@@ -287,12 +290,16 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   }, [messages]);
 
   const toolResultsByCallId = useMemo(() => {
-    const map: Record<string, { name?: string | null; content: Message["content"] }> = {};
+    const map: Record<
+      string,
+      { name?: string | null; content: Message["content"]; createdAt?: string | null }
+    > = {};
     for (const m of messages) {
       if (m.role === "tool" && m.tool_call_id) {
         map[String(m.tool_call_id)] = {
           name: m.name ?? undefined,
-          content: m.content
+          content: m.content,
+          createdAt: m.created_at ?? null
         };
       }
     }
@@ -539,6 +546,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                     toolResultsByCallId={toolResultsByCallId}
                     componentStyles={componentStyles}
                     executionMessagesById={executionMessagesById}
+                    showMeta={showMessageMeta}
                   />
                 </div>
               );

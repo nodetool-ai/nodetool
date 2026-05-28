@@ -15,6 +15,7 @@ import {
   TodoItem
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
+import { ConversationHeader } from "./ConversationHeader";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import ComposerSlot from "../composer/ComposerSlot";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
@@ -143,6 +144,14 @@ type ChatViewProps = {
    * GlobalChat so the composer persists across /dashboard → /chat.
    */
   useExternalComposer?: boolean;
+  /**
+   * Show the per-conversation header strip (title + model/provider/runtime/
+   * last-run) above the thread. Only meaningful where `GlobalChatStore`'s
+   * `currentThreadId` is the authoritative open thread (i.e. GlobalChat) —
+   * other surfaces (agent panel, editor modal) drive their own thread state,
+   * so the title would not match. Defaults to off.
+   */
+  showConversationHeader?: boolean;
 };
 
 // Stable empty-array sentinel so the Zustand selector below returns the same
@@ -178,7 +187,8 @@ const ChatView = ({
   workflowId,
   composerVariant,
   composerToolbar,
-  useExternalComposer = false
+  useExternalComposer = false,
+  showConversationHeader = false
 }: ChatViewProps) => {
   const theme = useTheme();
   const handleSendMessage = useCallback(
@@ -229,6 +239,9 @@ const ChatView = ({
     <div className="chat-view" css={styles(theme)}>
       <div className="chat-main">
         <div className="chat-thread-container">
+          {showConversationHeader && messages.length > 0 && (
+            <ConversationHeader messages={messages} />
+          )}
           {messages.length > 0 ? (
             <ChatThreadView
               messages={messages}
@@ -242,6 +255,7 @@ const ChatView = ({
               currentTaskUpdate={currentTaskUpdate}
               currentLogUpdate={currentLogUpdate}
               onInsertCode={onInsertCode}
+              showMessageMeta={showConversationHeader}
             />
           ) : (
             noMessagesPlaceholder ?? <div style={{ flex: 1 }} />

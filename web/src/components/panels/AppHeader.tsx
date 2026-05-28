@@ -13,7 +13,7 @@ import RightSideButtons from "./RightSideButtons";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { FlexRow, Tooltip, Box } from "../ui_primitives";
+import { FlexRow, Tooltip, Box, Text } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import { isProduction } from "../../lib/env";
@@ -21,6 +21,39 @@ import { trpcClient } from "../../trpc/client";
 import { useShallow } from "zustand/react/shallow";
 
 const workspacesEnabled = !isProduction;
+
+/** Human-readable mode name for the current route, shown in the brand label. */
+function modeLabelForPath(path: string): string {
+  if (path.startsWith("/editor")) return "Editor";
+  if (path.startsWith("/chat")) return "Chat";
+  if (path.startsWith("/apps")) return "App";
+  if (path.startsWith("/timeline")) return "Timeline";
+  if (path.startsWith("/sketch")) return "Image";
+  if (path.startsWith("/templates")) return "Templates";
+  if (path.startsWith("/dashboard")) return "Dashboard";
+  return "";
+}
+
+const BrandLabel = memo(function BrandLabel({ path }: { path: string }) {
+  const mode = modeLabelForPath(path);
+  return (
+    <FlexRow align="baseline" gap={0.5} sx={{ flexShrink: 0, mr: 1, userSelect: "none" }}>
+      <Text size="small" weight={500} sx={{ color: "text.primary" }}>
+        Nodetool
+      </Text>
+      {mode && (
+        <>
+          <Text size="small" sx={{ color: "text.disabled" }}>
+            /
+          </Text>
+          <Text size="small" sx={{ color: "text.secondary" }}>
+            {mode}
+          </Text>
+        </>
+      )}
+    </FlexRow>
+  );
+});
 
 const styles = (theme: Theme) =>
   css({
@@ -379,7 +412,7 @@ const HeaderWorkspaceSelector = memo(function HeaderWorkspaceSelector() {
       delay={TOOLTIP_ENTER_DELAY}
       placement="bottom"
     >
-      <Box sx={{ width: 200 }}>
+      <Box sx={{ width: 280 }}>
         <WorkspaceSelect
           value={workspaceId}
           onChange={setWorkspaceId}
@@ -515,6 +548,8 @@ const AppHeader: React.FC = memo(function AppHeader() {
               />
             </div>
           </Tooltip>
+          {/* Brand label - "Nodetool / {Mode}" */}
+          <BrandLabel path={path} />
           {/* Mode Pills - Editor, Chat, Dashboard */}
           <ModePills currentPath={path} />
           {/* Return to Timeline pill — only shown when opened from timeline */}

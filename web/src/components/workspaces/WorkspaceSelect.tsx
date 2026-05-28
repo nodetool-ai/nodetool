@@ -76,6 +76,11 @@ const styles = (theme: Theme) =>
       textOverflow: "ellipsis",
       fontFamily: "monospace"
     },
+    ".workspace-path-inline": {
+      color: theme.vars.palette.text.disabled,
+      fontFamily: "monospace",
+      fontSize: "0.78rem"
+    },
     ".none-option": {
       color: theme.vars.palette.text.disabled,
       fontStyle: "italic",
@@ -185,6 +190,12 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
           <div className="workspace-details">
             <span className="workspace-name">
               {selectedWorkspace.name}
+              {compact && selectedWorkspace.path && (
+                <span className="workspace-path-inline">
+                  {" · "}
+                  {selectedWorkspace.path}
+                </span>
+              )}
               {selectedWorkspace.is_default && (
                 <StarIcon className="default-badge" />
               )}

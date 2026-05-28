@@ -31,12 +31,15 @@ import {
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import { Collapse } from "@mui/material";
 
 
 import AgentExecutionView from "./AgentExecutionView";
 import MediaOutputGroup, { isMediaOnlyContent } from "./MediaOutputGroup";
-import { formatToolName } from "../../../utils/formatUtils";
+import { ToolResult } from "./toolResults";
+import { formatToolName, formatDuration } from "../../../utils/formatUtils";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 
@@ -76,7 +79,8 @@ const RUN_SUBTASK_TOOL_NAME = "run_subtask";
 const ToolCallCard: React.FC<{
   tc: ToolCall;
   result?: { name?: string | null; content: unknown };
-}> = React.memo(({ tc, result: _result }) => {
+  durationMs?: number | null;
+}> = React.memo(({ tc, result, durationMs }) => {
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
@@ -107,8 +111,14 @@ const ToolCallCard: React.FC<{
   }, [rawArgs, isSubtask]);
 
   const hasArgs = !!displayArgs && Object.keys(displayArgs).length > 0;
-  const hasDetails = !!hasArgs || (isSubtask && !!subtaskInstructions);
+  const resultContent = result?.content;
+  const hasResult =
+    resultContent != null &&
+    !(typeof resultContent === "string" && resultContent.trim().length === 0);
+  const hasDetails = !!hasArgs || (isSubtask && !!subtaskInstructions) || hasResult;
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
+  const durationLabel =
+    !isRunning && typeof durationMs === "number" ? formatDuration(durationMs) : null;
 
   const handleToggleOpen = useCallback(() => {
     setOpen((v) => !v);
@@ -167,14 +177,26 @@ const ToolCallCard: React.FC<{
           )}
           {isRunning && <LoadingSpinner size="small" />}
         </FlexRow>
-        {hasDetails && (
-          <ToolbarIconButton
-            tooltip={open ? "Hide details" : "Show details"}
-            onClick={handleToggleOpen}
-            icon={<ExpandMoreIcon className={`expand-icon${open ? " expanded" : ""}`} />}
-            className="tool-expand-button"
-          />
-        )}
+        <FlexRow align="center" gap={0.5} sx={{ flexShrink: 0 }}>
+          {durationLabel && (
+            <Text
+              component="span"
+              size="small"
+              className="tool-call-duration"
+              sx={{ color: "text.disabled", whiteSpace: "nowrap" }}
+            >
+              {durationLabel}
+            </Text>
+          )}
+          {hasDetails && (
+            <ToolbarIconButton
+              tooltip={open ? "Hide details" : "Show details"}
+              onClick={handleToggleOpen}
+              icon={<ExpandMoreIcon className={`expand-icon${open ? " expanded" : ""}`} />}
+              className="tool-expand-button"
+            />
+          )}
+        </FlexRow>
       </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
         <FlexColumn gap={0.5} sx={{ marginTop: "4px" }}>
@@ -194,6 +216,12 @@ const ToolCallCard: React.FC<{
               <PrettyJson value={displayArgs} />
             </FlexColumn>
           )}
+          {hasResult && (
+            <FlexColumn gap={0.25}>
+              <Caption className="tool-section-title">Result</Caption>
+              <ToolResult toolName={tc.name} content={resultContent} />
+            </FlexColumn>
+          )}
         </FlexColumn>
       </Collapse>
     </div>
@@ -206,8 +234,17 @@ interface MessageViewProps {
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
   onInsertCode?: (text: string, language?: string) => void;
-  toolResultsByCallId?: Record<string, { name?: string | null; content: unknown }>;
+  toolResultsByCallId?: Record<
+    string,
+    { name?: string | null; content: unknown; createdAt?: string | null }
+  >;
   executionMessagesById?: Map<string, Message[]>;
+  /**
+   * Render the per-message meta layout: an avatar + a persistent header line
+   * (role · time · model), left-aligned for both roles. Enabled only in the
+   * full-page chat; embedded chats keep the compact bubble layout.
+   */
+  showMeta?: boolean;
 }
 
 export const MessageView: React.FC<
@@ -218,7 +255,8 @@ export const MessageView: React.FC<
   onToggleThought,
   onInsertCode,
   toolResultsByCallId,
-  executionMessagesById
+  executionMessagesById,
+  showMeta = false
 }) => {
   const insertIntoEditor = useEditorInsertion();
 
@@ -271,11 +309,14 @@ export const MessageView: React.FC<
           return true;
         }));
 
+    const showRoleMeta =
+      showMeta && (message.role === "assistant" || message.role === "user");
     const messageClass = [
       baseClass,
       (message as Message & { error_type?: string }).error_type ? "error-message" : null,
       hasToolCalls ? "has-tool-calls" : null,
-      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null
+      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null,
+      showRoleMeta ? "chat-message--meta" : null
     ]
       .filter(Boolean)
       .join(" ");
@@ -368,7 +409,11 @@ export const MessageView: React.FC<
       }
       try {
         const date = new Date(dateStr);
-        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        });
       } catch {
         // Date parsing failed, return null
         return null;
@@ -376,24 +421,44 @@ export const MessageView: React.FC<
     };
 
     const formattedTime = formatTime(message.created_at);
-
     return (
       <div className={messageClass}>
+        <div className="message-body">
+        {showRoleMeta && (
+          <div className="message-header">
+            {message.role === "user" ? (
+              <PersonOutlineRoundedIcon className="message-role-icon" />
+            ) : (
+              <HubOutlinedIcon className="message-role-icon" />
+            )}
+            {formattedTime && (
+              <span className="message-time">{formattedTime}</span>
+            )}
+          </div>
+        )}
         <div className="message-content">
           {message.role === "assistant" &&
             Array.isArray(message.tool_calls) &&
             !message.agent_execution_id && // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
-            (message.tool_calls as ToolCall[]).map((tc, i) => (
-              <ToolCallCard
-                key={tc.id || i}
-                tc={tc}
-                result={
-                  tc.id && toolResultsByCallId
-                    ? toolResultsByCallId[String(tc.id)]
-                    : undefined
-                }
-              />
-            ))}
+            (message.tool_calls as ToolCall[]).map((tc, i) => {
+              const toolResult =
+                tc.id && toolResultsByCallId
+                  ? toolResultsByCallId[String(tc.id)]
+                  : undefined;
+              const durationMs =
+                toolResult?.createdAt && message.created_at
+                  ? new Date(toolResult.createdAt).getTime() -
+                    new Date(message.created_at).getTime()
+                  : null;
+              return (
+                <ToolCallCard
+                  key={tc.id || i}
+                  tc={tc}
+                  result={toolResult}
+                  durationMs={durationMs}
+                />
+              );
+            })}
           {(message.role === "assistant" || message.role === "user") && (
             <>
               {typeof message.content === "string" &&
@@ -432,8 +497,11 @@ export const MessageView: React.FC<
         {/* Message actions: timestamp + copy button */}
         {!Array.isArray(message.tool_calls) && (
           <div className="message-actions">
-            {formattedTime && (
+            {!showRoleMeta && formattedTime && (
               <span className="message-timestamp">{formattedTime}</span>
+            )}
+            {!showRoleMeta && message.role === "assistant" && message.model && (
+              <span className="message-model">{message.model}</span>
             )}
             <CopyButton
               value={handleCopy()}
@@ -442,6 +510,7 @@ export const MessageView: React.FC<
             />
           </div>
         )}
+        </div>
       </div>
     );
 });

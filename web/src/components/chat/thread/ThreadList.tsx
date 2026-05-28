@@ -14,6 +14,14 @@ import { groupByDate } from "../../../utils/groupByDate";
 
 export type { ThreadInfo } from "./";
 
+function formatGroupDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return "";
+  return date
+    .toLocaleDateString([], { day: "2-digit", month: "short" })
+    .toUpperCase();
+}
+
 const ThreadList: React.FC<ThreadListProps> = ({
   threads,
   currentThreadId,
@@ -61,7 +69,8 @@ const ThreadList: React.FC<ThreadListProps> = ({
           if (headerLabel !== lastHeaderLabel) {
             elements.push(
               <li key={`group-${headerLabel}`} className="thread-date-group">
-                {headerLabel}
+                <span className="group-label">{headerLabel}</span>
+                <span className="group-date">{formatGroupDate(dateStr)}</span>
               </li>
             );
             lastHeaderLabel = headerLabel;
