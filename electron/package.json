@@ -52,12 +52,12 @@
     "ts-jest": "^29.4.11",
     "typescript": "^5.9.3",
     "vite": "^8.0.14",
-    "vite-plugin-electron": "^0.29.1"
+    "vite-plugin-electron": "^0.29.1",
+    "@nodetool-ai/websocket": "*"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.1.3",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/websocket": "*",
     "@trpc/client": "^11.17.0",
     "better-sqlite3": "^12.10.0",
     "bufferutil": "^4.1.0",
