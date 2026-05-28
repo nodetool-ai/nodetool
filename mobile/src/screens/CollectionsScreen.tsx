@@ -4,7 +4,7 @@
  * collections, and delete existing ones. Mirrors the web CollectionsExplorer
  * feature but scoped to the essentials that fit a mobile form factor.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,7 +23,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
-import { apiService, CollectionResponse } from '../services/api';
+import { type CollectionResponse } from '../services/api';
+import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
 
 type Props = {
@@ -42,35 +43,30 @@ export default function CollectionsScreen({ navigation: _navigation }: Props) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [collections, setCollections] = useState<CollectionResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [creator, setCreator] = useState<CreateState | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const data = await apiService.listCollections();
-      setCollections(data.collections || []);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to load collections';
-      setLoadError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const utils = trpc.useUtils();
+  const {
+    data,
+    isLoading,
+    isRefetching,
+    error,
+    refetch,
+  } = trpc.collections.list.useQuery();
+  const collections = useMemo(
+    () => (data?.collections ?? []) as CollectionResponse[],
+    [data]
+  );
+  const loadError = error ? error.message || 'Failed to load collections' : null;
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await load();
-    setIsRefreshing(false);
-  }, [load]);
+  const createCollection = trpc.collections.create.useMutation({
+    onSuccess: () => { utils.collections.list.invalidate(); },
+  });
+  const deleteCollection = trpc.collections.delete.useMutation({
+    onSuccess: () => { utils.collections.list.invalidate(); },
+    onError: (e) => { Alert.alert('Delete failed', e.message); },
+  });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -99,15 +95,14 @@ export default function CollectionsScreen({ navigation: _navigation }: Props) {
 
     setCreator({ ...creator, saving: true });
     try {
-      await apiService.createCollection({ name, embedding_model: embeddingModel });
-      await load();
+      await createCollection.mutateAsync({ name, embedding_model: embeddingModel });
       closeCreate();
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Failed to create collection';
       Alert.alert('Create failed', message);
-      setCreator({ ...creator, saving: false });
+      setCreator((c) => (c ? { ...c, saving: false } : c));
     }
-  }, [creator, load, closeCreate]);
+  }, [creator, createCollection, closeCreate]);
 
   const handleDelete = useCallback((collection: CollectionResponse) => {
     Alert.alert(
@@ -118,19 +113,11 @@ export default function CollectionsScreen({ navigation: _navigation }: Props) {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiService.deleteCollection(collection.name);
-              await load();
-            } catch (e) {
-              const message = e instanceof Error ? e.message : 'Failed to delete collection';
-              Alert.alert('Delete failed', message);
-            }
-          },
+          onPress: () => { deleteCollection.mutate({ name: collection.name }); },
         },
       ],
     );
-  }, [load]);
+  }, [deleteCollection]);
 
   const renderItem = ({ item }: { item: CollectionResponse }) => (
     <View
@@ -209,8 +196,8 @@ export default function CollectionsScreen({ navigation: _navigation }: Props) {
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 96 }]}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
+            refreshing={isRefetching}
+            onRefresh={() => { refetch(); }}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />

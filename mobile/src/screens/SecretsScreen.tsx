@@ -4,7 +4,7 @@
  * Mirrors the web SecretsMenu feature: list secrets with metadata, show a
  * masked field per entry, reveal/edit value, save or delete.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,7 +23,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
-import { apiService, SecretResponse } from '../services/api';
+import { type SecretResponse } from '../services/api';
+import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
 
 type Props = {
@@ -42,35 +43,27 @@ export default function SecretsScreen({ navigation: _navigation }: Props) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [secrets, setSecrets] = useState<SecretResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [editor, setEditor] = useState<EditorState | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const data = await apiService.listSecrets();
-      setSecrets(data.secrets || []);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to load secrets';
-      setLoadError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const utils = trpc.useUtils();
+  const {
+    data,
+    isLoading,
+    isRefetching,
+    error,
+    refetch,
+  } = trpc.settings.secrets.list.useQuery();
+  const secrets = useMemo(() => (data?.secrets ?? []) as SecretResponse[], [data]);
+  const loadError = error ? error.message || 'Failed to load secrets' : null;
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await load();
-    setIsRefreshing(false);
-  }, [load]);
+  const upsertSecret = trpc.settings.secrets.upsert.useMutation({
+    onSuccess: () => { utils.settings.secrets.list.invalidate(); },
+  });
+  const deleteSecret = trpc.settings.secrets.delete.useMutation({
+    onSuccess: () => { utils.settings.secrets.list.invalidate(); },
+    onError: (e) => { Alert.alert('Delete failed', e.message); },
+  });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -115,18 +108,18 @@ export default function SecretsScreen({ navigation: _navigation }: Props) {
 
     setEditor({ ...editor, saving: true });
     try {
-      await apiService.updateSecret(key, {
+      await upsertSecret.mutateAsync({
+        key,
         value,
-        description: editor.description.trim() || null,
+        description: editor.description.trim() || undefined,
       });
-      await load();
       closeEditor();
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Failed to save secret';
       Alert.alert('Save failed', message);
-      setEditor({ ...editor, saving: false });
+      setEditor((prev) => (prev ? { ...prev, saving: false } : prev));
     }
-  }, [editor, load, closeEditor]);
+  }, [editor, upsertSecret, closeEditor]);
 
   const handleDelete = useCallback((secret: SecretResponse) => {
     Alert.alert(
@@ -137,19 +130,11 @@ export default function SecretsScreen({ navigation: _navigation }: Props) {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiService.deleteSecret(secret.key);
-              await load();
-            } catch (e) {
-              const message = e instanceof Error ? e.message : 'Failed to delete secret';
-              Alert.alert('Delete failed', message);
-            }
-          },
+          onPress: () => { deleteSecret.mutate({ key: secret.key }); },
         },
       ],
     );
-  }, [load]);
+  }, [deleteSecret]);
 
   const renderItem = ({ item }: { item: SecretResponse }) => {
     const configured = item.is_configured;
@@ -247,8 +232,8 @@ export default function SecretsScreen({ navigation: _navigation }: Props) {
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 96 }]}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
+            refreshing={isRefetching}
+            onRefresh={() => { refetch(); }}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />

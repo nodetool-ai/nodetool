@@ -21,6 +21,7 @@ import { apiService } from './src/services/api';
 import { useTheme } from './src/hooks/useTheme';
 import { useAuthStore } from './src/stores/AuthStore';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { TRPCProvider } from './src/trpc/Provider';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -64,6 +65,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <TRPCProvider>
       <SafeAreaProvider>
         <NavigationContainer>
           <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -155,6 +157,7 @@ export default function App() {
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>
+      </TRPCProvider>
     </ErrorBoundary>
   );
 }
