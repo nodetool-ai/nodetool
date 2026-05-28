@@ -25,6 +25,7 @@ import {
   Chip,
   EditorButton,
   FlexRow,
+  LoadingSpinner,
   Text,
   TextInput,
   Toast
@@ -40,7 +41,7 @@ import type { SketchGenMode } from "../state/slices/toolSlice";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useInpaintHere } from "../../../hooks/sketch/useInpaintHere";
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
-import { SKETCH_FONT } from "../sketchStyles";
+import { SKETCH_FONT, SKETCH_SPACING } from "../sketchStyles";
 
 interface ModeDescriptor {
   value: SketchGenMode;
@@ -56,7 +57,7 @@ const MODES: ModeDescriptor[] = [
     label: "Generate",
     enabled: true,
     placeholder: "Describe the image…",
-    hint: "Text-to-image — create a new layer from a prompt."
+    hint: "Text-to-image: create a new layer from a prompt."
   },
   {
     value: "inpaint",
@@ -70,14 +71,14 @@ const MODES: ModeDescriptor[] = [
     label: "Outpaint",
     enabled: false,
     placeholder: "Extend the image…",
-    hint: "Coming soon — extend the image beyond its current bounds."
+    hint: "Coming soon: extend the image beyond its current bounds."
   },
   {
     value: "edit",
     label: "Edit",
     enabled: false,
     placeholder: "Describe the edit…",
-    hint: "Coming soon — instruction-based image editing."
+    hint: "Coming soon: instruction-based image editing."
   }
 ];
 
@@ -162,6 +163,11 @@ const ConnectedModePromptBarInner: React.FC = () => {
       useSketchStore.getState().setActiveLayer(layerId);
       await start(layerId);
       setPrompt("");
+    } catch (e) {
+      // Surface generation failures through the same Toast the inpaint path
+      // uses, rather than letting a rejected start() become a silent
+      // unhandled rejection.
+      setError(e instanceof Error ? e.message : "Generation failed.");
     } finally {
       setGenerating(false);
     }
@@ -229,7 +235,11 @@ const ConnectedModePromptBarInner: React.FC = () => {
         sx={{
           flexShrink: 0,
           width: "100%",
-          padding: theme.spacing(0.75, 1),
+          // The prompt bar is the editor's hero input, so it carries more
+          // height than the utility tool-options bar below it. Generous
+          // vertical room keeps the controls from feeling crammed.
+          minHeight: 56,
+          padding: `${SKETCH_SPACING.lg} ${SKETCH_SPACING.xl}`,
           backgroundColor: theme.vars.palette.grey[900],
           borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
         }}
@@ -324,7 +334,13 @@ const ConnectedModePromptBarInner: React.FC = () => {
           size="small"
           disabled={actionDisabled}
           onClick={handleSubmit}
-          startIcon={<AutoAwesomeIcon fontSize="small" />}
+          startIcon={
+            isBusy ? (
+              <LoadingSpinner inline size={14} color="inherit" />
+            ) : (
+              <AutoAwesomeIcon fontSize="small" />
+            )
+          }
           data-testid="sketch-gen-submit"
           sx={{ flexShrink: 0 }}
         >
