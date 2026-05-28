@@ -47,6 +47,7 @@ import falColorIcon from "@lobehub/icons-static-svg/icons/fal-color.svg";
 import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
 import moonshotIcon from "@lobehub/icons-static-svg/icons/moonshot.svg";
 import topazlabsIcon from "@lobehub/icons-static-svg/icons/topazlabs.svg";
+import atlascloudIcon from "@lobehub/icons-static-svg/icons/atlascloud.svg";
 import zhipuColorIcon from "@lobehub/icons-static-svg/icons/zhipu-color.svg";
 import minimaxColorIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg";
 import meshyColorIcon from "@lobehub/icons-static-svg/icons/meshy-color.svg";
@@ -195,6 +196,14 @@ const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://developer.topazlabs.com/",
     icon: topazlabsIcon,
     mono: true
+  },
+  {
+    key: "ATLASCLOUD_API_KEY",
+    name: "AtlasCloud",
+    description: "GPT Image 2, Nano Banana, and Seedance 2.0 video generation.",
+    category: "other",
+    docsUrl: "https://www.atlascloud.ai/",
+    icon: atlascloudIcon
   },
   {
     key: "KIMI_API_KEY",

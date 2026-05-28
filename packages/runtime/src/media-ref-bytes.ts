@@ -1,8 +1,22 @@
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { importNodeBuiltin } from "@nodetool-ai/config";
 import type { ProcessingContext } from "./context.js";
 import { encodeRawRgbaToPng } from "./image-codec.js";
+
+const _nodeFsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
+  "node:fs/promises"
+);
+const _nodeUrl = await importNodeBuiltin<typeof import("node:url")>("node:url");
+const readFile = (
+  ...args: Parameters<typeof import("node:fs/promises").readFile>
+): Promise<Buffer> =>
+  _nodeFsP
+    ? (_nodeFsP.readFile(...args) as Promise<Buffer>)
+    : Promise.reject(new Error("node:fs/promises.readFile requires Node"));
+const fileURLToPath = (u: string | URL): string => {
+  if (!_nodeUrl) throw new Error("node:url.fileURLToPath requires Node");
+  return _nodeUrl.fileURLToPath(u);
+};
 
 /** Minimal media ref shape for byte resolution (Python bridge + TS nodes). */
 export type MediaRefValue = {

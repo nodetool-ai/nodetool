@@ -31,6 +31,7 @@ export const PROVIDER_NAMESPACES: readonly string[] = [
   "fal",
   "replicate",
   "kie",
+  "atlascloud",
   "comfyui",
   "apify",
   "messaging",

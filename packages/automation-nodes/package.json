@@ -1,0 +1,65 @@
+{
+  "name": "@nodetool-ai/automation-nodes",
+  "version": "0.7.0-rc.23",
+  "description": "NodeTool automation/system nodes \u2014 browser control, OS, workspace FS, triggers, SQLite, OCR, Excel, TensorFlow",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/image-nodes": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/nodes-utils": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/sandbox": "*",
+    "@openclaw/fs-safe": "^0.1.2",
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow-models/qna": "^1.0.2",
+    "@tensorflow/tfjs": "^4.22.0",
+    "better-sqlite3": "^12.8.0",
+    "chrome-launcher": "^1.2.0",
+    "chrome-remote-interface": "^0.34.0",
+    "exceljs": "^4.4.0",
+    "tesseract.js": "^7.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/chrome-remote-interface": "^0.33.0",
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./nodes/*": {
+      "types": "./dist/nodes/*.d.ts",
+      "import": "./dist/nodes/*.js",
+      "default": "./dist/nodes/*.js"
+    },
+    "./lib/*": {
+      "types": "./dist/lib/*.d.ts",
+      "import": "./dist/lib/*.js",
+      "default": "./dist/lib/*.js"
+    }
+  },
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

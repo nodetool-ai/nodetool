@@ -1,6 +1,18 @@
-import { randomUUID } from "node:crypto";
+import { importNodeBuiltin } from "@nodetool-ai/config";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
+
+const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+  "node:crypto"
+);
+const randomUUID = (): string => {
+  if (_nodeCrypto?.randomUUID) return _nodeCrypto.randomUUID();
+  const g = globalThis as { crypto?: { randomUUID?: () => string } };
+  if (g.crypto?.randomUUID) return g.crypto.randomUUID();
+  return `id_${Date.now().toString(36)}_${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+};
 import type {
   ASRResult,
   ImageTo3DParams,

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-slim AS deps
+FROM node:22-slim AS deps
 
 # Native build dependencies are only needed while installing/building packages.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -105,7 +105,7 @@ RUN mkdir -p /runtime/packages /runtime/web \
     && cp web/package.json /runtime/web/package.json \
     && cp -a web/dist /runtime/web/dist
 
-FROM node:24-slim AS runtime
+FROM node:22-slim AS runtime
 
 ENV NODE_ENV=production \
     NODETOOL_ENV=production \

@@ -3,10 +3,18 @@
  *
  * Loads .env files in order: .env, .env.{NODE_ENV}, .env.{NODE_ENV}.local
  * Later files override earlier ones. System env vars always win.
+ *
+ * `node:fs` and `node:path` are lazy-loaded so the module graph loads
+ * on non-Node runtimes (browser, Edge). `loadEnvironment()` is a no-op
+ * outside Node.
  */
 import { config as dotenvConfig } from "dotenv";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { IS_NODE, importNodeBuiltin } from "./node-import.js";
+
+type FsApi = { existsSync: (path: string) => boolean };
+type PathApi = { resolve: (...parts: string[]) => string };
+const fsSync = await importNodeBuiltin<FsApi>("node:fs");
+const pathSync = await importNodeBuiltin<PathApi>("node:path");
 
 let loaded = false;
 const envStore = new Map<string, string>();
@@ -18,14 +26,19 @@ const envStore = new Map<string, string>();
  * @param rootDir - Directory containing .env files. Defaults to cwd.
  */
 export function loadEnvironment(rootDir?: string): void {
+  if (!IS_NODE || !fsSync || !pathSync) {
+    // Outside Node — no .env files to load.
+    loaded = true;
+    return;
+  }
   const root = rootDir ?? process.cwd();
   const nodeEnv = process.env.NODE_ENV ?? "development";
 
   // Load files in order: .env, .env.{NODE_ENV}, .env.{NODE_ENV}.local
   const files = [
-    resolve(root, ".env"),
-    resolve(root, `.env.${nodeEnv}`),
-    resolve(root, `.env.${nodeEnv}.local`)
+    pathSync.resolve(root, ".env"),
+    pathSync.resolve(root, `.env.${nodeEnv}`),
+    pathSync.resolve(root, `.env.${nodeEnv}.local`)
   ];
 
   // Start fresh
@@ -35,7 +48,7 @@ export function loadEnvironment(rootDir?: string): void {
   const systemEnv = { ...process.env };
 
   for (const file of files) {
-    if (existsSync(file)) {
+    if (fsSync.existsSync(file)) {
       const result = dotenvConfig({ path: file, override: true });
       if (result.parsed) {
         for (const [key, value] of Object.entries(result.parsed)) {
@@ -64,7 +77,7 @@ export function getEnv(key: string, defaultValue?: string): string | undefined {
   if (loaded) {
     return envStore.get(key) ?? defaultValue;
   }
-  return process.env[key] ?? defaultValue;
+  return (IS_NODE ? process.env[key] : undefined) ?? defaultValue;
 }
 
 /**

@@ -767,10 +767,10 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
         pkg.name?.toLowerCase(),
         canonicalizePackageName(pkg.name || ""),
         pkg.repo_id?.toLowerCase(),
-      ].filter(Boolean) as string[];
+      ].filter((v): v is string => typeof v === "string" && v.length > 0);
       for (const key of keys) {
         if (!versionHints.has(key)) {
-          versionHints.set(key, pkg.version as string);
+          versionHints.set(key, pkg.version);
         }
       }
     }

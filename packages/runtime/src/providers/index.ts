@@ -30,6 +30,7 @@ import { ReplicateProvider } from "./replicate-provider.js";
 import { FalProvider } from "./fal-provider.js";
 import { KieProvider } from "./kie-provider.js";
 import { TopazProvider } from "./topaz-provider.js";
+import { AtlasCloudProvider } from "./atlascloud-provider.js";
 import { AkiProvider } from "./aki-provider.js";
 import { MeshyProvider } from "./meshy-provider.js";
 import { RodinProvider } from "./rodin-provider.js";
@@ -61,6 +62,7 @@ export { ReplicateProvider };
 export { FalProvider };
 export { KieProvider };
 export { TopazProvider };
+export { AtlasCloudProvider };
 export { AkiProvider };
 export { MeshyProvider };
 export { RodinProvider };
@@ -147,6 +149,7 @@ registerBuiltinProvider("replicate", ReplicateProvider, { REPLICATE_API_TOKEN: "
 registerBuiltinProvider("fal_ai", FalProvider, { FAL_API_KEY: "" });
 registerBuiltinProvider("kie", KieProvider, { KIE_API_KEY: "" });
 registerBuiltinProvider("topaz", TopazProvider, { TOPAZ_API_KEY: "" });
+registerBuiltinProvider("atlascloud", AtlasCloudProvider, { ATLASCLOUD_API_KEY: "" });
 registerBuiltinProvider("aki", AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider("meshy", MeshyProvider, { MESHY_API_KEY: "" });
 registerBuiltinProvider("rodin", RodinProvider, { RODIN_API_KEY: "" });
@@ -160,7 +163,9 @@ registerBuiltinProvider("deepseek", DeepSeekProvider, { DEEPSEEK_API_KEY: "" });
 registerBuiltinProvider("xai", XAIProvider, { XAI_API_KEY: "" });
 
 // Local-only providers — require local servers/CLIs, skip in production
-if (process.env["NODETOOL_ENV"] !== "production") {
+const _envProcess =
+  typeof process !== "undefined" ? process : { env: {} as Record<string, string | undefined> };
+if (_envProcess.env["NODETOOL_ENV"] !== "production") {
   // Ollama defaults to the standard local daemon port so the provider is
   // usable out-of-the-box. The URL is registered as an optionalKwarg so it
   // re-resolves from the secret store / env on every getProvider() call —
@@ -206,8 +211,8 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 // Fake provider for end-to-end testing without external API keys.
 // Opt-in via env flag — never enabled in production builds.
 if (
-  process.env["NODETOOL_ENV"] !== "production" &&
-  process.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
+  _envProcess.env["NODETOOL_ENV"] !== "production" &&
+  _envProcess.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
 ) {
   registerBuiltinProvider("fake", FakeProvider, {});
 }

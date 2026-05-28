@@ -14,7 +14,7 @@ import {
   DeleteLibNode as SupabaseDeleteLibNode,
   UpsertLibNode as SupabaseUpsertLibNode,
   RPCLibNode as SupabaseRPCLibNode
-} from "../src/nodes/lib-supabase.js";
+} from "@nodetool-ai/integration-nodes";
 
 import {
   // lib-pedalboard-extra

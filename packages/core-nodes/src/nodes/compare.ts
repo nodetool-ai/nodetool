@@ -1,0 +1,130 @@
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
+
+type ImageLike = {
+  data?: Uint8Array | string;
+  uri?: string;
+};
+
+function toBytes(image: ImageLike | undefined): Uint8Array {
+  if (!image) return new Uint8Array();
+  if (image.data instanceof Uint8Array) return image.data;
+  if (typeof image.data === "string") {
+    return Uint8Array.from(Buffer.from(image.data, "base64"));
+  }
+  if (typeof image.uri === "string" && image.uri.startsWith("data:")) {
+    const payload = image.uri.split(",", 2)[1] ?? "";
+    return Uint8Array.from(Buffer.from(payload, "base64"));
+  }
+  return new Uint8Array();
+}
+
+export class CompareImagesNode extends BaseNode {
+  static readonly nodeType = "nodetool.compare.CompareImages";
+  static readonly title = "Compare Images";
+  static readonly description =
+    "Compare two images side-by-side with an interactive slider.\n    image, compare, comparison, diff, before, after, slider\n\n    Use this node to visually compare:\n    - Before/after processing results\n    - Different model outputs\n    - Original vs edited images\n    - A/B testing of image variations";
+  // The `comparison` output carries the side-by-side snapshot consumed by
+  // the node body; `score` and `equal` are connectable for downstream use.
+  static readonly metadataOutputTypes = {
+    comparison: "any",
+    score: "float",
+    equal: "bool"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image_a", "image_b"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image A",
+    description: "First image (displayed on left/top)"
+  })
+  declare image_a: any;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image B",
+    description: "Second image (displayed on right/bottom)"
+  })
+  declare image_b: any;
+
+  @prop({
+    type: "str",
+    default: "A",
+    title: "Label A",
+    description: "Label for the first image"
+  })
+  declare label_a: any;
+
+  @prop({
+    type: "str",
+    default: "B",
+    title: "Label B",
+    description: "Label for the second image"
+  })
+  declare label_b: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const imageA = this.image_a ?? {};
+    const imageB = this.image_b ?? {};
+    const a = toBytes(imageA as ImageLike);
+    const b = toBytes(imageB as ImageLike);
+
+    // Build the comparison snapshot the UI slider consumes. Images are
+    // normalized (asset URIs resolved, in-memory bytes materialized) so
+    // the client can render without extra round-trips.
+    const normalize =
+      context && typeof context.normalizeOutputValue === "function"
+        ? context.normalizeOutputValue.bind(context)
+        : async (value: unknown) => value;
+    const [normalizedA, normalizedB] = await Promise.all([
+      normalize(imageA),
+      normalize(imageB)
+    ]);
+    const comparison = {
+      type: "image_comparison",
+      image_a: normalizedA,
+      image_b: normalizedB,
+      label_a: String(this.label_a ?? "A"),
+      label_b: String(this.label_b ?? "B")
+    };
+
+    if (a.length === 0 && b.length === 0) {
+      return { comparison, score: 1, equal: true };
+    }
+    if (a.length === 0 || b.length === 0) {
+      return { comparison, score: 0, equal: false };
+    }
+
+    const len = Math.min(a.length, b.length);
+    let same = 0;
+    for (let i = 0; i < len; i += 1) {
+      if (a[i] === b[i]) same += 1;
+    }
+
+    const lengthPenalty = len / Math.max(a.length, b.length);
+    const score = (same / len) * lengthPenalty;
+    return {
+      comparison,
+      score,
+      equal: score === 1
+    };
+  }
+}
+
+export const COMPARE_NODES = tagAsUniversal([CompareImagesNode]);

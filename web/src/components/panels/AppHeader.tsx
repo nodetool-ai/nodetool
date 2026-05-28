@@ -73,19 +73,16 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       WebkitAppRegion: "no-drag"
     },
-    // Mode pills - segmented control style
+    // Mode pills - underline tab strip (DESIGN.md §Navigation)
     ".mode-pills": {
       display: "flex",
       alignItems: "center",
       gap: "2px",
-      border: "1px solid var(--palette-grey-800)",
-      borderRadius: "var(--rounded-md)",
       height: "1.6em",
     },
     ".mode-pill": {
       padding: "5px 14px",
-      borderRadius: "var(--rounded-sm)",
-      fontWeight: 500,
+      fontWeight: 400,
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       minWidth: "auto",
@@ -93,6 +90,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.vars.fontSizeSmall,
       transition: "all 0.2s ease-out",
       border: "none",
+      borderBottom: "2px solid transparent",
       backgroundColor: "transparent",
       cursor: "pointer",
       display: "flex",
@@ -111,13 +109,11 @@ const styles = (theme: Theme) =>
         justifyContent: "center"
       },
       "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.primary
       },
       "&.active": {
-        backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.text.primary,
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.15)",
+        borderBottomColor: theme.vars.palette.primary.main,
         "& svg, & .icon-container svg": {
           color: theme.vars.palette.text.primary
         }

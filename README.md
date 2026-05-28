@@ -279,6 +279,10 @@ We welcome bug reports, feature requests, code contributions, and new nodes.
 
 Please open an issue before starting major work so we can coordinate.
 
+### Acknowledgements
+
+- [@mphermes](https://github.com/mphermes) — Atlas Cloud integration
+
 ## License
 
 [AGPL-3.0](https://github.com/nodetool-ai/nodetool/blob/main/LICENSE)

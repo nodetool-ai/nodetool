@@ -510,7 +510,6 @@ function createRuntimeContext(opts: {
 }): RuntimeProcessingContext {
   const storagePath = getAssetStoragePath();
   const tempAdapter = getTempAdapter();
-  const assetAdapter = getAssetAdapter();
   // The agent's "workspace" — where file_read / file_write / file_list land.
   // Local: a FileStorageAdapter rooted at workspaceDir. Cloud: callers can
   // wire a different StorageAdapter when constructing the runner; for now
@@ -563,7 +562,7 @@ function createRuntimeContext(opts: {
       if (args.content) {
         const ext = MIME_TO_EXT[args.contentType] ?? "bin";
         const key = `${asset.id}.${ext}`;
-        await assetAdapter.store(key, args.content, args.contentType);
+        await storeAssetWithThumbnail(asset.id, key, args.content, args.contentType);
         asset.size = args.content.length;
       }
       await asset.save();

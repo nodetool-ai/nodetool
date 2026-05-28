@@ -1,20 +1,20 @@
 /** Workflow Execution Module */
 
 import { clipboard, nativeImage } from "electron";
-import { Workflow } from "./types";
+import { Workflow, Node } from "./types";
 import { logMessage } from "./logger";
 import { createWorkflowRunner } from "./WorkflowRunner";
 import { createWorkflowWindow } from "./workflowWindow";
 
 /** Retrieves nodes of a specific input type from the workflow */
-function getInputNodes(workflow: Workflow, type: string) {
+function getInputNodes(workflow: Workflow, type: string): Node[] {
   return workflow.graph.nodes.filter((node) =>
     node.type.startsWith(`nodetool.input.${type}`)
   );
 }
 
 /** Retrieves all output nodes from the workflow */
-function getOutputNodes(workflow: Workflow) {
+function getOutputNodes(workflow: Workflow): Node[] {
   return workflow.graph.nodes.filter((node) =>
     node.type.startsWith(`nodetool.output`)
   );
@@ -31,7 +31,7 @@ function tryReadClipboardImage(workflow: Workflow): Record<string, unknown> {
     logMessage(`Found ${imageInputNodes.length} image input nodes`);
     if (imageInputNodes.length > 0) {
       const inputNode = imageInputNodes[0];
-      const nodeName = inputNode.data.name as string;
+      const nodeName = typeof inputNode.data.name === "string" ? inputNode.data.name : String(inputNode.data.name);
       logMessage(`Using image input node: ${nodeName}`);
       const dataUri = `data:image/png;base64,${image
         .toPNG()
@@ -60,7 +60,7 @@ function tryReadClipboardText(workflow: Workflow): Record<string, unknown> {
     logMessage(`Found ${stringInputNodes.length} string input nodes`);
     if (stringInputNodes.length > 0) {
       const inputNode = stringInputNodes[0];
-      const nodeName = inputNode.data.name as string;
+      const nodeName = typeof inputNode.data.name === "string" ? inputNode.data.name : String(inputNode.data.name);
       logMessage(`Using string input node: ${nodeName}`);
       params[nodeName] = clipboardText;
     }

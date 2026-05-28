@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiService } from '../services/api';
+import { queryClient } from '../queryClient';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
 import { RootStackParamList } from '../navigation/types';
@@ -101,6 +102,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
     try {
       setIsSaving(true);
       await apiService.saveApiHost(trimmed);
+      queryClient.clear();
       setApiHost(trimmed);
       showSavedIndicator();
     } catch (error) {
@@ -138,6 +140,7 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
       }
 
       await apiService.saveApiHost(trimmed);
+      queryClient.clear();
       await apiService.getWorkflows(1);
       setApiHost(trimmed);
       setConnectionStatus('success');

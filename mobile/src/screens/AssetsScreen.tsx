@@ -18,6 +18,7 @@ import { RouteProp } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { apiService, Asset } from '../services/api';
+import { trpc } from '../trpc/client';
 import { useAuthStore } from '../stores/AuthStore';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
@@ -32,23 +33,42 @@ const GRID_COLUMNS = 3;
 const GRID_GAP = 10;
 const GRID_PADDING = 16;
 
-type LoadMode = 'folder' | 'search';
-
 export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
   const parentId = route.params?.parentId;
   const folderName = route.params?.folderName;
   const isRootFolder = !parentId;
 
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [loadMode, setLoadMode] = useState<LoadMode>('folder');
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const utils = trpc.useUtils();
+  const isSearching = debouncedQuery.trim().length >= 2;
+  const searchAssetsQuery = trpc.assets.search.useQuery(
+    { query: debouncedQuery.trim(), page_size: 200 },
+    { enabled: isSearching }
+  );
+  const folderAssetsQuery = trpc.assets.list.useQuery(
+    { parent_id: parentId, page_size: 500 },
+    { enabled: !isSearching }
+  );
+  const activeQuery = isSearching ? searchAssetsQuery : folderAssetsQuery;
+  const assets = (activeQuery.data?.assets ?? []) as Asset[];
+  const isLoading = activeQuery.isLoading;
+  const isRefreshing = activeQuery.isRefetching;
+  const loadError = activeQuery.error
+    ? activeQuery.error.message || 'Network Error'
+    : null;
+
+  const deleteAsset = trpc.assets.delete.useMutation({
+    onSuccess: () => {
+      utils.assets.list.invalidate();
+      utils.assets.search.invalidate();
+    },
+    onError: (e) => { Alert.alert('Error', e.message); },
+  });
 
   const screenWidth = Dimensions.get('window').width;
   const itemSize = useMemo(() => {
@@ -62,39 +82,6 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
       title: folderName || 'Assets',
     });
   }, [navigation, folderName]);
-
-  const loadAssets = useCallback(async () => {
-    try {
-      setLoadError(null);
-      if (debouncedQuery.trim().length >= 2) {
-        setLoadMode('search');
-        const result = await apiService.searchAssets({
-          query: debouncedQuery.trim(),
-          page_size: 200,
-        });
-        setAssets((result.assets || []) as unknown as Asset[]);
-      } else {
-        setLoadMode('folder');
-        const result = await apiService.listAssets({
-          parent_id: parentId ?? null,
-          page_size: 500,
-        });
-        setAssets(result.assets || []);
-      }
-    } catch (error: unknown) {
-      console.error('Failed to load assets:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Network Error';
-      setLoadError(errorMessage);
-      setAssets([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [parentId, debouncedQuery]);
-
-  useEffect(() => {
-    setIsLoading(true);
-    loadAssets();
-  }, [loadAssets]);
 
   useEffect(() => {
     return () => {
@@ -122,12 +109,6 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
     setDebouncedQuery('');
   }, []);
 
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await loadAssets();
-    setIsRefreshing(false);
-  }, [loadAssets]);
-
   const handleAssetPress = useCallback((asset: Asset) => {
     if (asset.content_type === 'folder') {
       navigation.push('Assets', {
@@ -148,19 +129,11 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiService.deleteAsset(asset.id);
-              setAssets((prev) => prev.filter((a) => a.id !== asset.id));
-            } catch (error: unknown) {
-              const msg = error instanceof Error ? error.message : 'Failed to delete asset';
-              Alert.alert('Error', msg);
-            }
-          },
+          onPress: () => { deleteAsset.mutate({ id: asset.id }); },
         },
       ]
     );
-  }, []);
+  }, [deleteAsset]);
 
   const handleAssetLongPress = useCallback((asset: Asset) => {
     Alert.alert(
@@ -187,20 +160,21 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
   const doUpload = useCallback(async (uri: string, name: string, mimeType: string) => {
     setIsUploading(true);
     try {
-      const asset = await apiService.uploadAsset({
+      await apiService.uploadAsset({
         uri,
         name,
         contentType: mimeType,
         parentId: getParentIdForUpload(),
       });
-      setAssets((prev) => [asset, ...prev]);
+      utils.assets.list.invalidate();
+      utils.assets.search.invalidate();
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Upload failed';
       Alert.alert('Upload Error', msg);
     } finally {
       setIsUploading(false);
     }
-  }, [getParentIdForUpload]);
+  }, [getParentIdForUpload, utils]);
 
   const handlePickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -414,13 +388,13 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={handleRefresh}
+            onRefresh={() => { activeQuery.refetch(); }}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />
         }
         ListHeaderComponent={
-          loadMode === 'search' && assets.length > 0 ? (
+          isSearching && assets.length > 0 ? (
             <Text style={[styles.listHeader, { color: colors.textSecondary }]}>
               {assets.length} result{assets.length === 1 ? '' : 's'}
             </Text>

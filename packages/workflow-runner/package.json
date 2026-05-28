@@ -1,0 +1,57 @@
+{
+  "name": "@nodetool-ai/workflow-runner",
+  "version": "0.7.0-rc.23",
+  "description": "Portable workflow runner — turns a graph + NodeRegistry into a (Request) => Response handler for Vercel, Cloudflare Workers, or any Web-standard runtime",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*"
+  },
+  "devDependencies": {
+    "@nodetool-ai/base-nodes": "*",
+    "@nodetool-ai/gpu": "*",
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^22.0.0",
+    "@webgpu/types": "^0.1.70",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0",
+    "vite-plugin-node-polyfills": "^0.28.0",
+    "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/workflow-runner"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

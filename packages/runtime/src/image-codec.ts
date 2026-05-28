@@ -8,8 +8,26 @@
  * must go through the shared decode/encode paths rather than assume `data` is
  * already an encoded image.
  */
-import sharp from "sharp";
+import { importHidden } from "@nodetool-ai/config";
 import { isRawRgbaImage, type ImageRef } from "@nodetool-ai/protocol";
+
+type SharpFn = typeof import("sharp");
+type SharpModule = SharpFn | { default: SharpFn };
+
+let _sharpPromise: Promise<SharpFn> | null = null;
+async function loadSharp(): Promise<SharpFn> {
+  if (!_sharpPromise) {
+    _sharpPromise = (async () => {
+      const mod = await importHidden<SharpModule>("sharp");
+      if (!mod) {
+        throw new Error("sharp requires Node (not available in browser/edge)");
+      }
+      const fn = (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+      return fn;
+    })();
+  }
+  return _sharpPromise;
+}
 
 /** Encode raw straight-alpha RGBA8 pixels to PNG bytes. */
 export async function encodeRawRgbaToPng(
@@ -17,6 +35,7 @@ export async function encodeRawRgbaToPng(
   width: number,
   height: number
 ): Promise<Uint8Array> {
+  const sharp = await loadSharp();
   const png = await sharp(
     Buffer.from(data.buffer, data.byteOffset, data.byteLength),
     { raw: { width, height, channels: 4 } }

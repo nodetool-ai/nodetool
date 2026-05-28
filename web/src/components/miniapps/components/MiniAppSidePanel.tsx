@@ -59,7 +59,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
     marginTop: theme.spacing(2)
   }), [theme]);
 
-  const styles = css({
+  const styles = useMemo(() => css({
     ".side-panel-toggle": {
       position: "fixed",
       top: 80,
@@ -168,7 +168,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
         display: "none"
       }
     }
-  });
+  }), [theme, isOpen]);
 
   return (
     <Box css={styles}>

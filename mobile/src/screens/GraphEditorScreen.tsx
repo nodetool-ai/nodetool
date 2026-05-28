@@ -24,7 +24,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { RootStackParamList } from "../navigation/types";
 import { useTheme } from "../hooks/useTheme";
 import { useGraphEditorStore } from "../stores/GraphEditorStore";
-import { apiService } from "../services/api";
+import { normalizeWorkflow } from "../services/api";
+import { trpc } from "../trpc/client";
 import { ChainEditor } from "../components/graph_editor/ChainEditor";
 import { FloatingToolbar } from "../components/graph_editor/FloatingToolbar";
 import { Workflow, MiniAppResult } from "../types/miniapp";
@@ -51,36 +52,61 @@ const GraphEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   const fetchMetadata = useGraphEditorStore((s) => s.fetchMetadata);
   const allMetadata = useGraphEditorStore((s) => s.allMetadata);
 
+  const workflowQuery = trpc.workflows.get.useQuery(
+    { id: workflowId ?? "" },
+    { enabled: !!workflowId }
+  );
+
   useEffect(() => {
+    let cancelled = false;
     const init = async () => {
       try {
-        let metadata = allMetadata;
-        if (metadata.length === 0) {
+        if (allMetadata.length === 0) {
           await fetchMetadata();
-          metadata = useGraphEditorStore.getState().allMetadata;
         }
-
-        if (workflowId) {
-          const wf = await apiService.getWorkflow(workflowId);
-          if (wf) {
-            setWorkflow(wf);
-            loadWorkflowToStore(wf, metadata);
-          } else {
-            setError("Workflow not found");
-          }
-        } else {
+        if (!workflowId && !cancelled) {
           newWorkflow();
         }
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load workflow"
-        );
-      } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load workflow"
+          );
+          setLoading(false);
+        }
       }
     };
     init();
-  }, [workflowId, loadWorkflowToStore, newWorkflow, fetchMetadata, allMetadata]);
+    return () => {
+      cancelled = true;
+    };
+  }, [workflowId, newWorkflow, fetchMetadata, allMetadata.length]);
+
+  useEffect(() => {
+    if (!workflowId) {
+      return;
+    }
+    if (workflowQuery.error) {
+      setError(workflowQuery.error.message || "Failed to load workflow");
+      setLoading(false);
+      return;
+    }
+    const wf = workflowQuery.data;
+    if (wf && allMetadata.length > 0) {
+      const normalized = normalizeWorkflow(
+        wf as unknown as Record<string, unknown>
+      );
+      setWorkflow(normalized);
+      loadWorkflowToStore(normalized, allMetadata);
+      setLoading(false);
+    }
+  }, [
+    workflowId,
+    workflowQuery.data,
+    workflowQuery.error,
+    allMetadata,
+    loadWorkflowToStore,
+  ]);
 
   const handleToggleView = useCallback(() => {
     setViewMode((m) => (m === "editor" ? "runner" : "editor"));

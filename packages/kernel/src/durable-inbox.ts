@@ -8,10 +8,31 @@
  * can swap in a database-backed adapter.
  */
 
-import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.kernel.durable-inbox");
+
+/**
+ * Stable 16-hex-character hash of a string. Used to build durable
+ * message IDs — collision resistance only needs to cover messages
+ * within a single workflow run, so a non-cryptographic hash is
+ * sufficient. Implemented inline to avoid pulling `node:crypto`,
+ * which lets this file load in V8 isolates (browser, Edge) without
+ * a polyfill.
+ */
+function fnv1a64Hex(input: string): string {
+  // 64-bit FNV-1a via two 32-bit halves.
+  let h1 = 0x811c9dc5 | 0;
+  let h2 = 0xcbf29ce4 | 0;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ (ch & 0xff), 16777619);
+    h2 = Math.imul(h2 ^ ((ch >>> 8) & 0xff), 16777619);
+  }
+  const u1 = (h1 >>> 0).toString(16).padStart(8, "0");
+  const u2 = (h2 >>> 0).toString(16).padStart(8, "0");
+  return u1 + u2;
+}
 
 export interface DurableMessage {
   id: string;
@@ -158,7 +179,7 @@ export class DurableInbox {
     seq: number
   ): string {
     const key = `${runId}:${nodeId}:${handle}:${seq}`;
-    return createHash("sha256").update(key).digest("hex").slice(0, 16);
+    return fnv1a64Hex(key);
   }
 
   /**

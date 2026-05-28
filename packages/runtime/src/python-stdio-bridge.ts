@@ -11,12 +11,60 @@
  */
 
 import * as msgpack from "@msgpack/msgpack";
-import { randomUUID } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
-import { EventEmitter } from "node:events";
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { importNodeBuiltin } from "@nodetool-ai/config";
+
+// Python bridge is fundamentally Node-only (subprocess + raw FDs).
+// Lazy-load the builtins so the module *graph* loads off-Node;
+// instantiating PythonStdioBridge there throws at construction.
+const nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+  "node:crypto"
+);
+const nodeCp = await importNodeBuiltin<typeof import("node:child_process")>(
+  "node:child_process"
+);
+const nodeEvents = await importNodeBuiltin<typeof import("node:events")>(
+  "node:events"
+);
+const nodeFs = await importNodeBuiltin<typeof import("node:fs")>("node:fs");
+const nodeOs = await importNodeBuiltin<typeof import("node:os")>("node:os");
+const nodePath = await importNodeBuiltin<typeof import("node:path")>(
+  "node:path"
+);
+
+function notOnNode(api: string): never {
+  throw new Error(`${api} requires Node — PythonStdioBridge is Node-only`);
+}
+const randomUUID =
+  nodeCrypto?.randomUUID ??
+  ((): string => notOnNode("node:crypto.randomUUID"));
+type ChildProcess = ReturnType<typeof import("node:child_process").spawn>;
+const spawn = (
+  ...args: Parameters<typeof import("node:child_process").spawn>
+): ChildProcess => (nodeCp ? nodeCp.spawn(...args) : notOnNode("node:child_process.spawn"));
+const existsSync = (p: string): boolean =>
+  nodeFs ? nodeFs.existsSync(p) : notOnNode("node:fs.existsSync");
+const homedir = (): string =>
+  nodeOs ? nodeOs.homedir() : notOnNode("node:os.homedir");
+const basename = (p: string): string =>
+  nodePath ? nodePath.basename(p) : notOnNode("node:path.basename");
+const join = (...parts: string[]): string =>
+  nodePath ? nodePath.join(...parts) : notOnNode("node:path.join");
+// Re-export the EventEmitter type/class — falls back to a no-op so the
+// module evaluates off-Node; consumers that instantiate the bridge will
+// fail at construction time, not at module load.
+class FallbackEmitter {
+  on(_: string, __: (...args: unknown[]) => void): this {
+    notOnNode("node:events.EventEmitter");
+  }
+  emit(_: string, ...__: unknown[]): boolean {
+    notOnNode("node:events.EventEmitter");
+  }
+  removeAllListeners(): this {
+    notOnNode("node:events.EventEmitter");
+  }
+}
+const EventEmitter = (nodeEvents?.EventEmitter ??
+  FallbackEmitter) as unknown as typeof import("node:events").EventEmitter;
 
 import { createLogger } from "@nodetool-ai/config";
 

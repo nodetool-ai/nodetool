@@ -10,7 +10,6 @@ import React, {
 import { useMediaQuery } from "@mui/material";
 import { AlertBanner, BORDER_RADIUS, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
 import useGlobalChatStore, {
@@ -21,10 +20,26 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { useShallow } from "zustand/react/shallow";
 
-/**
- * StandaloneChat is a version of GlobalChat without app chrome (no AppHeader, no PanelRight).
- * It includes PanelLeft but is designed to be opened in a standalone window from the tray.
- */
+const mainAreaStyles = css({
+  position: "relative",
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  minHeight: 0,
+  maxHeight: "100%",
+
+  ".chat-container": {
+    flex: 1,
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    maxHeight: "100%",
+    position: "relative"
+  }
+});
+
 const StandaloneChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
@@ -306,27 +321,6 @@ const StandaloneChat: React.FC = () => {
     }
   }, [createNewThread, switchThread, navigate]);
 
-  const mainAreaStyles = (_theme: Theme) =>
-    css({
-      position: "relative",
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      minHeight: 0,
-      maxHeight: "100%",
-
-      ".chat-container": {
-        flex: 1,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: 0,
-        maxHeight: "100%",
-        position: "relative"
-      }
-    });
-
   // Show loading state if threads are still loading
   if (isLoadingThreads) {
     return (
@@ -383,7 +377,7 @@ const StandaloneChat: React.FC = () => {
     >
       {/* Main Chat Area */}
       <FlexColumn
-        css={mainAreaStyles(theme)}
+        css={mainAreaStyles}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed && error && (

@@ -53,13 +53,30 @@ function exportedNodeNames(): string[] {
 
 describe("exported base node coverage audit", () => {
   it("references every exported node class from at least one behavior test", () => {
-    const files = walkTestFiles(testsRoot()).filter((file) => {
-      const base = path.basename(file);
-      return (
-        base !== "metadata-parity.test.ts" &&
-        base !== "exported-node-coverage.test.ts"
-      );
-    });
+    // Scan tests across base-nodes AND every domain-split package
+    // (core-nodes, llm-nodes, image-nodes, etc.) so the audit reflects
+    // the post-split test layout.
+    const packagesRoot = path.resolve(__dirname, "../..");
+    const testDirs = fs
+      .readdirSync(packagesRoot, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => path.join(packagesRoot, e.name, "tests"))
+      .filter((d) => {
+        try {
+          return fs.statSync(d).isDirectory();
+        } catch {
+          return false;
+        }
+      });
+    const files = testDirs
+      .flatMap(walkTestFiles)
+      .filter((file) => {
+        const base = path.basename(file);
+        return (
+          base !== "metadata-parity.test.ts" &&
+          base !== "exported-node-coverage.test.ts"
+        );
+      });
     const contents = files.map((file) => fs.readFileSync(file, "utf8"));
 
     const missing = exportedNodeNames().filter(

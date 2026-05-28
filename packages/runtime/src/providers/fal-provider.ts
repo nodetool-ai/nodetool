@@ -5,9 +5,12 @@
  * Supports: textToImage, imageToImage, getAvailableImageModels
  */
 
-import { createRequire } from "node:module";
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
+
+const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
+  "node:module"
+);
 import type {
   ImageModel,
   VideoModel,
@@ -73,8 +76,11 @@ let _falManifestByEndpoint: Map<string, FalManifestEntry> | null = null;
 function getFalManifestEntry(modelId: string): FalManifestEntry | undefined {
   if (!_falManifestByEndpoint) {
     _falManifestByEndpoint = new Map();
+    if (!_nodeModule) {
+      return undefined;
+    }
     try {
-      const req = createRequire(import.meta.url);
+      const req = _nodeModule.createRequire(import.meta.url);
       const data = req(
         `${FAL_MANIFEST_PKG}/${FAL_MANIFEST_PATH}`
       ) as FalManifestEntry[];

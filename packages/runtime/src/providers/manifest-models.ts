@@ -7,11 +7,14 @@
  * maintain hardcoded model lists.
  */
 
-import { createRequire } from "node:module";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
 import type { ImageModel, VideoModel } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.manifest-models");
+
+const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
+  "node:module"
+);
 
 // ---------------------------------------------------------------------------
 // Manifest entry shapes — union of Kie / FAL / Replicate conventions
@@ -109,8 +112,12 @@ function loadManifest(packageName: string, exportPath: string): ManifestNode[] {
   const key = `${packageName}/${exportPath}`;
   if (_cache.has(key)) return _cache.get(key)!;
 
+  if (!_nodeModule) {
+    _cache.set(key, []);
+    return [];
+  }
   try {
-    const req = createRequire(import.meta.url);
+    const req = _nodeModule.createRequire(import.meta.url);
     const data = req(`${packageName}/${exportPath}`) as ManifestNode[];
     _cache.set(key, data);
     return data;

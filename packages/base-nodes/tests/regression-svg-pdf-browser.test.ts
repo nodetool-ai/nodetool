@@ -16,16 +16,16 @@ import { resolve } from "node:path";
 import {
   SVGToImageLibNode,
   DocumentLibNode
-} from "../src/nodes/lib-svg.js";
+} from "@nodetool-ai/text-nodes";
 
 import {
   PdfExtractTablesNode,
   PdfPageMetadataNode,
   PdfExtractStyledTextNode,
   PdfExtractMarkdownNode
-} from "../src/nodes/lib-pdf.js";
+} from "@nodetool-ai/document-nodes";
 
-import { SpiderCrawlLibNode } from "../src/nodes/lib-browser.js";
+import { SpiderCrawlLibNode } from "@nodetool-ai/automation-nodes";
 
 // ---------------------------------------------------------------------------
 // 1. SVGToImage rasterization — output must be PNG, not raw SVG
