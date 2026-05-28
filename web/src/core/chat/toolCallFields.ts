@@ -4,7 +4,7 @@
  *
  * Single source of truth — keep mirrored with
  * `packages/agents/src/tools/base-tool.ts` (`USER_MESSAGE_FIELD`) and
- * `packages/agents/src/tools/run-subtask-tool.ts` (`TOOL_CALL_ID_FIELD`).
+ * `packages/agents/src/tools/subtask-fields.ts` (`TOOL_CALL_ID_FIELD`).
  */
 
 /** LLM-authored user-facing status. Surfaced via `tc.message`. */
