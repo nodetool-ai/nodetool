@@ -22,6 +22,10 @@ import {
   TextInput
 } from "../../ui_primitives";
 import { EditorButton } from "../../editor_ui";
+import {
+  SketchModeToggle,
+  SketchModeOption
+} from "../tool-settings-panels/SketchModeToggle";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../../stores/ApiTypes";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
@@ -52,6 +56,13 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   const isImageToImage = binding.kind === "image-to-image";
   const isRunning =
     binding.status === "queued" || binding.status === "generating";
+
+  // Output size — width/height are sent through to generate_media (honored by
+  // the text-to-image and image-to-image paths). Only the square presets are
+  // surfaced here; an unset size falls back to the model default.
+  const SIZE_PRESETS = [512, 1024, 1536, 2048] as const;
+  const currentSize =
+    binding.width && binding.width === binding.height ? binding.width : null;
 
   const sourceLayerOptions = layers
     .filter((l) => l.id !== layer.id && l.type === "raster" && l.data !== null)
@@ -89,6 +100,31 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           maxRows={8}
           compact
         />
+
+        <FlexColumn gap={0.5}>
+          <Caption color="secondary">Size</Caption>
+          <SketchModeToggle
+            value={currentSize}
+            exclusive
+            onChange={(_e, v: number | null) => {
+              if (v != null) {
+                patchBinding(layer.id, { width: v, height: v });
+              }
+            }}
+            sx={{ flexWrap: "wrap" }}
+            aria-label="Output size"
+          >
+            {SIZE_PRESETS.map((s) => (
+              <SketchModeOption
+                key={s}
+                value={s}
+                data-testid={`direct-gen-size-${s}`}
+              >
+                {s}²
+              </SketchModeOption>
+            ))}
+          </SketchModeToggle>
+        </FlexColumn>
 
         {isImageToImage &&
           (sourceLayerOptions.length === 0 ? (
