@@ -39,7 +39,7 @@ const baseMetadata: NodeMetadata = {
     }
   ],
   recommended_models: [],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   is_streaming_output: false,
   expose_as_tool: false,
   supports_dynamic_outputs: false,
@@ -111,7 +111,7 @@ describe("graphMapping helpers", () => {
     const dynamicMeta: NodeMetadata = {
       ...baseMetadata,
       node_type: "test.dynamic",
-      is_dynamic: true
+      supports_dynamic_inputs: true
     } as NodeMetadata;
 
     const dynamicOutputsMeta: NodeMetadata = {
@@ -120,7 +120,7 @@ describe("graphMapping helpers", () => {
       supports_dynamic_outputs: true
     } as NodeMetadata;
 
-    it("adds missing dynamic_properties entry for edges to is_dynamic target", () => {
+    it("adds missing dynamic_properties entry for edges to supports_dynamic_inputs target", () => {
       const nodes = [
         makeNode("a", "test"),
         makeNode("b", "test.dynamic")

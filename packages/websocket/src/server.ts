@@ -769,7 +769,9 @@ await app.register(websocketPlugin, {
         layout: "default",
         recommended_models: nodeMeta.recommended_models ?? [],
         required_settings: nodeMeta.required_settings ?? [],
-        is_dynamic: nodeMeta.is_dynamic ?? false,
+        // Python worker still emits `is_dynamic` on the stdio wire; map it to
+        // the protocol's `supports_dynamic_inputs`.
+        supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
         is_streaming_output: nodeMeta.is_streaming_output ?? false,
         expose_as_tool: false,
         supports_dynamic_outputs: false
@@ -1033,7 +1035,9 @@ if (pythonBridge.hasPython()) {
           layout: "default",
           recommended_models: nodeMeta.recommended_models ?? [],
           required_settings: nodeMeta.required_settings ?? [],
-          is_dynamic: nodeMeta.is_dynamic ?? false,
+          // Python worker still emits `is_dynamic` on the stdio wire; map it to
+          // the protocol's `supports_dynamic_inputs`.
+          supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
           is_streaming_output: nodeMeta.is_streaming_output ?? false,
           expose_as_tool: false,
           supports_dynamic_outputs: false

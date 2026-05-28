@@ -94,7 +94,7 @@ const metadataForOutput = (type: string): NodeMetadata =>
     layout: "default",
     properties: [],
     outputs: [{ name: "output", type: { type } }],
-    is_dynamic: false
+    supports_dynamic_inputs: false
   }) as unknown as NodeMetadata;
 
 const renderContentCard = (nodeMetadata: NodeMetadata) =>

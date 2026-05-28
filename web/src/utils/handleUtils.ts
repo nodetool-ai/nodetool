@@ -165,7 +165,7 @@ export function findInputHandle(
   }
 
   // Image Editor / sketch: per-layer handles (`layer_in_*`) live in dynamic_inputs
-  // while API metadata may omit is_dynamic.
+  // while API metadata may omit supports_dynamic_inputs.
   const earlyDynamicInputs = node.data.dynamic_inputs || {};
   if (earlyDynamicInputs[handleName] !== undefined) {
     const inputMeta = earlyDynamicInputs[handleName];
@@ -193,7 +193,7 @@ export function findInputHandle(
 
   // Dynamic property handles (instance values). NodeInputs renders an input
   // handle for every entry in `dynamic_properties`, so they must resolve here
-  // too — both for `is_dynamic` nodes (e.g. Format Text) and for nodes that
+  // too — both for `supports_dynamic_inputs` nodes (e.g. Format Text) and for nodes that
   // carry instance dynamic_properties without the metadata flag (e.g. the
   // Agent node's `{{variable}}` template inputs). Without this, edges to those
   // rendered handles are dropped by sanitizeGraph on load. A name that exists
@@ -302,7 +302,7 @@ export function getAllInputHandles(
   // Add dynamic handles. These come from schema metadata (`dynamic_inputs`,
   // e.g. Image Editor `layer_in_*`) and from instance values
   // (`dynamic_properties`, e.g. Agent `{{variable}}` template inputs). Both are
-  // recognized regardless of the `is_dynamic` metadata flag so they stay
+  // recognized regardless of the `supports_dynamic_inputs` metadata flag so they stay
   // consistent with what NodeInputs renders. A name that exists only as a
   // dynamic OUTPUT is not an input handle.
   const dynamicInputs = node.data.dynamic_inputs || {};

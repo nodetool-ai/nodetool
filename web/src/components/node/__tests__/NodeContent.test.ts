@@ -18,7 +18,7 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     nodeMetadata: {
       title: "String",
       layout: "default",
-      is_dynamic: false,
+      supports_dynamic_inputs: false,
       supports_dynamic_outputs: false,
       is_streaming_output: false,
       properties: [{ name: "value", type: { type: "str", type_args: [], optional: false } }],

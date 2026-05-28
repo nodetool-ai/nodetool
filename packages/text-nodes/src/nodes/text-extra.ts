@@ -2299,7 +2299,7 @@ export class ConcatTextNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
 
   async process(): Promise<Record<string, unknown>> {
     return {
@@ -2375,7 +2375,7 @@ export class FormatTextNode extends BaseNode {
     output: "str"
   };
 
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly inputFields: string[] = ["template"];
 
 
@@ -2453,7 +2453,7 @@ export class PromptNode extends BaseNode {
     output: "str"
   };
 
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly inputFields: string[] = ["prompt"];
 
 
@@ -2534,7 +2534,7 @@ export class TemplateTextNode extends BaseNode {
     output: "str"
   };
 
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
 
   @prop({
     type: "str",

@@ -149,7 +149,7 @@ describe("IntegerProperty", () => {
               required: false
             }
           ],
-          is_dynamic: false,
+          supports_dynamic_inputs: false,
           supports_dynamic_outputs: false,
           expose_as_tool: false,
           recommended_models: [],

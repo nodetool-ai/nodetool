@@ -31,7 +31,7 @@ describe("getNodeMetadata", () => {
     expect(meta.node_type).toBe("nodetool.test.Add");
     expect(meta.namespace).toBe("nodetool.test");
     expect(meta.is_streaming_output).toBe(false);
-    expect(meta.is_dynamic).toBe(true);
+    expect(meta.supports_dynamic_inputs).toBe(true);
   });
 
   it("extracts properties with defaults", () => {
@@ -253,9 +253,9 @@ describe("getNodeMetadata — additional coverage", () => {
     expect(configProp!.default).toEqual({ key: "value" });
   });
 
-  // ── is_dynamic defaults to false when node classes do not opt in ───────
+  // ── supports_dynamic_inputs defaults to false when node classes do not opt in ───────
 
-  it("is_dynamic is false for non-dynamic node types", () => {
+  it("supports_dynamic_inputs is false for non-dynamic node types", () => {
     const nodeClasses = [
       Passthrough,
       StreamingCounter,
@@ -265,7 +265,7 @@ describe("getNodeMetadata — additional coverage", () => {
     ];
     for (const cls of nodeClasses) {
       const meta = getNodeMetadata(cls);
-      expect(meta.is_dynamic).toBe(false);
+      expect(meta.supports_dynamic_inputs).toBe(false);
     }
   });
 
@@ -641,7 +641,7 @@ describe("getNodeMetadata – decorator-based properties", () => {
           stream: true
         }
       ],
-      is_dynamic: true,
+      supports_dynamic_inputs: true,
       is_streaming_output: true,
       expose_as_tool: true,
       supports_dynamic_outputs: true,

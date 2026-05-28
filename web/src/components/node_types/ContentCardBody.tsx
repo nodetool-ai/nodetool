@@ -613,7 +613,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   const MEDIA_VARIANTS = ["image", "image_mask", "video", "audio", "model_3d"];
   const isMediaVariant = MEDIA_VARIANTS.includes(variant);
 
-  const isDynamic = !!nodeMetadata.is_dynamic;
+  const isDynamic = !!nodeMetadata.supports_dynamic_inputs;
 
   // Two-pass field classification per field-classification.md:
   // 1. inlineFields: rendered as full editors in normal flow
@@ -661,7 +661,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   // landed in earlier work (NodeInputs / NodePropertyForm). For PR 4 we
   // expose a placeholder onAdd that delegates to the same store flow used
   // by NodePropertyForm — but we only render the button when the node opts
-  // into `is_dynamic`. If no add handler is wired, the button is disabled.
+  // into `supports_dynamic_inputs`. If no add handler is wired, the button is disabled.
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const handleAddDynamicInput = useCallback(() => {
     const existing = data.dynamic_properties ?? {};

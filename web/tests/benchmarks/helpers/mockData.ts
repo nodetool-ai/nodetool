@@ -19,7 +19,7 @@ export const MOCK_NODE_METADATA = [
     namespace: "nodetool.input",
     layout: "default",
     basic_fields: ["value"],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     properties: [
       { name: "value", type: { type: "str", optional: false, type_args: [] }, required: true }
     ],
@@ -39,7 +39,7 @@ export const MOCK_NODE_METADATA = [
     namespace: "nodetool.input",
     layout: "default",
     basic_fields: ["value"],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     properties: [
       { name: "value", type: { type: "int", optional: false, type_args: [] }, required: true }
     ],
@@ -59,7 +59,7 @@ export const MOCK_NODE_METADATA = [
     namespace: "nodetool.agents",
     layout: "default",
     basic_fields: ["prompt", "model"],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     properties: [
       { name: "prompt", type: { type: "str", optional: false, type_args: [] }, required: true },
       { name: "model", type: { type: "str", optional: false, type_args: [] }, required: false }
@@ -82,7 +82,7 @@ export const MOCK_NODE_METADATA = [
     namespace: "nodetool.image",
     layout: "default",
     basic_fields: ["prompt"],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     properties: [
       { name: "prompt", type: { type: "str", optional: false, type_args: [] }, required: true },
       { name: "negative_prompt", type: { type: "str", optional: true, type_args: [] }, required: false },
@@ -107,7 +107,7 @@ export const MOCK_NODE_METADATA = [
     namespace: "nodetool.text",
     layout: "default",
     basic_fields: ["a", "b"],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     properties: [
       { name: "a", type: { type: "str", optional: false, type_args: [] }, required: true },
       { name: "b", type: { type: "str", optional: false, type_args: [] }, required: true },
@@ -129,7 +129,7 @@ export const MOCK_NODE_METADATA = [
     namespace: "nodetool",
     layout: "default",
     basic_fields: ["value"],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     properties: [
       { name: "value", type: { type: "any", optional: true, type_args: [] }, required: false }
     ],

@@ -1843,6 +1843,11 @@ export class AgentNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image", "audio"];
+  // Dynamic properties are user-named template inputs substituted as
+  // {{variable}} placeholders in the prompt/system text (see the class
+  // description). Flagging this lets the node body expose the "Add input"
+  // affordance and round-trips the values through dynamicProps.
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   // Streamed outputs: each yielded chunk/thinking/audio is a distinct
   // iteration step. Without this, the analyzer defaults to `single`, which

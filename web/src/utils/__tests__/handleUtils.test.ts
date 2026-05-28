@@ -87,7 +87,7 @@ const mockNodeMetadata: NodeMetadata = {
   namespace: "test",
   outputs: mockStaticOutputs,
   properties: mockStaticProperties,
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
   layout: "default",
   expose_as_tool: false,
@@ -100,7 +100,7 @@ const mockDynamicNodeMetadata: NodeMetadata = {
   ...mockNodeMetadata,
   node_type: "test.dynamic",
   title: "Dynamic Test Node",
-  is_dynamic: true,
+  supports_dynamic_inputs: true,
   supports_dynamic_outputs: true
 };
 

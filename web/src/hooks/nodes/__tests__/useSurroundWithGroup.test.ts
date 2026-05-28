@@ -26,7 +26,7 @@ jest.mock("../../../utils/nodeUtils", () => ({
     outputs: [],
     layout: "default",
     recommended_models: [],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false

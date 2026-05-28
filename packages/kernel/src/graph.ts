@@ -49,7 +49,7 @@ export interface ResolvedNodeType {
   nodeType: string;
   propertyTypes?: Record<string, string>;
   outputs?: Record<string, string>;
-  isDynamic?: boolean;
+  supportsDynamicInputs?: boolean;
   descriptorDefaults?: Partial<NodeDescriptor>;
 }
 
@@ -335,7 +335,7 @@ export class Graph {
       };
 
       const effectiveAllowUndefined =
-        resolved.isDynamic || allowUndefinedProperties;
+        resolved.supportsDynamicInputs || allowUndefinedProperties;
       if (!effectiveAllowUndefined) {
         for (const key of Object.keys(mergedProperties)) {
           if (!allowedProperties.has(key)) {

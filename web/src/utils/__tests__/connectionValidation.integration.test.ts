@@ -93,7 +93,7 @@ const textProcessorMetadata: NodeMetadata = {
       required: false
     }
   ],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
@@ -132,7 +132,7 @@ const mathCalculatorMetadata: NodeMetadata = {
       required: false
     }
   ],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
@@ -163,7 +163,7 @@ const dynamicProcessorMetadata: NodeMetadata = {
       required: false
     }
   ],
-  is_dynamic: true,
+  supports_dynamic_inputs: true,
   supports_dynamic_outputs: true,
   expose_as_tool: false,
   recommended_models: [],
@@ -363,7 +363,7 @@ describe("Connection Validation Integration Tests", () => {
       });
 
       // Instance dynamic_properties are rendered as input handles by
-      // NodeInputs regardless of the metadata is_dynamic flag, so handle
+      // NodeInputs regardless of the metadata supports_dynamic_inputs flag, so handle
       // resolution must recognize them too (otherwise sanitizeGraph drops the
       // edge on load).
       const targetHandle = findInputHandle(

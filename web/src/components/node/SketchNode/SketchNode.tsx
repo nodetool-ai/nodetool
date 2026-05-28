@@ -691,7 +691,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   ]);
 
   // Register `layer_in_*` on dynamic_properties / dynamic_inputs and
-  // `layer_out_*` on dynamic_outputs so metadata.is_dynamic
+  // `layer_out_*` on dynamic_outputs so metadata.supports_dynamic_inputs
   // and findInputHandle / findOutputHandle resolve per-layer handles
   // like other dynamic nodes.
   useEffect(() => {

@@ -25,7 +25,7 @@ export class SubgraphNode extends BaseNode {
   static readonly title = "Subgraph";
   static readonly description =
     "Execute an inline sub-graph as an isolated workflow. Inputs/outputs are derived from inner Input/Output nodes.";
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {

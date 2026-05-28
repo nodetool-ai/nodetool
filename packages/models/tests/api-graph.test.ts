@@ -26,7 +26,7 @@ describe("toApiNode", () => {
       is_streaming_input: false,
       is_streaming_output: false,
       is_controlled: false,
-      is_dynamic: false,
+      supports_dynamic_inputs: false,
       parent_id: "parent-1",
       ui_properties: { x: 10, y: 20 },
       dynamic_properties: { extra: "value" },

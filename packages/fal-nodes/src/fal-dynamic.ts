@@ -3,7 +3,7 @@
  *
  * The Python FalAI node fetches an OpenAPI schema from fal.ai at runtime and
  * dynamically exposes inputs/outputs derived from it.  The TS node SDK has
- * `isDynamic` and `supportsDynamicOutputs` static flags but no Python-style
+ * `supportsDynamicInputs` and `supportsDynamicOutputs` static flags but no Python-style
  * runtime schema mutation, so we provide two nodes:
  *
  *  1. FalRawNode   — simple "call any endpoint" node. Takes an endpoint_id and
@@ -481,7 +481,7 @@ export class FalRawNode extends BaseNode {
   static readonly inlineFields = ["endpoint_id", "arguments"];
   static readonly inputFields = [];
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly isDynamic = false;
+  static readonly supportsDynamicInputs = false;
   static readonly outputTypes = { result: "dict" };
 
   @prop({
@@ -550,7 +550,7 @@ export class FalDynamicNode extends BaseNode {
   static readonly inlineFields = ["model_info"];
   static readonly inputFields = [];
   static readonly requiredSettings = ["FAL_API_KEY"];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly outputTypes = { result: "dict" };
 

@@ -892,7 +892,7 @@ export class AudioMixerNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
 
   async process(): Promise<Record<string, unknown>> {
     const inputs = Array.from(this.dynamicProps.values()).filter(
@@ -1034,7 +1034,7 @@ export class ConcatAudioNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
   static readonly exposeAsTool = true;
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
 
   async process(): Promise<Record<string, unknown>> {
     const parts = Array.from(this.dynamicProps.values()).map((value) =>

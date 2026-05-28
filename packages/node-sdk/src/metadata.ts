@@ -83,7 +83,7 @@ export interface NodeMetadata {
    * The frontend uses this to show install prompts before execution.
    */
   required_runtimes?: string[];
-  is_dynamic?: boolean;
+  supports_dynamic_inputs?: boolean;
   is_streaming_input?: boolean;
   is_streaming_output?: boolean;
   input_mode?: InputMode;

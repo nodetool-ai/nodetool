@@ -68,7 +68,7 @@ export type NodeClass = {
   isStreamingOutput: boolean;
   inputMode?: InputMode;
   outputCorrelation?: Record<string, OutputCorrelation>;
-  isDynamic: boolean;
+  supportsDynamicInputs: boolean;
   isControlled: boolean;
   isJoinNode: boolean;
   exposeAsTool?: boolean;
@@ -173,7 +173,7 @@ export abstract class BaseNode {
   static readonly outputCorrelation:
     | Record<string, OutputCorrelation>
     | undefined = undefined;
-  static readonly isDynamic: boolean = false;
+  static readonly supportsDynamicInputs: boolean = false;
   static readonly isControlled: boolean = false;
   /**
    * `Zip` and `Cross` set this to true so static correlation analysis allows
@@ -270,7 +270,7 @@ export abstract class BaseNode {
       }
     }
     // For dynamic nodes, store undeclared properties in dynamicProps
-    if (ctor.isDynamic) {
+    if (ctor.supportsDynamicInputs) {
       const skip = new Set(["__node_id", "__node_name", "_secrets"]);
       for (const [key, value] of Object.entries(properties)) {
         if (!declaredNames.has(key) && !skip.has(key)) {
@@ -289,7 +289,7 @@ export abstract class BaseNode {
     }
 
     // Include dynamic properties so round-trip serialization is lossless
-    if (ctor.isDynamic) {
+    if (ctor.supportsDynamicInputs) {
       for (const [key, value] of this.dynamicProps) {
         result[key] = value;
       }

@@ -521,7 +521,7 @@ export default function useConnectionHandlers() {
         // Handle dynamic properties case (if no auto-connection was possible)
         // Note: For FAL nodes, we only want inputs derived from the schema, so we skip manual creation.
         if (
-          nodeMetadata.is_dynamic &&
+          nodeMetadata.supports_dynamic_inputs &&
           connectDirection === "source" &&
           node.type !== "fal.DynamicFal" &&
           node.type !== DYNAMIC_KIE_NODE_TYPE &&

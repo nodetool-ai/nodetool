@@ -199,8 +199,8 @@ describe("FalDynamicNode static metadata", () => {
     expect(FalDynamicNode.nodeType).toBe("fal.dynamic.FalDynamic");
   });
 
-  it("has isDynamic = true", () => {
-    expect(FalDynamicNode.isDynamic).toBe(true);
+  it("has supportsDynamicInputs = true", () => {
+    expect(FalDynamicNode.supportsDynamicInputs).toBe(true);
   });
 
   it("has supportsDynamicOutputs = true", () => {

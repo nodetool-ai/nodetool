@@ -87,7 +87,7 @@ describe("WorkflowNode", () => {
     expect(WorkflowNode.nodeType).toBe(
       "nodetool.workflows.workflow_node.Workflow"
     );
-    expect(WorkflowNode.isDynamic).toBe(true);
+    expect(WorkflowNode.supportsDynamicInputs).toBe(true);
     expect(hasStreamingOutput(WorkflowNode)).toBe(true);
   });
 

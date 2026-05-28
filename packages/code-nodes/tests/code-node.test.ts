@@ -337,7 +337,7 @@ describe("CodeNode — metadata", () => {
   });
 
   it("is dynamic", () => {
-    expect(CodeNode.isDynamic).toBe(true);
+    expect(CodeNode.supportsDynamicInputs).toBe(true);
   });
 
   it("supports dynamic outputs", () => {

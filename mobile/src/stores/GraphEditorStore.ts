@@ -328,7 +328,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
   addDynamicInput: (nodeId, inputName) => {
     set((state) => {
       const chain = state.chain.map((n) => {
-        if (n.id !== nodeId || !n.metadata.is_dynamic) {return n;}
+        if (n.id !== nodeId || !n.metadata.supports_dynamic_inputs) {return n;}
         return {
           ...n,
           dynamicProperties: { ...n.dynamicProperties, [inputName]: null },

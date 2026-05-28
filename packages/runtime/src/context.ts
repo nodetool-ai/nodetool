@@ -855,7 +855,7 @@ export class ProcessingContext {
         nodeType: string;
         propertyTypes?: Record<string, string>;
         outputs?: Record<string, string>;
-        isDynamic?: boolean;
+        supportsDynamicInputs?: boolean;
         descriptorDefaults?: Record<string, unknown>;
       } | null>)
     | null = null;
@@ -1010,7 +1010,7 @@ export class ProcessingContext {
       nodeType: string;
       propertyTypes?: Record<string, string>;
       outputs?: Record<string, string>;
-      isDynamic?: boolean;
+      supportsDynamicInputs?: boolean;
       descriptorDefaults?: Record<string, unknown>;
     } | null>
   ): void {
@@ -1022,7 +1022,7 @@ export class ProcessingContext {
         nodeType: string;
         propertyTypes?: Record<string, string>;
         outputs?: Record<string, string>;
-        isDynamic?: boolean;
+        supportsDynamicInputs?: boolean;
         descriptorDefaults?: Record<string, unknown>;
       } | null>)
     | null {

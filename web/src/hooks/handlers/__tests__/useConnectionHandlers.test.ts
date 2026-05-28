@@ -91,7 +91,7 @@ const mockNodeMetadata: NodeMetadata = {
       required: false
     }
   ],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
@@ -102,7 +102,7 @@ const mockNodeMetadata: NodeMetadata = {
 const mockDynamicNodeMetadata: NodeMetadata = {
   ...mockNodeMetadata,
   node_type: "test.dynamic",
-  is_dynamic: true,
+  supports_dynamic_inputs: true,
   supports_dynamic_outputs: true
 };
 
@@ -129,7 +129,7 @@ const previewNodeMetadata: NodeMetadata = {
       required: false
     }
   ],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
@@ -172,7 +172,7 @@ const rerouteNodeMetadata: NodeMetadata = {
       required: false
     }
   ],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
   expose_as_tool: false,
   recommended_models: [],
@@ -418,7 +418,7 @@ describe("useConnectionHandlers", () => {
         layout: "default",
         properties: [],
         outputs: [],
-        is_dynamic: true
+        supports_dynamic_inputs: true
       }); // Target metadata
 
       // Mock the handle finding functions to return proper handle objects

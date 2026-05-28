@@ -508,13 +508,13 @@ describe("NodeMetadata", () => {
       outputs: [],
       recommended_models: [],
       required_settings: [],
-      is_dynamic: false,
+      supports_dynamic_inputs: false,
       is_streaming_output: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false
     };
     expect(meta.node_type).toBe("math.Add");
-    expect(meta.is_dynamic).toBe(false);
+    expect(meta.supports_dynamic_inputs).toBe(false);
   });
 });
 
