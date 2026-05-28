@@ -8,6 +8,11 @@ describe("renderTemplate", () => {
     );
   });
 
+  it("trims surrounding whitespace inside {{ ... }}", () => {
+    expect(renderTemplate("{{   name   }}", { name: "Ada" })).toBe("Ada");
+    expect(renderTemplate("{{  name | upper  }}", { name: "ada" })).toBe("ADA");
+  });
+
   it("substitutes {variable} single-brace placeholders", () => {
     expect(renderTemplate("Hello {name}!", { name: "Ada" })).toBe("Hello Ada!");
   });
