@@ -12,6 +12,7 @@
 const mockAutoUpdater = {
   setFeedURL: jest.fn(),
   checkForUpdates: jest.fn().mockResolvedValue(undefined),
+  quitAndInstall: jest.fn(),
   on: jest.fn(),
   logger: null,
   channel: "latest",
@@ -404,6 +405,63 @@ describe("Auto-updater Module", () => {
         "error",
         expect.any(Function)
       );
+    });
+  });
+
+  describe("update-downloaded notification", () => {
+    it("should install the update when the notification is clicked", async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
+
+      const clickHandlers: Record<string, () => void> = {};
+      class MockNotification {
+        opts: { title: string; body: string };
+        constructor(opts: { title: string; body: string }) {
+          this.opts = opts;
+        }
+        on(event: string, handler: () => void) {
+          if (event === "click") {
+            clickHandlers[this.opts.title] = handler;
+          }
+        }
+        show() {}
+        static isSupported() {
+          return true;
+        }
+      }
+
+      let setupAutoUpdater: (() => Promise<void>) | undefined;
+      jest.isolateModules(() => {
+        jest.doMock("electron", () => ({
+          app: { isPackaged: true, getVersion: jest.fn().mockReturnValue("1.0.0") },
+          Notification: MockNotification,
+        }));
+        jest.doMock("../settings", () => ({
+          readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
+        }));
+        const updater = require("../updater");
+        setupAutoUpdater = updater.setupAutoUpdater;
+      });
+
+      if (setupAutoUpdater) {
+        await setupAutoUpdater();
+      }
+
+      const downloadedHandler = mockAutoUpdater.on.mock.calls.find(
+        (call) => call[0] === "update-downloaded"
+      )?.[1];
+      expect(downloadedHandler).toBeDefined();
+
+      await downloadedHandler({ version: "1.2.3" });
+
+      const clickHandler = clickHandlers["NodeTool Update Ready"];
+      expect(clickHandler).toBeDefined();
+
+      clickHandler();
+
+      expect(mockAutoUpdater.quitAndInstall).toHaveBeenCalled();
     });
   });
 
