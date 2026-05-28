@@ -414,7 +414,17 @@ const ReactFlowWrapper = ({
     []
   );
 
-  const settings = useSettingsStore((state) => state.settings);
+  const gridSnap = useSettingsStore((state) => state.settings.gridSnap);
+  const connectionSnap = useSettingsStore(
+    (state) => state.settings.connectionSnap
+  );
+  const panControls = useSettingsStore((state) => state.settings.panControls);
+  const selectNodesOnDrag = useSettingsStore(
+    (state) => state.settings.selectNodesOnDrag
+  );
+  const selectionMode = useSettingsStore(
+    (state) => state.settings.selectionMode
+  );
 
   const { onDrop, onDragOver } = useDropHandler();
 
@@ -664,8 +674,8 @@ const ReactFlowWrapper = ({
   }, [shouldFitToScreen, setShouldFitToScreen]);
 
   const snapGrid = useMemo(
-    () => [settings.gridSnap, settings.gridSnap] as [number, number],
-    [settings.gridSnap]
+    () => [gridSnap, gridSnap] as [number, number],
+    [gridSnap]
   );
 
   const reactFlowClasses = useMemo(() => {
@@ -682,11 +692,11 @@ const ReactFlowWrapper = ({
   const conditionalProps = useMemo(() => {
     const props: { selectionOnDrag?: boolean } = {};
     // fitView disabled — viewport is restored from stored state
-    if (settings.panControls === "RMB") {
+    if (panControls === "RMB") {
       props.selectionOnDrag = true;
     }
     return props;
-  }, [settings.panControls]);
+  }, [panControls]);
 
   // Local stores (subgraph tabs included) bypass the fetch entirely; ignore
   // any stale loading/error state cached from a previous query for the same
@@ -737,10 +747,10 @@ const ReactFlowWrapper = ({
         zoomOnScroll={!/Mac|iPhone|iPad/.test(navigator.platform)}
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}
-        connectionRadius={settings.connectionSnap}
+        connectionRadius={connectionSnap}
         isValidConnection={isConnectionValid}
         attributionPosition="bottom-left"
-        selectNodesOnDrag={settings.selectNodesOnDrag}
+        selectNodesOnDrag={selectNodesOnDrag}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDrag={onNodeDrag}
@@ -750,7 +760,7 @@ const ReactFlowWrapper = ({
         onSelectionStart={selectionEvents.handleSelectionStart}
         onSelectionEnd={selectionEvents.handleSelectionEnd}
         onSelectionContextMenu={selectionEvents.handleSelectionContextMenu}
-        selectionMode={settings.selectionMode as SelectionMode}
+        selectionMode={selectionMode as SelectionMode}
         onEdgesChange={onEdgesChange}
         onEdgeContextMenu={onEdgeContextMenu}
         onEdgeClick={onEdgeClick}

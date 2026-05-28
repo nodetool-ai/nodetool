@@ -27,6 +27,8 @@ import { ScrollArea, Tooltip, Text, Caption, FlexRow, FlexColumn, LoadingSpinner
 const POPOVER_WIDTH = 360;
 const POPOVER_HEIGHT = 420;
 
+const minWidthZeroSx = { minWidth: 0 } as const;
+
 const toolsSelectorStyles = (theme: Theme) =>
   css({
     ".items-container": {
@@ -100,6 +102,16 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
     [value]
   );
   const theme = useTheme();
+  const checkboxSx = useMemo(
+    () => ({
+      padding: 0,
+      color: theme.vars.palette.text.secondary,
+      "&.Mui-checked": {
+        color: theme.vars.palette.primary.main
+      }
+    }),
+    [theme]
+  );
   // Get workflow tools via React Query hook
   const {
     workflowTools,
@@ -401,15 +413,9 @@ const WorkflowToolsSelector: React.FC<WorkflowToolsSelectorProps> = ({
                         disableRipple
                         checked={isSelected}
                         tabIndex={-1}
-                        sx={{
-                          padding: 0,
-                          color: theme.vars.palette.text.secondary,
-                          "&.Mui-checked": {
-                            color: theme.vars.palette.primary.main
-                          }
-                        }}
+                        sx={checkboxSx}
                       />
-                      <Box sx={{ minWidth: 0 }}>
+                      <Box sx={minWidthZeroSx}>
                         <span className="workflow-name">{workflow.name}</span>
                         {workflow.description && (
                           <span className="workflow-description">

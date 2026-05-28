@@ -112,9 +112,6 @@ const ChainEditorPage = React.lazy(
 );
 const Portal = React.lazy(() => import("./components/portal/Portal"));
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
-const NodeTestPage = React.lazy(
-  () => import("./components/node_test/NodeTestPage")
-);
 const ChatMarkdownTest = React.lazy(
   () => import("./components/ChatMarkdownTest")
 );
@@ -561,15 +558,6 @@ function getRoutes() {
       element: <ComponentPreview />
     });
   }
-
-  routes.push({
-    path: "/node-test",
-    element: (
-      <React.Suspense fallback={<div>Loading...</div>}>
-        <NodeTestPage />
-      </React.Suspense>
-    )
-  });
 
   routes.forEach((route) => {
     route.ErrorBoundary = ErrorBoundary;

@@ -82,6 +82,7 @@ header_pages:
   - vector-storage.md
   - indexing.md
   - collections.md
+  - workspaces.md
   - asset-management.md
   - authentication.md
   - security-hardening.md
