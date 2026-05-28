@@ -3,7 +3,7 @@
  * Lists past workflow executions with status, duration, cost, and the
  * ability to cancel a still-running job. Mirrors the web JobsPanel feature.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,7 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
-import { apiService, JobResponse } from '../services/api';
+import { type JobResponse } from '../services/api';
+import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
 
 type Props = {
@@ -74,45 +75,30 @@ export default function JobsScreen({ navigation: _navigation }: Props) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [jobs, setJobs] = useState<JobResponse[]>([]);
-  const [workflowNames, setWorkflowNames] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const utils = trpc.useUtils();
+  const {
+    data: jobsData,
+    isLoading,
+    isRefetching,
+    error,
+    refetch,
+  } = trpc.jobs.list.useQuery({ limit: 100 });
+  const jobs = useMemo(() => (jobsData?.jobs ?? []) as JobResponse[], [jobsData]);
+  const loadError = error ? error.message || 'Failed to load jobs' : null;
 
-  const load = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const [jobsData, workflowsData] = await Promise.all([
-        apiService.listJobs({ limit: 100 }),
-        apiService.getWorkflows().catch(() => undefined),
-      ]);
-      setJobs(jobsData.jobs || []);
-      const lookup: Record<string, string> = {};
-      const list = Array.isArray(workflowsData)
-        ? workflowsData
-        : (workflowsData?.workflows || []);
-      for (const w of list) {
-        if (w?.id && w?.name) { lookup[w.id] = w.name; }
-      }
-      setWorkflowNames(lookup);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to load jobs';
-      setLoadError(message);
-    } finally {
-      setIsLoading(false);
+  const workflowsQuery = trpc.workflows.list.useQuery({ limit: 100 });
+  const workflowNames = useMemo(() => {
+    const lookup: Record<string, string> = {};
+    for (const w of workflowsQuery.data?.workflows ?? []) {
+      if (w?.id && w?.name) { lookup[w.id] = w.name; }
     }
-  }, []);
+    return lookup;
+  }, [workflowsQuery.data]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await load();
-    setIsRefreshing(false);
-  }, [load]);
+  const cancelJob = trpc.jobs.cancel.useMutation({
+    onSuccess: () => { utils.jobs.list.invalidate(); },
+    onError: (e) => { Alert.alert('Cancel failed', e.message); },
+  });
 
   const handleCancel = useCallback((job: JobResponse) => {
     Alert.alert(
@@ -123,19 +109,11 @@ export default function JobsScreen({ navigation: _navigation }: Props) {
         {
           text: 'Cancel job',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiService.cancelJob(job.id);
-              await load();
-            } catch (e) {
-              const message = e instanceof Error ? e.message : 'Failed to cancel job';
-              Alert.alert('Cancel failed', message);
-            }
-          },
+          onPress: () => { cancelJob.mutate({ id: job.id }); },
         },
       ],
     );
-  }, [load]);
+  }, [cancelJob]);
 
   const statusColor = useCallback((variant: StatusVariant) => {
     switch (variant) {
@@ -261,8 +239,8 @@ export default function JobsScreen({ navigation: _navigation }: Props) {
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
+            refreshing={isRefetching}
+            onRefresh={() => { refetch(); }}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />
