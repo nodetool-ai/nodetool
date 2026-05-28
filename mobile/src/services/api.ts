@@ -69,10 +69,6 @@ export interface CollectionCreate {
   embedding_provider?: string;
 }
 
-export interface CollectionModify {
-  rename?: string;
-  metadata?: Record<string, string | number | boolean>;
-}
 
 export interface Thread {
   id: string;
@@ -86,10 +82,6 @@ export interface Thread {
 export interface ThreadList {
   threads: Thread[];
   next: string | null;
-}
-
-export interface ThreadUpdateRequest {
-  title: string;
 }
 
 export interface WorkflowGraphInput {
@@ -455,15 +447,6 @@ class ApiService {
     });
   }
 
-  async updateCollection(name: string, body: CollectionModify): Promise<CollectionResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.collections.update.mutate({
-      name,
-      ...(body.rename ? { rename: body.rename } : {}),
-      ...(body.metadata ? { metadata: body.metadata } : {}),
-    });
-  }
-
   async deleteCollection(name: string): Promise<void> {
     const trpc = createMobileTRPCClient();
     await trpc.collections.delete.mutate({ name });
@@ -512,11 +495,6 @@ class ApiService {
   async getThread(threadId: string): Promise<Thread> {
     const trpc = createMobileTRPCClient();
     return trpc.threads.get.query({ id: threadId });
-  }
-
-  async updateThread(threadId: string, update: ThreadUpdateRequest): Promise<Thread> {
-    const trpc = createMobileTRPCClient();
-    return trpc.threads.update.mutate({ id: threadId, title: update.title });
   }
 
   async deleteThread(threadId: string): Promise<void> {
