@@ -56,6 +56,10 @@ describe("renderTemplate", () => {
     );
   });
 
+  it("resolves the inner placeholder for nested braces", () => {
+    expect(renderTemplate("{{{{ name }}}}", { name: "Ada" })).toBe("{{Ada}}");
+  });
+
   it("returns the template unchanged when there are no variables", () => {
     expect(renderTemplate("plain {{ x }} {y}", {})).toBe("plain {{ x }} {y}");
   });

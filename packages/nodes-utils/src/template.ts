@@ -53,11 +53,12 @@ export function renderTemplate(
 ): string {
   let result = template;
 
-  // {{ var|filter1|filter2 }} — surrounding whitespace is handled by the
-  // per-part trim() below, so the pattern avoids the ambiguous `\s*` around
-  // the capture group (a space also matches `[^}]`), which CodeQL flags as a
-  // polynomial-backtracking ReDoS risk.
-  result = result.replace(/\{\{([^}]+?)\}\}/g, (match, expr: string) => {
+  // {{ var|filter1|filter2 }}. The content class excludes both braces so the
+  // lazy repetition can't scan across `{`/`}` runs — without that, inputs like
+  // `{{{{{{...` give quadratic backtracking (CodeQL polynomial-ReDoS). A
+  // placeholder expression never legitimately contains a brace. Surrounding
+  // whitespace is handled by the per-part trim() below.
+  result = result.replace(/\{\{([^{}]+?)\}\}/g, (match, expr: string) => {
     const parts = expr.split("|").map((p) => p.trim());
     const varName = parts[0];
     if (varName in vars) {
