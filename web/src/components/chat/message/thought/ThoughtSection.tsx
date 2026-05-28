@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React from "react";
+import React, { useMemo } from "react";
 import ChatMarkdown from "../ChatMarkdown";
 import { ReasoningToggle } from "../../../common/ReasoningToggle";
 import { useTheme } from "@mui/material/styles";
@@ -21,7 +21,7 @@ export const ThoughtSection: React.FC<ThoughtSectionProps> = React.memo(({
   textAfter
 }) => {
   const theme = useTheme();
-  const thoughtContentStyles = css({
+  const thoughtContentStyles = useMemo(() => css({
     margin: "0 0 1em 00",
     padding: "1em",
     lineHeight: 1.2,
@@ -38,7 +38,7 @@ export const ThoughtSection: React.FC<ThoughtSectionProps> = React.memo(({
       fontWeight: "300",
       color: theme.vars.palette.text.secondary
     }
-  });
+  }), [theme]);
 
   return (
     <>
