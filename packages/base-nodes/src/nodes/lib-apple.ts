@@ -95,8 +95,8 @@ function escAS(input: string): string {
     .replace(/"/g, '\\"')
     .replace(/\r/g, "\\r")
     .replace(/\n/g, "\\n")
-    // Strip remaining ASCII control characters (0x00-0x1F except the ones
-    // we already handled, plus 0x7F DEL).
+    // Strip remaining ASCII control characters (0x00-0x1F except \n (0x0A) and
+    // \r (0x0D) which are escaped above, plus 0x7F DEL).
     .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, "");
 }
 

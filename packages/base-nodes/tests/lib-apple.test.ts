@@ -47,7 +47,8 @@ describe("lib.apple helpers", () => {
   it("strips null bytes and other ASCII control characters", () => {
     expect(escAS("a\x00b")).toBe("ab");
     expect(escAS("a\x01b\x1fb")).toBe("abb");
-    // Tab (0x09) is also stripped as a control character
+    // Tabs are stripped; they are not meaningful in AppleScript string values
+    // and the regex intentionally covers 0x00-0x09 (which includes 0x09 tab)
     expect(escAS("a\x09b")).toBe("ab");
     // DEL (0x7F) is stripped
     expect(escAS("a\x7fb")).toBe("ab");
