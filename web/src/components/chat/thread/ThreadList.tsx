@@ -51,7 +51,6 @@ const ThreadList: React.FC<ThreadListProps> = ({
             onSelect={onSelectThread}
             onDelete={onDeleteThread}
             previewText={getThreadPreview(singleId)}
-            showDate={true}
           />
         );
       } else {
@@ -85,7 +84,6 @@ const ThreadList: React.FC<ThreadListProps> = ({
               onSelect={onSelectThread}
               onDelete={onDeleteThread}
               previewText={getThreadPreview(threadId)}
-              showDate={false}
             />
           );
         });

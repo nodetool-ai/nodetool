@@ -74,7 +74,6 @@ export const ThreadItem = memo(ThreadItemBase, (prevProps, nextProps) => {
     prevProps.threadId === nextProps.threadId &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.previewText === nextProps.previewText &&
-    prevProps.showDate === nextProps.showDate &&
     prevProps.thread.title === nextProps.thread.title &&
     prevProps.thread.updatedAt === nextProps.thread.updatedAt
   );

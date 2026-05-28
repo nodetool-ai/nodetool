@@ -434,6 +434,9 @@ export const MessageView: React.FC<
             {formattedTime && (
               <span className="message-time">{formattedTime}</span>
             )}
+            {message.role === "assistant" && message.model && (
+              <span className="message-model">{message.model}</span>
+            )}
           </div>
         )}
         <div className="message-content">

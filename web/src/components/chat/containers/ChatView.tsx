@@ -239,7 +239,7 @@ const ChatView = ({
     <div className="chat-view" css={styles(theme)}>
       <div className="chat-main">
         <div className="chat-thread-container">
-          {showConversationHeader && messages.length > 0 && (
+          {showConversationHeader && (
             <ConversationHeader messages={messages} />
           )}
           {messages.length > 0 ? (

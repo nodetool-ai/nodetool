@@ -90,6 +90,11 @@ describe('formatDuration', () => {
     expect(formatDuration(125000)).toBe('2m 05s');
   });
 
+  test('handles minute boundary rounding correctly', () => {
+    expect(formatDuration(119999)).toBe('2m 00s');
+    expect(formatDuration(59999)).toBe('1m 00s');
+  });
+
   test('returns null for invalid input', () => {
     expect(formatDuration(-1)).toBeNull();
     expect(formatDuration(NaN)).toBeNull();
