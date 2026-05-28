@@ -198,8 +198,7 @@ describe("GlobalChatStore", () => {
           memory_enabled: false,
           model: "gpt-oss:20b",
           provider: "empty",
-          tools: undefined,
-          collections: undefined,
+          permission_mode: "default",
           media_generation: null
         }
       });
@@ -808,8 +807,7 @@ describe("GlobalChatStore", () => {
           memory_enabled: false,
           model: "gpt-oss:20b",
           provider: "empty",
-          tools: undefined,
-          collections: undefined,
+          permission_mode: "default",
           media_generation: null
         }
       });
