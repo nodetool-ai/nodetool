@@ -496,7 +496,6 @@ function createRuntimeContext(opts: {
 }): RuntimeProcessingContext {
   const storagePath = getAssetStoragePath();
   const tempAdapter = getTempAdapter();
-  const assetAdapter = getAssetAdapter();
   // The agent's "workspace" — where file_read / file_write / file_list land.
   // Local: a FileStorageAdapter rooted at workspaceDir. Cloud: callers can
   // wire a different StorageAdapter when constructing the runner; for now
