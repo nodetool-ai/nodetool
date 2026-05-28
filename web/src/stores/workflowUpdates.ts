@@ -351,6 +351,9 @@ export const handleUpdate = (
   }
   if (data.type === "job_update") {
     const job = data;
+    // Whether this run was sitting in the backend's concurrency queue, so we
+    // can clear the "Queued…" status once it actually starts running.
+    const wasQueued = runnerStore.getState().queuePosition !== null;
 
     // Consolidate state mapping
     let newState:
@@ -390,6 +393,13 @@ export const handleUpdate = (
     if (job.job_id) {
       runnerStore.setState({ job_id: job.job_id });
     }
+
+    // Track queue position so the UI can show "Queued — N ahead". Any
+    // non-queued update (running, completed, …) clears it.
+    runnerStore.setState({
+      queuePosition:
+        job.status === "queued" ? job.queue_position ?? null : null
+    });
 
     if (job.run_state?.suspension_reason && newState === "suspended") {
       runnerStore.setState({ statusMessage: job.run_state.suspension_reason });
@@ -502,10 +512,15 @@ export const handleUpdate = (
       }
       case "queued":
         runnerStore.setState({
-          statusMessage: "Worker is booting (may take a 15 seconds)..."
+          statusMessage:
+            job.message || "Worker is booting (may take a 15 seconds)..."
         });
         break;
       case "running":
+        // Clear the "Queued…" status carried over once the run actually starts.
+        if (wasQueued) {
+          runnerStore.setState({ statusMessage: null });
+        }
         if (job.message) {
           runner.addNotification({
             type: "info",

@@ -46,6 +46,15 @@ export interface Settings {
    * - "standalone": navigates to the standalone `/sketch/:documentId` route.
    */
   imageEditorOpenMode: "modal" | "standalone";
+  /**
+   * Warn before running a workflow that would execute more than
+   * {@link largeRunThreshold} "heavy" nodes (LLM/model/provider/API nodes).
+   * The "Run Workflow" button fires every executable node at once, so a large
+   * graph can launch many provider calls; this guards against accidental runs.
+   */
+  confirmLargeRun: boolean;
+  /** Heavy-node count above which the large-run warning is shown. */
+  largeRunThreshold: number;
   autosave: AutosaveSettings;
 }
 
@@ -87,6 +96,8 @@ export const defaultSettings: Settings = {
   instantUpdate: false,
   editorViewMode: "graph",
   imageEditorOpenMode: "modal",
+  confirmLargeRun: true,
+  largeRunThreshold: 5,
   autosave: { ...defaultAutosaveSettings }
 };
 

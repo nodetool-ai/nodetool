@@ -44,6 +44,13 @@ export type WorkflowRunner = {
   nodes: Node<NodeData>[];
   edges: Edge[];
   job_id: string | null;
+  /**
+   * 1-based position in the backend's run queue while a run waits for a
+   * concurrency slot, or null when not queued. Queued runs reuse the "running"
+   * state (so existing busy/disabled logic applies); this field lets the UI
+   * show "Queued — N ahead" instead of a misleading "Running".
+   */
+  queuePosition: number | null;
   unsubscribe: (() => void) | null;
   state:
     | "idle"
@@ -97,6 +104,7 @@ export const createWorkflowRunnerStore = (
     nodes: [],
     edges: [],
     job_id: null,
+    queuePosition: null,
     unsubscribe: null,
     state: "idle",
     statusMessage: null,
@@ -135,6 +143,7 @@ export const createWorkflowRunnerStore = (
         unsubscribe: null,
         state: "idle",
         job_id: null,
+        queuePosition: null,
         statusMessage: null,
         notifications: [],
         workflow: null,
@@ -289,7 +298,7 @@ export const createWorkflowRunnerStore = (
       set({ workflow, nodes, edges });
 
       const jobId = uuidv4();
-      set({ job_id: jobId });
+      set({ job_id: jobId, queuePosition: null });
 
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearErrors = useErrorStore.getState().clearErrors;
@@ -428,7 +437,7 @@ export const createWorkflowRunnerStore = (
       }
 
       // Immediately stop all animations and clear state
-      set({ state: "cancelled" });
+      set({ state: "cancelled", queuePosition: null });
 
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearEdges = useResultsStore.getState().clearEdges;
@@ -564,6 +573,7 @@ const defaultWorkflowRunner: WorkflowRunner = {
   nodes: [],
   edges: [],
   job_id: null,
+  queuePosition: null,
   unsubscribe: null,
   state: "idle",
   statusMessage: null,

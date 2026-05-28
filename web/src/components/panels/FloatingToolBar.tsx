@@ -371,7 +371,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleToggleMiniMap,
     isWorkflowRunning,
     isPaused,
-    isSuspended
+    isSuspended,
+    queuePosition
   } = useFloatingToolbarActions();
 
   const { bottomPanelVisible, bottomPanelSize } = useBottomPanelStore(
@@ -607,7 +608,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
               <PlayArrow />
             )
           }
-          tooltip={isWorkflowRunning ? "Running..." : "Run"}
+          tooltip={
+            queuePosition != null
+              ? `Queued (#${queuePosition})`
+              : isWorkflowRunning
+                ? "Running..."
+                : "Run"
+          }
           shortcut="runWorkflow"
           variant="primary"
           className={isWorkflowRunning ? "running" : undefined}

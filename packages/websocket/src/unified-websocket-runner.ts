@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
+import { JobConcurrencyQueue } from "./job-queue.js";
 import { pack, unpack } from "msgpackr";
 import {
   createLogger,
@@ -822,6 +823,11 @@ export class UnifiedWebSocketRunner {
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
+  /**
+   * Runs that arrived while {@link MAX_CONCURRENT_JOBS} runs were already in
+   * flight. They start automatically (FIFO) as active jobs finish.
+   */
+  private jobQueue = new JobConcurrencyQueue();
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
@@ -1205,7 +1211,84 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  /** Default cap when `MAX_CONCURRENT_JOBS` is unset/invalid. */
+  private static readonly DEFAULT_MAX_CONCURRENT_JOBS = 4;
+
+  /** Resolve the per-client concurrency cap from settings (>= 1). */
+  private async getMaxConcurrentJobs(): Promise<number> {
+    const raw = await getSetting("MAX_CONCURRENT_JOBS");
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    return Number.isFinite(parsed) && parsed > 0
+      ? parsed
+      : UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS;
+  }
+
+  /**
+   * Entry point for the "run_job" command. Starts the run immediately when the
+   * client is under its concurrency cap, otherwise queues it (FIFO) and emits a
+   * `queued` job update. Queued runs start automatically as active jobs finish.
+   */
   async runJob(req: RunJobRequest): Promise<void> {
+    const max = await this.getMaxConcurrentJobs();
+    if (this.activeJobs.size >= max) {
+      this.enqueueJob(req);
+      return;
+    }
+    await this.startJob(req);
+  }
+
+  /** Queue a run that exceeds the concurrency cap and notify the client. */
+  private enqueueJob(req: RunJobRequest): void {
+    const jobId = req.job_id ?? randomUUID();
+    req.job_id = jobId;
+    const position = this.jobQueue.enqueue(req);
+    log.info("Job queued", { jobId, position });
+    void this.sendMessage({
+      type: "job_update",
+      status: "queued",
+      job_id: jobId,
+      workflow_id: req.workflow_id ?? null,
+      queue_position: position,
+      message: `Queued (#${position})`
+    });
+  }
+
+  /**
+   * Start the next queued run (if any) after a job slot frees up, and refresh
+   * the reported positions of the runs still waiting.
+   */
+  private drainQueue(): void {
+    void (async () => {
+      try {
+        const max = await this.getMaxConcurrentJobs();
+        if (this.activeJobs.size < max) {
+          const next = this.jobQueue.dequeue();
+          if (next) {
+            await this.startJob(next);
+          }
+        }
+        this.broadcastQueuePositions();
+      } catch (err) {
+        this.logError("drainQueue failed", err);
+      }
+    })();
+  }
+
+  /** Push updated queue positions to every still-waiting run. */
+  private broadcastQueuePositions(): void {
+    for (const { jobId, workflowId, position } of this.jobQueue.positions()) {
+      void this.sendMessage({
+        type: "job_update",
+        status: "queued",
+        job_id: jobId,
+        workflow_id: workflowId,
+        queue_position: position,
+        message: `Queued — ${position} run(s) ahead`
+      });
+    }
+  }
+
+  private async startJob(req: RunJobRequest): Promise<void> {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
@@ -1524,6 +1607,7 @@ export class UnifiedWebSocketRunner {
       });
     } finally {
       this.activeJobs.delete(jobId);
+      this.drainQueue();
     }
   }
 
@@ -1729,6 +1813,7 @@ export class UnifiedWebSocketRunner {
     }
 
     this.activeJobs.delete(active.jobId);
+    this.drainQueue();
   }
 
   async reconnectJob(jobId: string, workflowId?: string): Promise<void> {
@@ -1770,6 +1855,24 @@ export class UnifiedWebSocketRunner {
   ): Promise<Record<string, unknown>> {
     if (!jobId) {
       return { error: "No job_id provided" };
+    }
+
+    // A run that's still queued has no ActiveJob yet — drop it from the queue
+    // and tell the client it's cancelled before it ever starts.
+    const queued = this.jobQueue.remove(jobId);
+    if (queued) {
+      await this.sendMessage({
+        type: "job_update",
+        status: "cancelled",
+        job_id: jobId,
+        workflow_id: queued.workflow_id ?? workflowId ?? ""
+      });
+      this.broadcastQueuePositions();
+      return {
+        message: "Queued job cancelled",
+        job_id: jobId,
+        workflow_id: queued.workflow_id ?? workflowId ?? ""
+      };
     }
 
     const active = this.activeJobs.get(jobId);
@@ -3954,6 +4057,7 @@ export class UnifiedWebSocketRunner {
       }
 
       this.activeJobs.delete(jobId);
+      this.drainQueue();
 
       // Signal completion — done chunk with job_id + workflow_id
       await this.sendMessage({

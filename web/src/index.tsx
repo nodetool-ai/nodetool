@@ -66,6 +66,9 @@ import { MenuProvider } from "./providers/MenuProvider";
 const DownloadManagerDialog = React.lazy(
   () => import("./components/hugging_face/DownloadManagerDialog")
 );
+const RunWarningDialog = React.lazy(
+  () => import("./components/dialogs/RunWarningDialog")
+);
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 const Alert = React.lazy(() => import("./components/node_editor/Alert"));
@@ -757,6 +760,7 @@ const AppWrapper = () => {
                         <RouterProvider router={router} />
                       </Suspense>
                       <DownloadManagerDialog />
+                      <RunWarningDialog />
                     </>
                   )}
                 </KeyboardProvider>
