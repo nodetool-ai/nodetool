@@ -61,7 +61,6 @@ export * as input from "./nodetool.input.js";
 export * as model3d from "./nodetool.model3d.js";
 export * as output from "./nodetool.output.js";
 export * as sandbox from "./nodetool.sandbox.js";
-export * as team from "./nodetool.team.js";
 export * as text from "./nodetool.text.js";
 export * as triggers from "./nodetool.triggers.js";
 export * as video from "./nodetool.video.js";

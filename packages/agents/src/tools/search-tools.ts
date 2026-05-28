@@ -67,24 +67,45 @@ async function resolveProvider(
 /*  GoogleSearchTool                                                  */
 /* ------------------------------------------------------------------ */
 
+function formatSearchResults(
+  results: Array<{
+    title?: string | null;
+    link?: string | null;
+    snippet?: string | null;
+  }>
+): string {
+  if (results.length === 0) return "No results.";
+  return results
+    .map((r, i) => {
+      const title = r.title ?? "(untitled)";
+      const link = r.link ?? "";
+      const snippet = r.snippet ?? "";
+      return `${i + 1}. ${title}\n   ${link}${snippet ? `\n   ${snippet}` : ""}`;
+    })
+    .join("\n\n");
+}
+
 export class GoogleSearchTool extends Tool {
   readonly name = "google_search";
   readonly description =
-    "Search Google to retrieve organic search results via SerpAPI.";
+    "Searches Google via SerpAPI and returns the organic results as text. " +
+    "Each result includes the title, URL, and snippet. Use this rather than " +
+    "fetching google.com directly — search engine result pages are blocked " +
+    "in the browser tool.";
   readonly inputSchema: Record<string, unknown> = {
     type: "object",
     properties: {
-      keyword: {
+      query: {
         type: "string",
-        description: "The keyword to search for."
+        description: "Search query."
       },
       num_results: {
         type: "integer",
-        description: "Number of results to retrieve.",
+        description: "Number of results to retrieve. Defaults to 10.",
         default: 10
       }
     },
-    required: ["keyword"]
+    required: ["query"]
   };
 
   private _provider?: SerpProvider;
@@ -98,29 +119,30 @@ export class GoogleSearchTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    const keyword = params.keyword as string | undefined;
-    if (!keyword) return { error: "keyword is required" };
+    // Accept the canonical `query` field, tolerate the older `keyword`.
+    const query =
+      (params.query as string | undefined) ??
+      (params.keyword as string | undefined);
+    if (!query) return "Error: query is required";
 
     const numResults = (params.num_results as number) ?? 10;
 
     if (this._provider) {
-      const results = await this._provider.search(keyword, { numResults });
-      return {
-        success: true,
-        results: results.map((r) => ({
+      const results = await this._provider.search(query, { numResults });
+      return formatSearchResults(
+        results.map((r) => ({
           title: r.title ?? null,
           link: r.url ?? null,
           snippet: r.snippet ?? null
         }))
-      };
+      );
     }
 
-    // Legacy direct API call path
     const apiKey = await getSerpApiKey(context);
 
     const data = (await serpApiFetch({
       engine: "google",
-      q: keyword,
+      q: query,
       api_key: apiKey,
       num: numResults
     })) as Record<string, unknown>;
@@ -129,19 +151,22 @@ export class GoogleSearchTool extends Tool {
       Record<string, unknown>
     >;
 
-    const results = organicResults.map((r) => ({
-      title: r.title ?? null,
-      link: r.link ?? null,
-      snippet: r.snippet ?? null
-    }));
-
-    return { success: true, results };
+    return formatSearchResults(
+      organicResults.map((r) => ({
+        title: (r.title as string) ?? null,
+        link: (r.link as string) ?? null,
+        snippet: (r.snippet as string) ?? null
+      }))
+    );
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const keyword = (params.keyword as string) ?? "something";
-    const msg = `Searching Google for '${keyword}'...`;
-    return msg.length > 80 ? "Searching Google..." : msg;
+    const query =
+      (params.query as string | undefined) ??
+      (params.keyword as string | undefined) ??
+      "something";
+    const msg = `Searching Google for '${query}'`;
+    return msg.length > 80 ? "Searching Google" : msg;
   }
 }
 

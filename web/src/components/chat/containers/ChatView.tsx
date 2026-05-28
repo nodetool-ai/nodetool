@@ -11,11 +11,14 @@ import {
   PlanningUpdate,
   TaskUpdate,
   LogUpdate,
-  LanguageModel
+  LanguageModel,
+  TodoItem
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import ComposerSlot from "../composer/ComposerSlot";
+import { TodoSidebar } from "../sidebar/TodoSidebar";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
@@ -29,10 +32,18 @@ const styles = (theme: Theme) =>
       maxHeight: "100%",
       width: "100%",
       display: "flex",
-      flexDirection: "column",
+      flexDirection: "row",
       overflow: "hidden",
       minHeight: 0,
-      padding: "0 20px 20px 20px"
+      padding: "0 0 20px 20px"
+    },
+    ".chat-main": {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      paddingRight: 20
     },
     "&::before": {
       content: '""',
@@ -90,19 +101,9 @@ type ChatViewProps = {
   };
   sendMessage: (message: Message) => Promise<void>;
   progressMessage: string | null;
-  selectedTools?: string[];
-  onToolsChange?: (tools: string[]) => void;
-  selectedCollections?: string[];
-  onCollectionsChange?: (collections: string[]) => void;
   onModelChange?: (model: LanguageModel) => void;
   onStop?: () => void;
   onNewChat?: () => void;
-  agentMode?: boolean;
-  onAgentModeToggle?: (enabled: boolean) => void;
-  agentPlanner?: import("../composer/AgentModeSelector").AgentPlanner;
-  onAgentPlannerChange?: (
-    planner: import("../composer/AgentModeSelector").AgentPlanner
-  ) => void;
   memoryEnabled?: boolean;
   onMemoryToggle?: (enabled: boolean) => void;
   helpMode?: boolean;
@@ -118,11 +119,7 @@ type ChatViewProps = {
   noMessagesPlaceholder?: React.ReactNode;
   onInsertCode?: (text: string, language?: string) => void;
   allowedProviders?: string[];
-  /**
-   * Hide non-tool-capable models in the composer's language model picker.
-   * The composer auto-enables this whenever `agentMode` is on; pass `true`
-   * here to force-filter regardless of agent mode.
-   */
+  /** Hide non-tool-capable models in the composer's language model picker. */
   requireToolSupport?: boolean;
   workflowId?: string | null;
   /**
@@ -148,6 +145,11 @@ type ChatViewProps = {
   useExternalComposer?: boolean;
 };
 
+// Stable empty-array sentinel so the Zustand selector below returns the same
+// reference across renders when the current thread has no todos — returning a
+// fresh `[]` triggered React's "Maximum update depth exceeded" loop.
+const NO_TODOS: TodoItem[] = [];
+
 const ChatView = ({
   status,
   progress,
@@ -156,18 +158,10 @@ const ChatView = ({
   model,
   sendMessage,
   progressMessage,
-  selectedTools = [],
   showToolbar = true,
-  onToolsChange,
-  selectedCollections = [],
-  onCollectionsChange,
   onModelChange,
   onStop,
   onNewChat,
-  agentMode,
-  onAgentModeToggle,
-  agentPlanner,
-  onAgentPlannerChange,
   memoryEnabled,
   onMemoryToggle,
   helpMode = false,
@@ -191,7 +185,6 @@ const ChatView = ({
     async (
       content: MessageContent[],
       prompt: string,
-      messageAgentMode: boolean,
       mediaGeneration?: MediaGenerationRequest
     ) => {
       try {
@@ -209,10 +202,6 @@ const ChatView = ({
               ? mediaGeneration.model ?? model?.id
               : model?.id,
           content: content,
-          tools: selectedTools.length > 0 ? selectedTools : undefined,
-          collections:
-            selectedCollections.length > 0 ? selectedCollections : undefined,
-          agent_mode: messageAgentMode,
           help_mode: helpMode,
           graph: graph,
           workflow_id: workflowId ?? undefined,
@@ -227,66 +216,62 @@ const ChatView = ({
         console.error("Error sending message:", error);
       }
     },
-    [
-      sendMessage,
-      model,
-      selectedTools,
-      selectedCollections,
-      helpMode,
-      graph,
-      workflowId
-    ]
+    [sendMessage, model, helpMode, graph, workflowId]
   );
+
+  const todos = useGlobalChatStore((state) => {
+    const id = state.currentThreadId;
+    return (id && state.todosByThread[id]) || NO_TODOS;
+  });
+  const showTodoSidebar = todos.length > 0;
 
   return (
     <div className="chat-view" css={styles(theme)}>
-      <div className="chat-thread-container">
-        {messages.length > 0 ? (
-          <ChatThreadView
-            messages={messages}
-            status={status}
-            progress={progress}
-            total={total}
-            progressMessage={progressMessage}
-            runningToolCallId={runningToolCallId}
-            runningToolMessage={runningToolMessage}
-            currentPlanningUpdate={currentPlanningUpdate}
-            currentTaskUpdate={currentTaskUpdate}
-            currentLogUpdate={currentLogUpdate}
-            onInsertCode={onInsertCode}
+      <div className="chat-main">
+        <div className="chat-thread-container">
+          {messages.length > 0 ? (
+            <ChatThreadView
+              messages={messages}
+              status={status}
+              progress={progress}
+              total={total}
+              progressMessage={progressMessage}
+              runningToolCallId={runningToolCallId}
+              runningToolMessage={runningToolMessage}
+              currentPlanningUpdate={currentPlanningUpdate}
+              currentTaskUpdate={currentTaskUpdate}
+              currentLogUpdate={currentLogUpdate}
+              onInsertCode={onInsertCode}
+            />
+          ) : (
+            noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
+          )}
+        </div>
+
+        {useExternalComposer ? (
+          <ComposerSlot
+            className="chat-input-section"
+            onSend={handleSendMessage}
           />
         ) : (
-          noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
+          <ChatInputSection
+            status={status}
+            showToolbar={showToolbar}
+            onSendMessage={handleSendMessage}
+            onStop={onStop}
+            onNewChat={onNewChat}
+            selectedModel={model}
+            onModelChange={onModelChange}
+            memoryEnabled={memoryEnabled}
+            onMemoryToggle={onMemoryToggle}
+            allowedProviders={allowedProviders}
+            requireToolSupport={requireToolSupport}
+            variant={composerVariant}
+            composerToolbar={composerToolbar}
+          />
         )}
       </div>
-
-      {useExternalComposer ? (
-        <ComposerSlot className="chat-input-section" onSend={handleSendMessage} />
-      ) : (
-        <ChatInputSection
-          status={status}
-          showToolbar={showToolbar}
-          onSendMessage={handleSendMessage}
-          onStop={onStop}
-          onNewChat={onNewChat}
-          selectedTools={selectedTools}
-          onToolsChange={onToolsChange}
-          selectedCollections={selectedCollections}
-          onCollectionsChange={onCollectionsChange}
-          selectedModel={model}
-          onModelChange={onModelChange}
-          agentMode={agentMode}
-          onAgentModeToggle={onAgentModeToggle}
-          agentPlanner={agentPlanner}
-          onAgentPlannerChange={onAgentPlannerChange}
-          memoryEnabled={memoryEnabled}
-          onMemoryToggle={onMemoryToggle}
-          allowedProviders={allowedProviders}
-          requireToolSupport={requireToolSupport}
-          variant={composerVariant}
-          composerToolbar={composerToolbar}
-        />
-      )}
+      {showTodoSidebar && <TodoSidebar todos={todos} />}
     </div>
   );
 };

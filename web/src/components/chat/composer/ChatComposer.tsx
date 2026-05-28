@@ -25,15 +25,10 @@ import { createStyles } from "./ChatComposer.styles";
 interface ChatComposerProps {
   isLoading: boolean;
   isStreaming: boolean;
-  onSendMessage: (
-    content: MessageContent[],
-    prompt: string,
-    agentMode: boolean
-  ) => void;
+  onSendMessage: (content: MessageContent[], prompt: string) => void;
   onStop?: () => void;
   onNewChat?: () => void;
   disabled?: boolean;
-  agentMode?: boolean;
   toolbarNode?: React.ReactNode;
 }
 
@@ -44,7 +39,6 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   onStop,
   onNewChat,
   disabled = false,
-  agentMode = false,
   toolbarNode
 }) => {
   const theme = useTheme();
@@ -95,10 +89,10 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
     const fileContents = getFileContents();
     const fullContent = [...content, ...fileContents];
 
-    sendMessage(fullContent, prompt, agentMode);
+    sendMessage(fullContent, prompt);
     setPrompt("");
     clearFiles();
-  }, [prompt, getFileContents, sendMessage, clearFiles, agentMode]);
+  }, [prompt, getFileContents, sendMessage, clearFiles]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

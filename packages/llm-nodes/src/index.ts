@@ -11,7 +11,6 @@
 export * from "./nodes/agents.js";
 export * from "./nodes/agent-tool-hydration.js";
 export * from "./nodes/generators.js";
-export * from "./nodes/team.js";
 export * from "./nodes/mistral.js";
 
 // `openai.ts` and `gemini.ts` share the name `EmbeddingNode`; barrel

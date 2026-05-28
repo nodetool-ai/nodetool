@@ -45,17 +45,13 @@ The fix is one store, one API, and one access pattern — **progressive disclosu
                     │  shared:<k>  shared              │
                     └────────────┬─────────────────────┘
                                  │
-       ┌─────────────────────────┼─────────────────────────┐
-       │                         │                         │
-       ▼                         ▼                         ▼
-  StepExecutor           ParallelTaskExecutor        TeamExecutor
-  (writes step:,         (passes task.dependsOn      (subscribes to
-   task: on              IDs as upstream key          TaskBoard, mirrors
-   finish-task steps;    hints to TaskExecutor)       completed tasks;
-   auto-attaches                                      adds memory tools
-   memory_list /                                      to shared toolset)
-   memory_read /
-   memory_write tools)
+       ┌─────────────────────────┴─────────────────────────┐
+       │                                                   │
+       ▼                                                   ▼
+  StepExecutor                              ParallelTaskExecutor
+  (writes step:, task: on finish-task       (passes task.dependsOn IDs as
+   steps; auto-attaches memory_list /        upstream key hints to
+   memory_read / memory_write tools)         TaskExecutor)
 ```
 
 Every executor writes results into `context.memory`. Every step has the three memory tools available automatically, and the system prompt instructs the model when to use them.
@@ -67,7 +63,7 @@ Every executor writes results into `context.memory`. Every step has the three me
 | Namespace | Helper | Written By | Used For |
 |---|---|---|---|
 | `step:<id>` | `memoryKeys.step(id)` | `StepExecutor`, `TaskExecutor` (process mode) | Per-step results |
-| `task:<id>` | `memoryKeys.task(id)` | `StepExecutor` (finish-task steps), `ParallelTaskExecutor`, `TeamExecutor` | Per-task results |
+| `task:<id>` | `memoryKeys.task(id)` | `StepExecutor` (finish-task steps), `ParallelTaskExecutor` | Per-task results |
 | `input:<key>` | `memoryKeys.input(key)` | `TaskExecutor`, `ParallelTaskExecutor`, `AgentStepExecutor` | Caller-supplied inputs and edge inputs |
 | `shared:<key>` | `memoryKeys.shared(key)` | `memory_write` tool | Cross-agent communication, scratch space |
 
@@ -109,7 +105,7 @@ export interface MemoryEntry {
 
 ## Memory Tools (the LLM-facing API)
 
-Three tools are auto-attached to every `StepExecutor` and to `TeamExecutor`'s shared tool list. Their schemas are documented at the top of every default execution system prompt so the model knows when to call them.
+Three tools are auto-attached to every `StepExecutor`. Their schemas are documented at the top of every default execution system prompt so the model knows when to call them.
 
 ### `memory_list`
 
@@ -241,7 +237,7 @@ const unsubscribe = context.memory.subscribe((entry) => {
 unsubscribe();
 ```
 
-`TeamExecutor` uses this to mirror `TaskBoard` task completions into shared memory. UIs can use it to render a live memory side panel.
+UIs can use this to render a live memory side panel.
 
 ### Clearing
 
@@ -314,28 +310,6 @@ Runs a `TaskPlan` of multiple tasks as a DAG. It owns no private result map — 
 
 Downstream tasks see their declared upstream task keys as hints in the step user message and pull values via `memory_read` when needed.
 
-### TeamExecutor (`packages/agents/src/team/team-executor.ts`)
-
-Multi-agent mode using a shared `TaskBoard` + `MessageBus`. On startup, `execute()` subscribes to board events:
-
-```ts
-this.board.onEvent((event) => {
-  if (event.type !== "task_completed") return;
-  const task = this.board.get(event.taskId);
-  if (!task) return;
-  this.context.memory.set({
-    key: memoryKeys.task(task.id),
-    kind: "task_result",
-    value: task.result,
-    source: task.id,
-    title: task.title,
-    description: task.description
-  });
-});
-```
-
-Each agent's tool set includes the memory tools alongside the team tools and any caller-supplied shared tools. The team system prompt has a `## Shared Memory (progressive disclosure)` section instructing teammates to use `memory_list` / `memory_read` to discover and fetch each other's results.
-
 ### AgentStepExecutor (`packages/agents/src/agent-step-executor.ts`)
 
 The bridge between the kernel's workflow runner and the agent system. When a workflow node of type `nodetool.agents.AgentStep` runs, this adapter wraps `StepExecutor`. It also surfaces upstream **edge** inputs into memory:
@@ -355,9 +329,9 @@ for (const [key, value] of Object.entries(inputs)) {
 
 The result is written under `step:<node.id>` by `StepExecutor`, so subsequent agent steps in the same workflow graph discover prior nodes' outputs through `memory_list`.
 
-### MultiModeAgent (`packages/agents/src/multi-mode-agent.ts`)
+### Agent (`packages/agents/src/agent.ts`)
 
-The top-level dispatcher (`loop` / `plan` / `multi-agent` modes). Memory itself is mode-independent: each mode delegates to the executor above, which all use `context.memory`.
+The top-level entry point. Memory itself is execution-mode-independent: `Agent` delegates to the executors above, which all use `context.memory`.
 
 ---
 
@@ -394,8 +368,6 @@ This is the canonical end-to-end flow for a multi-task plan:
    messages name the upstream task keys; agents call memory_read when
    they actually need the values.
 ```
-
-The same flow applies to `TeamExecutor` with the board-event subscription standing in for the explicit task-result write.
 
 ---
 
@@ -462,11 +434,10 @@ context.memory.set({
   description: "Findings from a previous run; reuse instead of re-researching."
 });
 
-const agent = new MultiModeAgent({
+const agent = new Agent({
   name: "follow-up",
   objective: "Build on the prior research findings.",
-  /* ... */,
-  mode: "plan"
+  /* ... */
 });
 // The agent's first memory_list call will surface this entry.
 ```
@@ -578,11 +549,6 @@ Replacing it stripped the memory-tool documentation and the `finish_step` discip
 **Symptom:** Task result key is missing after the step yielded `step_result` with `is_task_result: true`.
 - `StepExecutor` only writes `task:<id>` for steps where `useFinishTask === true`. That flag is set by `TaskExecutor.isFinishStep()` for the last step in the task (or the explicit `finalStepId` option). Steps in the middle of a task only write `step:<id>`.
 - For belt-and-suspenders, `ParallelTaskExecutor` performs an idempotent task-result write after each task, falling back to the last step's value.
-
-**Symptom:** Cross-agent results not visible in `TeamExecutor` agents.
-- Verify the board emitted `task_completed` events. The mirror subscription only fires on that event type — tasks that fail or stay `working` won't be mirrored.
-- Check that `context.memory.has(memoryKeys.task(taskId))` is true after the relevant teammate completes its work.
-- Confirm the agent's tool list includes the memory tools: `getMemoryTools()` is automatically added to every team iteration.
 
 **Symptom:** Tests pass but memory entries seem stale across test runs.
 - A new `AgentMemory` instance is constructed for every `ProcessingContext`. If you reuse a context across tests, call `context.memory.clear()` between them.

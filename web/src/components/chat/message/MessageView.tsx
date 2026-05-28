@@ -30,6 +30,7 @@ import {
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import { Collapse } from "@mui/material";
 
 
@@ -37,6 +38,7 @@ import AgentExecutionView from "./AgentExecutionView";
 import MediaOutputGroup, { isMediaOnlyContent } from "./MediaOutputGroup";
 import { formatToolName } from "../../../utils/formatUtils";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
+import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -60,6 +62,14 @@ const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
 PrettyJson.displayName = "PrettyJson";
 
 /**
+ * `run_subtask` is the recursive-decomposition primitive. We render its
+ * tool-call card differently from generic tools: the LLM-provided `title`
+ * becomes the headline, `instructions` go into the expanded section, and a
+ * tree icon signals that this card represents a deeper sub-execution.
+ */
+const RUN_SUBTASK_TOOL_NAME = "run_subtask";
+
+/**
  * ToolCallCard - Memoized component for displaying tool calls.
  * Extracted outside MessageView to prevent recreation on every render.
  */
@@ -70,24 +80,89 @@ const ToolCallCard: React.FC<{
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
-  const hasArgs = tc.args && Object.keys(tc.args).length > 0;
-  const hasDetails = !!hasArgs;
+  const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
+
+  // For run_subtask we lift `description` / `prompt` (Claude-Code Task naming)
+  // out of args into headline + expanded body. Tolerate the older
+  // `title`/`instructions` keys for messages already in the DB.
+  const rawArgs = (tc.args as Record<string, unknown> | null | undefined) ?? null;
+  const pickString = (key: string) =>
+    typeof rawArgs?.[key] === "string"
+      ? (rawArgs[key] as string).trim() || null
+      : null;
+  const subtaskTitle = isSubtask
+    ? pickString("description") ?? pickString("title")
+    : null;
+  const subtaskInstructions = isSubtask
+    ? pickString("prompt") ?? pickString("instructions")
+    : null;
+  const displayArgs = useMemo(() => {
+    const base = visibleArgs(rawArgs);
+    if (!isSubtask || !base) return base;
+    const stripped: Record<string, unknown> = { ...base };
+    for (const k of ["description", "prompt", "title", "instructions"]) {
+      delete stripped[k];
+    }
+    return Object.keys(stripped).length > 0 ? stripped : null;
+  }, [rawArgs, isSubtask]);
+
+  const hasArgs = !!displayArgs && Object.keys(displayArgs).length > 0;
+  const hasDetails = !!hasArgs || (isSubtask && !!subtaskInstructions);
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
 
   const handleToggleOpen = useCallback(() => {
     setOpen((v) => !v);
   }, []);
 
+  // For subtasks we keep the title + "Subtask" badge as the headline. For
+  // regular tool calls we drop the tool name entirely and let the LLM-authored
+  // `tc.message` carry the row — falling back to the formatted tool name only
+  // when no message was provided.
+  const liveMessage = isRunning ? runningToolMessage || tc.message : tc.message;
+  const fallbackName = formatToolName(tc.name);
+  const headline = isSubtask
+    ? subtaskTitle || fallbackName
+    : liveMessage || fallbackName;
+  const showSeparateMessage = isSubtask && !!liveMessage;
+  const headlineLabel = isSubtask ? "Subtask" : null;
+
   return (
-    <div className={`tool-call-card${isRunning ? " running" : ""}`}>
+    <div
+      className={`tool-call-card${isRunning ? " running" : ""}${
+        isSubtask ? " run-subtask" : ""
+      }`}
+    >
       <FlexRow className="tool-call-header" align="center" justify="space-between" fullWidth gap={0.5}>
         <FlexRow align="center" gap={0.5} sx={{ minWidth: 0 }}>
-          <Text component="span" size="small" weight={600} className="tool-call-name" truncate>
-            {formatToolName(tc.name)}
+          {isSubtask && (
+            <AccountTreeOutlinedIcon
+              fontSize="small"
+              className="subtask-icon"
+              aria-hidden
+            />
+          )}
+          {headlineLabel && (
+            <Text
+              component="span"
+              size="small"
+              weight={600}
+              className="tool-call-badge"
+            >
+              {headlineLabel}
+            </Text>
+          )}
+          <Text
+            component="span"
+            size="small"
+            weight={isSubtask ? 500 : 400}
+            className="tool-call-name"
+            truncate
+          >
+            {headline}
           </Text>
-          {(isRunning || tc.message) && (
+          {showSeparateMessage && (
             <Text component="span" size="small" className="tool-message" truncate>
-              {isRunning ? runningToolMessage || tc.message : tc.message}
+              {liveMessage}
             </Text>
           )}
           {isRunning && <LoadingSpinner size="small" />}
@@ -102,12 +177,24 @@ const ToolCallCard: React.FC<{
         )}
       </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
-        {hasArgs && (
-          <FlexColumn gap={0.25} sx={{ marginTop: "2px" }}>
-            <Caption className="tool-section-title">Arguments</Caption>
-            <PrettyJson value={tc.args} />
-          </FlexColumn>
-        )}
+        <FlexColumn gap={0.5} sx={{ marginTop: "4px" }}>
+          {isSubtask && subtaskInstructions && (
+            <FlexColumn gap={0.25}>
+              <Caption className="tool-section-title">Instructions</Caption>
+              <Text size="small" className="subtask-instructions">
+                {subtaskInstructions}
+              </Text>
+            </FlexColumn>
+          )}
+          {hasArgs && (
+            <FlexColumn gap={0.25}>
+              <Caption className="tool-section-title">
+                {isSubtask ? "Other arguments" : "Arguments"}
+              </Caption>
+              <PrettyJson value={displayArgs} />
+            </FlexColumn>
+          )}
+        </FlexColumn>
       </Collapse>
     </div>
   );

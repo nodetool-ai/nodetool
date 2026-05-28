@@ -9,6 +9,8 @@
  * the store while message handling remains testable.
  */
 
+import { visibleToolArgs } from "./toolCallFields";
+
 /**
  * Chunk deduplication cache to prevent duplicate chunks from being processed
  * multiple times due to duplicate WebSocket handlers or message routing.
@@ -91,6 +93,7 @@ import {
   Prediction,
   StepResult,
   TaskUpdate,
+  TodoUpdate,
   ToolCallUpdate
 } from "../../stores/ApiTypes";
 import {
@@ -123,6 +126,21 @@ export interface GenerationStoppedUpdate {
   message: string;
 }
 
+/**
+ * Server → client request to approve a gated tool call. Routed to the
+ * GlobalChatStore as a pending approval; the user resolves it via the inline
+ * ToolApprovalCard, which sends a `tool_approval_response` back.
+ */
+export interface ToolApprovalRequestMessage {
+  type: "tool_approval_request";
+  thread_id: string;
+  approval_id: string;
+  tool_name: string;
+  category: "write" | "execute" | "external";
+  message: string;
+  args: Record<string, unknown>;
+}
+
 export interface ToolCallMessage {
   type: "tool_call";
   tool_call_id: string;
@@ -141,6 +159,7 @@ export type MsgpackData =
   | Message
   | ToolCallUpdate
   | TaskUpdate
+  | TodoUpdate
   | PlanningUpdate
   | OutputUpdate
   | StepResult
@@ -149,6 +168,7 @@ export type MsgpackData =
   | GenerationStoppedUpdate
   | ToolCallMessage
   | ToolResultMessage
+  | ToolApprovalRequestMessage
   | ErrorMessage;
 
 export interface ToolResultMessage {
@@ -589,6 +609,11 @@ const applyToolCallUpdate = (
   const agentExecutionId = updateWithMeta.agent_execution_id ?? null;
   const stepId = updateWithMeta.step_id ?? null;
 
+  // The LLM-authored status lives in args._message and is mirrored onto
+  // `update.message`. Strip it from the args we display so the user doesn't
+  // see the status field duplicated under "Arguments".
+  const displayArgs = visibleToolArgs(update.args);
+
   let agentExecutionToolCalls:
     | GlobalChatState["agentExecutionToolCalls"]
     | undefined;
@@ -603,7 +628,7 @@ const applyToolCallUpdate = (
     const nextCall: StepToolCall = {
       id: toolCallId,
       name: update.name || "Tool",
-      args: update.args ?? null,
+      args: displayArgs ?? null,
       message: update.message ?? null,
       startedAt:
         existingIndex >= 0 ? existingCalls[existingIndex].startedAt : Date.now()
@@ -1095,6 +1120,26 @@ async function executeToolCall(
   }
 }
 
+/**
+ * Send the user's decision on a gated tool call back to the server, resuming
+ * (or denying) the paused tool execution. Reuses the shared WebSocket
+ * connection — never opens a new socket.
+ */
+export async function sendToolApprovalResponse(
+  approvalId: string,
+  decision: "allow" | "allow_for_chat" | "deny"
+): Promise<void> {
+  try {
+    await globalWebSocketManager.send({
+      type: "tool_approval_response",
+      approval_id: approvalId,
+      decision
+    });
+  } catch (error) {
+    console.error("Failed to send tool_approval_response:", error);
+  }
+}
+
 export async function handleChatWebSocketMessage(
   data: MsgpackData,
   set: ChatStateSetter,
@@ -1174,6 +1219,17 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyOutputUpdate, data as OutputUpdate);
   } else if (data.type === "tool_call_update") {
     applyReducer(applyToolCallUpdate, data as ToolCallUpdate);
+  } else if (data.type === "todo_update") {
+    const todoData = data as TodoUpdate;
+    const threadId = todoData.thread_id ?? get().currentThreadId;
+    if (threadId) {
+      set((state) => ({
+        todosByThread: {
+          ...state.todosByThread,
+          [threadId]: todoData.todos ?? []
+        }
+      }));
+    }
   } else if (data.type === "message") {
     const messageData = data as Message;
     const currentThreadId = get().currentThreadId;
@@ -1194,6 +1250,8 @@ export async function handleChatWebSocketMessage(
   } else if (data.type === "tool_call") {
     const toolCallData = data as ToolCallMessage;
     void executeToolCall(toolCallData, get, set, globalWebSocketManager);
+  } else if (data.type === "tool_approval_request") {
+    get().addPendingApproval(data as ToolApprovalRequestMessage);
   } else if (data.type === "generation_stopped") {
     // Clear the safety timeout when generation is stopped
     const timeoutId = get().sendMessageTimeoutId;

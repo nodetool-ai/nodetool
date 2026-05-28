@@ -35,7 +35,6 @@ import {
   migrateSqliteDb,
   runSeeds
 } from "@nodetool-ai/models";
-import { Tool, BUILTIN_TOOL_CLASSES } from "@nodetool-ai/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { handleMcpHttpRequest } from "./mcp-server.js";
@@ -436,37 +435,6 @@ pythonBridge.on("exit", (code: number) => {
 });
 
 // ---------------------------------------------------------------------------
-// Tool registry — sourced from @nodetool-ai/agents BUILTIN_TOOL_CLASSES
-// ---------------------------------------------------------------------------
-
-// Lazy tool class map — defers instantiation until first access.
-let _toolClassMap: Map<string, new () => Tool> | null = null;
-function getToolClassMap(): Map<string, new () => Tool> {
-  if (!_toolClassMap) {
-    _toolClassMap = new Map();
-    for (const cls of BUILTIN_TOOL_CLASSES) {
-      const instance = new cls();
-      _toolClassMap.set(instance.name, cls);
-    }
-    log.info(
-      `Tool class map built (${_toolClassMap.size} tools) [${startupMs()}]`
-    );
-  }
-  return _toolClassMap;
-}
-// Expose as a getter-backed object so existing code using toolClassMap works unchanged.
-const toolClassMap = new Proxy(new Map<string, new () => Tool>(), {
-  get(_target, prop, _receiver) {
-    const map = getToolClassMap();
-    const value = (map as unknown as Record<string | symbol, unknown>)[prop];
-    if (typeof value === "function") {
-      return value.bind(map);
-    }
-    return value;
-  }
-});
-
-// ---------------------------------------------------------------------------
 // TLS configuration
 // ---------------------------------------------------------------------------
 
@@ -819,8 +787,7 @@ await app.register(websocketPlugin, {
         err instanceof Error ? err : new Error(String(err))
       );
     });
-  },
-  toolClassMap
+  }
 });
 
 await app.register(healthRoute);

@@ -254,6 +254,53 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.info.main
     },
 
+    // `run_subtask` cards stand apart from generic tool calls — a light
+    // accent border + soft background marks them as a deeper sub-execution.
+    ".tool-call-card.run-subtask": {
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderLeft: `2px solid ${theme.vars.palette.primary.main}`,
+      borderRadius: 6,
+      padding: theme.spacing(0.5, 1),
+      background: `${theme.vars.palette.primary.main}0a`,
+      marginBottom: theme.spacing(0.25)
+    },
+
+    ".tool-call-card.run-subtask .subtask-icon": {
+      fontSize: 14,
+      color: theme.vars.palette.primary.main,
+      flexShrink: 0
+    },
+
+    ".tool-call-card.run-subtask .tool-call-badge": {
+      fontSize: "0.65rem",
+      fontWeight: 700,
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+      color: theme.vars.palette.primary.main,
+      lineHeight: 1,
+      padding: "1px 5px",
+      border: `1px solid ${theme.vars.palette.primary.main}55`,
+      borderRadius: 3,
+      background: "transparent",
+      flexShrink: 0
+    },
+
+    ".tool-call-card.run-subtask .tool-call-name": {
+      // Subtask titles tend to be a phrase, not a snake_case identifier — let
+      // them wrap rather than truncate so the user can read the whole thing.
+      whiteSpace: "normal",
+      fontWeight: 500,
+      color: theme.vars.palette.text.primary,
+      fontSize: "0.78rem"
+    },
+
+    ".tool-call-card.run-subtask .subtask-instructions": {
+      whiteSpace: "pre-wrap",
+      color: theme.vars.palette.text.secondary,
+      fontSize: "0.78rem",
+      lineHeight: 1.45
+    },
+
     ".chat-message.tool-calls-only": {
       marginBottom: "0.15em",
       padding: "0.1em 0"

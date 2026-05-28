@@ -711,8 +711,6 @@ const TextEditorModal = ({
     sendMessage,
     selectedModel,
     setSelectedModel,
-    selectedTools,
-    selectedCollections,
     stopGeneration,
     createNewThread
   } = useChatIntegration({
@@ -1259,8 +1257,6 @@ const TextEditorModal = ({
                           name: DEFAULT_MODEL
                         }
                       }
-                      selectedTools={selectedTools}
-                      selectedCollections={selectedCollections}
                       onModelChange={setSelectedModel}
                       helpMode={false}
                       workflowAssistant={true}

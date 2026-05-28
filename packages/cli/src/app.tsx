@@ -22,22 +22,18 @@ import Spinner from "ink-spinner";
 import { ExecutionTree } from "./ExecutionTree.js";
 import { useExecutionState } from "./useExecutionState.js";
 import type { Message, ToolCall } from "@nodetool-ai/runtime";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
 import {
-  MultiModeAgent,
+  RunSubtaskTool,
   getBuiltinTools,
   getAllMcpTools,
 } from "@nodetool-ai/agents";
 import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient } from "./websocket-client.js";
 import { renderMarkdown } from "./markdown.js";
-import {
-  saveSettings,
-  isAgentMode,
-  AGENT_MODES,
-  type AgentMode
-} from "./settings.js";
+import { saveSettings } from "./settings.js";
 import { getSecret } from "@nodetool-ai/models";
 
 // ---------------------------------------------------------------------------
@@ -56,7 +52,6 @@ export interface ChatMessage {
 interface AppProps {
   initialProvider: string;
   initialModel: string;
-  initialAgentMode: AgentMode;
   enabledTools: string[];
   workspaceDir: string;
   wsUrl?: string;
@@ -65,13 +60,9 @@ interface AppProps {
    * Used by --sandbox to inject the 37 sandbox-tools adapter instances.
    */
   extraTools?: import("@nodetool-ai/agents").Tool[];
-  /**
-   * NodeRegistry for graph-native agent mode. When supplied, agent mode
-   * uses MultiModeAgent + GraphPlanner so the agent builds workflows with
-   * the curated `nodetool.*` core nodes plus a `find_model` tool.
-   */
+  /** NodeRegistry — unused by the unified loop; kept for back-compat. */
   registry?: import("@nodetool-ai/node-sdk").NodeRegistry;
-  /** Configured BaseProvider instances by id for `find_model`. */
+  /** Configured BaseProvider instances by id (passed through to subtasks). */
   agentProviders?: Record<
     string,
     import("@nodetool-ai/runtime").BaseProvider
@@ -87,19 +78,10 @@ const COMMANDS = {
   "/clear":    "Clear conversation history",
   "/model":    "Set model: /model <model-id>",
   "/provider": "Set provider: /provider <name>",
-  "/agent":    "Set agent mode: /agent off|loop|plan|graph|multi-agent",
   "/tools":    "List enabled tools",
   "/exit":     "Exit the chat",
   "/quit":     "Exit the chat",
 } as const;
-
-const AGENT_MODE_DESCRIPTIONS: Record<AgentMode, string> = {
-  "off":         "plain chat (no agent)",
-  "loop":        "iterative tool-calling loop",
-  "plan":        "TaskPlanner DAG + CompilerAgent synthesis",
-  "graph":       "GraphPlanner builds a workflow graph",
-  "multi-agent": "team of sub-agents",
-};
 
 // ---------------------------------------------------------------------------
 // Individual message rendering
@@ -224,7 +206,6 @@ function HelpPanel() {
 export function App({
   initialProvider,
   initialModel,
-  initialAgentMode,
   enabledTools,
   workspaceDir,
   wsUrl,
@@ -237,7 +218,6 @@ export function App({
   // --- State ---
   const [provider, setProvider] = useState(initialProvider);
   const [model, setModel] = useState(initialModel);
-  const [agentMode, setAgentMode] = useState<AgentMode>(initialAgentMode);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -282,7 +262,6 @@ export function App({
   const chatHistoryRef = useRef(chatHistory);
   const providerRef = useRef(provider);
   const modelRef = useRef(model);
-  const agentModeRef = useRef(agentMode);
   const abortRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   // Guard against double-submit: useInput autocomplete Enter + TextInput onSubmit fire for the same keypress
@@ -291,7 +270,6 @@ export function App({
   useEffect(() => { chatHistoryRef.current = chatHistory; }, [chatHistory]);
   useEffect(() => { providerRef.current = provider; }, [provider]);
   useEffect(() => { modelRef.current = model; }, [model]);
-  useEffect(() => { agentModeRef.current = agentMode; }, [agentMode]);
   useEffect(() => { setAcIndex(0); }, [inputValue]);
 
   // Connect WebSocket when --url is provided
@@ -419,31 +397,9 @@ export function App({
 
       case "/exit":
       case "/quit":
-        await saveSettings({ provider, model, agentMode });
+        await saveSettings({ provider, model });
         exit();
         return true;
-
-      case "/agent": {
-        const arg = args[0]?.toLowerCase();
-        if (!arg) {
-          addMessage(
-            "system",
-            `Current agent mode: ${agentMode}. Usage: /agent ${AGENT_MODES.join("|")}`
-          );
-          return true;
-        }
-        if (!isAgentMode(arg)) {
-          addMessage(
-            "system",
-            `Unknown agent mode "${arg}". Expected one of: ${AGENT_MODES.join(", ")}.`
-          );
-          return true;
-        }
-        setAgentMode(arg);
-        await saveSettings({ agentMode: arg });
-        addMessage("system", `Agent mode set to: ${arg}`);
-        return true;
-      }
 
       case "/model":
         if (args[0]) {
@@ -480,7 +436,7 @@ export function App({
         }
         return false;
     }
-  }, [provider, model, agentMode, enabledTools, addMessage, exit]);
+  }, [provider, model, enabledTools, addMessage, exit]);
 
   // ---------------------------------------------------------------------------
   // Chat submission
@@ -525,94 +481,15 @@ export function App({
       const ctx = new ProcessingContext({ jobId: crypto.randomUUID(), userId: "1", workspaceDir, secretResolver: getSecret });
       const tools = buildTools();
 
-      if (agentModeRef.current !== "off") {
-        // --- Agent mode ---
-        setStreamLabel("planning");
-        execState.reset();
-        const prov = wsClientRef.current
-          ? new WebSocketProvider(wsClientRef.current, modelRef.current, providerRef.current)
-          : await createProvider(providerRef.current);
+      // The unified chat loop is used for every turn — there is no longer a
+      // planning vs. loop branch. `run_subtask` is always in the toolset, so
+      // the agent can decompose work itself when it judges it worthwhile.
+      // `registry` and `agentProviders` remain on the props for back-compat;
+      // they're available to subtasks via the shared context.
+      void registry;
+      void agentProviders;
 
-        // Map the chat-cli agent mode to MultiModeAgent's options.
-        // "graph" → plan mode + GraphPlanner (needs a registry; falls back to plan).
-        // "plan"  → plan mode + multi-task TaskPlanner.
-        // "loop"  → simple iterative tool-calling loop.
-        // "multi-agent" → team of sub-agents (auto-specialized).
-        const cur = agentModeRef.current;
-        const wantsGraph = cur === "graph" && !!registry;
-        const mmaMode =
-          cur === "loop"
-            ? "loop"
-            : cur === "multi-agent"
-              ? "multi-agent"
-              : "plan";
-        const markdownOutputSchema = {
-          type: "object",
-          properties: {
-            markdown: {
-              type: "string",
-              description: "The markdown content of the response",
-            },
-          },
-          required: ["markdown"],
-        } as const;
-        const agent = new MultiModeAgent({
-          name: "chat-agent",
-          objective: trimmed,
-          provider: prov,
-          model: modelRef.current,
-          mode: mmaMode,
-          tools,
-          useGraphPlanner: wantsGraph,
-          registry: wantsGraph ? registry : undefined,
-          providers: wantsGraph ? agentProviders : undefined,
-          maxStepIterations: 20,
-          outputSchema: markdownOutputSchema,
-        });
-
-        // Feed all messages into the execution tree state.
-        let synthesisContent = "";
-        for await (const msg of agent.execute(ctx)) {
-          if (abortRef.current) break;
-          execState.processMessage(msg);
-
-          // Stream the CompilerAgent's prose-mode output so the user sees the
-          // final answer forming in real time. Other chunks (step thinking,
-          // planner commentary) stay in the execution tree.
-          if (msg.type === "chunk") {
-            const ch = msg as { content?: string; node_id?: string };
-            if (
-              (ch.node_id === "compiler" || ch.node_id === "agent_synthesizer") &&
-              ch.content
-            ) {
-              synthesisContent += ch.content;
-              setStreamContent(synthesisContent);
-              setStreamLabel("composing");
-            }
-          }
-        }
-        execState.markDone();
-        setStreamContent("");
-
-        const finalResults = agent.getResults();
-        const finalText =
-          typeof finalResults === "string"
-            ? finalResults
-            : finalResults &&
-                typeof finalResults === "object" &&
-                "markdown" in (finalResults as Record<string, unknown>) &&
-                typeof (finalResults as Record<string, unknown>).markdown ===
-                  "string"
-              ? ((finalResults as Record<string, unknown>).markdown as string)
-              : finalResults != null
-                ? JSON.stringify(finalResults, null, 2)
-                : "";
-
-        if (finalText) {
-          await addMessage("assistant", finalText);
-        }
-
-      } else if (wsClientRef.current && !extraTools?.length) {
+      if (wsClientRef.current && !extraTools?.length) {
         // --- Regular chat via WebSocket (server handles everything) ---
         const wsClient = wsClientRef.current;
         let assistantContent = "";
@@ -643,48 +520,40 @@ export function App({
           await addMessage("assistant", assistantContent);
         }
 
-      } else if (wsClientRef.current && extraTools?.length) {
-        // --- Regular chat via WebSocket inference + local sandbox tool execution ---
-        const prov = new WebSocketProvider(wsClientRef.current, modelRef.current, providerRef.current);
-        let assistantContent = "";
-        const updatedHistory = [...chatHistoryRef.current];
-
-        await processChat({
-          userInput: trimmed,
-          messages: updatedHistory,
-          model: modelRef.current,
-          provider: prov,
-          context: ctx,
-          tools,
-          signal: abortController.signal,
-          callbacks: {
-            onChunk: (text) => {
-              if (abortRef.current) throw new Error("aborted");
-              assistantContent += text;
-              setStreamContent(assistantContent);
-              setStreamLabel("streaming");
-            },
-            onToolCall: (tc: ToolCall) => {
-              setStreamLabel(`tool: ${tc.name}`);
-            },
-            onToolResult: (tc: ToolCall, result: unknown) => {
-              const preview = typeof result === "string"
-                ? result
-                : JSON.stringify(result).slice(0, 100);
-              addMessage("tool", preview, { toolName: tc.name, toolArgs: tc.args });
-            },
-          },
-        });
-
-        setChatHistory(updatedHistory);
-
-        if (assistantContent) {
-          await addMessage("assistant", assistantContent);
-        }
-
       } else {
-        // --- Regular chat mode (direct provider) ---
-        const prov = await createProvider(providerRef.current);
+        // --- Direct provider (or wsClient inference + local tool execution) ---
+        const prov = wsClientRef.current
+          ? new WebSocketProvider(
+              wsClientRef.current,
+              modelRef.current,
+              providerRef.current
+            )
+          : await createProvider(providerRef.current);
+
+        // Inject the unified-loop primitive. Child events stream into the UI
+        // via the same chunk channel; nested cards are a future enhancement.
+        const subtaskForwarder = (msg: ProcessingMessage): void => {
+          if (msg.type === "chunk") {
+            const text = (msg as { content?: string }).content;
+            if (text) {
+              setStreamContent((s) => s + text);
+              setStreamLabel("subtask");
+            }
+          } else if (msg.type === "tool_call_update") {
+            const name = (msg as { name?: string }).name;
+            if (name) setStreamLabel(`subtask tool: ${name}`);
+          }
+        };
+        const toolsWithSubtask = [
+          new RunSubtaskTool({
+            provider: prov,
+            model: modelRef.current,
+            parentTools: () => tools,
+            forwardMessage: subtaskForwarder
+          }),
+          ...tools
+        ];
+
         let assistantContent = "";
         const updatedHistory = [...chatHistoryRef.current];
 
@@ -694,7 +563,7 @@ export function App({
           model: modelRef.current,
           provider: prov,
           context: ctx,
-          tools,
+          tools: toolsWithSubtask,
           signal: abortController.signal,
           callbacks: {
             onChunk: (text) => {
@@ -775,14 +644,6 @@ export function App({
             desc: m.name !== m.id ? m.name : "",
             replaceAll: `/model ${m.id}`,
           }));
-      } else if (cmd === "/agent") {
-        acMatches = AGENT_MODES
-          .filter((m) => m.startsWith(arg))
-          .map((m) => ({
-            cmd: m,
-            desc: AGENT_MODE_DESCRIPTIONS[m],
-            replaceAll: `/agent ${m}`,
-          }));
       }
     }
   }
@@ -797,7 +658,7 @@ export function App({
         abortControllerRef.current?.abort();
         abortControllerRef.current = null;
         if (wsClientRef.current) {
-          wsClientRef.current.stop(agentModeRef.current !== "off" ? undefined : threadId);
+          wsClientRef.current.stop(threadId);
         }
         // Immediately reset UI — don't wait for async cleanup
         setStreaming(false);
@@ -805,17 +666,8 @@ export function App({
         setStreamLabel("");
         submittingRef.current = false;
       } else {
-        saveSettings({ provider, model, agentMode }).then(() => exit());
+        saveSettings({ provider, model }).then(() => exit());
       }
-      return;
-    }
-
-    // During agent streaming, allow tree navigation
-    if (streaming && agentModeRef.current !== "off") {
-      if (key.upArrow) { execState.navigate("up"); return; }
-      if (key.downArrow) { execState.navigate("down"); return; }
-      if (key.return || key.rightArrow) { execState.toggleExpand(); return; }
-      if (key.leftArrow) { execState.toggleExpand(); return; }
       return;
     }
 
@@ -901,7 +753,6 @@ export function App({
   const statusParts = [
     provider,
     model,
-    agentMode !== "off" ? `agent:${agentMode}` : null,
     wsUrl ? "ws" : null,
   ].filter(Boolean).join("  ");
 
@@ -919,12 +770,9 @@ export function App({
       {/* Help panel (toggles) */}
       {showHelp && <HelpPanel />}
 
-      {/* Live streaming area */}
-      {streaming && agentMode !== "off" && (
-        <ExecutionTree state={execState.state} treeActive={true} />
-      )}
-      {streaming && agentMode === "off" && (() => {
-        // Truncate streaming preview to avoid overflowing the terminal's dynamic area.
+      {/* Live streaming area — unified loop. Truncate preview to avoid
+          overflowing the terminal's dynamic area. */}
+      {streaming && (() => {
         const maxPreviewLines = Math.max((process.stdout.rows ?? 24) - 4, 5);
         const lines = streamContent ? streamContent.split("\n") : [];
         const truncated = lines.length > maxPreviewLines

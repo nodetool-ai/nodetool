@@ -20,10 +20,12 @@ import {
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
+import ToolApprovalCard from "../message/ToolApprovalCard";
 import { ScrollToBottomButton } from "../controls/ScrollToBottomButton";
 import { createStyles } from "./ChatThreadView.styles";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 
 interface ChatThreadViewProps {
   messages: Message[];
@@ -240,6 +242,20 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   onInsertCode
 }) => {
   const theme = useTheme();
+
+  // Pending tool-approval prompts for the active thread, rendered inline at the
+  // bottom of the thread. Resolving one sends the decision and removes it.
+  const pendingApprovals = useGlobalChatStore((s) => s.pendingApprovals);
+  const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
+  const resolveApproval = useGlobalChatStore((s) => s.resolveApproval);
+  const threadApprovals = useMemo(
+    () =>
+      Object.entries(pendingApprovals).filter(
+        ([, approval]) => approval.thread_id === currentThreadId
+      ),
+    [pendingApprovals, currentThreadId]
+  );
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
   const [expandedThoughts, setExpandedThoughts] = useState<
@@ -539,6 +555,30 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                 flexShrink: 0
               }}
             />
+          )}
+
+          {threadApprovals.length > 0 && (
+            <div className="chat-message-list-item">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px"
+                }}
+              >
+                {threadApprovals.map(([approvalId, approval]) => (
+                  <ToolApprovalCard
+                    key={approvalId}
+                    approvalId={approvalId}
+                    toolName={approval.tool_name}
+                    category={approval.category}
+                    message={approval.message}
+                    args={approval.args}
+                    onResolve={resolveApproval}
+                  />
+                ))}
+              </div>
+            </div>
           )}
 
           <StatusFooter

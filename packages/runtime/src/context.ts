@@ -772,6 +772,8 @@ export function resolveWorkspacePath(
 export class ProcessingContext {
   readonly jobId: string;
   readonly workflowId: string | null;
+  /** Chat thread id, when this context is serving a chat-driven agent run. */
+  readonly threadId: string | null;
   readonly userId: string;
   readonly workspaceDir: string | null;
   readonly assetOutputMode: AssetOutputMode;
@@ -867,6 +869,7 @@ export class ProcessingContext {
   constructor(opts: {
     jobId: string;
     workflowId?: string | null;
+    threadId?: string | null;
     userId?: string;
     workspaceDir?: string | null;
     assetOutputMode?: AssetOutputMode;
@@ -886,6 +889,7 @@ export class ProcessingContext {
   }) {
     this.jobId = opts.jobId;
     this.workflowId = opts.workflowId ?? null;
+    this.threadId = opts.threadId ?? null;
     this.userId = opts.userId ?? "default";
     this.workspaceDir = opts.workspaceDir ?? null;
     this.assetOutputMode = opts.assetOutputMode ?? "native";
@@ -913,6 +917,7 @@ export class ProcessingContext {
     const next = new ProcessingContext({
       jobId: this.jobId,
       workflowId: this.workflowId,
+      threadId: this.threadId,
       userId: this.userId,
       workspaceDir: this.workspaceDir,
       assetOutputMode: this.assetOutputMode,

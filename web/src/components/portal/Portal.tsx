@@ -306,7 +306,7 @@ const Portal: React.FC = () => {
 
   // Handle send from ComposerSlot
   const handleSendMessage = useCallback(
-    async (content: MessageContent[], prompt: string, _agentMode: boolean) => {
+    async (content: MessageContent[], prompt: string) => {
       setDebouncedQuery("");
 
       if (!hasConfiguredProvider) {

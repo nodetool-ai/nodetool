@@ -152,7 +152,7 @@ export class AgentWorkflowRunner {
     });
 
     // Yield a final step_result with the graph outputs so callers can
-    // capture the result (MultiModeAgent checks is_task_result).
+    // capture the result (Agent checks is_task_result).
     if (result.status === "completed" && Object.keys(result.outputs).length > 0) {
       yield {
         type: "step_result",

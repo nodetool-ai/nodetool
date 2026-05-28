@@ -30,8 +30,6 @@ import {
   LIB_NLP_NODES
 } from "@nodetool-ai/text-nodes";
 
-import { TEAM_NODES } from "@nodetool-ai/llm-nodes";
-
 import { CODE_NODES, CodeNode } from "@nodetool-ai/code-nodes";
 
 export {
@@ -48,7 +46,6 @@ export {
   LIB_VALIDATE_NODES,
   LIST_NODES,
   SUBGRAPH_NODES,
-  TEAM_NODES,
   VECTOR_NODES,
   WORKFLOW_NODES,
   CodeNode
@@ -72,7 +69,6 @@ export const ALL_BROWSER_NODES: readonly NodeClass[] = [
   ...LIB_VALIDATE_NODES,
   ...LIST_NODES,
   ...SUBGRAPH_NODES,
-  ...TEAM_NODES,
   ...VECTOR_NODES,
   ...WORKFLOW_NODES,
   CodeNode

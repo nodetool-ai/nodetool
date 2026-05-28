@@ -65,11 +65,6 @@ const StandaloneChat: React.FC = () => {
     fetchThread,
     stopGeneration,
     threadsLoaded,
-    // Agent mode
-    agentMode,
-    setAgentMode,
-    agentPlanner,
-    setAgentPlanner,
     // Task updates
     currentPlanningUpdate,
     currentTaskUpdate,
@@ -79,13 +74,9 @@ const StandaloneChat: React.FC = () => {
     // Tool execution
     runningToolCallId,
     runningToolMessage,
-    // Model and tools
+    // Model
     selectedModel,
     setSelectedModel,
-    selectedTools,
-    setSelectedTools,
-    selectedCollections,
-    setSelectedCollections,
   } = useGlobalChatStore(
     useShallow(
       (state) => ({
@@ -106,11 +97,6 @@ const StandaloneChat: React.FC = () => {
         fetchThread: state.fetchThread,
         stopGeneration: state.stopGeneration,
         threadsLoaded: state.threadsLoaded,
-        // Agent mode
-        agentMode: state.agentMode,
-        setAgentMode: state.setAgentMode,
-        agentPlanner: state.agentPlanner,
-        setAgentPlanner: state.setAgentPlanner,
         // Task updates
         currentPlanningUpdate: state.currentPlanningUpdate,
         currentTaskUpdate: state.currentTaskUpdate,
@@ -120,13 +106,9 @@ const StandaloneChat: React.FC = () => {
         // Tool execution
         runningToolCallId: state.currentRunningToolCallId,
         runningToolMessage: state.currentToolMessage,
-        // Model and tools
+        // Model
         selectedModel: state.selectedModel,
         setSelectedModel: state.setSelectedModel,
-        selectedTools: state.selectedTools,
-        setSelectedTools: state.setSelectedTools,
-        selectedCollections: state.selectedCollections,
-        setSelectedCollections: state.setSelectedCollections,
       })
     )
   );
@@ -470,17 +452,9 @@ const StandaloneChat: React.FC = () => {
             runningToolCallId={runningToolCallId}
             runningToolMessage={runningToolMessage}
             model={selectedModel}
-            selectedTools={selectedTools}
-            onToolsChange={setSelectedTools}
-            selectedCollections={selectedCollections}
-            onCollectionsChange={setSelectedCollections}
             onModelChange={setSelectedModel}
             onStop={stopGeneration}
             onNewChat={handleNewChat}
-            agentMode={agentMode}
-            onAgentModeToggle={setAgentMode}
-            agentPlanner={agentPlanner}
-            onAgentPlannerChange={setAgentPlanner}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={taskUpdateForDisplay}
             currentLogUpdate={currentLogUpdate}

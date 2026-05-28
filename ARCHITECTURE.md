@@ -215,14 +215,13 @@ Core business logic for workflows, nodes, agents, and persistence.
 **`node-sdk`** — The framework for defining custom nodes. Exports `BaseNode` (abstract class with static metadata, property/output declarations, and serialization), `NodeRegistry` (central type registry), and TypeScript decorators (`@node()`, `@output()`, `@property()`) for declarative node definition. Nodes implement `process(context, values)` returning an output record.
 
 **`agents`** — Multi-step LLM agent system with layered execution:
-- `MultiModeAgent` — Unified entry point supporting `loop`, `plan`, and `multi-agent` modes.
-- `Agent` / `SimpleAgent` — Lower-level agent abstractions with skill loading (used internally by `MultiModeAgent`).
+- `Agent` — Entry point. Takes an objective (plus skills, tools, and optional `outputSchema`); orchestrates planning, execution, and final synthesis. With a pre-built `task` it skips planning and runs a single task. With `useGraphPlanner` it builds and runs a workflow DAG via `GraphPlanner` + `AgentWorkflowRunner`.
 - `TaskPlanner` — LLM-driven decomposition of an objective into a `TaskPlan` DAG of tasks and steps.
 - `GraphPlanner` + `GraphBuilder` — LLM iteratively builds a typed workflow graph using `search_nodes` / `add_node` / `add_edge` tools; produces `GraphData` ready for the kernel.
 - `ParallelTaskExecutor` → `TaskExecutor` → `StepExecutor` — Runs `TaskPlan` tasks concurrently, each task's steps sequentially (or in parallel when independent).
+- `CompilerAgent` — Final synthesis pass after `ParallelTaskExecutor` finishes; reads accumulated `context.memory` and produces the deliverable (schema-conformant JSON when `outputSchema` is set, otherwise prose).
 - `AgentWorkflowRunner` — Hands a `GraphData` graph to `WorkflowRunner` (kernel) with a custom resolver that maps `nodetool.agents.AgentStep` nodes to `AgentStepExecutor`.
 - `AgentStepExecutor` — Implements the `NodeExecutor` interface; wraps `StepExecutor` so LLM-driven steps run inside the kernel's actor model.
-- `TeamExecutor` — Runs multiple specialized sub-agents concurrently under coordinator, autonomous, or hybrid coordination strategies.
 - Tool system with 100+ tools across categories: search (Google, DataForSEO), code execution, file I/O, browser automation (Playwright), email, image generation, PDF processing, vector search, workflow management, and MCP (Model Context Protocol) integration.
 
 **`models`** — Database persistence layer using Drizzle ORM over SQLite. Defines tables for: `workflows` (DAG definitions), `jobs` (execution records), `messages` / `threads` (chat history), `assets` (file metadata), `secrets` (encrypted credentials), `workspaces`, `workflowVersions`, `oauthCredentials`, `predictions` (usage/cost tracking), `runNodeState`, `runEvents`, and `runLeases` (distributed job leasing).
@@ -350,52 +349,46 @@ interface NodeExecutor {
 
 ### Agent System
 
-The agent system supports three execution modes selected at runtime via `MultiModeAgent`:
+The agent system has a single entry point — `Agent` — which dispatches to one of three execution paths based on its options:
 
-**Mode: `loop`** — Simple iterative LLM + tool loop (single `StepExecutor`)
+**Path 1: Pre-built `task`** — Caller supplies a `Task` directly; `Agent` skips planning and runs it through `TaskExecutor` → `StepExecutor`.
 
-**Mode: `plan`** — LLM decomposes the goal into a `TaskPlan` DAG, then `ParallelTaskExecutor` runs independent tasks concurrently, each via `TaskExecutor` → `StepExecutor`
+**Path 2: `useGraphPlanner: true`** — `GraphPlanner` builds a workflow graph (DAG of typed nodes) which `AgentWorkflowRunner` hands to the kernel's `WorkflowRunner`. Nodes of type `nodetool.agents.AgentStep` are executed by `AgentStepExecutor` (which wraps a `StepExecutor`); all other nodes resolve through the normal `NodeRegistry`. This is the **hybrid** path: LLM-driven reasoning nodes run alongside deterministic nodes in the same kernel.
 
-**Mode: `plan` + `useGraphPlanner`** — `GraphPlanner` builds a workflow graph (DAG of typed nodes) which `AgentWorkflowRunner` hands to the kernel's `WorkflowRunner`. Nodes of type `nodetool.agents.AgentStep` are executed by `AgentStepExecutor` (which wraps a `StepExecutor`); all other nodes resolve through the normal `NodeRegistry`. This is the **hybrid** path: LLM-driven reasoning nodes run alongside deterministic nodes in the same kernel.
-
-**Mode: `multi-agent`** — `SubAgentPlanner` decomposes into specialized sub-agents; `TeamExecutor` runs them with a configurable strategy (`coordinator`, `autonomous`, or `hybrid`).
+**Path 3: Default (plan)** — `TaskPlanner` decomposes the objective into a `TaskPlan` DAG; `ParallelTaskExecutor` runs independent tasks concurrently via `TaskExecutor` → `StepExecutor`; `CompilerAgent` synthesizes the final deliverable from accumulated `context.memory`.
 
 ```
-User sends "chat_message" with agent mode
-        │
-        ▼
-MultiModeAgent  (selects mode: loop | plan | multi-agent)
+Agent.execute(context)
   ├── Loads skills from filesystem (auto-matched to objective)
+  ├── Recalls long-term memory (if configured) and folds into system prompt
   │
-  ├─── loop mode ──────────────────────────────────────────┐
-  │    StepExecutor                                         │
-  │      ├── LLM call with tool schemas                     │
-  │      ├── tool_call → execute → result → LLM             │
-  │      └── Repeats until finish_step tool called          │
-  │                                                         │
-  ├─── plan mode ──────────────────────────────────────────┤
-  │    TaskPlanner                                          │
-  │      └── LLM → TaskPlan (tasks[] with depends_on DAG)  │
-  │    ParallelTaskExecutor                                 │
-  │      └── Independent tasks run concurrently            │
-  │          TaskExecutor (per task)                        │
-  │            └── StepExecutor (per step)                  │
-  │                 └── results stored in ProcessingContext │
-  │                                                         │
-  ├─── plan + useGraphPlanner ─────────────────────────────┤
-  │    GraphPlanner                                         │
-  │      ├── LLM iteratively calls: search_nodes,          │
+  ├─── pre-built task ────────────────────────────────────┐
+  │    TaskExecutor → StepExecutor                         │
+  │      ├── LLM call with tool schemas                    │
+  │      ├── tool_call → execute → result → LLM            │
+  │      └── Repeats until finish_step tool called         │
+  │                                                        │
+  ├─── useGraphPlanner ───────────────────────────────────┤
+  │    GraphPlanner                                        │
+  │      ├── LLM iteratively calls: search_nodes,         │
   │      │   get_node_info, add_node, add_edge, finish_graph│
-  │      └── GraphBuilder validates DAG, emits GraphData   │
-  │    AgentWorkflowRunner                                  │
-  │      └── WorkflowRunner (kernel) with custom resolver: │
-  │            AgentStep nodes → AgentStepExecutor          │
-  │                               └── StepExecutor (LLM)   │
-  │            Other nodes → NodeRegistry (deterministic)   │
-  │                                                         │
-  └─── multi-agent mode ───────────────────────────────────┘
-       SubAgentPlanner → SubAgentConfig[]
-       TeamExecutor → Agent[] (concurrent, coordinator/autonomous/hybrid)
+  │      └── GraphBuilder validates DAG, emits GraphData  │
+  │    AgentWorkflowRunner                                 │
+  │      └── WorkflowRunner (kernel) with custom resolver:│
+  │            AgentStep nodes → AgentStepExecutor         │
+  │                               └── StepExecutor (LLM)  │
+  │            Other nodes → NodeRegistry (deterministic)  │
+  │                                                        │
+  └─── default plan ──────────────────────────────────────┘
+       TaskPlanner
+         └── LLM → TaskPlan (tasks[] with depends_on DAG)
+       ParallelTaskExecutor
+         └── Independent tasks run concurrently
+             TaskExecutor (per task)
+               └── StepExecutor (per step)
+                    └── results stored in context.memory
+       CompilerAgent
+         └── Reads memory → produces final deliverable
 
 Results streamed to client via WebSocket as AsyncGenerator<ProcessingMessage>
 ```
@@ -713,16 +706,16 @@ REST endpoints follow standard conventions:
 1. User sends a message in the chat UI
 2. GlobalChatStore sends "chat_message" via WebSocket
 3. Server creates or retrieves the thread
-4. MultiModeAgent loads skills from filesystem (auto-matched to objective)
-5. Mode selection:
-   loop         → StepExecutor: LLM ↔ tools until finish_step
-   plan         → TaskPlanner → TaskPlan DAG
-                  ParallelTaskExecutor: concurrent tasks, each via StepExecutor
-   plan+graph   → GraphPlanner: LLM builds node graph iteratively
-                  AgentWorkflowRunner → WorkflowRunner (kernel)
-                    AgentStep nodes → AgentStepExecutor → StepExecutor
-                    Other nodes    → NodeRegistry (deterministic)
-   multi-agent  → TeamExecutor: specialized sub-agents run concurrently
+4. Agent loads skills from filesystem (auto-matched to objective) and recalls long-term memory
+5. Path selection:
+   pre-built task → TaskExecutor → StepExecutor: LLM ↔ tools until finish_step
+   useGraphPlanner → GraphPlanner: LLM builds node graph iteratively
+                    AgentWorkflowRunner → WorkflowRunner (kernel)
+                      AgentStep nodes → AgentStepExecutor → StepExecutor
+                      Other nodes    → NodeRegistry (deterministic)
+   default (plan) → TaskPlanner → TaskPlan DAG
+                    ParallelTaskExecutor: concurrent tasks, each via StepExecutor
+                    CompilerAgent: synthesize final result from context.memory
 6. All paths yield AsyncGenerator<ProcessingMessage>
 7. Streaming chunks (chunk, task_update, node_update) sent as produced
 8. GlobalChatStore appends chunks to the current message

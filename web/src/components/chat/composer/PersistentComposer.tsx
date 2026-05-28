@@ -4,7 +4,6 @@ import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import ChatInputSection from "../containers/ChatInputSection";
 import { useComposerSlotContext } from "./composerSlotContext";
 import { useFlipPosition } from "./useFlipPosition";
-import type { AgentPlanner } from "./AgentModeSelector";
 import type { LanguageModel } from "../../../stores/ApiTypes";
 import type { ComposerSendHandler } from "./composerSlotContext";
 
@@ -37,14 +36,6 @@ interface PositionedComposerProps {
   onNewChat: () => void;
   selectedModel: LanguageModel;
   onModelChange: (model: LanguageModel) => void;
-  selectedTools: string[];
-  onToolsChange: (tools: string[]) => void;
-  agentMode: boolean;
-  onAgentModeToggle: (enabled: boolean) => void;
-  selectedCollections: string[];
-  onCollectionsChange: (collections: string[]) => void;
-  agentPlanner: AgentPlanner;
-  onAgentPlannerChange: (planner: AgentPlanner) => void;
   setComposerHeight: (px: number) => void;
 }
 
@@ -63,14 +54,6 @@ const PositionedComposer: React.FC<PositionedComposerProps> = ({
   onNewChat,
   selectedModel,
   onModelChange,
-  selectedTools,
-  onToolsChange,
-  agentMode,
-  onAgentModeToggle,
-  selectedCollections,
-  onCollectionsChange,
-  agentPlanner,
-  onAgentPlannerChange,
   setComposerHeight
 }) => {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -109,14 +92,6 @@ const PositionedComposer: React.FC<PositionedComposerProps> = ({
         onStop={onStop}
         selectedModel={selectedModel}
         onModelChange={onModelChange}
-        selectedTools={selectedTools}
-        onToolsChange={onToolsChange}
-        agentMode={agentMode}
-        onAgentModeToggle={onAgentModeToggle}
-        selectedCollections={selectedCollections}
-        onCollectionsChange={onCollectionsChange}
-        agentPlanner={agentPlanner}
-        onAgentPlannerChange={onAgentPlannerChange}
         onNewChat={onNewChat}
       />
     </div>
@@ -139,18 +114,8 @@ const PersistentComposer: React.FC = () => {
     useComposerSlotContext();
   const status = useGlobalChatStore((s) => s.status);
   const selectedModel = useGlobalChatStore((s) => s.selectedModel);
-  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
-  const agentMode = useGlobalChatStore((s) => s.agentMode);
   const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
-  const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
-  const setAgentMode = useGlobalChatStore((s) => s.setAgentMode);
   const stopGeneration = useGlobalChatStore((s) => s.stopGeneration);
-  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
-  const setSelectedCollections = useGlobalChatStore(
-    (s) => s.setSelectedCollections
-  );
-  const agentPlanner = useGlobalChatStore((s) => s.agentPlanner);
-  const setAgentPlanner = useGlobalChatStore((s) => s.setAgentPlanner);
   const createNewThread = useGlobalChatStore((s) => s.createNewThread);
   const switchThread = useGlobalChatStore((s) => s.switchThread);
 
@@ -162,13 +127,6 @@ const PersistentComposer: React.FC = () => {
       console.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread]);
-
-  const handleAgentPlannerChange = useCallback(
-    (planner: AgentPlanner) => {
-      setAgentPlanner(planner);
-    },
-    [setAgentPlanner]
-  );
 
   const [box, setBox] = useState<Box | null>(null);
 
@@ -212,14 +170,6 @@ const PersistentComposer: React.FC = () => {
       onNewChat={handleNewChat}
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
-      selectedTools={selectedTools}
-      onToolsChange={setSelectedTools}
-      agentMode={agentMode}
-      onAgentModeToggle={setAgentMode}
-      selectedCollections={selectedCollections}
-      onCollectionsChange={setSelectedCollections}
-      agentPlanner={agentPlanner}
-      onAgentPlannerChange={handleAgentPlannerChange}
       setComposerHeight={setComposerHeight}
     />
   );

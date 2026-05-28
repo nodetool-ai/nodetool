@@ -21,8 +21,11 @@ import {
   PlanningUpdate,
   LogUpdate,
   Thread,
-  LanguageModel
+  LanguageModel,
+  TodoItem,
+  PermissionMode
 } from "./ApiTypes";
+import { sendToolApprovalResponse } from "../core/chat/chatProtocol";
 import { isLocalhost } from "../lib/env";
 import { trpcClient } from "../trpc/client";
 import {
@@ -67,6 +70,34 @@ type AgentExecutionToolCalls = Record<
   Record<string, StepToolCall[]>
 >;
 
+export const DEFAULT_PERMISSION_MODE: PermissionMode = "default";
+
+/** Decision a user can make on an inline tool-approval prompt. */
+export type ApprovalDecision = "allow" | "allow_for_chat" | "deny";
+
+/**
+ * A pending tool-approval request awaiting a user decision. Keyed by
+ * `approval_id` in `pendingApprovals`.
+ */
+export interface PendingApproval {
+  thread_id: string;
+  tool_name: string;
+  category: string;
+  message: string;
+  args: Record<string, unknown>;
+}
+
+/** Server → client tool-approval request payload. */
+export interface ToolApprovalRequest {
+  type: "tool_approval_request";
+  thread_id: string;
+  approval_id: string;
+  tool_name: string;
+  category: "write" | "execute" | "external";
+  message: string;
+  args: Record<string, unknown>;
+}
+
 export interface GlobalChatState {
   // Connection state
   status: ChatStatus;
@@ -96,20 +127,6 @@ export interface GlobalChatState {
   messageCursors: Record<string, string | null>; // threadId -> next cursor
   isLoadingMessages: boolean;
 
-  // Agent mode
-  agentMode: boolean;
-  setAgentMode: (enabled: boolean) => void;
-  /**
-   * Which planner to use when `agentMode` is true:
-   * - `"graph"` — GraphPlanner builds a workflow DAG of nodes (preferred when
-   *   the server has a NodeRegistry; uses the curated `nodetool.*` core
-   *   nodes plus `find_model`).
-   * - `"multi"` — TaskPlanner builds a parallel task DAG; each task is an
-   *   LLM step run by ParallelTaskExecutor.
-   */
-  agentPlanner: "multi" | "graph";
-  setAgentPlanner: (planner: "multi" | "graph") => void;
-
   // Long-term memory opt-in
   /**
    * When true, the server resolves a per-user, per-thread `LongTermMemory`
@@ -127,10 +144,17 @@ export interface GlobalChatState {
   // Selections
   selectedModel: LanguageModel;
   setSelectedModel: (model: LanguageModel) => void;
-  selectedTools: string[];
-  setSelectedTools: (tools: string[]) => void;
-  selectedCollections: string[];
-  setSelectedCollections: (collections: string[]) => void;
+
+  // Per-thread permission mode (governs how gated tool calls are handled).
+  // Unknown/new threads default to DEFAULT_PERMISSION_MODE.
+  permissionMode: Record<string, PermissionMode>;
+  getPermissionMode: (threadId: string | null) => PermissionMode;
+  setPermissionMode: (threadId: string, mode: PermissionMode) => void;
+
+  // Inline tool-approval prompts awaiting a user decision, keyed by approval_id.
+  pendingApprovals: Record<string, PendingApproval>;
+  addPendingApproval: (req: ToolApprovalRequest) => void;
+  resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
 
   // Planning updates
   currentPlanningUpdate: PlanningUpdate | null;
@@ -145,6 +169,11 @@ export interface GlobalChatState {
   // Log updates
   currentLogUpdate: LogUpdate | null;
   setLogUpdate: (update: LogUpdate | null) => void;
+
+  // Per-thread todo lists (TodoWrite-style checklist)
+  todosByThread: Record<string, TodoItem[]>;
+  setTodosForThread: (threadId: string, todos: TodoItem[]) => void;
+  clearTodosForThread: (threadId: string) => void;
 
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
@@ -230,12 +259,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
       messageCursors: {},
       isLoadingMessages: false,
 
-      // Agent mode
-      agentMode: false,
-      setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
-      agentPlanner: "multi",
-      setAgentPlanner: (planner) => set({ agentPlanner: planner }),
-
       memoryEnabled: false,
       setMemoryEnabled: (enabled: boolean) => set({ memoryEnabled: enabled }),
 
@@ -247,11 +270,41 @@ const useGlobalChatStore = create<GlobalChatState>()(
       setSelectedModel: (model: LanguageModel) => {
         set({ selectedModel: model });
       },
-      selectedTools: [],
-      setSelectedTools: (tools: string[]) => set({ selectedTools: tools }),
-      selectedCollections: [],
-      setSelectedCollections: (collections: string[]) =>
-        set({ selectedCollections: collections }),
+
+      // Per-thread permission mode
+      permissionMode: {},
+      getPermissionMode: (threadId: string | null) => {
+        if (!threadId) return DEFAULT_PERMISSION_MODE;
+        return get().permissionMode[threadId] ?? DEFAULT_PERMISSION_MODE;
+      },
+      setPermissionMode: (threadId: string, mode: PermissionMode) =>
+        set((state) => ({
+          permissionMode: { ...state.permissionMode, [threadId]: mode }
+        })),
+
+      // Inline tool-approval prompts
+      pendingApprovals: {},
+      addPendingApproval: (req: ToolApprovalRequest) =>
+        set((state) => ({
+          pendingApprovals: {
+            ...state.pendingApprovals,
+            [req.approval_id]: {
+              thread_id: req.thread_id,
+              tool_name: req.tool_name,
+              category: req.category,
+              message: req.message,
+              args: req.args
+            }
+          }
+        })),
+      resolveApproval: (approvalId: string, decision: ApprovalDecision) => {
+        if (!get().pendingApprovals[approvalId]) return;
+        void sendToolApprovalResponse(approvalId, decision);
+        set((state) => {
+          const { [approvalId]: _resolved, ...rest } = state.pendingApprovals;
+          return { pendingApprovals: rest };
+        });
+      },
 
       // Planning updates
       currentPlanningUpdate: null,
@@ -291,6 +344,20 @@ const useGlobalChatStore = create<GlobalChatState>()(
       currentLogUpdate: null,
       setLogUpdate: (update: LogUpdate | null) =>
         set({ currentLogUpdate: update }),
+
+      // Per-thread todo lists
+      todosByThread: {},
+      setTodosForThread: (threadId: string, todos: TodoItem[]) =>
+        set((state) => ({
+          todosByThread: { ...state.todosByThread, [threadId]: todos }
+        })),
+      clearTodosForThread: (threadId: string) =>
+        set((state) => {
+          if (!(threadId in state.todosByThread)) return state;
+          const next = { ...state.todosByThread };
+          delete next[threadId];
+          return { todosByThread: next };
+        }),
 
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,
@@ -483,18 +550,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const {
           currentThreadId,
           workflowId,
-          agentMode,
-          agentPlanner,
           memoryEnabled,
           selectedModel,
-          selectedTools,
-          selectedCollections,
           sendMessageTimeoutId
         } = get();
-        // Graph planner is hidden in the UI; coerce any persisted "graph"
-        // value back to "multi" so we never send the broken planner.
-        const effectiveAgentPlanner: "multi" | "graph" =
-          agentPlanner === "graph" ? "multi" : agentPlanner;
+        // Agent mode is no longer a UI toggle — every chat session runs the
+        // unified LLM-with-tools loop, and the agent decides for itself
+        // whether to escalate via `run_subtask`. `agent_mode` and
+        // `agent_planner` are no longer sent on the wire.
         const outgoing = message as ChatOutgoingMessage;
         const mediaGeneration = outgoing.media_generation ?? null;
 
@@ -560,8 +623,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const messageForCache: Message = {
           ...message,
           thread_id: threadId,
-          agent_mode: agentMode,
-          agent_planner: agentMode ? effectiveAgentPlanner : undefined,
           memory_enabled: memoryEnabled,
           ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
         } as Message;
@@ -572,27 +633,24 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // routed correctly on the server.
         const isMediaGeneration =
           !!mediaGeneration && mediaGeneration.mode !== "chat";
+        // The client no longer drives the toolbelt: `tools` and `collections`
+        // are dropped from the send path. The active per-thread permission
+        // mode is sent instead and governs how the agent's gated tool calls
+        // are handled server-side.
+        const { tools: _tools, collections: _collections, ...messageWithoutTools } =
+          message as Message;
         const chatMessageData = {
-          ...message,
+          ...messageWithoutTools,
           workflow_id: message.workflow_id ?? workflowId ?? null,
           thread_id: threadId,
-          agent_mode: agentMode,
-          // Only send agent_planner when agent_mode is on; the server picks a
-          // sensible default otherwise.
-          agent_planner: agentMode ? effectiveAgentPlanner : undefined,
           memory_enabled: memoryEnabled,
+          permission_mode: get().getPermissionMode(threadId),
           model: isMediaGeneration
             ? mediaGeneration?.model ?? message.model ?? selectedModel?.id
             : selectedModel?.id,
           provider: isMediaGeneration
             ? mediaGeneration?.provider ?? message.provider ?? selectedModel?.provider
             : selectedModel?.provider,
-          tools:
-            message.tools ??
-            (selectedTools.length > 0 ? selectedTools : undefined),
-          collections:
-            message.collections ??
-            (selectedCollections.length > 0 ? selectedCollections : undefined),
           media_generation: mediaGeneration
         };
 
@@ -812,12 +870,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
             const { [threadId]: threadUnsubscribe, ...remainingSubscriptions } =
               state.wsThreadSubscriptions;
             threadUnsubscribe?.();
+            const { [threadId]: _deletedTodos, ...remainingTodos } =
+              state.todosByThread;
 
             const newState: Partial<GlobalChatState> = {
               threads: remainingThreads,
               messageCache: remainingCache,
               messageCursors: remainingCursors,
-              wsThreadSubscriptions: remainingSubscriptions
+              wsThreadSubscriptions: remainingSubscriptions,
+              todosByThread: remainingTodos
             };
 
             // If deleting current thread, switch to another or create new
@@ -1062,6 +1123,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Abort any active frontend tools
         FrontendToolRegistry.abortAll();
 
+        // Stopping cancels the run, so drop any pending tool-approval prompts
+        // for the current thread — they belong to the now-cancelled run.
+        if (currentThreadId) {
+          set((state) => {
+            const remaining = Object.fromEntries(
+              Object.entries(state.pendingApprovals).filter(
+                ([, approval]) => approval.thread_id !== currentThreadId
+              )
+            );
+            return { pendingApprovals: remaining };
+          });
+        }
+
         if (!globalWebSocketManager) {
           set({ sendMessageTimeoutId: null });
           return;
@@ -1132,21 +1206,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
         threads: state.threads || {},
         lastUsedThreadId: state.lastUsedThreadId,
         selectedModel: state.selectedModel,
-        selectedTools: state.selectedTools,
-        selectedCollections: state.selectedCollections,
+        permissionMode: state.permissionMode,
         memoryEnabled: state.memoryEnabled
       }) as GlobalChatState,
       migrate: (persistedState, _version) => {
         // Corrupt localStorage (string, null, etc.) must yield a usable
         // default rather than passing the raw value through; selectors
-        // that read `threads`/`selectedTools`/`selectedCollections`
-        // would otherwise see `undefined` and crash.
+        // that read `threads`/`permissionMode` would otherwise see
+        // `undefined` and crash.
         const fallback = {
           threads: {} as Record<string, Thread>,
           lastUsedThreadId: null as string | null,
           selectedModel: null as LanguageModel | null,
-          selectedTools: [] as string[],
-          selectedCollections: [] as string[]
+          permissionMode: {} as Record<string, PermissionMode>
         };
         if (!persistedState || typeof persistedState !== "object") {
           return fallback as unknown as GlobalChatState;
@@ -1168,12 +1240,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
             typeof state.selectedModel === "object"
               ? (state.selectedModel as LanguageModel)
               : fallback.selectedModel,
-          selectedTools: Array.isArray(state.selectedTools)
-            ? (state.selectedTools as string[])
-            : fallback.selectedTools,
-          selectedCollections: Array.isArray(state.selectedCollections)
-            ? (state.selectedCollections as string[])
-            : fallback.selectedCollections
+          permissionMode:
+            state.permissionMode &&
+            typeof state.permissionMode === "object" &&
+            !Array.isArray(state.permissionMode)
+              ? (state.permissionMode as Record<string, PermissionMode>)
+              : fallback.permissionMode
         } as unknown as GlobalChatState;
       },
       onRehydrateStorage: () => (state) => {
@@ -1203,11 +1275,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
             }, 0);
           }
           // Ensure selection defaults are present
-          if (!state.selectedTools) {
-            state.selectedTools = [];
+          if (!state.permissionMode) {
+            state.permissionMode = {};
           }
-          if (!state.selectedCollections) {
-            state.selectedCollections = [];
+          if (!state.pendingApprovals) {
+            state.pendingApprovals = {};
           }
           if (!state.selectedModel) {
             state.selectedModel = buildDefaultLanguageModel();

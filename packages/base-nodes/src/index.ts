@@ -683,7 +683,6 @@ export {
   SandboxFileNode,
   SANDBOX_NODES
 } from "@nodetool-ai/code-nodes/nodes/sandbox";
-export { TeamAgentNode, TeamLeadNode, TEAM_NODES } from "@nodetool-ai/llm-nodes/nodes/team";
 export {
   SentimentAnalysisLibNode,
   TokenizeLibNode,
@@ -759,7 +758,6 @@ import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 import { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 import { SANDBOX_NODES } from "@nodetool-ai/code-nodes/nodes/sandbox";
-import { TEAM_NODES } from "@nodetool-ai/llm-nodes/nodes/team";
 import { LIB_NLP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-nlp";
 import { LIB_DATETIME_NODES } from "@nodetool-ai/core-nodes/nodes/lib-datetime";
 import { LIB_VALIDATE_NODES } from "@nodetool-ai/core-nodes/nodes/lib-validate";
@@ -840,7 +838,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
   ...SANDBOX_NODES,
-  ...TEAM_NODES,
   ...LIB_NLP_NODES,
   ...LIB_IMAGE_EFFECTS_NODES,
   ...LIB_IMAGE_KEYER_NODES,

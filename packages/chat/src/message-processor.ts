@@ -8,7 +8,7 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { Message, ToolCall, ProviderStreamItem } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
-import type { Tool } from "@nodetool-ai/agents";
+import { Tool } from "@nodetool-ai/agents";
 // Pull `formatMemoryForPrompt` from the narrow `./memory` subpath so chat
 // consumers don't end up loading the full agents bundle (planners, graph
 // builder, sandbox, every tool class) just to render a memory block.
@@ -48,7 +48,7 @@ export async function runTool(
     throw new Error(`Tool "${toolCall.name}" not found`);
   }
 
-  const result = await tool.process(context, toolCall.args);
+  const result = await tool.process(context, Tool.stripMessage(toolCall.args));
 
   return {
     id: toolCall.id,

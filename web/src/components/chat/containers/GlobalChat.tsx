@@ -98,10 +98,6 @@ const GlobalChat: React.FC = () => {
   );
 
   const {
-    agentMode,
-    setAgentMode,
-    agentPlanner,
-    setAgentPlanner,
     currentPlanningUpdate,
     currentTaskUpdate,
     currentTaskUpdateThreadId,
@@ -109,10 +105,6 @@ const GlobalChat: React.FC = () => {
     workflowId
   } = useGlobalChatStore(
     useShallow((state) => ({
-      agentMode: state.agentMode,
-      setAgentMode: state.setAgentMode,
-      agentPlanner: state.agentPlanner,
-      setAgentPlanner: state.setAgentPlanner,
       currentPlanningUpdate: state.currentPlanningUpdate,
       currentTaskUpdate: state.currentTaskUpdate,
       currentTaskUpdateThreadId: state.currentTaskUpdateThreadId,
@@ -155,21 +147,13 @@ const GlobalChat: React.FC = () => {
     currentRunningToolCallId: runningToolCallId,
     currentToolMessage: runningToolMessage,
     selectedModel,
-    setSelectedModel,
-    selectedTools,
-    setSelectedTools,
-    selectedCollections,
-    setSelectedCollections
+    setSelectedModel
   } = useGlobalChatStore(
     useShallow((state) => ({
       currentRunningToolCallId: state.currentRunningToolCallId,
       currentToolMessage: state.currentToolMessage,
       selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel,
-      selectedTools: state.selectedTools,
-      setSelectedTools: state.setSelectedTools,
-      selectedCollections: state.selectedCollections,
-      setSelectedCollections: state.setSelectedCollections
+      setSelectedModel: state.setSelectedModel
     }))
   );
 
@@ -380,16 +364,12 @@ const GlobalChat: React.FC = () => {
         role: "user",
         provider: selectedModel?.provider,
         model: selectedModel?.id,
-        content: [{ type: "text", text: suggestion }],
-        tools: selectedTools.length > 0 ? selectedTools : undefined,
-        collections:
-          selectedCollections.length > 0 ? selectedCollections : undefined,
-        agent_mode: agentMode
+        content: [{ type: "text", text: suggestion }]
       }).catch((err) => {
         console.error("Failed to send suggestion:", err);
       });
     },
-    [sendMessage, selectedModel, selectedTools, selectedCollections, agentMode]
+    [sendMessage, selectedModel]
   );
 
   const welcomePlaceholder = useMemo(
@@ -672,17 +652,9 @@ const GlobalChat: React.FC = () => {
               runningToolCallId={runningToolCallId}
               runningToolMessage={runningToolMessage}
               model={selectedModel}
-              selectedTools={selectedTools}
-              onToolsChange={setSelectedTools}
-              selectedCollections={selectedCollections}
-              onCollectionsChange={setSelectedCollections}
               onModelChange={setSelectedModel}
               onStop={stopGeneration}
               onNewChat={handleNewChat}
-              agentMode={agentMode}
-              onAgentModeToggle={setAgentMode}
-              agentPlanner={agentPlanner}
-              onAgentPlannerChange={setAgentPlanner}
               memoryEnabled={memoryEnabled}
               onMemoryToggle={setMemoryEnabled}
               currentPlanningUpdate={currentPlanningUpdate}

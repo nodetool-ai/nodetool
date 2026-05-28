@@ -15,6 +15,11 @@ import type {
   PlanningUpdate
 } from "../stores/ApiTypes";
 import type { StepToolCall } from "../stores/GlobalChatStore";
+import { visibleToolArgs } from "../core/chat/toolCallFields";
+
+const visibleArgs = (
+  args: Record<string, unknown> | null | undefined
+): Record<string, unknown> => visibleToolArgs(args) ?? {};
 
 // ---------------------------------------------------------------------------
 // State types
@@ -305,7 +310,8 @@ export function buildExecutionTreeState(
       if (stepId === GRAPH_PLANNER_NODE_ID) {
         const task = ensureGraphPlannerTask();
         const step = task.steps[0];
-        const argsStr = Object.entries(tc.args ?? {})
+        const cleanArgs = visibleArgs(tc.args);
+        const argsStr = Object.entries(cleanArgs)
           .map(([k, v]) => {
             const val = typeof v === "string" ? v : JSON.stringify(v);
             return `${k}: ${val.slice(0, 40)}`;
@@ -318,7 +324,7 @@ export function buildExecutionTreeState(
         const entry: StepToolCallEntry = {
           id: callId,
           name: tc.name ?? "",
-          args: (tc.args ?? {}) as Record<string, unknown>,
+          args: cleanArgs,
           message: tc.message ?? undefined
         };
         const nextCalls =
@@ -340,7 +346,8 @@ export function buildExecutionTreeState(
       for (const task of taskMap.values()) {
         const stepIdx = task.steps.findIndex((s) => s.id === stepId);
         if (stepIdx !== -1) {
-          const argsStr = Object.entries(tc.args ?? {})
+          const cleanArgs = visibleArgs(tc.args);
+          const argsStr = Object.entries(cleanArgs)
             .map(([k, v]) => {
               const val = typeof v === "string" ? v : JSON.stringify(v);
               return `${k}: ${val.slice(0, 40)}`;
@@ -354,7 +361,7 @@ export function buildExecutionTreeState(
           const entry: StepToolCallEntry = {
             id: callId,
             name: tc.name ?? "",
-            args: (tc.args ?? {}) as Record<string, unknown>,
+            args: cleanArgs,
             message: tc.message ?? undefined
           };
           const nextCalls =

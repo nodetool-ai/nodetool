@@ -20,7 +20,6 @@ import MovieIcon from "@mui/icons-material/Movie";
 import MovieFilterIcon from "@mui/icons-material/MovieFilter";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import PsychologyIcon from "@mui/icons-material/Psychology";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -79,7 +78,7 @@ import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { StopGenerationButton } from "./StopGenerationButton";
-import ToolsSelector from "./ToolsSelector";
+import PermissionSelector from "./PermissionSelector";
 
 function formatElapsed(seconds: number): string {
   if (seconds < 5) return "Starting…";
@@ -115,18 +114,11 @@ export interface MediaChatComposerProps {
   onSendMessage: (
     content: MessageContent[],
     prompt: string,
-    agentMode: boolean,
     mediaGeneration?: MediaGenerationRequest
   ) => void;
   onStop?: () => void;
   onNewChat?: () => void;
   disabled?: boolean;
-  agentMode?: boolean;
-  onAgentModeToggle?: (enabled: boolean) => void;
-  agentPlanner?: import("./AgentModeSelector").AgentPlanner;
-  onAgentPlannerChange?: (
-    planner: import("./AgentModeSelector").AgentPlanner
-  ) => void;
   memoryEnabled?: boolean;
   onMemoryToggle?: (enabled: boolean) => void;
   selectedModel?: LanguageModel;
@@ -134,8 +126,6 @@ export interface MediaChatComposerProps {
   allowedProviders?: string[];
   /** Hide non-tool-capable models in the language model picker. */
   requireToolSupport?: boolean;
-  selectedTools?: string[];
-  onToolsChange?: (tools: string[]) => void;
 }
 
 /**
@@ -161,18 +151,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   onSendMessage,
   onStop,
   disabled = false,
-  agentMode = false,
-  onAgentModeToggle,
-  agentPlanner,
-  onAgentPlannerChange,
   memoryEnabled,
   onMemoryToggle,
   selectedModel,
   onModelChange,
   allowedProviders,
-  requireToolSupport,
-  selectedTools = [],
-  onToolsChange
+  requireToolSupport
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -385,8 +369,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const { queuedMessage, sendMessage, cancelQueued } = useMessageQueue({
     isLoading,
     isStreaming,
-    onSendMessage: (content, promptText, agent) => {
-      onSendMessage(content, promptText, agent, buildMediaGeneration());
+    onSendMessage: (content, promptText) => {
+      onSendMessage(content, promptText, buildMediaGeneration());
     },
     onStop,
     textareaRef
@@ -442,7 +426,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     }
     const fileContents = getFileContents();
     const fullContent = [...content, ...fileContents];
-    sendMessage(fullContent, prompt, agentMode);
+    sendMessage(fullContent, prompt);
     setPrompt("");
     clearFiles();
   }, [
@@ -450,8 +434,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     canGenerate,
     getFileContents,
     sendMessage,
-    clearFiles,
-    agentMode
+    clearFiles
   ]);
 
   // Handle paste events — extract images from clipboard
@@ -497,14 +480,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "video") return <VideocamIcon fontSize="small" />;
     if (mode === "image_to_video") return <MovieFilterIcon fontSize="small" />;
     if (mode === "audio") return <RecordVoiceOverIcon fontSize="small" />;
-    if (mode === "chat")
-      return agentMode ? (
-        <PsychologyIcon fontSize="small" />
-      ) : (
-        <ChatBubbleOutlineIcon fontSize="small" />
-      );
+    if (mode === "chat") return <ChatBubbleOutlineIcon fontSize="small" />;
     return <AutoAwesomeIcon fontSize="small" />;
-  }, [mode, agentMode]);
+  }, [mode]);
 
   const modeLabel = useMemo(() => {
     if (mode === "image") return "Image";
@@ -512,12 +490,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "video") return "Video";
     if (mode === "image_to_video") return "Image→Video";
     if (mode === "audio") return "Speech";
-    if (mode === "chat") return agentMode ? "Agent" : "Chat";
+    if (mode === "chat") return "Chat";
     if (mode === "audio_to_video") return "Audio→Video";
     if (mode === "retake") return "Retake";
     if (mode === "extend") return "Extend";
     return "Motion";
-  }, [mode, agentMode]);
+  }, [mode]);
 
   // Model dialog selection callbacks
   const handlePickImageModel = useCallback(
@@ -821,12 +799,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             open={!!modeAnchor}
             onClose={() => setModeAnchor(null)}
             value={mode}
-            agentMode={agentMode}
-            agentPlanner={agentPlanner}
-            onChange={(m: MediaMode, agent: boolean, planner) => {
+            onChange={(m: MediaMode) => {
               setMode(m);
-              onAgentModeToggle?.(agent);
-              if (agent && planner) onAgentPlannerChange?.(planner);
             }}
           />
 
@@ -842,9 +816,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 showChevron={false}
                 truncate
               />
-              {onToolsChange && (
-                <ToolsSelector value={selectedTools} onChange={onToolsChange} />
-              )}
+              <PermissionSelector />
               {onMemoryToggle && (
                 <MediaControlChip
                   icon={<PsychologyOutlinedIcon fontSize="small" />}
@@ -864,7 +836,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                   setLanguageModelOpen(false);
                 }}
                 allowedProviders={allowedProviders}
-                requireToolSupport={requireToolSupport || agentMode}
+                requireToolSupport={requireToolSupport}
               />
             </>
           )}

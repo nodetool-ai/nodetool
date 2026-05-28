@@ -233,6 +233,17 @@ export interface ToolCallUpdate {
   message?: string | null;
   step_id?: string | null;
   agent_execution_id?: string | null;
+  /**
+   * The tool_call_id of an enclosing `run_subtask` call, if this event was
+   * emitted from inside a subtask. Null/undefined at the root level. Used by
+   * the renderer to nest tool-call cards.
+   */
+  parent_tool_call_id?: string | null;
+  /**
+   * Recursion depth: 0 at the chat root, 1 inside a top-level run_subtask, etc.
+   * Optional — renderers that don't care can ignore it.
+   */
+  subtask_depth?: number | null;
 }
 
 export interface ToolResultUpdate {
@@ -241,6 +252,11 @@ export interface ToolResultUpdate {
   thread_id?: string | null;
   workflow_id?: string | null;
   result: Record<string, unknown>;
+  tool_call_id?: string | null;
+  name?: string | null;
+  is_error?: boolean;
+  parent_tool_call_id?: string | null;
+  subtask_depth?: number | null;
 }
 
 export interface TaskUpdate {
@@ -283,6 +299,28 @@ export interface Chunk {
   content_metadata?: Record<string, unknown>;
   done?: boolean;
   thinking?: boolean;
+  /**
+   * The tool_call_id of an enclosing `run_subtask` call when this chunk was
+   * emitted from inside a subtask. Null/undefined at the root.
+   */
+  parent_tool_call_id?: string | null;
+  /** Recursion depth: 0 at the chat root, 1 inside run_subtask, etc. */
+  subtask_depth?: number | null;
+}
+
+export type TodoStatus = "pending" | "in_progress" | "completed";
+
+export interface TodoItem {
+  content: string;
+  status: TodoStatus;
+}
+
+export interface TodoUpdate {
+  type: "todo_update";
+  thread_id?: string | null;
+  workflow_id?: string | null;
+  node_id?: string | null;
+  todos: TodoItem[];
 }
 
 export interface Prediction {
@@ -547,7 +585,8 @@ export type ProcessingMessage =
   | PlanningUpdate
   | Chunk
   | Prediction
-  | LLMCallUpdate;
+  | LLMCallUpdate
+  | TodoUpdate;
 
 /**
  * Literal union of every `type` discriminator value.

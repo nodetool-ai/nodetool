@@ -496,6 +496,15 @@ export interface Message {
   graph?: Record<string, unknown> | null;
   tools?: string[] | null;
   collections?: string[] | null;
+  /**
+   * Permission mode for the chat turn. Governs whether the agent's tool calls
+   * run automatically, ask for approval, or are blocked:
+   * - `"plan"` — read-only; actionable tools are blocked.
+   * - `"default"` — read tools auto-run; actions require approval.
+   * - `"auto"` — everything runs without prompting.
+   * Omitted defaults to `"default"`.
+   */
+  permission_mode?: "plan" | "default" | "auto" | null;
   agent_mode?: boolean | null;
   /**
    * When `agent_mode` is true, selects which planner the server uses:
