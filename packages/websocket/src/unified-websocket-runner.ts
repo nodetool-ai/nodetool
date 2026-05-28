@@ -1216,7 +1216,14 @@ export class UnifiedWebSocketRunner {
 
   /** Resolve the per-client concurrency cap from settings (>= 1). */
   private async getMaxConcurrentJobs(): Promise<number> {
-    const raw = await getSetting("MAX_CONCURRENT_JOBS");
+    let raw: string | null = null;
+    try {
+      raw = await getSetting("MAX_CONCURRENT_JOBS");
+    } catch {
+      // Settings store unavailable (e.g. DB not initialized) — fall back to the
+      // default rather than blocking the run, matching the runner's other
+      // best-effort DB access.
+    }
     const parsed = raw ? Number.parseInt(raw, 10) : NaN;
     return Number.isFinite(parsed) && parsed > 0
       ? parsed
