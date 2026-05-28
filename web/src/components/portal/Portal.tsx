@@ -25,8 +25,11 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
 import AppHeader from "../panels/AppHeader";
 import ComposerSlot from "../chat/composer/ComposerSlot";
-import SchoolIcon from "@mui/icons-material/School";
-import { BORDER_RADIUS, Box } from "../ui_primitives";
+import WelcomeFlow from "./WelcomeFlow";
+import { useWelcomeFlowStore } from "../../stores/WelcomeFlowStore";
+import { useCreateStarterWorkflow } from "../../hooks/useCreateStarterWorkflow";
+import type { WelcomeTrackId } from "./welcomeTracks";
+import { Box } from "../ui_primitives";
 
 const KNOWN_PROVIDER_KEYS = [
   "OPENAI_API_KEY",
@@ -172,30 +175,6 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary
       }
     },
-    ".portal-getting-started": {
-      marginTop: 20,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 8,
-      padding: "8px 16px",
-      borderRadius: BORDER_RADIUS.pill,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      background: "transparent",
-      color: theme.vars.palette.text.secondary,
-      fontSize: 13,
-      fontWeight: 500,
-      cursor: "pointer",
-      transition: "all 0.2s ease",
-      "& svg": {
-        fontSize: 16
-      },
-      "&:hover": {
-        borderColor: theme.vars.palette.primary.main,
-        color: theme.vars.palette.text.primary,
-        background: theme.vars.palette.action.hover
-      }
-    },
-
     // Recents wrapper
     ".portal-recents": {
       marginTop: 24,
@@ -262,6 +241,18 @@ const Portal: React.FC = () => {
   const secrets = useSecretsStore((s) => s.secrets);
 
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+
+  const welcomeDismissed = useWelcomeFlowStore((s) => s.dismissed);
+  const dismissWelcome = useWelcomeFlowStore((s) => s.dismiss);
+  const createStarterWorkflow = useCreateStarterWorkflow();
+
+  const handlePickTrack = useCallback(
+    (trackId: WelcomeTrackId) => {
+      dismissWelcome();
+      createStarterWorkflow(trackId);
+    },
+    [dismissWelcome, createStarterWorkflow]
+  );
 
   const handleSkipWelcome = useCallback(() => {
     updateSettings({ showWelcomeOnStartup: false });
@@ -361,10 +352,6 @@ const Portal: React.FC = () => {
     setTimeout(onComplete, TRANSITION_DURATION);
   }, []);
 
-  const handleOpenGettingStarted = useCallback(() => {
-    transitionTo(() => navigate("/chat"));
-  }, [navigate, transitionTo]);
-
   // Handle clicking a recent chat thread
   const handleThreadClick = useCallback(
     (threadId: string) => {
@@ -421,60 +408,57 @@ const Portal: React.FC = () => {
     >
       <AppHeader />
       <div className="portal-center">
-        {!isReturningUser && (
-          <div className="portal-heading">What shall we build?</div>
-        )}
+        {!welcomeDismissed ? (
+          <WelcomeFlow onPick={handlePickTrack} onSkip={dismissWelcome} />
+        ) : (
+          <>
+            {!isReturningUser && (
+              <div className="portal-heading">What shall we build?</div>
+            )}
 
-        <div className="portal-input-wrapper">
-          <ComposerSlot className="chat-input-section" onSend={handleSendMessage} />
-          {debouncedQuery.length >= 2 && !isTransitioning && (
-            <PortalSearchResults
-              query={debouncedQuery}
-              workflows={sortedWorkflows}
-              templates={startTemplates}
-              onSelectWorkflow={handleWorkflowItemClick}
-              onSelectTemplate={handleTemplateSelect}
-            />
-          )}
-        </div>
+            <div className="portal-input-wrapper">
+              <ComposerSlot
+                className="chat-input-section"
+                onSend={handleSendMessage}
+              />
+              {debouncedQuery.length >= 2 && !isTransitioning && (
+                <PortalSearchResults
+                  query={debouncedQuery}
+                  workflows={sortedWorkflows}
+                  templates={startTemplates}
+                  onSelectWorkflow={handleWorkflowItemClick}
+                  onSelectTemplate={handleTemplateSelect}
+                />
+              )}
+            </div>
 
-        {!isTransitioning && (
-          <div className="portal-recents">
-            <PortalRecents
-              workflows={sortedWorkflows}
-              threads={threads}
-              onWorkflowClick={handleWorkflowItemClick}
-              onThreadClick={handleThreadClick}
-              onCreateWorkflow={handleCreateNewWorkflow}
-            />
-          </div>
-        )}
+            {!isTransitioning && (
+              <div className="portal-recents">
+                <PortalRecents
+                  workflows={sortedWorkflows}
+                  threads={threads}
+                  onWorkflowClick={handleWorkflowItemClick}
+                  onThreadClick={handleThreadClick}
+                  onCreateWorkflow={handleCreateNewWorkflow}
+                />
+              </div>
+            )}
 
-        {!isReturningUser && !isTransitioning && (
-          <div className="portal-hint">Type anything to get started</div>
-        )}
+            {!isReturningUser && !isTransitioning && (
+              <div className="portal-hint">Type anything to get started</div>
+            )}
 
-        {!isTransitioning && (
-          <button
-            type="button"
-            className="portal-getting-started"
-            onClick={handleOpenGettingStarted}
-            title="Open the guided getting started page"
-          >
-            <SchoolIcon />
-            {isReturningUser ? "Open getting started" : "New here? Start the guided tour"}
-          </button>
-        )}
-
-        {!isTransitioning && (
-          <button
-            type="button"
-            className="portal-skip-welcome"
-            onClick={handleSkipWelcome}
-            title="Don't show this screen on startup. You can re-enable it from Settings."
-          >
-            Skip welcome screen
-          </button>
+            {!isTransitioning && (
+              <button
+                type="button"
+                className="portal-skip-welcome"
+                onClick={handleSkipWelcome}
+                title="Don't show this screen on startup. You can re-enable it from Settings."
+              >
+                Skip welcome screen
+              </button>
+            )}
+          </>
         )}
       </div>
     </Box>

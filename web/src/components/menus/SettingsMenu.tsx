@@ -832,10 +832,7 @@ function SettingsPage() {
 
                 {/* Tab 1: API & Keys */}
                 <TabPanel value={settingsTab} index={1}>
-                  <div
-                    data-onboarding-target="provider-setup"
-                    style={{ marginBottom: "1.5em" }}
-                  >
+                  <div style={{ marginBottom: "1.5em" }}>
                     <SearchInput
                       placeholder="Search providers..."
                       value={apiSearchTerm}

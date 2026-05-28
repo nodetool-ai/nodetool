@@ -150,8 +150,6 @@ const registerFrontendTools = () => {
   });
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
-import OnboardingRoot from "./components/onboarding/OnboardingRoot";
-import { useOnboardingStore } from "./stores/OnboardingStore";
 
 installIpcLogBridge();
 
@@ -189,25 +187,11 @@ const NavigateToStart = () => {
         return null;
       };
 
-      const isNewcomer = (() => {
-        const onboarding = useOnboardingStore.getState();
-        const hasProgress = Object.values(onboarding.completed).some(Boolean);
-        return !onboarding.dismissed && !hasProgress;
-      })();
-
       const navigateToEditor = async () => {
         // Check for existing workflow first
         const existingWorkflowId = getExistingWorkflowId();
         if (existingWorkflowId) {
           navigate(`/editor/${existingWorkflowId}`, { replace: true });
-          return;
-        }
-
-        // Brand-new users land on the chat homepage, which embeds the
-        // getting-started checklist in its empty state. The chat composer
-        // is right there waiting for their first message.
-        if (isNewcomer) {
-          navigate("/chat", { replace: true });
           return;
         }
 
@@ -225,13 +209,10 @@ const NavigateToStart = () => {
       };
 
       if (isLocalhost || state === "logged_in") {
-        // Newcomers always start on the chat homepage (which embeds the
-        // getting-started checklist), regardless of the
-        // showWelcomeOnStartup setting (which still controls the Portal
-        // for returning users).
-        if (isNewcomer) {
-          navigate("/chat", { replace: true });
-        } else if (!showWelcomeOnStartup) {
+        // The dashboard (Portal) hosts the welcome flow for first-time users
+        // and the chat composer once that flow is dismissed. Opting out of
+        // the welcome screen jumps straight to the editor.
+        if (!showWelcomeOnStartup) {
           await navigateToEditor();
         } else {
           navigate("/dashboard", { replace: true });
@@ -563,16 +544,7 @@ function getRoutes() {
     route.ErrorBoundary = ErrorBoundary;
   });
 
-  // Wrap all routes in a layout that mounts the onboarding overlay and
-  // detector subscriptions, so the guided tour can render on top of any
-  // page and record progress as the user explores the real product.
-  return [
-    {
-      element: <OnboardingRoot />,
-      children: routes,
-      ErrorBoundary
-    }
-  ] satisfies RouteObject[];
+  return routes satisfies RouteObject[];
 }
 
 useAssetStore.getState().setQueryClient(queryClient);

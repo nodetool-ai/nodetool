@@ -290,23 +290,21 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 className="search-row"
                 sx={{ marginLeft: "-3px", width: "100%" }}
               >
-                <span data-onboarding-target="node-menu-search">
-                  <SearchInput
-                    focusSearchInput={focusSearchInput}
-                    focusOnTyping={false}
-                    placeholder="Search for nodes..."
-                    debounceTime={80}
-                    width={300}
-                    maxWidth={"300px"}
-                    searchTerm={searchTerm}
-                    onSearchChange={setSearchTerm}
-                    onPressEscape={closeNodeMenu}
-                    onPressArrowDown={handleArrowDown}
-                    onPressArrowUp={handleArrowUp}
-                    onPressEnter={handleEnter}
-                    searchResults={searchResults}
-                  />
-                </span>
+                <SearchInput
+                  focusSearchInput={focusSearchInput}
+                  focusOnTyping={false}
+                  placeholder="Search for nodes..."
+                  debounceTime={80}
+                  width={300}
+                  maxWidth={"300px"}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  onPressEscape={closeNodeMenu}
+                  onPressArrowDown={handleArrowDown}
+                  onPressArrowUp={handleArrowUp}
+                  onPressEnter={handleEnter}
+                  searchResults={searchResults}
+                />
                 <div style={{ marginLeft: "0.75em", flex: "1 1 auto", minWidth: 0 }}>
                   <TypeFilterChips
                     selectedInputType={selectedInputType}
