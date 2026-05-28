@@ -20,10 +20,13 @@
  *    job upstream, and a retry would double-bill.
  */
 
-import { createRequire } from "node:module";
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
 import { loadImageModels, loadVideoModels } from "./manifest-models.js";
+
+const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
+  "node:module"
+);
 import type {
   ImageModel,
   ImageToImageParams,
@@ -72,9 +75,10 @@ interface ModelInfo {
 
 function buildModelMap(): Map<string, ModelInfo> {
   const map = new Map<string, ModelInfo>();
+  if (!_nodeModule) return map;
   let manifest: AtlasManifestEntry[];
   try {
-    const req = createRequire(import.meta.url);
+    const req = _nodeModule.createRequire(import.meta.url);
     manifest = req(`${ATLASCLOUD_MANIFEST_PKG}/${ATLASCLOUD_MANIFEST_PATH}`);
   } catch (err) {
     log.warn(`Could not load AtlasCloud manifest: ${err}`);

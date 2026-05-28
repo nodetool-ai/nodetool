@@ -1,0 +1,684 @@
+/**
+ * Regression tests for image.ts node fixes.
+ *
+ * Each test targets a specific bug that existed in earlier implementations:
+ *   1. LoadImageFolder include_subdirectories was ignored (flat readdir)
+ *   2. LoadImageFolder extensions were hardcoded
+ *   3. LoadImageFolder pattern was ignored
+ *   4. SaveImageFile overwrite=false always overwrote
+ *   5. GetMetadata returned wrong output schema
+ *   6. TextToImage missing provider params
+ *   7. ImageToImage empty image validation
+ *   8. BatchToList null/invalid batch validation
+ */
+import { describe, it, expect, afterEach } from "vitest";
+import sharp from "sharp";
+import { promises as fs } from "node:fs";
+import { mkdtempSync } from "node:fs";
+import path from "node:path";
+import { tmpdir } from "node:os";
+import {
+  LoadImageFolderNode,
+  SaveImageFileImageNode,
+  GetMetadataNode,
+  TextToImageNode,
+  ImageToImageNode,
+  BatchToListNode,
+  ChannelsNode
+} from "@nodetool-ai/image-nodes";
+import { LevelsNode } from "@nodetool-ai/image-nodes";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Create a small test PNG buffer. */
+async function makePngBuffer(
+  w = 4,
+  h = 4,
+  r = 128,
+  g = 64,
+  b = 32
+): Promise<Buffer> {
+  return sharp({
+    create: { width: w, height: h, channels: 3, background: { r, g, b } }
+  })
+    .png()
+    .toBuffer();
+}
+
+/** Create a small test BMP buffer. */
+async function makeBmpBuffer(w = 4, h = 4): Promise<Buffer> {
+  return sharp({
+    create: {
+      width: w,
+      height: h,
+      channels: 3,
+      background: { r: 200, g: 100, b: 50 }
+    }
+  })
+    .raw()
+    .toBuffer()
+    .then((raw) => {
+      // Minimal BMP: header (14) + DIB header (40) + pixel data
+      const rowSize = Math.ceil((w * 3) / 4) * 4;
+      const pixelDataSize = rowSize * h;
+      const fileSize = 54 + pixelDataSize;
+      const buf = Buffer.alloc(fileSize);
+      // BMP header
+      buf.write("BM", 0);
+      buf.writeUInt32LE(fileSize, 2);
+      buf.writeUInt32LE(54, 10); // pixel data offset
+      // DIB header (BITMAPINFOHEADER)
+      buf.writeUInt32LE(40, 14); // header size
+      buf.writeInt32LE(w, 18);
+      buf.writeInt32LE(h, 22);
+      buf.writeUInt16LE(1, 26); // planes
+      buf.writeUInt16LE(24, 28); // bits per pixel
+      buf.writeUInt32LE(pixelDataSize, 34);
+      // pixel data (bottom-up BGR)
+      for (let y = h - 1; y >= 0; y--) {
+        for (let x = 0; x < w; x++) {
+          const srcIdx = (y * w + x) * 3;
+          const dstIdx = 54 + (h - 1 - y) * rowSize + x * 3;
+          buf[dstIdx] = raw[srcIdx + 2]; // B
+          buf[dstIdx + 1] = raw[srcIdx + 1]; // G
+          buf[dstIdx + 2] = raw[srcIdx]; // R
+        }
+      }
+      return buf;
+    });
+}
+
+/** Create a base64 image ref from a buffer. */
+function imageRefFromBuffer(buf: Buffer): Record<string, unknown> {
+  return {
+    type: "image",
+    data: buf.toString("base64"),
+    uri: ""
+  };
+}
+
+/** Collect all results from an async generator, filtering out final list yields. */
+async function collectGen(
+  gen: AsyncGenerator<Record<string, unknown>>
+): Promise<Record<string, unknown>[]> {
+  const results: Record<string, unknown>[] = [];
+  for await (const item of gen) {
+    if ("images" in item) continue; // skip final list yield
+    results.push(item);
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Temp directory management
+// ---------------------------------------------------------------------------
+
+const tempDirs: string[] = [];
+
+function createTempDir(): string {
+  const dir = mkdtempSync(path.join(tmpdir(), "img-test-"));
+  tempDirs.push(dir);
+  return dir;
+}
+
+afterEach(async () => {
+  for (const dir of tempDirs) {
+    try {
+      await fs.rm(dir, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+  }
+  tempDirs.length = 0;
+});
+
+// ---------------------------------------------------------------------------
+// 1. LoadImageFolder include_subdirectories
+// ---------------------------------------------------------------------------
+
+describe("LoadImageFolderNode — include_subdirectories", () => {
+  it("finds images in subdirectories when include_subdirectories=true", async () => {
+    const dir = createTempDir();
+    const subdir = path.join(dir, "sub");
+    await fs.mkdir(subdir);
+    const png = await makePngBuffer();
+    await fs.writeFile(path.join(dir, "top.png"), png);
+    await fs.writeFile(path.join(subdir, "nested.png"), png);
+
+    const node = new LoadImageFolderNode();
+    node.assign({ folder: dir, include_subdirectories: true });
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
+
+    const names = results.map((r) => r.name);
+    expect(names).toContain("top.png");
+    expect(names).toContain("nested.png");
+    expect(results.length).toBe(2);
+  });
+
+  it("skips subdirectory images when include_subdirectories=false", async () => {
+    const dir = createTempDir();
+    const subdir = path.join(dir, "sub");
+    await fs.mkdir(subdir);
+    const png = await makePngBuffer();
+    await fs.writeFile(path.join(dir, "top.png"), png);
+    await fs.writeFile(path.join(subdir, "nested.png"), png);
+
+    const node = new LoadImageFolderNode();
+    node.assign({ folder: dir, include_subdirectories: false });
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
+
+    const names = results.map((r) => r.name);
+    expect(names).toContain("top.png");
+    expect(names).not.toContain("nested.png");
+    expect(results.length).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2. LoadImageFolder extensions filter
+// ---------------------------------------------------------------------------
+
+describe("LoadImageFolderNode — extensions filter", () => {
+  it("returns only files matching the given extensions", async () => {
+    const dir = createTempDir();
+    const png = await makePngBuffer();
+    const bmp = await makeBmpBuffer();
+    await fs.writeFile(path.join(dir, "photo.png"), png);
+    await fs.writeFile(path.join(dir, "photo.bmp"), bmp);
+
+    const node = new LoadImageFolderNode();
+    node.assign({ folder: dir, extensions: [".png"] });
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
+
+    const names = results.map((r) => r.name);
+    expect(names).toContain("photo.png");
+    expect(names).not.toContain("photo.bmp");
+    expect(results.length).toBe(1);
+  });
+
+  it("uses default extensions when none specified", async () => {
+    const dir = createTempDir();
+    const png = await makePngBuffer();
+    await fs.writeFile(path.join(dir, "photo.png"), png);
+    await fs.writeFile(path.join(dir, "notes.txt"), "hello");
+
+    const node = new LoadImageFolderNode();
+    node.assign({ folder: dir });
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
+
+    const names = results.map((r) => r.name);
+    expect(names).toContain("photo.png");
+    expect(names).not.toContain("notes.txt");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3. LoadImageFolder pattern matching
+// ---------------------------------------------------------------------------
+
+describe("LoadImageFolderNode — pattern matching", () => {
+  it("filters files by glob pattern", async () => {
+    const dir = createTempDir();
+    const png = await makePngBuffer();
+    await fs.writeFile(path.join(dir, "cat.png"), png);
+    await fs.writeFile(path.join(dir, "dog.png"), png);
+
+    const node = new LoadImageFolderNode();
+    node.assign({ folder: dir, pattern: "cat*" });
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
+
+    const names = results.map((r) => r.name);
+    expect(names).toContain("cat.png");
+    expect(names).not.toContain("dog.png");
+    expect(results.length).toBe(1);
+  });
+
+  it("returns all files when pattern is empty", async () => {
+    const dir = createTempDir();
+    const png = await makePngBuffer();
+    await fs.writeFile(path.join(dir, "cat.png"), png);
+    await fs.writeFile(path.join(dir, "dog.png"), png);
+
+    const node = new LoadImageFolderNode();
+    node.assign({ folder: dir, pattern: "" });
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
+
+    expect(results.length).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. SaveImageFile overwrite=false generates unique names
+// ---------------------------------------------------------------------------
+
+describe("SaveImageFileImageNode — overwrite=false", () => {
+  it("appends _1 suffix when file already exists", async () => {
+    const dir = createTempDir();
+    const png = await makePngBuffer();
+    const imgRef = imageRefFromBuffer(png);
+
+    // First save
+    const node1 = new SaveImageFileImageNode();
+    node1.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: false });
+    const result1 = await node1.process();
+    const path1 = result1.output as string;
+    expect(path1).toContain("test.png");
+    expect(path1).not.toContain("_1");
+
+    // Second save — same name, overwrite=false
+    const node2 = new SaveImageFileImageNode();
+    node2.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: false });
+    const result2 = await node2.process();
+    const path2 = result2.output as string;
+
+    // The second file must have a different name (e.g. test_1.png)
+    expect(path2).not.toBe(path1);
+    expect(path2).toContain("_1");
+
+    // Both files should exist on disk
+    await expect(fs.access(path1)).resolves.toBeUndefined();
+    await expect(fs.access(path2)).resolves.toBeUndefined();
+  });
+
+  it("overwrites when overwrite=true", async () => {
+    const dir = createTempDir();
+    const png = await makePngBuffer();
+    const imgRef = imageRefFromBuffer(png);
+
+    const node1 = new SaveImageFileImageNode();
+    node1.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: true });
+    const result1 = await node1.process();
+
+    const node2 = new SaveImageFileImageNode();
+    node2.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: true });
+    const result2 = await node2.process();
+
+    // Both should return the same path
+    expect(result1.output).toBe(result2.output);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. GetMetadata output schema
+// ---------------------------------------------------------------------------
+
+describe("GetMetadataNode — output schema", () => {
+  it("returns format, mode, width, height, channels", async () => {
+    const png = await makePngBuffer(4, 4);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new GetMetadataNode();
+    node.assign({ image: imgRef });
+    const result = await node.process();
+
+    // Must have correct fields
+    expect(result).toHaveProperty("format");
+    expect(result).toHaveProperty("mode");
+    expect(result).toHaveProperty("width");
+    expect(result).toHaveProperty("height");
+    expect(result).toHaveProperty("channels");
+
+    // Must NOT have old incorrect fields
+    expect(result).not.toHaveProperty("uri");
+    expect(result).not.toHaveProperty("mime_type");
+    expect(result).not.toHaveProperty("size_bytes");
+
+    // Validate values
+    expect(result.format).toBe("PNG");
+    expect(result.mode).toBe("RGB");
+    expect(result.width).toBe(4);
+    expect(result.height).toBe(4);
+    expect(result.channels).toBe(3);
+  });
+
+  it("static metadataOutputTypes matches output keys", () => {
+    const keys = Object.keys(GetMetadataNode.metadataOutputTypes);
+    expect(keys).toEqual(
+      expect.arrayContaining(["format", "mode", "width", "height", "channels"])
+    );
+    expect(keys).not.toContain("uri");
+    expect(keys).not.toContain("mime_type");
+    expect(keys).not.toContain("size_bytes");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 6. TextToImage provider params
+// ---------------------------------------------------------------------------
+
+describe("TextToImageNode — provider params", () => {
+  it("has aspect_ratio and resolution properties", () => {
+    const node = new TextToImageNode();
+    node.assign({
+      aspect_ratio: "16:9",
+      resolution: "2K"
+    });
+    expect(node.aspect_ratio).toBe("16:9");
+    expect(node.resolution).toBe("2K");
+  });
+
+  it("keeps the node body compact: no inline fields, prompt is an input handle", () => {
+    expect(TextToImageNode.inlineFields).toEqual([]);
+    expect(TextToImageNode.inputFields).toEqual(
+      expect.arrayContaining(["prompt"])
+    );
+    // All sampler/composition controls (guidance_scale, num_inference_steps,
+    // seed, safety_check, width, height, aspect_ratio, resolution, ...)
+    // live in the Inspector and are intentionally not inline.
+    for (const field of [
+      "guidance_scale",
+      "num_inference_steps",
+      "seed",
+      "safety_check",
+      "width",
+      "height",
+      "aspect_ratio",
+      "resolution"
+    ]) {
+      expect(TextToImageNode.inlineFields).not.toContain(field);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7. ImageToImage empty validation
+// ---------------------------------------------------------------------------
+
+describe("ImageToImageNode — empty image validation", () => {
+  it("throws when image is empty/null", async () => {
+    const node = new ImageToImageNode();
+    node.assign({ image: { type: "image", data: null, uri: "" } });
+
+    // process() needs a context with runProviderPrediction, but should throw
+    // before reaching the provider call because image is empty
+    await expect(node.process({} as never)).rejects.toThrow(/empty/i);
+  });
+
+  it("throws when image data is a zero-length buffer", async () => {
+    const node = new ImageToImageNode();
+    node.assign({
+      image: {
+        type: "image",
+        data: Buffer.alloc(0).toString("base64"),
+        uri: ""
+      }
+    });
+
+    await expect(node.process({} as never)).rejects.toThrow(/empty/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 8. BatchToList validation
+// ---------------------------------------------------------------------------
+
+describe("BatchToListNode — validation", () => {
+  it("throws when batch is null", async () => {
+    const node = new BatchToListNode();
+    node.assign({ batch: null });
+
+    await expect(node.process()).rejects.toThrow(/empty/i);
+  });
+
+  it("throws when batch data is null", async () => {
+    const node = new BatchToListNode();
+    node.assign({ batch: { type: "image", data: null, uri: "" } });
+
+    await expect(node.process()).rejects.toThrow(/null/i);
+  });
+
+  it("wraps a single image ref into a list when data is not an array", async () => {
+    const png = await makePngBuffer();
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new BatchToListNode();
+    node.assign({ batch: imgRef });
+    const result = await node.process();
+
+    expect(result.output).toBeDefined();
+    expect(Array.isArray(result.output)).toBe(true);
+    expect((result.output as unknown[]).length).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. ChannelsNode — channel extraction
+// ---------------------------------------------------------------------------
+
+describe("ChannelsNode — channel extraction", () => {
+  async function makeRgbaImage(
+    r = 255,
+    g = 128,
+    b = 64,
+    a = 200
+  ): Promise<Record<string, unknown>> {
+    const buf = await sharp({
+      create: { width: 2, height: 2, channels: 4, background: { r, g, b, alpha: a / 255 } }
+    })
+      .png()
+      .toBuffer();
+    return {
+      type: "image",
+      data: buf.toString("base64"),
+      uri: ""
+    };
+  }
+
+  async function decodeChannel(output: Record<string, unknown>) {
+    const data = output.data as string;
+    const buf = Buffer.from(data, "base64");
+    const { data: raw, info } = await sharp(buf)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return { raw, info };
+  }
+
+  it("extracts red channel", async () => {
+    const img = await makeRgbaImage(255, 0, 0, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "red" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    expect(typeof output.data).toBe("string");
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(255);
+  });
+
+  it("extracts green channel", async () => {
+    const img = await makeRgbaImage(0, 255, 0, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "green" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(255);
+  });
+
+  it("extracts blue channel", async () => {
+    const img = await makeRgbaImage(0, 0, 255, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "blue" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(255);
+  });
+
+  it("extracts alpha channel", async () => {
+    const img = await makeRgbaImage(0, 0, 0, 128);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "alpha" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    expect(raw[0]).toBe(128);
+  });
+
+  it("produces luminance / grayscale", async () => {
+    const img = await makeRgbaImage(100, 150, 200, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "luminance" });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { raw, info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+    // Luminance of (100,150,200) should be somewhere in between
+    expect(raw[0]).toBeGreaterThan(100);
+    expect(raw[0]).toBeLessThan(200);
+  });
+
+  it("passes the image through on unsupported channel", async () => {
+    // transformImage swallows sharp errors and returns the original image so
+    // the pipeline keeps flowing instead of dropping a workflow on a typo.
+    const img = await makeRgbaImage();
+    const node = new ChannelsNode();
+    node.assign({ image: img, channel: "cyan" });
+    const result = (await node.process()) as { output: unknown };
+    expect(result.output).toBeDefined();
+  });
+
+  it("defaults to luminance when channel is not set", async () => {
+    const img = await makeRgbaImage(100, 150, 200, 255);
+    const node = new ChannelsNode();
+    node.assign({ image: img });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output).toBeDefined();
+    const { info } = await decodeChannel(output);
+    expect(info.channels).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 10. LevelsNode — LUT math, identity short-circuit, and channel handling
+// ---------------------------------------------------------------------------
+
+describe("LevelsNode — processing", () => {
+  it("returns original image when all params are at identity", async () => {
+    const png = await makePngBuffer(4, 4, 128, 64, 32);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new LevelsNode();
+    node.assign({ image: imgRef });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    expect(typeof output.data).toBe("string");
+    expect((output.data as string).length).toBeGreaterThan(0);
+
+    // Decode and verify pixels are unchanged
+    const inBuf = Buffer.from(imgRef.data as string, "base64");
+    const outBuf = Buffer.from(output.data as string, "base64");
+    const { data: inRaw } = await sharp(inBuf).raw().toBuffer({ resolveWithObject: true });
+    const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+    expect(inRaw.length).toBe(outRaw.length);
+    for (let i = 0; i < inRaw.length; i++) {
+      expect(outRaw[i]).toBe(inRaw[i]);
+    }
+  });
+
+  it("adjusts black/white points and changes pixels", async () => {
+    const png = await makePngBuffer(4, 4, 128, 64, 32);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new LevelsNode();
+    node.assign({
+      image: imgRef,
+      r_black: 64,
+      r_white: 192,
+      r_gamma: 1,
+      g_black: 0,
+      g_white: 255,
+      g_gamma: 1,
+      b_black: 0,
+      b_white: 255,
+      b_gamma: 1
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    expect(typeof output.data).toBe("string");
+    expect((output.data as string).length).toBeGreaterThan(0);
+
+    // Output should differ from input
+    const inBuf = Buffer.from(imgRef.data as string, "base64");
+    const outBuf = Buffer.from(output.data as string, "base64");
+    const { data: inRaw } = await sharp(inBuf).raw().toBuffer({ resolveWithObject: true });
+    const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+    let differs = false;
+    for (let i = 0; i < inRaw.length; i++) {
+      if (inRaw[i] !== outRaw[i]) {
+        differs = true;
+        break;
+      }
+    }
+    expect(differs).toBe(true);
+  });
+
+  it("applies gamma correctly", async () => {
+    const png = await makePngBuffer(4, 4, 128, 128, 128);
+    const imgRef = imageRefFromBuffer(png);
+
+    const node = new LevelsNode();
+    node.assign({
+      image: imgRef,
+      r_black: 0,
+      r_white: 255,
+      r_gamma: 2,
+      g_black: 0,
+      g_white: 255,
+      g_gamma: 1,
+      b_black: 0,
+      b_white: 255,
+      b_gamma: 1
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    const outBuf = Buffer.from(output.data as string, "base64");
+    const { data: outRaw } = await sharp(outBuf).raw().toBuffer({ resolveWithObject: true });
+    // Gamma 2 with invGamma = 1/2 brightens midtones: (128/255)^0.5 * 255 ≈ 181
+    expect(outRaw[0]).toBeGreaterThan(150);
+  });
+
+  it("handles grayscale input without crashing", async () => {
+    // Create a grayscale PNG by converting an RGB image to greyscale.
+    const grayBuf = await sharp({
+      create: { width: 4, height: 4, channels: 3, background: { r: 128, g: 128, b: 128 } }
+    })
+      .greyscale()
+      .png()
+      .toBuffer();
+    const imgRef = imageRefFromBuffer(grayBuf);
+
+    const node = new LevelsNode();
+    node.assign({
+      image: imgRef,
+      r_black: 0,
+      r_white: 255,
+      r_gamma: 1.5
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+
+    expect(typeof output.data).toBe("string");
+    expect((output.data as string).length).toBeGreaterThan(0);
+  });
+});

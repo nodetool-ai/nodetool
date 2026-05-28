@@ -7,9 +7,17 @@
  * the user's file system. Imports are kept lean so the module stays cheap
  * to load from any package's tests.
  */
-import os from "node:os";
-import path from "node:path";
-import fs from "node:fs";
+import { importNodeBuiltin } from "@nodetool-ai/config";
+
+const os = (await importNodeBuiltin<typeof import("node:os")>(
+  "node:os"
+)) as typeof import("node:os");
+const path = (await importNodeBuiltin<typeof import("node:path")>(
+  "node:path"
+)) as typeof import("node:path");
+const fs = (await importNodeBuiltin<typeof import("node:fs")>(
+  "node:fs"
+)) as typeof import("node:fs");
 import { ProcessingContext, InMemoryStorageAdapter, MemoryCache } from "./context.js";
 import { FakeProvider } from "./providers/fake-provider.js";
 import type { BaseProvider } from "./providers/base-provider.js";

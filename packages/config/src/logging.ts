@@ -8,7 +8,17 @@
  *   log.debug("Node executing", { nodeId, type });
  */
 
-import { openSync, writeSync } from "node:fs";
+import { IS_NODE, importNodeBuiltin } from "./node-import.js";
+
+/**
+ * Minimal sync-fs surface, loaded lazily on Node only — outside Node
+ * we emit log lines to console (browsers) or stderr (Workers, Edge).
+ */
+type FsSync = {
+  openSync: (path: string, flags: string) => number;
+  writeSync: (fd: number, data: string) => number;
+};
+const fsSync = await importNodeBuiltin<FsSync>("node:fs");
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -45,10 +55,11 @@ function normalizeLevel(raw: string): LogLevel | null {
 
 // Initialize eagerly from env so configureLogging() is optional for entry
 // points (e.g. the WebSocket server) that skip the explicit call.
+// Use globalThis.process so the module loads on runtimes (browser, Edge)
+// where `process` is undefined.
+const ENV: Record<string, string | undefined> = IS_NODE ? process.env : {};
 let currentLevel: LogLevel =
-  normalizeLevel(
-    process.env["NODETOOL_LOG_LEVEL"] ?? process.env["LOG_LEVEL"] ?? ""
-  ) ?? "info";
+  normalizeLevel(ENV["NODETOOL_LOG_LEVEL"] ?? ENV["LOG_LEVEL"] ?? "") ?? "info";
 
 /** File descriptor for log output. Defaults to stderr; set via NODETOOL_LOG_FILE. */
 let logFd: number | null = null;
@@ -65,15 +76,15 @@ export function configureLogging(opts: LoggingOptions = {}): void {
     currentLevel = opts.level;
   } else {
     const envRaw =
-      process.env["NODETOOL_LOG_LEVEL"] ?? process.env["LOG_LEVEL"] ?? "info";
+      ENV["NODETOOL_LOG_LEVEL"] ?? ENV["LOG_LEVEL"] ?? "info";
     currentLevel = normalizeLevel(envRaw) ?? "info";
   }
 
-  // Open log file if configured (lazy import to keep module lightweight)
-  const logFile = process.env["NODETOOL_LOG_FILE"];
-  if (logFile && logFd === null) {
+  // Open log file if configured (only available on Node)
+  const logFile = ENV["NODETOOL_LOG_FILE"];
+  if (logFile && logFd === null && fsSync) {
     try {
-      logFd = openSync(logFile, "a");
+      logFd = fsSync.openSync(logFile, "a");
     } catch {
       // Fall back to stderr silently
     }
@@ -85,8 +96,9 @@ export function getLogLevel(): LogLevel {
   return currentLevel;
 }
 
-// Colour support
-const USE_COLOR = process.stderr.isTTY && !process.env["NO_COLOR"];
+// Colour support — only on Node where process.stderr.isTTY exists.
+const USE_COLOR =
+  IS_NODE && Boolean(process.stderr?.isTTY) && !ENV["NO_COLOR"];
 
 const C = {
   reset: USE_COLOR ? "\x1b[0m" : "",
@@ -161,10 +173,19 @@ function write(
   const lv = `${lc}${level.toUpperCase().padEnd(5)}${C.reset}`;
   const nm = `${C.cyan}${name}${C.reset}`;
   const line = `${ts} | ${lv} | ${nm} | ${msg}${formatArgs(args)}\n`;
-  if (logFd !== null) {
-    writeSync(logFd, line);
-  } else {
+  if (logFd !== null && fsSync) {
+    fsSync.writeSync(logFd, line);
+  } else if (IS_NODE) {
     process.stderr.write(line);
+  } else {
+    // Browser / V8 isolate — use console.
+    const fn =
+      level === "error"
+        ? console.error
+        : level === "warn"
+          ? console.warn
+          : console.log;
+    fn(line.trimEnd());
   }
 }
 

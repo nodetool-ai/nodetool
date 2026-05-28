@@ -5,7 +5,7 @@ import type {
   ProgressEvent
 } from "./python-bridge-types.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.python-node-executor");
 
@@ -26,7 +26,17 @@ interface PythonBridgeLike {
     onProgress?: (event: ProgressEvent) => void
   ): AsyncGenerator<ExecuteResult>;
 }
-import { randomUUID } from "node:crypto";
+const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+  "node:crypto"
+);
+const randomUUID = (): string =>
+  _nodeCrypto?.randomUUID
+    ? _nodeCrypto.randomUUID()
+    : globalThis.crypto?.randomUUID
+      ? globalThis.crypto.randomUUID()
+      : (() => {
+          throw new Error("node:crypto.randomUUID requires Node");
+        })();
 
 /** Media ref types that need blob conversion. */
 const MEDIA_TYPE_ALIASES: Record<string, string> = {

@@ -74,7 +74,7 @@ import {
   RemoveOverlapNode,
   HybridSearchNode,
   VECTOR_NODES
-} from "../src/nodes/vector.js";
+} from "@nodetool-ai/core-nodes";
 
 function metadataDefaults(NodeCls: any) {
   const metadata = getNodeMetadata(NodeCls);
