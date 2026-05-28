@@ -1,7 +1,7 @@
 /**
  * @nodetool-ai/nodes-utils — shared helpers for every `*-nodes` package.
  *
- * Two small concerns live here so each per-domain package can depend on
+ * A few small concerns live here so each per-domain package can depend on
  * a single utility crate instead of duplicating these helpers or pulling
  * the entire base-nodes barrel just to access them:
  *
@@ -10,6 +10,8 @@
  *   - `node-only-modules.ts` — lazy loaders for `node:fs` / `node:path` /
  *     etc. so non-portable code paths don't block module init on
  *     non-Node runtimes.
+ *   - `template.ts` — `{{ variable }}` / `{variable}` substitution shared by
+ *     the Prompt, Format Text and Agent nodes.
  */
 
 export {
@@ -25,3 +27,5 @@ export {
   loadNodeOs,
   loadNodeUrl
 } from "./node-only-modules.js";
+
+export { renderTemplate } from "./template.js";

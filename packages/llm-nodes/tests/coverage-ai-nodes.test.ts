@@ -503,6 +503,41 @@ describe("AgentNode", () => {
     expect(result.audio).toBeNull();
   });
 
+  it("substitutes {{variable}} dynamic properties in prompt and system", async () => {
+    const n = new (AgentNode as any)();
+    let capturedMessages: any[] = [];
+    const mockProvider = {
+      async *generateMessages({
+        messages
+      }: any): AsyncGenerator<Record<string, unknown>> {
+        capturedMessages = messages;
+        yield {
+          type: "chunk",
+          content: "ok",
+          content_type: "text",
+          done: true
+        };
+      }
+    };
+    // Undeclared properties land in dynamicProps because the Agent node sets
+    // supportsDynamicInputs, so they are available as template variables.
+    n.assign({
+      system: "Tone: {{ tone|upper }}.",
+      prompt: "Hello {{ name }}!",
+      name: "Ada",
+      tone: "formal",
+      model: { provider: "test", id: "m1" }
+    });
+    await n.process({ getProvider: async () => mockProvider } as any);
+    expect(capturedMessages[0]).toEqual({
+      role: "system",
+      content: "Tone: FORMAL."
+    });
+    const lastUser = capturedMessages[capturedMessages.length - 1];
+    expect(lastUser.role).toBe("user");
+    expect(lastUser.content[0].text).toBe("Hello Ada!");
+  });
+
   it("prepares python-style messages including thread history, history, image, and audio", async () => {
     const n = new (AgentNode as any)();
     let capturedMessages: any[] = [];
