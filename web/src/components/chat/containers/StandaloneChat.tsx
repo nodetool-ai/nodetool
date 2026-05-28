@@ -59,13 +59,9 @@ const StandaloneChat: React.FC = () => {
     // Tool execution
     runningToolCallId,
     runningToolMessage,
-    // Model and tools
+    // Model
     selectedModel,
     setSelectedModel,
-    selectedTools,
-    setSelectedTools,
-    selectedCollections,
-    setSelectedCollections,
   } = useGlobalChatStore(
     useShallow(
       (state) => ({
@@ -95,13 +91,9 @@ const StandaloneChat: React.FC = () => {
         // Tool execution
         runningToolCallId: state.currentRunningToolCallId,
         runningToolMessage: state.currentToolMessage,
-        // Model and tools
+        // Model
         selectedModel: state.selectedModel,
         setSelectedModel: state.setSelectedModel,
-        selectedTools: state.selectedTools,
-        setSelectedTools: state.setSelectedTools,
-        selectedCollections: state.selectedCollections,
-        setSelectedCollections: state.setSelectedCollections,
       })
     )
   );
@@ -466,10 +458,6 @@ const StandaloneChat: React.FC = () => {
             runningToolCallId={runningToolCallId}
             runningToolMessage={runningToolMessage}
             model={selectedModel}
-            selectedTools={selectedTools}
-            onToolsChange={setSelectedTools}
-            selectedCollections={selectedCollections}
-            onCollectionsChange={setSelectedCollections}
             onModelChange={setSelectedModel}
             onStop={stopGeneration}
             onNewChat={handleNewChat}

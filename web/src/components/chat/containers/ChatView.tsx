@@ -101,10 +101,6 @@ type ChatViewProps = {
   };
   sendMessage: (message: Message) => Promise<void>;
   progressMessage: string | null;
-  selectedTools?: string[];
-  onToolsChange?: (tools: string[]) => void;
-  selectedCollections?: string[];
-  onCollectionsChange?: (collections: string[]) => void;
   onModelChange?: (model: LanguageModel) => void;
   onStop?: () => void;
   onNewChat?: () => void;
@@ -162,11 +158,7 @@ const ChatView = ({
   model,
   sendMessage,
   progressMessage,
-  selectedTools = [],
   showToolbar = true,
-  onToolsChange,
-  selectedCollections = [],
-  onCollectionsChange,
   onModelChange,
   onStop,
   onNewChat,
@@ -210,9 +202,6 @@ const ChatView = ({
               ? mediaGeneration.model ?? model?.id
               : model?.id,
           content: content,
-          tools: selectedTools.length > 0 ? selectedTools : undefined,
-          collections:
-            selectedCollections.length > 0 ? selectedCollections : undefined,
           help_mode: helpMode,
           graph: graph,
           workflow_id: workflowId ?? undefined,
@@ -227,15 +216,7 @@ const ChatView = ({
         console.error("Error sending message:", error);
       }
     },
-    [
-      sendMessage,
-      model,
-      selectedTools,
-      selectedCollections,
-      helpMode,
-      graph,
-      workflowId
-    ]
+    [sendMessage, model, helpMode, graph, workflowId]
   );
 
   const todos = useGlobalChatStore((state) => {
@@ -279,10 +260,6 @@ const ChatView = ({
             onSendMessage={handleSendMessage}
             onStop={onStop}
             onNewChat={onNewChat}
-            selectedTools={selectedTools}
-            onToolsChange={onToolsChange}
-            selectedCollections={selectedCollections}
-            onCollectionsChange={onCollectionsChange}
             selectedModel={model}
             onModelChange={onModelChange}
             memoryEnabled={memoryEnabled}

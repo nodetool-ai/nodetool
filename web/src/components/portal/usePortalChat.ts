@@ -14,7 +14,6 @@ export function usePortalChat() {
   const currentTaskUpdate = useGlobalChatStore((s) => s.currentTaskUpdate);
   const currentLogUpdate = useGlobalChatStore((s) => s.currentLogUpdate);
   const messageCache = useGlobalChatStore((s) => s.messageCache);
-  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
 
   const sendMessage = useCallback(async (message: Message) => {
     const store = useGlobalChatStore.getState();
@@ -57,10 +56,6 @@ export function usePortalChat() {
     useGlobalChatStore.setState({ selectedModel: model });
   }, []);
 
-  const setSelectedTools = useCallback((tools: string[]) => {
-    useGlobalChatStore.setState({ selectedTools: tools });
-  }, []);
-
   const messages = currentThreadId ? (messageCache[currentThreadId] ?? []) : [];
 
   return {
@@ -70,7 +65,6 @@ export function usePortalChat() {
     progress,
     statusMessage,
     selectedModel,
-    selectedTools,
     currentPlanningUpdate,
     currentTaskUpdate,
     currentLogUpdate,
@@ -81,6 +75,5 @@ export function usePortalChat() {
     deleteThread,
     stopGeneration,
     setSelectedModel,
-    setSelectedTools,
   };
 }

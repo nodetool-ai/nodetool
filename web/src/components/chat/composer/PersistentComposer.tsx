@@ -36,10 +36,6 @@ interface PositionedComposerProps {
   onNewChat: () => void;
   selectedModel: LanguageModel;
   onModelChange: (model: LanguageModel) => void;
-  selectedTools: string[];
-  onToolsChange: (tools: string[]) => void;
-  selectedCollections: string[];
-  onCollectionsChange: (collections: string[]) => void;
   setComposerHeight: (px: number) => void;
 }
 
@@ -58,10 +54,6 @@ const PositionedComposer: React.FC<PositionedComposerProps> = ({
   onNewChat,
   selectedModel,
   onModelChange,
-  selectedTools,
-  onToolsChange,
-  selectedCollections,
-  onCollectionsChange,
   setComposerHeight
 }) => {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -100,10 +92,6 @@ const PositionedComposer: React.FC<PositionedComposerProps> = ({
         onStop={onStop}
         selectedModel={selectedModel}
         onModelChange={onModelChange}
-        selectedTools={selectedTools}
-        onToolsChange={onToolsChange}
-        selectedCollections={selectedCollections}
-        onCollectionsChange={onCollectionsChange}
         onNewChat={onNewChat}
       />
     </div>
@@ -126,14 +114,8 @@ const PersistentComposer: React.FC = () => {
     useComposerSlotContext();
   const status = useGlobalChatStore((s) => s.status);
   const selectedModel = useGlobalChatStore((s) => s.selectedModel);
-  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
   const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
-  const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
   const stopGeneration = useGlobalChatStore((s) => s.stopGeneration);
-  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
-  const setSelectedCollections = useGlobalChatStore(
-    (s) => s.setSelectedCollections
-  );
   const createNewThread = useGlobalChatStore((s) => s.createNewThread);
   const switchThread = useGlobalChatStore((s) => s.switchThread);
 
@@ -188,10 +170,6 @@ const PersistentComposer: React.FC = () => {
       onNewChat={handleNewChat}
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
-      selectedTools={selectedTools}
-      onToolsChange={setSelectedTools}
-      selectedCollections={selectedCollections}
-      onCollectionsChange={setSelectedCollections}
       setComposerHeight={setComposerHeight}
     />
   );

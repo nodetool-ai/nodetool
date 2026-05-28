@@ -78,7 +78,7 @@ import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { StopGenerationButton } from "./StopGenerationButton";
-import ToolsSelector from "./ToolsSelector";
+import PermissionSelector from "./PermissionSelector";
 
 function formatElapsed(seconds: number): string {
   if (seconds < 5) return "Starting…";
@@ -126,8 +126,6 @@ export interface MediaChatComposerProps {
   allowedProviders?: string[];
   /** Hide non-tool-capable models in the language model picker. */
   requireToolSupport?: boolean;
-  selectedTools?: string[];
-  onToolsChange?: (tools: string[]) => void;
 }
 
 /**
@@ -158,9 +156,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   selectedModel,
   onModelChange,
   allowedProviders,
-  requireToolSupport,
-  selectedTools = [],
-  onToolsChange
+  requireToolSupport
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -822,9 +818,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 showChevron={false}
                 truncate
               />
-              {onToolsChange && (
-                <ToolsSelector value={selectedTools} onChange={onToolsChange} />
-              )}
+              <PermissionSelector />
               {onMemoryToggle && (
                 <MediaControlChip
                   icon={<PsychologyOutlinedIcon fontSize="small" />}

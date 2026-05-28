@@ -147,21 +147,13 @@ const GlobalChat: React.FC = () => {
     currentRunningToolCallId: runningToolCallId,
     currentToolMessage: runningToolMessage,
     selectedModel,
-    setSelectedModel,
-    selectedTools,
-    setSelectedTools,
-    selectedCollections,
-    setSelectedCollections
+    setSelectedModel
   } = useGlobalChatStore(
     useShallow((state) => ({
       currentRunningToolCallId: state.currentRunningToolCallId,
       currentToolMessage: state.currentToolMessage,
       selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel,
-      selectedTools: state.selectedTools,
-      setSelectedTools: state.setSelectedTools,
-      selectedCollections: state.selectedCollections,
-      setSelectedCollections: state.setSelectedCollections
+      setSelectedModel: state.setSelectedModel
     }))
   );
 
@@ -372,15 +364,12 @@ const GlobalChat: React.FC = () => {
         role: "user",
         provider: selectedModel?.provider,
         model: selectedModel?.id,
-        content: [{ type: "text", text: suggestion }],
-        tools: selectedTools.length > 0 ? selectedTools : undefined,
-        collections:
-          selectedCollections.length > 0 ? selectedCollections : undefined
+        content: [{ type: "text", text: suggestion }]
       }).catch((err) => {
         console.error("Failed to send suggestion:", err);
       });
     },
-    [sendMessage, selectedModel, selectedTools, selectedCollections]
+    [sendMessage, selectedModel]
   );
 
   const welcomePlaceholder = useMemo(
@@ -663,10 +652,6 @@ const GlobalChat: React.FC = () => {
               runningToolCallId={runningToolCallId}
               runningToolMessage={runningToolMessage}
               model={selectedModel}
-              selectedTools={selectedTools}
-              onToolsChange={setSelectedTools}
-              selectedCollections={selectedCollections}
-              onCollectionsChange={setSelectedCollections}
               onModelChange={setSelectedModel}
               onStop={stopGeneration}
               onNewChat={handleNewChat}

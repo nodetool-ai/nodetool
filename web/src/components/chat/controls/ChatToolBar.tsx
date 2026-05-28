@@ -3,10 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
-import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
-import NodeToolsSelector from "../composer/NodeToolsSelector";
-import CollectionsSelector from "../composer/CollectionsSelector";
 import { LanguageModel } from "../../../stores/ApiTypes";
 import { StateIconButton } from "../../ui_primitives/StateIconButton";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
@@ -100,33 +97,24 @@ const styles = (theme: Theme) =>
   });
 
 interface ChatToolBarProps {
-  selectedTools: string[];
-  onToolsChange?: (tools: string[]) => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
   memoryEnabled?: boolean;
   onMemoryToggle?: (enabled: boolean) => void;
-  selectedCollections?: string[];
-  onCollectionsChange?: (collections: string[]) => void;
   allowedProviders?: string[];
   embedded?: boolean;
 }
 
 const ChatToolBar: React.FC<ChatToolBarProps> = ({
-  selectedTools,
-  onToolsChange,
   selectedModel,
   onModelChange,
   memoryEnabled,
   onMemoryToggle,
-  selectedCollections,
-  onCollectionsChange,
   allowedProviders,
   embedded = false
 }) => {
   const theme = useTheme();
 
-  const hasToolsSection = onToolsChange;
   const hasModelSection = onModelChange;
 
   return (
@@ -155,28 +143,6 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
             value={selectedModel?.id || ""}
             allowedProviders={allowedProviders}
           />
-        </div>
-      )}
-
-      {/* Visual Divider */}
-      {hasModelSection && hasToolsSection && (
-        <div className="toolbar-divider" />
-      )}
-
-      {/* Tools Group */}
-      {hasToolsSection && (
-        <div className="toolbar-group">
-          <WorkflowToolsSelector
-            value={selectedTools}
-            onChange={onToolsChange}
-          />
-          <NodeToolsSelector value={selectedTools} onChange={onToolsChange} />
-          {onCollectionsChange && (
-            <CollectionsSelector
-              value={selectedCollections || []}
-              onChange={onCollectionsChange}
-            />
-          )}
         </div>
       )}
 

@@ -36,7 +36,7 @@ import {
   LanguageModel,
   LlamaModel,
   LogUpdate,
-  Message,
+  Message as ProtocolMessage,
   MessageAudioContent,
   MessageCreateRequest,
   MessageDocumentContent,
@@ -139,7 +139,21 @@ export type { JobUpdate };
 export type { LanguageModel };
 export type { LlamaModel };
 export type { LogUpdate };
-export type { Message };
+/**
+ * Chat permission mode (per-thread). Sent on every outgoing chat message.
+ * - `plan`: read & propose only; actionable tools are blocked.
+ * - `default`: reads run; actionable tools ask for approval first.
+ * - `auto`: everything runs, no prompts.
+ */
+export type PermissionMode = "plan" | "default" | "auto";
+
+/**
+ * Frontend `Message` extends the protocol message with `permission_mode`,
+ * which governs how the agent's gated tool calls are handled for the thread.
+ */
+export interface Message extends ProtocolMessage {
+  permission_mode?: PermissionMode | null;
+}
 export type { MessageAudioContent };
 export type { MessageCreateRequest };
 export type { MessageDocumentContent };

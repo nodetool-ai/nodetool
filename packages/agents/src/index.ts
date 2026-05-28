@@ -121,6 +121,25 @@ export {
 } from "./tools/vector-tools.js";
 export type { VecCollection } from "./tools/vector-tools.js";
 export {
+  ListCollectionsTool,
+  QueryCollectionTool
+} from "./tools/collection-tools.js";
+export {
+  TOOL_PERMISSION_CATEGORIES,
+  permissionCategoryFor,
+  decidePermission,
+  gateTools
+} from "./tools/tool-permissions.js";
+export type {
+  PermissionCategory,
+  PermissionMode,
+  PermissionDecision,
+  ApprovalDecision,
+  ApprovalRequest,
+  RequestApproval,
+  PermissionGateOptions
+} from "./tools/tool-permissions.js";
+export {
   registerTool,
   resolveTool,
   listTools,

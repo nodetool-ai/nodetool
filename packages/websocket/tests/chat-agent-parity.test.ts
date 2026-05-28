@@ -369,9 +369,9 @@ describe("addCollectionContext", () => {
   });
 });
 
-// ── processToolResult ───────────────────────────────────────────────
+// ── permission gate ──────────────────────────────────────────────────
 
-describe("processToolResult", () => {
+describe("permission gate", () => {
   let ws: MockWS;
 
   beforeEach(() => {
@@ -379,34 +379,22 @@ describe("processToolResult", () => {
     ws = new MockWS();
   });
 
-  it("handles nested objects with asset-like items and arrays in tool results", async () => {
+  it("blocks actionable tools in plan mode without executing them", async () => {
     let callCount = 0;
-
-    // A tool that returns complex results including nested objects
-    const fakeTool = {
-      name: "complex_tool",
-      description: "test",
-      toProviderTool: () => ({
-        name: "complex_tool",
-        description: "test",
-        inputSchema: {}
-      }),
-      process: async () => ({
-        items: [{ name: "file.txt", size: 42 }, { nested: { deep: true } }],
-        count: 3,
-        nullField: null
-      })
-    };
-
     const provider = async () =>
       ({
         provider: "mock",
         async *generateMessagesTraced() {
           callCount++;
           if (callCount === 1) {
-            yield { id: "tc-complex", name: "complex_tool", args: {} };
+            // write_file is category "write" — must be blocked in plan mode.
+            yield {
+              id: "tc-write",
+              name: "write_file",
+              args: { path: "should-not-write.txt", content: "nope" }
+            };
           } else {
-            yield { type: "chunk" as const, content: "ok" };
+            yield { type: "chunk" as const, content: "here is the plan" };
           }
         },
         async generateMessageTraced() {
@@ -425,18 +413,17 @@ describe("processToolResult", () => {
 
     const runner = new UnifiedWebSocketRunner({
       resolveExecutor: noop,
-      resolveProvider: provider,
-      resolveTools: async () => [fakeTool as any]
+      resolveProvider: provider
     });
     await runner.connect(ws);
     await runner.handleCommand({
       command: "chat_message",
       data: {
-        thread_id: "t-tool-result",
-        content: "do it",
+        thread_id: "t-plan",
+        content: "write a file",
         provider: "mock",
         model: "m",
-        tools: [{ name: "complex_tool", description: "test" }]
+        permission_mode: "plan"
       }
     });
     await new Promise((r) => setTimeout(r, 200));
@@ -444,16 +431,11 @@ describe("processToolResult", () => {
     const msgs = sentMsgs(ws);
     const toolMsg = msgs.find((m) => m.type === "message" && m.role === "tool");
     expect(toolMsg).toBeDefined();
-
-    // The tool result should be JSON with properly processed nested objects
     const content =
       typeof toolMsg?.content === "string"
         ? JSON.parse(toolMsg.content)
         : toolMsg?.content;
-    expect(content.count).toBe(3);
-    expect(content.nullField).toBeNull();
-    expect(Array.isArray(content.items)).toBe(true);
-    expect(content.items[0].name).toBe("file.txt");
+    expect(content.error).toBe("blocked_in_plan_mode");
 
     await runner.disconnect();
   });

@@ -65,10 +65,22 @@ import type {
 import { Tool } from "@nodetool-ai/agents";
 import { RunSubtaskTool } from "@nodetool-ai/agents";
 import {
+  getBuiltinTools,
+  getAllMcpTools,
+  registerBuiltinTools,
+  ListCollectionsTool,
+  QueryCollectionTool,
+  gateTools,
+  type PermissionMode,
+  type ApprovalDecision,
+  type ApprovalRequest
+} from "@nodetool-ai/agents";
+import {
   createDefaultLongTermMemory,
   formatMemoryForPrompt,
   type LongTermMemory
 } from "@nodetool-ai/agents";
+import { RunNodeTool } from "./agent/run-node-tool.js";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonStdioBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
@@ -584,6 +596,16 @@ const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in cl
 - Subtasks can themselves call \`run_subtask\` (bounded recursion). Don't
   decompose work that you could just do directly.
 
+# Your toolbelt
+You always have a fixed toolbelt — there is no per-message tool selection.
+- Run any node directly with \`run_node\`, or run a saved workflow with
+  \`run_workflow\`. Discover node types and inputs via \`list_nodes\`,
+  \`search_nodes\`, \`get_node_info\`, and workflows via \`list_workflows\`.
+- Find and read knowledge collections yourself: \`list_collections\` to see
+  what exists, then \`query_collection\` to search one.
+- Read and write files, browse and search the web, and generate images and
+  audio. Decompose work with \`run_subtask\`.
+
 # Image and media
 When tools return media URLs, embed them as markdown image / link tags.
 
@@ -592,6 +614,30 @@ References to documents, images, videos, or audio files have the shape:
 - \`type\`: document | image | video | audio
 - \`uri\`: \`file:///path/to/file\` or \`http(s)://...\`
 `;
+
+const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
+  plan:
+    "\n# Permission mode: PLAN (read-only)\n" +
+    "You may only use read-only tools (search, read, inspect, query " +
+    "collections). Tools that write, run, or act are blocked. Do NOT attempt " +
+    "them — instead investigate and produce a concrete, step-by-step plan the " +
+    "user can run after switching out of plan mode.\n",
+  default:
+    "\n# Permission mode: DEFAULT\n" +
+    "Read-only tools run automatically. Actions (writing files, running nodes " +
+    "or workflows, generating media, browser interactions, external tools) " +
+    "require user approval before each call. If the user denies a call, do not " +
+    "retry it — explain or propose an alternative.\n",
+  auto:
+    "\n# Permission mode: AUTO\n" +
+    "All tools run automatically without prompting. Be deliberate with actions " +
+    "that write, run, or have external side effects.\n"
+};
+
+/** Build the chat-agent system prompt for the given permission mode. */
+function buildChatAgentSystemPrompt(mode: PermissionMode): string {
+  return CHAT_AGENT_SYSTEM_PROMPT + PERMISSION_MODE_PROMPTS[mode];
+}
 
 export interface WebSocketReceiveFrame {
   type: string;
@@ -715,8 +761,6 @@ export interface UnifiedWebSocketRunnerOptions {
     providerId: string,
     userId: string
   ) => Promise<BaseProvider>;
-  /** Resolve server-side Tool instances by name (for tool execution in chat). */
-  resolveTools?: (toolNames: string[], userId: string) => Promise<Tool[]>;
   getSystemStats?: () => Record<string, unknown>;
   workspaceResolver?: (
     workflowId: string,
@@ -765,7 +809,6 @@ export class UnifiedWebSocketRunner {
   private resolveExecutor: UnifiedWebSocketRunnerOptions["resolveExecutor"];
   private resolveNodeType?: UnifiedWebSocketRunnerOptions["resolveNodeType"];
   private resolveProvider?: UnifiedWebSocketRunnerOptions["resolveProvider"];
-  private resolveTools?: UnifiedWebSocketRunnerOptions["resolveTools"];
   private getSystemStats: () => Record<string, unknown>;
   private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
@@ -786,6 +829,13 @@ export class UnifiedWebSocketRunner {
   private chatRequestSeq = 0;
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
   private toolBridge = new ToolBridge();
+  /** Round-trips permission approvals for gated tool calls. */
+  private approvalBridge = new ToolBridge();
+  /**
+   * Per-thread set of tool names the user approved for the rest of the chat
+   * via "Allow for this chat". Persists across messages within a thread.
+   */
+  private chatSessionAllow = new Map<string, Set<string>>();
   private observerRegistered = false;
 
   private logError(context: string, error: unknown): void {
@@ -871,7 +921,6 @@ export class UnifiedWebSocketRunner {
     this.resolveExecutor = options.resolveExecutor;
     this.resolveNodeType = options.resolveNodeType;
     this.resolveProvider = options.resolveProvider;
-    this.resolveTools = options.resolveTools;
     this.workspaceResolver = options.workspaceResolver;
     this.beforeRunJob = options.beforeRunJob;
     this.getNodeMetadata = options.getNodeMetadata;
@@ -910,6 +959,7 @@ export class UnifiedWebSocketRunner {
     this.stopStatsBroadcast();
     this.unregisterObserver();
     this.toolBridge.cancelAll();
+    this.approvalBridge.cancelAll();
 
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
@@ -1898,64 +1948,7 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Query vector store collections and return concatenated context string.
-   * Mirrors Python's RegularChatProcessor._query_collections().
-   */
-  private async queryCollections(
-    collections: string[],
-    queryText: string,
-    nResults = 5
-  ): Promise<string> {
-    if (!collections.length || !queryText) return "";
-
-    try {
-      const { getDefaultVectorProvider } = await import(
-        "@nodetool-ai/vectorstore"
-      );
-      const provider = getDefaultVectorProvider();
-
-      const allResults: string[] = [];
-
-      for (const collectionName of collections) {
-        try {
-          const collection = await provider.getCollection({
-            name: collectionName
-          });
-          const matches = await collection.query({
-            text: queryText,
-            topK: nResults
-          });
-
-          if (matches.length > 0) {
-            let collectionResults = `\n\n### Results from ${collectionName}:\n`;
-            for (const match of matches) {
-              const doc = match.document;
-              if (!doc) continue;
-              const preview =
-                doc.length > 200 ? `${doc.slice(0, 200)}...` : doc;
-              collectionResults += `\n- ${preview}`;
-            }
-            allResults.push(collectionResults);
-          }
-        } catch (err) {
-          log.warn("Collection query failed", {
-            collection: collectionName,
-            error: err instanceof Error ? err.message : String(err)
-          });
-        }
-      }
-
-      return allResults.join("\n");
-    } catch (err) {
-      log.warn("Vector store init failed", {
-        error: err instanceof Error ? err.message : String(err)
-      });
-      return "";
-    }
-  }
-
-  /**
-   * Add collection context as a system message before the last user message.
+   * Add context as a system message before the last user message.
    * Mirrors Python's RegularChatProcessor._add_collection_context().
    */
   private addCollectionContext(
@@ -1986,6 +1979,161 @@ export class UnifiedWebSocketRunner {
       ];
     }
     return messages;
+  }
+
+  /**
+   * Round-trip a permission approval to the client and resolve with the
+   * user's decision. Emits a `tool_approval_request`, then waits for the
+   * matching `tool_approval_response` (resolved via {@link approvalBridge}).
+   * A cancelled wait (stop) is treated as a denial.
+   */
+  private async requestToolApproval(
+    threadId: string,
+    request: ApprovalRequest
+  ): Promise<ApprovalDecision> {
+    const approvalId = `appr_${randomUUID()}`;
+    await this.sendMessage({
+      type: "tool_approval_request",
+      thread_id: threadId,
+      approval_id: approvalId,
+      tool_name: request.toolName,
+      category: request.category,
+      message: request.message,
+      args: request.args
+    });
+    try {
+      // No timeout — the user may take a while; `stop` cancels via cancelAll.
+      const response = await this.approvalBridge.createWaiter(approvalId, 0);
+      const decision = response.decision;
+      if (
+        decision === "allow" ||
+        decision === "allow_for_chat" ||
+        decision === "deny"
+      ) {
+        return decision;
+      }
+      return "deny";
+    } catch {
+      // Cancelled (generation stopped) — treat as a denial.
+      return "deny";
+    }
+  }
+
+  /**
+   * Execute a single node by type and return its output. Builds a one-node
+   * graph and runs it through a fresh {@link WorkflowRunner}, then returns the
+   * node's completed result. Backs the `run_node` chat tool.
+   */
+  private async runSingleNode(
+    nodeType: string,
+    inputs: Record<string, unknown>,
+    userId: string
+  ): Promise<unknown> {
+    const jobId = randomUUID();
+    const nodeId = "node_0";
+    const rawGraph = {
+      nodes: [{ id: nodeId, type: nodeType, data: inputs ?? {} }],
+      edges: [] as Array<Record<string, unknown>>
+    };
+
+    let graph: {
+      nodes: Array<Record<string, unknown>>;
+      edges: Array<Record<string, unknown>>;
+    };
+    try {
+      graph = await this.hydrateGraph(rawGraph);
+    } catch (err) {
+      return {
+        error: `Failed to prepare node '${nodeType}': ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      };
+    }
+
+    if (this.beforeRunJob) {
+      try {
+        await this.beforeRunJob(graph);
+      } catch (err) {
+        return {
+          error: `Node prerequisites failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        };
+      }
+    }
+
+    const context = createRuntimeContext({
+      jobId,
+      workflowId: null,
+      userId,
+      workspaceDir: tmpdir(),
+      assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
+    });
+    context.setResolveExecutor((node) => this.resolveExecutor(node));
+    if (this.resolveNodeType) {
+      const resolverObj =
+        typeof this.resolveNodeType === "function"
+          ? { resolveNodeType: this.resolveNodeType }
+          : this.resolveNodeType;
+      context.setResolveNodeType(
+        (type) =>
+          resolverObj.resolveNodeType(type) as Promise<{
+            nodeType: string;
+            propertyTypes?: Record<string, string>;
+            outputs?: Record<string, string>;
+            isDynamic?: boolean;
+            descriptorDefaults?: Record<string, unknown>;
+          } | null>
+      );
+    }
+
+    const runner = new WorkflowRunner(jobId, {
+      resolveExecutor: (node) =>
+        this.resolveExecutor(
+          node as { id: string; type: string; [key: string]: unknown }
+        ),
+      executionContext: context,
+      validateNode: this.validateNode
+    });
+
+    const result = await runner.run(
+      { job_id: jobId, params: {} },
+      graph as unknown as {
+        nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
+        edges: Array<{
+          id?: string | null;
+          source: string;
+          target: string;
+          sourceHandle: string;
+          targetHandle: string;
+          edge_type: "data" | "control";
+        }>;
+      }
+    );
+
+    // Capture the node's completed result from the streamed updates.
+    let nodeResult: unknown;
+    while (context.hasMessages()) {
+      const msg = context.popMessage() as Record<string, unknown> | undefined;
+      if (
+        msg &&
+        msg.type === "node_update" &&
+        msg.node_id === nodeId &&
+        msg.status === "completed" &&
+        msg.result != null
+      ) {
+        nodeResult = msg.result;
+      }
+    }
+
+    if (result.status === "failed") {
+      return { error: result.error ?? `Node '${nodeType}' failed` };
+    }
+    if (nodeResult === undefined) {
+      // Fall back to the runner's collected outputs (e.g. Output nodes).
+      return result.outputs ?? { status: result.status };
+    }
+    return this.processToolResult(nodeResult, context);
   }
 
   /**
@@ -2082,56 +2230,63 @@ export class UnifiedWebSocketRunner {
 
     const provider = await this.resolveProvider(providerId, userId);
 
-    // Extract tool names from raw tool data — supports both string[] and object[]
-    const rawTools = Array.isArray(data.tools) ? data.tools : [];
-    const toolNames: string[] = rawTools
-      .map((t) => {
-        if (typeof t === "string") return t;
-        const tool = t as Record<string, unknown>;
-        return typeof tool.name === "string" ? tool.name : "";
-      })
-      .filter((n) => n.length > 0);
-    log.info("Chat tools from client", {
-      rawToolCount: rawTools.length,
-      rawToolTypes: rawTools.map((t) => typeof t),
-      toolNames
+    // Permission mode for this turn. Governs whether gated tool calls run,
+    // ask for approval, or are blocked. Defaults to "default".
+    const permissionMode: PermissionMode =
+      data.permission_mode === "plan" ||
+      data.permission_mode === "auto" ||
+      data.permission_mode === "default"
+        ? data.permission_mode
+        : "default";
+
+    // Assemble the fixed, always-on toolbelt. There is no per-message tool
+    // selection anymore — the agent reasons over the full toolbelt and the
+    // permission gate (below) governs execution.
+    registerBuiltinTools();
+    const chatProviders = await this.getConfiguredProviders(userId);
+    const rawToolbelt: Tool[] = [
+      ...getBuiltinTools(),
+      ...getAllMcpTools({
+        registry: this.nodeRegistry,
+        providers: chatProviders
+      }),
+      new ListCollectionsTool(),
+      new QueryCollectionTool(),
+      new RunNodeTool((nodeType, inputs) =>
+        this.runSingleNode(nodeType, inputs, userId)
+      )
+    ];
+    // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
+    const dedupedToolbelt: Tool[] = [];
+    const seenToolNames = new Set<string>();
+    for (const tool of rawToolbelt) {
+      if (seenToolNames.has(tool.name)) continue;
+      seenToolNames.add(tool.name);
+      dedupedToolbelt.push(tool);
+    }
+
+    // Wrap the toolbelt in the permission gate. The wrapper is transparent
+    // except for `process()`, so the chat loop AND any `run_subtask` child
+    // loop inherit gating by simply calling `tool.process()`. The session
+    // allow-set is shared per thread so "Allow for this chat" sticks.
+    const sessionAllow =
+      this.chatSessionAllow.get(threadId) ?? new Set<string>();
+    this.chatSessionAllow.set(threadId, sessionAllow);
+    const requestApproval = (
+      request: ApprovalRequest
+    ): Promise<ApprovalDecision> =>
+      this.requestToolApproval(threadId, request);
+    const baseTools = gateTools(dedupedToolbelt, {
+      mode: permissionMode,
+      sessionAllow,
+      requestApproval
     });
 
-    // Resolve server-side Tool instances for execution. When the client
-    // sends no explicit tool list (the new default — server picks the
-    // toolbelt), populate it with the standard chat-agent defaults plus the
-    // recursive-decomposition primitive injected further below.
-    let serverTools: Tool[] = [];
-    if (toolNames.length > 0 && this.resolveTools) {
-      serverTools = await this.resolveTools(toolNames, userId);
-    } else if (toolNames.length === 0) {
-      const {
-        ReadFileTool: DefReadFile,
-        WriteFileTool: DefWriteFile,
-        BrowserTool: DefBrowser,
-        GoogleSearchTool: DefSearch,
-        getAllMcpTools: defGetAllMcpTools,
-        registerBuiltinTools: defRegisterBuiltins
-      } = await import("@nodetool-ai/agents");
-      defRegisterBuiltins();
-      const chatProviders = await this.getConfiguredProviders(userId);
-      serverTools = [
-        new DefReadFile(),
-        new DefWriteFile(),
-        new DefBrowser(),
-        new DefSearch(),
-        ...defGetAllMcpTools({
-          registry: this.nodeRegistry,
-          providers: chatProviders
-        })
-      ];
-    }
-    // Inject the recursive-decomposition primitive. The agent calls
-    // `run_subtask` when it judges a piece of work needs its own focused loop;
-    // child events stream back tagged with `parent_tool_call_id` so the UI can
-    // nest cards. We close over the current toolset so the child inherits it.
+    // Inject the recursive-decomposition primitive (ungated — it spawns a
+    // child loop whose own tools are the gated `baseTools`). Child events
+    // stream back tagged with `parent_tool_call_id` so the UI can nest cards.
+    const serverTools: Tool[] = baseTools.slice();
     {
-      const baseTools = serverTools.slice();
       const subtaskThreadId = threadId;
       const subtaskWorkflowId = workflowId;
       const forwardSubtaskMessage = async (msg: ProcessingMessage) => {
@@ -2166,9 +2321,8 @@ export class UnifiedWebSocketRunner {
 
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));
     log.info("Resolved server tools", {
-      requested: toolNames,
-      resolved: serverTools.map((t) => t.name),
-      hasResolveTools: !!this.resolveTools
+      permissionMode,
+      resolved: serverTools.map((t) => t.name)
     });
 
     // Build provider-format tool schemas from resolved Tool instances + client tools
@@ -2218,27 +2372,17 @@ export class UnifiedWebSocketRunner {
     if (chatHistory.length === 0 || chatHistory[0].role !== "system") {
       chatHistory.unshift({
         role: "system",
-        content: CHAT_AGENT_SYSTEM_PROMPT,
+        content: buildChatAgentSystemPrompt(permissionMode),
         toolCallId: null,
         toolCalls: null,
         threadId: null
       });
     }
 
-    // Query collections for RAG context — matches Python's _query_collections()
-    const collections = Array.isArray(data.collections)
-      ? (data.collections as string[]).filter((c) => typeof c === "string")
-      : [];
+    // The agent now discovers and queries collections itself via the
+    // list_collections / query_collection tools, so there is no client-driven
+    // RAG pre-query here.
     const userContent = this.extractTextContent(data.content);
-    let collectionContext = "";
-    if (collections.length > 0 && userContent) {
-      collectionContext = await this.queryCollections(collections, userContent);
-      if (collectionContext) {
-        log.debug("Retrieved collection context", {
-          chars: collectionContext.length
-        });
-      }
-    }
 
     // Resolve long-term memory if the renderer opted in for this turn. The
     // helper is default-off; we only build it when the wire flag is true so
@@ -2292,15 +2436,6 @@ export class UnifiedWebSocketRunner {
 
         let messagesToSend = [...chatHistory, ...unprocessedMessages];
         unprocessedMessages = [];
-
-        // Add collection context on first iteration — matches Python
-        if (collectionContext) {
-          messagesToSend = this.addCollectionContext(
-            messagesToSend,
-            collectionContext
-          );
-          collectionContext = ""; // Clear after first use
-        }
 
         // Long-term memory recall is injected on the first iteration only.
         // Like the collection context, the recalled block is ephemeral —
@@ -4463,6 +4598,7 @@ export class UnifiedWebSocketRunner {
           }
         }
         this.toolBridge.cancelAll();
+        this.approvalBridge.cancelAll();
         await this.sendMessage({
           type: "generation_stopped",
           message: "Generation stopped by user",
@@ -4712,6 +4848,15 @@ export class UnifiedWebSocketRunner {
           typeof data.tool_call_id === "string" ? data.tool_call_id : null;
         if (toolCallId) {
           this.toolBridge.resolveResult(toolCallId, data);
+        }
+        continue;
+      }
+
+      if (msgType === "tool_approval_response") {
+        const approvalId =
+          typeof data.approval_id === "string" ? data.approval_id : null;
+        if (approvalId) {
+          this.approvalBridge.resolveResult(approvalId, data);
         }
         continue;
       }

@@ -52,10 +52,6 @@ type ChatInputSectionProps = {
   ) => Promise<void> | void;
   onStop?: () => void;
   onNewChat?: () => void;
-  selectedTools: string[];
-  onToolsChange?: (tools: string[]) => void;
-  selectedCollections?: string[];
-  onCollectionsChange?: (collections: string[]) => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
   memoryEnabled?: boolean;
@@ -81,8 +77,6 @@ const ChatInputSection = ({
   onMemoryToggle,
   allowedProviders,
   requireToolSupport,
-  selectedTools,
-  onToolsChange,
   variant = "media",
   composerToolbar
 }: ChatInputSectionProps) => {
@@ -118,8 +112,6 @@ const ChatInputSection = ({
             onMemoryToggle={onMemoryToggle}
             allowedProviders={allowedProviders}
             requireToolSupport={requireToolSupport}
-            selectedTools={selectedTools}
-            onToolsChange={onToolsChange}
           />
         )}
       </div>
