@@ -19,6 +19,7 @@
 import { WebGPULayerCompositor } from "./compositor.js";
 import { FULLSCREEN_QUAD_VERTEX, UNPREMULTIPLY_FRAGMENT } from "./shaders.js";
 import {
+  defaultLayerTransform,
   layerTransformToInverseAffine,
   type LayerTransform2D
 } from "./transform.js";
@@ -119,13 +120,7 @@ export async function compositeLayersHeadless(
     sources.push(source);
 
     const transform =
-      layer.transform ?? {
-        x: lw / 2,
-        y: lh / 2,
-        scaleX: 1,
-        scaleY: 1,
-        rotation: 0
-      };
+      layer.transform ?? defaultLayerTransform(lw, lh, width, height);
     compositor.renderBlendPass(encoder, read, write, {
       source,
       opacity: layer.opacity,

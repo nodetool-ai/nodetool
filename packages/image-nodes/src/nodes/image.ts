@@ -12,7 +12,7 @@ import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { RAW_RGBA_MIME, isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { encodeRawRgbaToPng } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,26 +38,8 @@ function toBytes(data: Uint8Array | string | undefined): Uint8Array {
 
 async function imageBytesAsync(image: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!image || typeof image !== "object") return new Uint8Array();
-  // Raw in-flight RGBA → encode to PNG so callers always get an encoded image.
-  if (isRawRgbaImage(image)) {
-    return encodeRawRgbaToPng(image.data, image.width, image.height);
-  }
-  const ref = image as ImageRefLike;
-  if (ref.data) return toBytes(ref.data);
-  if (typeof ref.uri === "string" && ref.uri) {
-    if (context?.storage) {
-      const stored = await context.storage.retrieve(ref.uri);
-      if (stored !== null) return new Uint8Array(stored);
-    }
-    if (ref.uri.startsWith("file://")) {
-      return new Uint8Array(await fs.readFile(filePath(ref.uri)));
-    }
-    if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
-      const response = await fetch(ref.uri);
-      return new Uint8Array(await response.arrayBuffer());
-    }
-  }
-  return new Uint8Array();
+  const bytes = await loadMediaRefBytes(image as ImageRefLike, context);
+  return bytes ?? new Uint8Array();
 }
 
 function filePath(uriOrPath: string): string {

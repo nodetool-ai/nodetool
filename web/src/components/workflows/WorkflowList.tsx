@@ -34,13 +34,7 @@ const styles = (theme: Theme) =>
 
     ".search-header": {},
     ".toolbar-header": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      padding: "0.75em 0 0.65em",
-      background: `linear-gradient(180deg, rgb(${theme.vars.palette.background.defaultChannel} / 0.92), rgb(${theme.vars.palette.background.defaultChannel} / 0.82))`,
-      backdropFilter: "blur(12px)",
-      borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
+      padding: "6px 0 10px"
     },
 
     ".status": {

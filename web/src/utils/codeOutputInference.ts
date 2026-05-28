@@ -28,7 +28,7 @@ export function inferOutputKeysFromCode(code: string): string[] | null {
   walk.simple(ast, {
     ReturnStatement(node: acorn.ReturnStatement) {
       if (node.argument?.type === "ObjectExpression") {
-        const keys = extractObjectKeys(node.argument as acorn.ObjectExpression);
+        const keys = extractObjectKeys(node.argument);
         if (keys.length > 0) {
           lastReturnKeys = keys;
         }
@@ -43,11 +43,10 @@ function extractObjectKeys(objExpr: acorn.ObjectExpression): string[] {
   const keys: string[] = [];
   for (const prop of objExpr.properties) {
     if (prop.type === "SpreadElement") continue;
-    const property = prop as acorn.Property;
-    if (property.key.type === "Identifier") {
-      keys.push((property.key as acorn.Identifier).name);
-    } else if (property.key.type === "Literal" && typeof (property.key as acorn.Literal).value === "string") {
-      keys.push((property.key as acorn.Literal).value as string);
+    if (prop.key.type === "Identifier") {
+      keys.push(prop.key.name);
+    } else if (prop.key.type === "Literal" && typeof prop.key.value === "string") {
+      keys.push(prop.key.value);
     }
   }
   return keys;

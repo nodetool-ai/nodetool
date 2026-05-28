@@ -363,7 +363,7 @@ jobs:
           DEBUG: electron-builder
         run: |
           cd electron
-          npx electron-builder --config electron-builder.json --win --x64 --prepackaged dist/win-unpacked --publish never
+          npx electron-builder --config electron-builder.json --config.win.signAndEditExecutable=false --win --x64 --prepackaged dist/win-unpacked --publish never
 
       - name: Locate built Windows installer
         if: matrix.os == 'windows-latest'

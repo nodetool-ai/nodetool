@@ -124,9 +124,11 @@ test("a multi-edge graph aggregates two sources into one sink", async ({
  * WebGPU shader catalog runs against the browser's `navigator.gpu`. This is
  * the test that proves the GPU pool isn't just Dawn-portable — the same
  * `colorBrightnessContrastV1` module that runs server-side on Node also
- * runs in a V8 isolate, and the readback matches the CPU reference. Skips
- * with a warning when no adapter is available (e.g. CI runners without a
- * Vulkan/Swiftshader driver installed) rather than failing hard.
+ * runs in a V8 isolate, and the readback matches the CPU reference.
+ *
+ * In CI a Vulkan ICD (`mesa-vulkan-drivers`) is installed, so the adapter
+ * is required — a missing adapter is a hard failure. On a local machine
+ * without GPU drivers the test skips with a diagnostic instead.
  */
 test("WebGPU shader catalog runs the brightness/contrast module in-browser", async ({
   page
@@ -141,9 +143,14 @@ test("WebGPU shader catalog runs the brightness/contrast module in-browser", asy
   );
 
   if (!result.adapterFound) {
+    if (process.env.CI) {
+      throw new Error(
+        `WebGPU adapter required in CI but unavailable: ${result.error ?? "unknown"}`
+      );
+    }
     testInfo.skip(
       true,
-      `No WebGPU adapter (headless Chromium without Vulkan): ${result.error ?? "unknown"}`
+      `No WebGPU adapter on this machine: ${result.error ?? "unknown"}`
     );
     return;
   }

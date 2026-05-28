@@ -20,6 +20,7 @@ import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes"
 import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerKieNodes } from "@nodetool-ai/kie-nodes";
 import { registerTopazNodes } from "@nodetool-ai/topaz-nodes";
+import { registerAtlasCloudNodes } from "@nodetool-ai/atlascloud-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 
 /** Node-type prefixes that require on-demand npm packages; dropped in production. */
@@ -59,6 +60,7 @@ export function registerBuiltInNodes(registry: NodeRegistry): void {
   registerFalNodes(registry);
   registerKieNodes(registry);
   registerTopazNodes(registry);
+  registerAtlasCloudNodes(registry);
   registerReplicateNodes(registry);
 }
 

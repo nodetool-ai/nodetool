@@ -81,7 +81,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
       headerReset != null ||
       headerSupplemental != null);
   const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
-  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.25);
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.75);
   // Only show inline descriptions when explicitly requested, not automatically in inspector
   const shouldShowInlineDescription = showDescriptionInline && !isInspector;
 
@@ -187,6 +187,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         padding: 0,
         overflow: "visible",
         flexGrow: 1,
+        marginBottom: labelMarginBottom,
         "&:hover": {
           "& label": {
             opacity: 0.94
@@ -198,16 +199,13 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           fontSize: labelFontSize,
           color: theme.vars.palette.text.secondary,
           padding: 0,
-          margin: hasHeaderActions ? 0 : `0 0 ${labelMarginBottom} 0`,
+          margin: 0,
           lineHeight: "1em",
           maxHeight: "2em",
           minHeight: "13px",
           textTransform: "capitalize",
           letterSpacing: "0.01em",
           userSelect: "none"
-        },
-        "&.property-label-with-actions": {
-          marginBottom: labelMarginBottom
         },
         ".inspector-header-toolbar .inspector-reset-button": {
           padding: 0,

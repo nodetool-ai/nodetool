@@ -198,8 +198,11 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
   const selectedTransform: LayerTransform2D | null = useMemo(() => {
     if (!selectedLayer) return null;
     const { width, height } = dimsFor(selectedLayer.id);
-    return selectedLayer.transform ?? defaultTransform(width, height);
-  }, [selectedLayer, dimsFor]);
+    return (
+      selectedLayer.transform ??
+      defaultTransform(width, height, canvasWidth, canvasHeight)
+    );
+  }, [selectedLayer, dimsFor, canvasWidth, canvasHeight]);
 
   const handleFieldChange = useCallback(
     (transform: LayerTransform2D, complete: boolean) => {
@@ -214,8 +217,21 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
     if (!selectedId) return;
     const idx = indexOf(selectedId);
     const { width, height } = dimsFor(selectedId);
-    if (idx >= 0) onTransformChange(idx, defaultTransform(width, height), true);
-  }, [selectedId, indexOf, dimsFor, onTransformChange]);
+    if (idx >= 0) {
+      onTransformChange(
+        idx,
+        defaultTransform(width, height, canvasWidth, canvasHeight),
+        true
+      );
+    }
+  }, [
+    selectedId,
+    indexOf,
+    dimsFor,
+    onTransformChange,
+    canvasWidth,
+    canvasHeight
+  ]);
 
   // Render the stack top-first (highest index on top of the composite).
   const stack = useMemo(

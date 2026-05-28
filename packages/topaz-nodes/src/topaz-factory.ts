@@ -23,6 +23,7 @@ import {
   topazExecuteVideoTask,
   topazImageRef,
   type TopazImageSpec,
+  type TopazVideoKind,
   type TopazVideoSpec
 } from "./topaz-base.js";
 
@@ -50,6 +51,7 @@ export interface TopazManifestEntry {
   title: string;
   description: string;
   outputType: "image" | "video";
+  videoKind?: TopazVideoKind;
   requiredRuntimes?: string[];
   submitEndpoint: string;
   statusEndpoint: string;
@@ -152,9 +154,18 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
         const sourceContainer = sourceContainerFromRef(asset);
         const videoBytes = await refToBytes(asset, context);
         const sourceMeta = await probeVideoMetadata(videoBytes, sourceContainer);
+        const videoSpec: TopazVideoSpec = {
+          submitEndpoint: specRef.submitEndpoint,
+          acceptEndpoint: specRef.acceptEndpoint ?? "",
+          completeEndpoint: specRef.completeEndpoint ?? "",
+          statusEndpoint: specRef.statusEndpoint,
+          pollInterval: specRef.pollInterval,
+          maxAttempts: specRef.maxAttempts,
+          videoKind: specRef.videoKind ?? "upscale"
+        };
         const out = await topazExecuteVideoTask(
           apiKey,
-          specRef as unknown as TopazVideoSpec,
+          videoSpec,
           fields,
           videoBytes,
           sourceMeta
@@ -169,9 +180,16 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
       }
 
       const imageBytes = await refToBytes(asset, context);
+      const imageSpec: TopazImageSpec = {
+        submitEndpoint: specRef.submitEndpoint,
+        statusEndpoint: specRef.statusEndpoint,
+        downloadEndpoint: specRef.downloadEndpoint ?? "",
+        pollInterval: specRef.pollInterval,
+        maxAttempts: specRef.maxAttempts
+      };
       const out = await topazExecuteImageTask(
         apiKey,
-        specRef as unknown as TopazImageSpec,
+        imageSpec,
         fields,
         imageBytes
       );

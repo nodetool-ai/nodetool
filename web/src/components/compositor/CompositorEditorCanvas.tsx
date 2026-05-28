@@ -19,7 +19,10 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import type { LayerTransform2D } from "@nodetool-ai/gpu/webgpu";
+import {
+  defaultLayerTransform,
+  type LayerTransform2D
+} from "@nodetool-ai/gpu/webgpu";
 
 import { EmptyState } from "../ui_primitives";
 import { useWebGPUPreview, type PreviewLayer } from "./useWebGPUPreview";
@@ -208,15 +211,10 @@ const CompositorEditorCanvasInner: React.FC<CompositorEditorCanvasProps> = ({
     if (!layer) return null;
     const { width, height } = dimsFor(selectedId);
     return (
-      layer.transform ?? {
-        x: width / 2,
-        y: height / 2,
-        scaleX: 1,
-        scaleY: 1,
-        rotation: 0
-      }
+      layer.transform ??
+      defaultLayerTransform(width, height, canvasWidth, canvasHeight)
     );
-  }, [selectedId, layers, dimsFor]);
+  }, [selectedId, layers, dimsFor, canvasWidth, canvasHeight]);
 
   // ── Gizmo geometry in canvas space ──────────────────────────────
   const gizmo = useMemo(() => {
@@ -318,13 +316,8 @@ const CompositorEditorCanvasInner: React.FC<CompositorEditorCanvasProps> = ({
         if (!layer.visible) continue;
         const { width, height } = dimsFor(layer.id);
         const t =
-          layer.transform ?? {
-            x: width / 2,
-            y: height / 2,
-            scaleX: 1,
-            scaleY: 1,
-            rotation: 0
-          };
+          layer.transform ??
+          defaultLayerTransform(width, height, canvasWidth, canvasHeight);
         if (pointInLayer(t, width, height, p)) {
           onSelect(layer.id);
           dragRef.current = {
@@ -349,7 +342,9 @@ const CompositorEditorCanvasInner: React.FC<CompositorEditorCanvasProps> = ({
       transformForSelected,
       dimsFor,
       layers,
-      onSelect
+      onSelect,
+      canvasWidth,
+      canvasHeight
     ]
   );
 

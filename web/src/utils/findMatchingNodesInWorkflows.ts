@@ -3,14 +3,6 @@ import { Workflow } from "../stores/ApiTypes";
 import { SearchResult } from "../types/search";
 import { FUSE_THRESHOLD, FUSE_MIN_MATCH_FACTOR } from "../config/constants";
 
-// Define a more flexible WorkflowNode type for search purposes
-interface WorkflowNode {
-  id: string; // from ApiNode
-  type: string; // from ApiNode, ensure it's always a string for reliable access
-  data?: { title?: string; [key: string]: unknown };
-  [key: string]: unknown;
-}
-
 interface NodeMatch {
   textToShow: string;
   searchText: string;
@@ -40,9 +32,12 @@ export const findMatchingNodesInWorkflows = (
     const nodeInfos: NodeMatch[] = [];
     if (workflow.graph?.nodes) {
       Object.values(workflow.graph.nodes).forEach((node) => {
-        const workflowNode = node as unknown as WorkflowNode;
-        const title = String(workflowNode.data?.title || "");
-        const type = String(workflowNode.type || "");
+        const data = node.data;
+        const title =
+          typeof data === "object" && data !== null && "title" in data
+            ? String(data.title || "")
+            : "";
+        const type = String(node.type || "");
 
         // If title exists, add it for searching, but map it to show the full type.
         if (title && type) {

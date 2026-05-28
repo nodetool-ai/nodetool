@@ -59,6 +59,11 @@
   isolation: isolate;
 }
 
+.react-flow__node .node-body.base-node {
+  --node-body-padding: 8px;
+  padding: var(--node-body-padding);
+}
+
 /* Resized nodes: clip overflowing params at the bottom (y) while side handles
    can still protrude horizontally (x). Collapsed nodes override in collapsed.css. */
 .react-flow__node .node-content-container {

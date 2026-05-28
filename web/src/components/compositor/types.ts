@@ -3,7 +3,10 @@
  */
 
 import type { BlendMode } from "@nodetool-ai/gpu";
-import type { LayerTransform2D } from "@nodetool-ai/gpu/webgpu";
+import {
+  defaultLayerTransform,
+  type LayerTransform2D
+} from "@nodetool-ai/gpu/webgpu";
 
 export type { LayerTransform2D };
 
@@ -19,10 +22,17 @@ export interface CompositorEditorLayer {
   transform?: LayerTransform2D;
 }
 
-/** Default transform placing a `w`×`h` layer's top-left at the canvas origin. */
+/** Contain-fit, centered default for a layer with no explicit transform. */
 export function defaultTransform(
-  width: number,
-  height: number
+  layerWidth: number,
+  layerHeight: number,
+  canvasWidth: number,
+  canvasHeight: number
 ): LayerTransform2D {
-  return { x: width / 2, y: height / 2, scaleX: 1, scaleY: 1, rotation: 0 };
+  return defaultLayerTransform(
+    layerWidth,
+    layerHeight,
+    canvasWidth,
+    canvasHeight
+  );
 }
