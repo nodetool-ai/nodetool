@@ -82,3 +82,6 @@ packages/replicate-nodes/src/generated/
 __plans__
 .memory
 *.tsbuildinfo
+
+# Superpowers visual brainstorm sessions
+.superpowers/
