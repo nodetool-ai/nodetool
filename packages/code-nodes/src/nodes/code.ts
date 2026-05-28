@@ -69,7 +69,7 @@ export class ExecutePythonNode extends BaseNode {
     "Executes Python code with safety restrictions.\n    python, code, execute\n\n    Use cases:\n    - Run custom data transformations\n    - Prototype node functionality\n    - Debug and testing workflows\n\n    IMPORTANT: Only enabled in non-production environments";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly requiredRuntimes = ["python"];
@@ -142,7 +142,7 @@ export class ExecuteJavaScriptNode extends BaseNode {
     "Executes JavaScript (Node.js) code with safety restrictions.\n    javascript, nodejs, code, execute";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly requiredRuntimes = ["nodejs"];
@@ -215,7 +215,7 @@ export class ExecuteBashNode extends BaseNode {
     "Executes Bash script with safety restrictions.\n    bash, shell, code, execute";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly requiredRuntimes = ["bash"];
@@ -294,7 +294,7 @@ export class ExecuteRubyNode extends BaseNode {
     "Executes Ruby code with safety restrictions.\n    ruby, code, execute";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly requiredRuntimes = ["ruby"];
@@ -367,7 +367,7 @@ export class ExecuteLuaNode extends BaseNode {
     "Executes Lua code with a local sandbox (no Docker).\n    lua, code, execute, sandbox";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly requiredRuntimes = ["lua"];
@@ -462,7 +462,7 @@ export class ExecuteCommandNode extends BaseNode {
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   @prop({
     type: "str",
@@ -640,7 +640,7 @@ export class RunPythonCommandNode extends RunCommandNode {
     "Executes a single Python command and buffers the output.\n    python, code, execute, command\n\n    Use cases:\n    - Run a single Python script or command\n    - Execute Python code with buffered stdout/stderr output\n    - One-shot Python execution without streaming\n\n    The command is executed once and the complete output is returned.\n    IMPORTANT: Only enabled in non-production environments";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "python" as const;
@@ -663,7 +663,7 @@ export class RunJavaScriptCommandNode extends RunCommandNode {
     "Executes a single JavaScript command and buffers the output.\n    javascript, nodejs, code, execute, command\n\n    Use cases:\n    - Run a single JavaScript script or command\n    - Execute JavaScript code with buffered stdout/stderr output\n    - One-shot JavaScript execution without streaming\n\n    The command is executed once and the complete output is returned.";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "javascript" as const;
@@ -686,7 +686,7 @@ export class RunBashCommandNode extends RunCommandNode {
     "Executes a single Bash command and buffers the output.\n    bash, shell, code, execute, command\n\n    Use cases:\n    - Run a single Bash script or command\n    - Execute shell commands with buffered stdout/stderr output\n    - One-shot Bash execution without streaming\n\n    The command is executed once and the complete output is returned.";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "bash" as const;
@@ -709,7 +709,7 @@ export class RunRubyCommandNode extends RunCommandNode {
     "Executes a single Ruby command and buffers the output.\n    ruby, code, execute, command\n\n    Use cases:\n    - Run a single Ruby script or command\n    - Execute Ruby code with buffered stdout/stderr output\n    - One-shot Ruby execution without streaming\n\n    The command is executed once and the complete output is returned.";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "ruby" as const;
@@ -732,7 +732,7 @@ export class RunLuaCommandNode extends RunCommandNode {
     "Executes a single Lua command and buffers the output.\n    lua, code, execute, command, sandbox\n\n    Use cases:\n    - Run a single Lua script or command\n    - Execute Lua code with buffered stdout/stderr output\n    - One-shot Lua execution without streaming\n\n    The command is executed once and the complete output is returned.";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "lua" as const;
@@ -772,7 +772,7 @@ export class RunShellCommandNode extends RunCommandNode {
     "Executes a single shell command and buffers the output.\n    command, execute, shell, bash, sh\n\n    Use cases:\n    - Run a single shell command\n    - Execute shell commands with buffered stdout/stderr output\n    - One-shot command execution without streaming\n\n    The command is executed once and the complete output is returned.\n    IMPORTANT: Only enabled in non-production environments";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "command" as const;
@@ -797,7 +797,7 @@ export class RunLuaCommandDockerNode extends RunCommandNode {
     "Executes a single Lua command in Docker and buffers the output.\n    lua, code, execute, command, sandbox, docker";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "lua" as const;
@@ -836,7 +836,7 @@ export class RunPythonCommandDockerNode extends RunCommandNode {
     "Executes a single Python command in Docker and buffers the output.\n    python, code, execute, command, docker";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "python" as const;
@@ -867,7 +867,7 @@ export class RunJavaScriptCommandDockerNode extends RunCommandNode {
     "Executes a single JavaScript command in Docker and buffers the output.\n    javascript, nodejs, code, execute, command, docker";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "javascript" as const;
@@ -898,7 +898,7 @@ export class RunBashCommandDockerNode extends RunCommandNode {
     "Executes a single Bash command in Docker and buffers the output.\n    bash, shell, code, execute, command, docker";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "bash" as const;
@@ -935,7 +935,7 @@ export class RunRubyCommandDockerNode extends RunCommandNode {
     "Executes a single Ruby command in Docker and buffers the output.\n    ruby, code, execute, command, docker";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "ruby" as const;
@@ -966,7 +966,7 @@ export class RunShellCommandDockerNode extends RunCommandNode {
     "Executes a single shell command in Docker and buffers the output.\n    command, execute, shell, bash, sh, docker";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly metadataOutputTypes = { stdout: "str", stderr: "str" };
   static readonly lang = "command" as const;

@@ -103,7 +103,7 @@ export class CodeNode extends BaseNode {
     "For date/HTML/CSV/validation work use the dedicated workflow nodes.\n    code, javascript, function, script, dynamic";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
 
   /** Persistent state across streaming invocations; reset each workflow run. */

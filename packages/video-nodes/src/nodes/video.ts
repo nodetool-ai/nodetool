@@ -1022,7 +1022,7 @@ export class ConcatVideoNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const inputValues = Array.from(this.dynamicProps.values());

@@ -66,7 +66,7 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
     node_type: "nodetool.text.Prompt",
     properties: [],
     outputs: [{ name: "output", type: { type: "str" } }],
-    is_dynamic: true
+    supports_dynamic_inputs: true
   } as unknown as Parameters<typeof PromptComposerBody>[0]["nodeMetadata"],
   data: {
     properties: { prompt: "Describe {{ subject }} in detail" },

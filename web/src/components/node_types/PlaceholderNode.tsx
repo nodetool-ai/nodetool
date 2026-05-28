@@ -249,7 +249,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       node_type: resolvedType || "unknown",
       layout: "default",
       properties: mockProperties,
-      is_dynamic: false,
+      supports_dynamic_inputs: false,
       expose_as_tool: false,
       supports_dynamic_outputs: false,
       outputs: [

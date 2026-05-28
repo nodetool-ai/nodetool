@@ -2,7 +2,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { Platform } from "@nodetool-ai/protocol";
 import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { tagAsServer, renderTemplate } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
   loadNodePath
@@ -2299,7 +2299,7 @@ export class ConcatTextNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
 
   async process(): Promise<Record<string, unknown>> {
     return {
@@ -2375,7 +2375,7 @@ export class FormatTextNode extends BaseNode {
     output: "str"
   };
 
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly inputFields: string[] = ["template"];
 
 
@@ -2387,60 +2387,9 @@ export class FormatTextNode extends BaseNode {
   })
   declare template: any;
 
-  private applyFilter(value: string, filter: string): string {
-    const trimmed = filter.trim();
-    if (trimmed === "upper") return value.toUpperCase();
-    if (trimmed === "lower") return value.toLowerCase();
-    if (trimmed === "capitalize") {
-      return value.length === 0 ? "" : value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-    }
-    if (trimmed === "title") {
-      return toTitleCase(value);
-    }
-    if (trimmed === "trim") return value.trim();
-    const truncateMatch = trimmed.match(/^truncate\((\d+)\)$/);
-    if (truncateMatch) {
-      const n = Number(truncateMatch[1]);
-      return value.length <= n ? value : value.slice(0, n) + "...";
-    }
-    const defaultMatch = trimmed.match(/^default\((.+)\)$/);
-    if (defaultMatch) {
-      return value === "" ? defaultMatch[1].replace(/^['"]|['"]$/g, "") : value;
-    }
-    return value;
-  }
-
-  private applyFilters(value: string, filters: string[]): string {
-    let result = value;
-    for (const f of filters) {
-      result = this.applyFilter(result, f);
-    }
-    return result;
-  }
-
   async process(): Promise<Record<string, unknown>> {
-    let result = String(this.template ?? "");
     const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
-
-    // Handle {{ var|filter1|filter2 }} syntax
-    result = result.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, expr: string) => {
-      const parts = expr.split("|").map((p: string) => p.trim());
-      const varName = parts[0];
-      if (varName in props) {
-        const strValue = String(props[varName] ?? "");
-        return parts.length > 1 ? this.applyFilters(strValue, parts.slice(1)) : strValue;
-      }
-      return _match;
-    });
-
-    // Handle {variable} syntax (no filters)
-    for (const [key, value] of Object.entries(props)) {
-      const strValue = String(value ?? "");
-      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
-      result = result.replace(single, () => strValue);
-    }
-    return { output: result };
+    return { output: renderTemplate(String(this.template ?? ""), props) };
   }
 }
 
@@ -2453,7 +2402,7 @@ export class PromptNode extends BaseNode {
     output: "str"
   };
 
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly inputFields: string[] = ["prompt"];
 
 
@@ -2466,62 +2415,9 @@ export class PromptNode extends BaseNode {
   })
   declare prompt: any;
 
-  private applyFilter(value: string, filter: string): string {
-    const trimmed = filter.trim();
-    if (trimmed === "upper") return value.toUpperCase();
-    if (trimmed === "lower") return value.toLowerCase();
-    if (trimmed === "capitalize") {
-      return value.length === 0
-        ? ""
-        : value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-    }
-    if (trimmed === "title") {
-      return toTitleCase(value);
-    }
-    if (trimmed === "trim") return value.trim();
-    const truncateMatch = trimmed.match(/^truncate\((\d+)\)$/);
-    if (truncateMatch) {
-      const n = Number(truncateMatch[1]);
-      return value.length <= n ? value : value.slice(0, n) + "...";
-    }
-    const defaultMatch = trimmed.match(/^default\((.+)\)$/);
-    if (defaultMatch) {
-      return value === "" ? defaultMatch[1].replace(/^['"]|['"]$/g, "") : value;
-    }
-    return value;
-  }
-
-  private applyFilters(value: string, filters: string[]): string {
-    let result = value;
-    for (const f of filters) {
-      result = this.applyFilter(result, f);
-    }
-    return result;
-  }
-
   async process(): Promise<Record<string, unknown>> {
-    let result = String(this.prompt ?? "");
     const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
-
-    result = result.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, expr: string) => {
-      const parts = expr.split("|").map((p: string) => p.trim());
-      const varName = parts[0];
-      if (varName in props) {
-        const strValue = String(props[varName] ?? "");
-        return parts.length > 1
-          ? this.applyFilters(strValue, parts.slice(1))
-          : strValue;
-      }
-      return _match;
-    });
-
-    for (const [key, value] of Object.entries(props)) {
-      const strValue = String(value ?? "");
-      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
-      result = result.replace(single, () => strValue);
-    }
-    return { output: result };
+    return { output: renderTemplate(String(this.prompt ?? ""), props) };
   }
 }
 
@@ -2534,7 +2430,7 @@ export class TemplateTextNode extends BaseNode {
     output: "str"
   };
 
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
 
   @prop({
     type: "str",

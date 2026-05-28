@@ -127,7 +127,7 @@ function inferMetadata(
     recommended_models: [],
     inline_fields: props.map((p) => p.name),
     required_settings: [],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     is_streaming_output: false,
     expose_as_tool: false,
     supports_dynamic_outputs: false
@@ -333,7 +333,7 @@ function App() {
             layout: "default",
             recommended_models: [],
             required_settings: [],
-            is_dynamic: false,
+            supports_dynamic_inputs: false,
             is_streaming_output: false,
             expose_as_tool: false,
             supports_dynamic_outputs: false,

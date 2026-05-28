@@ -28,7 +28,7 @@ const baseMetadata = (
   basic_fields: [],
   inline_fields: [],
   input_fields: [],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   is_streaming_input: false,
   is_streaming_output: false,
   is_streaming: false,

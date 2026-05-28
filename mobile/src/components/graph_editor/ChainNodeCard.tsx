@@ -431,13 +431,14 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
           ) : null}
 
           {/* Input mappings (wire inputs from any previous node) */}
-          {(previousNodes.length > 0 || node.metadata.is_dynamic) && (
+          {(previousNodes.length > 0 ||
+            node.metadata.supports_dynamic_inputs) && (
             <View style={styles.mappingSection}>
               <InputMappingSelector
                 properties={node.metadata.properties}
                 inputMappings={node.inputMappings}
                 dynamicProperties={node.dynamicProperties}
-                isDynamic={node.metadata.is_dynamic}
+                isDynamic={node.metadata.supports_dynamic_inputs}
                 previousNodes={previousNodes}
                 onSetMapping={onSetInputMapping}
                 onAddDynamicInput={onAddDynamicInput}

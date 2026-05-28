@@ -757,7 +757,7 @@ export class KieAINode extends BaseNode {
   static readonly inlineFields = ["model_info"];
   static readonly inputFields = [];
   static readonly requiredSettings = ["KIE_API_KEY"];
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
 
   @prop({

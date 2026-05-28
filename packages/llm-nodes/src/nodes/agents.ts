@@ -19,7 +19,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { Agent, Tool as AgentTool } from "@nodetool-ai/agents";
 import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
-import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { tagAsServer, renderTemplate } from "@nodetool-ai/nodes-utils";
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
@@ -1834,7 +1834,7 @@ export class AgentNode extends BaseNode {
   static readonly nodeType: string = "nodetool.agents.Agent";
   static readonly title: string = "Agent";
   static readonly description: string =
-    "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming\n\n    Dynamic properties are substituted as {{variable}} placeholders in both\n    the prompt and system text. Add a property named `subject` and write\n    `Classify: {{subject}}` in the prompt — the wired value replaces the\n    placeholder at run time. Unknown placeholders are left intact. For\n    Jinja-style filters (truncate, upper, etc.), chain a Format Text node\n    upstream instead.";
+    "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming\n\n    Dynamic properties are substituted as {{variable}} (or {variable})\n    placeholders in both the prompt and system text. Add a property named\n    `subject` and write `Classify: {{subject}}` in the prompt — the wired\n    value replaces the placeholder at run time. Jinja-style filters are\n    supported: {{subject|upper}}, {{text|truncate(100)}}, etc. Unknown\n    placeholders are left intact.";
   static readonly metadataOutputTypes = {
     text: "str",
     chunk: "chunk",
@@ -1843,6 +1843,11 @@ export class AgentNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image", "audio"];
+  // Dynamic properties are user-named template inputs substituted as
+  // {{variable}} placeholders in the prompt/system text (see the class
+  // description). Flagging this lets the node body expose the "Add input"
+  // affordance and round-trips the values through dynamicProps.
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   // Streamed outputs: each yielded chunk/thinking/audio is a distinct
   // iteration step. Without this, the analyzer defaults to `single`, which
@@ -2450,8 +2455,12 @@ export class AgentNode extends BaseNode {
       return;
     }
 
-    const prompt = asText(this.prompt ?? "");
-    let system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
+    const dynamicVars = Object.fromEntries(this.dynamicProps);
+    const prompt = renderTemplate(asText(this.prompt ?? ""), dynamicVars);
+    let system = renderTemplate(
+      asText(this.system ?? DEFAULT_SYSTEM_PROMPT),
+      dynamicVars
+    );
     const image = this.image ?? this.image;
     const audio = this.audio ?? this.audio;
     const historyInput = this.history ?? this.history;
@@ -2868,8 +2877,12 @@ export class AgentNode extends BaseNode {
     providerId: string,
     modelId: string
   ): AsyncGenerator<Record<string, unknown>> {
-    const prompt = asText(this.prompt ?? "");
-    const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
+    const dynamicVars = Object.fromEntries(this.dynamicProps);
+    const prompt = renderTemplate(asText(this.prompt ?? ""), dynamicVars);
+    const system = renderTemplate(
+      asText(this.system ?? DEFAULT_SYSTEM_PROMPT),
+      dynamicVars
+    );
     const rawTools: ToolLike[] = await this.buildTools(context);
 
     // Build control tools

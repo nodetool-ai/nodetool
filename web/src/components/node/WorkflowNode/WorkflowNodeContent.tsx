@@ -96,11 +96,11 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             editableDynamicInputs={false}
           />
         </FlexColumn>
-        {(nodeMetadata.is_dynamic ||
+        {(nodeMetadata.supports_dynamic_inputs ||
           nodeMetadata.supports_dynamic_outputs) && (
             <NodePropertyForm
               id={id}
-              isDynamic={nodeMetadata.is_dynamic}
+              isDynamic={nodeMetadata.supports_dynamic_inputs}
               supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
               dynamicOutputs={data.dynamic_outputs || {}}
               onAddProperty={handleAddProperty}

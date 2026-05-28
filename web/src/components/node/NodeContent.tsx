@@ -56,7 +56,7 @@ const arePropsEqual = (
   if (
     prevProps.nodeMetadata.title !== nextProps.nodeMetadata.title ||
     prevProps.nodeMetadata.layout !== nextProps.nodeMetadata.layout ||
-    prevProps.nodeMetadata.is_dynamic !== nextProps.nodeMetadata.is_dynamic ||
+    prevProps.nodeMetadata.supports_dynamic_inputs !== nextProps.nodeMetadata.supports_dynamic_inputs ||
     prevProps.nodeMetadata.supports_dynamic_outputs !==
       nextProps.nodeMetadata.supports_dynamic_outputs ||
     prevProps.nodeMetadata.is_streaming_output !==
@@ -284,10 +284,10 @@ const NodeContent: React.FC<NodeContentProps> = ({
         data={data}
         properties={allProperties}
       />
-      {(nodeMetadata?.is_dynamic || nodeMetadata?.supports_dynamic_outputs) && (
+      {(nodeMetadata?.supports_dynamic_inputs || nodeMetadata?.supports_dynamic_outputs) && (
         <NodePropertyForm
           id={id}
-          isDynamic={nodeMetadata.is_dynamic}
+          isDynamic={nodeMetadata.supports_dynamic_inputs}
           supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
           dynamicOutputs={data.dynamic_outputs || {}}
           onAddProperty={handleAddProperty}

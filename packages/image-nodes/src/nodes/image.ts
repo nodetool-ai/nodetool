@@ -782,7 +782,7 @@ export class ImagesToListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[image]"
   };
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly inlineFields = [];
   static readonly inputFields = [];
 
@@ -816,7 +816,7 @@ export class ImageEditorNode extends BaseNode {
     mask: "image",
     layers: "list[image]"
   };
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly inlineFields = ["sketch_data"];
   static readonly inputFields = ["image", "mask"];
@@ -2061,7 +2061,7 @@ export class CompositorNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   static readonly inlineFields = [];
   static readonly inputFields = [];
 

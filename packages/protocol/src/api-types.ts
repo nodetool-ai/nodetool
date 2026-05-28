@@ -607,7 +607,7 @@ export interface NodeMetadata {
   inline_fields?: string[];
   input_fields?: string[];
   required_settings: string[];
-  is_dynamic: boolean;
+  supports_dynamic_inputs: boolean;
   is_streaming_output: boolean;
   input_mode?: InputMode;
   output_correlation?: Record<string, OutputCorrelation>;

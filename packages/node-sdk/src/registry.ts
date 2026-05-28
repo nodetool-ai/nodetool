@@ -319,7 +319,7 @@ export function createGraphNodeTypeResolver(
         nodeType: metadata.node_type,
         propertyTypes,
         outputs,
-        isDynamic: metadata.is_dynamic ?? false,
+        supportsDynamicInputs: metadata.supports_dynamic_inputs ?? false,
         descriptorDefaults: {
           name: metadata.title,
           ...(metadata.is_streaming_input && { is_streaming_input: true }),

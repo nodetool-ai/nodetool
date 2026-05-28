@@ -1146,7 +1146,7 @@ const Inspector: React.FC = () => {
                       {metadata.namespace}
                     </span>
                   </div>
-                  {metadata.is_dynamic ? (
+                  {metadata.supports_dynamic_inputs ? (
                     <div className="help-meta-row">
                       <span className="help-meta-key">Dynamic</span>
                       <span className="help-meta-value">yes</span>

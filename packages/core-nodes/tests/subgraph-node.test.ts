@@ -64,7 +64,7 @@ describe("SubgraphNode", () => {
 
   it("has correct static properties", () => {
     expect(SubgraphNode.nodeType).toBe("nodetool.workflows.subgraph.Subgraph");
-    expect(SubgraphNode.isDynamic).toBe(true);
+    expect(SubgraphNode.supportsDynamicInputs).toBe(true);
     expect(hasStreamingOutput(SubgraphNode)).toBe(true);
   });
 

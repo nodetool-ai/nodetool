@@ -165,7 +165,7 @@ export function findInputHandle(
   }
 
   // Image Editor / sketch: per-layer handles (`layer_in_*`) live in dynamic_inputs
-  // while API metadata may omit is_dynamic.
+  // while API metadata may omit supports_dynamic_inputs.
   const earlyDynamicInputs = node.data.dynamic_inputs || {};
   if (earlyDynamicInputs[handleName] !== undefined) {
     const inputMeta = earlyDynamicInputs[handleName];
@@ -191,38 +191,30 @@ export function findInputHandle(
     };
   }
 
-  if (metadata.is_dynamic) {
-    const dynamicProperties = node.data.dynamic_properties || {};
-    const dynamicInputs = node.data.dynamic_inputs || {};
-    const dynamicOutputs = node.data.dynamic_outputs || {};
-    const hasDynamicInputMetadata = dynamicInputs[handleName] !== undefined;
-    const hasDynamicPropertyValue = dynamicProperties[handleName] !== undefined;
-    const isDynamicOutputOnly =
-      dynamicOutputs[handleName] !== undefined && !hasDynamicInputMetadata;
-
-    if ((hasDynamicInputMetadata || hasDynamicPropertyValue) && !isDynamicOutputOnly) {
-      const inputMeta = dynamicInputs[handleName];
-      const type = inputMeta
-        ? {
-            type: inputMeta.type,
-            optional: inputMeta.optional ?? false,
-            values: inputMeta.values ?? null,
-            type_args: inputMeta.type_args ?? [],
-            type_name: inputMeta.type_name ?? null
-          }
-        : {
-            type: "any",
-            optional: false,
-            values: null,
-            type_args: [],
-            type_name: null
-          };
-      return {
-        name: handleName,
-        type,
-        isDynamic: true
-      };
-    }
+  // Dynamic property handles (instance values). NodeInputs renders an input
+  // handle for every entry in `dynamic_properties`, so they must resolve here
+  // too — both for `supports_dynamic_inputs` nodes (e.g. Format Text) and for nodes that
+  // carry instance dynamic_properties without the metadata flag (e.g. the
+  // Agent node's `{{variable}}` template inputs). Without this, edges to those
+  // rendered handles are dropped by sanitizeGraph on load. A name that exists
+  // only as a dynamic OUTPUT is not an input handle.
+  const dynamicProperties = node.data.dynamic_properties || {};
+  const dynamicOutputs = node.data.dynamic_outputs || {};
+  if (
+    dynamicProperties[handleName] !== undefined &&
+    dynamicOutputs[handleName] === undefined
+  ) {
+    return {
+      name: handleName,
+      type: {
+        type: "any",
+        optional: false,
+        values: null,
+        type_args: [],
+        type_name: null
+      },
+      isDynamic: true
+    };
   }
 
   // Compatibility: imported Comfy graphs may still use slot-style handle names
@@ -307,82 +299,51 @@ export function getAllInputHandles(
     });
   });
 
-  // Add dynamic properties (for dynamic nodes)
-  if (metadata.is_dynamic) {
-    const dynamicProperties = node.data.dynamic_properties || {};
-    const dynamicInputs = node.data.dynamic_inputs || {};
-    const dynamicOutputs = node.data.dynamic_outputs || {};
-    const dynamicHandleNames = new Set([
-      ...Object.keys(dynamicInputs),
-      ...Object.keys(dynamicProperties)
-    ]);
+  // Add dynamic handles. These come from schema metadata (`dynamic_inputs`,
+  // e.g. Image Editor `layer_in_*`) and from instance values
+  // (`dynamic_properties`, e.g. Agent `{{variable}}` template inputs). Both are
+  // recognized regardless of the `supports_dynamic_inputs` metadata flag so they stay
+  // consistent with what NodeInputs renders. A name that exists only as a
+  // dynamic OUTPUT is not an input handle.
+  const dynamicInputs = node.data.dynamic_inputs || {};
+  const dynamicProperties = node.data.dynamic_properties || {};
+  const dynamicOutputs = node.data.dynamic_outputs || {};
+  const dynamicHandleNames = new Set([
+    ...Object.keys(dynamicInputs),
+    ...Object.keys(dynamicProperties)
+  ]);
 
-    dynamicHandleNames.forEach((name) => {
-      const isDynamicOutputOnly =
-        dynamicOutputs[name] !== undefined && dynamicInputs[name] === undefined;
-      if (isDynamicOutputOnly) {
-        return;
-      }
-      const inputMeta = dynamicInputs[name];
-      const type = inputMeta
-        ? {
-            type: inputMeta.type,
-            optional: inputMeta.optional ?? false,
-            values: inputMeta.values ?? null,
-            type_args: inputMeta.type_args ?? [],
-            type_name: inputMeta.type_name ?? null
-          }
-        : {
-            type: "any",
-            optional: false,
-            values: null,
-            type_args: [],
-            type_name: null
-          };
-      handles.push({
-        name,
-        type,
-        isDynamic: true
-      });
-    });
-  } else {
-    // Image Editor / sketch: `layer_in_*` handles exist in dynamic_inputs while API metadata
-    // keeps is_dynamic false (see SketchNode.updateNodeData).
-    const instanceDynamicInputs = node.data.dynamic_inputs || {};
-    const dynamicOutputs = node.data.dynamic_outputs || {};
-    for (const name of Object.keys(instanceDynamicInputs)) {
-      if (handles.some((h) => h.name === name)) {
-        continue;
-      }
-      const isDynamicOutputOnly =
-        dynamicOutputs[name] !== undefined &&
-        instanceDynamicInputs[name] === undefined;
-      if (isDynamicOutputOnly) {
-        continue;
-      }
-      const inputMeta = instanceDynamicInputs[name];
-      const type = inputMeta
-        ? {
-            type: inputMeta.type,
-            optional: inputMeta.optional ?? false,
-            values: inputMeta.values ?? null,
-            type_args: inputMeta.type_args ?? [],
-            type_name: inputMeta.type_name ?? null
-          }
-        : {
-            type: "any",
-            optional: false,
-            values: null,
-            type_args: [],
-            type_name: null
-          };
-      handles.push({
-        name,
-        type,
-        isDynamic: true
-      });
+  dynamicHandleNames.forEach((name) => {
+    if (handles.some((h) => h.name === name)) {
+      return;
     }
-  }
+    const isDynamicOutputOnly =
+      dynamicOutputs[name] !== undefined && dynamicInputs[name] === undefined;
+    if (isDynamicOutputOnly) {
+      return;
+    }
+    const inputMeta = dynamicInputs[name];
+    const type = inputMeta
+      ? {
+          type: inputMeta.type,
+          optional: inputMeta.optional ?? false,
+          values: inputMeta.values ?? null,
+          type_args: inputMeta.type_args ?? [],
+          type_name: inputMeta.type_name ?? null
+        }
+      : {
+          type: "any",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        };
+    handles.push({
+      name,
+      type,
+      isDynamic: true
+    });
+  });
 
   return handles;
 }

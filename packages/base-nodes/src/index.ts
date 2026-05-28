@@ -889,7 +889,7 @@ export function registerBaseNodes(registry: NodeRegistry): void {
             "Execute a sub-workflow. Select a workflow to populate its inputs and outputs dynamically.",
           namespace: "nodetool.workflows.workflow_node",
           node_type: "nodetool.workflows.workflow_node.Workflow",
-          is_dynamic: true,
+          supports_dynamic_inputs: true,
           is_streaming_output: true,
           properties: [
             {
@@ -917,7 +917,7 @@ export function registerBaseNodes(registry: NodeRegistry): void {
             "Execute an inline sub-graph as an isolated workflow. Inputs/outputs are derived from inner Input/Output nodes.",
           namespace: "nodetool.workflows.subgraph",
           node_type: "nodetool.workflows.subgraph.Subgraph",
-          is_dynamic: true,
+          supports_dynamic_inputs: true,
           is_streaming_output: true,
           properties: [
             {

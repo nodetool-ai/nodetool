@@ -88,10 +88,10 @@ describe("snippetMetadata", () => {
       }
     });
 
-    it("sets is_dynamic to true", () => {
+    it("sets supports_dynamic_inputs to true", () => {
       const metadata = generateSnippetMetadata();
       const nodeType = Object.keys(metadata)[0];
-      expect(metadata[nodeType].is_dynamic).toBe(true);
+      expect(metadata[nodeType].supports_dynamic_inputs).toBe(true);
     });
 
     it("includes namespace matching the category slug", () => {
