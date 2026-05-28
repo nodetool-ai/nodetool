@@ -7,7 +7,7 @@ export const NODE_COLLAPSED_STRIP_HEIGHT_PX = 40;
 
 const MIN_EXPANDED_BODY_PX = 100;
 
-function parseCssPixelHeight(value: unknown): number | undefined {
+function parseCssPixelHeight(value: string | number | undefined): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
