@@ -2,7 +2,7 @@
  * SketchToolbar
  *
  * Narrow vertical icon toolbar for tool selection only.
- * Tools are arranged in a single column with section dividers.
+ * Tools are arranged in a single vertical column with spacing between groups.
  * Color controls (compact overlapping FG/BG swatch) live below the tools.
  */
 
