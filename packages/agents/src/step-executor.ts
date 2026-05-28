@@ -34,7 +34,7 @@ import { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
-import { TOOL_CALL_ID_FIELD } from "./tools/run-subtask-tool.js";
+import { TOOL_CALL_ID_FIELD } from "./tools/subtask-fields.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
 
 const log = createLogger("nodetool.agents.step-executor");

@@ -18,13 +18,10 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
 import { StepExecutor } from "../step-executor.js";
+import { SUBTASK_DEPTH_KEY, TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 import type { Step, Task } from "../types.js";
 
-/** Context variable carrying the current subtask depth (0 at the chat root). */
-export const SUBTASK_DEPTH_KEY = "__subtask_depth";
-
-/** Reserved input-schema field StepExecutor sets to the LLM-provided tool_call_id. */
-export const TOOL_CALL_ID_FIELD = "_tool_call_id";
+export { SUBTASK_DEPTH_KEY, TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 
 const DEFAULT_MAX_DEPTH = 3;
 const DEFAULT_MAX_ITERATIONS = 20;
