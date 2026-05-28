@@ -40,6 +40,10 @@ class TestProvider extends BaseProvider {
 let traceDir: string;
 let traceFile: string;
 
+// Telemetry SDK init/teardown can exceed the default 10s hook timeout when the
+// full package test suite runs in parallel under load, so give the hooks room.
+const HOOK_TIMEOUT_MS = 30000;
+
 beforeAll(async () => {
   traceDir = await mkdtemp(join(tmpdir(), "nodetool-trace-int-"));
   traceFile = join(traceDir, "trace.jsonl");
@@ -48,12 +52,12 @@ beforeAll(async () => {
     traceFile,
     silent: true
   });
-});
+}, HOOK_TIMEOUT_MS);
 
 afterAll(async () => {
   await rm(traceDir, { recursive: true, force: true });
   _resetTelemetryForTest();
-});
+}, HOOK_TIMEOUT_MS);
 
 describe("telemetry integration", () => {
   it("writes nested agent → llm.chat spans with token usage to JSONL", async () => {
