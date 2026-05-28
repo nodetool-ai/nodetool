@@ -1,13 +1,13 @@
 # ------------------------------------------------------------------------------
 # nodetool/sandbox-agent — isolated agent computer
 #
-# Debian Bookworm (via node:24-bookworm-slim) + Node 24 + Chromium +
+# Debian Bookworm (via node:22-bookworm-slim) + Node 22 + Chromium +
 # Xvfb/fluxbox + x11vnc + websockify.
 # The in-container tool server (@nodetool-ai/sandbox-agent) listens on :7788
 # and exposes file/shell/browser/desktop tools over HTTP.
 # ------------------------------------------------------------------------------
 
-FROM node:24-bookworm-slim AS base
+FROM node:22-bookworm-slim AS base
 
 ENV DEBIAN_FRONTEND=noninteractive \
     DISPLAY=:99 \
