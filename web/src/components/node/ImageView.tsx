@@ -12,6 +12,23 @@ import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 import { useMediaOverlaySuppressed } from "./MediaOverlayContext";
 
+const hoverStyles = css({
+  ".image-dimensions": {
+    opacity: 0,
+    transition: "opacity 0.2s ease"
+  },
+  "&:hover .image-dimensions": {
+    opacity: 1
+  },
+  ".image-view-actions": {
+    opacity: 0,
+    transition: "opacity 0.2s ease"
+  },
+  "&:hover .image-view-actions": {
+    opacity: 1
+  }
+});
+
 interface ImageViewProps {
   source?: string | Uint8Array;
 }
@@ -99,25 +116,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     setOpenViewer(true);
   }, []);
 
-
-
-  const styles = css({
-    ".image-dimensions": {
-      opacity: 0,
-      transition: "opacity 0.2s ease"
-    },
-    "&:hover .image-dimensions": {
-      opacity: 1
-    },
-    ".image-view-actions": {
-      opacity: 0,
-      transition: "opacity 0.2s ease"
-    },
-    "&:hover .image-view-actions": {
-      opacity: 1
-    }
-  });
-
   const handleDownload = useCallback(async () => {
     if (!imageUrl) { return; }
 
@@ -176,7 +174,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
 
   return (
     <div
-      css={styles}
+      css={hoverStyles}
       className="image-output"
       style={containerStyle}
     >

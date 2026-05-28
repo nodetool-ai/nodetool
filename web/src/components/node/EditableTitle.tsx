@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
@@ -43,7 +43,7 @@ const EditableTitle = memo(function EditableTitle({
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const theme = useTheme();
 
-  const styles = css({
+  const styles = useMemo(() => css({
     position: "absolute",
     top: "calc(100% + 12px)",
     left: "8px",
@@ -219,7 +219,7 @@ const EditableTitle = memo(function EditableTitle({
       animation: `${pulseGlow} 2s ease-in-out infinite`,
       opacity: 0.8
     }
-  });
+  }), [theme]);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);

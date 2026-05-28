@@ -220,10 +220,6 @@ const Select: React.FC<SelectProps> = ({
     ]
   );
 
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [searchQuery]);
-
   // Memoize styles to avoid recalculation on each render
   const styles = useMemo(() => selectStyles(theme), [theme]);
 
@@ -294,7 +290,10 @@ const Select: React.FC<SelectProps> = ({
               type="text"
               className="search-input"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setHighlightedIndex(-1);
+              }}
               placeholder="Search..."
               onClick={(e) => e.stopPropagation()}
             />
