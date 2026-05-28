@@ -101,6 +101,22 @@ export interface SketchEditorHandle {
 
 const PRESET_SWATCH_SIZE = 18;
 
+/** Bright, uppercase, letter-spaced label for the right-panel section headers. */
+const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Text
+    size="small"
+    sx={{
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      fontWeight: 600,
+      color: "text.primary",
+      fontSize: SKETCH_FONT.section
+    }}
+  >
+    {children}
+  </Text>
+);
+
 const ConnectedColorPanel = memo(function ConnectedColorPanel() {
   const foregroundColor = useSketchStore((s) => s.foregroundColor) || "#ffffff";
   const handleFgColorChange = useColorIntentRouter();
@@ -137,7 +153,7 @@ const ColorSectionHeader = memo(function ColorSectionHeader() {
       justify="space-between"
       sx={{ width: "100%", pr: 1 }}
     >
-      <Text size="small">Color</Text>
+      <SectionTitle>Color</SectionTitle>
       <Chip
         compact
         label={colorToHex6(foregroundColor)}
@@ -378,8 +394,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                 maxWidth: SKETCH_SIZE.panelWidth,
                 minHeight: 0,
                 flexShrink: 0,
-                backgroundColor: theme.vars.palette.grey[800],
-                borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
+                backgroundColor: theme.vars.palette.background.paper,
+                borderLeft: `1px solid ${theme.vars.palette.divider}`,
                 overflow: "hidden"
               }}
               gap={0}
@@ -391,10 +407,10 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                 compact
                 sx={{
                   fontSize: theme.fontSizeSmall,
-                  borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+                  borderBottom: `1px solid ${theme.vars.palette.divider}`,
                   "& > [role='button']": {
                     padding: theme.spacing(0.75, 1),
-                    backgroundColor: theme.vars.palette.grey[800]
+                    backgroundColor: theme.vars.palette.background.paper
                   }
                 }}
               >
@@ -403,16 +419,16 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
 
               <CollapsibleSection
                 className="sketch-editor__layers-section"
-                title="Layers"
+                title={<SectionTitle>Layers</SectionTitle>}
                 defaultOpen
                 compact
                 sx={{
                   fontSize: theme.fontSizeSmall,
                   minHeight: 0,
-                  borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+                  borderBottom: `1px solid ${theme.vars.palette.divider}`,
                   "& > [role='button']": {
                     padding: theme.spacing(0.75, 1),
-                    backgroundColor: theme.vars.palette.grey[800]
+                    backgroundColor: theme.vars.palette.background.paper
                   }
                 }}
               >
@@ -484,15 +500,15 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
 
               <CollapsibleSection
                 className="sketch-editor__canvas-section"
-                title="Canvas"
+                title={<SectionTitle>Canvas</SectionTitle>}
                 defaultOpen={false}
                 compact
                 sx={{
                   fontSize: theme.fontSizeSmall,
-                  borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+                  borderBottom: `1px solid ${theme.vars.palette.divider}`,
                   "& > [role='button']": {
                     padding: theme.spacing(0.75, 1),
-                    backgroundColor: theme.vars.palette.grey[800]
+                    backgroundColor: theme.vars.palette.background.paper
                   }
                 }}
               >

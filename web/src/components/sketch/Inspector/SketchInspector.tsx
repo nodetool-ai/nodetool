@@ -80,9 +80,12 @@ const SketchInspectorInner: React.FC = () => {
         flex: 1,
         minHeight: 0,
         overflowY: "auto",
-        backgroundColor: theme.vars.palette.grey[800],
-        borderTop: `1px solid ${theme.vars.palette.grey[700]}`,
-        borderLeft: `1px solid ${theme.vars.palette.grey[700]}`
+        // Recessed, darker well for the generate/inspect content so previews
+        // and generated output read against a near-black surface (darker than
+        // the surrounding `paper` panel).
+        backgroundColor: theme.vars.palette.grey[900],
+        borderTop: `1px solid ${theme.vars.palette.divider}`,
+        borderLeft: `1px solid ${theme.vars.palette.divider}`
       }}
     >
       {body}
