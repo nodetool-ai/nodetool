@@ -21,11 +21,7 @@ import {
 } from "./toolDefinitions";
 import { displayCombo } from "./shortcuts";
 import ColorSwatchPair from "./ColorSwatchPair";
-import {
-  SKETCH_SPACING,
-  SKETCH_SIZE,
-  SKETCH_TOOLTIP_DELAY_MS
-} from "./sketchStyles";
+import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 
 const BTN = 36; // button size px
 
@@ -33,28 +29,30 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: SKETCH_SPACING.sm,
-    padding: `${SKETCH_SPACING.md} ${SKETCH_SPACING.sm}`,
-    backgroundColor: theme.vars.palette.grey[800],
-    borderRight: `1px solid ${theme.vars.palette.grey[700]}`,
+    gap: SKETCH_SPACING.md,
+    padding: `${SKETCH_SPACING.lg} ${SKETCH_SPACING.sm}`,
+    // Darker than the surrounding chrome so the soft rounded active highlight
+    // reads as a distinct box (matches the editor's tool-rail design).
+    backgroundColor: theme.vars.palette.grey[900],
+    borderRight: `1px solid ${theme.vars.palette.grey[800]}`,
     width: `${BTN + 8 + 2}px`, // single column + padding + border
     overflowY: "auto",
     flexShrink: 0,
+    // Larger gap between tool groups; tighter even spacing within a group.
     "& .tool-sections": {
       display: "flex",
       flexDirection: "column",
-      gap: SKETCH_SPACING.md
+      gap: SKETCH_SPACING.lg
     },
     "& .tool-section": {
       display: "flex",
-      flexDirection: "column",
-      gap: SKETCH_SPACING.sm
+      flexDirection: "column"
     },
     "& .MuiToggleButtonGroup-root": {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: 0,
+      gap: SKETCH_SPACING.sm,
       width: "100%"
     },
     "& .MuiToggleButton-root": {
@@ -64,19 +62,21 @@ const styles = (theme: Theme) =>
       minWidth: `${BTN}px`,
       minHeight: `${BTN}px`,
       border: "none",
-      borderRadius: `${SKETCH_SIZE.borderRadius} !important`,
-      color: theme.vars.palette.grey[300],
+      borderRadius: "8px !important",
+      color: theme.vars.palette.grey[400],
+      transition: "background-color 0.12s ease, color 0.12s ease",
       "&.Mui-selected": {
-        backgroundColor: theme.vars.palette.grey[600],
-        color: theme.vars.palette.grey[50]
+        backgroundColor: theme.vars.palette.grey[700],
+        color: theme.vars.palette.grey[50],
+        "&:hover": { backgroundColor: theme.vars.palette.grey[700] }
       },
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700],
+        backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]
       }
     },
     "& .MuiDivider-root": {
-      borderColor: theme.vars.palette.grey[700],
+      borderColor: theme.vars.palette.grey[800],
       mx: SKETCH_SPACING.xs
     }
   });
@@ -99,7 +99,7 @@ function renderToolButton(def: ToolDefinition, selectMode: SelectToolMode) {
         enterDelay={SKETCH_TOOLTIP_DELAY_MS}
         enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
       >
-        <Icon sx={{ fontSize: "2em" }} />
+        <Icon sx={{ fontSize: "1.375rem" }} />
       </Tooltip>
     </ToggleButton>
   );
@@ -142,7 +142,7 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
   return (
     <FlexColumn className="sketch-toolbar" css={styles(theme)}>
       <FlexColumn className="tool-sections">
-        {TOOLBAR_TOOL_GROUPS.map((group, index) => (
+        {TOOLBAR_TOOL_GROUPS.map((group) => (
           <FlexColumn
             key={group.map((def) => def.tool).join("-")}
             className="tool-section"
@@ -158,9 +158,6 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
                 renderToolButton(definition, selectMode)
               )}
             </ToggleButtonGroup>
-            {index < TOOLBAR_TOOL_GROUPS.length - 1 ? (
-              <Divider flexItem />
-            ) : null}
           </FlexColumn>
         ))}
       </FlexColumn>
