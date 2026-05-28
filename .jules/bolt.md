@@ -1,3 +1,7 @@
 ## 2026-05-25 - O(N*M) Edge Filtering Bottleneck
 **Learning:** In `GroupNode.tsx` and `graph.ts`, nested `Array.find()` and `Array.some()` inside `Array.filter()` loops on edges and group nodes created an O(N*M) operation, severely degrading performance for large workflows when dragging groups or computing graphs.
 **Action:** Always convert the target search array into a `Set` of IDs (O(N) creation) and use `Set.has()` inside the loop (O(1) lookup), reducing the complexity to O(N+M).
+
+## 2026-05-25 - Replace map with findIndex and spread in Zustand
+**Learning:** In `TimelineStore.ts` (and potentially other Zustand stores), using `state.clips.map((c) => c.id === id ? patch : c)` to update a single element in a large array causes O(N) iteration executing a JS callback for every element, and unnecessary allocations, leading to performance degradation during high-frequency events like drag-and-drop or rapid UI updates.
+**Action:** When updating a single known element in a state array, use `findIndex` and shallow copy index assignment (`const idx = array.findIndex(c => c.id === id); const newArr = [...array]; newArr[idx] = patch;`). While spreading and `findIndex` are technically still O(N) operations, this pattern relies on highly optimized native implementations and avoids executing JS callbacks for non-matching elements, providing a significant constant-factor performance speedup.

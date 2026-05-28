@@ -411,101 +411,124 @@ export const createTimelineStore = (
           }),
 
         setTrackHeight: (trackId, heightPx) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, heightPx } : t
-            )
-          })),
+          set((state) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            if (index === -1) return state;
+            const tracks = [...state.tracks];
+            tracks[index] = { ...tracks[index], heightPx };
+            return { tracks };
+          }),
 
         setTrackVisible: (trackId, visible) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, visible } : t
-            )
-          })),
+          set((state) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            if (index === -1) return state;
+            const tracks = [...state.tracks];
+            tracks[index] = { ...tracks[index], visible };
+            return { tracks };
+          }),
 
         setTrackLocked: (trackId, locked) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, locked } : t
-            )
-          })),
+          set((state) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            if (index === -1) return state;
+            const tracks = [...state.tracks];
+            tracks[index] = { ...tracks[index], locked };
+            return { tracks };
+          }),
 
         setTrackMuted: (trackId, muted) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, muted } : t
-            )
-          })),
+          set((state) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            if (index === -1) return state;
+            const tracks = [...state.tracks];
+            tracks[index] = { ...tracks[index], muted };
+            return { tracks };
+          }),
 
         setTrackSolo: (trackId, solo) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, solo } : t
-            )
-          })),
+          set((state) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            if (index === -1) return state;
+            const tracks = [...state.tracks];
+            tracks[index] = { ...tracks[index], solo };
+            return { tracks };
+          }),
 
         setTrackName: (trackId, name) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, name } : t
-            )
-          })),
+          set((state) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            if (index === -1) return state;
+            const tracks = [...state.tracks];
+            tracks[index] = { ...tracks[index], name };
+            return { tracks };
+          }),
 
         // ── Track DSP effects ─────────────────────────────────────────────
 
         addTrackEffect: (trackId, type) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) => {
-              if (t.id !== trackId) return t;
-              const effects = [...(t.effects ?? []), makeTrackEffect(type)];
-              return { ...t, effects };
-            })
-          })),
+          set((state) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            if (index === -1) return state;
+            const track = state.tracks[index];
+            const effects = [...(track.effects ?? []), makeTrackEffect(type)];
+
+            const tracks = [...state.tracks];
+            tracks[index] = { ...track, effects };
+            return { tracks };
+          }),
 
         updateTrackEffect: (trackId, effectId, patch) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) => {
-              if (t.id !== trackId) return t;
-              const effects = (t.effects ?? []).map((e) =>
-                e.id === effectId
-                  ? ({ ...e, ...patch } as TrackEffect)
-                  : e
-              );
-              return { ...t, effects };
-            })
-          })),
+          set((state) => {
+            const trackIndex = state.tracks.findIndex((t) => t.id === trackId);
+            if (trackIndex === -1) return state;
+            const track = state.tracks[trackIndex];
+            const effects = track.effects ?? [];
+            const effectIndex = effects.findIndex((e) => e.id === effectId);
+            if (effectIndex === -1) return state;
+
+            const newEffects = [...effects];
+            newEffects[effectIndex] = { ...newEffects[effectIndex], ...patch } as TrackEffect;
+
+            const tracks = [...state.tracks];
+            tracks[trackIndex] = { ...track, effects: newEffects };
+            return { tracks };
+          }),
 
         removeTrackEffect: (trackId, effectId) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) => {
-              if (t.id !== trackId) return t;
-              const effects = (t.effects ?? []).filter(
-                (e) => e.id !== effectId
-              );
-              return { ...t, effects };
-            })
-          })),
+          set((state) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            if (index === -1) return state;
+            const track = state.tracks[index];
+            const effects = (track.effects ?? []).filter((e) => e.id !== effectId);
+
+            const tracks = [...state.tracks];
+            tracks[index] = { ...track, effects };
+            return { tracks };
+          }),
 
         moveTrackEffect: (trackId, oldIndex, newIndex) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) => {
-              if (t.id !== trackId) return t;
-              const effects = [...(t.effects ?? [])];
-              if (
-                oldIndex < 0 ||
-                oldIndex >= effects.length ||
-                newIndex < 0 ||
-                newIndex >= effects.length ||
-                oldIndex === newIndex
-              ) {
-                return t;
-              }
-              const [moved] = effects.splice(oldIndex, 1);
-              effects.splice(newIndex, 0, moved);
-              return { ...t, effects };
-            })
-          })),
+          set((state) => {
+            const index = state.tracks.findIndex((t) => t.id === trackId);
+            if (index === -1) return state;
+            const track = state.tracks[index];
+            const effects = [...(track.effects ?? [])];
+            if (
+              oldIndex < 0 ||
+              oldIndex >= effects.length ||
+              newIndex < 0 ||
+              newIndex >= effects.length ||
+              oldIndex === newIndex
+            ) {
+              return state;
+            }
+            const [moved] = effects.splice(oldIndex, 1);
+            effects.splice(newIndex, 0, moved);
+
+            const tracks = [...state.tracks];
+            tracks[index] = { ...track, effects };
+            return { tracks };
+          }),
 
         // ── Clips ───────────────────────────────────────────────────────────
 
@@ -597,17 +620,14 @@ export const createTimelineStore = (
 
         trimClipStart: (clipId, deltaMs) =>
           set((state) => {
-            const clip = state.clips.find((c) => c.id === clipId);
-            if (!clip) {
-              return state;
-            }
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clip = state.clips[index];
             try {
               const trimmed = trimClip(clip, "start", deltaMs);
-              return {
-                clips: state.clips.map((c) =>
-                  c.id === clipId ? trimmed : c
-                )
-              };
+              const clips = [...state.clips];
+              clips[index] = trimmed;
+              return { clips };
             } catch {
               // Guard: no-op if trim would produce invalid clip
               return state;
@@ -616,10 +636,9 @@ export const createTimelineStore = (
 
         trimClipEnd: (clipId, deltaMs, maxSourceDurationMs) =>
           set((state) => {
-            const clip = state.clips.find((c) => c.id === clipId);
-            if (!clip) {
-              return state;
-            }
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clip = state.clips[index];
             try {
               // Clamp deltaMs so that outPointMs cannot exceed source duration.
               let clampedDelta = deltaMs;
@@ -632,11 +651,9 @@ export const createTimelineStore = (
                 }
               }
               const trimmed = trimClip(clip, "end", clampedDelta);
-              return {
-                clips: state.clips.map((c) =>
-                  c.id === clipId ? trimmed : c
-                )
-              };
+              const clips = [...state.clips];
+              clips[index] = trimmed;
+              return { clips };
             } catch {
               // Guard: no-op if trim would produce invalid clip
               return state;
@@ -645,16 +662,14 @@ export const createTimelineStore = (
 
         splitClipAtTime: (clipId, atMs) =>
           set((state) => {
-            const clip = state.clips.find((c) => c.id === clipId);
-            if (!clip) {
-              return state;
-            }
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clip = state.clips[index];
             try {
               const [left, right] = splitClip(clip, atMs);
-              const withoutOriginal = state.clips.filter(
-                (c) => c.id !== clipId
-              );
-              return { clips: [...withoutOriginal, left, right] };
+              const clips = [...state.clips];
+              clips.splice(index, 1, left, right);
+              return { clips };
             } catch {
               // atMs is outside clip bounds — no-op
               return state;
@@ -724,11 +739,13 @@ export const createTimelineStore = (
         },
 
         patchClip: (clipId, patch) =>
-          set((state) => ({
-            clips: state.clips.map((c) =>
-              c.id === clipId ? { ...c, ...patch } : c
-            )
-          })),
+          set((state) => {
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clips = [...state.clips];
+            clips[index] = { ...clips[index], ...patch };
+            return { clips };
+          }),
 
         restoreVersion: (clipId, versionId) =>
           set((state) => {
@@ -743,19 +760,17 @@ export const createTimelineStore = (
             const status: TimelineClip["status"] =
               clip.dependencyHash === restoredHash ? "generated" : "stale";
 
-            return {
-              clips: state.clips.map((c) =>
-                c.id === clipId
-                  ? {
-                      ...c,
-                      currentAssetId: version.assetId,
-                      paramOverrides: version.paramOverridesSnapshot,
-                      lastGeneratedHash: restoredHash,
-                      status
-                    }
-                  : c
-              )
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clips = [...state.clips];
+            clips[index] = {
+              ...clips[index],
+              currentAssetId: version.assetId,
+              paramOverrides: version.paramOverridesSnapshot,
+              lastGeneratedHash: restoredHash,
+              status
             };
+            return { clips };
           }),
 
         duplicateClip: async (clipId, deltaMs = 0) => {
@@ -797,18 +812,22 @@ export const createTimelineStore = (
         },
 
         setClipLocked: (clipId, locked) =>
-          set((state) => ({
-            clips: state.clips.map((c) =>
-              c.id === clipId ? { ...c, locked } : c
-            )
-          })),
+          set((state) => {
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clips = [...state.clips];
+            clips[index] = { ...clips[index], locked };
+            return { clips };
+          }),
 
         replaceClipOutput: (clipId, assetId) =>
-          set((state) => ({
-            clips: state.clips.map((c) =>
-              c.id === clipId ? { ...c, currentAssetId: assetId } : c
-            )
-          })),
+          set((state) => {
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clips = [...state.clips];
+            clips[index] = { ...clips[index], currentAssetId: assetId };
+            return { clips };
+          }),
 
         markClipsStaleForWorkflow: (workflowId) =>
           set((state) => ({
@@ -818,16 +837,17 @@ export const createTimelineStore = (
           })),
 
         setParamOverride: (clipId, inputNodeName, value) =>
-          set((state) => ({
-            clips: state.clips.map((c) => {
-              if (c.id !== clipId) return c;
-              const paramOverrides = { ...(c.paramOverrides ?? {}), [inputNodeName]: value };
-              // Mark as stale only when the clip has already been generated.
-              const status: TimelineClip["status"] =
-                c.lastGeneratedHash ? "stale" : c.status;
-              return { ...c, paramOverrides, status };
-            })
-          })),
+          set((state) => {
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clip = state.clips[index];
+            const paramOverrides = { ...(clip.paramOverrides ?? {}), [inputNodeName]: value };
+            const status: TimelineClip["status"] = clip.lastGeneratedHash ? "stale" : clip.status;
+
+            const clips = [...state.clips];
+            clips[index] = { ...clip, paramOverrides, status };
+            return { clips };
+          }),
 
         applyInputDrift: (workflowId, added, removed) =>
           set((state) => ({
@@ -921,35 +941,43 @@ export const createTimelineStore = (
         },
 
         setClipPrompt: (clipId, prompt) =>
-          set((state) => ({
-            clips: state.clips.map((c) => {
-              if (c.id !== clipId) return c;
-              // Mark stale once a render exists, so the inspector hints "regenerate".
-              const status: TimelineClip["status"] =
-                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
-              return { ...c, prompt, status };
-            })
-          })),
+          set((state) => {
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clip = state.clips[index];
+            const status: TimelineClip["status"] =
+              clip.lastGeneratedHash || clip.currentAssetId ? "stale" : clip.status;
+
+            const clips = [...state.clips];
+            clips[index] = { ...clip, prompt, status };
+            return { clips };
+          }),
 
         setClipDirectGenModel: (clipId, provider, model) =>
-          set((state) => ({
-            clips: state.clips.map((c) => {
-              if (c.id !== clipId) return c;
-              const status: TimelineClip["status"] =
-                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
-              return { ...c, provider, model, status };
-            })
-          })),
+          set((state) => {
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clip = state.clips[index];
+            const status: TimelineClip["status"] =
+              clip.lastGeneratedHash || clip.currentAssetId ? "stale" : clip.status;
+
+            const clips = [...state.clips];
+            clips[index] = { ...clip, provider, model, status };
+            return { clips };
+          }),
 
         patchClipBinding: (clipId, patch) =>
-          set((state) => ({
-            clips: state.clips.map((c) => {
-              if (c.id !== clipId) return c;
-              const status: TimelineClip["status"] =
-                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
-              return { ...c, ...patch, status };
-            })
-          })),
+          set((state) => {
+            const index = state.clips.findIndex((c) => c.id === clipId);
+            if (index === -1) return state;
+            const clip = state.clips[index];
+            const status: TimelineClip["status"] =
+              clip.lastGeneratedHash || clip.currentAssetId ? "stale" : clip.status;
+
+            const clips = [...state.clips];
+            clips[index] = { ...clip, ...patch, status };
+            return { clips };
+          }),
 
         regenerateAsCopy: (clipId, deltaMs = 0) => {
           let newId: string | undefined;
