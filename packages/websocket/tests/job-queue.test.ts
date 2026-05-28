@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
-import type { RunJobRequest } from "@nodetool-ai/protocol";
 import { JobConcurrencyQueue } from "../src/job-queue.js";
 
-const req = (jobId: string, workflowId: string | null = "wf"): RunJobRequest =>
-  ({ job_id: jobId, workflow_id: workflowId } as RunJobRequest);
+const req = (jobId: string, workflowId: string | null = "wf") => ({
+  job_id: jobId,
+  workflow_id: workflowId
+});
 
 describe("JobConcurrencyQueue", () => {
   it("enqueues FIFO and reports 1-based positions", () => {

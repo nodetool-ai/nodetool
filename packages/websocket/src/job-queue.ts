@@ -9,10 +9,16 @@
  * Workflow" — or a burst of clicks across tabs — from firing dozens of jobs
  * at a provider/API simultaneously.
  *
- * The logic is intentionally kept here, separate from the runner, so it can be
- * unit-tested in isolation.
+ * It is generic over the request type (only `job_id`/`workflow_id` are needed)
+ * so it stays decoupled from any particular `RunJobRequest` definition, and so
+ * it can be unit-tested in isolation.
  */
-import type { RunJobRequest } from "@nodetool-ai/protocol";
+
+/** Minimal shape the queue needs from a queued run request. */
+export interface QueueableJob {
+  job_id?: string | null;
+  workflow_id?: string | null;
+}
 
 export interface QueuedPosition {
   jobId: string;
@@ -21,8 +27,8 @@ export interface QueuedPosition {
   position: number;
 }
 
-export class JobConcurrencyQueue {
-  private pending: RunJobRequest[] = [];
+export class JobConcurrencyQueue<T extends QueueableJob = QueueableJob> {
+  private pending: T[] = [];
 
   /** Number of runs waiting to start. */
   get size(): number {
@@ -30,13 +36,13 @@ export class JobConcurrencyQueue {
   }
 
   /** Append a request and return its 1-based position in the queue. */
-  enqueue(req: RunJobRequest): number {
+  enqueue(req: T): number {
     this.pending.push(req);
     return this.pending.length;
   }
 
   /** Remove and return the next request to run (FIFO), or undefined if empty. */
-  dequeue(): RunJobRequest | undefined {
+  dequeue(): T | undefined {
     return this.pending.shift();
   }
 
@@ -45,7 +51,7 @@ export class JobConcurrencyQueue {
    * it started). Returns the removed request, or undefined if it was not
    * queued (already running or unknown).
    */
-  remove(jobId: string): RunJobRequest | undefined {
+  remove(jobId: string): T | undefined {
     const index = this.pending.findIndex((r) => r.job_id === jobId);
     if (index === -1) return undefined;
     return this.pending.splice(index, 1)[0];

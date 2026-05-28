@@ -827,7 +827,7 @@ export class UnifiedWebSocketRunner {
    * Runs that arrived while {@link MAX_CONCURRENT_JOBS} runs were already in
    * flight. They start automatically (FIFO) as active jobs finish.
    */
-  private jobQueue = new JobConcurrencyQueue();
+  private jobQueue = new JobConcurrencyQueue<RunJobRequest>();
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
