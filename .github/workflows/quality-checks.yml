@@ -67,6 +67,13 @@ jobs:
       - name: Rebuild native modules
         run: npm rebuild better-sqlite3
 
+      - name: Check workspace dependency declarations
+        # Fails fast if a production-closure package imports a @nodetool-ai/*
+        # workspace package it does not declare in `dependencies`. Such imports
+        # resolve via hoisting locally but break under the Docker prod prune
+        # (npm ci --omit=dev), crashing the server with ERR_MODULE_NOT_FOUND.
+        run: node scripts/check-workspace-deps.mjs
+
       - name: Build backend packages
         run: npm run build:packages
 

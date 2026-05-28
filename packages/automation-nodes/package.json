@@ -12,11 +12,14 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/config": "*",
     "@nodetool-ai/image-nodes": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/sandbox": "*",
     "@openclaw/fs-safe": "^0.1.2",
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow-models/mobilenet": "^2.1.1",
