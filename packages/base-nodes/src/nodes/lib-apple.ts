@@ -80,11 +80,24 @@ async function runOsascript(
   });
 }
 
-/** Escape a string for safe interpolation inside an AppleScript string literal. */
+/**
+ * Escape a string for safe interpolation inside an AppleScript string literal.
+ *
+ * AppleScript string literals cannot span lines, so literal `\r` / `\n` would
+ * break out of the string context and allow arbitrary AppleScript injection.
+ * Null bytes and other ASCII control characters are also stripped because they
+ * are not meaningful inside AppleScript strings and could cause osascript to
+ * behave unexpectedly.
+ */
 function escAS(input: string): string {
   return String(input ?? "")
     .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"');
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")
+    // Strip remaining ASCII control characters (0x00-0x1F except the ones
+    // we already handled, plus 0x7F DEL).
+    .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, "");
 }
 
 /** Parse anything date-like into a Date. Accepts Date, number, ISO string, or {year,month,day,...}. */
@@ -117,10 +130,15 @@ function parseDateInput(input: unknown): Date {
  * Render an AppleScript snippet that builds a `date` value matching the
  * supplied JS Date. Property-assignment is locale-independent, unlike
  * `date "1/15/24 2:30 PM"`.
+ *
+ * Day is set to 1 before changing the month so that an existing day-31 cannot
+ * overflow into the next month (e.g. setting month=2 while day=31 would
+ * produce Feb 31 → March).
  */
 function asDateExpr(varName: string, date: Date): string {
   return [
     `set ${varName} to current date`,
+    `set day of ${varName} to 1`,
     `set year of ${varName} to ${date.getFullYear()}`,
     `set month of ${varName} to ${date.getMonth() + 1}`,
     `set day of ${varName} to ${date.getDate()}`,
@@ -128,25 +146,6 @@ function asDateExpr(varName: string, date: Date): string {
     `set minutes of ${varName} to ${date.getMinutes()}`,
     `set seconds of ${varName} to ${date.getSeconds()}`
   ].join("\n");
-}
-
-function toDateTimeValue(date: Date): Record<string, unknown> {
-  const offsetMin = -date.getTimezoneOffset();
-  const sign = offsetMin >= 0 ? "+" : "-";
-  const abs = Math.abs(offsetMin);
-  const hh = String(Math.floor(abs / 60)).padStart(2, "0");
-  const mm = String(abs % 60).padStart(2, "0");
-  return {
-    year: date.getFullYear(),
-    month: date.getMonth() + 1,
-    day: date.getDate(),
-    hour: date.getHours(),
-    minute: date.getMinutes(),
-    second: date.getSeconds(),
-    millisecond: date.getMilliseconds(),
-    tzinfo: date.toString().match(/\(([^)]+)\)$/)?.[1] ?? "",
-    utc_offset: `${sign}${hh}${mm}`
-  };
 }
 
 /** Split a delimited osascript output into rows of fields. */
@@ -179,25 +178,25 @@ export class CreateCalendarEventAppleNode extends BaseNode {
   ];
 
   @prop({ type: "str", default: "", title: "Title", description: "Title of the calendar event" })
-  declare title: any;
+  declare event_title: string;
 
   @prop({ type: "any", default: "", title: "Start Date", description: "Start date and time" })
-  declare start_date: any;
+  declare start_date: unknown;
 
   @prop({ type: "any", default: "", title: "End Date", description: "End date and time" })
-  declare end_date: any;
+  declare end_date: unknown;
 
   @prop({ type: "str", default: "Calendar", title: "Calendar Name", description: "Name of the target calendar" })
-  declare calendar_name: any;
+  declare calendar_name: string;
 
   @prop({ type: "str", default: "", title: "Location", description: "Location of the event" })
-  declare location: any;
+  declare location: string;
 
   @prop({ type: "str", default: "", title: "Description", description: "Notes for the event" })
-  declare description_text: any;
+  declare description_text: string;
 
   async process(): Promise<Record<string, unknown>> {
-    const title = String(this.title ?? "");
+    const title = String(this.event_title ?? "");
     if (!title) throw new Error("title cannot be empty");
     const start = parseDateInput(this.start_date);
     const end = parseDateInput(this.end_date);
@@ -235,13 +234,13 @@ export class ListCalendarEventsAppleNode extends BaseNode {
   static readonly basicFields = ["days_back", "days_forward", "calendar_name"];
 
   @prop({ type: "int", default: 0, min: 0, max: 3650, title: "Days Back", description: "Days back from today" })
-  declare days_back: any;
+  declare days_back: number;
 
   @prop({ type: "int", default: 7, min: 0, max: 3650, title: "Days Forward", description: "Days forward from today" })
-  declare days_forward: any;
+  declare days_forward: number;
 
   @prop({ type: "str", default: "Calendar", title: "Calendar Name", description: "Calendar to query" })
-  declare calendar_name: any;
+  declare calendar_name: string;
 
   async process(): Promise<Record<string, unknown>> {
     const back = Math.max(0, Number(this.days_back ?? 0));
@@ -310,13 +309,13 @@ export class CreateNoteAppleNode extends BaseNode {
   static readonly basicFields = ["title", "body", "folder"];
 
   @prop({ type: "str", default: "", title: "Title", description: "Title of the note" })
-  declare title: any;
+  declare title: string;
 
   @prop({ type: "str", default: "", title: "Body", description: "Body content (plain text or HTML)" })
-  declare body: any;
+  declare body: string;
 
   @prop({ type: "str", default: "Notes", title: "Folder", description: "Folder to save the note in" })
-  declare folder: any;
+  declare folder: string;
 
   async process(): Promise<Record<string, unknown>> {
     const title = String(this.title ?? "");
@@ -355,10 +354,10 @@ export class ListNotesAppleNode extends BaseNode {
   };
 
   @prop({ type: "int", default: 25, min: 1, max: 500, title: "Limit", description: "Maximum notes to return" })
-  declare limit: any;
+  declare limit: number;
 
   @prop({ type: "str", default: "", title: "Folder", description: "Optional folder name; empty = all folders" })
-  declare folder: any;
+  declare folder: string;
 
   async process(): Promise<Record<string, unknown>> {
     const limit = Math.max(1, Number(this.limit ?? 25));
@@ -413,16 +412,16 @@ export class CreateReminderAppleNode extends BaseNode {
   static readonly basicFields = ["title", "due_date", "list_name"];
 
   @prop({ type: "str", default: "", title: "Title", description: "Title of the reminder" })
-  declare title: any;
+  declare title: string;
 
   @prop({ type: "any", default: "", title: "Due Date", description: "Optional due date; leave empty for none" })
-  declare due_date: any;
+  declare due_date: unknown;
 
   @prop({ type: "str", default: "Reminders", title: "List", description: "Reminders list name" })
-  declare list_name: any;
+  declare list_name: string;
 
   @prop({ type: "str", default: "", title: "Notes", description: "Additional notes" })
-  declare notes: any;
+  declare notes: string;
 
   async process(): Promise<Record<string, unknown>> {
     const title = String(this.title ?? "");
@@ -469,10 +468,10 @@ export class ListRemindersAppleNode extends BaseNode {
   };
 
   @prop({ type: "str", default: "Reminders", title: "List", description: "Reminders list name" })
-  declare list_name: any;
+  declare list_name: string;
 
   @prop({ type: "bool", default: false, title: "Include Completed", description: "Include completed reminders" })
-  declare include_completed: any;
+  declare include_completed: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const listName = String(this.list_name ?? "Reminders");
@@ -530,10 +529,10 @@ export class SendMessageAppleNode extends BaseNode {
   static readonly basicFields = ["recipient", "text"];
 
   @prop({ type: "str", default: "", title: "Recipient", description: "Phone number or email of the recipient" })
-  declare recipient: any;
+  declare recipient: string;
 
   @prop({ type: "str", default: "", title: "Text", description: "Message body" })
-  declare text: any;
+  declare text: string;
 
   async process(): Promise<Record<string, unknown>> {
     const recipient = String(this.recipient ?? "");
@@ -569,19 +568,19 @@ export class SendMailAppleNode extends BaseNode {
   static readonly basicFields = ["to_address", "subject", "body"];
 
   @prop({ type: "str", default: "", title: "To", description: "Recipient email address" })
-  declare to_address: any;
+  declare to_address: string;
 
   @prop({ type: "str", default: "", title: "Cc", description: "CC email address (optional)" })
-  declare cc_address: any;
+  declare cc_address: string;
 
   @prop({ type: "str", default: "", title: "Subject", description: "Email subject" })
-  declare subject: any;
+  declare subject: string;
 
   @prop({ type: "str", default: "", title: "Body", description: "Email body (plain text)" })
-  declare body: any;
+  declare body: string;
 
   @prop({ type: "bool", default: false, title: "Visible", description: "Show the message in the UI rather than sending silently" })
-  declare visible: any;
+  declare visible: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const to = String(this.to_address ?? "");
@@ -632,10 +631,10 @@ export class SearchContactsAppleNode extends BaseNode {
   static readonly basicFields = ["query", "limit"];
 
   @prop({ type: "str", default: "", title: "Query", description: "Substring to match against name/email/phone" })
-  declare query: any;
+  declare query: string;
 
   @prop({ type: "int", default: 10, min: 1, max: 200, title: "Limit", description: "Maximum results" })
-  declare limit: any;
+  declare limit: number;
 
   async process(): Promise<Record<string, unknown>> {
     const query = String(this.query ?? "");
@@ -737,10 +736,10 @@ export class OpenSafariURLAppleNode extends BaseNode {
   static readonly basicFields = ["url", "activate"];
 
   @prop({ type: "str", default: "", title: "URL", description: "URL to open" })
-  declare url: any;
+  declare url: string;
 
   @prop({ type: "bool", default: true, title: "Activate", description: "Bring Safari to the foreground" })
-  declare activate: any;
+  declare activate: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const url = String(this.url ?? "");
@@ -790,10 +789,10 @@ export class SafariPageTextAppleNode extends BaseNode {
   };
 
   @prop({ type: "int", default: 50_000, min: 100, max: 1_000_000, title: "Max Chars", description: "Truncate output to this many characters" })
-  declare max_chars: any;
+  declare max_chars: number;
 
   @prop({ type: "bool", default: true, title: "Prefer Article", description: "Use <article> innerText when present" })
-  declare prefer_article: any;
+  declare prefer_article: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const maxChars = Math.max(100, Number(this.max_chars ?? 50_000));
@@ -843,7 +842,7 @@ export class SetClipboardTextAppleNode extends BaseNode {
   };
 
   @prop({ type: "str", default: "", title: "Text", description: "Text to put on the clipboard" })
-  declare text: any;
+  declare text: string;
 
   async process(): Promise<Record<string, unknown>> {
     const text = String(this.text ?? "");
@@ -867,16 +866,16 @@ export class SayTextAppleNode extends BaseNode {
   static readonly basicFields = ["text", "voice"];
 
   @prop({ type: "str", default: "", title: "Text", description: "Text to speak" })
-  declare text: any;
+  declare text: string;
 
   @prop({ type: "str", default: "", title: "Voice", description: "Voice name (e.g. 'Alex', 'Samantha'). Empty = system default." })
-  declare voice: any;
+  declare voice: string;
 
   @prop({ type: "int", default: 175, min: 10, max: 500, title: "Rate", description: "Speaking rate (words per minute)" })
-  declare rate: any;
+  declare rate: number;
 
   @prop({ type: "bool", default: true, title: "Wait", description: "Wait for speech to finish before returning" })
-  declare wait: any;
+  declare wait: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const text = String(this.text ?? "");
@@ -912,16 +911,16 @@ export class PostNotificationAppleNode extends BaseNode {
   static readonly basicFields = ["title", "message"];
 
   @prop({ type: "str", default: "Nodetool", title: "Title", description: "Notification title" })
-  declare title: any;
+  declare title: string;
 
   @prop({ type: "str", default: "", title: "Subtitle", description: "Notification subtitle" })
-  declare subtitle: any;
+  declare subtitle: string;
 
   @prop({ type: "str", default: "", title: "Message", description: "Notification body" })
-  declare message: any;
+  declare message: string;
 
   @prop({ type: "str", default: "", title: "Sound", description: "Optional sound name (e.g. 'Glass'); empty = silent" })
-  declare sound_name: any;
+  declare sound_name: string;
 
   async process(): Promise<Record<string, unknown>> {
     const title = String(this.title ?? "Nodetool");
@@ -969,7 +968,6 @@ export const __testing__ = {
   parseDateInput,
   asDateExpr,
   parseRecords,
-  toDateTimeValue,
   REC_SEP,
   FIELD_SEP
 };

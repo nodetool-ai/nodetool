@@ -815,7 +815,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_GRAPHQL_NODES,
   ...LIB_MAIL_NODES,
   ...LIB_TWILIO_NODES,
-  ...LIB_APPLE_NODES,
+  ...(process.platform === "darwin" ? LIB_APPLE_NODES : []),
   ...LIB_MARKITDOWN_NODES,
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,

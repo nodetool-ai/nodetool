@@ -38,6 +38,21 @@ describe("lib.apple helpers", () => {
     expect(escAS(undefined as unknown as string)).toBe("");
   });
 
+  it("escapes newlines and carriage returns to prevent script injection", () => {
+    expect(escAS("line1\nline2")).toBe("line1\\nline2");
+    expect(escAS("line1\rline2")).toBe("line1\\rline2");
+    expect(escAS("a\r\nb")).toBe("a\\r\\nb");
+  });
+
+  it("strips null bytes and other ASCII control characters", () => {
+    expect(escAS("a\x00b")).toBe("ab");
+    expect(escAS("a\x01b\x1fb")).toBe("abb");
+    // Tab (0x09) is also stripped as a control character
+    expect(escAS("a\x09b")).toBe("ab");
+    // DEL (0x7F) is stripped
+    expect(escAS("a\x7fb")).toBe("ab");
+  });
+
   it("parses Date, number, ISO string, and component object", () => {
     const d = new Date(2024, 0, 15, 10, 30, 0);
     expect(parseDateInput(d).getTime()).toBe(d.getTime());
@@ -70,6 +85,8 @@ describe("lib.apple helpers", () => {
     const d = new Date(2024, 5, 12, 9, 45, 30);
     const expr = asDateExpr("startDate", d);
     expect(expr).toContain("set startDate to current date");
+    // day is set to 1 first to prevent month-overflow (e.g. Feb 31 → March)
+    expect(expr).toMatch(/set day of startDate to 1\n/);
     expect(expr).toContain("set year of startDate to 2024");
     expect(expr).toContain("set month of startDate to 6");
     expect(expr).toContain("set day of startDate to 12");
@@ -139,7 +156,7 @@ describe("lib.apple platform guard", () => {
 describe("lib.apple input validation", () => {
   it("CreateCalendarEvent rejects empty title", async () => {
     const node = new CreateCalendarEventAppleNode();
-    (node as any).title = "";
+    (node as any).event_title = "";
     (node as any).start_date = new Date();
     (node as any).end_date = new Date();
     await expect(node.process()).rejects.toThrow(/title/);
