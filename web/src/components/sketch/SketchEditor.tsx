@@ -59,6 +59,7 @@ import {
 } from "./hooks";
 import {
   ConnectedModePromptBar,
+  ConnectedStatusBar,
   ConnectedToolbar,
   ConnectedToolTopBar,
   ConnectedLayersPanel,
@@ -510,6 +511,9 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
             </FlexColumn>
           )}
         </FlexRow>
+
+        {/* Full-width status bar — standalone editor only (gates internally). */}
+        <ConnectedStatusBar />
 
         <ConnectedContextMenu
           open={session.canvasActions.contextMenu !== null}

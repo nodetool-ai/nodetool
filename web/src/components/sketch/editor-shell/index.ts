@@ -8,6 +8,7 @@
  *
  * ## Re-exported components
  * - ConnectedModePromptBar
+ * - ConnectedStatusBar
  * - ConnectedToolbar
  * - ConnectedToolTopBar
  * - ConnectedLayersPanel
@@ -17,6 +18,7 @@
  */
 
 export { ConnectedModePromptBar } from "./ConnectedModePromptBar";
+export { ConnectedStatusBar } from "./ConnectedStatusBar";
 export { ConnectedToolbar } from "./ConnectedToolbar";
 export { ConnectedToolTopBar } from "./ConnectedToolTopBar";
 export type { ConnectedToolTopBarProps } from "./ConnectedToolTopBar";
