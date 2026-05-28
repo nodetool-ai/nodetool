@@ -2,8 +2,8 @@
  * SketchToolbar
  *
  * Narrow vertical icon toolbar for tool selection only.
- * Tools are arranged in a 2-column grid with section dividers.
- * Color controls live below the tools (always visible).
+ * Tools are arranged in a single column with section dividers.
+ * Color controls (compact overlapping FG/BG swatch) live below the tools.
  */
 
 /** @jsxImportSource @emotion/react */
@@ -11,10 +11,7 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  ToggleButtonGroup,
-  ToggleButton
-} from "@mui/material";
+import { ToggleButtonGroup, ToggleButton } from "@mui/material";
 import { Divider, FlexColumn, Tooltip } from "../ui_primitives";
 import type { SelectToolMode, SketchTool } from "./types";
 import {
@@ -24,7 +21,11 @@ import {
 } from "./toolDefinitions";
 import { displayCombo } from "./shortcuts";
 import ColorSwatchPair from "./ColorSwatchPair";
-import { SKETCH_SPACING, SKETCH_SIZE, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
+import {
+  SKETCH_SPACING,
+  SKETCH_SIZE,
+  SKETCH_TOOLTIP_DELAY_MS
+} from "./sketchStyles";
 
 const BTN = 36; // button size px
 
@@ -36,25 +37,25 @@ const styles = (theme: Theme) =>
     padding: `${SKETCH_SPACING.md} ${SKETCH_SPACING.sm}`,
     backgroundColor: theme.vars.palette.grey[800],
     borderRight: `1px solid ${theme.vars.palette.grey[700]}`,
-    width: `${BTN * 2 + 8 + 2}px`, // 2 cols + gap + border
+    width: `${BTN + 8 + 2}px`, // single column + padding + border
     overflowY: "auto",
     flexShrink: 0,
     "& .tool-sections": {
       display: "flex",
       flexDirection: "column",
-      gap: SKETCH_SPACING.md,
+      gap: SKETCH_SPACING.md
     },
     "& .tool-section": {
       display: "flex",
       flexDirection: "column",
-      gap: SKETCH_SPACING.sm,
+      gap: SKETCH_SPACING.sm
     },
     "& .MuiToggleButtonGroup-root": {
       display: "flex",
-      flexDirection: "row",
-      flexWrap: "wrap",
+      flexDirection: "column",
+      alignItems: "center",
       gap: 0,
-      width: "100%",
+      width: "100%"
     },
     "& .MuiToggleButton-root": {
       padding: SKETCH_SPACING.sm,
@@ -67,17 +68,17 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300],
       "&.Mui-selected": {
         backgroundColor: theme.vars.palette.grey[600],
-        color: theme.vars.palette.grey[50],
+        color: theme.vars.palette.grey[50]
       },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[700],
-        color: theme.vars.palette.grey[100],
-      },
+        color: theme.vars.palette.grey[100]
+      }
     },
     "& .MuiDivider-root": {
       borderColor: theme.vars.palette.grey[700],
-      mx: SKETCH_SPACING.xs,
-    },
+      mx: SKETCH_SPACING.xs
+    }
   });
 
 function renderToolButton(def: ToolDefinition, selectMode: SelectToolMode) {
@@ -92,7 +93,12 @@ function renderToolButton(def: ToolDefinition, selectMode: SelectToolMode) {
 
   return (
     <ToggleButton key={tool} value={tool} aria-label={label}>
-      <Tooltip title={tooltip} placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+      <Tooltip
+        title={tooltip}
+        placement="right"
+        enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+        enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+      >
         <Icon sx={{ fontSize: "2em" }} />
       </Tooltip>
     </ToggleButton>
@@ -141,10 +147,20 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
             key={group.map((def) => def.tool).join("-")}
             className="tool-section"
           >
-            <ToggleButtonGroup value={activeTool} exclusive onChange={handleToolChange} size="small" className="tool-group">
-              {group.map((definition) => renderToolButton(definition, selectMode))}
+            <ToggleButtonGroup
+              value={activeTool}
+              exclusive
+              onChange={handleToolChange}
+              size="small"
+              className="tool-group"
+            >
+              {group.map((definition) =>
+                renderToolButton(definition, selectMode)
+              )}
             </ToggleButtonGroup>
-            {index < TOOLBAR_TOOL_GROUPS.length - 1 ? <Divider flexItem /> : null}
+            {index < TOOLBAR_TOOL_GROUPS.length - 1 ? (
+              <Divider flexItem />
+            ) : null}
           </FlexColumn>
         ))}
       </FlexColumn>
@@ -162,7 +178,6 @@ const SketchToolbar: React.FC<SketchToolbarProps> = ({
           onResetColors={onResetColors}
         />
       </FlexColumn>
-
     </FlexColumn>
   );
 };

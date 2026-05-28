@@ -11,7 +11,10 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { FlexRow } from "../ui_primitives";
+import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
+import FitScreenIcon from "@mui/icons-material/FitScreen";
+import { EditorButton, FlexRow, Text, Tooltip } from "../ui_primitives";
+import { getToolSettingsLabel } from "./tool-settings-panels/getToolSettingsLabel";
 import {
   SketchTool,
   BrushSettings,
@@ -30,6 +33,7 @@ import {
 import type { SamModelInfo } from "./sam";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
 import {
+  SKETCH_FONT,
   SKETCH_SPACING,
   settingRowChildrenSx
 } from "./sketchStyles";
@@ -56,7 +60,7 @@ const styles = (theme: Theme) =>
     "& .MuiIconButton-root": {
       padding: "3px"
     },
-    ...settingRowChildrenSx(theme),
+    ...settingRowChildrenSx(theme)
   });
 
 export interface SketchToolTopBarProps {
@@ -118,6 +122,10 @@ export interface SketchToolTopBarProps {
   onCancelSegmentation?: () => void;
   onClearSegmentPrompts?: () => void;
   onCheckSegmentModel?: () => void;
+  /** Collapse the left tool rail + right panels for a chrome-less canvas. */
+  onTogglePanelsHidden?: () => void;
+  /** Fit the document to the canvas viewport (zoom-to-fit, centered). */
+  onFit?: () => void;
 }
 
 const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
@@ -178,12 +186,35 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onDiscardSegmentResult,
   onCancelSegmentation,
   onClearSegmentPrompts,
-  onCheckSegmentModel
+  onCheckSegmentModel,
+  onTogglePanelsHidden,
+  onFit
 }) => {
   const theme = useTheme();
 
   return (
     <FlexRow className="sketch-tool-top-bar" css={styles(theme)}>
+      <FlexRow
+        align="center"
+        gap={0.5}
+        className="tool-top-bar__tool-label"
+        sx={{ flexShrink: 0 }}
+      >
+        <Text
+          sx={{
+            fontSize: SKETCH_FONT.xs,
+            color: theme.vars.palette.text.secondary,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em"
+          }}
+        >
+          Tool
+        </Text>
+        <Text sx={{ fontSize: SKETCH_FONT.section, fontWeight: 600 }}>
+          {getToolSettingsLabel(activeTool)}
+        </Text>
+      </FlexRow>
+
       <ToolSettingsPanel
         activeTool={activeTool}
         brushSettings={brushSettings}
@@ -244,6 +275,46 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onClearSegmentPrompts={onClearSegmentPrompts}
         onCheckSegmentModel={onCheckSegmentModel}
       />
+
+      {(onFit || onTogglePanelsHidden) && (
+        <FlexRow
+          align="center"
+          gap={0.5}
+          className="tool-top-bar__global-actions"
+          sx={{ ml: "auto", flexShrink: 0 }}
+        >
+          {onFit && (
+            <Tooltip title="Fit canvas to the viewport">
+              <span>
+                <EditorButton
+                  variant="text"
+                  size="small"
+                  onClick={onFit}
+                  startIcon={<FitScreenIcon fontSize="small" />}
+                  data-testid="sketch-fit-view"
+                >
+                  Fit
+                </EditorButton>
+              </span>
+            </Tooltip>
+          )}
+          {onTogglePanelsHidden && (
+            <Tooltip title="Hide panels — press Tab to restore">
+              <span>
+                <EditorButton
+                  variant="text"
+                  size="small"
+                  onClick={onTogglePanelsHidden}
+                  startIcon={<ViewSidebarOutlinedIcon fontSize="small" />}
+                  data-testid="sketch-hide-panels"
+                >
+                  Hide panels
+                </EditorButton>
+              </span>
+            </Tooltip>
+          )}
+        </FlexRow>
+      )}
     </FlexRow>
   );
 };

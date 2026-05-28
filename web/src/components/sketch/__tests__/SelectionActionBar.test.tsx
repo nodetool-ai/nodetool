@@ -61,6 +61,7 @@ beforeEach(() => {
   useSketchStore.setState((s) => ({
     ...s,
     activeTool: "select",
+    genMode: "generate",
     zoom: 1,
     pan: { x: 0, y: 0 }
   }));
@@ -82,14 +83,32 @@ describe("<SelectionActionBar />", () => {
     expect(queryByTestId("sketch-selection-action-bar")).toBeNull();
   });
 
-  it("renders the three actions with an active selection and a document", () => {
+  it("renders all actions with an active selection and a document", () => {
+    useSketchSessionStore.setState({ documentId: "doc-1" });
+    selectAll();
+    const { getByTestId, getByRole } = renderBar(containerRef());
+    expect(getByTestId("sketch-selection-action-bar")).toBeTruthy();
+    expect(getByTestId("sketch-selection-generative-fill")).toBeTruthy();
+    expect(getByTestId("sketch-selection-inpaint")).toBeTruthy();
+    expect(getByTestId("sketch-selection-remove")).toBeTruthy();
+    expect(getByTestId("sketch-selection-refine-edge")).toBeTruthy();
+    expect(getByRole("button", { name: "Dismiss selection" })).toBeTruthy();
+  });
+
+  it("Inpaint switches the generation mode to inpaint", () => {
     useSketchSessionStore.setState({ documentId: "doc-1" });
     selectAll();
     const { getByTestId } = renderBar(containerRef());
-    expect(getByTestId("sketch-selection-action-bar")).toBeTruthy();
-    expect(getByTestId("sketch-selection-generative-fill")).toBeTruthy();
-    expect(getByTestId("sketch-selection-remove")).toBeTruthy();
-    expect(getByTestId("sketch-selection-refine-edge")).toBeTruthy();
+    fireEvent.click(getByTestId("sketch-selection-inpaint"));
+    expect(useSketchStore.getState().genMode).toBe("inpaint");
+  });
+
+  it("Dismiss clears the active selection", () => {
+    useSketchSessionStore.setState({ documentId: "doc-1" });
+    selectAll();
+    const { getByRole } = renderBar(containerRef());
+    fireEvent.click(getByRole("button", { name: "Dismiss selection" }));
+    expect(useSketchStore.getState().selection).toBeNull();
   });
 
   it("Remove invokes the registered clearActiveLayer getter", () => {

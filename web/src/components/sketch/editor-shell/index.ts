@@ -7,6 +7,7 @@
  * subscriber wiring.
  *
  * ## Re-exported components
+ * - ConnectedModePromptBar
  * - ConnectedToolbar
  * - ConnectedToolTopBar
  * - ConnectedLayersPanel
@@ -15,6 +16,7 @@
  * - SketchCanvasPane
  */
 
+export { ConnectedModePromptBar } from "./ConnectedModePromptBar";
 export { ConnectedToolbar } from "./ConnectedToolbar";
 export { ConnectedToolTopBar } from "./ConnectedToolTopBar";
 export type { ConnectedToolTopBarProps } from "./ConnectedToolTopBar";

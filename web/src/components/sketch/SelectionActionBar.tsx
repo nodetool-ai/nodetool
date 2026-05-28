@@ -20,10 +20,17 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import TuneIcon from "@mui/icons-material/Tune";
 
-import { EditorButton, FlexRow, Toast, Tooltip } from "../ui_primitives";
+import {
+  CloseButton,
+  EditorButton,
+  FlexRow,
+  Toast,
+  Tooltip
+} from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
@@ -69,6 +76,8 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const isDrawing = useSketchStore((s) => s.isDrawing);
   const activeTool = useSketchStore((s) => s.activeTool);
+  const setGenMode = useSketchStore((s) => s.setGenMode);
+  const setSelection = useSketchStore((s) => s.setSelection);
   const zoom = useSketchStore((s) => s.zoom);
   const pan = useSketchStore((s) => s.pan);
   const docW = useSketchStore((s) => s.document.canvas.width);
@@ -144,6 +153,17 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
       clearActiveLayer();
     }
   }, [clearActiveLayer]);
+
+  // "Inpaint" switches the top mode/prompt bar into inpaint mode so the user
+  // can describe a replacement for the selected region, distinct from the
+  // one-click "Generative fill" which regenerates the region immediately.
+  const handleInpaintMode = useCallback(() => {
+    setGenMode("inpaint");
+  }, [setGenMode]);
+
+  const handleClose = useCallback(() => {
+    setSelection(null);
+  }, [setSelection]);
 
   // ── Visibility gate ──────────────────────────────────────────────────────
   const bounds =
@@ -243,6 +263,24 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         </Tooltip>
 
         <Tooltip
+          title="Inpaint — switch to Inpaint mode and describe a replacement for the selected region."
+          delay={TOOLTIP_ENTER_DELAY}
+          placement={placeAbove ? "top" : "bottom"}
+        >
+          <span>
+            <EditorButton
+              variant="outlined"
+              size="small"
+              onClick={handleInpaintMode}
+              startIcon={<AutoFixHighIcon fontSize="small" />}
+              data-testid="sketch-selection-inpaint"
+            >
+              Inpaint
+            </EditorButton>
+          </span>
+        </Tooltip>
+
+        <Tooltip
           title="Remove — clear the selected pixels from the active layer."
           delay={TOOLTIP_ENTER_DELAY}
           placement={placeAbove ? "top" : "bottom"}
@@ -277,6 +315,14 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
             Refine edge
           </EditorButton>
         </Tooltip>
+
+        <CloseButton
+          tooltip="Dismiss selection"
+          tooltipPlacement={placeAbove ? "top" : "bottom"}
+          onClick={handleClose}
+          buttonSize="small"
+          className="sketch-selection-close"
+        />
       </FlexRow>
 
       <RefineSelectionPopover
