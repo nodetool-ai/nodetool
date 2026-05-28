@@ -30,10 +30,11 @@ export function formatDuration(ms: number): string | null {
     return `${Math.round(ms)}ms`;
   }
   const totalSeconds = ms / 1000;
-  if (totalSeconds < 60) {
-    return `${parseFloat(totalSeconds.toFixed(1))}s`;
-  }
+  const roundedSeconds = parseFloat(totalSeconds.toFixed(1));
   const totalWholeSeconds = Math.round(totalSeconds);
+  if (roundedSeconds < 60) {
+    return `${roundedSeconds}s`;
+  }
   const minutes = Math.floor(totalWholeSeconds / 60);
   const seconds = totalWholeSeconds % 60;
   return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
