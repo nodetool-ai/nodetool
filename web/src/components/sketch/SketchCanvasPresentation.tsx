@@ -33,7 +33,12 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     overflow: "visible",
-    backgroundColor: theme.vars.palette.grey[800],
+    // Match the node editor's canvas backdrop: near-black base with a faint
+    // dotted grid. Uses the same theme tokens as ReactFlow's background so it
+    // tracks light/dark identically.
+    backgroundColor: theme.vars.palette.c_editor_bg_color,
+    backgroundImage: `radial-gradient(${theme.vars.palette.c_editor_grid_color} 1px, transparent 1px)`,
+    backgroundSize: "25px 25px",
     touchAction: "none",
     overscrollBehaviorX: "none",
     overscrollBehaviorY: "contain",
