@@ -100,11 +100,7 @@ const ChatInputSection = ({
   const isStreaming = status === "streaming";
   const theme = useTheme();
   return (
-    <div
-      className="chat-input-section"
-      css={styles(theme)}
-      data-onboarding-target="chat-composer"
-    >
+    <div className="chat-input-section" css={styles(theme)}>
       <div className="chat-composer-wrapper">
         {variant === "simple" ? (
           <ChatComposer

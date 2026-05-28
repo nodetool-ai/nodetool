@@ -491,10 +491,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
 
         {editorViewMode === "graph" && (
-          <span
-            data-onboarding-target="open-node-menu"
-            style={{ display: "inline-flex" }}
-          >
+          <span style={{ display: "inline-flex" }}>
             <ToolbarButton
               icon={<AddCircleIcon />}
               tooltip="Add Node"
