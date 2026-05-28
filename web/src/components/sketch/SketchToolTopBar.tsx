@@ -45,8 +45,12 @@ const styles = (theme: Theme) =>
     alignItems: "center",
     gap: SKETCH_SPACING.lg,
     padding: `${SKETCH_SPACING.sm} ${SKETCH_SPACING.lg}`,
-    backgroundColor: theme.vars.palette.grey[800],
-    borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+    // Sit on the same chrome tier as the editor's other bars (mode/prompt,
+    // tool rail, status): grey[900] surface with a grey[800] hairline. The
+    // bar previously rode two tonal steps lighter (grey[800]/grey[700]),
+    // which read as a mismatched band between its darker neighbours.
+    backgroundColor: theme.vars.palette.grey[900],
+    borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
     minHeight: "40px",
     overflowX: "auto",
     flexWrap: "wrap",

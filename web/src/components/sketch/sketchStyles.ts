@@ -84,30 +84,42 @@ export const SKETCH_Z_INDEX = {
  * Minimal, professional slider — thin 2px track, small 10px thumb, no shadows.
  * Apply directly: `<Slider sx={sketchSliderSx} />`
  */
-export const sketchSliderSx: SxProps<Theme> = (theme) => ({
-  padding: `${SKETCH_SPACING.lg} 0`,
-  "& .MuiSlider-rail": {
-    height: "2px",
-    opacity: 0.3,
-    backgroundColor: (theme as Theme).palette.grey[400]
-  },
-  "& .MuiSlider-track": {
-    height: "2px",
-    border: "none",
-    backgroundColor: (theme as Theme).palette.grey[300]
-  },
-  "& .MuiSlider-thumb": {
-    width: "10px",
-    height: "10px",
-    backgroundColor: (theme as Theme).palette.grey[200],
-    boxShadow: "none",
-    "&:hover, &.Mui-focusVisible": {
-      boxShadow: "none",
-      backgroundColor: "#fff"
+export const sketchSliderSx: SxProps<Theme> = (theme) => {
+  const t = theme as Theme;
+  return {
+    padding: `${SKETCH_SPACING.lg} 0`,
+    "& .MuiSlider-rail": {
+      height: "2px",
+      opacity: 0.3,
+      backgroundColor: t.vars.palette.grey[400]
     },
-    "&::before": { display: "none" }
-  }
-});
+    "& .MuiSlider-track": {
+      height: "2px",
+      border: "none",
+      backgroundColor: t.vars.palette.grey[300]
+    },
+    "& .MuiSlider-thumb": {
+      width: "10px",
+      height: "10px",
+      backgroundColor: t.vars.palette.grey[200],
+      boxShadow: "none",
+      transition: "box-shadow 0.15s ease",
+      // Brightest neutral on hover (#FCFCFC), never pure #fff.
+      "&:hover": {
+        boxShadow: "none",
+        backgroundColor: t.vars.palette.c_brightest
+      },
+      // Keyboard focus stays visibly distinct from hover: a Studio-Blue
+      // ring (WCAG 2.2 AA). Previously this shared the hover rule and set
+      // `boxShadow: none`, erasing the focus indicator entirely.
+      "&.Mui-focusVisible": {
+        boxShadow: `0 0 0 3px ${t.vars.palette.primary.main}`,
+        backgroundColor: t.vars.palette.c_brightest
+      },
+      "&::before": { display: "none" }
+    }
+  };
+};
 
 /**
  * Compact ToggleButton sizing used throughout tool settings panels.
