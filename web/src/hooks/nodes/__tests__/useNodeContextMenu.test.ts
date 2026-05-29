@@ -17,6 +17,9 @@ jest.mock("../useRemoveFromGroup");
 jest.mock("../../useDuplicate");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../core/graph");
+jest.mock("../../../lib/workflow/runInlineGraphJob", () => ({
+  runInlineGraphJob: jest.fn(() => Promise.resolve({ success: true, outputs: {} }))
+}));
 jest.mock("../../../utils/edgeValue");
 jest.mock("../../../utils/NodeTypeMapping");
 

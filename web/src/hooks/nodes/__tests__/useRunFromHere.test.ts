@@ -5,10 +5,6 @@ jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: jest.fn()
 }));
 
-jest.mock("../../../stores/WorkflowRunner", () => ({
-  useWebsocketRunner: jest.fn()
-}));
-
 jest.mock("../../../stores/ResultsStore", () => ({
   __esModule: true,
   default: jest.fn()
@@ -23,21 +19,30 @@ jest.mock("../../../stores/MetadataStore", () => ({
   default: jest.fn()
 }));
 
+jest.mock("../../../lib/workflow/runInlineGraphJob", () => ({
+  runInlineGraphJob: jest.fn(() => Promise.resolve({ success: true, outputs: {} }))
+}));
 
 import { useNodes } from "../../../contexts/NodeContext";
-import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { runInlineGraphJob } from "../../../lib/workflow/runInlineGraphJob";
 
 const mockUseNodes = useNodes as jest.Mock;
-const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
 const mockUseMetadataStore = useMetadataStore as unknown as jest.Mock;
+const mockRunInline = runInlineGraphJob as unknown as jest.Mock;
+
+/** Read the graph passed to the Nth runInlineGraphJob call. */
+const graphArg = (call = 0) => mockRunInline.mock.calls[call][0].graph;
+const nodeIdsOf = (call = 0) =>
+  graphArg(call).nodes.map((n: { id: string }) => n.id);
+const edgeIdsOf = (call = 0) =>
+  graphArg(call).edges.map((e: { id: string }) => e.id);
 
 describe("useRunFromHere", () => {
-  const mockRun = jest.fn();
   const mockFindNode = jest.fn();
   const mockGetResult = jest.fn();
   const mockAddNotification = jest.fn();
@@ -69,6 +74,9 @@ describe("useRunFromHere", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRunInline.mockImplementation(() =>
+      Promise.resolve({ success: true, outputs: {} })
+    );
 
     mockUseNodes.mockImplementation((selector: (state: Record<string, unknown>) => unknown) => {
       const state = {
@@ -77,11 +85,6 @@ describe("useRunFromHere", () => {
         workflow: defaultWorkflow,
         findNode: mockFindNode
       };
-      return selector(state);
-    });
-
-    mockUseWebsocketRunner.mockImplementation((selector: (state: Record<string, unknown>) => unknown) => {
-      const state = { run: mockRun, state: "idle" };
       return selector(state);
     });
 
@@ -105,53 +108,44 @@ describe("useRunFromHere", () => {
     );
   });
 
-  it("includes downstream nodes when running from a node", () => {
+  it("dispatches an independent job for the downstream subgraph", () => {
     const { result } = renderHook(() => useRunFromHere(nodeA as any));
 
     act(() => {
       result.current.runFromHere();
     });
 
-    expect(mockRun).toHaveBeenCalledTimes(1);
-    const nodesPassedToRun = mockRun.mock.calls[0][2];
-    const nodeIds = nodesPassedToRun.map((n: { id: string }) => n.id);
-
-    // All downstream nodes from nodeA should be included
+    expect(mockRunInline).toHaveBeenCalledTimes(1);
+    expect(mockRunInline.mock.calls[0][0].workflowId).toBe("workflow-1");
+    const nodeIds = nodeIdsOf();
     expect(nodeIds).toContain("node-a");
     expect(nodeIds).toContain("node-b");
     expect(nodeIds).toContain("node-c");
   });
 
   it("only includes downstream nodes, not upstream ones", () => {
-    // Run from nodeB - should include B and C but not A
     const { result } = renderHook(() => useRunFromHere(nodeB as any));
 
     act(() => {
       result.current.runFromHere();
     });
 
-    expect(mockRun).toHaveBeenCalledTimes(1);
-    const nodesPassedToRun = mockRun.mock.calls[0][2];
-    const nodeIds = nodesPassedToRun.map((n: { id: string }) => n.id);
-
+    expect(mockRunInline).toHaveBeenCalledTimes(1);
+    const nodeIds = nodeIdsOf();
     expect(nodeIds).not.toContain("node-a");
     expect(nodeIds).toContain("node-b");
     expect(nodeIds).toContain("node-c");
   });
 
-  it("does not run when workflow is already running", () => {
-    mockUseWebsocketRunner.mockImplementation((selector: (state: Record<string, unknown>) => unknown) => {
-      const state = { run: mockRun, state: "running" };
-      return selector(state);
-    });
-
+  it("does not re-fire the same node while its run is in flight", () => {
     const { result } = renderHook(() => useRunFromHere(nodeA as any));
 
     act(() => {
       result.current.runFromHere();
+      result.current.runFromHere();
     });
 
-    expect(mockRun).not.toHaveBeenCalled();
+    expect(mockRunInline).toHaveBeenCalledTimes(1);
   });
 
   it("does not run when node is null", () => {
@@ -161,36 +155,18 @@ describe("useRunFromHere", () => {
       result.current.runFromHere();
     });
 
-    expect(mockRun).not.toHaveBeenCalled();
-  });
-
-  it("passes subgraph node IDs to run", () => {
-    const { result } = renderHook(() => useRunFromHere(nodeA as any));
-
-    act(() => {
-      result.current.runFromHere();
-    });
-
-    expect(mockRun).toHaveBeenCalledTimes(1);
-    const subgraphNodeIds = mockRun.mock.calls[0][5];
-    expect(subgraphNodeIds).toBeInstanceOf(Set);
-    expect(subgraphNodeIds.has("node-a")).toBe(true);
-    expect(subgraphNodeIds.has("node-b")).toBe(true);
-    expect(subgraphNodeIds.has("node-c")).toBe(true);
+    expect(mockRunInline).not.toHaveBeenCalled();
   });
 
   it("includes only edges within the downstream subgraph", () => {
-    // Run from nodeB - should only include edge e2 (B->C), not e1 (A->B)
     const { result } = renderHook(() => useRunFromHere(nodeB as any));
 
     act(() => {
       result.current.runFromHere();
     });
 
-    expect(mockRun).toHaveBeenCalledTimes(1);
-    const edgesPassedToRun = mockRun.mock.calls[0][3];
-    const edgeIds = edgesPassedToRun.map((e: { id: string }) => e.id);
-
+    expect(mockRunInline).toHaveBeenCalledTimes(1);
+    const edgeIds = edgeIdsOf();
     expect(edgeIds).toContain("e2");
     expect(edgeIds).not.toContain("e1");
   });
@@ -202,8 +178,6 @@ describe("useRunFromHere", () => {
       data: { properties: {} }
     };
 
-    // A -> B -> D
-    // A -> C -> D (diamond)
     const diamondEdges = [
       { id: "e1", source: "node-a", target: "node-b", sourceHandle: "output", targetHandle: "prompt" },
       { id: "e2", source: "node-a", target: "node-c", sourceHandle: "output", targetHandle: "input" },
@@ -227,17 +201,12 @@ describe("useRunFromHere", () => {
       result.current.runFromHere();
     });
 
-    expect(mockRun).toHaveBeenCalledTimes(1);
-    const nodesPassedToRun = mockRun.mock.calls[0][2];
-    const nodeIds = nodesPassedToRun.map((n: { id: string }) => n.id);
-
-    // All nodes should be in the subgraph
+    expect(mockRunInline).toHaveBeenCalledTimes(1);
+    const nodeIds = nodeIdsOf();
     expect(nodeIds).toContain("node-a");
     expect(nodeIds).toContain("node-b");
     expect(nodeIds).toContain("node-c");
     expect(nodeIds).toContain("node-d");
-
-    // No duplicates
     expect(nodeIds.length).toBe(4);
   });
 
@@ -257,7 +226,6 @@ describe("useRunFromHere", () => {
   });
 
   it("injects cached values from upstream into external input edges", () => {
-    // Run from nodeB: A->B is an external edge (A is upstream, not in subgraph)
     mockGetResult.mockReturnValue({ output: "cached-value" });
 
     const { result } = renderHook(() => useRunFromHere(nodeB as any));
@@ -266,11 +234,10 @@ describe("useRunFromHere", () => {
       result.current.runFromHere();
     });
 
-    expect(mockRun).toHaveBeenCalledTimes(1);
-    const nodesPassedToRun = mockRun.mock.calls[0][2];
-    const nodeBInRun = nodesPassedToRun.find((n: { id: string }) => n.id === "node-b");
-
-    // nodeB should exist in the run
+    expect(mockRunInline).toHaveBeenCalledTimes(1);
+    const nodeBInRun = graphArg().nodes.find(
+      (n: { id: string }) => n.id === "node-b"
+    );
     expect(nodeBInRun).toBeDefined();
   });
 });

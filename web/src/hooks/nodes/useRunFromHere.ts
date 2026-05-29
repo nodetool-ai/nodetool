@@ -1,17 +1,26 @@
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useResultsStore from "../../stores/ResultsStore";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import useMetadataStore from "../../stores/MetadataStore";
 import { subgraph } from "../../core/graph";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
+import { runInlineGraphJob } from "../../lib/workflow/runInlineGraphJob";
+import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
+import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 
 interface UseRunFromHereReturn {
   runFromHere: () => void;
+  /**
+   * True while the run started from THIS node is in flight. It does NOT reflect
+   * the main workflow run or runs started from other nodes: each "Run From Here"
+   * is dispatched as its own job, so they execute concurrently (capped/queued by
+   * the backend's MAX_CONCURRENT_JOBS). This flag only gates re-firing the same
+   * node and drives this button's "Running…" state.
+   */
   isWorkflowRunning: boolean;
 }
 
@@ -19,8 +28,12 @@ interface UseRunFromHereReturn {
  * Hook to run a workflow starting from a specific node.
  * Extracts the downstream subgraph and injects cached values from upstream nodes.
  *
+ * The run is dispatched as an independent job (not the shared per-workflow
+ * runner), so multiple nodes can be fired off in tandem and the backend caps
+ * concurrency, queueing the overflow.
+ *
  * @param node - The node to start execution from
- * @returns Object with runFromHere handler and workflow running state
+ * @returns Object with runFromHere handler and this node's running state
  */
 export function useRunFromHere(
   node: Node<NodeData> | null | undefined
@@ -32,10 +45,6 @@ export function useRunFromHere(
     findNode: state.findNode
   }), shallow);
 
-  const run = useWebsocketRunner((state) => state.run);
-  const isWorkflowRunning = useWebsocketRunner(
-    (state) => state.state === "running"
-  );
   const getResult = useResultsStore((state) => state.getResult);
   const metadata = useMetadataStore((state) =>
     state.getMetadata(node?.type ?? "")
@@ -44,8 +53,12 @@ export function useRunFromHere(
     (state) => state.addNotification
   );
 
+  const [isWorkflowRunning, setIsRunning] = useState(false);
+  // Synchronous guard so a rapid double-click doesn't fire the same node twice.
+  const inFlightRef = useRef(false);
+
   const runFromHere = useCallback(() => {
-    if (!node || isWorkflowRunning) {
+    if (!node || inFlightRef.current) {
       return;
     }
 
@@ -125,6 +138,11 @@ export function useRunFromHere(
       return n;
     });
 
+    const graph = {
+      nodes: nodesWithCachedValues.map(reactFlowNodeToGraphNode),
+      edges: downstream.edges.map(reactFlowEdgeToGraphEdge)
+    };
+
     const nodesWithOverrides = nodePropertyOverrides.size;
     const totalPropertiesInjected = Array.from(
       nodePropertyOverrides.values()
@@ -132,13 +150,20 @@ export function useRunFromHere(
 
     console.info("Running downstream subgraph from node", {
       startNodeId: nodeId,
-      nodeCount: nodesWithCachedValues.length,
-      edgeCount: downstream.edges.length,
+      nodeCount: graph.nodes.length,
+      edgeCount: graph.edges.length,
       nodesWithCachedDependencies: nodesWithOverrides,
       totalCachedPropertiesInjected: totalPropertiesInjected
     });
 
-    run({}, workflow, nodesWithCachedValues, downstream.edges, undefined, subgraphNodeIds);
+    // Dispatch as an independent job so multiple nodes run in tandem; the
+    // backend caps concurrency and queues the overflow.
+    inFlightRef.current = true;
+    setIsRunning(true);
+    void runInlineGraphJob({ graph, workflowId: workflow.id }).finally(() => {
+      inFlightRef.current = false;
+      setIsRunning(false);
+    });
 
     addNotification({
       type: "info",
@@ -149,12 +174,10 @@ export function useRunFromHere(
     });
   }, [
     node,
-    isWorkflowRunning,
     edges,
     nodes,
     workflow,
     getResult,
-    run,
     addNotification,
     metadata,
     findNode
