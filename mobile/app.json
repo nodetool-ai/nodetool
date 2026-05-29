@@ -42,7 +42,6 @@
       "supabaseAnonKey": "sb_publishable_sGCndMc7Ku5J6Bct80D9WQ_Ik96Qu9a"
     },
     "plugins": [
-      "expo-web-browser",
       "@react-native-google-signin/google-signin"
     ]
   }
