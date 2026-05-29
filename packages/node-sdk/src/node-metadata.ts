@@ -157,6 +157,13 @@ function mergeMetadata(
         : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
     // Backfill optional fields from Python when TS doesn't set them
     layout: tsMetadata.layout ?? pyMetadata.layout,
+    // `getNodeMetadata` emits the "default" sentinel when the TS class does not
+    // opt in, so treat it as unset — otherwise it would clobber a Python
+    // `body` (e.g. "content_card") and break the documented backfill path.
+    body:
+      tsMetadata.body && tsMetadata.body !== "default"
+        ? tsMetadata.body
+        : (pyMetadata.body ?? tsMetadata.body),
     model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
     input_mode: tsMetadata.input_mode ?? pyMetadata.input_mode,
     output_correlation:
@@ -252,6 +259,7 @@ export function getNodeMetadata(
     namespace,
     node_type: nodeType,
     layout: nodeClass.layout ?? "default",
+    body: nodeClass.body ?? "default",
     properties,
     outputs,
 

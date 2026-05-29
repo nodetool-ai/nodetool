@@ -1692,6 +1692,7 @@ function seededEmbedding(input: string, dims: number = 64): number[] {
 
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "nodetool.text.AutomaticSpeechRecognition";
+  static readonly body = "content_card";
   static readonly platforms = NODE_ONLY;
   static readonly title = "Automatic Speech Recognition";
   static readonly description =
@@ -2291,6 +2292,7 @@ export class FilterRegexStringNode extends BaseNode {
 
 export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
+  static readonly body = "content_card";
   static readonly title = "Concatenate Text";
   static readonly description =
     "Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button.\n    text, combine, add, concatenate, merge, join, append";

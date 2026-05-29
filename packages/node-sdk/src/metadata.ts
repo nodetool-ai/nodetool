@@ -71,6 +71,13 @@ export interface NodeMetadata {
   namespace: string;
   node_type: string;
   layout?: string;
+  /**
+   * Node body renderer key. "content_card" makes the frontend render a
+   * media/text-forward content card instead of the generic input/output body.
+   * Node authors opt in via the class's `body` static (TS) or `_body`/`body()`
+   * (Python). Absent or "default" → generic body.
+   */
+  body?: string;
   properties: PropertyMetadata[];
   outputs: OutputSlotMetadata[];
 
