@@ -599,6 +599,5 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
 const nodeMenuMetadataUnsubscribers = new Set<() => void>();
 
 export const useNodeMenuStore = createNodeMenuStore();
-export const useNodeToolsMenuStore = createNodeMenuStore({ onlyTools: true });
 
 export default useNodeMenuStore;
