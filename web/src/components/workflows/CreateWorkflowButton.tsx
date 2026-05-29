@@ -6,7 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip } from "../ui_primitives/Tooltip";
+import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: Theme) =>

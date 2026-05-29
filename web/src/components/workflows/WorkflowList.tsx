@@ -23,7 +23,10 @@ import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
-import { FlexColumn, FlexRow, LoadingSpinner, Text } from "../ui_primitives";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
+import { Text } from "../ui_primitives/Text";
 
 const styles = (theme: Theme) =>
   css({
