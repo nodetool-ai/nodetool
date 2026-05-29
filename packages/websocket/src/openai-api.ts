@@ -11,7 +11,8 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import {
   OllamaProvider,
   OpenAIProvider,
-  AnthropicProvider
+  AnthropicProvider,
+  OLLAMA_DEFAULT_URL
 } from "@nodetool-ai/runtime";
 import { getSecret } from "@nodetool-ai/models";
 import type {
@@ -204,7 +205,7 @@ export async function resolveProvider(
 
   // Default to Ollama
   return new OllamaProvider({
-    OLLAMA_API_URL: process.env.OLLAMA_API_URL ?? "http://127.0.0.1:11434"
+    OLLAMA_API_URL: process.env.OLLAMA_API_URL ?? OLLAMA_DEFAULT_URL
   });
 }
 
