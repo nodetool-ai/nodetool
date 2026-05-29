@@ -62,19 +62,19 @@ export const renderSVGDocument = (value: SVGElement[]): React.ReactElement => {
     height: "100%"
   };
   const extractSVGContent = (elements: SVGElement[]): React.ReactElement[] =>
-    elements.map((element) => {
+    elements.map((element, idx) => {
       if (element.content && typeof element.content === "string") {
         const match = element.content.match(/<svg[^>]*>([\s\S]*)<\/svg>/i);
         if (match && match[1]) {
           return (
             <g
-              key={element.name}
+              key={element.name ?? idx}
               dangerouslySetInnerHTML={{ __html: sanitizeSvgContent(match[1]) }}
             />
           );
         }
       }
-      return renderSvgElement(element);
+      return React.cloneElement(renderSvgElement(element), { key: `${element.name ?? "el"}-${idx}` });
     });
 
   const children = extractSVGContent(value);

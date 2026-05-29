@@ -12,7 +12,7 @@ import React, {
 import ReactDOM from "react-dom";
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip } from "../ui_primitives/Tooltip";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { selectStyles, portalOptionsStyles } from "./selectStyles";
@@ -89,6 +89,16 @@ const Select: React.FC<SelectProps> = ({
       open(id);
     }
   }, [close, activeSelect, id, open]);
+
+  const handleHeaderKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleDropdown();
+      }
+    },
+    [toggleDropdown]
+  );
 
   const handleOptionClick = useCallback(
     (optionValue: string) => {
@@ -270,6 +280,7 @@ const Select: React.FC<SelectProps> = ({
             <div
               className="select-header"
               onClick={toggleDropdown}
+              onKeyDown={handleHeaderKeyDown}
               tabIndex={tabIndex}
               role="button"
               style={changedStyle}
@@ -295,6 +306,7 @@ const Select: React.FC<SelectProps> = ({
                 setHighlightedIndex(-1);
               }}
               placeholder="Search..."
+              aria-label="Search options"
               onClick={(e) => e.stopPropagation()}
             />
           )}
@@ -311,6 +323,8 @@ const Select: React.FC<SelectProps> = ({
           {filteredOptions.map((option, index) => (
             <li
               key={option.value}
+              role="option"
+              aria-selected={option.value === value}
               className={`option ${
                 option.value === value ? "selected" : ""
               } ${index === highlightedIndex ? "highlighted" : ""}`}

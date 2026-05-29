@@ -28,7 +28,8 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
-import { ContextMenu, WarningBanner } from "../../ui_primitives";
+import { ContextMenu } from "../../ui_primitives/ContextMenu";
+import { WarningBanner } from "../../ui_primitives/WarningBanner";
 import { AddClipMenu } from "../AddClipMenu";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
@@ -412,6 +413,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       onDrop={handleAssetDrop}
       onContextMenu={handleLaneContextMenu}
       role="listbox"
+      tabIndex={0}
       aria-label={`Track: ${track.name}`}
       aria-multiselectable="true"
     >

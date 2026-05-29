@@ -431,7 +431,7 @@ function App() {
           color: "#64748B"
         }}
       >
-        Loading...
+        Loading…
       </div>
     );
   }

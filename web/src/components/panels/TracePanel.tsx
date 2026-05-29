@@ -3,7 +3,14 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
-import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea, Text, FlexRow, Chip } from "../ui_primitives";
+import { CopyButton } from "../ui_primitives/CopyButton";
+import { DeleteButton } from "../ui_primitives/DeleteButton";
+import { DownloadButton } from "../ui_primitives/DownloadButton";
+import { EmptyState } from "../ui_primitives/EmptyState";
+import { ScrollArea } from "../ui_primitives/ScrollArea";
+import { Text } from "../ui_primitives/Text";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Chip } from "../ui_primitives/Chip";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -165,6 +172,9 @@ const TraceRow = memo(function TraceRow({
       <div
         className={`trace-row ${expanded ? "expanded" : ""}`}
         onClick={handleClick}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClick(); }}
+        role="button"
+        tabIndex={0}
       >
         <span className="trace-time">{formatRelativeTime(event.relativeMs)}</span>
         <span className="trace-icon">{EVENT_ICONS[event.type]}</span>

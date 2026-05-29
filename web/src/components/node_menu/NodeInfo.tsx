@@ -206,10 +206,19 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag) => {
       const trimmedTag = tag.trim();
+      const handler = handleTagClick(trimmedTag);
       return (
         <span
-          onClick={handleTagClick(trimmedTag)}
+          onClick={handler}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handler();
+            }
+          }}
           key={trimmedTag}
+          role="button"
+          tabIndex={0}
           className="tag"
         >
           {trimmedTag}

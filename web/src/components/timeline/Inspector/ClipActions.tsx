@@ -17,7 +17,12 @@ import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
-import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast } from "../../ui_primitives";
+import { ToolbarIconButton } from "../../ui_primitives/ToolbarIconButton";
+import { FlexRow } from "../../ui_primitives/FlexRow";
+import { Text } from "../../ui_primitives/Text";
+import { Dialog } from "../../ui_primitives/Dialog";
+import { TextInput } from "../../ui_primitives/TextInput";
+import { Toast } from "../../ui_primitives/Toast";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 

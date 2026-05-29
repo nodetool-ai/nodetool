@@ -273,6 +273,7 @@ const EditableTitle = memo(function EditableTitle({
         <textarea
           defaultValue={title}
           autoFocus
+          aria-label="Note text"
           placeholder="Add your note..."
           onKeyDown={handleKeyDown}
           onInput={handleInput}
@@ -283,6 +284,7 @@ const EditableTitle = memo(function EditableTitle({
         <>
           <div className="title">{title}</div>
           <button
+            type="button"
             className="remove-title"
             onClick={handleRemoveTitle}
             title="Remove note"

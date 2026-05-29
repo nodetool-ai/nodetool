@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
 import { Toolbar, useMediaQuery } from "@mui/material";
-import { EditorButton } from "../editor_ui";
+import { EditorButton } from "../editor_ui/EditorButton";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -13,7 +13,9 @@ import RightSideButtons from "./RightSideButtons";
 import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { FlexRow, Tooltip, Box } from "../ui_primitives";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Tooltip } from "../ui_primitives/Tooltip";
+import { Box } from "../ui_primitives/Box";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import { isProduction } from "../../lib/env";
@@ -249,6 +251,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
     <div className="mode-pills">
       <Tooltip title="Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
+          type="button"
           className={`mode-pill ${isEditorActive ? "active" : ""}`}
           onClick={handleEditorClick}
           tabIndex={-1}
@@ -259,6 +262,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
       </Tooltip>
       <Tooltip title="Chat" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
+          type="button"
           className={`mode-pill ${isChatActive ? "active" : ""}`}
           onClick={handleChatClick}
           tabIndex={-1}
@@ -270,6 +274,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
       <Tooltip title={currentWorkflowId ? "Run as App" : "Open a workflow first"} delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <span style={{ display: "inline-flex" }}>
           <button
+            type="button"
             className={`mode-pill ${isAppActive ? "active" : ""}`}
             onClick={handleAppClick}
             tabIndex={-1}
@@ -286,6 +291,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
       </Tooltip>
       <Tooltip title="Timeline" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
+          type="button"
           className={`mode-pill ${isTimelineActive ? "active" : ""}`}
           onClick={handleTimelineClick}
           tabIndex={-1}
@@ -298,6 +304,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
       </Tooltip>
       <Tooltip title="Image Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
+          type="button"
           className={`mode-pill ${isSketchActive ? "active" : ""}`}
           onClick={handleSketchClick}
           tabIndex={-1}
@@ -505,7 +512,13 @@ const AppHeader: React.FC = memo(function AppHeader() {
         <FlexRow className="navigate" gap={1} align="center">
           {/* Logo - clicks to Dashboard */}
           <Tooltip title="Go to Dashboard" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-            <div className="logo-container" onClick={handleLogoClick}>
+            <div
+              className="logo-container"
+              onClick={handleLogoClick}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleLogoClick(); }}
+              role="button"
+              tabIndex={0}
+            >
               <Logo
                 small
                 width="20px"

@@ -259,21 +259,24 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
           if (isImageContent(c)) {
             const src =
               c.image?.uri || (c.image?.data as string | undefined) || "";
+            const key = c.image?.asset_id || c.image?.uri || `media-${i}`;
             return (
-              <div key={`media-${i}`}>
+              <div key={key}>
                 <ImageView source={src} />
               </div>
             );
           }
           if (isVideoContent(c)) {
             const src = c.video?.uri || "";
+            const key = c.video?.asset_id || c.video?.uri || `media-${i}`;
             return (
-              <div key={`media-${i}`}>
+              <div key={key}>
                 <video
                   src={src}
                   controls
                   preload="metadata"
                   playsInline
+                  aria-label="Generated video"
                   style={{ width: "100%", height: "100%" }}
                 />
               </div>
@@ -281,12 +284,14 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
           }
           if (isAudioContent(c)) {
             const src = c.audio?.uri || "";
+            const key = c.audio?.asset_id || c.audio?.uri || `media-${i}`;
             return (
-              <div key={`media-${i}`}>
+              <div key={key}>
                 <audio
                   src={src}
                   controls
                   preload="metadata"
+                  aria-label="Generated audio"
                   style={{ width: "100%", padding: "12px" }}
                 />
               </div>

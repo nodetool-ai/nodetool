@@ -159,8 +159,15 @@ const PermissionSelector: React.FC = () => {
                 key={m.id}
                 role="menuitemradio"
                 aria-checked={selected}
+                tabIndex={0}
                 className={`permission-menu-item${selected ? " selected" : ""}`}
                 onClick={() => handleSelect(m.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelect(m.id);
+                  }
+                }}
               >
                 <span
                   className="permission-menu-dot"

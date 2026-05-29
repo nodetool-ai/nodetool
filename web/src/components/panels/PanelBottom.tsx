@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer } from "@mui/material";
-import { Tooltip, Box } from "../ui_primitives";
+import { Tooltip } from "../ui_primitives/Tooltip";
+import { Box } from "../ui_primitives/Box";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import {
   BOTTOM_PANEL_GROUPS,

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Slider, SliderProps } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip } from "../ui_primitives/Tooltip";
 import type { Theme } from "@mui/material/styles";
 
 const sliderBasicStyles = (theme: Theme) =>

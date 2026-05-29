@@ -28,7 +28,7 @@ import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { NodeStore } from "./NodeStore";
-import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
+import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode/KieSchemaLoader";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
 
 export type { NodeStore };

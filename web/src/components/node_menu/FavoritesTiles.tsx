@@ -363,10 +363,18 @@ const FavoritesTiles = memo(function FavoritesTiles({
             >
               <div
                 className="favorite-tile"
+                role="button"
+                tabIndex={0}
                 draggable
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleTileClick}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleTileClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+                  }
+                }}
                 onMouseEnter={handleTileMouseEnter}
                 data-node-type={nodeType}
                 style={favoriteTileStyle}

@@ -9,7 +9,9 @@ import {
   Select,
   SelectChangeEvent
 } from "@mui/material";
-import { Chip, ToolbarIconButton, Box } from "../ui_primitives";
+import { Chip } from "../ui_primitives/Chip";
+import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
+import { Box } from "../ui_primitives/Box";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { useTheme } from "@mui/material/styles";

@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useRef } from "react";
 import { Popover, Button } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip } from "../ui_primitives/Tooltip";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { ColorPickerModal } from "../color_picker";
@@ -199,7 +199,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               size="small"
               onClick={handleOpenModal}
             >
-              Custom Color...
+              Custom Color…
             </Button>
           )}
         </div>

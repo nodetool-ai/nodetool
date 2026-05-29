@@ -5,7 +5,9 @@ import type { Theme } from "@mui/material/styles";
 import {
   useMediaQuery
 } from "@mui/material";
-import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
+import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { Box } from "../ui_primitives/Box";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
@@ -37,7 +39,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
-import { ScrollArea, Tooltip, MobileBottomSheet } from "../ui_primitives";
+import { ScrollArea } from "../ui_primitives/ScrollArea";
+import { Tooltip } from "../ui_primitives/Tooltip";
+import { MobileBottomSheet } from "../ui_primitives/MobileBottomSheet";
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
@@ -624,6 +628,9 @@ const PanelLeft: React.FC = () => {
               onMouseDown={handleMouseDown}
               role="slider"
               aria-label="Resize panel"
+              aria-valuenow={panelSize}
+              aria-valuemin={60}
+              aria-valuemax={800}
               tabIndex={-1}
             />
             <div className="panel-inner-content">

@@ -13,7 +13,7 @@ import {
   deserializeDragData,
   hasExternalFiles,
   extractFiles
-} from "../../lib/dragdrop";
+} from "../../lib/dragdrop/serialization";
 
 /**
  * Configuration options for file drop handling.

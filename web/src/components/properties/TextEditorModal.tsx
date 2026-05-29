@@ -945,6 +945,7 @@ const TextEditorModal = ({
                 <div className="toolbar-group code-tools">
                   <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Find">
                     <button
+                      type="button"
                       className="button-ghost"
                       onClick={handleMonacoFind}
                       aria-label="Find"
@@ -955,6 +956,7 @@ const TextEditorModal = ({
                   {!readOnly && (
                     <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Format">
                       <button
+                        type="button"
                         className="button-ghost"
                         onClick={handleMonacoFormat}
                         aria-label="Format"
@@ -969,6 +971,7 @@ const TextEditorModal = ({
                       title={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
                     >
                       <button
+                        type="button"
                         className={`button-ghost snippet-toggle ${snippetSidebarVisible ? "active" : ""}`}
                         onClick={() => setSnippetSidebarVisible((v) => !v)}
                         aria-label={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
@@ -982,6 +985,7 @@ const TextEditorModal = ({
                     title={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
                   >
                     <button
+                      type="button"
                       className="button-ghost"
                       onClick={handleToggleWordWrap}
                       aria-label={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}

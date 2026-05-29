@@ -17,13 +17,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import {
-  FlexRow,
-  FlexColumn,
-  Caption,
-  StatusIndicator,
-  Popover
-} from "../ui_primitives";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { Caption } from "../ui_primitives/Caption";
+import { StatusIndicator } from "../ui_primitives/StatusIndicator";
+import { Popover } from "../ui_primitives/Popover";
 import {
   useGeneratingClipIds,
   useFailedClipIds
@@ -181,6 +179,7 @@ export const ActivityIndicator: React.FC = memo(() => {
       {generatingCount > 0 && (
         <>
           <button
+            type="button"
             ref={generatingAnchorRef}
             css={badgeButtonStyles(theme)}
             onClick={handleGeneratingClick}
@@ -210,6 +209,7 @@ export const ActivityIndicator: React.FC = memo(() => {
       {failedCount > 0 && (
         <>
           <button
+            type="button"
             ref={failedAnchorRef}
             css={badgeButtonStyles(theme)}
             onClick={handleFailedClick}

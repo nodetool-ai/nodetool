@@ -474,12 +474,14 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             </Caption>
             <div className="crop-actions">
               <button
+                type="button"
                 className="crop-action-button crop-apply"
                 onClick={handleApplyCrop}
               >
                 <CheckIcon fontSize="small" /> Apply
               </button>
               <button
+                type="button"
                 className="crop-action-button crop-cancel"
                 onClick={handleCancelCrop}
               >
@@ -611,6 +613,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <div className="color-picker-row">
               <input
                 type="color"
+                aria-label="Brush color picker"
                 value={brushSettings.color}
                 onChange={handleColorChange}
                 className="color-preview"
@@ -618,6 +621,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               />
               <input
                 type="text"
+                aria-label="Brush color hex value"
                 value={brushSettings.color}
                 onChange={handleColorChange}
                 className="color-input"
@@ -669,6 +673,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <div className="color-picker-row">
               <input
                 type="color"
+                aria-label="Fill color picker"
                 value={shapeSettings.fillColor}
                 onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
                 className="color-preview"
@@ -676,6 +681,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               />
               <input
                 type="text"
+                aria-label="Fill color hex value"
                 value={shapeSettings.fillColor}
                 onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
                 className="color-input"

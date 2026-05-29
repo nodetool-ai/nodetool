@@ -85,6 +85,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
         <input
           type="color"
           className="color-input"
+          aria-label="Stroke color"
           value={colorToHex6(settings.strokeColor)}
           onChange={(e) =>
             onChange({
@@ -130,6 +131,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
               <input
                 type="color"
                 className="color-input"
+                aria-label="Fill color"
                 value={colorToHex6(settings.fillColor)}
                 onChange={(e) =>
                   onChange({

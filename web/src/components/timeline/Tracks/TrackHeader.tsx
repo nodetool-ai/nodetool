@@ -24,7 +24,7 @@ import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { Tooltip } from "../../ui_primitives";
+import { Tooltip } from "../../ui_primitives/Tooltip";
 import {
   DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
   FX_PANEL_HEIGHT_PX
@@ -334,6 +334,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
       <div css={controlsRowStyles}>
         <Tooltip title={track.visible ? "Hide track" : "Show track"}>
           <button
+            type="button"
             css={iconButtonStyles(theme, track.visible)}
             onClick={() => setTrackVisible(track.id, !track.visible)}
             aria-label={track.visible ? "Hide track" : "Show track"}
@@ -349,6 +350,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
 
         <Tooltip title={track.locked ? "Unlock track" : "Lock track"}>
           <button
+            type="button"
             css={iconButtonStyles(theme, !track.locked)}
             onClick={() => setTrackLocked(track.id, !track.locked)}
             aria-label={track.locked ? "Unlock track" : "Lock track"}
@@ -362,6 +364,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
           <>
             <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
               <button
+                type="button"
                 css={iconButtonStyles(theme, !track.muted)}
                 onClick={() => setTrackMuted(track.id, !track.muted)}
                 aria-label={track.muted ? "Unmute" : "Mute"}
@@ -373,6 +376,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
 
             <Tooltip title={track.solo ? "Unsolo" : "Solo"}>
               <button
+                type="button"
                 css={iconButtonStyles(theme, !!track.solo)}
                 onClick={() => setTrackSolo(track.id, !track.solo)}
                 aria-label={track.solo ? "Unsolo" : "Solo"}
@@ -401,6 +405,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
             }
           >
             <button
+              type="button"
               css={iconButtonStyles(theme, hasActiveEffects || fxExpanded)}
               onClick={handleFxToggle}
               aria-label={fxExpanded ? "Hide effects chain" : "Show effects chain"}
@@ -414,6 +419,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
 
         <Tooltip title="Remove track">
           <button
+            type="button"
             css={iconButtonStyles(theme, true)}
             onClick={() => {
               if (

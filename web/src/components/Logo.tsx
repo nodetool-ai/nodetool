@@ -116,6 +116,16 @@ const Logo = memo(function Logo({
   const theme = useTheme();
   const { mode } = useColorScheme();
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (onClick && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        onClick();
+      }
+    },
+    [onClick]
+  );
+
   return (
     <div
       className="nodetool-logo"
@@ -132,6 +142,9 @@ const Logo = memo(function Logo({
         mode === "light"
       )}
       onClick={onClick}
+      onKeyDown={onClick ? handleKeyDown : undefined}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       style={onClick ? { cursor: "pointer" } : undefined}
     >
       {small && (

@@ -33,7 +33,7 @@ import { useTimelineGenerationStore } from "../../../stores/timeline/TimelineGen
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
-import { StatusIndicator } from "../../ui_primitives";
+import { StatusIndicator } from "../../ui_primitives/StatusIndicator";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusReducer";
@@ -899,9 +899,15 @@ const ClipBody: React.FC<ClipBodyProps> = ({
       style={{ left: leftPx, width: widthPx, cursor: cutMode ? "crosshair" : undefined }}
       onPointerDown={handleDragPointerDown}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          handleClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+        }
+      }}
       data-testid={`clip-${clipId}`}
       aria-selected={isSelected}
       role="option"
+      tabIndex={0}
       aria-label={clip.name || `Clip ${clip.id}`}
     >
       {filmstripCells && (

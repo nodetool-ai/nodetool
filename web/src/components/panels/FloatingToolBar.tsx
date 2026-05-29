@@ -8,7 +8,9 @@ import {
   useMediaQuery,
   Menu
 } from "@mui/material";
-import { Tooltip, FlexRow, Box } from "../ui_primitives";
+import { Tooltip } from "../ui_primitives/Tooltip";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Box } from "../ui_primitives/Box";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";

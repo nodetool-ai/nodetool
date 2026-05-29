@@ -1,12 +1,9 @@
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
 
-import {
-  normalizeSketchDocument,
-  type HistoryEntry,
-  type Point,
-  type SketchDocument,
-  type SketchTool
-} from "../../components/sketch/types";
+import { normalizeSketchDocument, type SketchDocument } from "../../components/sketch/types/document";
+import type { HistoryEntry } from "../../components/sketch/types/history";
+import type { Point } from "../../components/sketch/types/geometry";
+import type { SketchTool } from "../../components/sketch/types/tools";
 
 export const DEFAULT_SKETCH_DOCUMENT_WIDTH = 1024;
 export const DEFAULT_SKETCH_DOCUMENT_HEIGHT = 1024;

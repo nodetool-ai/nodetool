@@ -51,6 +51,7 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
         <video
           src={chunk.content as string}
           controls
+          aria-label="Video output"
           style={{ width: "100%" }}
         />
       );

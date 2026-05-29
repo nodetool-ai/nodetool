@@ -12,7 +12,7 @@ import {
   deserializeDragData,
   hasExternalFiles,
   extractFiles
-} from "../../lib/dragdrop";
+} from "../../lib/dragdrop/serialization";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { shallow } from "zustand/shallow";
 import { instantiatePaletteNode } from "../../utils/instantiatePaletteNode";

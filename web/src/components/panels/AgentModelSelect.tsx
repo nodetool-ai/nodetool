@@ -300,6 +300,7 @@ const AgentModelSelectInner: React.FC<AgentModelSelectProps> = ({
                 onKeyDown={handleKeyDown}
                 spellCheck={false}
                 autoComplete="off"
+                aria-label="Search models"
               />
             </div>
           )}
@@ -319,8 +320,10 @@ const AgentModelSelectInner: React.FC<AgentModelSelectProps> = ({
                     data-index={index}
                     data-active={isActive}
                     data-selected={isSelected}
+                    tabIndex={-1}
                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => handlePick(option.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handlePick(option.id); }}
                   >
                     <span className="label">{option.label}</span>
                     {isSelected && <CheckIcon />}

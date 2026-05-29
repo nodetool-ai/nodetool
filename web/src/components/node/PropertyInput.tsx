@@ -702,6 +702,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       inputField = (
         <form onSubmit={handleNameSubmit} className="property-input-form">
           <input
+            aria-label="Property name"
             value={editedName}
             onChange={handleNameChange}
             onBlur={handleNameSubmit}

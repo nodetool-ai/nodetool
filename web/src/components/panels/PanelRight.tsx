@@ -24,7 +24,8 @@ import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
 import { PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ContextMenus from "../context_menus/ContextMenus";
-import { MobileBottomSheet, FlexColumn } from "../ui_primitives";
+import { MobileBottomSheet } from "../ui_primitives/MobileBottomSheet";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
 
 const HEADER_AREA_HEIGHT = 77;
 // Matches HEADER_HEIGHT in PanelBottom — the bar still occupies this when collapsed.
@@ -374,6 +375,9 @@ const PanelRight: React.FC = () => {
               onMouseDown={handleMouseDown}
               role="slider"
               aria-label="Resize panel"
+              aria-valuenow={panelSize}
+              aria-valuemin={60}
+              aria-valuemax={600}
               tabIndex={-1}
             />
             <div className="panel-inner-content">{inspectorBody}</div>
