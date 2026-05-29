@@ -5,8 +5,12 @@
  * content-forward image/video/audio/3D/text body) instead of the generic
  * input/output layout.
  *
- * Three matching strategies, in order:
+ * Matching strategies, in order:
  *
+ *   0. Author opt-in — the node declares `body: "content_card"` in its
+ *      metadata (Python `_body` / `body()`). Preferred: lets node authors
+ *      configure content cards from the backend. The variant is still derived
+ *      from the primary output type.
  *   1. Explicit allow-set — hand-picked entries for provider/base nodes that
  *      should always render as content cards, regardless of namespace.
  *   2. Generator-pattern match — node_type names that follow the conventional
@@ -112,6 +116,13 @@ export const isContentCardNode = (
 ): boolean => {
   if (!metadata) {
     return false;
+  }
+  // Author opt-in (highest precedence): a node declares `body: "content_card"`
+  // in its metadata. The variant is still derived from the primary output type
+  // below. This lets node authors configure content cards from the backend
+  // without editing the hardcoded heuristics that follow.
+  if (metadata.body === "content_card") {
+    return true;
   }
   const t = metadata.node_type;
   if (!t) {

@@ -40,6 +40,31 @@ describe("isContentCardNode", () => {
     }
   });
 
+  it("matches author opt-in via metadata.body, regardless of namespace/pattern", () => {
+    expect(
+      isContentCardNode({
+        ...meta("huggingface.text_to_image.StableDiffusion", "image"),
+        body: "content_card"
+      } as unknown as NodeMetadata)
+    ).toBe(true);
+    // A namespace that otherwise never matches still opts in via body.
+    expect(
+      isContentCardNode({
+        ...meta("comfy.image.SomeModel", "image"),
+        body: "content_card"
+      } as unknown as NodeMetadata)
+    ).toBe(true);
+  });
+
+  it("ignores body values other than content_card", () => {
+    expect(
+      isContentCardNode({
+        ...meta("some.util.Node", "dict"),
+        body: "default"
+      } as unknown as NodeMetadata)
+    ).toBe(false);
+  });
+
   it("matches conventional generator name patterns in any namespace", () => {
     expect(isContentCardNode(meta("some.pkg.TextToImage"))).toBe(true);
     expect(isContentCardNode(meta("some.pkg.ImageToImage"))).toBe(true);
