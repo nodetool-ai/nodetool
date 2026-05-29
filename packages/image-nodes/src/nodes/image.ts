@@ -1280,6 +1280,7 @@ export class FitNode extends TransformImageNode {
 
 export class TextToImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.TextToImage";
+  static readonly body = "content_card";
   static readonly title = "Text To Image";
   static readonly description =
     "Generate images from text prompts using any supported image provider. Automatically routes to the appropriate backend (HuggingFace, FAL, MLX).\n    image, generation, AI, text-to-image, t2i";
@@ -1387,6 +1388,7 @@ export class TextToImageNode extends BaseNode {
 
 export class ImageToImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.ImageToImage";
+  static readonly body = "content_card";
   static readonly title = "Image To Image";
   static readonly description =
     "Transform images using text prompts with any supported image provider. Automatically routes to the appropriate backend (HuggingFace, FAL, MLX).\n    image, transformation, AI, image-to-image, i2i";
@@ -2351,6 +2353,7 @@ export class PainterNode extends BaseNode {
 
 export class UpscaleImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Upscale";
+  static readonly body = "content_card";
   static readonly title = "Upscale Image";
   static readonly description =
     "Increase the resolution and detail of an image using any supported upscaling provider.\n    image, upscale, super-resolution, enhance, AI";
@@ -2431,6 +2434,7 @@ export class UpscaleImageNode extends BaseNode {
 
 export class RemoveBackgroundNode extends BaseNode {
   static readonly nodeType = "nodetool.image.RemoveBackground";
+  static readonly body = "content_card";
   static readonly title = "Remove Background";
   static readonly description =
     "Remove the background from an image, returning a cutout with transparency.\n    image, background, remove, matte, cutout, AI";
@@ -2490,6 +2494,7 @@ export class RemoveBackgroundNode extends BaseNode {
 
 export class RelightImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Relight";
+  static readonly body = "content_card";
   static readonly title = "Relight Image";
   static readonly description =
     "Re-light a subject according to a text prompt using any supported relighting provider.\n    image, relight, lighting, AI";
@@ -2569,6 +2574,7 @@ export class RelightImageNode extends BaseNode {
 
 export class VectorizeImageNode extends BaseNode {
   static readonly nodeType = "nodetool.image.Vectorize";
+  static readonly body = "content_card";
   static readonly title = "Vectorize Image";
   static readonly description =
     "Convert a raster image into a scalable vector (SVG) using any supported vectorization provider.\n    image, vector, svg, vectorize, trace, AI";

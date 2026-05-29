@@ -442,6 +442,12 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
       value: true,
       configurable: true
     });
+    // Media generators render as a content card. Metadata-driven equivalent of
+    // the frontend's old "kie.* namespace + media output" heuristic.
+    Object.defineProperty(KieNodeClass, "body", {
+      value: "content_card",
+      configurable: true
+    });
   }
   Object.defineProperty(KieNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType },

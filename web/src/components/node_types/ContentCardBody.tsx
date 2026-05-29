@@ -2,8 +2,9 @@
 /**
  * ContentCardBody
  *
- * Content-forward node body for nodes registered in `CONTENT_CARD_REGISTRY`
- * (image / video / text / etc. generators and "thin" image-edit nodes).
+ * Content-forward node body for nodes whose metadata declares
+ * `body: "content_card"` (image / video / text / etc. generators and "thin"
+ * image-edit nodes). See `isContentCardNode` in `contentCardRegistry`.
  * Three regions per plan §6.1:
  *
  *   1. Header           — already rendered by `NodeHeader` in `BaseNode`

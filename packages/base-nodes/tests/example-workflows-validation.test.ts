@@ -51,7 +51,6 @@ const CLI_EXAMPLES_DIR = path.resolve(__dirname, "../../../examples/workflows");
  */
 const ALLOWED_UNREGISTERED_TYPES = new Set<string>([
   // ── 1. Sibling packages not loaded in base-nodes tests ─────────────────
-  "anthropic.agents.ClaudeAgent",
   "kie.image.NanoBanana",
   "fal.text_to_image.NanoBanana2",
   "vector.chroma.HybridSearch",

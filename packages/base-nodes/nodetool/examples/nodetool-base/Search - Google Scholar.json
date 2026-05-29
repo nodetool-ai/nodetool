@@ -41,7 +41,7 @@
     "nodes": [
       {
         "id": "claude-agent",
-        "type": "anthropic.agents.ClaudeAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
           "prompt": "Use the Scholar Search tool to research 'transformer architecture improvements 2025'. Identify the most cited papers, emerging research themes, methodology trends, and gaps in the literature. Write a summary suitable for a related-work section.",
           "model": {
@@ -50,11 +50,9 @@
             "id": "claude-sonnet-4-6",
             "name": "Claude Sonnet 4.6"
           },
-          "system_prompt": "You are a sharp research analyst. Use the available search tools to gather data, then provide structured, insightful analysis with specific references. Be concise but thorough.",
+          "system": "You are a sharp research analyst. Use the available search tools to gather data, then provide structured, insightful analysis with specific references. Be concise but thorough.",
           "max_turns": 10,
-          "allowed_tools": [],
-          "permission_mode": "acceptEdits",
-          "use_claude_credentials": true
+          "tools": []
         },
         "ui_properties": {
           "position": {

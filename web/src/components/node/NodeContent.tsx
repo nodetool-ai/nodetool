@@ -56,6 +56,10 @@ const arePropsEqual = (
   if (
     prevProps.nodeMetadata.title !== nextProps.nodeMetadata.title ||
     prevProps.nodeMetadata.layout !== nextProps.nodeMetadata.layout ||
+    // `body` is the sole input to isContentCardNode — without it a node whose
+    // metadata flips to/from "content_card" (output shape unchanged) would
+    // keep its stale body mounted.
+    prevProps.nodeMetadata.body !== nextProps.nodeMetadata.body ||
     prevProps.nodeMetadata.supports_dynamic_inputs !== nextProps.nodeMetadata.supports_dynamic_inputs ||
     prevProps.nodeMetadata.supports_dynamic_outputs !==
       nextProps.nodeMetadata.supports_dynamic_outputs ||
@@ -79,8 +83,8 @@ const arePropsEqual = (
     return false;
   }
 
-  // The primary-output type drives body routing (isContentCardNode) and
-  // ContentCardBody variant. Two metadata objects with the same output count
+  // The primary-output type drives the ContentCardBody variant
+  // (image/audio/video/...). Two metadata objects with the same output count
   // but different primary-output types must re-render.
   const prevPrimary = prevProps.nodeMetadata.outputs?.[0];
   const nextPrimary = nextProps.nodeMetadata.outputs?.[0];

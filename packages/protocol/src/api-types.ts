@@ -600,6 +600,12 @@ export interface NodeMetadata {
   namespace: string;
   node_type: string;
   layout: string;
+  /**
+   * Node body renderer. "content_card" opts the node into the media/text-forward
+   * ContentCardBody (variant derived from the primary output type). Absent or
+   * "default" uses the generic input/output body.
+   */
+  body?: string;
   properties: Property[];
   outputs: OutputSlot[];
 

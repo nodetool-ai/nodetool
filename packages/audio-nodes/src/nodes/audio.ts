@@ -884,6 +884,7 @@ export class RepeatAudioNode extends BaseNode {
 
 export class AudioMixerNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.AudioMixer";
+  static readonly body = "content_card";
   static readonly title = "Audio Mixer";
   static readonly description =
     "Mix multiple audio tracks together. Add tracks dynamically with the “add audio input” button; wire a Gain node upstream of any track that needs a different level.\n    audio, mix, combine, blend, layer, add, overlay";
@@ -1025,6 +1026,7 @@ export class CreateSilenceNode extends BaseNode {
 
 export class ConcatAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.Concat";
+  static readonly body = "content_card";
   static readonly title = "Concatenate Audio";
   static readonly description =
     "Concatenates audio files together. Add inputs dynamically with the “add audio input” button.\n    audio, edit, join, +";
@@ -1075,6 +1077,7 @@ export class ConcatAudioListNode extends BaseNode {
 
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.TextToSpeech";
+  static readonly body = "content_card";
   static readonly title = "Text To Speech";
   static readonly description =
     "Generate speech audio from text using any supported TTS provider. Automatically routes to the appropriate backend (OpenAI, HuggingFace, MLX).\n    audio, generation, AI, text-to-speech, tts, voice";

@@ -8,6 +8,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 export class RealtimeSpeechToTextNode extends BaseNode {
   static readonly nodeType = "elevenlabs.RealtimeSpeechToText";
+  static readonly body = "content_card";
   static readonly title = "Realtime Speech to Text";
   static readonly description =
     "Realtime speech-to-text transcription using ElevenLabs WebSocket API.\n" +

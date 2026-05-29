@@ -4,6 +4,7 @@ import { getElevenLabsApiKey } from "../elevenlabs-base.js";
 
 export class SpeechToTextNode extends BaseNode {
   static readonly nodeType = "elevenlabs.SpeechToText";
+  static readonly body = "content_card";
   static readonly title = "Speech to Text";
   static readonly description =
     "Transcribe audio or video files using ElevenLabs speech-to-text API.\n" +

@@ -13,6 +13,7 @@ import {
 
 export class RealtimeTextToSpeechNode extends BaseNode {
   static readonly nodeType = "elevenlabs.RealtimeTextToSpeech";
+  static readonly body = "content_card";
   static readonly title = "Realtime Text to Speech";
   static readonly description =
     "Stream text-to-speech using ElevenLabs WebSocket API.\n" +
