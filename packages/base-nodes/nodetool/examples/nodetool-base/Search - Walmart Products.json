@@ -49,7 +49,7 @@
     "nodes": [
       {
         "id": "claude-agent",
-        "type": "anthropic.agents.ClaudeAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
           "prompt": "I'm looking for a good 4K TV under $500. Search Walmart for options, compare the top 3 by features and price, then get detailed info on the best value pick. Write a buying recommendation.",
           "model": {
@@ -58,11 +58,9 @@
             "id": "claude-sonnet-4-6",
             "name": "Claude Sonnet 4.6"
           },
-          "system_prompt": "You are a savvy shopping assistant. Use Walmart search to find products, then use Walmart product detail to get more info on promising items. Provide clear, actionable recommendations with price comparisons.",
+          "system": "You are a savvy shopping assistant. Use Walmart search to find products, then use Walmart product detail to get more info on promising items. Provide clear, actionable recommendations with price comparisons.",
           "max_turns": 15,
-          "allowed_tools": [],
-          "permission_mode": "acceptEdits",
-          "use_claude_credentials": true
+          "tools": []
         },
         "ui_properties": {
           "position": {

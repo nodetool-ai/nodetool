@@ -41,7 +41,7 @@
     "nodes": [
       {
         "id": "claude-agent",
-        "type": "anthropic.agents.ClaudeAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
           "prompt": "Find hotels in Paris for a stay from 2026-06-15 to 2026-06-20 for 2 adults. I'd like 4-star or above, under $250/night. Compare the top options by location, amenities, and value. Write a recommendation.",
           "model": {
@@ -50,11 +50,9 @@
             "id": "claude-sonnet-4-6",
             "name": "Claude Sonnet 4.6"
           },
-          "system_prompt": "You are a travel planning assistant specializing in accommodations. Use Google Hotels to search and compare options. Consider rating, price, location, and reviews. Provide structured recommendations with pros and cons.",
+          "system": "You are a travel planning assistant specializing in accommodations. Use Google Hotels to search and compare options. Consider rating, price, location, and reviews. Provide structured recommendations with pros and cons.",
           "max_turns": 10,
-          "allowed_tools": [],
-          "permission_mode": "acceptEdits",
-          "use_claude_credentials": true
+          "tools": []
         },
         "ui_properties": {
           "position": {
