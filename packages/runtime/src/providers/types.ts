@@ -1,11 +1,10 @@
-import type { Chunk } from "@nodetool-ai/protocol";
+import type { Chunk, ProviderId } from "@nodetool-ai/protocol";
 
-export type ProviderId =
-  | "openai"
-  | "anthropic"
-  | "ollama"
-  | "llama_cpp"
-  | string;
+// Provider identifiers are owned by @nodetool-ai/protocol (the base dependency
+// for the whole monorepo). Re-exported here so existing runtime importers keep
+// resolving `ProviderId`/`PROVIDER_IDS` from `./types.js`.
+export { PROVIDER_IDS } from "@nodetool-ai/protocol";
+export type { ProviderId };
 
 export interface LanguageModel {
   id: string;

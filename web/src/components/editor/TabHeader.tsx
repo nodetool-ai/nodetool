@@ -162,6 +162,16 @@ const TabHeader = ({
     [onKeyDown, onNameChange, workflow.id]
   );
 
+  const handleTabKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onNavigate(workflow.id);
+      }
+    },
+    [onNavigate, workflow.id]
+  );
+
   // Memoize drag start handler to prevent re-renders of child elements
   const handleDragStart = useCallback((e: DragEvent<HTMLDivElement>) => {
     onDragStart(e, workflow.id);
@@ -211,7 +221,11 @@ const TabHeader = ({
               : "drop-target-right"
             : ""
         }`}
+        role="tab"
+        aria-selected={isActive}
+        tabIndex={0}
         onClick={handleClick}
+        onKeyDown={handleTabKeyDown}
         onContextMenu={handleContextMenu}
         onDoubleClick={handleDoubleClick}
         onMouseDown={handleMouseDown}
@@ -225,6 +239,7 @@ const TabHeader = ({
         {isEditing ? (
           <input
             type="text"
+            aria-label="Workflow name"
             defaultValue={workflow.name}
             autoFocus
             onFocus={handleInputFocus}

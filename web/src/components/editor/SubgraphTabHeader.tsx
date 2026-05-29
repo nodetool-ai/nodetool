@@ -50,6 +50,16 @@ const SubgraphTabHeader = ({
     onSelect(tab.key);
   }, [tab.key, onSelect]);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onSelect(tab.key);
+      }
+    },
+    [tab.key, onSelect]
+  );
+
   const handleClose = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -62,7 +72,11 @@ const SubgraphTabHeader = ({
     <div
       css={styles}
       className={`tab subgraph-tab ${isActive ? "active" : ""}`}
+      role="tab"
+      aria-selected={isActive}
+      tabIndex={0}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       title={`Subgraph: ${tab.label}`}
     >
       <AccountTreeIcon className="subgraph-icon" />

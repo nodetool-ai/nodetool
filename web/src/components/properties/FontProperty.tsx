@@ -68,7 +68,7 @@ const FontProperty: React.FC<PropertyProps> = ({
       />
       <div className="select-wrapper">
         {isLoading ? (
-          <div className="loading-state">Loading fonts...</div>
+          <div className="loading-state">Loading fonts…</div>
         ) : isError ? (
           <div className="error-state">Error loading fonts</div>
         ) : (

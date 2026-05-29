@@ -4,6 +4,7 @@ import { DataType } from "../config/data_types";
 import { NodeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { NodeData } from "../stores/NodeData";
+import { REROUTE_NODE_TYPE } from "../constants/nodeTypes";
 
 /**
  * Options for processing edges in the workflow graph.
@@ -96,7 +97,6 @@ function useStructurallyProcessedEdges({
 
     const activeGradientKeys = new Set<string>();
 
-    const REROUTE_TYPE = "nodetool.control.Reroute";
     const REROUTE_INPUT = "input_value";
     const REROUTE_OUTPUT = "output";
 
@@ -139,7 +139,7 @@ function useStructurallyProcessedEdges({
 
       while (
         currentNode &&
-        currentNode.type === REROUTE_TYPE &&
+        currentNode.type === REROUTE_NODE_TYPE &&
         currentHandle === REROUTE_OUTPUT
       ) {
         if (visited.has(currentNode.id)) {break;}
@@ -230,7 +230,7 @@ function useStructurallyProcessedEdges({
 
       if (targetNode && normalizedTargetHandle) {
         if (
-          targetNode.type === REROUTE_TYPE &&
+          targetNode.type === REROUTE_NODE_TYPE &&
           normalizedTargetHandle === REROUTE_INPUT
         ) {
           targetTypeSlug = sourceTypeSlug;

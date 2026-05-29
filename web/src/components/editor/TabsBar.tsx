@@ -299,6 +299,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
   return (
     <div className="tabs-container">
       <button
+        type="button"
         className="scroll-button"
         onClick={handleScrollLeft}
         disabled={!canScrollLeft}
@@ -354,6 +355,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
           />
         ))}
         <button
+          type="button"
           tabIndex={-1}
           className="new-workflow-button"
           onClick={handleNewWorkflow}
@@ -363,6 +365,7 @@ const TabsBar = ({ workflows, currentWorkflowId }: TabsBarProps) => {
         </button>
       </div>
       <button
+        type="button"
         tabIndex={-1}
         className="scroll-button"
         onClick={handleScrollRight}

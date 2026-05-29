@@ -50,6 +50,7 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
   return (
     <li
       className={`thread-item ${isSelected ? "selected" : ""} ${isDeleting ? "deleting" : ""}`}
+      role="button"
       onClick={handleSelect}
       tabIndex={0}
       onKeyDown={handleKeyDown}

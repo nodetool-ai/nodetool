@@ -20,7 +20,7 @@ import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import QuickAccessGrid from "../node_menu/QuickAccessGrid";
 
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import {
   LeftPanelView,
   NodeCategoryId,
@@ -605,6 +605,8 @@ const PanelLeft: React.FC = () => {
           <div
             ref={panelRef}
             className={`drawer-content ${isDragging ? "dragging" : ""}`}
+            role="region"
+            aria-label="Left panel"
             style={{
               width: `${Math.max(panelSize - TOOLBAR_WIDTH, 250)}px`,
               minWidth: "250px"
@@ -624,6 +626,9 @@ const PanelLeft: React.FC = () => {
               onMouseDown={handleMouseDown}
               role="slider"
               aria-label="Resize panel"
+              aria-valuenow={panelSize}
+              aria-valuemin={60}
+              aria-valuemax={800}
               tabIndex={-1}
             />
             <div className="panel-inner-content">

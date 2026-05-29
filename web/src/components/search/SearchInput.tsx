@@ -289,6 +289,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         }
       >
         <button
+          type="button"
           className={`clear-search-btn ${localSearchTerm.trim() === "" ? "disabled" : ""
             }`}
           tabIndex={-1}

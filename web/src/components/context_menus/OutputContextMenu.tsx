@@ -4,6 +4,7 @@ import { shallow } from "zustand/shallow";
 import { InputAdornment, Menu, TextField } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Divider, Text, ToolbarIconButton, Box } from "../ui_primitives";
+import { PREVIEW_NODE_TYPE, REROUTE_NODE_TYPE } from "../../constants/nodeTypes";
 import { useTheme } from "@mui/material/styles";
 //icons
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -191,7 +192,7 @@ const OutputContextMenu: React.FC = () => {
 
   const createPreviewNode = useCallback(
     (event: React.MouseEvent) => {
-      const metadata = getMetadata("nodetool.workflows.base_node.Preview");
+      const metadata = getMetadata(PREVIEW_NODE_TYPE);
       if (!metadata) {
         return;
       }
@@ -212,7 +213,7 @@ const OutputContextMenu: React.FC = () => {
 
   const createRerouteNode = useCallback(
     (event: React.MouseEvent) => {
-      const metadata = getMetadata("nodetool.control.Reroute");
+      const metadata = getMetadata(REROUTE_NODE_TYPE);
       if (!metadata) {
         return;
       }

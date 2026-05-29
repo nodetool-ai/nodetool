@@ -9,6 +9,7 @@
 import React, { memo, useState, useCallback } from "react";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import {
+  Box,
   Container,
   EditorButton,
   FlexColumn,
@@ -17,8 +18,20 @@ import {
   Tooltip
 } from "../ui_primitives";
 import { colorToHex6 } from "./types";
-import { SKETCH_FONT, SKETCH_SPACING, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, colorSwatchSx } from "./sketchStyles";
+import {
+  SKETCH_FONT,
+  SKETCH_SPACING,
+  SKETCH_TOOLTIP_DELAY_MS,
+  colorSwatchSx
+} from "./sketchStyles";
 import ColorPickerPopover from "./ColorPickerPopover";
+
+/** Square edge (px) — matches colorSwatchSx. */
+const SWATCH = 24;
+/** Diagonal overlap offset of the background square behind the foreground. */
+const OVERLAP = 12;
+/** Footprint of the overlapping pair. */
+const STACK = SWATCH + OVERLAP;
 
 export interface ColorSwatchPairProps {
   foregroundColor: string;
@@ -45,96 +58,129 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
   const fgHex6 = colorToHex6(foregroundColor);
   const bgHex6 = colorToHex6(backgroundColor);
 
-  const handleFgClick = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    setFgInitialColor(foregroundColor);
-    setFgAnchor(e.currentTarget);
-  }, [foregroundColor]);
-  const handleBgClick = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    setBgInitialColor(backgroundColor);
-    setBgAnchor(e.currentTarget);
-  }, [backgroundColor]);
+  const handleFgClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      setFgInitialColor(foregroundColor);
+      setFgAnchor(e.currentTarget);
+    },
+    [foregroundColor]
+  );
+  const handleBgClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      setBgInitialColor(backgroundColor);
+      setBgAnchor(e.currentTarget);
+    },
+    [backgroundColor]
+  );
 
   return (
     <FlexColumn
       className="color-swatch-pair"
       sx={{ width: "100%", alignItems: "center", gap: SKETCH_SPACING.sm }}
     >
-
-      {/* ── Swatches ── */}
-      <FlexRow
+      {/* ── Overlapping FG (front) / BG (behind) squares, Photoshop-style ── */}
+      <Box
         className="color-swatch-pair__swatches"
-        align="flex-end"
-        justify="center"
-        sx={{ gap: SKETCH_SPACING.md }}
+        sx={{
+          position: "relative",
+          width: STACK,
+          height: STACK,
+          flexShrink: 0
+        }}
       >
-        <FlexColumn sx={{ alignItems: "center", gap: "1px" }}>
-          <Text sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>FG</Text>
-          <Tooltip title="Foreground Color" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+        <Tooltip
+          title="Background Color"
+          placement="right"
+          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+        >
+          <Container
+            className="color-swatch-pair__bg"
+            padding="none"
+            onClick={handleBgClick}
+            aria-label="Background color"
+            sx={{
+              ...colorSwatchSx,
+              position: "absolute",
+              left: OVERLAP,
+              top: OVERLAP,
+              zIndex: 0
+            }}
+          >
             <Container
-              className="color-swatch-pair__fg"
               padding="none"
-              onClick={handleFgClick}
-              sx={colorSwatchSx}
-            >
-              <Container
-                padding="none"
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  backgroundColor: fgHex6
-                }}
-              />
-            </Container>
-          </Tooltip>
-        </FlexColumn>
+              sx={{ position: "absolute", inset: 0, backgroundColor: bgHex6 }}
+            />
+          </Container>
+        </Tooltip>
 
-        <FlexColumn sx={{ alignItems: "center", gap: "1px" }}>
-          <Text sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted, userSelect: "none" }}>BG</Text>
-          <Tooltip title="Background Color" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+        <Tooltip
+          title="Foreground Color"
+          placement="right"
+          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+        >
+          <Container
+            className="color-swatch-pair__fg"
+            padding="none"
+            onClick={handleFgClick}
+            aria-label="Foreground color"
+            sx={{
+              ...colorSwatchSx,
+              position: "absolute",
+              left: 0,
+              top: 0,
+              zIndex: 1
+            }}
+          >
             <Container
-              className="color-swatch-pair__bg"
               padding="none"
-              onClick={handleBgClick}
-              sx={colorSwatchSx}
-            >
-              <Container
-                padding="none"
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  backgroundColor: bgHex6
-                }}
-              />
-            </Container>
-          </Tooltip>
-        </FlexColumn>
-      </FlexRow>
+              sx={{ position: "absolute", inset: 0, backgroundColor: fgHex6 }}
+            />
+          </Container>
+        </Tooltip>
+      </Box>
 
       {/* ── Swap / Reset ── */}
-      <FlexRow className="color-swatch-pair__actions" align="center" sx={{ width: "54px" }}>
-        <Tooltip title="Swap Colors (X)" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+      <FlexRow
+        className="color-swatch-pair__actions"
+        align="center"
+        justify="center"
+        gap={0.25}
+        sx={{ width: `${STACK}px` }}
+      >
+        <Tooltip
+          title="Swap Colors (X)"
+          placement="right"
+          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+        >
           <EditorButton
             density="compact"
             onClick={onSwapColors}
             aria-label="Swap Colors (X)"
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              padding: 0,
-              borderRadius: "3px"
-            }}
+            sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: "3px" }}
           >
             <SwapHorizIcon sx={{ fontSize: "13px" }} />
           </EditorButton>
         </Tooltip>
-        <Tooltip title="Reset to B/W (D)" placement="right" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+        <Tooltip
+          title="Reset to B/W (D)"
+          placement="right"
+          enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+          enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+        >
           <EditorButton
             density="compact"
             onClick={onResetColors}
             aria-label="Reset to black and white (D)"
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: "3px" }}
           >
-            <Text sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}>D</Text>
+            <Text
+              sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}
+            >
+              D
+            </Text>
           </EditorButton>
         </Tooltip>
       </FlexRow>
@@ -154,7 +200,6 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         onColorChange={onBackgroundColorChange}
         onClose={() => setBgAnchor(null)}
       />
-
     </FlexColumn>
   );
 };

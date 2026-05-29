@@ -26,8 +26,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
-
-const BLUR_NODE_TYPE = "nodetool.image.Blur";
+import { BLUR_NODE_TYPE } from "../../../constants/nodeTypes";
 
 type BlurType = "gaussian" | "box" | "motion";
 

@@ -207,19 +207,22 @@ function nodeToolNodeToComfyNode(nodeToolNode: GraphNode): ComfyUINode {
   // Get metadata if available
   const metadata = data._comfy_metadata as Record<string, unknown> | undefined;
 
+  const num = (v: unknown, fallback: number): number =>
+    typeof v === "number" ? v : fallback;
+
   // Get position and size from ui_properties
   const uiProps = (nodeToolNode.ui_properties || {}) as Record<string, unknown>;
   const position = (uiProps.position || {}) as Record<string, unknown>;
   const size = (uiProps.size || {}) as Record<string, unknown>;
 
   const pos: [number, number] = [
-    (position.x as number) || 0,
-    (position.y as number) || 0
+    num(position.x, 0),
+    num(position.y, 0)
   ];
 
   const sizeArray: [number, number] = [
-    (size.width as number) || 210,
-    (size.height as number) || 80
+    num(size.width, 210),
+    num(size.height, 80)
   ];
 
   // Extract properties, excluding internal metadata fields
@@ -230,16 +233,23 @@ function nodeToolNodeToComfyNode(nodeToolNode: GraphNode): ComfyUINode {
     }
   });
 
+  const metaFlags =
+    metadata?.flags != null && typeof metadata.flags === "object"
+      ? (metadata.flags as Record<string, unknown>)
+      : {};
+
   const comfyNode: ComfyUINode = {
     id: parseInt(nodeToolNode.id, 10),
     type: comfyType,
     pos,
     size: sizeArray,
-    flags: (metadata?.flags as Record<string, unknown>) || {},
-    order: (metadata?.order as number) || 0,
-    mode: (metadata?.mode as number) || 0,
+    flags: metaFlags,
+    order: num(metadata?.order, 0),
+    mode: num(metadata?.mode, 0),
     properties,
-    widgets_values: (data._comfy_widgets as unknown[]) || []
+    widgets_values: Array.isArray(data._comfy_widgets)
+      ? data._comfy_widgets
+      : []
   };
 
   return comfyNode;

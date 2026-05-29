@@ -10,7 +10,8 @@ import {
   FlexRow,
   Text
 } from "../../ui_primitives";
-import { DataType, IconForType } from "../../../config/data_types";
+import { DataType } from "../../../config/data_types";
+import { IconForType } from "../../../config/IconForType";
 
 interface DataTypesListProps {
   title: string;

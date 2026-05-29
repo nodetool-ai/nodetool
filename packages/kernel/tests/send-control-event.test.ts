@@ -88,6 +88,61 @@ describe("T-K-11: sendControlEvent", () => {
     expect(result.status).toBe("completed");
   }, 10000);
 
+  it("rejects (does not hang) when target actor already terminated", async () => {
+    // Regression: an agent that dispatches a *burst* of control tool calls
+    // to the same controlled node hangs forever if that node errors (and so
+    // terminates) on the first call — the 2nd/3rd sendControlEvent register
+    // a pending response that nothing can ever resolve. This reproduces a
+    // controlled node that throws on its first run.
+    const { nodes, edges } = makeControlSetup();
+
+    let resolveCtrl!: () => void;
+    const cancelledRef = { cancelled: false };
+    const ctrlStarted = new Promise<void>((r) => {
+      resolveCtrl = r;
+    });
+
+    const runner = new WorkflowRunner("job1", {
+      resolveExecutor: (node) => {
+        if (node.id === "ctrl") {
+          return {
+            async *genProcess() {
+              resolveCtrl();
+              yield {
+                __control__: { event_type: "run", properties: { x: 1 } }
+              };
+              while (!cancelledRef.cancelled) {
+                await new Promise((r) => setTimeout(r, 10));
+              }
+              yield { __control__: { event_type: "stop" } };
+            },
+            process: async () => ({})
+          } as unknown as NodeExecutor;
+        }
+        // Worker throws on its control event → its actor terminates.
+        return {
+          process: async () => {
+            throw new Error("worker boom");
+          }
+        };
+      }
+    });
+
+    const runPromise = runner.run({ job_id: "job1" }, { nodes, edges });
+    await ctrlStarted;
+    await new Promise((r) => setTimeout(r, 50));
+
+    // First dispatch: the worker errors → the pending response is rejected.
+    await expect(runner.sendControlEvent("worker", { x: 1 })).rejects.toThrow();
+
+    // Second dispatch to the now-terminated worker must reject promptly
+    // instead of hanging. The 10s test timeout fails the test if it hangs.
+    await expect(runner.sendControlEvent("worker", { x: 2 })).rejects.toThrow();
+
+    cancelledRef.cancelled = true;
+    await runPromise;
+  }, 10000);
+
   it("rejects if target node inbox not found", async () => {
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: () => ({

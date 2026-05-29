@@ -224,6 +224,7 @@ export class EmbeddingNode extends BaseNode {
 
 export class ImageGenerationNode extends BaseNode {
   static readonly nodeType = "gemini.image.ImageGeneration";
+  static readonly body = "content_card";
   static readonly title = "Image Generation";
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image"];
@@ -391,6 +392,7 @@ export class ImageGenerationNode extends BaseNode {
 
 export class TextToVideoGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.video.TextToVideo";
+  static readonly body = "content_card";
   static readonly title = "Text To Video";
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
@@ -476,6 +478,7 @@ export class TextToVideoGeminiNode extends BaseNode {
 
 export class ImageToVideoGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.video.ImageToVideo";
+  static readonly body = "content_card";
   static readonly title = "Image To Video";
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image"];
@@ -635,6 +638,7 @@ function extractVideoFromResponse(data: Record<string, unknown>): string {
 
 export class TextToSpeechGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.audio.TextToSpeech";
+  static readonly body = "content_card";
   static readonly title = "Text To Speech";
   static readonly inlineFields = ["text"];
   static readonly inputFields: string[] = [];
@@ -804,6 +808,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
 
 export class TranscribeGeminiNode extends BaseNode {
   static readonly nodeType = "gemini.audio.Transcribe";
+  static readonly body = "content_card";
   static readonly title = "Transcribe";
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["audio", "prompt"];

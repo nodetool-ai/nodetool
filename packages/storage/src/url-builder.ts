@@ -10,10 +10,8 @@
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createClient } from "@supabase/supabase-js";
+import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 import type { StorageConfig } from "./factory.js";
-
-/** 7 days — S3/Supabase maximum. */
-const SIGNED_URL_TTL = 604800;
 
 export function createAssetUrlBuilder(
   config: StorageConfig

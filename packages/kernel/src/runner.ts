@@ -223,6 +223,16 @@ export class WorkflowRunner {
     }
   >();
 
+  /**
+   * Nodes whose actor has finished running. A control event sent to such a
+   * node can never be answered (the actor's run loop is gone), so
+   * sendControlEvent rejects instead of registering a promise that hangs
+   * forever. This guards against an agent dispatching a burst of control
+   * tool calls where the controlled node errors (and terminates) partway
+   * through.
+   */
+  private _completedNodes = new Set<string>();
+
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
     this._options = options;
@@ -791,13 +801,21 @@ export class WorkflowRunner {
           // After actor completes, send EOS to all downstream inboxes
           await this._sendEOS(node.id);
 
-          // Reject any pending sendControlEvent promise if the actor errored
-          if (result.error) {
-            const pending = this._pendingControlResponses.get(node.id);
-            if (pending) {
-              this._pendingControlResponses.delete(node.id);
-              pending.reject(new Error(result.error));
-            }
+          // The actor's run loop is gone — it can no longer answer control
+          // events. Mark it so future sendControlEvent calls reject fast
+          // rather than hang, and reject any response still waiting on it
+          // (the actor finished without producing the awaited output, e.g.
+          // it errored mid-burst).
+          this._completedNodes.add(node.id);
+          const pending = this._pendingControlResponses.get(node.id);
+          if (pending) {
+            this._pendingControlResponses.delete(node.id);
+            pending.reject(
+              new Error(
+                result.error ??
+                  `Controlled node ${node.id} completed without responding`
+              )
+            );
           }
 
           // If this is an output node, collect the result
@@ -1185,6 +1203,14 @@ export class WorkflowRunner {
     const inbox = this._inboxes.get(targetNodeId);
     if (!inbox) {
       throw new Error(`Target node not found or no inbox: ${targetNodeId}`);
+    }
+
+    // The target's actor has already finished — nothing will ever read its
+    // inbox again, so a registered response would hang forever. Reject now.
+    if (this._completedNodes.has(targetNodeId)) {
+      throw new Error(
+        `Target node already completed and cannot handle control events: ${targetNodeId}`
+      );
     }
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {

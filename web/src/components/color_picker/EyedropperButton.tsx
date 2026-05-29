@@ -2,35 +2,12 @@ import React, { useCallback, useState, memo } from "react";
 import { StateIconButton } from "../ui_primitives";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 import type { Theme } from "@mui/material/styles";
-
-// EyeDropper API types (not yet in TypeScript standard library)
-interface EyeDropperResult {
-  sRGBHex: string;
-}
-
-interface EyeDropperInstance {
-  open(): Promise<EyeDropperResult>;
-}
-
-interface EyeDropperConstructor {
-  new(): EyeDropperInstance;
-}
-
-declare global {
-  interface Window {
-    EyeDropper?: EyeDropperConstructor;
-  }
-}
+import { isEyeDropperSupported } from "./EyedropperButton.helpers";
 
 interface EyedropperButtonProps {
   onColorPicked: (color: string) => void;
   disabled?: boolean;
 }
-
-// Check if EyeDropper API is supported
-const isEyeDropperSupported = (): boolean => {
-  return typeof window !== "undefined" && "EyeDropper" in window;
-};
 
 const EyedropperButton: React.FC<EyedropperButtonProps> = ({
   onColorPicked,
@@ -89,4 +66,3 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
 };
 
 export default memo(EyedropperButton);
-export { isEyeDropperSupported };

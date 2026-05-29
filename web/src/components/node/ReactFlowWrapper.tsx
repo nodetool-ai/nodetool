@@ -46,6 +46,13 @@ import {
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
 import { SubgraphNode, SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
+import {
+  GROUP_NODE_TYPE,
+  COMMENT_NODE_TYPE,
+  PREVIEW_NODE_TYPE,
+  REROUTE_NODE_TYPE,
+  STRING_NODE_TYPE
+} from "../../constants/nodeTypes";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import ConstantStringNode from "../node/ConstantStringNode";
@@ -386,14 +393,14 @@ const ReactFlowWrapper = ({
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
-      "nodetool.workflows.base_node.Group": GroupNode,
-      "nodetool.workflows.base_node.Comment": CommentNode,
-      "nodetool.workflows.base_node.Preview": PreviewNode,
+      [GROUP_NODE_TYPE]: GroupNode,
+      [COMMENT_NODE_TYPE]: CommentNode,
+      [PREVIEW_NODE_TYPE]: PreviewNode,
       "nodetool.workflows.base_node.Output": OutputNode,
       "nodetool.output.Output": OutputNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
-      "nodetool.constant.String": ConstantStringNode,
-      "nodetool.control.Reroute": RerouteNode,
+      [STRING_NODE_TYPE]: ConstantStringNode,
+      [REROUTE_NODE_TYPE]: RerouteNode,
       [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
       "kie.DynamicKie": DynamicKieSchemaNode,
@@ -704,7 +711,7 @@ const ReactFlowWrapper = ({
   if (!workflowExistsLocally && isLoading) {
     return (
       <div className="loading-overlay">
-        <LoadingSpinner /> Loading workflow...
+        <LoadingSpinner /> Loading workflow…
       </div>
     );
   }

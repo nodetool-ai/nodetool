@@ -7,6 +7,7 @@ import {
 import { gzipSync } from "node:zlib";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
+import { GZIP_THRESHOLD } from "./lib/compression.js";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
   loadExampleGraph,
@@ -1897,7 +1898,6 @@ export async function handleNodeHttpRequest(
 
   // Gzip-compress large JSON responses for performance (e.g. /api/nodes/metadata
   // is ~5 MB uncompressed, ~550 KB compressed).
-  const GZIP_THRESHOLD = 256 * 1024;
   const acceptEncoding = req.headers["accept-encoding"] ?? "";
   if (bodyBuffer.length > GZIP_THRESHOLD && acceptEncoding.includes("gzip")) {
     const compressed = gzipSync(bodyBuffer);

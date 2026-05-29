@@ -70,8 +70,7 @@ import { resolveExposedInputNames } from "../../../utils/exposedInputs";
 import { asImageRef } from "../../../utils/imageRef";
 import { createImageUrl } from "../../../utils/imageUtils";
 import { resolveAssetUri } from "../../node/output/hooks";
-
-const PAINTER_NODE_TYPE = "nodetool.image.Painter";
+import { PAINTER_NODE_TYPE } from "../../../constants/nodeTypes";
 
 // Max number of undo states retained. Keeps memory bounded; older
 // states are dropped from the front of the queue.

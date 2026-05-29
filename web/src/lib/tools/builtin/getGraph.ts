@@ -2,6 +2,7 @@ import { z } from "zod";
 import { uiGetGraphParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
+import { COMMENT_NODE_TYPE, GROUP_NODE_TYPE } from "../../../constants/nodeTypes";
 
 /**
  * Node types that are not expected to have incoming edges.
@@ -10,8 +11,8 @@ import { resolveWorkflowId } from "./workflow";
 const INPUT_OR_STRUCTURAL_PREFIXES = [
   "nodetool.input.",
   "nodetool.constant.",
-  "nodetool.workflows.base_node.Comment",
-  "nodetool.workflows.base_node.Group"
+  COMMENT_NODE_TYPE,
+  GROUP_NODE_TYPE
 ];
 
 function isInputOrStructural(nodeType: string | undefined): boolean {

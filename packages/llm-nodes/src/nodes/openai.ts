@@ -223,6 +223,7 @@ export class ModerationNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class CreateImageNode extends BaseNode {
   static readonly nodeType = "openai.image.CreateImage";
+  static readonly body = "content_card";
   static readonly title = "Create Image";
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
@@ -324,6 +325,7 @@ export class CreateImageNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class EditImageNode extends BaseNode {
   static readonly nodeType = "openai.image.EditImage";
+  static readonly body = "content_card";
   static readonly title = "Edit Image";
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image", "mask"];
@@ -483,6 +485,7 @@ async function refToBlob(ref: Record<string, unknown>): Promise<Blob> {
 // ---------------------------------------------------------------------------
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "openai.audio.TextToSpeech";
+  static readonly body = "content_card";
   static readonly title = "Text To Speech";
   static readonly description =
     "Converts text to speech using OpenAI TTS models.\n    audio, tts, text-to-speech, voice, synthesis";
@@ -563,6 +566,7 @@ export class TextToSpeechNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class TranslateNode extends BaseNode {
   static readonly nodeType = "openai.audio.Translate";
+  static readonly body = "content_card";
   static readonly title = "Translate";
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["audio"];
@@ -629,6 +633,7 @@ export class TranslateNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class TranscribeNode extends BaseNode {
   static readonly nodeType = "openai.audio.Transcribe";
+  static readonly body = "content_card";
   static readonly title = "Transcribe";
   static readonly description =
     "Converts speech to text using OpenAI's speech-to-text API.\n    audio, transcription, speech-to-text, stt, whisper";
@@ -854,6 +859,7 @@ export class TranscribeNode extends BaseNode {
 // ---------------------------------------------------------------------------
 export class RealtimeAgentNode extends BaseNode {
   static readonly nodeType = "openai.agents.RealtimeAgent";
+  static readonly body = "content_card";
   static readonly title = "Realtime Agent";
   static readonly description =
     "Realtime conversational agent using OpenAI’s WebSocket Realtime API.\n" +

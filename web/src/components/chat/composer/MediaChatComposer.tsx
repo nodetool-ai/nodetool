@@ -785,6 +785,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         <textarea
           ref={textareaRef}
           className="media-compose-input"
+          aria-label="Message prompt"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onInput={adjustHeight}
@@ -803,7 +804,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             sx={{ px: 1, color: "text.secondary" }}
           >
             <Text size="small" color="secondary">
-              Message queued — {queuedMessage.prompt.slice(0, 60)}
+              Message queued - {queuedMessage.prompt.slice(0, 60)}
             </Text>
             <Text
               size="small"

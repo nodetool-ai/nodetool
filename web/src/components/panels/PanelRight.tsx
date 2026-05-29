@@ -374,6 +374,9 @@ const PanelRight: React.FC = () => {
               onMouseDown={handleMouseDown}
               role="slider"
               aria-label="Resize panel"
+              aria-valuenow={panelSize}
+              aria-valuemin={60}
+              aria-valuemax={600}
               tabIndex={-1}
             />
             <div className="panel-inner-content">{inspectorBody}</div>

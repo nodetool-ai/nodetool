@@ -1,7 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { gzipSync } from "node:zlib";
-
-const GZIP_THRESHOLD = 256 * 1024;
+import { GZIP_THRESHOLD } from "./compression.js";
 
 /**
  * Converts a Fastify request into a Web API Request, calls the handler,

@@ -7,6 +7,8 @@ import {
   listRegisteredProviderIds,
   providerCapabilities,
   RECOMMENDED_MODELS,
+  OLLAMA_DEFAULT_URL,
+  LMSTUDIO_DEFAULT_URL,
   type ProviderId,
   type RecommendedUnifiedModel
 } from "@nodetool-ai/runtime";
@@ -504,9 +506,9 @@ async function getServerAvailability(): Promise<Record<string, boolean>> {
   };
 
   const [ollamaUrl, llamaUrl, lmstudioUrl, vllmUrl] = await Promise.all([
-    resolve("OLLAMA_API_URL", "http://127.0.0.1:11434"),
+    resolve("OLLAMA_API_URL", OLLAMA_DEFAULT_URL),
     resolve("LLAMA_CPP_URL", ""),
-    resolve("LMSTUDIO_API_URL", "http://127.0.0.1:1234"),
+    resolve("LMSTUDIO_API_URL", LMSTUDIO_DEFAULT_URL),
     resolve("VLLM_BASE_URL", "")
   ]);
 

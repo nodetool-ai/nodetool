@@ -278,6 +278,12 @@ export function createReplicateNodeClass(
       value: true,
       configurable: true
     });
+    // Media generators render as a content card. Metadata-driven equivalent of
+    // the frontend's old "replicate.* namespace + media output" heuristic.
+    Object.defineProperty(ReplicateNodeClass, "body", {
+      value: "content_card",
+      configurable: true
+    });
   }
   Object.defineProperty(ReplicateNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType === "dict" ? "any" : spec.outputType },

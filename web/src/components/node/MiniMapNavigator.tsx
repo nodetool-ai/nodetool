@@ -135,7 +135,7 @@ const MiniMapNavigator: React.FC = () => {
 
   return (
     <>
-      <div className="minimap-navigator" css={{ minimapStyle }}>
+      <div className="minimap-navigator" css={minimapStyle}>
         <div
           style={{
             position: "relative",

@@ -333,7 +333,7 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
         <FlexColumn gap={0.5}>
           <Caption>Layers</Caption>
           {layers.length === 0 ? (
-            <div className="empty">No layers yet — add one below.</div>
+            <div className="empty">No layers yet - add one below.</div>
           ) : (
             <div className="layer-stack">
               {stack.map(({ layer, index }) => (

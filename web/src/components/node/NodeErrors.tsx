@@ -189,6 +189,7 @@ export const NodeErrors: React.FC<{
       <div className="error-actions">
         <Tooltip title="Report this issue on GitHub">
           <button
+            type="button"
             className="report-button nodrag"
             onClick={handleReport}
             tabIndex={-1}

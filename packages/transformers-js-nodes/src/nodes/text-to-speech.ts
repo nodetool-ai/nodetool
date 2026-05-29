@@ -27,6 +27,7 @@ type TtsResult = {
 
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "transformers.TextToSpeech";
+  static readonly body = "content_card";
   static readonly title = "Text to Speech";
   static readonly description =
     "Synthesize speech from text using a Transformers.js text-to-speech pipeline.\n" +

@@ -30,8 +30,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
-
-const CHANNELS_NODE_TYPE = "nodetool.image.Channels";
+import { CHANNELS_NODE_TYPE } from "../../../constants/nodeTypes";
 
 type Channel = "red" | "green" | "blue" | "alpha" | "luminance";
 

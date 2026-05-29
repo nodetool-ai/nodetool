@@ -265,6 +265,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             ref={inputRef}
             type="text"
             defaultValue={workflow.name}
+            aria-label="Workflow name"
             autoFocus
             onFocus={handleInputFocus}
             onBlur={handleNameBlur}
