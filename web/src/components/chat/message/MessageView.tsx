@@ -26,14 +26,14 @@ import {
   FlexRow,
   FlexColumn,
   ToolbarIconButton,
-  LoadingSpinner
+  LoadingSpinner,
+  Collapse
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
-import { Collapse } from "@mui/material";
 
 
 import AgentExecutionView from "./AgentExecutionView";
