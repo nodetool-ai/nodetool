@@ -23,6 +23,7 @@ import {
   assetToFalUrl,
   imageToDataUrl
 } from "./fal-base.js";
+import { reportFalCost } from "./fal-cost.js";
 
 export interface FalManifestEntry {
   endpointId: string;
@@ -302,6 +303,7 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       const apiKey = getFalApiKey(this._secrets);
       const args = await buildArgs(this, specRef, apiKey, context);
       const res = await falSubmit(apiKey, endpointId, args);
+      reportFalCost(context, nodeType, res, args);
       if (isImageOutput) {
         const images = res.images as
           | Array<{

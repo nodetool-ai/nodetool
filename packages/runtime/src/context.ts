@@ -1237,8 +1237,16 @@ export class ProcessingContext {
   }
 
   /** Record actual provider charge for the current node run (attached to completed NodeUpdate). */
-  setProviderCost(provider: string, amount: number, unit: string): void {
-    this._providerCost = { provider, amount, unit };
+  setProviderCost(
+    provider: string,
+    amount: number,
+    unit: string,
+    details?: Pick<
+      ProviderCost,
+      "model" | "billing_unit" | "quantity" | "unit_price" | "currency"
+    >
+  ): void {
+    this._providerCost = { provider, amount, unit, ...details };
   }
 
   getProviderCost(): ProviderCost | null {
