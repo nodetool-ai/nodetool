@@ -78,7 +78,7 @@ interface OutlinerRowProps {
   onToggleVisible: (uuid: string) => void;
 }
 
-const OutlinerRow = ({
+const OutlinerRow = memo(({
   node,
   selectedUuid,
   onSelect,
@@ -124,7 +124,7 @@ const OutlinerRow = ({
       ))}
     </>
   );
-};
+});
 
 interface SceneOutlinerProps {
   nodes: SceneTreeNode[];

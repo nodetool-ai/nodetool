@@ -24,6 +24,7 @@ import usePacksStore, {
   type PackInfo,
   type SkipReason
 } from "../../stores/PacksStore";
+import { useShallow } from "zustand/react/shallow";
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -264,7 +265,18 @@ function PackagesMenu() {
     setTrusted,
     setAllowUnlisted,
     reload
-  } = usePacksStore();
+  } = usePacksStore(
+    useShallow((state) => ({
+      packs: state.packs,
+      trust: state.trust,
+      isLoading: state.isLoading,
+      error: state.error,
+      fetch: state.fetch,
+      setTrusted: state.setTrusted,
+      setAllowUnlisted: state.setAllowUnlisted,
+      reload: state.reload
+    }))
+  );
 
   useEffect(() => {
     void fetch();
