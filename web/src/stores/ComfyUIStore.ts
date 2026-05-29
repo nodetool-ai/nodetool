@@ -12,6 +12,7 @@ import {
   normalizeComfyBaseUrl
 } from "../services/ComfyUIService";
 import useMetadataStore from "./MetadataStore";
+import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { comfyObjectInfoToMetadataMap } from "../utils/comfySchemaConverter";
 import { BASE_URL } from "./BASE_URL";
 
@@ -231,7 +232,7 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
         });
         // Use an existing node component as base for all comfy nodes
         const baseComponent =
-          metaStore.nodeTypes["nodetool.workflows.base_node.Preview"] ||
+          metaStore.nodeTypes[PREVIEW_NODE_TYPE] ||
           Object.values(metaStore.nodeTypes)[0];
         if (baseComponent) {
           for (const nodeType of Object.keys(comfyMetadata)) {

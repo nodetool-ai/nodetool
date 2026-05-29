@@ -6,6 +6,11 @@ import useMetadataStore from "./MetadataStore";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 import { NODE_COLLAPSED_STRIP_HEIGHT_PX } from "./collapseNodeLayout";
+import {
+  GROUP_NODE_TYPE,
+  COMMENT_NODE_TYPE,
+  PREVIEW_NODE_TYPE
+} from "../constants/nodeTypes";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -17,7 +22,7 @@ export function graphNodeToReactFlowNode(
 ): Node<NodeData> {
   const ui_properties = parseNodeUIProperties(node.ui_properties);
   const isCollapsed = ui_properties?.collapsed === true;
-  const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
+  const isPreviewNode = node.type === PREVIEW_NODE_TYPE;
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
 
   // Debug: warn if node.data contains a stale workflow_id
@@ -73,8 +78,8 @@ export function graphNodeToReactFlowNode(
     dragHandle: ".node-drag-handle",
     expandParent: !(
       node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type === COMMENT_NODE_TYPE ||
+      node.type === GROUP_NODE_TYPE
     ),
     selectable,
     className: reactFlowNodeChromeClassName({
@@ -117,7 +122,7 @@ export function graphNodeToReactFlowNode(
     },
     zIndex:
       node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type === GROUP_NODE_TYPE
         ? -10
         : ui_properties?.zIndex
   };

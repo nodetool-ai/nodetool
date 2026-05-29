@@ -32,8 +32,7 @@ import {
   useUpstreamValue
 } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
-
-const MASK_NODE_TYPE = "lib.image.Mask";
+import { MASK_NODE_TYPE } from "../../../constants/nodeTypes";
 
 type MaskTab = "image1" | "image2" | "mask" | "result";
 

@@ -29,8 +29,7 @@ import {
   useUpstreamValue
 } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
-
-const PASTE_NODE_TYPE = "nodetool.image.Paste";
+import { PASTE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
   css({

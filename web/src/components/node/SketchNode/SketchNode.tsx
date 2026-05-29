@@ -335,7 +335,7 @@ function ensureEditableActiveLayer(doc: SketchDocument): SketchDocument {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-export const SKETCH_NODE_TYPE = "nodetool.image.ImageEditor";
+export { SKETCH_NODE_TYPE } from "../../../constants/nodeTypes";
 
 /** Composited `image` output from the editor (flattenToDataUrl); preferred over re-flattening sketch_data alone. */
 function getSketchOutputImageUri(

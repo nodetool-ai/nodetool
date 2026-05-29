@@ -31,8 +31,7 @@ import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
-
-const CURVES_NODE_TYPE = "lib.image.color_grading.Curves";
+import { CURVES_NODE_TYPE } from "../../../constants/nodeTypes";
 
 interface SliderSpec {
   name: string;
