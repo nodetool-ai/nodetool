@@ -142,9 +142,10 @@ describe("TextToSpeechNode", () => {
   });
 
   it("offers eleven_v3 as a model option", () => {
-    const desc = TextToSpeechNode.toDescriptor();
-    const modelProp = desc.properties.find((p) => p.name === "model_id");
-    expect(modelProp?.values).toContain("eleven_v3");
+    const modelProp = TextToSpeechNode.getDeclaredProperties().find(
+      (p) => p.name === "model_id"
+    );
+    expect(modelProp?.options.values).toContain("eleven_v3");
   });
 
   it("sends the selected model_id in the payload", async () => {

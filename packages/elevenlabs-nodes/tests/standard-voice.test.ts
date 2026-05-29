@@ -38,10 +38,11 @@ describe("StandardVoiceNode", () => {
   });
 
   it("exposes every standard voice as an enum option", () => {
-    const desc = StandardVoiceNode.toDescriptor();
-    const voiceProp = desc.properties?.find((p) => p.name === "voice");
+    const voiceProp = StandardVoiceNode.getDeclaredProperties().find(
+      (p) => p.name === "voice"
+    );
     expect(voiceProp).toBeDefined();
-    expect(voiceProp?.values).toEqual(VOICE_NAMES);
+    expect(voiceProp?.options.values).toEqual(VOICE_NAMES);
   });
 
   it("declares a string voice_id output", () => {
