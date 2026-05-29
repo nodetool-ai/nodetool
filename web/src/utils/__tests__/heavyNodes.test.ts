@@ -1,7 +1,7 @@
-import { isHeavyNode, countHeavyNodes } from "./heavyNodes";
+import { isHeavyNode, countHeavyNodes } from "../heavyNodes";
 import type { Node } from "@xyflow/react";
-import type { NodeData } from "../stores/NodeData";
-import type { NodeMetadata, UnifiedModel } from "../stores/ApiTypes";
+import type { NodeData } from "../../stores/NodeData";
+import type { NodeMetadata, UnifiedModel } from "../../stores/ApiTypes";
 
 const meta = (over: Partial<NodeMetadata>): NodeMetadata => over as NodeMetadata;
 

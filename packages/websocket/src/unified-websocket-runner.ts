@@ -828,6 +828,13 @@ export class UnifiedWebSocketRunner {
    * flight. They start automatically (FIFO) as active jobs finish.
    */
   private jobQueue = new JobConcurrencyQueue<RunJobRequest>();
+  /**
+   * Count of jobs that have passed the concurrency gate but haven't been added
+   * to {@link activeJobs} yet (startJob awaits graph hydration first). Counted
+   * toward the cap synchronously so two run_job commands arriving back-to-back
+   * can't both slip past `activeJobs.size` and exceed MAX_CONCURRENT_JOBS.
+   */
+  private startingJobs = 0;
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
@@ -1213,9 +1220,24 @@ export class UnifiedWebSocketRunner {
 
   /** Default cap when `MAX_CONCURRENT_JOBS` is unset/invalid. */
   private static readonly DEFAULT_MAX_CONCURRENT_JOBS = 4;
+  /** How long a resolved MAX_CONCURRENT_JOBS value is reused before re-reading. */
+  private static readonly MAX_CONCURRENT_JOBS_TTL_MS = 5000;
+  private maxConcurrentJobsCache: { value: number; at: number } | null = null;
 
-  /** Resolve the per-client concurrency cap from settings (>= 1). */
+  /**
+   * Resolve the per-client concurrency cap from settings (>= 1), cached for a
+   * few seconds so back-to-back run_job/drainQueue calls don't hit the settings
+   * store every time. The setting changes rarely, so a short TTL is fine.
+   */
   private async getMaxConcurrentJobs(): Promise<number> {
+    const now = Date.now();
+    const cached = this.maxConcurrentJobsCache;
+    if (
+      cached &&
+      now - cached.at < UnifiedWebSocketRunner.MAX_CONCURRENT_JOBS_TTL_MS
+    ) {
+      return cached.value;
+    }
     let raw: string | null = null;
     try {
       raw = await getSetting("MAX_CONCURRENT_JOBS");
@@ -1225,9 +1247,17 @@ export class UnifiedWebSocketRunner {
       // best-effort DB access.
     }
     const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-    return Number.isFinite(parsed) && parsed > 0
-      ? parsed
-      : UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS;
+    const value =
+      Number.isFinite(parsed) && parsed > 0
+        ? parsed
+        : UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS;
+    this.maxConcurrentJobsCache = { value, at: now };
+    return value;
+  }
+
+  /** Jobs occupying a concurrency slot: live + reserved-but-not-yet-registered. */
+  private get inFlightJobCount(): number {
+    return this.activeJobs.size + this.startingJobs;
   }
 
   /**
@@ -1237,10 +1267,13 @@ export class UnifiedWebSocketRunner {
    */
   async runJob(req: RunJobRequest): Promise<void> {
     const max = await this.getMaxConcurrentJobs();
-    if (this.activeJobs.size >= max) {
+    // Reserve the slot synchronously (after the only await above) so two
+    // run_job commands can't both observe a free slot before either registers.
+    if (this.inFlightJobCount >= max) {
       this.enqueueJob(req);
       return;
     }
+    this.startingJobs++;
     await this.startJob(req);
   }
 
@@ -1266,18 +1299,34 @@ export class UnifiedWebSocketRunner {
    */
   private drainQueue(): void {
     void (async () => {
-      try {
-        const max = await this.getMaxConcurrentJobs();
-        if (this.activeJobs.size < max) {
-          const next = this.jobQueue.dequeue();
-          if (next) {
+      const max = await this.getMaxConcurrentJobs().catch(
+        () => UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS
+      );
+      if (this.inFlightJobCount < max) {
+        const next = this.jobQueue.dequeue();
+        if (next) {
+          // Reserve the slot synchronously, mirroring runJob, so a concurrent
+          // run_job/drain can't also claim it before startJob registers.
+          this.startingJobs++;
+          try {
             await this.startJob(next);
+          } catch (err) {
+            // The dequeued job threw before it could register/stream. Don't
+            // silently lose it: tell the client this run failed, then keep
+            // draining so the rest of the queue still progresses.
+            this.logError("startJob (from queue) failed", err);
+            await this.sendMessage({
+              type: "job_update",
+              status: "failed",
+              job_id: next.job_id ?? null,
+              workflow_id: next.workflow_id ?? null,
+              error: formatSanitizedError(err)
+            });
+            this.drainQueue();
           }
         }
-        this.broadcastQueuePositions();
-      } catch (err) {
-        this.logError("drainQueue failed", err);
       }
+      this.broadcastQueuePositions();
     })();
   }
 
@@ -1290,12 +1339,35 @@ export class UnifiedWebSocketRunner {
         job_id: jobId,
         workflow_id: workflowId,
         queue_position: position,
-        message: `Queued — ${position} run(s) ahead`
+        message: `Queued (#${position})`
       });
     }
   }
 
   private async startJob(req: RunJobRequest): Promise<void> {
+    // The caller (runJob/drainQueue) reserved a concurrency slot via
+    // startingJobs++. Release it exactly once here: the slot is handed off to
+    // activeJobs on successful registration, or freed on early return/throw.
+    let slotReleased = false;
+    const releaseSlot = () => {
+      if (!slotReleased) {
+        slotReleased = true;
+        this.startingJobs = Math.max(0, this.startingJobs - 1);
+      }
+    };
+    try {
+      await this.startJobInner(req, releaseSlot);
+    } finally {
+      // Safety net: if startJobInner returned/threw without registering, the
+      // slot is freed so it doesn't leak and permanently shrink the cap.
+      releaseSlot();
+    }
+  }
+
+  private async startJobInner(
+    req: RunJobRequest,
+    releaseSlot: () => void
+  ): Promise<void> {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
@@ -1388,6 +1460,9 @@ export class UnifiedWebSocketRunner {
       status: "running"
     };
     this.activeJobs.set(jobId, active);
+    // Slot ownership transfers from startingJobs to activeJobs now that the
+    // job is registered and counted by activeJobs.size.
+    releaseSlot();
     log.info("Job started", { jobId, workflowId });
 
     try {
@@ -1868,17 +1943,18 @@ export class UnifiedWebSocketRunner {
     // and tell the client it's cancelled before it ever starts.
     const queued = this.jobQueue.remove(jobId);
     if (queued) {
+      const cancelledWorkflowId = queued.workflow_id ?? workflowId ?? null;
       await this.sendMessage({
         type: "job_update",
         status: "cancelled",
         job_id: jobId,
-        workflow_id: queued.workflow_id ?? workflowId ?? ""
+        workflow_id: cancelledWorkflowId
       });
       this.broadcastQueuePositions();
       return {
         message: "Queued job cancelled",
         job_id: jobId,
-        workflow_id: queued.workflow_id ?? workflowId ?? ""
+        workflow_id: cancelledWorkflowId
       };
     }
 

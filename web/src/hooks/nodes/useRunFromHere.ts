@@ -15,9 +15,9 @@ interface UseRunFromHereReturn {
   runFromHere: () => void;
   /**
    * Always false: each "Run Node" click dispatches an independent job, so the
-   * button is never disabled — the backend caps concurrency and queues a run
-   * when a running job already contains this node id. Kept for the consumers
-   * that read it (NodeToolButtons, the context menu label).
+   * button is never disabled — the backend caps how many jobs run concurrently
+   * (MAX_CONCURRENT_JOBS) and queues the rest. Kept for the consumers that read
+   * it (NodeToolButtons, the context menu label).
    */
   isWorkflowRunning: boolean;
 }
@@ -28,8 +28,8 @@ interface UseRunFromHereReturn {
  * with realistic inputs even though only this one node is sent.
  *
  * The run is dispatched as an independent job (not the shared per-workflow
- * runner), so different nodes run in tandem; the backend queues a run when a
- * job already contains this node id, so the same node never runs twice at once.
+ * runner), so different nodes run in tandem. The backend caps concurrency per
+ * client (MAX_CONCURRENT_JOBS) and queues runs beyond that limit.
  */
 export function useRunFromHere(
   node: Node<NodeData> | null | undefined
@@ -98,8 +98,8 @@ export function useRunFromHere(
       edges: []
     };
 
-    // Independent job; the backend queues it if a running job already contains
-    // this node id, so the same node never executes twice concurrently.
+    // Independent job; the backend runs it immediately when under the
+    // per-client concurrency cap (MAX_CONCURRENT_JOBS), otherwise queues it.
     void runInlineGraphJob({ graph, workflowId: workflow.id });
 
     addNotification({

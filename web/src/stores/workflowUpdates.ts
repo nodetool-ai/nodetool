@@ -17,7 +17,6 @@ import {
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
-import { useRunningJobsStore } from "./RunningJobsStore";
 import useLogsStore from "./LogStore";
 import useErrorStore, { normalizeNodeError } from "./ErrorStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
@@ -352,6 +351,21 @@ export const handleUpdate = (
   }
   if (data.type === "job_update") {
     const job = data;
+    const runnerJobId = runnerStore.getState().job_id;
+    // The per-workflow runner represents the single full run. Concurrent
+    // inline/per-node jobs share this workflow_id but have their own job_id, so
+    // only updates for the runner's OWN job (or a fresh run when the runner is
+    // idle and hasn't claimed a job yet) may drive its state/job_id/queue.
+    // Otherwise an inline job's update could hijack the Stop button's target or
+    // clear the full run's queued position. The running-job COUNT below still
+    // tracks every job.
+    const runnerState = runnerStore.getState().state;
+    const isRunnerJob =
+      !job.job_id ||
+      job.job_id === runnerJobId ||
+      (runnerJobId === null &&
+        (runnerState === "idle" || runnerState === "connecting"));
+
     // Whether this run was sitting in the backend's concurrency queue, so we
     // can clear the "Queued…" status once it actually starts running.
     const wasQueued = runnerStore.getState().queuePosition !== null;
@@ -387,39 +401,28 @@ export const handleUpdate = (
       newState = "error";
     }
 
-    if (newState) {
-      runnerStore.setState({ state: newState });
-    }
-
-    if (job.job_id) {
-      runnerStore.setState({ job_id: job.job_id });
-    }
-
-    // Maintain the per-workflow running-job count. This fires for every job on
-    // the workflow — the single full run plus any concurrent per-node/generative
-    // runs — so the toolbar can show how many are in flight.
-    if (job.job_id) {
-      const runningJobs = useRunningJobsStore.getState();
-      if (job.status === "running") {
-        runningJobs.start(workflow.id, job.job_id);
-      } else if (
-        job.status === "completed" ||
-        job.status === "failed" ||
-        job.status === "timed_out" ||
-        job.status === "cancelled"
-      ) {
-        runningJobs.end(workflow.id, job.job_id);
+    if (isRunnerJob) {
+      if (newState) {
+        runnerStore.setState({ state: newState });
       }
+
+      if (job.job_id) {
+        runnerStore.setState({ job_id: job.job_id });
+      }
+
+      // Track queue position so the UI can show "Queued — N ahead". Any
+      // non-queued update (running, completed, …) clears it.
+      runnerStore.setState({
+        queuePosition:
+          job.status === "queued" ? job.queue_position ?? null : null
+      });
     }
 
-    // Track queue position so the UI can show "Queued — N ahead". Any
-    // non-queued update (running, completed, …) clears it.
-    runnerStore.setState({
-      queuePosition:
-        job.status === "queued" ? job.queue_position ?? null : null
-    });
-
-    if (job.run_state?.suspension_reason && newState === "suspended") {
+    if (
+      isRunnerJob &&
+      job.run_state?.suspension_reason &&
+      newState === "suspended"
+    ) {
       runnerStore.setState({ statusMessage: job.run_state.suspension_reason });
     }
 
@@ -529,14 +532,16 @@ export const handleUpdate = (
         break;
       }
       case "queued":
-        runnerStore.setState({
-          statusMessage:
-            job.message || "Worker is booting (may take a 15 seconds)..."
-        });
+        if (isRunnerJob) {
+          runnerStore.setState({
+            statusMessage:
+              job.message || "Worker is booting (may take a few seconds)..."
+          });
+        }
         break;
       case "running":
         // Clear the "Queued…" status carried over once the run actually starts.
-        if (wasQueued) {
+        if (isRunnerJob && wasQueued) {
           runnerStore.setState({ statusMessage: null });
         }
         if (job.message) {

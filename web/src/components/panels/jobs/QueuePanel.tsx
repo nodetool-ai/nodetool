@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useMemo, useState, memo } from "react";
-import { List, ListItem } from "@mui/material";
+import { useMemo, useState, memo, type ReactNode } from "react";
 import { useRunningJobs } from "../../../hooks/useRunningJobs";
 import { Job } from "../../../stores/ApiTypes";
 import { groupByDate } from "../../../utils/groupByDate";
@@ -41,12 +40,13 @@ const QueueGroupHeader = memo(function QueueGroupHeader({
   label: string;
 }) {
   return (
-    <ListItem sx={{ pt: 1, pb: 0.5, px: 2 }}>
+    <Box sx={{ pt: 1, pb: 0.5, px: 2 }}>
       <Text
         size="tiny"
         color="secondary"
         weight={600}
         sx={{
+          display: "block",
           textTransform: "uppercase",
           letterSpacing: "0.05em",
           width: "100%",
@@ -58,7 +58,7 @@ const QueueGroupHeader = memo(function QueueGroupHeader({
       >
         {label}
       </Text>
-    </ListItem>
+    </Box>
   );
 });
 
@@ -81,7 +81,7 @@ const QueueListContent = ({ jobs }: { jobs: Job[] }) => {
       return dateB - dateA;
     });
 
-    const result: React.ReactNode[] = [];
+    const result: ReactNode[] = [];
     let currentGroup = "";
     sorted.forEach((job) => {
       const group = groupByDate(job.started_at || new Date().toISOString());
@@ -153,9 +153,9 @@ const QueuePanel = memo(function QueuePanel() {
             </Text>
           </Box>
         ) : (
-          <List sx={{ px: 0 }}>
+          <Box sx={{ px: 0 }}>
             <QueueListContent jobs={filtered} />
-          </List>
+          </Box>
         )}
       </Box>
     </FlexColumn>
