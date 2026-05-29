@@ -13,12 +13,14 @@ import useErrorStore from "../ErrorStore";
 import { handleUpdate } from "../workflowUpdates";
 
 const mockAddNotification = jest.fn();
+const mockDequeueNextPendingRun = jest.fn();
 
 const mockRunnerStore = {
   getState: () => ({
     job_id: "job-1",
     state: "running",
-    addNotification: mockAddNotification
+    addNotification: mockAddNotification,
+    dequeueNextPendingRun: mockDequeueNextPendingRun
   }),
   setState: jest.fn(),
   subscribe: jest.fn()
@@ -46,6 +48,7 @@ beforeEach(() => {
   useErrorStore.setState({ errors: {} });
   mockRunnerStore.setState.mockClear();
   mockAddNotification.mockClear();
+  mockDequeueNextPendingRun.mockClear();
 });
 
 describe("handleUpdate", () => {

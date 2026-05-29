@@ -100,7 +100,9 @@ export function useRunFromHere(
 
     // Independent job; the backend runs it immediately when under the
     // per-client concurrency cap (MAX_CONCURRENT_JOBS), otherwise queues it.
-    void runInlineGraphJob({ graph, workflowId: workflow.id });
+    const jobName =
+      node.data?.title?.trim() || metadata?.title || node.type || undefined;
+    void runInlineGraphJob({ graph, workflowId: workflow.id, jobName });
 
     addNotification({
       type: "info",

@@ -85,15 +85,6 @@ export const mergeNodeUpdateProperties = ({
   };
 };
 
-const formatJobDurationSeconds = (
-  duration: number | null | undefined
-): string | null => {
-  if (typeof duration !== "number" || !Number.isFinite(duration)) {
-    return null;
-  }
-  return duration.toLocaleString(undefined, { maximumFractionDigits: 2 });
-};
-
 // Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
 let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () =>
   undefined;
@@ -410,7 +401,7 @@ export const handleUpdate = (
         runnerStore.setState({ job_id: job.job_id });
       }
 
-      // Track queue position so the UI can show "Queued — N ahead". Any
+      // Track queue position so the UI can show "Queued (#N)". Any
       // non-queued update (running, completed, …) clears it.
       runnerStore.setState({
         queuePosition:
@@ -426,10 +417,11 @@ export const handleUpdate = (
       runnerStore.setState({ statusMessage: job.run_state.suspension_reason });
     }
 
-    // Invalidate jobs query to refresh the job panel when job state changes
-    // TEMPORARILY DISABLED "running" - testing performance impact of polling
+    // Refresh the Queue panel when a job moves between lifecycle columns.
+    // These are per-job (not per-node) updates, so the frequency is low.
     if (
-      // job.status === "running" ||
+      job.status === "queued" ||
+      job.status === "running" ||
       job.status === "completed" ||
       job.status === "cancelled" ||
       job.status === "failed" ||
@@ -448,16 +440,9 @@ export const handleUpdate = (
 
     switch (job.status) {
       case "completed": {
-        const formattedDuration = formatJobDurationSeconds(job.duration);
-        runner.addNotification({
-          type: "info",
-          alert: true,
-          content: formattedDuration
-            ? `Job completed in ${formattedDuration} seconds`
-            : "Job completed"
-        });
-        // Note: Don't clear edges on completion - keep the stream item counts visible
-        // Edges are cleared when a new run starts (in WorkflowRunner.ts)
+        // No toast — completion is reflected in the Queue panel/overlay.
+        // Don't clear edges on completion; keep the stream item counts visible.
+        // Edges are cleared when a new run starts (in WorkflowRunner.ts).
         clearProgress(workflow.id);
         clearTimings(workflow.id);
         break;
@@ -541,15 +526,9 @@ export const handleUpdate = (
         break;
       case "running":
         // Clear the "Queued…" status carried over once the run actually starts.
+        // No "started" toast — the Queue panel/overlay shows the running job.
         if (isRunnerJob && wasQueued) {
           runnerStore.setState({ statusMessage: null });
-        }
-        if (job.message) {
-          runner.addNotification({
-            type: "info",
-            alert: true,
-            content: job.message
-          });
         }
         break;
       case "suspended":

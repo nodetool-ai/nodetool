@@ -13,7 +13,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, NotificationBadge } from "../ui_primitives";
+import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -414,9 +414,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             onClick={handleOpenLogsDialog}
             sx={{ padding: "4px" }}
           >
-            <NotificationBadge count={logCount} color="warning" max={99}>
-              <ListAltIcon sx={{ fontSize: "1rem" }} />
-            </NotificationBadge>
+            <ListAltIcon sx={{ fontSize: "1rem" }} />
           </ToolbarIconButton>
         )}
       </FlexRow>

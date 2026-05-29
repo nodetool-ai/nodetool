@@ -52,6 +52,8 @@ interface ToolbarButtonProps {
   className?: string;
   onClick?: (e: React.MouseEvent<HTMLElement>) => void;
   disabled?: boolean;
+  /** When greater than 0, renders a small count badge on the button corner. */
+  badge?: number;
   "aria-label"?: string;
 }
 
@@ -64,9 +66,11 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(
     className,
     onClick,
     disabled,
+    badge,
     "aria-label": ariaLabel
   }) {
     const title = shortcut ? getShortcutTooltip(shortcut) : tooltip;
+    const showBadge = typeof badge === "number" && badge > 0;
 
     const fabElement = (
       <Fab
@@ -82,6 +86,11 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(
         disableRipple
       >
         {icon}
+        {showBadge && (
+          <span className="run-queue-badge" aria-hidden>
+            {badge}
+          </span>
+        )}
       </Fab>
     );
 
@@ -209,6 +218,28 @@ const styles = (theme: Theme) =>
           pointerEvents: "none",
           zIndex: -1
         }
+      },
+      /* Count of runs queued behind the active run */
+      ".run-queue-badge": {
+        position: "absolute",
+        top: "-2px",
+        right: "-2px",
+        minWidth: "18px",
+        height: "18px",
+        padding: "0 4px",
+        boxSizing: "border-box",
+        borderRadius: "999px",
+        backgroundColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.primary.contrastText,
+        border: `2px solid ${theme.vars.palette.grey[900]}`,
+        fontSize: "0.6rem",
+        fontWeight: 700,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        lineHeight: 1,
+        pointerEvents: "none",
+        zIndex: 2
       }
     },
 
@@ -372,7 +403,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isWorkflowRunning,
     isPaused,
     isSuspended,
-    queuePosition
+    queuePosition,
+    pendingRunCount
   } = useFloatingToolbarActions();
 
   const { bottomPanelVisible, bottomPanelSize } = useBottomPanelStore(
@@ -424,8 +456,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   );
 
   // Keyboard shortcuts
-  useCombo(["control", "enter"], handleRun, true, !isWorkflowRunning);
-  useCombo(["meta", "enter"], handleRun, true, !isWorkflowRunning);
+  // Always active: while a run is in progress, the shortcut queues another run.
+  useCombo(["control", "enter"], handleRun, true);
+  useCombo(["meta", "enter"], handleRun, true);
   useCombo(
     ["escape"],
     handleStop,
@@ -609,17 +642,19 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             )
           }
           tooltip={
-            queuePosition != null
-              ? `Queued (#${queuePosition})`
-              : isWorkflowRunning
-                ? "Running..."
-                : "Run"
+            pendingRunCount > 0
+              ? `Running — ${pendingRunCount} queued (click to queue another)`
+              : queuePosition != null
+                ? `Queued (#${queuePosition})`
+                : isWorkflowRunning
+                  ? "Running (click to queue another run)"
+                  : "Run"
           }
-          shortcut="runWorkflow"
+          shortcut={isWorkflowRunning ? undefined : "runWorkflow"}
           variant="primary"
           className={isWorkflowRunning ? "running" : undefined}
           onClick={handleRun}
-          disabled={isWorkflowRunning}
+          badge={pendingRunCount}
           aria-label="Run workflow"
         />
       </Box>

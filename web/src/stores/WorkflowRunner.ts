@@ -24,6 +24,7 @@ import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useStatusStore from "./StatusStore";
 import useErrorStore from "./ErrorStore";
+import useMetadataStore from "./MetadataStore";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { supabase } from "../lib/supabaseClient";
@@ -33,11 +34,91 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
 import { getNodeStore, MsgpackData } from "./workflowUpdates";
+import { queryClient } from "../queryClient";
 
 export type MessageHandler = (
   workflow: WorkflowAttributes,
   data: MsgpackData
 ) => void;
+
+/**
+ * Build the `run_job` payload from the current graph. Shared by the active run
+ * and queued submissions (clicking Run while busy). Filters out bypassed nodes
+ * and their edges.
+ */
+/**
+ * Title for a run: the node's name for a single-node run, otherwise the
+ * workflow name. Stored on the job and shown in the queue.
+ */
+export const deriveJobTitle = (
+  workflow: WorkflowAttributes,
+  nodes: Node<NodeData>[],
+  subgraphNodeIds?: Set<string>
+): string => {
+  if (subgraphNodeIds && subgraphNodeIds.size > 0) {
+    const selected = nodes.filter((n) => subgraphNodeIds.has(n.id));
+    if (selected.length === 1) {
+      const node = selected[0];
+      // Same precedence as NodeHeader: the node's custom title, else the node
+      // type's metadata title.
+      const custom =
+        typeof node.data?.title === "string" ? node.data.title.trim() : "";
+      const metadataTitle = node.type
+        ? useMetadataStore.getState().getMetadata(node.type)?.title
+        : undefined;
+      const title = custom || metadataTitle || node.type?.split(".").pop();
+      if (title) {
+        return title;
+      }
+    }
+  }
+  return workflow.name || "Workflow";
+};
+
+const buildRunJobData = (opts: {
+  jobId: string;
+  jobName: string;
+  params: Record<string, unknown>;
+  workflow: WorkflowAttributes;
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+  resource_limits?: Record<string, unknown>;
+  authToken: string;
+  userId: string;
+}): RunJobRequest & { settings?: Record<string, unknown>; job_id: string } => {
+  const activeNodes: Node<NodeData>[] = [];
+  const bypassedNodeIds = new Set<string>();
+  for (const node of opts.nodes) {
+    if (node.data.bypassed) {
+      bypassedNodeIds.add(node.id);
+    } else {
+      activeNodes.push(node);
+    }
+  }
+  const activeEdges = opts.edges.filter(
+    (edge) =>
+      !bypassedNodeIds.has(edge.source) && !bypassedNodeIds.has(edge.target)
+  );
+  return {
+    type: "run_job_request",
+    api_url: BASE_URL,
+    user_id: opts.userId,
+    workflow_id: opts.workflow.id,
+    job_name: opts.jobName,
+    auth_token: opts.authToken,
+    job_type: "workflow",
+    execution_strategy: opts.resource_limits ? "subprocess" : "threaded",
+    params: opts.params || {},
+    explicit_types: false,
+    graph: {
+      nodes: activeNodes.map(reactFlowNodeToGraphNode),
+      edges: activeEdges.map(reactFlowEdgeToGraphEdge)
+    },
+    resource_limits: opts.resource_limits,
+    settings: { ...(opts.workflow.settings ?? {}) },
+    job_id: opts.jobId
+  };
+};
 
 export type WorkflowRunner = {
   workflow: WorkflowAttributes | null;
@@ -276,11 +357,53 @@ export const createWorkflowRunnerStore = (
         busy &&
         currentState !== "connecting" &&
         (!currentJobId || !wsConnected);
+
+      // Resolve auth once; both the active run and a queued submission need it.
+      let auth_token = "local_token";
+      let user = "1";
+      if (!isLocalhost) {
+        const {
+          data: { session }
+        } = await supabase.auth.getSession();
+        auth_token = session?.access_token || "";
+        user = session?.user?.id || "";
+      }
+
+      const jobId = uuidv4();
+      const req = buildRunJobData({
+        jobId,
+        jobName: deriveJobTitle(workflow, nodes, subgraphNodeIds),
+        params,
+        workflow,
+        nodes,
+        edges,
+        resource_limits,
+        authToken: auth_token,
+        userId: user
+      });
+
       if (busy && !stuck) {
-        console.warn(
-          `WorkflowRunner[${workflowId}]: Ignoring run request while workflow is busy`,
-          { currentState }
-        );
+        // A run is already in progress for this workflow. Submit this one to
+        // the backend, which persists it as a "queued" job and starts it when
+        // the current run finishes (one run per workflow). Leave the active
+        // run's display state untouched; the queued job shows in the Queue
+        // panel via jobs.list.
+        console.info(`WorkflowRunner[${workflowId}]: Submitting queued run`, {
+          jobId
+        });
+        try {
+          await globalWebSocketManager.send({
+            type: "run_job",
+            command: "run_job",
+            data: req
+          });
+          queryClient.invalidateQueries({ queryKey: ["jobs"] });
+        } catch (error) {
+          console.error(
+            `WorkflowRunner[${workflowId}]: Failed to submit queued run`,
+            error
+          );
+        }
         return;
       }
       if (stuck) {
@@ -295,10 +418,7 @@ export const createWorkflowRunnerStore = (
 
       await get().ensureConnection();
 
-      set({ workflow, nodes, edges });
-
-      const jobId = uuidv4();
-      set({ job_id: jobId, queuePosition: null });
+      set({ workflow, nodes, edges, job_id: jobId, queuePosition: null });
 
       const clearStatuses = useStatusStore.getState().clearStatuses;
       const clearErrors = useErrorStore.getState().clearErrors;
@@ -311,17 +431,6 @@ export const createWorkflowRunnerStore = (
       const clearPlanningUpdates =
         useResultsStore.getState().clearPlanningUpdates;
       const clearOutputResults = useResultsStore.getState().clearOutputResults;
-
-      let auth_token = "local_token";
-      let user = "1";
-
-      if (!isLocalhost) {
-        const {
-          data: { session }
-        } = await supabase.auth.getSession();
-        auth_token = session?.access_token || "";
-        user = session?.user?.id || "";
-      }
 
       set({
         statusMessage: "Workflow starting..."
@@ -349,51 +458,13 @@ export const createWorkflowRunnerStore = (
         notifications: []
       });
 
-      // Filter out bypassed nodes and their edges for execution
-      const activeNodes: Node<NodeData>[] = [];
-      const bypassedNodeIds = new Set<string>();
-      for (const node of nodes) {
-        if (node.data.bypassed) {
-          bypassedNodeIds.add(node.id);
-        } else {
-          activeNodes.push(node);
-        }
-      }
-      const activeEdges = edges.filter(
-        (edge) =>
-          !bypassedNodeIds.has(edge.source) && !bypassedNodeIds.has(edge.target)
-      );
-
-      const req: RunJobRequest & { settings?: Record<string, unknown> } = {
-        type: "run_job_request",
-        api_url: BASE_URL,
-        user_id: user,
-        workflow_id: workflow.id,
-        auth_token: auth_token,
-        job_type: "workflow",
-        execution_strategy: resource_limits ? "subprocess" : "threaded",
-        params: params || {},
-        explicit_types: false,
-        graph: {
-          nodes: activeNodes.map(reactFlowNodeToGraphNode),
-          edges: activeEdges.map(reactFlowEdgeToGraphEdge)
-        },
-        resource_limits: resource_limits,
-        settings: {
-          ...(workflow.settings ?? {}),
-        }
-      };
-
       console.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);
 
       try {
         await globalWebSocketManager.send({
           type: "run_job",
           command: "run_job",
-          data: {
-            ...(req as RunJobRequest & { job_id: string }),
-            job_id: jobId
-          }
+          data: req
         });
       } catch (error) {
         // Rollback so the store doesn't get stuck in "running" with a phantom
@@ -436,7 +507,7 @@ export const createWorkflowRunnerStore = (
         return;
       }
 
-      // Immediately stop all animations and clear state
+      // Immediately stop all animations and clear state.
       set({ state: "cancelled", queuePosition: null });
 
       const clearStatuses = useStatusStore.getState().clearStatuses;

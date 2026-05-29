@@ -660,6 +660,8 @@ export interface RunJobRequest {
   workflow_id?: string;
   user_id?: string;
   auth_token?: string;
+  /** Human-readable run title; persisted as the job name. */
+  job_name?: string;
   params?: Record<string, unknown>;
   graph?: {
     nodes: Array<Record<string, unknown>>;
@@ -1261,28 +1263,73 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Whether a run for this workflow is already executing. Used to keep
+   * same-workflow runs sequential (the next one stays queued until the current
+   * finishes) so their live node updates don't clobber each other in the
+   * editor. Safe to check against `activeJobs` alone: commands are processed
+   * one-at-a-time and `startJobInner` registers the job before returning.
+   */
+  private hasActiveJobForWorkflow(
+    workflowId: string | null | undefined
+  ): boolean {
+    if (!workflowId) {
+      return false;
+    }
+    for (const job of this.activeJobs.values()) {
+      if (job.workflowId === workflowId && !job.finished) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Entry point for the "run_job" command. Starts the run immediately when the
    * client is under its concurrency cap, otherwise queues it (FIFO) and emits a
    * `queued` job update. Queued runs start automatically as active jobs finish.
    */
   async runJob(req: RunJobRequest): Promise<void> {
     const max = await this.getMaxConcurrentJobs();
-    // Reserve the slot synchronously (after the only await above) so two
-    // run_job commands can't both observe a free slot before either registers.
-    if (this.inFlightJobCount >= max) {
-      this.enqueueJob(req);
+    // Queue the run when over the global cap, or when this workflow already has
+    // a run in flight (one run per workflow at a time). Reserve the slot
+    // synchronously (after the only await above) so two run_job commands can't
+    // both observe a free slot before either registers.
+    if (
+      this.inFlightJobCount >= max ||
+      this.hasActiveJobForWorkflow(req.workflow_id)
+    ) {
+      await this.enqueueJob(req);
       return;
     }
     this.startingJobs++;
     await this.startJob(req);
   }
 
-  /** Queue a run that exceeds the concurrency cap and notify the client. */
-  private enqueueJob(req: RunJobRequest): void {
+  /** Queue a run that can't start yet, persist it, and notify the client. */
+  private async enqueueJob(req: RunJobRequest): Promise<void> {
     const jobId = req.job_id ?? randomUUID();
     req.job_id = jobId;
     const position = this.jobQueue.enqueue(req);
     log.info("Job queued", { jobId, position });
+    // Persist the queued run so it shows in jobs.list (Queue panel, reload,
+    // other tabs). Best-effort, mirroring startJobInner's persistence. It flips
+    // to "running" in startJobInner when a slot frees.
+    try {
+      const existing = await Job.get(jobId);
+      if (!existing) {
+        await Job.create({
+          id: jobId,
+          workflow_id: req.workflow_id ?? "",
+          user_id: req.user_id ?? this.userId ?? "1",
+          status: "queued",
+          name: req.job_name ?? "",
+          params: req.params ?? {},
+          graph: req.graph ?? { nodes: [], edges: [] }
+        });
+      }
+    } catch (err) {
+      this.logError("enqueue persistence failed", err);
+    }
     void this.sendMessage({
       type: "job_update",
       status: "queued",
@@ -1302,28 +1349,37 @@ export class UnifiedWebSocketRunner {
       const max = await this.getMaxConcurrentJobs().catch(
         () => UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS
       );
-      if (this.inFlightJobCount < max) {
-        const next = this.jobQueue.dequeue();
-        if (next) {
-          // Reserve the slot synchronously, mirroring runJob, so a concurrent
-          // run_job/drain can't also claim it before startJob registers.
-          this.startingJobs++;
-          try {
-            await this.startJob(next);
-          } catch (err) {
-            // The dequeued job threw before it could register/stream. Don't
-            // silently lose it: tell the client this run failed, then keep
-            // draining so the rest of the queue still progresses.
-            this.logError("startJob (from queue) failed", err);
-            await this.sendMessage({
-              type: "job_update",
-              status: "failed",
-              job_id: next.job_id ?? null,
-              workflow_id: next.workflow_id ?? null,
-              error: formatSanitizedError(err)
-            });
-            this.drainQueue();
-          }
+      // Fill free slots with the first queued run whose workflow isn't already
+      // running (one run per workflow). startJob registers the job before it
+      // returns, so the next iteration sees it as in-flight.
+      while (this.inFlightJobCount < max) {
+        const candidate = this.jobQueue
+          .positions()
+          .find((p) => !this.hasActiveJobForWorkflow(p.workflowId));
+        if (!candidate) {
+          break;
+        }
+        const next = this.jobQueue.remove(candidate.jobId);
+        if (!next) {
+          break;
+        }
+        // Reserve the slot synchronously, mirroring runJob, so a concurrent
+        // run_job/drain can't also claim it before startJob registers.
+        this.startingJobs++;
+        try {
+          await this.startJob(next);
+        } catch (err) {
+          // The dequeued job threw before it could register/stream. Don't
+          // silently lose it: tell the client this run failed, then keep
+          // draining so the rest of the queue still progresses.
+          this.logError("startJob (from queue) failed", err);
+          await this.sendMessage({
+            type: "job_update",
+            status: "failed",
+            job_id: next.job_id ?? null,
+            workflow_id: next.workflow_id ?? null,
+            error: formatSanitizedError(err)
+          });
         }
       }
       this.broadcastQueuePositions();
@@ -1467,12 +1523,37 @@ export class UnifiedWebSocketRunner {
 
     try {
       const existing = await Job.get(jobId);
-      if (!existing) {
+      if (existing) {
+        // The run may have been cancelled via the DB-only cancel path (tRPC
+        // `jobs.cancel`) while it was still sitting in the in-memory queue —
+        // that path doesn't remove it from `jobQueue`, so drainQueue can still
+        // hand it to us. Honor the cancellation instead of resurrecting it:
+        // undo the start, surface the cancelled status, and free the slot.
+        if (existing.status === "cancelled") {
+          log.info("Skipping start of cancelled job", { jobId });
+          this.activeJobs.delete(jobId);
+          void this.sendMessage({
+            type: "job_update",
+            status: "cancelled",
+            job_id: jobId,
+            workflow_id: workflowId
+          });
+          return;
+        }
+        // Was persisted as "queued" while waiting for a slot — flip it to
+        // running now that it's actually starting.
+        if (existing.status !== "running") {
+          existing.markRunning();
+          await existing.save();
+        }
+      } else {
         await Job.create({
           id: jobId,
           workflow_id: workflowId ?? "",
           user_id: userId,
           status: "running",
+          name: req.job_name ?? "",
+          started_at: new Date().toISOString(),
           params: req.params ?? {},
           graph
         });
@@ -1880,7 +1961,10 @@ export class UnifiedWebSocketRunner {
     // Persist final job status
     try {
       const job = (await Job.get(active.jobId)) as Job | null;
-      if (job) {
+      // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
+      // while the job is still executing in memory. Don't overwrite that with a
+      // completed/failed status when the in-flight run finishes.
+      if (job && job.status !== "cancelled") {
         if (active.status === "completed") {
           job.markCompleted();
         } else if (active.status === "failed") {
@@ -1944,6 +2028,17 @@ export class UnifiedWebSocketRunner {
     const queued = this.jobQueue.remove(jobId);
     if (queued) {
       const cancelledWorkflowId = queued.workflow_id ?? workflowId ?? null;
+      // Mark the persisted queued row cancelled so it leaves the queue in
+      // jobs.list too (not just the in-memory queue).
+      try {
+        const job = await Job.get(jobId);
+        if (job) {
+          job.markCancelled();
+          await job.save();
+        }
+      } catch (err) {
+        this.logError("cancel persistence failed", err);
+      }
       await this.sendMessage({
         type: "job_update",
         status: "cancelled",
@@ -4128,7 +4223,9 @@ export class UnifiedWebSocketRunner {
       // Persist final job status
       try {
         const job = (await Job.get(jobId)) as Job | null;
-        if (job) {
+        // Don't overwrite a cancelled row (DB-only tRPC cancel) when the
+        // in-flight run finishes — keep the cancellation authoritative.
+        if (job && job.status !== "cancelled") {
           if (active.status === "completed") job.markCompleted();
           else if (active.status === "failed")
             job.markFailed(active.error ?? "Unknown error");

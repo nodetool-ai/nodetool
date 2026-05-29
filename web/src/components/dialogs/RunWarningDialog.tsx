@@ -11,6 +11,7 @@ import { Dialog, Checkbox, Text, FlexColumn } from "../ui_primitives";
 const RunWarningDialog: React.FC = () => {
   const open = useRunWarningStore((s) => s.open);
   const heavyCount = useRunWarningStore((s) => s.heavyCount);
+  const threshold = useRunWarningStore((s) => s.threshold);
   const confirm = useRunWarningStore((s) => s.confirm);
   const cancel = useRunWarningStore((s) => s.cancel);
 
@@ -39,9 +40,10 @@ const RunWarningDialog: React.FC = () => {
         <FlexColumn gap={1.5}>
           <Text>
             This run will execute{" "}
-            <strong>{heavyCount} model/provider nodes</strong>, each of which may
-            call an external API or run a model. Running them all at once can be
-            slow or hit provider rate limits.
+            <strong>{heavyCount} model/provider nodes</strong> — above the
+            warning threshold of {threshold}. Each may call an external API or
+            run a model, so running them all at once can be slow or hit provider
+            rate limits.
           </Text>
           <Checkbox
             label="Don't ask again for this session"

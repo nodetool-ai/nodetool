@@ -88,6 +88,8 @@ describe("useRunFromHere (Run Node)", () => {
 
     expect(mockRunInline).toHaveBeenCalledTimes(1);
     expect(mockRunInline.mock.calls[0][0].workflowId).toBe("workflow-1");
+    // The job is titled with the node's metadata title (shown in the queue).
+    expect(mockRunInline.mock.calls[0][0].jobName).toBe("Chat");
     expect(graphArg().nodes.map((n: { id: string }) => n.id)).toEqual([
       "node-a"
     ]);
@@ -117,6 +119,11 @@ describe("useRunFromHere (Run Node)", () => {
       "node-b"
     ]);
     expect(graphArg().edges).toEqual([]);
+    // The cached upstream result is injected into the node's properties so it
+    // runs with realistic inputs: resolveExternalEdgeValue extracts the
+    // "output" handle from { output: "cached" } and writes it to the inbound
+    // edge's "value" target handle.
+    expect(graphArg().nodes[0].data).toEqual({ value: "cached" });
   });
 
   it("shows a notification", () => {

@@ -15,7 +15,6 @@ import { useLocation } from "react-router-dom";
 import isEqual from "fast-deep-equal";
 import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
-import JobsPanel from "./jobs/JobsPanel";
 import QueuePanel from "./jobs/QueuePanel";
 import SandboxesPanel from "../dashboard/SandboxesPanel";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
@@ -42,7 +41,6 @@ import type { NodeStoreState } from "../../stores/NodeStore";
 // icons
 import TimelineIcon from "@mui/icons-material/Timeline";
 import ArticleIcon from "@mui/icons-material/Article";
-import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import HistoryIcon from "@mui/icons-material/History";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -121,12 +119,6 @@ interface ViewSpec {
 
 const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
   logs: { id: "logs", label: "Logs", icon: <ArticleIcon />, enabled: true },
-  jobs: {
-    id: "jobs",
-    label: "Jobs",
-    icon: <WorkHistoryIcon />,
-    enabled: true
-  },
   queue: {
     id: "queue",
     label: "Queue",
@@ -445,26 +437,13 @@ const PanelBodyContent = memo(function PanelBodyContent({
   switch (activeView) {
     case "logs":
       return <LogPanel />;
-    case "jobs":
-      return (
-        <Box
-          className="jobs-panel"
-          sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "auto",
-            padding: "0 1em"
-          }}
-        >
-          <PanelHeadline title="Jobs" />
-          <JobsPanel />
-        </Box>
-      );
     case "queue":
       return (
         <Box
           className="queue-panel"
           sx={{
+            display: "flex",
+            flexDirection: "column",
             width: "100%",
             height: "100%",
             overflow: "hidden",
@@ -526,10 +505,6 @@ const PanelBottom: React.FC = () => {
   );
 
   const { data: allJobs } = useRunningJobs();
-  const jobsCount =
-    allJobs?.filter(
-      (j) => !j.finished_at && j.status !== "completed" && j.status !== "failed"
-    ).length ?? 0;
   const queuedCount =
     allJobs?.filter((j) => j.status === "queued").length ?? 0;
 
@@ -627,13 +602,7 @@ const PanelBottom: React.FC = () => {
                   key={view}
                   spec={VIEW_SPECS[view]}
                   active={isVisible && activeView === view}
-                  count={
-                    view === "jobs"
-                      ? jobsCount
-                      : view === "queue"
-                        ? queuedCount
-                        : undefined
-                  }
+                  count={view === "queue" ? queuedCount : undefined}
                   onClick={() => handlePanelToggle(view)}
                 />
               ))}
