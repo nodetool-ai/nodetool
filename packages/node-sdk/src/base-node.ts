@@ -58,6 +58,7 @@ export type NodeClass = {
   title: string;
   description: string;
   layout?: string;
+  body?: string;
 
   recommendedModels?: unknown[];
   inlineFields?: string[];
@@ -161,6 +162,13 @@ export abstract class BaseNode {
   static readonly title: string = "";
   static readonly description: string = "";
   static readonly layout: string | undefined = undefined;
+  /**
+   * Node body renderer key. Set to "content_card" to render a media/text-forward
+   * content card instead of the generic input/output body. Generator packages
+   * typically derive this from the primary output type on a shared base class
+   * (mirrors the Python `_body`/`body()` convention).
+   */
+  static readonly body: string | undefined = undefined;
 
   static readonly recommendedModels: unknown[] | undefined = undefined;
   static readonly inlineFields: string[] | undefined = undefined;

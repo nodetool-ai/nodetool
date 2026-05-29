@@ -157,6 +157,7 @@ function mergeMetadata(
         : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
     // Backfill optional fields from Python when TS doesn't set them
     layout: tsMetadata.layout ?? pyMetadata.layout,
+    body: tsMetadata.body ?? pyMetadata.body,
     model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
     input_mode: tsMetadata.input_mode ?? pyMetadata.input_mode,
     output_correlation:
@@ -252,6 +253,7 @@ export function getNodeMetadata(
     namespace,
     node_type: nodeType,
     layout: nodeClass.layout ?? "default",
+    body: nodeClass.body ?? "default",
     properties,
     outputs,
 

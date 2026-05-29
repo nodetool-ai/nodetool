@@ -8,6 +8,7 @@ import {
 
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "elevenlabs.TextToSpeech";
+  static readonly body = "content_card";
   static readonly title = "Text to Speech";
   static readonly description =
     "Generate natural-sounding speech using ElevenLabs text-to-speech.\n" +

@@ -6,7 +6,6 @@ import {
   getContentCardVariant,
   getContentCardDefaultSize,
   getDynamicInputLabel,
-  CONTENT_CARD_REGISTRY,
   CONTENT_CARD_SIZES
 } from "../contentCardRegistry";
 
@@ -15,6 +14,7 @@ type TestMetadata = {
   node_type: string;
   outputs?: OutputSlot[];
   primary_output?: string;
+  body?: string;
 };
 
 describe("isContentCardNode", () => {
@@ -22,41 +22,38 @@ describe("isContentCardNode", () => {
     expect(isContentCardNode(undefined)).toBe(false);
   });
 
-  it("returns false for metadata with empty node_type", () => {
-    expect(isContentCardNode({ node_type: "" } as any)).toBe(false);
+  it("returns true iff metadata.body === 'content_card'", () => {
+    expect(
+      isContentCardNode({
+        node_type: "nodetool.image.TextToImage",
+        body: "content_card"
+      } as any)
+    ).toBe(true);
+    // Any namespace opts in via body alone — no name/namespace matching.
+    expect(
+      isContentCardNode({ node_type: "fal.SomeModel", body: "content_card" } as any)
+    ).toBe(true);
   });
 
-  it("returns true for explicit registry entries", () => {
+  it("returns false without body, even for previously-matched node types", () => {
+    // The old heuristics (registry / generator-name / namespace+media) are gone.
     expect(
       isContentCardNode({ node_type: "nodetool.image.TextToImage" } as any)
-    ).toBe(true);
-  });
-
-  it("returns true for generator pattern match", () => {
+    ).toBe(false);
+    expect(isContentCardNode({ node_type: "custom.TextToImage" } as any)).toBe(
+      false
+    );
     expect(
-      isContentCardNode({ node_type: "custom.TextToImage" } as any)
-    ).toBe(true);
+      isContentCardNode({
+        node_type: "fal.SomeModel",
+        outputs: [{ name: "output", type: { type: "image" } }]
+      } as any)
+    ).toBe(false);
   });
 
-  it("returns true for provider namespace with media output", () => {
-    const metadata: TestMetadata = {
-      node_type: "fal.SomeModel",
-      outputs: [{ name: "output", type: { type: "image" } }]
-    };
-    expect(isContentCardNode(metadata as any)).toBe(true);
-  });
-
-  it("returns false for provider namespace with non-media output", () => {
-    const metadata: TestMetadata = {
-      node_type: "fal.SomeModel",
-      outputs: [{ name: "output", type: { type: "int" } }]
-    };
-    expect(isContentCardNode(metadata as any)).toBe(false);
-  });
-
-  it("returns false for non-matching nodes", () => {
+  it("returns false for body values other than content_card", () => {
     expect(
-      isContentCardNode({ node_type: "nodetool.math.Add" } as any)
+      isContentCardNode({ node_type: "nodetool.math.Add", body: "default" } as any)
     ).toBe(false);
   });
 });
@@ -208,17 +205,6 @@ describe("getDynamicInputLabel", () => {
       outputs: [{ name: "o", type: { type: "tensor" } }]
     };
     expect(getDynamicInputLabel(metadata as any)).toBe("input");
-  });
-});
-
-describe("CONTENT_CARD_REGISTRY", () => {
-  it("is a non-empty set", () => {
-    expect(CONTENT_CARD_REGISTRY.size).toBeGreaterThan(0);
-  });
-
-  it("contains known entries", () => {
-    expect(CONTENT_CARD_REGISTRY.has("nodetool.image.TextToImage")).toBe(true);
-    expect(CONTENT_CARD_REGISTRY.has("openai.image.CreateImage")).toBe(true);
   });
 });
 
