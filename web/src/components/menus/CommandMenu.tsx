@@ -255,6 +255,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         ref={fileInputRef}
         type="file"
         accept=".json"
+        aria-label="Import workflow file"
         style={{ display: "none" }}
         onChange={handleImportFileChange}
       />

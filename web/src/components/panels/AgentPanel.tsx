@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogContent
 } from "@mui/material";
-import { EditorButton } from "../editor_ui";
+import { EditorButton } from "../editor_ui/EditorButton";
 import { AgentModelSelect } from "./AgentModelSelect";
 import MediaControlChip from "../chat/composer/MediaControlChip";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";

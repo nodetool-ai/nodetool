@@ -284,7 +284,7 @@ const AgentModelSelectInner: React.FC<AgentModelSelectProps> = ({
           overflow: "visible"
         }}
       >
-        <div css={popupStyles(theme)} onKeyDown={searchable ? undefined : handleKeyDown} tabIndex={searchable ? undefined : -1}>
+        <div css={popupStyles(theme)} role="group" onKeyDown={searchable ? undefined : handleKeyDown} tabIndex={searchable ? undefined : -1}>
           {searchable && (
             <div className="search-row">
               <SearchIcon />

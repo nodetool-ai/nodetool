@@ -609,6 +609,8 @@ const PanelLeft: React.FC = () => {
           <div
             ref={panelRef}
             className={`drawer-content ${isDragging ? "dragging" : ""}`}
+            role="region"
+            aria-label="Left panel"
             style={{
               width: `${Math.max(panelSize - TOOLBAR_WIDTH, 250)}px`,
               minWidth: "250px"
