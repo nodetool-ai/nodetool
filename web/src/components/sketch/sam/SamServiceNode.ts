@@ -34,8 +34,8 @@ import type { GraphNode, GraphEdge } from "./NodeExecutor";
 import { resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
 import { normalizeSamMasks } from "./normalizeSamMasks";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { LOCAL_SAM3_NODE_TYPE } from "../../../constants/nodeTypes";
 
-const LOCAL_SAM3_NODE_TYPE = "huggingface.image_segmentation.MaskGeneration";
 const LOCAL_SAM3_DOWNLOAD_TYPE = "hf.model";
 const LOCAL_SAM3_REQUIRED_INPUTS = [
   "image",

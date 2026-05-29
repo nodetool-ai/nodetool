@@ -11,7 +11,7 @@ import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { TypeMetadata, Workflow, WorkflowList } from "../../../stores/ApiTypes";
 import { NodeData } from "../../../stores/NodeData";
 
-export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
+export { WORKFLOW_NODE_TYPE } from "../../../constants/nodeTypes";
 
 /** Map input node types to TypeMetadata types */
 export const INPUT_TYPE_MAP: Record<string, string> = {

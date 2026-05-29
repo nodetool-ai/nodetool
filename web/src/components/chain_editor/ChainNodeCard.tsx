@@ -4,6 +4,7 @@ import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Collapse, LinearProgress } from "@mui/material";
+import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -210,7 +211,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
           sx={{
             px: 1.75,
             pb: 1.5,
-            ...(node.nodeType !== "nodetool.workflows.base_node.Preview" && {
+            ...(node.nodeType !== PREVIEW_NODE_TYPE && {
               maxHeight: 300,
               overflow: "auto",
             }),

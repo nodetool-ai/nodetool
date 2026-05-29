@@ -3,6 +3,11 @@ import { Node as GraphNode } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import { NodeUIProperties, DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { NODE_COLLAPSED_STRIP_HEIGHT_PX } from "./collapseNodeLayout";
+import {
+  GROUP_NODE_TYPE,
+  COMMENT_NODE_TYPE,
+  PREVIEW_NODE_TYPE
+} from "../constants/nodeTypes";
 
 export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   const ui_properties: NodeUIProperties = {
@@ -61,9 +66,9 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   }
 
   if (
-    node.type === "nodetool.workflows.base_node.Comment" ||
-    node.type === "nodetool.workflows.base_node.Group" ||
-    node.type === "nodetool.workflows.base_node.Preview"
+    node.type === COMMENT_NODE_TYPE ||
+    node.type === GROUP_NODE_TYPE ||
+    node.type === PREVIEW_NODE_TYPE
   ) {
     if (ui_properties.height === undefined) {
       ui_properties.height = node.measured?.height;

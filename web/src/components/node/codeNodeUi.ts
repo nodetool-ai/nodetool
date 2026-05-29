@@ -1,6 +1,7 @@
 import type { NodeData } from "../../stores/NodeData";
+import { CODE_NODE_TYPE } from "../../constants/nodeTypes";
 
-export const CODE_NODE_TYPE = "nodetool.code.Code";
+export { CODE_NODE_TYPE };
 
 export function isCodeNode(nodeType: string): boolean {
   return nodeType === CODE_NODE_TYPE;

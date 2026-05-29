@@ -22,13 +22,13 @@ import type { SegmentationMask } from "../types";
 import useMetadataStore from "../../../stores/MetadataStore";
 import useSecretsStore from "../../../stores/SecretsStore";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { FAL_SAM_NODE_TYPE } from "../../../constants/nodeTypes";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const FAL_API_BASE = "https://queue.fal.run";
 const FAL_RESULT_BASE = "https://queue.fal.run";
 const SAM31_ENDPOINT = "fal-ai/sam-3-1/image";
-const FAL_SAM_NODE_TYPE = "fal.image_to_image.Sam3Image";
 const FAL_SAM_TEXT_PROMPT_INPUTS = ["prompt"] as const;
 const FAL_SAM_POINT_PROMPT_INPUTS = ["point_prompts"] as const;
 const FAL_SAM_BOX_PROMPT_INPUTS = ["box_prompts"] as const;

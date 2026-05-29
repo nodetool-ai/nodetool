@@ -8,8 +8,7 @@ import { resolveReplicateSchemaClient } from "../../../utils/replicateDynamicSch
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-export const DYNAMIC_REPLICATE_NODE_TYPE =
-  "replicate.DynamicReplicate";
+export { DYNAMIC_REPLICATE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 interface ReplicateSchemaLoaderProps {
   nodeId: string;
