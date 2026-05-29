@@ -260,10 +260,7 @@ function parseWithTypeCoercion(schema: ZodType, args: unknown): unknown {
       if (issue.code !== "invalid_type") {
         continue;
       }
-      const expected =
-        typeof (issue as { expected?: unknown }).expected === "string"
-          ? ((issue as { expected?: string }).expected as string)
-          : null;
+      const expected: string = issue.expected;
       if (expected === "boolean" || expected === "number") {
         coercibleIssues.push({ issue, expected });
       }

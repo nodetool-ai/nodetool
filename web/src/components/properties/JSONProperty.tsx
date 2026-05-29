@@ -270,7 +270,7 @@ const JSONProperty = (props: PropertyProps) => {
                 <LoadingSpinner />
               </div>
             ) : (
-              <div className="editor-placeholder" tabIndex={0}>
+              <div className="editor-placeholder">
                 {value}
               </div>
             )}

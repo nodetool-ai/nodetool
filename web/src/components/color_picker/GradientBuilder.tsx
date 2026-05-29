@@ -319,6 +319,8 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           {gradient.stops.map((stop, index) => (
             <div
               key={`${stop.position}-${stop.color}`}
+              role="button"
+              tabIndex={0}
               data-stop-index={index}
               className={`stop-marker ${selectedStopIndex === index ? "selected" : ""}`}
               style={{
@@ -327,6 +329,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
               }}
               onMouseDown={handleStopMarkerMouseDown}
               onClick={handleStopMarkerClick}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedStopIndex(index); } }}
             />
           ))}
         </div>

@@ -899,7 +899,7 @@ const AgentPanel: React.FC = () => {
             <FlexRow align="center" gap={1} sx={{ marginTop: "8px" }}>
               <LoadingSpinner size="small" />
               <Caption size="smaller">
-                Loading {draftProviderLabel} models...
+                Loading {draftProviderLabel} models…
               </Caption>
             </FlexRow>
           )}

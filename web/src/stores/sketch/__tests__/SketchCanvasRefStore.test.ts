@@ -12,6 +12,7 @@ describe("SketchCanvasRefStore", () => {
     expect(state.flattenToDataUrl).toBeNull();
     expect(state.getMaskDataUrl).toBeNull();
     expect(state.setLayerData).toBeNull();
+    expect(state.clearActiveLayer).toBeNull();
   });
 
   describe("setGetters", () => {
@@ -19,17 +20,20 @@ describe("SketchCanvasRefStore", () => {
       const flattenToDataUrl = () => "data:image/png;base64,abc";
       const getMaskDataUrl = () => "data:image/png;base64,mask";
       const setLayerData = (_id: string, _data: string | null) => {};
+      const clearActiveLayer = () => {};
 
       useSketchCanvasRefStore.getState().setGetters({
         flattenToDataUrl,
         getMaskDataUrl,
         setLayerData,
+        clearActiveLayer,
       });
 
       const state = useSketchCanvasRefStore.getState();
       expect(state.flattenToDataUrl).toBe(flattenToDataUrl);
       expect(state.getMaskDataUrl).toBe(getMaskDataUrl);
       expect(state.setLayerData).toBe(setLayerData);
+      expect(state.clearActiveLayer).toBe(clearActiveLayer);
     });
 
     it("overwrites previously set getters", () => {
@@ -40,11 +44,13 @@ describe("SketchCanvasRefStore", () => {
         flattenToDataUrl: first,
         getMaskDataUrl: () => null,
         setLayerData: () => {},
+        clearActiveLayer: () => {},
       });
       useSketchCanvasRefStore.getState().setGetters({
         flattenToDataUrl: second,
         getMaskDataUrl: () => null,
         setLayerData: () => {},
+        clearActiveLayer: () => {},
       });
 
       expect(useSketchCanvasRefStore.getState().flattenToDataUrl).toBe(second);
@@ -57,6 +63,7 @@ describe("SketchCanvasRefStore", () => {
         flattenToDataUrl: () => "x",
         getMaskDataUrl: () => null,
         setLayerData: () => {},
+        clearActiveLayer: () => {},
       });
 
       useSketchCanvasRefStore.getState().clearGetters();
@@ -65,6 +72,7 @@ describe("SketchCanvasRefStore", () => {
       expect(state.flattenToDataUrl).toBeNull();
       expect(state.getMaskDataUrl).toBeNull();
       expect(state.setLayerData).toBeNull();
+      expect(state.clearActiveLayer).toBeNull();
     });
   });
 
@@ -74,6 +82,7 @@ describe("SketchCanvasRefStore", () => {
         flattenToDataUrl: () => "data:image/png;base64,flat",
         getMaskDataUrl: () => null,
         setLayerData: () => {},
+        clearActiveLayer: () => {},
       });
 
       const fn = useSketchCanvasRefStore.getState().flattenToDataUrl;
@@ -85,10 +94,26 @@ describe("SketchCanvasRefStore", () => {
         flattenToDataUrl: () => "",
         getMaskDataUrl: () => null,
         setLayerData: () => {},
+        clearActiveLayer: () => {},
       });
 
       const fn = useSketchCanvasRefStore.getState().getMaskDataUrl;
       expect(fn!()).toBeNull();
+    });
+
+    it("clearActiveLayer invokes the provided callback", () => {
+      let called = 0;
+      useSketchCanvasRefStore.getState().setGetters({
+        flattenToDataUrl: () => "",
+        getMaskDataUrl: () => null,
+        setLayerData: () => {},
+        clearActiveLayer: () => {
+          called += 1;
+        },
+      });
+
+      useSketchCanvasRefStore.getState().clearActiveLayer!();
+      expect(called).toBe(1);
     });
   });
 });

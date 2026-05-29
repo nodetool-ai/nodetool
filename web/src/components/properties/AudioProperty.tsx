@@ -99,7 +99,13 @@ const AudioProperty = (props: PropertyProps) => {
               />
             </div>
           ) : (
-            <div className="realtime-idle" onClick={toggle}>
+            <div
+              role="button"
+              tabIndex={0}
+              className="realtime-idle"
+              onClick={toggle}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } }}
+            >
               Click to start microphone
             </div>
           )}

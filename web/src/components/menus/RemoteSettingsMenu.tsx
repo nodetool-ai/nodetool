@@ -407,7 +407,7 @@ const RemoteSettings = () => {
     <>
       {isLoading && (
         <Text sx={{ textAlign: "center", padding: "2em" }}>
-          Loading settings...
+          Loading settings…
         </Text>
       )}
       {isSuccess &&

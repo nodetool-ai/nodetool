@@ -48,7 +48,7 @@ const ChainEditorPage: React.FC = () => {
     return (
       <FlexColumn align="center" justify="center" fullHeight fullWidth gap={2}>
         <LoadingSpinner size="large" />
-        <Text color="secondary">Loading workflow...</Text>
+        <Text color="secondary">Loading workflow…</Text>
       </FlexColumn>
     );
   }

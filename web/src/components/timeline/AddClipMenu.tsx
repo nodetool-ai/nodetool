@@ -226,7 +226,7 @@ const OutputSelectPanel: React.FC<OutputSelectPanelProps> = memo(
             aria-label="Back to workflow list"
           />
           <Text size="small" weight={500} sx={{ flex: 1 }}>
-            Select output — {workflowName}
+            Select output - {workflowName}
           </Text>
         </FlexRow>
         <Caption sx={{ color: "text.secondary" }}>
@@ -635,7 +635,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       fontSize: 10
                     }}
                   >
-                    — or use a workflow —
+                    - or use a workflow -
                   </Caption>
                 </>
               )}

@@ -348,6 +348,24 @@ export const DEFAULT_SWATCHES: string[] = [
   "#330033", "#660066", "#990099", "#cc00cc", "#ff00ff", "#ff66ff", "#ff99ff"
 ];
 
+/**
+ * Compact single-row preset palette for the inline COLOR panel swatch row
+ * (distinct from the 7×7 {@link DEFAULT_SWATCHES} grid used by the picker
+ * popover). One representative per hue family, matching the editor design.
+ */
+export const SKETCH_PRESET_SWATCHES: string[] = [
+  "#ffffff", // white
+  "#9ca3af", // grey
+  "#000000", // black
+  "#6366f1", // blue
+  "#e879f9", // magenta
+  "#14b8a6", // teal
+  "#ef4444", // red
+  "#f59e0b", // orange
+  "#22c55e", // green
+  "#06b6d4" // cyan
+];
+
 // ─── Sketch Document ──────────────────────────────────────────────────────────
 
 export interface SketchDocument {

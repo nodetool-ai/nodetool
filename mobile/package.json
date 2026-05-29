@@ -27,7 +27,7 @@
     "@tanstack/react-query": "^5.100.14",
     "@trpc/client": "^11.17.0",
     "@trpc/react-query": "^11.17.0",
-    "expo": "~56.0.3",
+    "expo": "~56.0.6",
     "expo-av": "~16.0.8",
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
@@ -45,7 +45,7 @@
     "react-syntax-highlighter": "^16.1.1",
     "superjson": "^2.2.6",
     "uuid": "14.0.0",
-    "zustand": "^5.0.13"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
@@ -58,7 +58,7 @@
     "@typescript-eslint/eslint-plugin": "^8.60.0",
     "@typescript-eslint/parser": "^8.60.0",
     "babel-jest": "^30.4.1",
-    "babel-preset-expo": "~54.0.10",
+    "babel-preset-expo": "~54.0.11",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",

@@ -1187,7 +1187,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           />
 
           <div className="sketch-main">
-            <div className="sketch-preview-wrap" onClick={handleOpenEditor}>
+            <div
+              className="sketch-preview-wrap"
+              role="button"
+              tabIndex={0}
+              onClick={handleOpenEditor}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleOpenEditor(); } }}
+            >
               <div className="content">
                 {displayPreviewUri ? (
                   <>

@@ -208,7 +208,7 @@ const AssetEditor: React.FC = () => {
         return (
             <FlexColumn css={styles(theme)} fullWidth fullHeight align="center" justify="center" gap={2}>
                     <LoadingSpinner />
-                    <Text>Loading asset...</Text>
+                    <Text>Loading asset…</Text>
             </FlexColumn>
         );
     }

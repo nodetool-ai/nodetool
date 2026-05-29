@@ -208,7 +208,7 @@ describe("GlobalChat", () => {
 
       renderWithProviders(<GlobalChat />);
 
-      expect(screen.getByText("Loading chat...")).toBeInTheDocument();
+      expect(screen.getByText("Loading chat…")).toBeInTheDocument();
     });
 
     it("shows error state when threads fail to load", async () => {

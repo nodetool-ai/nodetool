@@ -6,6 +6,7 @@ import { memo, useCallback, useMemo } from "react";
 import type {
   CSSProperties,
   DragEvent as ReactDragEvent,
+  KeyboardEvent as ReactKeyboardEvent,
   ReactNode
 } from "react";
 import { Tooltip, Text, thinScrollbarStyles } from "../ui_primitives";
@@ -541,10 +542,21 @@ const QuickActionTiles = memo(function QuickActionTiles() {
             >
               <div
                 className="quick-tile"
+                role="button"
+                tabIndex={0}
                 draggable
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleTileClick}
+                onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const nodeTypeKey = e.currentTarget.dataset.nodeType;
+                    if (!nodeTypeKey) return;
+                    const meta = getMetadata(nodeTypeKey);
+                    if (meta) requestCreate(meta);
+                  }
+                }}
                 onMouseEnter={handleTileMouseEnter}
                 data-node-type={nodeType}
                 style={
@@ -599,10 +611,21 @@ const QuickActionTiles = memo(function QuickActionTiles() {
             >
               <div
                 className="quick-tile constant-tile"
+                role="button"
+                tabIndex={0}
                 draggable
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleTileClick}
+                onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const nodeTypeKey = e.currentTarget.dataset.nodeType;
+                    if (!nodeTypeKey) return;
+                    const meta = getMetadata(nodeTypeKey);
+                    if (meta) requestCreate(meta);
+                  }
+                }}
                 onMouseEnter={handleTileMouseEnter}
                 data-node-type={nodeType}
                 style={

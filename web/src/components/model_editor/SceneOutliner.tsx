@@ -97,8 +97,11 @@ const OutlinerRow = memo(({
     <>
       <div
         className={`outliner-row ${node.uuid === selectedUuid ? "selected" : ""}`}
+        role="button"
+        tabIndex={0}
         style={{ paddingLeft: `${8 + node.depth * 14}px` }}
         onClick={handleSelect}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleSelect(); } }}
       >
         {typeIcon(node.type)}
         <Text size="small" className="row-label" title={`${node.name} (${node.type})`}>
@@ -106,9 +109,11 @@ const OutlinerRow = memo(({
         </Text>
         <span
           className="visibility-toggle"
-          onClick={handleToggle}
           role="button"
+          tabIndex={0}
           aria-label={node.visible ? "Hide object" : "Show object"}
+          onClick={handleToggle}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onToggleVisible(node.uuid); } }}
         >
           {node.visible ? <VisibilityIcon /> : <VisibilityOffIcon />}
         </span>

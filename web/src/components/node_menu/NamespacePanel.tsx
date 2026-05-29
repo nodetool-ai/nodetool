@@ -251,6 +251,12 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
           <div
             className={`list-item ${selectedPathString ? "" : "selected"}`}
             onClick={handleResetNamespacePath}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleResetNamespacePath();
+              }
+            }}
             role="button"
             tabIndex={0}
             title={

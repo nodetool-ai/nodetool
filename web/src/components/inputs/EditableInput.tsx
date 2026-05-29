@@ -136,6 +136,7 @@ const EditableInput: React.FC<EditableInputProps> = ({
         tabIndex={tabIndex}
         autoFocus={false}
         onKeyDown={handleKeyDown}
+        aria-label="Edit value"
       />
     </div>
   );

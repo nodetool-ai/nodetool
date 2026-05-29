@@ -554,7 +554,7 @@ const PlanningLog: React.FC<{
         const icon = icons[entry.phase] ?? "○";
 
         return (
-          <div key={i} className="tree-planning-entry">
+          <div key={`${entry.phase}-${i}`} className="tree-planning-entry">
             <span className={statusClass}>{icon}</span>
             <span className={`tree-planning-phase ${statusClass}`}>
               {entry.phase}
