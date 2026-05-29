@@ -13,12 +13,10 @@ on:
           - "false"
           - "true"
 
-# Restrict the default GITHUB_TOKEN to read-only on repository contents.
-# This workflow only checks out code, installs deps, runs tests, and uploads
-# artifacts (artifact upload uses the Actions runtime token, not GITHUB_TOKEN),
-# so no write scopes are required.
+# Write access is required so the workflow can commit newly captured
+# screenshots back to the branch after the Playwright run.
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   screenshots:
@@ -28,6 +26,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Fetch the full ref so we can push back to the triggering branch.
+          ref: ${{ github.ref }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -57,6 +58,18 @@ jobs:
           # keychain on headless CI runners.  Never use this value in production.
           SECRETS_MASTER_KEY: "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE="
         run: npx playwright test tests/benchmarks/screenshots.spec.ts --project=chromium
+
+      - name: Commit screenshots to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/assets/screenshots/
+          if git diff --cached --quiet; then
+            echo "No new or changed screenshots to commit."
+          else
+            git commit -m "chore: update documentation screenshots [skip ci]"
+            git push
+          fi
 
       - name: Upload screenshots as artifact
         uses: actions/upload-artifact@v4
