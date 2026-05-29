@@ -16,6 +16,7 @@ import isEqual from "fast-deep-equal";
 import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
 import JobsPanel from "./jobs/JobsPanel";
+import QueuePanel from "./jobs/QueuePanel";
 import SandboxesPanel from "../dashboard/SandboxesPanel";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
@@ -45,6 +46,7 @@ import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import HistoryIcon from "@mui/icons-material/History";
 import FolderIcon from "@mui/icons-material/Folder";
+import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
 
 const workspacesEnabled = !isProduction;
 const sandboxesEnabled = !isProduction;
@@ -123,6 +125,12 @@ const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
     id: "jobs",
     label: "Jobs",
     icon: <WorkHistoryIcon />,
+    enabled: true
+  },
+  queue: {
+    id: "queue",
+    label: "Queue",
+    icon: <PlaylistPlayIcon />,
     enabled: true
   },
   sandboxes: {
@@ -452,6 +460,21 @@ const PanelBodyContent = memo(function PanelBodyContent({
           <JobsPanel />
         </Box>
       );
+    case "queue":
+      return (
+        <Box
+          className="queue-panel"
+          sx={{
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            padding: "0 1em"
+          }}
+        >
+          <PanelHeadline title="Queue" />
+          <QueuePanel />
+        </Box>
+      );
     case "sandboxes":
       return sandboxesEnabled ? <SandboxesPanel /> : null;
     case "versions":
@@ -507,6 +530,8 @@ const PanelBottom: React.FC = () => {
     allJobs?.filter(
       (j) => !j.finished_at && j.status !== "completed" && j.status !== "failed"
     ).length ?? 0;
+  const queuedCount =
+    allJobs?.filter((j) => j.status === "queued").length ?? 0;
 
   const systemStats = useSystemStatsStore((state) => state.stats);
 
@@ -596,7 +621,13 @@ const PanelBottom: React.FC = () => {
                   key={view}
                   spec={VIEW_SPECS[view]}
                   active={isVisible && activeView === view}
-                  count={view === "jobs" ? jobsCount : undefined}
+                  count={
+                    view === "jobs"
+                      ? jobsCount
+                      : view === "queue"
+                        ? queuedCount
+                        : undefined
+                  }
                   onClick={() => handlePanelToggle(view)}
                 />
               ))}
