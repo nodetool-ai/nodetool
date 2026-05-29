@@ -5,11 +5,7 @@ import type {
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  getElevenLabsApiKey,
-  VOICE_ID_MAP,
-  VOICE_NAMES
-} from "../elevenlabs-base.js";
+import { VOICE_ID_MAP } from "../elevenlabs-base.js";
 
 export class RealtimeTextToSpeechNode extends BaseNode {
   static readonly nodeType = "elevenlabs.RealtimeTextToSpeech";
@@ -26,18 +22,18 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     "- Streaming dialogue generation";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["chunk"];
+  static readonly inputFields: string[] = ["chunk", "voice_id"];
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
   static readonly isStreamingInput = true;
 
   @prop({
-    type: "enum",
-    default: "Aria",
-    title: "Voice",
-    description: "Voice to use for generation.",
-    values: VOICE_NAMES
+    type: "str",
+    default: VOICE_ID_MAP.Aria,
+    title: "Voice ID",
+    description:
+      "ElevenLabs voice ID to use for generation. Connect a Standard Voice node or provide a custom voice ID."
   })
-  declare voice: any;
+  declare voice_id: any;
 
   @prop({
     type: "chunk",
@@ -209,9 +205,8 @@ export class RealtimeTextToSpeechNode extends BaseNode {
     if (!apiKey) apiKey = process.env.ELEVENLABS_API_KEY || "";
     if (!apiKey) throw new Error("ELEVENLABS_API_KEY is not configured");
 
-    const voice = String(this.voice ?? "Aria");
-    const voiceId = VOICE_ID_MAP[voice];
-    if (!voiceId) throw new Error(`Unknown voice: ${voice}`);
+    const voiceId = String(this.voice_id ?? VOICE_ID_MAP.Aria);
+    if (!voiceId) throw new Error("voice_id is required");
 
     const modelId = String(this.model_id ?? "eleven_turbo_v2_5");
     const languageCode = String(this.language_code ?? "none");
