@@ -17,6 +17,7 @@ import {
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
+import { useRunningJobsStore } from "./RunningJobsStore";
 import useLogsStore from "./LogStore";
 import useErrorStore, { normalizeNodeError } from "./ErrorStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
@@ -392,6 +393,23 @@ export const handleUpdate = (
 
     if (job.job_id) {
       runnerStore.setState({ job_id: job.job_id });
+    }
+
+    // Maintain the per-workflow running-job count. This fires for every job on
+    // the workflow — the single full run plus any concurrent per-node/generative
+    // runs — so the toolbar can show how many are in flight.
+    if (job.job_id) {
+      const runningJobs = useRunningJobsStore.getState();
+      if (job.status === "running") {
+        runningJobs.start(workflow.id, job.job_id);
+      } else if (
+        job.status === "completed" ||
+        job.status === "failed" ||
+        job.status === "timed_out" ||
+        job.status === "cancelled"
+      ) {
+        runningJobs.end(workflow.id, job.job_id);
+      }
     }
 
     // Track queue position so the UI can show "Queued — N ahead". Any
