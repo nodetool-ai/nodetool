@@ -25,6 +25,8 @@ import {
   Thread,
   Message,
   Asset,
+  ImageDocument,
+  TimelineSequence,
   secrets
 } from "@nodetool-ai/models";
 import { initMasterKey, encryptFernet, getMasterKey } from "@nodetool-ai/security";
@@ -657,6 +659,153 @@ const MOCK_ASSETS = [
   )
 ];
 
+// ── Sketch (Image Editor) document ──────────────────────────────────────────────
+// A multi-layer raster document so the standalone Image Editor at
+// /sketch/:documentId renders its toolbar, layers panel, and canvas with real
+// content. Layers carry no pixel data (drawn at runtime) — the documentation
+// screenshot showcases the editor chrome, not a specific drawing.
+
+const SKETCH_DOCUMENT_ID = "sk-demo-portrait";
+
+function makeSketchLayer(
+  id: string,
+  name: string,
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    id,
+    name,
+    type: "raster",
+    visible: true,
+    opacity: 1,
+    locked: false,
+    alphaLock: false,
+    blendMode: "normal",
+    data: null,
+    transform: { x: 0, y: 0 },
+    contentBounds: { x: 0, y: 0, width: 1024, height: 1024 },
+    effects: [],
+    ...overrides
+  };
+}
+
+const SKETCH_DOCUMENT_DATA = {
+  sketch: {
+    version: 3,
+    canvas: { width: 1024, height: 1024, backgroundColor: "#11131a" },
+    layers: [
+      makeSketchLayer("sk-layer-bg", "Background"),
+      makeSketchLayer("sk-layer-lineart", "Line Art"),
+      makeSketchLayer("sk-layer-color", "Color", {
+        opacity: 0.9,
+        blendMode: "multiply"
+      })
+    ],
+    activeLayerId: "sk-layer-lineart",
+    maskLayerId: null,
+    activeTool: "brush",
+    viewport: { zoom: 1, pan: { x: 0, y: 0 } },
+    history: [],
+    historyIndex: -1,
+    metadata: {
+      createdAt: "2024-12-01T10:00:00Z",
+      updatedAt: "2024-12-16T12:30:00Z"
+    }
+  },
+  layerBindings: []
+};
+
+// ── Timeline sequence ────────────────────────────────────────────────────────
+// A short promo edit with a video track (three clips) and a music track so the
+// Timeline editor at /timeline/:sequenceId renders a populated tracks region,
+// preview, and inspector.
+
+const TIMELINE_SEQUENCE_ID = "tl-demo-promo";
+const TIMELINE_VIDEO_TRACK_ID = "tl-track-video";
+const TIMELINE_AUDIO_TRACK_ID = "tl-track-music";
+
+function makeTimelineClip(
+  id: string,
+  name: string,
+  trackId: string,
+  startMs: number,
+  durationMs: number,
+  mediaType: "image" | "video" | "audio" | "overlay",
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    id,
+    trackId,
+    name,
+    startMs,
+    durationMs,
+    mediaType,
+    sourceType: "generated",
+    status: "generated",
+    locked: false,
+    versions: [],
+    ...overrides
+  };
+}
+
+const TIMELINE_DOCUMENT = {
+  tracks: [
+    {
+      id: TIMELINE_VIDEO_TRACK_ID,
+      name: "Video",
+      type: "video",
+      index: 0,
+      visible: true,
+      locked: false
+    },
+    {
+      id: TIMELINE_AUDIO_TRACK_ID,
+      name: "Music",
+      type: "audio",
+      index: 1,
+      visible: true,
+      locked: false
+    }
+  ],
+  clips: [
+    makeTimelineClip(
+      "tl-clip-intro",
+      "Intro Shot",
+      TIMELINE_VIDEO_TRACK_ID,
+      0,
+      4000,
+      "video"
+    ),
+    makeTimelineClip(
+      "tl-clip-product",
+      "Product Reveal",
+      TIMELINE_VIDEO_TRACK_ID,
+      4000,
+      5000,
+      "video"
+    ),
+    makeTimelineClip(
+      "tl-clip-outro",
+      "Logo Outro",
+      TIMELINE_VIDEO_TRACK_ID,
+      9000,
+      3000,
+      "image",
+      { status: "draft" }
+    ),
+    makeTimelineClip(
+      "tl-clip-music",
+      "Background Music",
+      TIMELINE_AUDIO_TRACK_ID,
+      0,
+      12000,
+      "audio",
+      { sourceType: "imported" }
+    )
+  ],
+  markers: [{ id: "tl-marker-reveal", timeMs: 4000, label: "Reveal" }]
+};
+
 // ── Seed database ─────────────────────────────────────────────────────────────
 
 async function seedDatabase(): Promise<void> {
@@ -679,6 +828,37 @@ async function seedDatabase(): Promise<void> {
   for (const asset of MOCK_ASSETS) {
     await Asset.create(asset);
   }
+
+  // Sketch (Image Editor) document — backs /sketch/:documentId
+  const sketchDoc = new ImageDocument({
+    id: SKETCH_DOCUMENT_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Character Concept",
+    width: 1024,
+    height: 1024,
+    background_color: "#11131a",
+    document: JSON.stringify(SKETCH_DOCUMENT_DATA),
+    created_at: "2024-12-01T10:00:00Z",
+    updated_at: "2024-12-16T12:30:00Z"
+  });
+  await sketchDoc.save();
+
+  // Timeline sequence — backs /timeline/:sequenceId
+  const timelineSeq = new TimelineSequence({
+    id: TIMELINE_SEQUENCE_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Product Promo",
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    duration_ms: 12000,
+    document: JSON.stringify(TIMELINE_DOCUMENT),
+    created_at: "2024-12-05T09:00:00Z",
+    updated_at: "2024-12-16T15:45:00Z"
+  });
+  await timelineSeq.save();
 
   // Secrets — stored encrypted so the settings API shows them as configured.
   // Cover the providers the UI checks for "configured" status so the dashboard
@@ -712,7 +892,7 @@ async function seedDatabase(): Promise<void> {
   }
 
   console.log(
-    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, ${demoSecrets.length} secrets`
+    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 1 timeline sequence, ${demoSecrets.length} secrets`
   );
 }
 
