@@ -764,6 +764,7 @@ interface ClipBodyProps {
   statusInfo: typeof CLIP_STATUS_MAP[ClipStatus];
   handleDragPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
+  handleKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   handleTrimStartPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimStartPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -780,6 +781,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   statusInfo,
   handleDragPointerDown,
   handleClick,
+  handleKeyDown,
   handleTrimStartPointerDown,
   handleTrimStartPointerMove,
   handleTrimEndPointerDown,
@@ -899,12 +901,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
       style={{ left: leftPx, width: widthPx, cursor: cutMode ? "crosshair" : undefined }}
       onPointerDown={handleDragPointerDown}
       onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.stopPropagation();
-          selectClip(clipId);
-        }
-      }}
+      onKeyDown={handleKeyDown}
       data-testid={`clip-${clipId}`}
       aria-selected={isSelected}
       role="option"

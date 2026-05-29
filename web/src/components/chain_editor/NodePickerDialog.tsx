@@ -9,7 +9,7 @@ import React, { useState, useMemo, useCallback, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { InputAdornment } from "@mui/material";
-import { Box } from "../ui_primitives";
+import { Box } from "../ui_primitives/Box";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Dialog } from "../ui_primitives/Dialog";

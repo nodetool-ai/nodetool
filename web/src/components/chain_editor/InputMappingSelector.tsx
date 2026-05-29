@@ -9,7 +9,8 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material";
-import { ToolbarIconButton, Box } from "../ui_primitives";
+import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
+import { Box } from "../ui_primitives/Box";
 import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
