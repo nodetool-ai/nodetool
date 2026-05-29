@@ -60,6 +60,8 @@ import {
   Property,
   PropertyTypeMetadata,
   Provider,
+  ProviderId,
+  PROVIDER_IDS,
   ProviderInfo,
   RepoPath,
   RunJobRequest,
@@ -175,6 +177,8 @@ export type { Prediction };
 export type { Property };
 export type { PropertyTypeMetadata };
 export type { Provider };
+export type { ProviderId };
+export { PROVIDER_IDS };
 export type { ProviderCost };
 export type { ProviderInfo };
 export type { RepoPath };
