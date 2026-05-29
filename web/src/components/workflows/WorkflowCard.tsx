@@ -269,7 +269,7 @@ const WorkflowCard = ({
           <Fade in={true}>
             <Box className="loading-overlay">
               <LoadingSpinner size="medium" />
-              <Text className="loading-text">Creating workflow...</Text>
+              <Text className="loading-text">Creating workflow…</Text>
             </Box>
           </Fade>
         )}

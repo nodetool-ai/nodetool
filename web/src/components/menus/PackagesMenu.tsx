@@ -147,7 +147,7 @@ const PackRow = memo(function PackRow({
               </Text>
               {pack.skippedNodes.map((s) => (
                 <Text key={s.nodeType} size="small" family="secondary">
-                  {s.nodeType} — {SKIP_REASON_LABEL[s.reason]}
+                  {s.nodeType} - {SKIP_REASON_LABEL[s.reason]}
                 </Text>
               ))}
             </FlexColumn>

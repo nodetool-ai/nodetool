@@ -148,7 +148,7 @@ const MCPSettingsMenu = () => {
           </Text>
         )}
 
-        {isLoading && <Text sx={{ padding: "1em" }}>Loading...</Text>}
+        {isLoading && <Text sx={{ padding: "1em" }}>Loading…</Text>}
 
         {data && (
           <>

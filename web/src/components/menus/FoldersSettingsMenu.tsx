@@ -186,7 +186,7 @@ const FoldersSettings = () => {
     <>
       {isLoading && (
         <Text sx={{ textAlign: "center", padding: "2em" }}>
-          Loading folder settings...
+          Loading folder settings…
         </Text>
       )}
       <div
