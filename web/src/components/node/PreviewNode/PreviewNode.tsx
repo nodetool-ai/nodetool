@@ -526,6 +526,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           className={`content ${
             isScrollable ? "scrollable nowheel" : "noscroll"
           } nodrag`}
+          role="region"
+          aria-label="Preview output"
           style={{ width: "100%", height: "100%" }}
           tabIndex={0}
           onFocus={handleContentFocus}

@@ -13,15 +13,13 @@ import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Layer } from "../types";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
-import {
-  Caption,
-  FlexColumn,
-  Panel,
-  SelectField,
-  Text,
-  TextInput
-} from "../../ui_primitives";
-import { EditorButton } from "../../editor_ui";
+import { Caption } from "../../ui_primitives/Caption";
+import { FlexColumn } from "../../ui_primitives/FlexColumn";
+import { Panel } from "../../ui_primitives/Panel";
+import { SelectField } from "../../ui_primitives/SelectField";
+import { Text } from "../../ui_primitives/Text";
+import { TextInput } from "../../ui_primitives/TextInput";
+import { EditorButton } from "../../editor_ui/EditorButton";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../../stores/ApiTypes";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";

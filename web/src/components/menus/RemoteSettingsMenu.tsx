@@ -10,7 +10,9 @@ import {
   FormControl,
   InputLabel
 } from "@mui/material";
-import { TextInput, Text, EditorButton } from "../ui_primitives";
+import { TextInput } from "../ui_primitives/TextInput";
+import { Text } from "../ui_primitives/Text";
+import { EditorButton } from "../editor_ui/EditorButton";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore, {
   type SettingWithValue

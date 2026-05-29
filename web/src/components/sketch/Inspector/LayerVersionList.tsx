@@ -8,14 +8,12 @@ import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
-import {
-  FlexColumn,
-  FlexRow,
-  Text,
-  LoadingSpinner,
-  EmptyState,
-  ToolbarIconButton
-} from "../../ui_primitives";
+import { FlexColumn } from "../../ui_primitives/FlexColumn";
+import { FlexRow } from "../../ui_primitives/FlexRow";
+import { Text } from "../../ui_primitives/Text";
+import { LoadingSpinner } from "../../ui_primitives/LoadingSpinner";
+import { EmptyState } from "../../ui_primitives/EmptyState";
+import { ToolbarIconButton } from "../../ui_primitives/ToolbarIconButton";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import {
   useLayerVersions,

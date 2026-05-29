@@ -46,14 +46,11 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
-import {
-  CheckerDropzone,
-  FlexColumn,
-  FlexRow,
-  ToggleGroup,
-  ToggleOption,
-  ToolbarIconButton
-} from "../../ui_primitives";
+import { CheckerDropzone } from "../../ui_primitives/CheckerDropzone";
+import { FlexColumn } from "../../ui_primitives/FlexColumn";
+import { FlexRow } from "../../ui_primitives/FlexRow";
+import { ToggleGroup, ToggleOption } from "../../ui_primitives/ToggleGroup";
+import { ToolbarIconButton } from "../../ui_primitives/ToolbarIconButton";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";

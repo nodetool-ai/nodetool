@@ -12,16 +12,14 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "fast-deep-equal";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
-import {
-  Caption,
-  CloseButton,
-  CopyButton,
-  EditorButton,
-  ScrollArea,
-  Text,
-  Tooltip,
-  Box
-} from "./ui_primitives";
+import { Caption } from "./ui_primitives/Caption";
+import { CloseButton } from "./ui_primitives/CloseButton";
+import { CopyButton } from "./ui_primitives/CopyButton";
+import { EditorButton } from "./editor_ui/EditorButton";
+import { ScrollArea } from "./ui_primitives/ScrollArea";
+import { Text } from "./ui_primitives/Text";
+import { Tooltip } from "./ui_primitives/Tooltip";
+import { Box } from "./ui_primitives/Box";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import FalPricingFooter from "./node/FalPricingFooter";

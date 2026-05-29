@@ -24,7 +24,7 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ToggleGroup, ToggleOption } from "../../ui_primitives";
+import { ToggleGroup, ToggleOption } from "../../ui_primitives/ToggleGroup";
 import ImageIcon from "@mui/icons-material/Image";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 

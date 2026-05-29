@@ -2,16 +2,14 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme, Theme } from "@mui/material/styles";
-import {
-  FlexColumn,
-  FlexRow,
-  Card,
-  Text,
-  Caption,
-  LoadingSpinner,
-  AlertBanner,
-  EditorButton
-} from "../ui_primitives";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Card } from "../ui_primitives/Card";
+import { Text } from "../ui_primitives/Text";
+import { Caption } from "../ui_primitives/Caption";
+import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
+import { AlertBanner } from "../ui_primitives/AlertBanner";
+import { EditorButton } from "../editor_ui/EditorButton";
 import { trpc } from "../../trpc/client";
 
 interface SandboxStatus {

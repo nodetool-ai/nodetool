@@ -19,20 +19,17 @@ import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
-import {
-  FlexColumn,
-  FlexRow,
-  Text,
-  Caption,
-  LoadingSpinner,
-  EmptyState,
-  Popover,
-  SearchInput,
-  TabGroup,
-  TabPanel,
-  TextInput,
-  ToolbarIconButton
-} from "../ui_primitives";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Text } from "../ui_primitives/Text";
+import { Caption } from "../ui_primitives/Caption";
+import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
+import { EmptyState } from "../ui_primitives/EmptyState";
+import { Popover } from "../ui_primitives/Popover";
+import { SearchInput } from "../ui_primitives/SearchInput";
+import { TabGroup, TabPanel } from "../ui_primitives/TabGroup";
+import { TextInput } from "../ui_primitives/TextInput";
+import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
 import { trpc } from "../../trpc/client";
 import { trpcClient } from "../../trpc/client";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";

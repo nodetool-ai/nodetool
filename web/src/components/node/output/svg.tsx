@@ -44,11 +44,13 @@ const renderSvgElement = (value: SVGElement): React.ReactElement => {
     value.content &&
       (typeof value.content === "string" &&
       value.content.trim().startsWith("<") ? (
-        <div dangerouslySetInnerHTML={{ __html: sanitizeSvgContent(value.content) }} />
+        <div key="content" dangerouslySetInnerHTML={{ __html: sanitizeSvgContent(value.content) }} />
       ) : (
         value.content
       )),
-    ...(value.children || []).map(renderSvgElement)
+    ...(value.children || []).map((child, idx) =>
+      React.cloneElement(renderSvgElement(child), { key: `child-${idx}` })
+    )
   ].filter(Boolean);
 
   return createElement(value.name || "svg", svgProps, ...children);

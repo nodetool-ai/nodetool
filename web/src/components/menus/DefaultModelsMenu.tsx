@@ -1,5 +1,7 @@
 import React, { useCallback } from "react";
-import { Text, FlexRow, EditorButton } from "../ui_primitives";
+import { Text } from "../ui_primitives/Text";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { EditorButton } from "../editor_ui/EditorButton";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
 import ImageModelSelect from "../properties/ImageModelSelect";

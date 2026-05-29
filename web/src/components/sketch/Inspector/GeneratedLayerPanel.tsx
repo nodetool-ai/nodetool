@@ -13,14 +13,12 @@ import { useWorkflow } from "../../../serverState/useWorkflow";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { createNodeStore, type NodeStore } from "../../../stores/NodeStore";
-import {
-  AlertBanner,
-  EmptyState,
-  FlexColumn,
-  LoadingSpinner,
-  Panel,
-  Box
-} from "../../ui_primitives";
+import { AlertBanner } from "../../ui_primitives/AlertBanner";
+import { EmptyState } from "../../ui_primitives/EmptyState";
+import { FlexColumn } from "../../ui_primitives/FlexColumn";
+import { LoadingSpinner } from "../../ui_primitives/LoadingSpinner";
+import { Panel } from "../../ui_primitives/Panel";
+import { Box } from "../../ui_primitives/Box";
 import MiniAppInputsForm from "../../miniapps/components/MiniAppInputsForm";
 import type {
   InputNodeData,

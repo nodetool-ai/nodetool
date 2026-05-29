@@ -7,7 +7,13 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
 import { isElectron, isProduction } from "../../lib/env";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip, Box } from "../ui_primitives";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { Text } from "../ui_primitives/Text";
+import { Caption } from "../ui_primitives/Caption";
+import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
+import { Chip } from "../ui_primitives/Chip";
+import { Box } from "../ui_primitives/Box";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
 // We use a local copy to avoid type export complexity

@@ -4,7 +4,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Tabs, Tab } from "@mui/material";
-import { Box, Text, Caption } from "./ui_primitives";
+import { Box } from "./ui_primitives/Box";
+import { Text } from "./ui_primitives/Text";
+import { Caption } from "./ui_primitives/Caption";
 import ChatMarkdown from "./chat/message/ChatMarkdown";
 import { createStyles } from "./chat/thread/ChatThreadView.styles";
 

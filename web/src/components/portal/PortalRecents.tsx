@@ -156,7 +156,13 @@ const PortalRecents: React.FC<PortalRecentsProps> = ({
       <div className="portal-recents-header">
         <div className="portal-recents-label">Recent</div>
         {onCreateWorkflow && (
-          <div className="portal-new-workflow" onClick={onCreateWorkflow}>
+          <div
+            className="portal-new-workflow"
+            role="button"
+            tabIndex={0}
+            onClick={onCreateWorkflow}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { onCreateWorkflow?.(); } }}
+          >
             + New Workflow
           </div>
         )}
@@ -165,11 +171,19 @@ const PortalRecents: React.FC<PortalRecentsProps> = ({
         <div
           key={`${item.type}-${item.id}`}
           className="portal-recent-item"
+          role="button"
+          tabIndex={0}
           onClick={() =>
             item.type === "workflow"
               ? onWorkflowClick(item.id)
               : onThreadClick(item.id)
           }
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (item.type === "workflow") { onWorkflowClick(item.id); } else { onThreadClick(item.id); }
+            }
+          }}
         >
           <span className="portal-recent-icon">
             {item.type === "chat" ? "\uD83D\uDCAC" : "\u26A1"}

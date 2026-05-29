@@ -11,17 +11,15 @@ import { useTheme } from "@mui/material/styles";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useAuth from "../../stores/useAuth";
-import {
-  SearchInput,
-  TextInput,
-  LabeledSwitch,
-  SelectField,
-  Text,
-  Tooltip,
-  EditorButton,
-  FlexColumn,
-  Box
-} from "../ui_primitives";
+import { SearchInput } from "../ui_primitives/SearchInput";
+import { TextInput } from "../ui_primitives/TextInput";
+import { LabeledSwitch } from "../ui_primitives/LabeledSwitch";
+import { SelectField } from "../ui_primitives/SelectField";
+import { Text } from "../ui_primitives/Text";
+import { Tooltip } from "../ui_primitives/Tooltip";
+import { EditorButton } from "../editor_ui/EditorButton";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { Box } from "../ui_primitives/Box";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron, isProduction } from "../../lib/env";

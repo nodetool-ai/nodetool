@@ -17,15 +17,13 @@ import {
   SKETCH_COLORS
 } from "../sketchStyles";
 import { SelectSettings, SelectToolMode } from "../types";
-import {
-  Divider,
-  EditorButton,
-  FlexRow,
-  Text,
-  ToolbarIconButton,
-  Tooltip,
-  Box
-} from "../../ui_primitives";
+import { Divider } from "../../ui_primitives/Divider";
+import { FlexRow } from "../../ui_primitives/FlexRow";
+import { Text } from "../../ui_primitives/Text";
+import { ToolbarIconButton } from "../../ui_primitives/ToolbarIconButton";
+import { Tooltip } from "../../ui_primitives/Tooltip";
+import { Box } from "../../ui_primitives/Box";
+import { EditorButton } from "../../editor_ui/EditorButton";
 import { RefineSelectionPopover } from "./refine-selection";
 import { useSketchStore } from "../state";
 

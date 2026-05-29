@@ -26,17 +26,15 @@ import type {
   ImageModelValue,
   TTSModelValue
 } from "../../../stores/ApiTypes";
-import {
-  Caption,
-  CollapsibleSection,
-  EditorButton,
-  FlexColumn,
-  FlexRow,
-  Panel,
-  SelectField,
-  Text,
-  TextInput
-} from "../../ui_primitives";
+import { Caption } from "../../ui_primitives/Caption";
+import { CollapsibleSection } from "../../ui_primitives/CollapsibleSection";
+import { FlexColumn } from "../../ui_primitives/FlexColumn";
+import { FlexRow } from "../../ui_primitives/FlexRow";
+import { Panel } from "../../ui_primitives/Panel";
+import { SelectField } from "../../ui_primitives/SelectField";
+import { Text } from "../../ui_primitives/Text";
+import { TextInput } from "../../ui_primitives/TextInput";
+import { EditorButton } from "../../ui_primitives";
 import { GeneratedClipHeader } from "./GeneratedClipHeader";
 import { ClipActions } from "./ClipActions";
 

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { Command, CommandInput } from "cmdk";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo } from "react";
-import { Dialog } from "../ui_primitives";
+import { Dialog } from "../ui_primitives/Dialog";
 import { getMousePosition } from "../../utils/MousePosition";
 import useAlignNodes from "../../hooks/useAlignNodes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";

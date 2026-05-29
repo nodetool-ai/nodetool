@@ -4,7 +4,10 @@ import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EditorButton, Text, LoadingSpinner, Box } from "../ui_primitives";
+import { EditorButton } from "../editor_ui/EditorButton";
+import { Text } from "../ui_primitives/Text";
+import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
+import { Box } from "../ui_primitives/Box";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   VideoRecorderProps,

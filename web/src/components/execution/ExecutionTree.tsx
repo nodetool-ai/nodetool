@@ -18,7 +18,9 @@ import React, { memo, useMemo, useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, FlexRow, FlexColumn } from "../ui_primitives";
+import { Text } from "../ui_primitives/Text";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
 import type {
   ExecutionTreeState,
   TaskState,

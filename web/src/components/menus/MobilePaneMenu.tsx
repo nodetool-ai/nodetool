@@ -9,7 +9,8 @@ import {
   ListItemText,
   useTheme
 } from "@mui/material";
-import { Divider, MobileBottomSheet } from "../ui_primitives";
+import { Divider } from "../ui_primitives/Divider";
+import { MobileBottomSheet } from "../ui_primitives/MobileBottomSheet";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 

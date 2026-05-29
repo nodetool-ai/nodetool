@@ -592,12 +592,15 @@ const WorkspaceTree: React.FC = () => {
         <div className="breadcrumb">
           <span
             className="breadcrumb-segment"
+            role="button"
+            tabIndex={0}
             onClick={() => setSelectedFilePath("")}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelectedFilePath(""); } }}
           >
             ~
           </span>
           {breadcrumbSegments.map((segment, index) => (
-            <span key={index} style={{ display: "contents" }}>
+            <span key={`${index}-${segment}`} style={{ display: "contents" }}>
               <NavigateNextIcon className="breadcrumb-separator" />
               <span className="breadcrumb-segment">{segment}</span>
             </span>

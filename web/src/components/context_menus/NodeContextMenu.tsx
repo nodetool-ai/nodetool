@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from "react";
 import { Menu } from "@mui/material";
-import { Divider } from "../ui_primitives";
+import { Divider } from "../ui_primitives/Divider";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";

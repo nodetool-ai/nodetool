@@ -122,7 +122,11 @@ const FileTabHeader = ({
     <>
       <div
         className={`tab ${isActive ? "active" : ""}`}
+        role="tab"
+        aria-selected={isActive}
+        tabIndex={0}
         onClick={handleClick}
+        onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         onMouseDown={handleMouseDown}
         onAuxClick={handleAuxClick}

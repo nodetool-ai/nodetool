@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../stores/useAuth";
-import { LoadingSpinner } from "./ui_primitives";
+import { LoadingSpinner } from "./ui_primitives/LoadingSpinner";
 
 type Props = {
   children: React.ReactNode;

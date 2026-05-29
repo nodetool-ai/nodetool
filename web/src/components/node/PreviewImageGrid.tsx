@@ -436,8 +436,11 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
+                  e.stopPropagation();
                   if (selectionMode) {
-                    toggleSelect(idx, { shiftKey: e.shiftKey } as React.MouseEvent<HTMLDivElement>);
+                    // Synthesize a minimal mouse event for keyboard-driven selection
+                    const syntheticEvent = { stopPropagation: () => {}, shiftKey: e.shiftKey } as React.MouseEvent<HTMLDivElement>;
+                    toggleSelect(idx, syntheticEvent);
                   } else if (onDoubleClick) {
                     onDoubleClick(idx);
                   } else {

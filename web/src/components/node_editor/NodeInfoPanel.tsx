@@ -392,7 +392,19 @@ const NodeInfoPanel: React.FC = memo(() => {
                   <span
                     key={tag}
                     data-tag={tag}
+                    role="button"
+                    tabIndex={0}
                     onClick={handleTagClick}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        const t = (e.currentTarget as HTMLElement).dataset.tag;
+                        if (t) {
+                          useNodeMenuStore.getState().openNodeMenu({ x: 500, y: 200 });
+                          useNodeMenuStore.getState().setSearchTerm(t.trim());
+                        }
+                      }
+                    }}
                   >
                     {tag}
                   </span>

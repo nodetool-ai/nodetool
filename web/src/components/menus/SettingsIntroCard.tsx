@@ -2,14 +2,12 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import {
-  Card,
-  Caption,
-  EditorButton,
-  FlexColumn,
-  FlexRow,
-  Text
-} from "../ui_primitives";
+import { Card } from "../ui_primitives/Card";
+import { Caption } from "../ui_primitives/Caption";
+import { EditorButton } from "../editor_ui/EditorButton";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Text } from "../ui_primitives/Text";
 
 interface SettingsIntroCardProps {
   icon: React.ReactNode;

@@ -4,7 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { ReactElement, ReactNode, memo } from "react";
 import { MenuItem } from "@mui/material";
-import { EditorButton, Tooltip } from "../ui_primitives";
+import { EditorButton } from "../editor_ui/EditorButton";
+import { Tooltip } from "../ui_primitives/Tooltip";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ContextMenuItemProps {

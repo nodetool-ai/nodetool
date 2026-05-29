@@ -15,19 +15,17 @@ import { useQuery } from "@tanstack/react-query";
 
 import { trpcClient } from "../../../trpc/client";
 import type { Workflow } from "../../../stores/ApiTypes";
-import {
-  Caption,
-  Dialog,
-  EmptyState,
-  EditorButton,
-  FlexColumn,
-  FlexRow,
-  Label,
-  LoadingSpinner,
-  Text,
-  TextInput,
-  Toast
-} from "../../ui_primitives";
+import { Caption } from "../../ui_primitives/Caption";
+import { Dialog } from "../../ui_primitives/Dialog";
+import { EmptyState } from "../../ui_primitives/EmptyState";
+import { FlexColumn } from "../../ui_primitives/FlexColumn";
+import { FlexRow } from "../../ui_primitives/FlexRow";
+import { Label } from "../../ui_primitives/Label";
+import { LoadingSpinner } from "../../ui_primitives/LoadingSpinner";
+import { Text } from "../../ui_primitives/Text";
+import { TextInput } from "../../ui_primitives/TextInput";
+import { Toast } from "../../ui_primitives/Toast";
+import { EditorButton } from "../../editor_ui/EditorButton";
 import { useCreateGeneratedLayer } from "../../../hooks/sketch/useCreateGeneratedLayer";
 
 const IMAGE_OUTPUT_TYPES = new Set([

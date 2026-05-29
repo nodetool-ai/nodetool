@@ -14,13 +14,11 @@ import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Slider } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
-import {
-  EditorButton,
-  FlexColumn,
-  FlexRow,
-  Popover,
-  Text
-} from "../../../ui_primitives";
+import { FlexColumn } from "../../../ui_primitives/FlexColumn";
+import { FlexRow } from "../../../ui_primitives/FlexRow";
+import { Popover } from "../../../ui_primitives/Popover";
+import { Text } from "../../../ui_primitives/Text";
+import { EditorButton } from "../../../editor_ui/EditorButton";
 import { sketchSliderSx } from "../../sketchStyles";
 import { cloneSelectionMask, MAX_SELECTION_FEATHER_RADIUS } from "../../selection";
 import type { SelectSettings, Selection } from "../../types";

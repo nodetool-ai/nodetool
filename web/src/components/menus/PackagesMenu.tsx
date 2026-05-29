@@ -9,16 +9,14 @@
 
 import { memo, useCallback, useEffect, useState } from "react";
 
-import {
-  AlertBanner,
-  Chip,
-  EditorButton,
-  FlexColumn,
-  FlexRow,
-  LabeledSwitch,
-  Text,
-  TextInput
-} from "../ui_primitives";
+import { AlertBanner } from "../ui_primitives/AlertBanner";
+import { Chip } from "../ui_primitives/Chip";
+import { EditorButton } from "../editor_ui/EditorButton";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { LabeledSwitch } from "../ui_primitives/LabeledSwitch";
+import { Text } from "../ui_primitives/Text";
+import { TextInput } from "../ui_primitives/TextInput";
 import { isElectron } from "../../lib/env";
 import usePacksStore, {
   type PackInfo,

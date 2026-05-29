@@ -139,6 +139,8 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
         nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
       >
         <div
+          role="button"
+          tabIndex={0}
           style={{
             ...style,
             height: DIVIDER_HEIGHT,
@@ -151,6 +153,12 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           }}
           className="content-type-header"
           onClick={handleToggleExpanded}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleToggleExpanded();
+            }
+          }}
         >
           <Text
             size="small"

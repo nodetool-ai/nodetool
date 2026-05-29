@@ -40,12 +40,10 @@ import { css } from "@emotion/react";
 import React, { memo, forwardRef, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  CollapsibleSection,
-  Container,
-  FlexColumn,
-  FlexRow
-} from "../ui_primitives";
+import { CollapsibleSection } from "../ui_primitives/CollapsibleSection";
+import { Container } from "../ui_primitives/Container";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
 import TransformContextMenu from "./TransformContextMenu";
 import type { SketchDocument } from "./types";
 import type { SketchPersistenceSnapshot } from "../../stores/sketch/persistence";

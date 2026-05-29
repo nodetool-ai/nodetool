@@ -6,13 +6,11 @@ import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import {
-  Caption,
-  FlexColumn,
-  FlexRow,
-  ShortcutHint,
-  Text
-} from "../ui_primitives";
+import { Caption } from "../ui_primitives/Caption";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { ShortcutHint } from "../ui_primitives/ShortcutHint";
+import { Text } from "../ui_primitives/Text";
 import { EditorButton } from "../editor_ui";
 import {
   MAX_RUNS,

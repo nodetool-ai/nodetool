@@ -548,7 +548,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleTileClick}
-                onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     const nodeTypeKey = e.currentTarget.dataset.nodeType;
@@ -617,7 +617,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleTileClick}
-                onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     const nodeTypeKey = e.currentTarget.dataset.nodeType;

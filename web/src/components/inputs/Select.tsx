@@ -270,6 +270,9 @@ const Select: React.FC<SelectProps> = ({
       <Tooltip placement="top" delay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
         <div
           ref={selectRef}
+          role="combobox"
+          aria-expanded={activeSelect === id}
+          aria-haspopup="listbox"
           className={`custom-select select-wrapper ${
             activeSelect === id ? "open" : ""
           }`}
@@ -315,6 +318,7 @@ const Select: React.FC<SelectProps> = ({
       {activeSelect === id && dropdownPosition && ReactDOM.createPortal(
         <ul
           ref={optionsRef}
+          role="listbox"
           className="options-list nowheel"
           css={portalOptionsStyles(theme)}
           style={dropdownStyle}

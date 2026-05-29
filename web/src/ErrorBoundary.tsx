@@ -4,7 +4,10 @@ import { css } from "@emotion/react";
 import React, { useState } from "react";
 import { useRouteError } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
-import { CopyButton, Text, EditorButton, Box } from "./components/ui_primitives";
+import { CopyButton } from "./components/ui_primitives/CopyButton";
+import { Text } from "./components/ui_primitives/Text";
+import { EditorButton } from "./components/editor_ui/EditorButton";
+import { Box } from "./components/ui_primitives/Box";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 

@@ -30,12 +30,10 @@ import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LayersIcon from "@mui/icons-material/Layers";
-import {
-  CheckerDropzone,
-  DynamicInputButton,
-  FlexRow,
-  VideoPlayer
-} from "../ui_primitives";
+import { CheckerDropzone } from "../ui_primitives/CheckerDropzone";
+import { DynamicInputButton } from "../ui_primitives/DynamicInputButton";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { VideoPlayer } from "../ui_primitives/VideoPlayer";
 import { NodeInputs } from "../node/NodeInputs";
 import HandleColumn from "../node/HandleColumn";
 import ImageView from "../node/ImageView";

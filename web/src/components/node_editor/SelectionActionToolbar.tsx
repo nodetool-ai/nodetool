@@ -44,9 +44,9 @@ const isDividerButton = (button: ButtonItem): button is DividerButton => {
   return button.divider === true;
 };
 
-const renderButton = (button: ActionButton, index: number, active?: boolean): React.ReactNode => (
+const renderButton = (button: ActionButton, _index: number, active?: boolean): React.ReactNode => (
   <ToolbarIconButton
-    key={`${button.slug}-${index}`}
+    key={button.slug}
     icon={button.icon}
     tooltip={getShortcutTooltip(button.slug, "both", "full", true)}
     onClick={button.action}

@@ -267,6 +267,16 @@ const RowItem = memo(({
     onToggle(rowKey);
   }, [onToggle, rowKey]);
 
+  const handleRowKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onToggle(rowKey);
+      }
+    },
+    [onToggle, rowKey]
+  );
+
   const handleActionsClick = useCallback((event: React.MouseEvent) => {
     event.stopPropagation();
   }, []);
@@ -278,8 +288,11 @@ const RowItem = memo(({
     <div role="listitem" style={wrapperStyle}>
       <div
         className={`row row-${row.severity}${isExpanded ? " expanded" : ""}`}
+        role="button"
+        tabIndex={0}
         style={rowStyle}
         onClick={handleRowClick}
+        onKeyDown={handleRowKeyDown}
       >
         <Tooltip
           title={timeTooltip}
