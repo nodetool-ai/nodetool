@@ -47,6 +47,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Model",
     description: "The TTS model to use.",
     values: [
+      "eleven_v3",
       "eleven_multilingual_v2",
       "eleven_turbo_v2_5",
       "eleven_flash_v2_5",

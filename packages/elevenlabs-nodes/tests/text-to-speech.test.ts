@@ -140,4 +140,23 @@ describe("TextToSpeechNode", () => {
     const node = makeNode({ voice: "Aria", text: "Hello" });
     await expect(node.process()).rejects.toThrow("ElevenLabs API error");
   });
+
+  it("offers eleven_v3 as a model option", () => {
+    const desc = TextToSpeechNode.toDescriptor();
+    const modelProp = desc.properties.find((p) => p.name === "model_id");
+    expect(modelProp?.values).toContain("eleven_v3");
+  });
+
+  it("sends the selected model_id in the payload", async () => {
+    const node = makeNode({
+      voice: "Aria",
+      text: "Hello",
+      model_id: "eleven_v3"
+    });
+    await node.process();
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(body.model_id).toBe("eleven_v3");
+  });
 });
