@@ -161,7 +161,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
         <FlexRow css={styles(theme)} gap={1} align="center" sx={{ py: 1 }}>
           <LoadingSpinner size="small" />
           <Text size="small" color="secondary">
-            Loading...
+            Loading…
           </Text>
         </FlexRow>
       );
@@ -310,7 +310,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 wordBreak: "break-word"
               }}
             >
-              Agents read and write files here during execution — saved images,
+              Agents read and write files here during execution - saved images,
               text, data, and other outputs. Browse the results in the Workspace
               panel. Agents can only access files inside this folder.
             </Caption>

@@ -48,6 +48,7 @@ import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
+import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
@@ -1374,8 +1375,7 @@ export const createNodeStore = (
 
             // Set default size for nodes that host rich previews so content
             // fills a stable box instead of driving the initial layout.
-            const isPreviewNode =
-              metadata.node_type === "nodetool.workflows.base_node.Preview";
+            const isPreviewNode = metadata.node_type === PREVIEW_NODE_TYPE;
             const isCompareImagesNode =
               metadata.node_type === "nodetool.compare.CompareImages";
             const isModel3DConstantNode =

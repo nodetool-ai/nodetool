@@ -10,7 +10,6 @@ export {
   CropSettingsPanel,
   EraserSettingsPanel,
   FillSettingsPanel,
-  getToolSettingsLabel,
   GradientSettingsPanel,
   MoveSettingsPanel,
   NoSettingsMessage,

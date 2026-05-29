@@ -335,7 +335,7 @@ function ensureEditableActiveLayer(doc: SketchDocument): SketchDocument {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-export const SKETCH_NODE_TYPE = "nodetool.image.ImageEditor";
+export { SKETCH_NODE_TYPE } from "../../../constants/nodeTypes";
 
 /** Composited `image` output from the editor (flattenToDataUrl); preferred over re-flattening sketch_data alone. */
 function getSketchOutputImageUri(
@@ -1187,7 +1187,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           />
 
           <div className="sketch-main">
-            <div className="sketch-preview-wrap" onClick={handleOpenEditor}>
+            <div
+              className="sketch-preview-wrap"
+              role="button"
+              tabIndex={0}
+              onClick={handleOpenEditor}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleOpenEditor(); } }}
+            >
               <div className="content">
                 {displayPreviewUri ? (
                   <>

@@ -9,7 +9,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
-import { colorForType, IconForType } from "../../config/data_types";
+import { colorForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import { getProviderKindForNamespace } from "../../utils/nodeProvider";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
@@ -305,8 +306,16 @@ const SearchResultItem = memo(
             ref={ref}
             className={`search-result-item ${isKeyboardSelected ? "keyboard-selected" : ""}`}
             css={searchResultStyles(theme, true)}
+            role="button"
+            tabIndex={0}
             draggable
             onClick={handleClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleClick();
+              }
+            }}
             onDragStart={handleDragStart}
             onDragEnd={onDragEnd}
           >
@@ -364,8 +373,16 @@ const SearchResultItem = memo(
           ref={ref}
           className={`search-result-item ${isExpanded ? "expanded" : ""} ${isKeyboardSelected ? "keyboard-selected" : ""}`}
           css={searchResultStyles(theme, compact)}
+          role="button"
+          tabIndex={0}
           draggable
           onClick={handleClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleClick();
+            }
+          }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           onDragStart={handleDragStart}
@@ -439,7 +456,16 @@ const SearchResultItem = memo(
               />
               <div
                 className={`expand-indicator ${isExpanded ? "expanded" : ""}`}
+                role="button"
+                tabIndex={0}
                 onClick={handleToggleExpand}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsExpanded((prev) => !prev);
+                  }
+                }}
                 title={isExpanded ? "Collapse details" : "Show details"}
               >
                 <ExpandMoreIcon />

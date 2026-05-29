@@ -555,6 +555,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                 <div className="header-actions">
                     <Tooltip title="Download">
                         <button
+                            type="button"
                             className="header-button button-secondary"
                             onClick={handleDownload}
                         >
@@ -564,6 +565,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                     </Tooltip>
                     <Tooltip title="Save and Apply">
                         <button
+                            type="button"
                             className="header-button button-primary"
                             onClick={handleSave}
                             disabled={isSaving}

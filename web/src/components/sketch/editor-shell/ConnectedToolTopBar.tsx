@@ -6,11 +6,14 @@
  * Action callbacks that depend on document are passed in as props; their
  * individual references are stable via `useCallback`.
  */
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import SketchToolTopBar from "../SketchToolTopBar";
-import { useSketchStore } from "../state";
+import { useSketchStore, SKETCH_ZOOM_MIN, SKETCH_ZOOM_MAX } from "../state";
 import { useResolvedToolSettings, useToolChromeActions } from "../hooks";
-import { useTransformAdapter, type UseTransformAdapterParams } from "../hooks/useTransformAdapter";
+import {
+  useTransformAdapter,
+  type UseTransformAdapterParams
+} from "../hooks/useTransformAdapter";
 import type { useSegmentation } from "../hooks/useSegmentation";
 
 export interface ConnectedToolTopBarProps {
@@ -39,6 +42,7 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
   const activeTool = useSketchStore((s) => s.activeTool);
   const cropPreviewBounds = useSketchStore((s) => s.cropPreviewBounds);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
+  const togglePanelsHidden = useSketchStore((s) => s.togglePanelsHidden);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const toolSettings = useResolvedToolSettings();
   const transform = useTransformAdapter({
@@ -65,6 +69,28 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
     smoothCurrentSelectionBorders,
     convertSelectionToBorderOutline
   } = useToolChromeActions();
+
+  // Fit-to-viewport: measure the canvas region (one-off, on click — not a hot
+  // path), scale the document to fit with a small margin, and recenter. Reads
+  // doc dims + sets zoom/pan via getState() so the bar gains no subscriptions.
+  const handleFit = useCallback(() => {
+    const root = globalThis.document;
+    const region = root?.querySelector(".sketch-editor__canvas-region");
+    if (!region) {
+      return;
+    }
+    const rect = (region as HTMLElement).getBoundingClientRect();
+    const store = useSketchStore.getState();
+    const { width: docW, height: docH } = store.document.canvas;
+    if (rect.width <= 0 || rect.height <= 0 || docW <= 0 || docH <= 0) {
+      return;
+    }
+    const FIT_MARGIN = 0.9;
+    const raw = Math.min(rect.width / docW, rect.height / docH) * FIT_MARGIN;
+    const scale = Math.max(SKETCH_ZOOM_MIN, Math.min(SKETCH_ZOOM_MAX, raw));
+    store.setZoom(scale);
+    store.setPan({ x: 0, y: 0 });
+  }, []);
 
   if (panelsHidden) {
     return null;
@@ -116,16 +142,12 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       onTransformAutoSelectChange={(enabled: boolean) =>
         setTransformSettings({ autoSelect: enabled })
       }
-      onTransformModeChange={(mode) =>
-        setTransformSettings({ mode })
-      }
+      onTransformModeChange={(mode) => setTransformSettings({ mode })}
       moveAutoSelect={toolSettings.move?.autoSelect ?? true}
       onMoveAutoSelectChange={(enabled: boolean) =>
         setMoveSettings({ autoSelect: enabled })
       }
-      cropHasPendingRect={
-        activeTool === "crop" && cropPreviewBounds !== null
-      }
+      cropHasPendingRect={activeTool === "crop" && cropPreviewBounds !== null}
       onCropApply={props.onCropCommit}
       onCropCancelPreview={props.onCropCancelPreview}
       segmentSettings={toolSettings.segment}
@@ -138,6 +160,8 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       onCancelSegmentation={props.segmentation.cancelSegmentation}
       onClearSegmentPrompts={props.onClearSegmentPrompts}
       onCheckSegmentModel={props.segmentation.checkModel}
+      onTogglePanelsHidden={togglePanelsHidden}
+      onFit={handleFit}
     />
   );
 });

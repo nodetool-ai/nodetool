@@ -83,6 +83,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             {typeof onInsert === "function" && (
               <button
+                type="button"
                 className="button"
                 onClick={handleInsert}
                 title="Insert into editor"

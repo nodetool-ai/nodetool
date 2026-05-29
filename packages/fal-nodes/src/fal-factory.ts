@@ -346,6 +346,13 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       value: true,
       configurable: true
     });
+    // Media generators render as a content card (image/video/audio/3D body).
+    // This is the metadata-driven equivalent of the frontend's old
+    // "fal.* namespace + media output" heuristic.
+    Object.defineProperty(FalNodeClass, "body", {
+      value: "content_card",
+      configurable: true
+    });
   }
 
   if (isImageOutput) {

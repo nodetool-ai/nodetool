@@ -26,10 +26,12 @@ import NumberInput from "../../inputs/NumberInput";
 import {
   BLEND_MODES,
   type CompositorBlendMode,
-  type CompositorLayerState,
+  type CompositorLayerState
+} from "./CompositorBody";
+import {
   type ImageRefLike,
   useImageUrl
-} from "./CompositorBody";
+} from "./CompositorBody.helpers";
 
 const styles = (theme: Theme) =>
   css({

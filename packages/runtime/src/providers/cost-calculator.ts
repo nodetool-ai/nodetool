@@ -368,6 +368,7 @@ export interface UsageInfo {
 }
 
 import { createLogger } from "@nodetool-ai/config";
+import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.cost");
 
@@ -379,7 +380,7 @@ export class CostCalculator {
    * @param provider - Provider name (e.g., "openai", "anthropic")
    * @returns The pricing tier name, or null if not found
    */
-  static getTier(modelId: string, provider: string): string | null {
+  static getTier(modelId: string, provider: ProviderId): string | null {
     const modelLower = modelId.toLowerCase();
     const providerLower = provider.toLowerCase();
 
@@ -422,7 +423,7 @@ export class CostCalculator {
   static calculate(
     modelId: string,
     usage: UsageInfo,
-    provider: string
+    provider: ProviderId
   ): number {
     const tierName = CostCalculator.getTier(modelId, provider);
     if (tierName === null) {
@@ -501,7 +502,7 @@ export function calculateChatCost(
   inputTokens: number,
   outputTokens: number,
   cachedTokens: number = 0,
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
   const usage: UsageInfo = { inputTokens, outputTokens, cachedTokens };
   return CostCalculator.calculate(modelId, usage, provider);
@@ -513,7 +514,7 @@ export function calculateChatCost(
 export function calculateEmbeddingCost(
   modelId: string,
   inputTokens: number,
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
   const usage: UsageInfo = { inputTokens };
   return CostCalculator.calculate(modelId, usage, provider);
@@ -525,7 +526,7 @@ export function calculateEmbeddingCost(
 export function calculateSpeechCost(
   modelId: string,
   inputChars: number,
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
   const usage: UsageInfo = { inputCharacters: inputChars };
   return CostCalculator.calculate(modelId, usage, provider);
@@ -537,7 +538,7 @@ export function calculateSpeechCost(
 export function calculateWhisperCost(
   modelId: string,
   durationSeconds: number,
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
   const usage: UsageInfo = { durationSeconds };
   return CostCalculator.calculate(modelId, usage, provider);
@@ -549,7 +550,7 @@ export function calculateWhisperCost(
  */
 export function calculateModel3DCost(
   modelId: string,
-  provider: string,
+  provider: ProviderId,
   taskCount: number = 1
 ): number {
   const usage: UsageInfo = { taskCount };
@@ -563,7 +564,7 @@ export function calculateImageCost(
   modelId: string,
   imageCount: number = 1,
   quality: string = "medium",
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
   // Adjust tier based on quality for gpt-image models
   if (modelId.toLowerCase().includes("gpt-image") && !modelId.includes("1.5")) {

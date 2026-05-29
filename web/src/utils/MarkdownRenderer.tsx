@@ -192,6 +192,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         }`}
         css={mainStyles}
         ref={containerRef}
+        role="region"
+        aria-label="Markdown content"
         tabIndex={0}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

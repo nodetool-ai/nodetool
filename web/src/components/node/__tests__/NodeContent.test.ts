@@ -7,7 +7,7 @@ jest.mock("../../../hooks/nodes/useDynamicProperty", () => ({
   useDynamicProperty: () => ({ handleAddProperty: jest.fn() })
 }));
 
-import { arePropsEqual } from "../NodeContent";
+import { arePropsEqual } from "../NodeContent.helpers";
 import { NodeData } from "../../../stores/NodeData";
 
 // Minimal valid NodeContentProps for testing arePropsEqual

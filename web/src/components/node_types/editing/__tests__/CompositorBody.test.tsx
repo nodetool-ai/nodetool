@@ -12,7 +12,7 @@ import {
   nextImageIndex,
   useImageUrl,
   type ImageRefLike
-} from "../CompositorBody";
+} from "../CompositorBody.helpers";
 import { LayerRow, type LayerRowProps } from "../LayerRow";
 
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({

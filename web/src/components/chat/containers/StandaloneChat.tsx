@@ -329,7 +329,7 @@ const StandaloneChat: React.FC = () => {
         justify="center"
         sx={{ height: "100vh" }}
       >
-        <Text>Loading chat...</Text>
+        <Text>Loading chat…</Text>
       </FlexRow>
     );
   }

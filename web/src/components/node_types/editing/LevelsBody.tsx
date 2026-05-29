@@ -46,8 +46,7 @@ import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropert
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { computeHistogramAsync } from "../../../utils/histogram/histogramAsync";
 import type { ImageHistogram } from "../../../utils/histogram/computeHistogram";
-
-const LEVELS_NODE_TYPE = "nodetool.image.Levels";
+import { LEVELS_NODE_TYPE } from "../../../constants/nodeTypes";
 
 type ChannelKey = "r" | "g" | "b";
 type HistogramView = "r" | "g" | "b" | "luminance";

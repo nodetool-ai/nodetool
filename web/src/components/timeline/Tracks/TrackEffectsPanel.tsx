@@ -1723,6 +1723,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
                 onDragEnd={handleDragEnd}
                 aria-label="Drag to reorder effect"
                 role="button"
+                tabIndex={0}
               >
                 <DragIndicatorIcon />
               </div>
@@ -1737,6 +1738,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
           <FlexRow gap={0.25}>
             <Tooltip title="Remove effect">
               <button
+                type="button"
                 css={iconButtonStyles(theme)}
                 onClick={handleRemove}
                 aria-label="Remove effect"
@@ -1863,9 +1865,9 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
           sx={{ mb: 1, alignItems: "center" }}
         >
           <Text size="small" weight={600}>
-            {chainLabel} — {track.name}
+            {chainLabel} - {track.name}
           </Text>
-          <button css={addButtonStyles(theme)} onClick={handleOpenAdd}>
+          <button type="button" css={addButtonStyles(theme)} onClick={handleOpenAdd}>
             <AddIcon />
             Add
           </button>

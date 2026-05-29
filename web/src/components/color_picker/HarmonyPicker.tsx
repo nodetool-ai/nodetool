@@ -143,9 +143,12 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
               return (
                 <Tooltip key={harmonyColor} title={`Click to use ${harmonyColor}`}>
                   <div
+                    role="button"
+                    tabIndex={0}
                     className="harmony-color"
                     style={{ backgroundColor: harmonyColor }}
                     onClick={handleSelectColorWithHarmony(harmonyColor, harmony.type)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleSelectColorWithHarmony(harmonyColor, harmony.type)(); } }}
                   >
                     <span className="color-hex" style={{ color: textHex }}>
                       {harmonyColor.replace("#", "")}

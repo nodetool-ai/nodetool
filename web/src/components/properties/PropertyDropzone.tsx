@@ -474,6 +474,8 @@ const PropertyDropzone = ({
 
       <div className="drop-container">
         <div
+          role={uri ? undefined : "button"}
+          tabIndex={uri ? undefined : 0}
           className={`dropzone ${uri ? "dropped" : ""} ${isDragOver ? "drag-over" : ""
             }`}
           style={{
@@ -481,6 +483,7 @@ const PropertyDropzone = ({
             cursor: uri ? "default" : "pointer"
           }}
           onClick={uri ? undefined : handleDropzoneClick}
+          onKeyDown={uri ? undefined : (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleDropzoneClick(); } }}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}

@@ -40,7 +40,7 @@
     "nodes": [
       {
         "id": "claude-agent",
-        "type": "anthropic.agents.ClaudeAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
           "prompt": "Use the Yelp Search tool to find 'best ramen restaurants New York'. Analyze ratings, review volume, price ranges, and neighborhoods. Provide a curated list for different occasions (quick lunch, date night, best overall).",
           "model": {
@@ -49,11 +49,9 @@
             "id": "claude-sonnet-4-6",
             "name": "Claude Sonnet 4.6"
           },
-          "system_prompt": "You are a sharp research analyst. Use the available search tools to gather data, then provide structured, insightful analysis with specific references. Be concise but thorough.",
+          "system": "You are a sharp research analyst. Use the available search tools to gather data, then provide structured, insightful analysis with specific references. Be concise but thorough.",
           "max_turns": 10,
-          "allowed_tools": [],
-          "permission_mode": "acceptEdits",
-          "use_claude_credentials": true
+          "tools": []
         },
         "ui_properties": {
           "position": {

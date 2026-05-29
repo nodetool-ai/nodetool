@@ -282,6 +282,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
     <div className="mode-pills">
       <Tooltip title="Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
+          type="button"
           className={`mode-pill ${isEditorActive ? "active" : ""}`}
           onClick={handleEditorClick}
           tabIndex={-1}
@@ -292,6 +293,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
       </Tooltip>
       <Tooltip title="Chat" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
+          type="button"
           className={`mode-pill ${isChatActive ? "active" : ""}`}
           onClick={handleChatClick}
           tabIndex={-1}
@@ -303,6 +305,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
       <Tooltip title={currentWorkflowId ? "Run as App" : "Open a workflow first"} delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <span style={{ display: "inline-flex" }}>
           <button
+            type="button"
             className={`mode-pill ${isAppActive ? "active" : ""}`}
             onClick={handleAppClick}
             tabIndex={-1}
@@ -319,6 +322,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
       </Tooltip>
       <Tooltip title="Timeline" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
+          type="button"
           className={`mode-pill ${isTimelineActive ? "active" : ""}`}
           onClick={handleTimelineClick}
           tabIndex={-1}
@@ -331,6 +335,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
       </Tooltip>
       <Tooltip title="Image Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
         <button
+          type="button"
           className={`mode-pill ${isSketchActive ? "active" : ""}`}
           onClick={handleSketchClick}
           tabIndex={-1}
@@ -538,7 +543,13 @@ const AppHeader: React.FC = memo(function AppHeader() {
         <FlexRow className="navigate" gap={1} align="center">
           {/* Logo - clicks to Dashboard */}
           <Tooltip title="Go to Dashboard" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-            <div className="logo-container" onClick={handleLogoClick}>
+            <div
+              className="logo-container"
+              onClick={handleLogoClick}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleLogoClick(); }}
+              role="button"
+              tabIndex={0}
+            >
               <Logo
                 small
                 width="20px"

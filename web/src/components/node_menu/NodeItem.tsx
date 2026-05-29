@@ -7,7 +7,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -284,7 +284,19 @@ const NodeItem = memo(
         >
           <div
             className="node-button"
+            role="button"
+            tabIndex={0}
             onClick={handleClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (showCheckbox && onToggleSelection) {
+                  onToggleSelection(node.node_type);
+                } else {
+                  onClick(node);
+                }
+              }
+            }}
             style={nodeButtonStyle}
           >
             {showCheckbox && (

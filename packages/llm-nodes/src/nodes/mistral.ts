@@ -44,6 +44,7 @@ async function mistralPost(
 
 export class ChatComplete extends BaseNode {
   static readonly nodeType = "mistral.text.ChatComplete";
+  static readonly body = "content_card";
   static readonly title = "Chat Complete";
   static readonly description =
     "Generate text using Mistral AI's chat completion models.\n    mistral, chat, ai, text generation, llm, completion\n\n    Uses Mistral AI's chat models to generate responses from prompts.\n    Requires a Mistral API key.\n\n    Use cases:\n    - Generate text responses to prompts\n    - Build conversational AI applications\n    - Code generation with Codestral\n    - Multi-modal understanding with Pixtral";

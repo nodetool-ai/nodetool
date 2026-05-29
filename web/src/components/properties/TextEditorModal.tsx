@@ -945,6 +945,7 @@ const TextEditorModal = ({
                 <div className="toolbar-group code-tools">
                   <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Find">
                     <button
+                      type="button"
                       className="button-ghost"
                       onClick={handleMonacoFind}
                       aria-label="Find"
@@ -955,6 +956,7 @@ const TextEditorModal = ({
                   {!readOnly && (
                     <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Format">
                       <button
+                        type="button"
                         className="button-ghost"
                         onClick={handleMonacoFormat}
                         aria-label="Format"
@@ -969,6 +971,7 @@ const TextEditorModal = ({
                       title={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
                     >
                       <button
+                        type="button"
                         className={`button-ghost snippet-toggle ${snippetSidebarVisible ? "active" : ""}`}
                         onClick={() => setSnippetSidebarVisible((v) => !v)}
                         aria-label={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
@@ -982,6 +985,7 @@ const TextEditorModal = ({
                     title={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
                   >
                     <button
+                      type="button"
                       className="button-ghost"
                       onClick={handleToggleWordWrap}
                       aria-label={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
@@ -1027,6 +1031,7 @@ const TextEditorModal = ({
                     }
                   >
                     <button
+                      type="button"
                       className="button"
                       onClick={handleToggleEditorMode}
                       aria-label={isCodeEditor ? "Switch to Rich Text" : "Switch to Code Editor"}
@@ -1042,6 +1047,7 @@ const TextEditorModal = ({
                   title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
                 >
                   <button
+                    type="button"
                     className="button"
                     onClick={toggleAssistantVisible}
                     aria-label={assistantVisible ? "Hide Assistant" : "Show Assistant"}
@@ -1055,6 +1061,7 @@ const TextEditorModal = ({
                 </Tooltip>
                 <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Download">
                   <button
+                    type="button"
                     className="button"
                     onClick={handleDownload}
                     aria-label="Download"
@@ -1067,6 +1074,7 @@ const TextEditorModal = ({
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   <button
+                    type="button"
                     className="button"
                     onClick={toggleFullscreen}
                     aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
@@ -1079,6 +1087,7 @@ const TextEditorModal = ({
                   title="Close Editor | Esc"
                 >
                   <button
+                    type="button"
                     className="button button-close"
                     onClick={onClose}
                     aria-label="Close Editor"

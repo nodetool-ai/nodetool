@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
+import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -363,10 +363,21 @@ const FavoritesTiles = memo(function FavoritesTiles({
             >
               <div
                 className="favorite-tile"
+                role="button"
+                tabIndex={0}
                 draggable
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleTileClick}
+                onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const nodeTypeKey = e.currentTarget.dataset.nodeType;
+                    if (!nodeTypeKey) return;
+                    const meta = getMetadata(nodeTypeKey);
+                    if (meta) requestCreate(meta);
+                  }
+                }}
                 onMouseEnter={handleTileMouseEnter}
                 data-node-type={nodeType}
                 style={favoriteTileStyle}

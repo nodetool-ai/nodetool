@@ -27,8 +27,7 @@ import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
-
-const FIT_NODE_TYPE = "nodetool.image.Fit";
+import { FIT_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const PRESETS: ReadonlyArray<number> = [256, 512, 768, 1024];
 

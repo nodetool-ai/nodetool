@@ -86,7 +86,7 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
       // Add plus separator between keys (except before first key)
       if (index > 0) {
         elements.push(
-          <span key={`plus-${index}`} style={{ margin: "0 1px", opacity: 0.7, fontWeight: 700 }}>
+          <span key={`plus-${key}-${index}`} style={{ margin: "0 1px", opacity: 0.7, fontWeight: 700 }}>
             +
           </span>
         );
@@ -95,7 +95,7 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
       // Add the key badge
       elements.push(
         <span
-          key={`key-${index}`}
+          key={`key-${key}-${index}`}
           style={{
             display: "inline-flex",
             alignItems: "center",

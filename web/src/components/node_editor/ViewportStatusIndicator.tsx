@@ -126,8 +126,52 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     [theme.vars.palette.text.secondary, theme.vars.palette.action.hover, theme.palette.primary.main]
   );
 
+  const zoomLabelSx = useMemo(
+    () => ({
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "JetBrains Mono, monospace",
+      fontSize: "0.75rem",
+      fontWeight: 500,
+      color: currentPreset
+        ? theme.palette.primary.main
+        : theme.vars.palette.text.secondary,
+      minWidth: "48px",
+      textAlign: "center" as const,
+      padding: "2px 6px",
+      borderRadius: "var(--rounded-sm)",
+      transition: "all 0.15s ease",
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.palette.primary.main
+      }
+    }),
+    [currentPreset, theme.palette.primary.main, theme.vars.palette.text.secondary, theme.vars.palette.action.hover]
+  );
+
   // Keep the popover open even when not zooming
   const shouldShowPanel = isZooming || Boolean(zoomMenuAnchor);
+
+  const containerSx = useMemo(
+    () => ({
+      position: "absolute" as const,
+      bottom: 16,
+      right: 20,
+      zIndex: 10,
+      backgroundColor: theme.vars.palette.Paper.paper,
+      backdropFilter: "blur(8px)",
+      borderRadius: "var(--rounded-lg)",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      padding: "4px 8px",
+      boxShadow: theme.shadows[4],
+      userSelect: "none" as const,
+      pointerEvents: shouldShowPanel ? ("auto" as const) : ("none" as const),
+      opacity: shouldShowPanel ? 1 : 0,
+      transition: "opacity 0.2s ease-in-out"
+    }),
+    [shouldShowPanel, theme.vars.palette.Paper.paper, theme.vars.palette.divider, theme.shadows]
+  );
 
   if (!visible) {
     return null;
@@ -139,22 +183,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         data-testid="viewport-status-indicator"
         gap={0.5}
         align="center"
-        sx={{
-          position: "absolute",
-          bottom: 16,
-          right: 20,
-          zIndex: 10,
-          backgroundColor: theme.vars.palette.Paper.paper,
-          backdropFilter: "blur(8px)",
-          borderRadius: "var(--rounded-lg)",
-          border: `1px solid ${theme.vars.palette.divider}`,
-          padding: "4px 8px",
-          boxShadow: theme.shadows[4],
-          userSelect: "none",
-          pointerEvents: shouldShowPanel ? "auto" : "none",
-          opacity: shouldShowPanel ? 1 : 0,
-          transition: "opacity 0.2s ease-in-out"
-        }}
+        sx={containerSx}
       >
         <ToolbarIconButton
           icon={<RemoveIcon sx={{ fontSize: "1rem" }} />}
@@ -179,26 +208,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           <Text
             component="button"
             onClick={handleOpenZoomMenu}
-            sx={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontFamily: "JetBrains Mono, monospace",
-              fontSize: "0.75rem",
-              fontWeight: 500,
-              color: currentPreset
-                ? theme.palette.primary.main
-                : theme.vars.palette.text.secondary,
-              minWidth: "48px",
-              textAlign: "center",
-              padding: "2px 6px",
-              borderRadius: "var(--rounded-sm)",
-              transition: "all 0.15s ease",
-              "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover,
-                color: theme.palette.primary.main
-              }
-            }}
+            sx={zoomLabelSx}
           >
             {zoomPercentage}%
           </Text>

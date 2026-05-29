@@ -11,7 +11,7 @@ import { Chip } from "../ui_primitives/Chip";
 import { NodeContext } from "../../contexts/NodeContext";
 import { createNodeStore } from "../../stores/NodeStore";
 import { EditorUiProvider } from "../editor_ui";
-import { getComponentForProperty } from "../node/PropertyInput";
+import { getComponentForProperty } from "../node/PropertyInput.resolver";
 import type { Property } from "../../stores/ApiTypes";
 
 interface ChainNodePropertiesProps {

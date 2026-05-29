@@ -19,7 +19,7 @@ import type { Theme } from "@mui/material/styles";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { formatTimecode } from "../Inspector/InspectorPrimitives";
+import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 

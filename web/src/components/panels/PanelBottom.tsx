@@ -573,6 +573,12 @@ const PanelBottom: React.FC = () => {
             className="panel-resize-button"
             onMouseDown={handleMouseDown}
             style={{ cursor: isDragging ? "ns-resize" : "ns-resize" }}
+            role="slider"
+            aria-label="Resize panel"
+            aria-valuenow={panelSize}
+            aria-valuemin={40}
+            aria-valuemax={600}
+            tabIndex={-1}
           />
         )}
         <div className="panel-content">

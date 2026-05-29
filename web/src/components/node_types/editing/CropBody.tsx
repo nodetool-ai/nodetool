@@ -43,8 +43,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput, useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
-
-const CROP_NODE_TYPE = "nodetool.image.Crop";
+import { CROP_NODE_TYPE } from "../../../constants/nodeTypes";
 
 /** Aspect-ratio dropdown options. `free` means no constraint. */
 const ASPECT_OPTIONS = [

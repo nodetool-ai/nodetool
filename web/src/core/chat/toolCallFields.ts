@@ -8,10 +8,10 @@
  */
 
 /** LLM-authored user-facing status. Surfaced via `tc.message`. */
-export const TOOL_USER_MESSAGE_FIELD = "_message";
+const TOOL_USER_MESSAGE_FIELD = "_message";
 
 /** Server-injected tool_call_id. Used by `run_subtask` for nesting. */
-export const TOOL_CALL_ID_FIELD = "_tool_call_id";
+const TOOL_CALL_ID_FIELD = "_tool_call_id";
 
 const RESERVED_FIELDS = [TOOL_USER_MESSAGE_FIELD, TOOL_CALL_ID_FIELD] as const;
 

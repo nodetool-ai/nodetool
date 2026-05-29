@@ -24,6 +24,7 @@ import usePacksStore, {
   type PackInfo,
   type SkipReason
 } from "../../stores/PacksStore";
+import { useShallow } from "zustand/react/shallow";
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -149,7 +150,7 @@ const PackRow = memo(function PackRow({
               </Text>
               {pack.skippedNodes.map((s) => (
                 <Text key={s.nodeType} size="small" family="secondary">
-                  {s.nodeType} — {SKIP_REASON_LABEL[s.reason]}
+                  {s.nodeType} - {SKIP_REASON_LABEL[s.reason]}
                 </Text>
               ))}
             </FlexColumn>
@@ -264,7 +265,18 @@ function PackagesMenu() {
     setTrusted,
     setAllowUnlisted,
     reload
-  } = usePacksStore();
+  } = usePacksStore(
+    useShallow((state) => ({
+      packs: state.packs,
+      trust: state.trust,
+      isLoading: state.isLoading,
+      error: state.error,
+      fetch: state.fetch,
+      setTrusted: state.setTrusted,
+      setAllowUnlisted: state.setAllowUnlisted,
+      reload: state.reload
+    }))
+  );
 
   useEffect(() => {
     void fetch();

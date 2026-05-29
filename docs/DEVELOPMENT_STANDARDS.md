@@ -167,7 +167,7 @@ Server state lives in TanStack Query (`web/src/serverState/`). Zustand and Query
 - **`staleTime` is set explicitly** for every query. Default `0` is wrong for most server data. Pick a value based on how often the underlying data changes; document in a comment if non-obvious.
 - **`enabled`** for conditional queries. Don't ship `useQuery` calls that depend on `undefined` ids.
 - **No fetching in `useEffect`.** Use `useQuery` / `useSuspenseQuery`.
-- **Mutations always invalidate**: every successful `useMutation` invalidates the related keys via `queryClient.invalidateQueries({ queryKey: [...] })`. Prefer narrow invalidations over broad ones.
+- **Mutations always invalidate**: every successful `useMutation` invalidates the related keys via `queryClient.invalidateQueries({ queryKey: [...] })`. Prefer narrow invalidations over broad ones. The call may be indirect — a named `onSuccess` callback, a store action invoked inside `mutationFn`, or inline in `mutationFn` — see [serverState/AGENTS.md](../web/src/serverState/AGENTS.md). Don't add a redundant second invalidation when one of these already covers the data.
 - **Optimistic updates** are required for any mutation that affects a list the user sees (workflows, assets, jobs). Roll back on error.
 - **Retry policy** — default `retry: 3` is too aggressive for mutations and for queries that fail predictably. Set `retry` per query: `false` for 4xx, `3` for network errors.
 - **`queryClient.setQueryData`** is the only way to write into the cache from outside a query. Never reach into internals.

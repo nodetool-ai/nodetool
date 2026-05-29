@@ -542,6 +542,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             spellCheck={false}
             className="nodrag"
             type="text"
+            aria-label="Group headline"
             value={headline}
             onChange={handleHeadlineChange}
             placeholder="Group"

@@ -47,8 +47,7 @@ import {
   $setPromptFromString
 } from "./promptComposer/promptEditorState";
 import { PromptComposerContext } from "./promptComposer/promptComposerContext";
-
-const PROMPT_NODE_TYPE = "nodetool.text.Prompt";
+import { PROMPT_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
   css({

@@ -32,8 +32,11 @@ function getSelectNodeEffectiveOutputType(
   node: Node<NodeData>
 ): TypeMetadata {
   const props = node.data.properties || {};
-  const enumTypeName = (props.enum_type_name as string) || null;
-  const options = (props.options as string[]) || [];
+  const enumTypeName =
+    typeof props.enum_type_name === "string" ? props.enum_type_name : null;
+  const options = Array.isArray(props.options)
+    ? (props.options as string[])
+    : [];
 
   return {
     type: "enum",

@@ -113,6 +113,7 @@ function MediaOptionMenuInternal<T extends string | number>({
               role="menuitemradio"
               aria-checked={selected}
               aria-disabled={opt.disabled || undefined}
+              tabIndex={0}
               className={`option-menu-item${selected ? " selected" : ""}${opt.disabled ? " disabled" : ""}`}
               onClick={() => {
                 if (opt.disabled) {
@@ -120,6 +121,16 @@ function MediaOptionMenuInternal<T extends string | number>({
                 }
                 onChange(opt.id);
                 onClose();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  if (opt.disabled) {
+                    return;
+                  }
+                  onChange(opt.id);
+                  onClose();
+                }
               }}
             >
               {opt.icon && (

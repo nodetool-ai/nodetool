@@ -186,6 +186,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         <video
           ref={videoRef}
           className="video-preview"
+          aria-label="Camera preview"
           autoPlay
           playsInline
           muted

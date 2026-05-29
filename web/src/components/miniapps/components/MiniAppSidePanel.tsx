@@ -187,7 +187,11 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
       {/* Backdrop */}
       <div
         className="side-panel-backdrop"
+        role="button"
+        aria-label="Close settings panel"
+        tabIndex={-1}
         onClick={handleClosePanel}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleClosePanel(); } }}
       />
 
       {/* Panel */}
@@ -214,7 +218,10 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
           <div className="panel-section" style={panelSectionMarginStyle}>
             <div
               className="panel-section-header"
+              role="button"
+              tabIndex={0}
               onClick={handleToggleGraph}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleToggleGraph(); } }}
             >
               <span className="panel-section-title">
                 <AccountTreeIcon sx={{ fontSize: 16 }} />

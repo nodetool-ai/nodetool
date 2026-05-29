@@ -1,5 +1,9 @@
 import { act } from "@testing-library/react";
-import useErrorStore from "../ErrorStore";
+import useErrorStore, {
+  normalizeNodeError,
+  hasNodeError,
+  nodeErrorToDisplayString
+} from "../ErrorStore";
 
 describe("ErrorStore", () => {
   beforeEach(() => {
@@ -286,6 +290,81 @@ describe("ErrorStore", () => {
       // Workflow2 errors intact
       expect(useErrorStore.getState().getError("workflow2", "nodeA")).toBe("Error A2");
       expect(useErrorStore.getState().getError("workflow2", "nodeB")).toBe("Error B2");
+    });
+  });
+
+  describe("normalizeNodeError", () => {
+    it("returns undefined for null and undefined", () => {
+      expect(normalizeNodeError(null)).toBeUndefined();
+      expect(normalizeNodeError(undefined)).toBeUndefined();
+    });
+
+    it("returns undefined for empty, 'null', and 'undefined' strings", () => {
+      expect(normalizeNodeError("")).toBeUndefined();
+      expect(normalizeNodeError("   ")).toBeUndefined();
+      expect(normalizeNodeError("null")).toBeUndefined();
+      expect(normalizeNodeError("NULL")).toBeUndefined();
+      expect(normalizeNodeError("undefined")).toBeUndefined();
+      expect(normalizeNodeError("UNDEFINED")).toBeUndefined();
+    });
+
+    it("trims and returns valid string errors", () => {
+      expect(normalizeNodeError("  some error  ")).toBe("some error");
+      expect(normalizeNodeError("error")).toBe("error");
+    });
+
+    it("returns undefined for Error with empty message", () => {
+      expect(normalizeNodeError(new Error(""))).toBeUndefined();
+      expect(normalizeNodeError(new Error("   "))).toBeUndefined();
+    });
+
+    it("returns Error objects with non-empty messages", () => {
+      const err = new Error("bad thing");
+      expect(normalizeNodeError(err)).toBe(err);
+    });
+
+    it("returns error objects as-is", () => {
+      const obj = { message: "oops", code: 42 };
+      expect(normalizeNodeError(obj)).toBe(obj);
+    });
+  });
+
+  describe("hasNodeError", () => {
+    it("returns false for null/undefined/empty", () => {
+      expect(hasNodeError(null)).toBe(false);
+      expect(hasNodeError(undefined)).toBe(false);
+      expect(hasNodeError("")).toBe(false);
+      expect(hasNodeError("null")).toBe(false);
+    });
+
+    it("returns true for real errors", () => {
+      expect(hasNodeError("error")).toBe(true);
+      expect(hasNodeError(new Error("bad"))).toBe(true);
+      expect(hasNodeError({ message: "oops" })).toBe(true);
+    });
+  });
+
+  describe("nodeErrorToDisplayString", () => {
+    it("returns empty string for null/undefined", () => {
+      expect(nodeErrorToDisplayString(null)).toBe("");
+      expect(nodeErrorToDisplayString(undefined)).toBe("");
+      expect(nodeErrorToDisplayString("null")).toBe("");
+    });
+
+    it("returns the string for string errors", () => {
+      expect(nodeErrorToDisplayString("bad input")).toBe("bad input");
+    });
+
+    it("returns message for Error objects", () => {
+      expect(nodeErrorToDisplayString(new Error("failure"))).toBe("failure");
+    });
+
+    it("returns message for plain objects with message", () => {
+      expect(nodeErrorToDisplayString({ message: "obj error" })).toBe("obj error");
+    });
+
+    it("JSON-stringifies objects without message", () => {
+      expect(nodeErrorToDisplayString({ code: 500 })).toBe('{"code":500}');
     });
   });
 

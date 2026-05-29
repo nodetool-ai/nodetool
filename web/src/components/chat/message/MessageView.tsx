@@ -37,9 +37,10 @@ import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 
 
 import AgentExecutionView from "./AgentExecutionView";
-import MediaOutputGroup, { isMediaOnlyContent } from "./MediaOutputGroup";
+import MediaOutputGroup from "./MediaOutputGroup";
+import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { ToolResult } from "./toolResults";
-import { formatToolName, formatDuration } from "../../../utils/formatUtils";
+import { formatDuration, formatToolName } from "../../../utils/formatUtils";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 

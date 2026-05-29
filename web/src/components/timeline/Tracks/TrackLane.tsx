@@ -412,6 +412,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       onDrop={handleAssetDrop}
       onContextMenu={handleLaneContextMenu}
       role="listbox"
+      tabIndex={0}
       aria-label={`Track: ${track.name}`}
       aria-multiselectable="true"
     >
