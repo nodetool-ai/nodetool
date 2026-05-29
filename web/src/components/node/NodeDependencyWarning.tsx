@@ -216,6 +216,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
       </div>
       {isElectron ? (
         <button
+          type="button"
           className="install-btn"
           onClick={handleInstall}
           disabled={installing}

@@ -551,6 +551,7 @@ const DataframeEditorModal = ({
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   <button
+                    type="button"
                     className="button"
                     onClick={toggleFullscreen}
                     aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
@@ -563,6 +564,7 @@ const DataframeEditorModal = ({
                   title="Close Editor | Esc"
                 >
                   <button
+                    type="button"
                     className="button button-close"
                     onClick={onClose}
                     aria-label="Close Editor"

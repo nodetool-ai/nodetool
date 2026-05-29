@@ -340,6 +340,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <textarea
           ref={textareaRef}
           className="constant-string-textarea"
+          aria-label="String value"
           value={localValue}
           onChange={handleChange}
           readOnly={isConnected}

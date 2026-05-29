@@ -103,11 +103,19 @@ const PortalSearchResults: React.FC<PortalSearchResultsProps> = ({
         <div
           key={`${r.type}-${r.id}`}
           className="portal-search-item"
+          role="button"
+          tabIndex={0}
           onClick={() =>
             r.type === "workflow"
               ? onSelectWorkflow(r.id)
               : onSelectTemplate(r.id)
           }
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (r.type === "workflow") { onSelectWorkflow(r.id); } else { onSelectTemplate(r.id); }
+            }
+          }}
         >
           <span className="portal-search-icon">
             {r.type === "workflow" ? "\u26A1" : "\uD83D\uDCCB"}

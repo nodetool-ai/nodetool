@@ -218,7 +218,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
             value={preset.label}
             sx={{ fontSize: SKETCH_FONT.sm }}
           >
-            {preset.label} — {preset.width}×{preset.height}
+            {preset.label} - {preset.width}×{preset.height}
           </MenuItem>
         ))}
       </Select>

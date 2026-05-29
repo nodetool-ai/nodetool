@@ -412,6 +412,8 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           return (
             <div
               key={key}
+              role="button"
+              tabIndex={0}
               className={`tile ${isSelected ? "selected" : ""}`}
               onDoubleClick={() => {
                 if (selectionMode) { return; }
@@ -429,6 +431,25 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
               onClick={(e) => {
                 if (selectionMode) {
                   toggleSelect(idx, e);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (selectionMode) {
+                    // Synthesize a minimal mouse event for keyboard-driven selection
+                    const syntheticEvent = { stopPropagation: () => {}, shiftKey: e.shiftKey } as React.MouseEvent<HTMLDivElement>;
+                    toggleSelect(idx, syntheticEvent);
+                  } else if (onDoubleClick) {
+                    onDoubleClick(idx);
+                  } else {
+                    const url = urlMapRef.current.get(img);
+                    if (url) {
+                      setViewerUrl(url);
+                      setViewerOpen(true);
+                    }
+                  }
                 }
               }}
             >

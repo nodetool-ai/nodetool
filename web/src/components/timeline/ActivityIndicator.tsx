@@ -181,6 +181,7 @@ export const ActivityIndicator: React.FC = memo(() => {
       {generatingCount > 0 && (
         <>
           <button
+            type="button"
             ref={generatingAnchorRef}
             css={badgeButtonStyles(theme)}
             onClick={handleGeneratingClick}
@@ -210,6 +211,7 @@ export const ActivityIndicator: React.FC = memo(() => {
       {failedCount > 0 && (
         <>
           <button
+            type="button"
             ref={failedAnchorRef}
             css={badgeButtonStyles(theme)}
             onClick={handleFailedClick}

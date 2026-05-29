@@ -180,6 +180,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
               role="menuitemradio"
               aria-checked={selected}
               aria-disabled={!m.enabled || undefined}
+              tabIndex={0}
               className={`mode-menu-item${selected ? " selected" : ""}${m.enabled ? "" : " disabled"}`}
               onClick={() => {
                 if (!m.enabled) {
@@ -187,6 +188,16 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
                 }
                 onChange(m.id);
                 onClose();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  if (!m.enabled) {
+                    return;
+                  }
+                  onChange(m.id);
+                  onClose();
+                }
               }}
             >
               <span className="mode-menu-icon">{m.icon}</span>

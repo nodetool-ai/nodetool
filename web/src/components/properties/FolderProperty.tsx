@@ -124,7 +124,7 @@ const FolderProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {isLoading && <p>Loading...</p>}
+      {isLoading && <p>Loading…</p>}
       {error && <p>Error: {error.message}</p>}
       <FlexRow align="center" gap={0.5}>
         <Select

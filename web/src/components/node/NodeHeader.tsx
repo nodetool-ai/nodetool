@@ -371,6 +371,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           {isEditingTitle ? (
             <input
               className="node-title-input nodrag nopan"
+              aria-label="Node title"
               autoFocus
               value={draftTitle}
               onBlur={commitTitleEdit}

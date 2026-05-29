@@ -233,6 +233,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
                 ref={inputRef}
                 defaultValue={title}
                 autoFocus
+                aria-label="Reroute label"
                 placeholder="label"
                 onKeyDown={handleKeyDown}
                 onBlur={handleBlur}

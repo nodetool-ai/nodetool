@@ -272,6 +272,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
 
         {editingLayerId === layer.id ? (
           <input
+            aria-label="Layer name"
             value={editName}
             onChange={(e) => onEditNameChange(e.target.value)}
             onBlur={() => onFinishRename(layer.id)}

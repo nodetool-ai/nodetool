@@ -230,6 +230,7 @@ const FileTabContent: React.FC<FileTabContentProps> = ({ asset }) => {
       return (
         <div className="file-tab-text-editor">
           <textarea
+            aria-label="File content editor"
             value={textContent ?? ""}
             onChange={handleTextChange}
             spellCheck={false}

@@ -98,9 +98,15 @@ const AssetOptionRow: React.FC<{
       className={`asset-option${selected ? " selected" : ""}`}
       role="option"
       aria-selected={selected}
+      tabIndex={0}
       ref={option.setRefElement}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          onClick();
+        }
+      }}
       onMouseEnter={onMouseEnter}
     >
       {asset.thumb_url ? (

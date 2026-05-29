@@ -789,6 +789,7 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
             <textarea
               ref={textInputRef}
               className="text-input"
+              aria-label="Canvas text input"
               value={textInputValue}
               onChange={(e) => setTextInputValue(e.target.value)}
               onKeyDown={handleTextKeyDown}

@@ -201,7 +201,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ onPick, onSkip }) => {
 
       <div className="welcome-footer">
         <button type="button" className="welcome-skip" onClick={onSkip}>
-          Skip — explore on my own
+          Skip - explore on my own
         </button>
         <span className="welcome-footer-divider" />
         <span className="welcome-footer-hint">

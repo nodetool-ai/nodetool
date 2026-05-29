@@ -188,7 +188,7 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
                 : currentStep.instructions === step.instructions);
             return (
               <StepView
-                key={`${step.id || step.instructions}-${idx}`}
+                key={step.id ?? step.instructions ?? idx}
                 step={{
                   ...step,
                   start_time:

@@ -684,7 +684,7 @@ const AppWrapper = () => {
                           fontSize: "0.9rem"
                         }}
                       >
-                        Loading NodeTool...
+                        Loading NodeTool…
                       </span>
                     </div>
                   )}
@@ -709,6 +709,7 @@ const AppWrapper = () => {
                         Error loading application metadata.
                       </span>
                       <button
+                        type="button"
                         onClick={() => window.location.reload()}
                         style={{
                           padding: "8px 16px",
@@ -749,7 +750,7 @@ const AppWrapper = () => {
                                 fontSize: "0.9rem"
                               }}
                             >
-                              Preparing workspace...
+                              Preparing workspace…
                             </span>
                           </div>
                         }

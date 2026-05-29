@@ -704,7 +704,7 @@ const ReactFlowWrapper = ({
   if (!workflowExistsLocally && isLoading) {
     return (
       <div className="loading-overlay">
-        <LoadingSpinner /> Loading workflow...
+        <LoadingSpinner /> Loading workflow…
       </div>
     );
   }

@@ -470,7 +470,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
       <FlexColumn className="layers" gap={0.5}>
         {imageKeys.length === 0 ? (
-          <div className="empty-state">No layers yet — add one below.</div>
+          <div className="empty-state">No layers yet - add one below.</div>
         ) : (
           imageKeys.map((key, idx) => (
             <LayerRow

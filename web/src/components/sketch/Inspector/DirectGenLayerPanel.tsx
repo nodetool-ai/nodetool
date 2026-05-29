@@ -93,7 +93,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
         {isImageToImage &&
           (sourceLayerOptions.length === 0 ? (
             <Caption color="secondary">
-              No source layers available — paint something on a layer first.
+              No source layers available - paint something on a layer first.
             </Caption>
           ) : (
             <SelectField
