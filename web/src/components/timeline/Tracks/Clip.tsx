@@ -901,7 +901,8 @@ const ClipBody: React.FC<ClipBodyProps> = ({
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
-          handleClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+          e.stopPropagation();
+          selectClip(clipId);
         }
       }}
       data-testid={`clip-${clipId}`}
