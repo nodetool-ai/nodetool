@@ -14,7 +14,7 @@ import { persist } from "zustand/middleware";
  */
 export type BottomPanelView =
   | "logs"
-  | "jobs"
+  | "queue"
   | "sandboxes"
   | "versions"
   | "workspace"
@@ -27,7 +27,7 @@ export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
   label: string;
   views: readonly BottomPanelView[];
 }> = [
-  { id: "run", label: "Run", views: ["logs", "jobs", "sandboxes"] },
+  { id: "run", label: "Run", views: ["logs", "queue", "sandboxes"] },
   {
     id: "workflow",
     label: "Workflow",

@@ -36,6 +36,7 @@ function toJobResponse(job: JobModel): JobResponse {
     user_id: job.user_id,
     job_type: "workflow" as const,
     status: job.status,
+    name: job.name ?? null,
     workflow_id: job.workflow_id,
     started_at: job.started_at ?? null,
     finished_at: job.finished_at ?? null,

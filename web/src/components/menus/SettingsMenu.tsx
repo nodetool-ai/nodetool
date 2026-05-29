@@ -176,6 +176,7 @@ function SettingsPage() {
   const updateAutosaveSettings = useSettingsStore(
     (state) => state.updateAutosaveSettings
   );
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
   const settings = useSettingsStore((state) => state.settings);
   const [apiSearchTerm, setApiSearchTerm] = useState("");
 
@@ -437,6 +438,10 @@ function SettingsPage() {
       ]
     },
     {
+      category: "Execution",
+      items: [{ id: "execution", label: "Execution" }]
+    },
+    {
       category: "Canvas",
       items: [{ id: "canvas-navigation", label: "Canvas & Navigation" }]
     },
@@ -658,6 +663,48 @@ function SettingsPage() {
                         </Text>
                       </div>
                     )}
+                  </div>
+
+                  <Text size="big" id="execution">
+                    Execution
+                  </Text>
+                  <div className="settings-section">
+                    <div className="settings-item">
+                      <LabeledSwitch
+                        label="Warn Before Large Runs"
+                        checked={settings.confirmLargeRun ?? true}
+                        onChange={(checked) =>
+                          updateSettings({ confirmLargeRun: checked })
+                        }
+                        description="Running a workflow executes every node at once. Show a confirmation when a run would launch many model/provider nodes that could overload an API."
+                      />
+                    </div>
+
+                    <div className="settings-item">
+                      <TextInput
+                        type="number"
+                        autoComplete="off"
+                        slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                        id="large-run-threshold-input"
+                        label="Large-Run Threshold"
+                        value={settings.largeRunThreshold ?? 5}
+                        onChange={(e) =>
+                          updateSettings({
+                            largeRunThreshold: Math.max(
+                              1,
+                              Number(e.target.value) || 1
+                            )
+                          })
+                        }
+                        variant="standard"
+                        size="small"
+                        disabled={!(settings.confirmLargeRun ?? true)}
+                      />
+                      <Text className="description">
+                        Warn when a run would execute more than this many
+                        model/provider nodes (LLM, image, audio, API, etc.).
+                      </Text>
+                    </div>
                   </div>
 
                   <Text size="big" id="canvas-navigation">

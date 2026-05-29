@@ -119,6 +119,13 @@ export interface JobUpdate {
   run_state?: RunStateInfo | null;
   duration?: number | null;
   /**
+   * 1-based position in the server's pending-run queue. Present when
+   * `status === "queued"` because the client already has
+   * `MAX_CONCURRENT_JOBS` runs in flight. The run starts automatically
+   * (a `running` update follows) once an earlier run finishes.
+   */
+  queue_position?: number | null;
+  /**
    * Per-property issues from pre-flight graph validation. Present when
    * `status === "failed"` and the failure was caused by a validation error
    * (not a runtime exception). Frontend uses this to highlight specific
