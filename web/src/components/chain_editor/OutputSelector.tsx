@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
-import { Box } from "../ui_primitives";
+import { Box } from "../ui_primitives/Box";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
