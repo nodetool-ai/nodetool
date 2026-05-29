@@ -8,12 +8,14 @@
 
 import React, { memo, useState, useCallback } from "react";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import { Container } from "../ui_primitives/Container";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Text } from "../ui_primitives/Text";
-import { Tooltip } from "../ui_primitives/Tooltip";
-import { EditorButton } from "../editor_ui/EditorButton";
+import {
+  Container,
+  EditorButton,
+  FlexColumn,
+  FlexRow,
+  Text,
+  Tooltip
+} from "../ui_primitives";
 import { colorToHex6 } from "./types";
 import { SKETCH_FONT, SKETCH_SPACING, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, colorSwatchSx } from "./sketchStyles";
 import ColorPickerPopover from "./ColorPickerPopover";

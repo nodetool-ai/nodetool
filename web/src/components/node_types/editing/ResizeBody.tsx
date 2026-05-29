@@ -15,9 +15,7 @@ import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone } from "../../ui_primitives/CheckerDropzone";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { StateIconButton } from "../../ui_primitives/StateIconButton";
+import { CheckerDropzone, FlexRow, StateIconButton } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
 import { NodeOutputs } from "../../node/NodeOutputs";

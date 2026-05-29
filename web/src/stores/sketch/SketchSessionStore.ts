@@ -29,8 +29,8 @@ import type {
   LayerWorkflowBinding
 } from "@nodetool-ai/image-editor";
 
-import { type SketchTool } from "../../components/sketch/types/tools";
-import { useSketchStore } from "../../components/sketch/state/useSketchStore";
+import { type SketchTool } from "../../components/sketch/types";
+import { useSketchStore } from "../../components/sketch/state";
 import { trpc, trpcClient } from "../../trpc/client";
 import { useNotificationStore } from "../NotificationStore";
 import { useAssetStore } from "../AssetStore";

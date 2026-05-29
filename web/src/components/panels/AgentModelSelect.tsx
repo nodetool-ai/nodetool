@@ -13,8 +13,7 @@ import type { Theme } from "@mui/material/styles";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckIcon from "@mui/icons-material/Check";
-import { BORDER_RADIUS } from "../ui_primitives/tokens";
-import { Popover } from "../ui_primitives/Popover";
+import { BORDER_RADIUS, Popover } from "../ui_primitives";
 
 export interface AgentModelOption {
   id: string;

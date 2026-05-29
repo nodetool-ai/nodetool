@@ -12,11 +12,7 @@ import React, { memo } from "react";
 import type { ClipStatus, TimelineClip } from "@nodetool-ai/timeline";
 
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { Label } from "../../ui_primitives/Label";
-import { Caption } from "../../ui_primitives/Caption";
-import { StatusIndicator } from "../../ui_primitives/StatusIndicator";
+import { FlexColumn, FlexRow, Label, Caption, StatusIndicator } from "../../ui_primitives";
 
 // ── Status mapping (PRD §5.5) ─────────────────────────────────────────────
 

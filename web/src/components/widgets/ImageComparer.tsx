@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useRef, useMemo } from "react";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
+import { ToolbarIconButton } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";

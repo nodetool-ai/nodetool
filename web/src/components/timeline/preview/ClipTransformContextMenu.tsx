@@ -15,11 +15,13 @@ import Rotate90DegreesCwIcon from "@mui/icons-material/Rotate90DegreesCw";
 import FlipIcon from "@mui/icons-material/Flip";
 import TransformIcon from "@mui/icons-material/Transform";
 
-import { ContextMenu } from "../../ui_primitives/ContextMenu";
-import { Divider } from "../../ui_primitives/Divider";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { MenuItemPrimitive } from "../../ui_primitives/MenuItemPrimitive";
-import { Text } from "../../ui_primitives/Text";
+import {
+  ContextMenu,
+  Divider,
+  FlexRow,
+  MenuItemPrimitive,
+  Text
+} from "../../ui_primitives";
 
 export interface ClipTransformContextMenuProps {
   open: boolean;

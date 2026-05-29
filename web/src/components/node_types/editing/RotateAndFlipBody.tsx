@@ -15,11 +15,13 @@ import ImageIcon from "@mui/icons-material/Image";
 import FlipIcon from "@mui/icons-material/Flip";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
-import { CheckerDropzone } from "../../ui_primitives/CheckerDropzone";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { NodeSlider } from "../../ui_primitives/NodeSlider";
-import { StateIconButton } from "../../ui_primitives/StateIconButton";
+import {
+  CheckerDropzone,
+  FlexColumn,
+  FlexRow,
+  NodeSlider,
+  StateIconButton
+} from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
 import { NodeOutputs } from "../../node/NodeOutputs";

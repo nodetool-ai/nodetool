@@ -7,12 +7,14 @@ import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 
-import { Dialog } from "../../ui_primitives/Dialog";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { Text } from "../../ui_primitives/Text";
-import { Toast } from "../../ui_primitives/Toast";
-import { Tooltip } from "../../ui_primitives/Tooltip";
-import { EditorButton } from "../../editor_ui/EditorButton";
+import {
+  Dialog,
+  EditorButton,
+  FlexRow,
+  Text,
+  Toast,
+  Tooltip
+} from "../../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";

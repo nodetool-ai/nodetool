@@ -10,11 +10,13 @@ import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Caption } from "../ui_primitives/Caption";
-import { ZoomControls } from "../ui_primitives/ZoomControls";
-import { StatusIndicator } from "../ui_primitives/StatusIndicator";
-import type { StatusType } from "../ui_primitives/StatusIndicator";
+import {
+  FlexRow,
+  Caption,
+  ZoomControls,
+  StatusIndicator
+} from "../ui_primitives";
+import type { StatusType } from "../ui_primitives";
 import CloudIcon from "@mui/icons-material/Cloud";
 import ComputerIcon from "@mui/icons-material/Computer";
 

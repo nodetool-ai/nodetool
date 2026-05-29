@@ -8,8 +8,7 @@ import RedoIcon from "@mui/icons-material/Redo";
 import WrapTextIcon from "@mui/icons-material/WrapText";
 import SearchIcon from "@mui/icons-material/Search";
 import CodeIcon from "@mui/icons-material/Code";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
-import { Box } from "../ui_primitives/Box";
+import { ToolbarIconButton, Box } from "../ui_primitives";
 
 interface EditorToolbarProps {
   onUndo?: () => void;

@@ -10,11 +10,13 @@ import React, { memo } from "react";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
 import type { Layer } from "../types";
 
-import { Caption } from "../../ui_primitives/Caption";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { Label } from "../../ui_primitives/Label";
-import { StatusIndicator } from "../../ui_primitives/StatusIndicator";
+import {
+  Caption,
+  FlexColumn,
+  FlexRow,
+  Label,
+  StatusIndicator
+} from "../../ui_primitives";
 import { LAYER_STATUS_MAP } from "./layerStatusMapping";
 
 function formatTimestamp(isoString: string): string {

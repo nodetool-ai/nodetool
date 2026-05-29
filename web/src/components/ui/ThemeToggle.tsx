@@ -1,4 +1,4 @@
-import { StateIconButton } from "../ui_primitives/StateIconButton";
+import { StateIconButton } from "../ui_primitives";
 import { useColorScheme } from "@mui/material/styles";
 import { LightMode, DarkMode } from "@mui/icons-material";
 import { memo, useCallback } from "react";

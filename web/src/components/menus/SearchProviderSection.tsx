@@ -7,13 +7,10 @@ import {
   InputLabel,
   Stack
 } from "@mui/material";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Box } from "../ui_primitives/Box";
-import { Chip } from "../ui_primitives/Chip";
+import { FlexRow, Box, Chip } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
-import { TextInput } from "../ui_primitives/TextInput";
-import { Text } from "../ui_primitives/Text";
+import { TextInput, Text } from "../ui_primitives";
 import ExternalLink from "../common/ExternalLink";
 import type { SettingWithValue } from "../../stores/RemoteSettingStore";
 import { useTheme } from "@mui/material/styles";

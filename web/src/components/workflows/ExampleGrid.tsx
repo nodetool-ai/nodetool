@@ -1,9 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
-import { ScrollArea } from "../ui_primitives/ScrollArea";
-import { Text } from "../ui_primitives/Text";
-import { Box } from "../ui_primitives/Box";
+import { LoadingSpinner, ScrollArea, Text, Box } from "../ui_primitives";
 import { useCallback, useMemo, useState, useEffect, useRef, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";

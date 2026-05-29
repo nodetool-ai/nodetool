@@ -12,9 +12,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
-import { Tooltip } from "../ui_primitives/Tooltip";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
-import { Box } from "../ui_primitives/Box";
+import { Tooltip, ToolbarIconButton, Box } from "../ui_primitives";
 import React, { memo, useCallback } from "react";
 
 interface SearchBarProps {

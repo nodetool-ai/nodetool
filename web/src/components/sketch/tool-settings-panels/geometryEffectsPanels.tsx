@@ -4,8 +4,7 @@ import {
   FormControlLabel,
   Slider
 } from "@mui/material";
-import { Box } from "../../ui_primitives/Box";
-import { Text } from "../../ui_primitives/Text";
+import { Box, Text } from "../../ui_primitives";
 import {
   BlurSettings,
   CloneStampSampling,

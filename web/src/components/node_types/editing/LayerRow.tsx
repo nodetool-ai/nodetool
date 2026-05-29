@@ -20,8 +20,7 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { SelectField } from "../../ui_primitives/SelectField";
-import { StateIconButton } from "../../ui_primitives/StateIconButton";
+import { SelectField, StateIconButton } from "../../ui_primitives";
 import NumberInput from "../../inputs/NumberInput";
 
 import {

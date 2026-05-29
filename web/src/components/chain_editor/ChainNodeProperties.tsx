@@ -3,14 +3,14 @@ import { css } from "@emotion/react";
 import React, { createElement, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "../ui_primitives/Box";
+import { Box } from "../ui_primitives";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { FlexRow } from "../ui_primitives/FlexRow";
 import { Text } from "../ui_primitives/Text";
 import { Chip } from "../ui_primitives/Chip";
 import { NodeContext } from "../../contexts/NodeContext";
 import { createNodeStore } from "../../stores/NodeStore";
-import { EditorUiProvider } from "../editor_ui/EditorUiContext";
+import { EditorUiProvider } from "../editor_ui";
 import { getComponentForProperty } from "../node/PropertyInput";
 import type { Property } from "../../stores/ApiTypes";
 

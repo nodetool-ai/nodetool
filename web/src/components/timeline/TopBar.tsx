@@ -11,10 +11,12 @@ import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Text } from "../ui_primitives/Text";
-import { Caption } from "../ui_primitives/Caption";
-import { EditorButton } from "../ui_primitives";
+import {
+  FlexRow,
+  Text,
+  Caption,
+  EditorButton
+} from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 

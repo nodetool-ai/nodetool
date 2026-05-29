@@ -3,9 +3,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import { useMemo, useState, useCallback, memo } from "react";
 
-import { Text } from "../ui_primitives/Text";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { FlexRow } from "../ui_primitives/FlexRow";
+import { Text, FlexColumn, FlexRow } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -23,9 +21,7 @@ import {
 } from "../../utils/fileExplorer";
 import { isElectron } from "../../utils/browser";
 import { isLocalhost } from "../../lib/env";
-import { NavButton } from "../ui_primitives/NavButton";
-import { NodeTextField } from "../editor_ui/NodeTextField";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
+import { NavButton, NodeTextField, ToolbarIconButton } from "../ui_primitives";
 import { SettingWithValue } from "../../stores/RemoteSettingStore";
 
 interface FolderButtonProps {

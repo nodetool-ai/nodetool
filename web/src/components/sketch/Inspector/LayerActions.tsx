@@ -22,10 +22,7 @@ import {
 } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useGenerateLayer } from "../../../hooks/sketch/useGenerateLayer";
-import { ToolbarIconButton } from "../../ui_primitives/ToolbarIconButton";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { Toast } from "../../ui_primitives/Toast";
-import { Tooltip } from "../../ui_primitives/Tooltip";
+import { ToolbarIconButton, FlexRow, Toast, Tooltip } from "../../ui_primitives";
 import { cn } from "../../editor_ui/editorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 

@@ -24,8 +24,7 @@ import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
 import { PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ContextMenus from "../context_menus/ContextMenus";
-import { MobileBottomSheet } from "../ui_primitives/MobileBottomSheet";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { MobileBottomSheet, FlexColumn } from "../ui_primitives";
 
 const HEADER_AREA_HEIGHT = 77;
 // Matches HEADER_HEIGHT in PanelBottom — the bar still occupies this when collapsed.

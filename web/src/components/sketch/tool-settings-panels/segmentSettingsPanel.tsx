@@ -18,11 +18,8 @@ import {
   LOCAL_SAM3_CAPABILITIES,
   LOCAL_SAM3_MODEL_ID
 } from "../sam";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { TextInput } from "../../ui_primitives/TextInput";
-import { Box } from "../../ui_primitives/Box";
-import { Text } from "../../ui_primitives/Text";
-import { EditorButton } from "../../editor_ui/EditorButton";
+import { FlexRow, TextInput, Box, Text } from "../../ui_primitives";
+import { EditorButton } from "../../editor_ui";
 import {
   sketchButtonSmallSx,
   sketchSliderSx,

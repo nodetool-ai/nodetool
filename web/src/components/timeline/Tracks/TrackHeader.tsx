@@ -24,7 +24,7 @@ import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { Tooltip } from "../../ui_primitives/Tooltip";
+import { Tooltip } from "../../ui_primitives";
 import {
   DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
   FX_PANEL_HEIGHT_PX

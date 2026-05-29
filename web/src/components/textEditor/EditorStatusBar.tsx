@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { Box } from "../ui_primitives/Box";
+import { Box } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 
 interface EditorStatusBarProps {

@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { Menu, MenuItem } from "@mui/material";
-import { Text } from "../ui_primitives/Text";
+import { Text } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { Workflow } from "../../stores/ApiTypes";

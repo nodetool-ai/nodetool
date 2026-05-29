@@ -33,14 +33,16 @@ import type {
   TrackChromaKeyEffect
 } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { NodeSlider } from "../../ui_primitives/NodeSlider";
-import { Text } from "../../ui_primitives/Text";
-import { Tooltip } from "../../ui_primitives/Tooltip";
-import { LabeledSwitch } from "../../ui_primitives/LabeledSwitch";
-import { SelectField } from "../../ui_primitives/SelectField";
-import { NodeMenuItem } from "../../ui_primitives";
+import {
+  FlexColumn,
+  FlexRow,
+  NodeSlider,
+  Text,
+  Tooltip,
+  LabeledSwitch,
+  SelectField,
+  NodeMenuItem
+} from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 
 // ── Styles ──────────────────────────────────────────────────────────────────

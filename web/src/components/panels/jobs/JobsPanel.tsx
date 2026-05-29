@@ -4,10 +4,7 @@ import { useRunningJobs } from "../../../hooks/useRunningJobs";
 import { Job } from "../../../stores/ApiTypes";
 import { groupByDate } from "../../../utils/groupByDate";
 import JobItem from "./JobItem";
-import { LoadingSpinner } from "../../ui_primitives/LoadingSpinner";
-import { Text } from "../../ui_primitives/Text";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { Box } from "../../ui_primitives/Box";
+import { LoadingSpinner, Text, FlexColumn, Box } from "../../ui_primitives";
 
 const JobGroupHeader = memo(function JobGroupHeader({ label }: { label: string }) {
     return (

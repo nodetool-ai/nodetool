@@ -3,10 +3,7 @@ import { shallow } from "zustand/shallow";
 //mui
 import { InputAdornment, Menu, TextField } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Divider } from "../ui_primitives/Divider";
-import { Text } from "../ui_primitives/Text";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
-import { Box } from "../ui_primitives/Box";
+import { Divider, Text, ToolbarIconButton, Box } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 //icons
 import VisibilityIcon from "@mui/icons-material/Visibility";

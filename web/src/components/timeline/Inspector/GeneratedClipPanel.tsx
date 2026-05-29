@@ -19,12 +19,14 @@ import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { createNodeStore, type NodeStore } from "../../../stores/NodeStore";
 import type { Node } from "../../../stores/ApiTypes";
-import { CollapsibleSection } from "../../ui_primitives/CollapsibleSection";
-import { EmptyState } from "../../ui_primitives/EmptyState";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { LoadingSpinner } from "../../ui_primitives/LoadingSpinner";
-import { Panel } from "../../ui_primitives/Panel";
-import { Box } from "../../ui_primitives/Box";
+import {
+  CollapsibleSection,
+  EmptyState,
+  FlexColumn,
+  LoadingSpinner,
+  Panel,
+  Box
+} from "../../ui_primitives";
 import MiniAppInputsForm from "../../miniapps/components/MiniAppInputsForm";
 import type {
   InputNodeData,

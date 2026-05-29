@@ -23,15 +23,19 @@ import type {
   TimelineClip
 } from "@nodetool-ai/timeline";
 import { BLEND_MODES } from "@nodetool-ai/gpu";
-import { CollapsibleSection } from "../../ui_primitives/CollapsibleSection";
-import { EmptyState } from "../../ui_primitives/EmptyState";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { NodeSlider } from "../../ui_primitives/NodeSlider";
-import { Panel } from "../../ui_primitives/Panel";
-import { Text } from "../../ui_primitives/Text";
-import { Toast } from "../../ui_primitives/Toast";
-import { EditorButton, NodeSelect, NodeMenuItem } from "../../ui_primitives";
+import {
+  CollapsibleSection,
+  EditorButton,
+  EmptyState,
+  FlexColumn,
+  FlexRow,
+  NodeSelect,
+  NodeSlider,
+  NodeMenuItem,
+  Panel,
+  Text,
+  Toast
+} from "../../ui_primitives";
 import { trackTypeAccent } from "../Tracks/trackVisuals";
 import {
   ClipIdentityCard,

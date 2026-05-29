@@ -31,11 +31,13 @@ import {
 } from "@nodetool-ai/gpu";
 import type { LayerTransform2D } from "@nodetool-ai/gpu/webgpu";
 
-import { CheckerDropzone } from "../../ui_primitives/CheckerDropzone";
-import { DynamicInputButton } from "../../ui_primitives/DynamicInputButton";
-import { EditButton } from "../../ui_primitives/EditButton";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { FlexRow } from "../../ui_primitives/FlexRow";
+import {
+  CheckerDropzone,
+  DynamicInputButton,
+  EditButton,
+  FlexColumn,
+  FlexRow
+} from "../../ui_primitives";
 import CompositorEditorModal from "../../compositor/CompositorEditorModal";
 import type { CompositorEditorLayer } from "../../compositor/types";
 import HandleColumn from "../../node/HandleColumn";

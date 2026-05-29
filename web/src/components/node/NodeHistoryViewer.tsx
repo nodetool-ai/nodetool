@@ -336,11 +336,8 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                 <div
                   key={asset.id}
                   className={`thumb${i === safeIndex ? " selected" : ""}`}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={i === safeIndex}
+                  role="listitem"
                   onClick={() => handleSelectThumb(i)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleSelectThumb(i); } }}
                 >
                   {isImage && imgUrl ? (
                     <img src={imgUrl} alt={asset.name || asset.id} />

@@ -2,8 +2,7 @@
 import React, { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { EditorButton } from "../editor_ui/EditorButton";
-import { Tooltip } from "../ui_primitives/Tooltip";
+import { EditorButton, Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface SettingsButtonProps {

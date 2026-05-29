@@ -6,10 +6,7 @@ import { memo, useState, useEffect, useCallback } from "react";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
-import { CloseButton } from "../ui_primitives/CloseButton";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
-import { Box } from "../ui_primitives/Box";
-import { NodeTextField } from "../ui_primitives";
+import { CloseButton, NodeTextField, ToolbarIconButton, Box } from "../ui_primitives";
 
 const MAX_SEARCH_LENGTH = 1000;
 

@@ -15,10 +15,12 @@ import { NodeOutputs } from "../node/NodeOutputs";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import type { Edge } from "@xyflow/react";
 import type { NodeStoreState } from "../../stores/NodeStore";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Text } from "../ui_primitives/Text";
-import { Tooltip } from "../ui_primitives/Tooltip";
-import { EditorButton } from "../ui_primitives";
+import {
+  EditorButton,
+  FlexColumn,
+  Text,
+  Tooltip
+} from "../ui_primitives";
 
 const humanizeType = (type: string) => {
   return type.replace(/([A-Z])/g, " $1").trim();

@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { useTheme } from "@mui/material/styles";
-import { EditorButton } from "../editor_ui/EditorButton";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
-import { Box } from "../ui_primitives/Box";
+import { EditorButton } from "../editor_ui";
+import { ToolbarIconButton, Box } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 

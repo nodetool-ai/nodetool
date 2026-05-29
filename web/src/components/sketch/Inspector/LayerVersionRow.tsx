@@ -9,14 +9,16 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 import type { LayerVersion } from "@nodetool-ai/image-editor";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { Caption } from "../../ui_primitives/Caption";
-import { Text } from "../../ui_primitives/Text";
-import { StatusIndicator } from "../../ui_primitives/StatusIndicator";
-import { FavoriteButton } from "../../ui_primitives/FavoriteButton";
-import { Dialog } from "../../ui_primitives/Dialog";
-import { ToolbarIconButton } from "../../ui_primitives/ToolbarIconButton";
+import {
+  FlexRow,
+  FlexColumn,
+  Caption,
+  Text,
+  StatusIndicator,
+  FavoriteButton,
+  Dialog,
+  ToolbarIconButton
+} from "../../ui_primitives";
 
 const rowStyles = (theme: Theme) =>
   css({

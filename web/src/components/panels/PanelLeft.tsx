@@ -5,9 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import {
   useMediaQuery
 } from "@mui/material";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Box } from "../ui_primitives/Box";
+import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
@@ -39,9 +37,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
-import { ScrollArea } from "../ui_primitives/ScrollArea";
-import { Tooltip } from "../ui_primitives/Tooltip";
-import { MobileBottomSheet } from "../ui_primitives/MobileBottomSheet";
+import { ScrollArea, Tooltip, MobileBottomSheet } from "../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";

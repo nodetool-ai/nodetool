@@ -33,7 +33,7 @@ import { useTimelineGenerationStore } from "../../../stores/timeline/TimelineGen
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
-import { StatusIndicator } from "../../ui_primitives/StatusIndicator";
+import { StatusIndicator } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusReducer";

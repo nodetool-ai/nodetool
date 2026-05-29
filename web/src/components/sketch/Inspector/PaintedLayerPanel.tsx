@@ -10,13 +10,15 @@
 
 import React, { memo } from "react";
 import type { Layer } from "../types";
-import { Caption } from "../../ui_primitives/Caption";
-import { CollapsibleSection } from "../../ui_primitives/CollapsibleSection";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { Label } from "../../ui_primitives/Label";
-import { Panel } from "../../ui_primitives/Panel";
-import { Text } from "../../ui_primitives/Text";
+import {
+  Caption,
+  CollapsibleSection,
+  FlexColumn,
+  FlexRow,
+  Label,
+  Panel,
+  Text
+} from "../../ui_primitives";
 
 export interface PaintedLayerPanelProps {
   layer: Layer;

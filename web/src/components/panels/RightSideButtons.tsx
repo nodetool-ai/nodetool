@@ -13,8 +13,7 @@ import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 import { isProduction } from "../../lib/env";
 import { ThemeToggleButton } from "../ui_primitives/ThemeToggleButton";
-import { HelpButton } from "../ui_primitives/HelpButton";
-import { Box } from "../ui_primitives/Box";
+import { HelpButton, Box } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({

@@ -3,10 +3,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
 import { Menu } from "@mui/material";
-import { EditorButton } from "../editor_ui/EditorButton";
-import { Text } from "../ui_primitives/Text";
-import { Divider } from "../ui_primitives/Divider";
-import { FlexRow } from "../ui_primitives/FlexRow";
+import { EditorButton, Text, Divider, FlexRow } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";

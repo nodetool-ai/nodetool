@@ -33,7 +33,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import type { SelectChangeEvent } from "@mui/material/Select";
 
-import { CheckerDropzone } from "../../ui_primitives/CheckerDropzone";
+import { CheckerDropzone } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";

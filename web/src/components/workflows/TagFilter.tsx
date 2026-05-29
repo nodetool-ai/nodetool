@@ -1,9 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { EditorButton } from "../editor_ui/EditorButton";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Popover } from "../ui_primitives/Popover";
-import { Tooltip } from "../ui_primitives/Tooltip";
-import { Box } from "../ui_primitives/Box";
+import { EditorButton, FlexRow, Popover, Tooltip, Box } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import {
   TOOLTIP_ENTER_DELAY,

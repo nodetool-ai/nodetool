@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "../ui_primitives/Box";
+import { Box } from "../ui_primitives";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { FlexRow } from "../ui_primitives/FlexRow";

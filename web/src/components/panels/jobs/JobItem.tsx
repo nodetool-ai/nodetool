@@ -6,12 +6,7 @@ import {
   ListItemText,
   Collapse
 } from "@mui/material";
-import { FlexColumn } from "../../ui_primitives/FlexColumn";
-import { Text } from "../../ui_primitives/Text";
-import { LoadingSpinner } from "../../ui_primitives/LoadingSpinner";
-import { Tooltip } from "../../ui_primitives/Tooltip";
-import { ToolbarIconButton } from "../../ui_primitives/ToolbarIconButton";
-import { Box } from "../../ui_primitives/Box";
+import { FlexColumn, Text, LoadingSpinner, Tooltip, ToolbarIconButton, Box } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CancelIcon from "@mui/icons-material/Cancel";

@@ -17,7 +17,7 @@ import {
   ConnectionMatchMenuPayload,
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
-import { DYNAMIC_KIE_NODE_TYPE } from "../../components/node/DynamicKieSchemaNode/KieSchemaLoader";
+import { DYNAMIC_KIE_NODE_TYPE } from "../../components/node/DynamicKieSchemaNode";
 import { wouldCreateCycle } from "../../utils/graphCycle";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 import { shallow } from "zustand/shallow";

@@ -1,8 +1,7 @@
 import React, { memo } from "react";
 //mui
 import { Menu, MenuItem } from "@mui/material";
-import { Text } from "../ui_primitives/Text";
-import { Divider } from "../ui_primitives/Divider";
+import { Text, Divider } from "../ui_primitives";
 import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";

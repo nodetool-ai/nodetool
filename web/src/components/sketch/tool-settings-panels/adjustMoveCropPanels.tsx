@@ -6,10 +6,7 @@ import {
   Slider,
   IconButton
 } from "@mui/material";
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { Box } from "../../ui_primitives/Box";
-import { Text } from "../../ui_primitives/Text";
-import { Tooltip } from "../../ui_primitives/Tooltip";
+import { FlexRow, Box, Text, Tooltip } from "../../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";

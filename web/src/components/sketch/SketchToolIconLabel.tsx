@@ -6,9 +6,7 @@
 import React, { memo } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { alpha, useTheme } from "@mui/material/styles";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Text } from "../ui_primitives/Text";
-import { Box } from "../ui_primitives/Box";
+import { FlexRow, Text, Box } from "../ui_primitives";
 import { SKETCH_FONT } from "./sketchStyles";
 
 export interface SketchToolIconLabelProps {

@@ -21,7 +21,7 @@ import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { Popover } from "../../ui_primitives/Popover";
+import { Popover } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 

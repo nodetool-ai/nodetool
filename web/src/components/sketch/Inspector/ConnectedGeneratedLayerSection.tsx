@@ -10,7 +10,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 
-import { CollapsibleSection } from "../../ui_primitives/CollapsibleSection";
+import { CollapsibleSection } from "../../ui_primitives";
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
 import { SketchAIToolbar } from "./SketchAIToolbar";

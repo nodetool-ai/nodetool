@@ -13,7 +13,7 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { FlexRow } from "../ui_primitives/FlexRow";
+import { FlexRow } from "../ui_primitives";
 import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";

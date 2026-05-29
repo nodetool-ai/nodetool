@@ -31,9 +31,7 @@ import {
   MenuItem,
   FormControl
 } from "@mui/material";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Box } from "../ui_primitives/Box";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";

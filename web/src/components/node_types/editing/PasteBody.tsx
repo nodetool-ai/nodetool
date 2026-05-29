@@ -14,8 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone } from "../../ui_primitives/CheckerDropzone";
-import { FlexRow } from "../../ui_primitives/FlexRow";
+import { CheckerDropzone, FlexRow } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
 import { NodeOutputs } from "../../node/NodeOutputs";

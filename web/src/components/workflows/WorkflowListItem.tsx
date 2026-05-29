@@ -10,15 +10,7 @@ import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
-import { FavoriteButton } from "../ui_primitives/FavoriteButton";
-import { EditButton } from "../ui_primitives/EditButton";
-import { EditorButton } from "../editor_ui/EditorButton";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Text } from "../ui_primitives/Text";
-import { Tooltip } from "../ui_primitives/Tooltip";
-import { Checkbox } from "../ui_primitives/Checkbox";
-import { Box } from "../ui_primitives/Box";
+import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box } from "../ui_primitives";
 
 interface WorkflowListItemProps {
   workflow: Workflow;

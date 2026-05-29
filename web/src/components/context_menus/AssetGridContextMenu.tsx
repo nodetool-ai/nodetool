@@ -1,8 +1,7 @@
 //mui
 import type { MouseEvent } from "react";
 import { Menu, MenuItem } from "@mui/material";
-import { Text } from "../ui_primitives/Text";
-import { Divider } from "../ui_primitives/Divider";
+import { Text, Divider } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";

@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogContent
 } from "@mui/material";
-import { EditorButton } from "../editor_ui/EditorButton";
+import { EditorButton } from "../editor_ui";
 import { AgentModelSelect } from "./AgentModelSelect";
 import MediaControlChip from "../chat/composer/MediaControlChip";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -38,13 +38,15 @@ import type {
 import type { AgentProvider, AgentModelDescriptor } from "../../stores/AgentStore";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
-import { Text } from "../ui_primitives/Text";
-import { Caption } from "../ui_primitives/Caption";
-import { Tooltip } from "../ui_primitives/Tooltip";
-import { SelectField } from "../ui_primitives/SelectField";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Dialog } from "../ui_primitives/Dialog";
-import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
+import {
+  Text,
+  Caption,
+  Tooltip,
+  SelectField,
+  FlexRow,
+  Dialog,
+  LoadingSpinner
+} from "../ui_primitives";
 
 const PROVIDER_LABELS: Record<AgentProvider, string> = {
   pi: "Pi",

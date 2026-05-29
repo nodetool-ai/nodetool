@@ -17,11 +17,13 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Caption } from "../ui_primitives/Caption";
-import { StatusIndicator } from "../ui_primitives/StatusIndicator";
-import { Popover } from "../ui_primitives/Popover";
+import {
+  FlexRow,
+  FlexColumn,
+  Caption,
+  StatusIndicator,
+  Popover
+} from "../ui_primitives";
 import {
   useGeneratingClipIds,
   useFailedClipIds

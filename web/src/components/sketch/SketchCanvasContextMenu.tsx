@@ -10,9 +10,7 @@ import {
   Stack,
   Typography
 } from "@mui/material";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Box } from "../ui_primitives/Box";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import RestoreIcon from "@mui/icons-material/Restore";

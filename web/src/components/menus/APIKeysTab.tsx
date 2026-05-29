@@ -14,17 +14,19 @@ import ShieldIcon from "@mui/icons-material/Shield";
 import useSecretsStore from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import type { SecretResponse } from "../../stores/ApiTypes";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { Text } from "../ui_primitives/Text";
-import { Caption } from "../ui_primitives/Caption";
-import { Tooltip } from "../ui_primitives/Tooltip";
-import { EditorButton } from "../editor_ui/EditorButton";
-import { Dialog } from "../ui_primitives/Dialog";
-import { TextInput } from "../ui_primitives/TextInput";
-import { Card } from "../ui_primitives/Card";
-import { Chip } from "../ui_primitives/Chip";
-import { Box } from "../ui_primitives/Box";
+import {
+  FlexColumn,
+  FlexRow,
+  Text,
+  Caption,
+  Tooltip,
+  EditorButton,
+  Dialog,
+  TextInput,
+  Card,
+  Chip,
+  Box
+} from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 

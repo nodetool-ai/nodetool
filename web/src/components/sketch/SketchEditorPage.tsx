@@ -30,9 +30,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EmptyState } from "../ui_primitives/EmptyState";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
+import { EmptyState, FlexColumn, LoadingSpinner } from "../ui_primitives";
 import SketchEditor from "./SketchEditor";
 import { trpc } from "../../trpc/client";
 import type { SketchDocument } from "./types";

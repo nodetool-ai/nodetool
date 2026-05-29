@@ -23,10 +23,12 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 
-import { FlexRow } from "../../ui_primitives/FlexRow";
-import { Text } from "../../ui_primitives/Text";
-import { Caption } from "../../ui_primitives/Caption";
-import { ToolbarIconButton } from "../../ui_primitives/ToolbarIconButton";
+import {
+  FlexRow,
+  Text,
+  Caption,
+  ToolbarIconButton
+} from "../../ui_primitives";
 
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";

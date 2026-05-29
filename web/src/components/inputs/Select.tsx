@@ -12,7 +12,7 @@ import React, {
 import ReactDOM from "react-dom";
 import useSelect from "../../hooks/nodes/useSelect";
 import Fuse, { IFuseOptions } from "fuse.js";
-import { Tooltip } from "../ui_primitives/Tooltip";
+import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { selectStyles, portalOptionsStyles } from "./selectStyles";
