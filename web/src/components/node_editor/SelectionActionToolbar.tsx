@@ -44,6 +44,14 @@ const isDividerButton = (button: ButtonItem): button is DividerButton => {
   return button.divider === true;
 };
 
+const actionButtonSx = {
+  width: 32,
+  height: 32,
+  "&.Mui-disabled": {
+    opacity: 0.4
+  }
+} as const;
+
 const renderButton = (button: ActionButton, _index: number, active?: boolean): React.ReactNode => (
   <ToolbarIconButton
     key={button.slug}
@@ -56,13 +64,7 @@ const renderButton = (button: ActionButton, _index: number, active?: boolean): R
     size="small"
     nodrag={true}
     tooltipPlacement="top"
-    sx={{
-      width: 32,
-      height: 32,
-      "&.Mui-disabled": {
-        opacity: 0.4
-      }
-    }}
+    sx={actionButtonSx}
   />
 );
 
