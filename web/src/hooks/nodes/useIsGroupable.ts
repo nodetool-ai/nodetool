@@ -3,13 +3,14 @@
 import { useCallback } from "react";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
+import { GROUP_NODE_TYPE } from "../../constants/nodeTypes";
 
 const useIsGroupable = () => {
   const isGroupable = useCallback((node: Node<NodeData>) => {
     return !(
       node.type === "nodetool.group.Loop" ||
       // node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type === GROUP_NODE_TYPE
     );
   }, []);
 
@@ -17,7 +18,7 @@ const useIsGroupable = () => {
     return (
       node.type === "nodetool.group.Loop" ||
       // node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type === GROUP_NODE_TYPE
     );
   }, []);
 

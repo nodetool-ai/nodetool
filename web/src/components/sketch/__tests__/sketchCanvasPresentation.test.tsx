@@ -32,6 +32,15 @@ jest.mock("../SketchCanvasResizeHandles", () => {
   };
 });
 
+// Mock SelectionActionBar — this suite stubs useTheme with a minimal theme
+// that lacks the shape/shadows the bar reads. Its own behavior is covered by
+// SelectionActionBar.test.tsx.
+jest.mock("../SelectionActionBar", () => ({
+  __esModule: true,
+  SelectionActionBar: () => null,
+  default: () => null
+}));
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeProps(

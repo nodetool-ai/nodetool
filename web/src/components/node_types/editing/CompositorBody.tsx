@@ -59,8 +59,7 @@ import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput, useUpstreamValues } from "../../../hooks/nodes/useNodeIO";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
-
-const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
+import { COMPOSITOR_NODE_TYPE } from "../../../constants/nodeTypes";
 
 /** Canonical blend modes are owned by `@nodetool-ai/gpu`. */
 export type CompositorBlendMode = BlendMode;

@@ -12,7 +12,7 @@ import { Workflow, WorkflowList } from "../../../stores/ApiTypes";
 import { NodeData } from "../../../stores/NodeData";
 import { extractDynamicIO } from "./WorkflowLoader.helpers";
 
-export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
+export { WORKFLOW_NODE_TYPE } from "../../../constants/nodeTypes";
 
 interface WorkflowOption {
   id: string;

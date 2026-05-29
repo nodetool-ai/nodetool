@@ -37,6 +37,7 @@ import CommentNode from "./components/node/CommentNode";
 import SketchNode, {
   SKETCH_NODE_TYPE
 } from "./components/node/SketchNode/SketchNode";
+import { GROUP_NODE_TYPE, COMMENT_NODE_TYPE } from "./constants/nodeTypes";
 import PlaceholderNode from "./components/node_types/PlaceholderNode";
 import CustomEdge from "./components/node_editor/CustomEdge";
 import ControlEdge from "./components/node_editor/ControlEdge";
@@ -249,8 +250,8 @@ function GraphInner({
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
-      "nodetool.workflows.base_node.Group": GroupNode,
-      "nodetool.workflows.base_node.Comment": CommentNode,
+      [GROUP_NODE_TYPE]: GroupNode,
+      [COMMENT_NODE_TYPE]: CommentNode,
       [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),

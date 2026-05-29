@@ -8,6 +8,8 @@ export {
   calculateImageCost
 } from "./cost-calculator.js";
 export type { PricingTier, UsageInfo } from "./cost-calculator.js";
+export { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
+import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
@@ -176,7 +178,7 @@ if (_envProcess.env["NODETOOL_ENV"] !== "production") {
     "ollama",
     OllamaProvider,
     {},
-    { OLLAMA_API_URL: "http://127.0.0.1:11434" }
+    { OLLAMA_API_URL: OLLAMA_DEFAULT_URL }
   );
   // LM Studio: URL (and optional API key) are user-configurable via the
   // Settings → API Keys panel. Register them as optionalKwargs so the
@@ -190,7 +192,7 @@ if (_envProcess.env["NODETOOL_ENV"] !== "production") {
     LMStudioProvider,
     {},
     {
-      LMSTUDIO_API_URL: "http://127.0.0.1:1234",
+      LMSTUDIO_API_URL: LMSTUDIO_DEFAULT_URL,
       LMSTUDIO_API_KEY: "lm-studio"
     }
   );
