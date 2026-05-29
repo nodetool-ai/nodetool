@@ -103,6 +103,7 @@ export {
 } from "./provider-registry.js";
 export type { GetSecret } from "./provider-registry.js";
 import { registerProvider as registerBuiltinProvider } from "./provider-registry.js";
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 export type {
   ProviderId,
   LanguageModel,
@@ -138,29 +139,29 @@ export type {
 // circuit the registry's resolution branch (which only re-resolves when the
 // kwarg is empty/null). Empty-string declarations force every getProvider()
 // call to ask the supplied `getSecret` (DB-then-env) at instantiation time.
-registerBuiltinProvider("openai", OpenAIProvider, { OPENAI_API_KEY: "" });
-registerBuiltinProvider("anthropic", AnthropicProvider, { ANTHROPIC_API_KEY: "" });
-registerBuiltinProvider("gemini", GeminiProvider, { GEMINI_API_KEY: "" });
-registerBuiltinProvider("groq", GroqProvider, { GROQ_API_KEY: "" });
-registerBuiltinProvider("mistral", MistralProvider, { MISTRAL_API_KEY: "" });
-registerBuiltinProvider("moonshot", MoonshotProvider, { KIMI_API_KEY: "" });
-registerBuiltinProvider("minimax", MinimaxProvider, { MINIMAX_API_KEY: "" });
-registerBuiltinProvider("replicate", ReplicateProvider, { REPLICATE_API_TOKEN: "" });
-registerBuiltinProvider("fal_ai", FalProvider, { FAL_API_KEY: "" });
-registerBuiltinProvider("kie", KieProvider, { KIE_API_KEY: "" });
-registerBuiltinProvider("topaz", TopazProvider, { TOPAZ_API_KEY: "" });
-registerBuiltinProvider("atlascloud", AtlasCloudProvider, { ATLASCLOUD_API_KEY: "" });
-registerBuiltinProvider("aki", AkiProvider, { AKI_API_KEY: "" });
-registerBuiltinProvider("meshy", MeshyProvider, { MESHY_API_KEY: "" });
-registerBuiltinProvider("rodin", RodinProvider, { RODIN_API_KEY: "" });
-registerBuiltinProvider("openrouter", OpenRouterProvider, { OPENROUTER_API_KEY: "" });
-registerBuiltinProvider("together", TogetherProvider, { TOGETHER_API_KEY: "" });
-registerBuiltinProvider("cerebras", CerebrasProvider, { CEREBRAS_API_KEY: "" });
-registerBuiltinProvider("cohere", CohereProvider, { COHERE_API_KEY: "" });
-registerBuiltinProvider("voyage", VoyageProvider, { VOYAGE_API_KEY: "" });
-registerBuiltinProvider("jina", JinaProvider, { JINA_API_KEY: "" });
-registerBuiltinProvider("deepseek", DeepSeekProvider, { DEEPSEEK_API_KEY: "" });
-registerBuiltinProvider("xai", XAIProvider, { XAI_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.OPENAI, OpenAIProvider, { OPENAI_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.ANTHROPIC, AnthropicProvider, { ANTHROPIC_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, { GEMINI_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.GROQ, GroqProvider, { GROQ_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.MISTRAL, MistralProvider, { MISTRAL_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, { KIMI_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, { MINIMAX_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.REPLICATE, ReplicateProvider, { REPLICATE_API_TOKEN: "" });
+registerBuiltinProvider(PROVIDER_IDS.FAL_AI, FalProvider, { FAL_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.KIE, KieProvider, { KIE_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.TOPAZ, TopazProvider, { TOPAZ_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.ATLASCLOUD, AtlasCloudProvider, { ATLASCLOUD_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, { MESHY_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.RODIN, RodinProvider, { RODIN_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.OPENROUTER, OpenRouterProvider, { OPENROUTER_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, { TOGETHER_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.CEREBRAS, CerebrasProvider, { CEREBRAS_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.COHERE, CohereProvider, { COHERE_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.VOYAGE, VoyageProvider, { VOYAGE_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.JINA, JinaProvider, { JINA_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.DEEPSEEK, DeepSeekProvider, { DEEPSEEK_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.XAI, XAIProvider, { XAI_API_KEY: "" });
 
 // Local-only providers — require local servers/CLIs, skip in production
 const _envProcess =
@@ -173,7 +174,7 @@ if (_envProcess.env["NODETOOL_ENV"] !== "production") {
   // take effect without a restart. Empty kwargs keep isProviderConfigured()
   // returning true for the zero-config localhost case.
   registerBuiltinProvider(
-    "ollama",
+    PROVIDER_IDS.OLLAMA,
     OllamaProvider,
     {},
     { OLLAMA_API_URL: "http://127.0.0.1:11434" }
@@ -186,7 +187,7 @@ if (_envProcess.env["NODETOOL_ENV"] !== "production") {
   // false when the user hasn't set anything (LM Studio runs at the default
   // localhost:1234 out of the box).
   registerBuiltinProvider(
-    "lmstudio",
+    PROVIDER_IDS.LMSTUDIO,
     LMStudioProvider,
     {},
     {
@@ -196,12 +197,12 @@ if (_envProcess.env["NODETOOL_ENV"] !== "production") {
   );
   // llama.cpp OpenAI-compatible server — URL only from Settings / env (no
   // default host). Empty kwarg keeps the provider "unavailable" until configured.
-  registerBuiltinProvider("llama_cpp", LlamaProvider, {
+  registerBuiltinProvider(PROVIDER_IDS.LLAMA_CPP, LlamaProvider, {
     LLAMA_CPP_URL: ""
   });
   // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.
   registerBuiltinProvider(
-    "vllm",
+    PROVIDER_IDS.VLLM,
     VLLMProvider,
     { VLLM_BASE_URL: "" },
     { VLLM_API_KEY: "sk-no-key-required" }
@@ -214,5 +215,5 @@ if (
   _envProcess.env["NODETOOL_ENV"] !== "production" &&
   _envProcess.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
 ) {
-  registerBuiltinProvider("fake", FakeProvider, {});
+  registerBuiltinProvider(PROVIDER_IDS.FAKE, FakeProvider, {});
 }
