@@ -373,7 +373,7 @@ const NodeInfoPanel: React.FC = memo(() => {
           delay={TOOLTIP_ENTER_DELAY}
         >
           <EditorButton
-            tabIndex={1}
+            tabIndex={0}
             className="namespace-button"
             onClick={handleNamespaceClick}
           >

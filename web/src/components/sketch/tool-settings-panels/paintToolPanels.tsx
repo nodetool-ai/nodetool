@@ -2,7 +2,7 @@ import React, { memo, useState } from "react";
 import { Slider } from "@mui/material";
 import { Box } from "../../ui_primitives/Box";
 import { Text } from "../../ui_primitives/Text";
-import { EditorButton } from "../../editor_ui";
+import { EditorButton } from "../../editor_ui/EditorButton";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import {

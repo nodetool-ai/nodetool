@@ -1,6 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton } from "../ui_primitives";
+import { Text } from "../ui_primitives/Text";
+import { Caption } from "../ui_primitives/Caption";
+import { TextInput } from "../ui_primitives/TextInput";
+import { SelectField } from "../ui_primitives/SelectField";
+import { AutocompleteTagInput } from "../ui_primitives/AutocompleteTagInput";
+import { EditorButton } from "../editor_ui/EditorButton";
 import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";

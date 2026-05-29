@@ -21,14 +21,11 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
-import {
-  CheckerDropzone,
-  FlexColumn,
-  FlexRow,
-  RunModelButton,
-  ToggleGroup,
-  ToggleOption
-} from "../../ui_primitives";
+import { CheckerDropzone } from "../../ui_primitives/CheckerDropzone";
+import { FlexColumn } from "../../ui_primitives/FlexColumn";
+import { FlexRow } from "../../ui_primitives/FlexRow";
+import { RunModelButton } from "../../ui_primitives/RunModelButton";
+import { ToggleGroup, ToggleOption } from "../../ui_primitives/ToggleGroup";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
 import { NodeOutputs } from "../../node/NodeOutputs";
