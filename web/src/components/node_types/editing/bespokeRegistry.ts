@@ -34,9 +34,8 @@ import RotateAndFlipBody, {
   ROTATE_AND_FLIP_NODE_TYPE
 } from "./RotateAndFlipBody";
 import ScaleBody, { SCALE_NODE_TYPE } from "./ScaleBody";
-import SimpleFilterBody, {
-  SIMPLE_FILTER_NODE_TYPES
-} from "./SimpleFilterBody";
+import SimpleFilterBody from "./SimpleFilterBody";
+import { SIMPLE_FILTER_NODE_TYPES } from "./SimpleFilterBody.constants";
 
 export interface BespokeBodyProps {
   id: string;

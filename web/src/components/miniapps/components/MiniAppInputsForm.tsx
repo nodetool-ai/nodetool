@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Caption, Tooltip } from "../../ui_primitives";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
-import { getComponentForProperty } from "../../node/PropertyInput";
+import { getComponentForProperty } from "../../node/PropertyInput.resolver";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import VideoModelSelect from "../../properties/VideoModelSelect";

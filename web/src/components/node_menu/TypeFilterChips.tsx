@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import {
   Autocomplete,
   Menu,

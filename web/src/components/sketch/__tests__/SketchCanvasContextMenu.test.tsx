@@ -22,7 +22,11 @@ jest.mock("../ToolSettingsPanels", () => ({
   __esModule: true,
   ToolSettingsPanel: function MockToolSettingsPanel() {
     return null;
-  },
+  }
+}));
+
+jest.mock("../tool-settings-panels/getToolSettingsLabel", () => ({
+  __esModule: true,
   getToolSettingsLabel: () => "Settings"
 }));
 

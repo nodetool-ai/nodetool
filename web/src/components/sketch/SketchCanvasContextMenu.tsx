@@ -43,7 +43,8 @@ import {
 } from "./toolDefinitions";
 import { displayCombo } from "./shortcuts";
 import SketchToolIconLabel from "./SketchToolIconLabel";
-import { ToolSettingsPanel, getToolSettingsLabel } from "./ToolSettingsPanels";
+import { ToolSettingsPanel } from "./ToolSettingsPanels";
+import { getToolSettingsLabel } from "./tool-settings-panels/getToolSettingsLabel";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (

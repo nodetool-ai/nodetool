@@ -16,12 +16,14 @@ import { BORDER_RADIUS, FlexColumn, FlexRow, Text } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
   Message,
-  MessageAudioContent,
-  MessageContent,
-  MessageImageContent,
-  MessageVideoContent
+  MessageContent
 } from "../../../stores/ApiTypes";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
+import {
+  isAudioContent,
+  isImageContent,
+  isVideoContent
+} from "./MediaOutputGroup.helpers";
 
 type ChatMessageWithMedia = Message & {
   media_generation?: MediaGenerationRequest | null;
@@ -30,36 +32,6 @@ type ChatMessageWithMedia = Message & {
 interface MediaOutputGroupProps {
   message: ChatMessageWithMedia;
   mediaContents: MessageContent[];
-}
-
-function isImageContent(c: MessageContent): c is MessageImageContent {
-  return c.type === "image_url";
-}
-
-function isVideoContent(c: MessageContent): c is MessageVideoContent {
-  return c.type === "video";
-}
-
-function isAudioContent(c: MessageContent): c is MessageAudioContent {
-  return c.type === "audio";
-}
-
-/**
- * Returns true if the content array is purely image + video + audio media
- * blocks — i.e. the kind of output produced by a media generation turn.
- */
-export function isMediaOnlyContent(content: unknown): boolean {
-  if (!Array.isArray(content) || content.length === 0) {
-    return false;
-  }
-  return content.every(
-    (c) =>
-      typeof c === "object" &&
-      c !== null &&
-      (isImageContent(c as MessageContent) ||
-        isVideoContent(c as MessageContent) ||
-        isAudioContent(c as MessageContent))
-  );
 }
 
 const styles = (theme: Theme) =>

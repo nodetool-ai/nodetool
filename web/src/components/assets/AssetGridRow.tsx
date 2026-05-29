@@ -5,7 +5,8 @@ import {
   getExtraFooterSpace
 } from "./assetGridUtils";
 import AssetItem from "./AssetItem";
-import { colorForType, IconForType } from "../../config/data_types";
+import { colorForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import { Asset } from "../../stores/ApiTypes";
 import { Text, Tooltip } from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";

@@ -20,7 +20,7 @@ import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import QuickAccessGrid from "../node_menu/QuickAccessGrid";
 
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import {
   LeftPanelView,
   NodeCategoryId,

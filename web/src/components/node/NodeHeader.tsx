@@ -8,7 +8,7 @@ import isEqual from "fast-deep-equal";
 import { NodeData } from "../../stores/NodeData";
 import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
 import { useNodes } from "../../contexts/NodeContext";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";

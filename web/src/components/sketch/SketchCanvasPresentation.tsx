@@ -18,11 +18,9 @@ import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
 import { selectionAntCanvasMarginCssPx } from "./sketchCanvasHooks";
-import { cursorStyleForTool } from "./sketchCursorStyle";
 import { TransformGizmo } from "./transform/gizmo/TransformGizmo";
 import type { TransformTool } from "./tools/TransformTool";
-
-export { cursorStyleForTool } from "./sketchCursorStyle";
+import { canvasTransformStyle } from "./sketchCanvasPresentation.helpers";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -60,16 +58,6 @@ const styles = (theme: Theme) =>
       imageRendering: "auto"
     }
   });
-
-// ─── Canvas transform style helper ──────────────────────────────────────────
-
-export function canvasTransformStyle(pan: Point, zoom: number): React.CSSProperties {
-  return {
-    transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-    transformOrigin: "center center",
-    imageRendering: "pixelated"
-  };
-}
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 

@@ -11,7 +11,7 @@ import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import { getAssetCategory } from "./assetGridUtils";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";

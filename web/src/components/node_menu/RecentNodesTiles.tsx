@@ -16,8 +16,9 @@ import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
-import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles";
-import { IconForType, colorForType } from "../../config/data_types";
+import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles.constants";
+import { colorForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 
 const QUICK_ACTION_NODE_TYPES = new Set(
   QUICK_ACTION_BUTTONS.map((action) => action.nodeType)

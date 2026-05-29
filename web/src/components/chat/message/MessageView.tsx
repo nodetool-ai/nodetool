@@ -35,7 +35,8 @@ import { Collapse } from "@mui/material";
 
 
 import AgentExecutionView from "./AgentExecutionView";
-import MediaOutputGroup, { isMediaOnlyContent } from "./MediaOutputGroup";
+import MediaOutputGroup from "./MediaOutputGroup";
+import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { formatToolName } from "../../../utils/formatUtils";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
