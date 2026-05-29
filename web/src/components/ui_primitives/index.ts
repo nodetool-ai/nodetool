@@ -278,6 +278,9 @@ export type { PopoverProps, PopoverPlacement } from "./Popover";
 export { CollapsibleSection } from "./CollapsibleSection";
 export type { CollapsibleSectionProps } from "./CollapsibleSection";
 
+export { Collapse } from "./Collapse";
+export type { CollapseProps } from "./Collapse";
+
 export { ListGroup, ListItemRow } from "./ListGroup";
 export type { ListGroupProps, ListItemRowProps } from "./ListGroup";
 

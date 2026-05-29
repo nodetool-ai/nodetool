@@ -165,6 +165,100 @@ export const createStyles = (theme: Theme) => ({
       whiteSpace: "nowrap"
     },
 
+    ".message-model": {
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.disabled,
+      whiteSpace: "nowrap",
+      fontFamily: theme.fontFamily2
+    },
+
+    // ── Per-message meta layout (full-page chat: avatar + header) ──────────
+    // The body wrapper is layout-neutral by default so the compact (non-meta)
+    // layout is unchanged; it only becomes a column under `--meta`.
+    ".message-body": {
+      display: "contents"
+    },
+
+    ".chat-message--meta": {
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: 0
+    },
+
+    // Normalize horizontal padding for both roles so the message bodies line up
+    // on a single left edge. The base `.assistant` rule sets
+    // `padding: 0.75em 1em`, which would otherwise indent assistant rows.
+    ".chat-message.assistant.chat-message--meta, .chat-message.user.chat-message--meta": {
+      padding: "0.6em 0"
+    },
+
+    ".chat-message.assistant.chat-message--meta:hover": {
+      border: "1px solid transparent"
+    },
+
+    ".chat-message--meta .message-body": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(0.5),
+      width: "100%",
+      minWidth: 0
+    },
+
+    ".message-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(0.6),
+      fontSize: theme.fontSizeTiny,
+      lineHeight: 1
+    },
+
+    ".message-role-icon": {
+      fontSize: 15,
+      flexShrink: 0
+    },
+
+    // Quiet identity for the two voices: the user's own icon recedes, the
+    // assistant gets a soft brand tint so the eye lands on its turns.
+    ".chat-message.user .message-role-icon": {
+      color: theme.vars.palette.grey[500]
+    },
+
+    ".chat-message.assistant .message-role-icon": {
+      color: theme.vars.palette.primary.main,
+      opacity: 0.85
+    },
+
+    ".message-header .message-time, .message-header .message-model": {
+      color: theme.vars.palette.text.disabled,
+      fontVariantNumeric: "tabular-nums"
+    },
+
+    // Under the meta layout, user messages drop the right-aligned bubble and
+    // read left-aligned like the assistant.
+    ".chat-message.user.chat-message--meta": {
+      width: "100%",
+      maxWidth: "100%",
+      margin: "0.5em 0 0",
+      alignItems: "flex-start",
+      fontWeight: 400
+    },
+
+    ".chat-message.user.chat-message--meta .message-content": {
+      background: "transparent",
+      color: theme.vars.palette.text.primary,
+      textAlign: "left",
+      padding: 0,
+      border: "none"
+    },
+
+    ".chat-message.user.chat-message--meta:hover .message-content": {
+      borderColor: "transparent"
+    },
+
+    ".chat-message.user.chat-message--meta .markdown": {
+      padding: 0
+    },
+
     ".error-message": {
       backgroundColor: theme.vars.palette.error.dark,
       border: `1px solid ${theme.vars.palette.error.main}`,

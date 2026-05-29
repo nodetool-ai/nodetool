@@ -1,8 +1,17 @@
 import React, { useState, memo, useCallback } from "react";
-import { Text } from "../../ui_primitives";
-import { relativeTime } from "../../../utils/formatDateAndTime";
+import { Text, FlexRow } from "../../ui_primitives";
 import { ThreadItemProps } from "../types/thread.types";
 import { DeleteButton } from "../../ui_primitives";
+
+function formatClockTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+}
 
 const ThreadItemBase: React.FC<ThreadItemProps> = ({
   threadId,
@@ -10,8 +19,7 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
   isSelected,
   onSelect,
   onDelete,
-  previewText,
-  showDate = true
+  previewText
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -47,14 +55,14 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
-      <Text className="thread-title">
-        {thread.title || previewText}
-      </Text>
-      {showDate && (
-        <Text className="date">
-          {relativeTime(thread.updatedAt)}
+      <FlexRow align="center" justify="space-between" gap={1} sx={{ minWidth: 0 }}>
+        <Text className="thread-title">
+          {thread.title || previewText}
         </Text>
-      )}
+        <Text className="thread-time">
+          {formatClockTime(thread.updatedAt)}
+        </Text>
+      </FlexRow>
       <DeleteButton
         onClick={handleDeleteClick}
       />
@@ -67,7 +75,6 @@ export const ThreadItem = memo(ThreadItemBase, (prevProps, nextProps) => {
     prevProps.threadId === nextProps.threadId &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.previewText === nextProps.previewText &&
-    prevProps.showDate === nextProps.showDate &&
     prevProps.thread.title === nextProps.thread.title &&
     prevProps.thread.updatedAt === nextProps.thread.updatedAt
   );

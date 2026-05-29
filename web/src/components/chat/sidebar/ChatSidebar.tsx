@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import { FlexRow, FlexColumn, ToolbarIconButton, Text, ScrollArea, SearchInput } from "../../ui_primitives";
+import { FlexRow, FlexColumn, ToolbarIconButton, Text, ScrollArea, SearchInput, NavButton } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import AddIcon from "@mui/icons-material/Add";
@@ -75,6 +75,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             })
         );
     }, [threads, searchQuery, getThreadPreview]);
+
+    const threadCount = Object.keys(threads).length;
 
     return (
         <>
@@ -160,18 +162,28 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         borderBottom: "none"
                     }}
                 >
-                    <Text
-                        size="tiny"
-                        weight={500}
-                        sx={{
-                            pl: 0.5,
-                            color: theme.vars.palette.grey[400],
-                            textTransform: "uppercase",
-                            letterSpacing: "0.08em"
-                        }}
-                    >
-                        Conversations
-                    </Text>
+                    <FlexRow align="baseline" gap={0.75} sx={{ pl: 0.5, minWidth: 0 }}>
+                        <Text
+                            size="tiny"
+                            weight={500}
+                            sx={{
+                                color: theme.vars.palette.grey[400],
+                                textTransform: "uppercase",
+                                letterSpacing: "0.08em"
+                            }}
+                        >
+                            Conversations
+                        </Text>
+                        {threadCount > 0 && (
+                            <Text
+                                size="tiny"
+                                weight={500}
+                                sx={{ color: theme.vars.palette.grey[600] }}
+                            >
+                                {threadCount}
+                            </Text>
+                        )}
+                    </FlexRow>
                     <ToolbarIconButton
                         onClick={handleClose}
                         tooltip="Collapse sidebar"
@@ -185,12 +197,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         }}
                     />
                 </FlexRow>
-                {/* Search with New Chat button */}
-                <FlexRow gap={0.75} align="center" sx={{ px: 1.5, pb: 1 }}>
+                {/* Search + full-width New conversation button */}
+                <FlexColumn gap={1} sx={{ px: 1.5, pb: 1 }}>
                     <FlexRow
                         align="center"
                         sx={{
-                            flex: 1,
+                            position: "relative",
                             minWidth: 0,
                             pl: 0.25,
                             "& .search-input .MuiInputBase-root": {
@@ -201,6 +213,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             "& .search-input .MuiInputBase-input": {
                                 paddingTop: "4px",
                                 paddingBottom: "4px",
+                                paddingRight: "28px",
                                 height: "20px"
                             },
                             "& .search-input .MuiInputAdornment-root": {
@@ -218,33 +231,41 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             fullWidth
                             showClear={false}
                         />
+                        <Text
+                            aria-hidden
+                            size="tinyer"
+                            sx={{
+                                position: "absolute",
+                                right: 8,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                pointerEvents: "none",
+                                color: theme.vars.palette.grey[500],
+                                border: `1px solid ${theme.vars.palette.grey[700]}`,
+                                borderRadius: "4px",
+                                px: 0.5,
+                                lineHeight: 1.4
+                            }}
+                        >
+                            ⌘K
+                        </Text>
                     </FlexRow>
-                    <ToolbarIconButton
-                        onClick={handleNewChat}
-                        tooltip="New chat"
+                    <NavButton
                         icon={<AddIcon sx={{ fontSize: "1.25rem" }} />}
+                        label="New conversation"
+                        onClick={handleNewChat}
+                        tabIndex={0}
                         sx={{
+                            width: "100%",
                             backgroundColor: theme.vars.palette.primary.main,
                             color: theme.vars.palette.primary.contrastText,
-                            border: "none",
-                            borderRadius: 1.5,
-                            width: 30,
-                            height: 30,
-                            flexShrink: 0,
-                            boxShadow: `0 0 0 1px rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`,
-                            transition:
-                                "background-color 0.15s ease, transform 0.15s ease",
                             "&:hover": {
                                 backgroundColor: theme.vars.palette.primary.dark,
-                                color: theme.vars.palette.primary.contrastText,
-                                transform: "translateY(-1px)"
-                            },
-                            "&:active": {
-                                transform: "translateY(0)"
+                                color: theme.vars.palette.primary.contrastText
                             }
                         }}
                     />
-                </FlexRow>
+                </FlexColumn>
 
                 {/* Thread list */}
                 <ScrollArea fullHeight>

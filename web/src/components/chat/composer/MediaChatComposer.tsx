@@ -14,6 +14,7 @@ import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AppsIcon from "@mui/icons-material/Apps";
 import DisplaySettingsIcon from "@mui/icons-material/Tv";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
 import ImageIcon from "@mui/icons-material/Image";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -215,6 +216,23 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     useFileHandling();
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAttachClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleAttachChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        addFiles(Array.from(files));
+      }
+      // Reset so selecting the same file again re-triggers change.
+      e.target.value = "";
+    },
+    [addFiles]
+  );
 
   const { shiftKeyPressed, metaKeyPressed, altKeyPressed } = useKeyPressed(
     (state) => ({
@@ -404,7 +422,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "motion_control") {
       return "Describe the motion…";
     }
-    return "Type a message… (Shift+Enter for new line)";
+    return "Continue the thread — or @ a node to compose with the canvas…";
   }, [mode]);
 
   const isMediaMode =
@@ -736,7 +754,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {droppedFiles.length > 0 && (
+        {(droppedFiles.length > 0 || !isMediaMode) && (
           <div className="media-file-preview-row">
             {droppedFiles.map((file) => (
               <FilePreview
@@ -745,6 +763,22 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 onRemove={removeCallbacks.get(file.id)!}
               />
             ))}
+            <button
+              type="button"
+              className="media-attach-btn"
+              onClick={handleAttachClick}
+              aria-label="Attach files"
+            >
+              <AttachFileIcon />
+              <span>Attach</span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              hidden
+              onChange={handleAttachChange}
+            />
           </div>
         )}
 
@@ -1266,6 +1300,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           )}
 
           <div className="media-chip-spacer" />
+
+          {!isMediaMode && (
+            <Text className="media-kbd-hint" aria-hidden size="smaller">
+              ↵ to send · ⇧↵ newline
+            </Text>
+          )}
 
           {/* Retake (refresh) button */}
           <Tooltip title="Clear prompt" delay={TOOLTIP_ENTER_DELAY}>
