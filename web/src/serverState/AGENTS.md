@@ -41,6 +41,26 @@ const { mutate } = useMutation({
 });
 ```
 
+### Cache invalidation may be indirect
+
+A mutation must keep the cache in sync, but the `invalidateQueries` call need
+not sit inline in `onSuccess`. All three forms are valid and in use here:
+
+- **Named `onSuccess` callback** — `onSuccess: invalidate`, where `invalidate`
+  calls `queryClient.invalidateQueries(...)` (`useWorkflowVersions.ts`,
+  `useAssets.ts`).
+- **Store action in `mutationFn`** — the AssetStore `create`/`update`/`delete`
+  actions invalidate `["assets", ...]` themselves, so a mutation that calls them
+  needs no extra `onSuccess` (`useAssetDeletion.ts`).
+- **Inside `mutationFn`** — invalidate right after the write
+  (`DeleteModelDialog.tsx`).
+
+Don't add a second invalidation when one of these already covers the data. The
+`react-doctor/query-mutation-missing-invalidation` rule is **off** (it only
+matches inline `onSuccess` and flags the patterns above as false positives), so
+this convention is review-enforced: when you add a mutation that writes server
+data, confirm the cache is invalidated somewhere in the success path.
+
 ## Testing
 
 ```bash
