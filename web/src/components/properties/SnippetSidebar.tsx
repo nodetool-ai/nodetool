@@ -327,8 +327,11 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
           filtered.map((snippet, index) => (
             <div
               key={snippet.id}
+              role="button"
+              tabIndex={0}
               className={`snippet-item ${index === focusedIndex ? "focused" : ""}`}
               onClick={() => insertSnippet(snippet)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); insertSnippet(snippet); } }}
               onMouseEnter={() => setFocusedIndex(index)}
             >
               <div className="snippet-title">{snippet.title}</div>
@@ -339,6 +342,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
               <div className="snippet-actions">
                 <Tooltip title="Copy" placement="left" delay={400}>
                   <button
+                    type="button"
                     className="snippet-action-btn"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -353,6 +357,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
                 </Tooltip>
                 <Tooltip title="Insert" placement="left" delay={400}>
                   <button
+                    type="button"
                     className="snippet-action-btn"
                     onClick={(e) => {
                       e.stopPropagation();

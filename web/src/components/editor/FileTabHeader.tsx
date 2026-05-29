@@ -65,6 +65,16 @@ const FileTabHeader = ({
     onSelect(asset.id);
   }, [onSelect, asset.id]);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onSelect(asset.id);
+      }
+    },
+    [onSelect, asset.id]
+  );
+
   // Handle middle-click (mouse button 1) to close tab
   // Using auxclick event instead of mousedown for semantically correct handling
   const handleAuxClick = useCallback(
@@ -112,7 +122,11 @@ const FileTabHeader = ({
     <>
       <div
         className={`tab ${isActive ? "active" : ""}`}
+        role="tab"
+        aria-selected={isActive}
+        tabIndex={0}
         onClick={handleClick}
+        onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
         onMouseDown={handleMouseDown}
         onAuxClick={handleAuxClick}

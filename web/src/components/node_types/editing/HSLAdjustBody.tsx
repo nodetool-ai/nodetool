@@ -26,8 +26,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
-
-const HSL_ADJUST_NODE_TYPE = "lib.image.color_grading.HSLAdjust";
+import { HSL_ADJUST_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const COLOR_RANGES = [
   "all",

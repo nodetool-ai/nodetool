@@ -375,11 +375,19 @@ const AssetListView: React.FC<AssetListViewProps> = ({
       return (
         <div
           key={key}
+          role="button"
+          tabIndex={0}
           style={style}
           className="asset-content-type-header"
           onClick={(e) => {
             e.stopPropagation();
             toggleExpanded(type);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleExpanded(type);
+            }
           }}
         >
           <IconForType

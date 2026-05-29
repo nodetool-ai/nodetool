@@ -463,8 +463,11 @@ const VideoListProperty = (props: PropertyProps) => {
       {/* Dropzone */}
       <Tooltip title="Click to select videos or drag and drop">
         <div
+          role="button"
+          tabIndex={0}
           className={`dropzone ${isDragOver ? "drag-over" : ""}`}
           onClick={handleDropzoneClick}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleDropzoneClick(); } }}
           onDragOver={onDragOver}
           onDragLeave={handleDragLeave}
           onDrop={onDrop}

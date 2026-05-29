@@ -57,8 +57,15 @@ export async function resolveReplicateSchemaClient(
     const text = await res.text();
     let message = text;
     try {
-      const json = JSON.parse(text) as { detail?: string };
-      message = json.detail ?? text;
+      const json: unknown = JSON.parse(text);
+      if (
+        typeof json === "object" &&
+        json !== null &&
+        "detail" in json &&
+        typeof (json as Record<string, unknown>).detail === "string"
+      ) {
+        message = (json as Record<string, unknown>).detail as string;
+      }
     } catch {
       // use text as-is
     }
@@ -75,7 +82,7 @@ export async function resolveReplicateSchemaClient(
     );
   }
 
-  const data = (await res.json()) as {
+  interface SchemaResponse {
     model_id?: string;
     dynamic_properties: Record<string, unknown>;
     dynamic_inputs?: Record<string, ReplicateDynamicInputMetadata>;
@@ -83,7 +90,8 @@ export async function resolveReplicateSchemaClient(
       string,
       { type: string; type_args?: unknown[]; optional?: boolean }
     >;
-  };
+  }
+  const data = (await res.json()) as SchemaResponse;
   return {
     dynamic_properties: data.dynamic_properties ?? {},
     dynamic_inputs: data.dynamic_inputs ?? {},

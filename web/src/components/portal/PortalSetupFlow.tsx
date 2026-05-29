@@ -175,7 +175,10 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
           <div key={provider.id}>
             <div
               className="portal-setup-provider"
+              role="button"
+              tabIndex={0}
               onClick={() => handleProviderClick(provider)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleProviderClick(provider); } }}
             >
               <div
                 className="portal-setup-provider-icon"
@@ -222,7 +225,13 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
         ))}
 
         {/* Ollama (no API key) */}
-        <div className="portal-setup-provider" onClick={handleOllamaClick}>
+        <div
+          className="portal-setup-provider"
+          role="button"
+          tabIndex={0}
+          onClick={handleOllamaClick}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleOllamaClick(); } }}
+        >
           <div
             className="portal-setup-provider-icon"
             style={{ backgroundColor: "#666" }}
@@ -239,12 +248,12 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
         </div>
         {ollamaStatus === "checking" && (
           <div className="portal-setup-ollama-status">
-            Checking if Ollama is running...
+            Checking if Ollama is running…
           </div>
         )}
         {ollamaStatus === "running" && (
           <div className="portal-setup-ollama-status" style={{ color: "#4caf50" }}>
-            ✓ Ollama is running. Connecting...
+            ✓ Ollama is running. Connecting…
           </div>
         )}
         {ollamaStatus === "not-running" && (

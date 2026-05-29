@@ -284,7 +284,19 @@ const NodeItem = memo(
         >
           <div
             className="node-button"
+            role="button"
+            tabIndex={0}
             onClick={handleClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (showCheckbox && onToggleSelection) {
+                  onToggleSelection(node.node_type);
+                } else {
+                  onClick(node);
+                }
+              }
+            }}
             style={nodeButtonStyle}
           >
             {showCheckbox && (

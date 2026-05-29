@@ -3,6 +3,7 @@ import React, { useCallback, memo } from "react";
 import { shallow } from "zustand/shallow";
 import { Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
+import { REROUTE_NODE_TYPE } from "../../constants/nodeTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
@@ -61,7 +62,7 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
     });
 
     // Get metadata for the Reroute node
-    const rerouteMetadata = getMetadata("nodetool.control.Reroute");
+    const rerouteMetadata = getMetadata(REROUTE_NODE_TYPE);
     if (!rerouteMetadata) {
       console.error("Reroute node metadata not found");
       closeContextMenu();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { normalizeModelMeta } from "../modelNormalization";
+import { normalizeModelMeta, applyAdvancedModelFilters } from "../modelNormalization";
 import type { LanguageModel } from "../../stores/ApiTypes";
 
 describe("modelNormalization", () => {
@@ -228,4 +228,78 @@ describe("modelNormalization", () => {
     });
   });
 
+  describe("applyAdvancedModelFilters", () => {
+    const makeModel = (name: string, id: string = name.toLowerCase()): LanguageModel => ({
+      type: "language_model",
+      provider: "local",
+      id,
+      name,
+    });
+
+    const models = [
+      makeModel("Llama 3 7B Instruct", "llama-3-7b-instruct"),
+      makeModel("Qwen 2.5 Coder 3B", "qwen-2.5-coder-3b"),
+      makeModel("Mistral 70B Base", "mistral-70b-base"),
+      makeModel("Phi 3 Mini 1.5B", "phi-3-mini-1.5b"),
+    ];
+
+    it("returns all models when no filters are applied", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: [],
+        sizeBucket: null,
+        families: [],
+      });
+      expect(result).toHaveLength(4);
+    });
+
+    it("filters by type tag", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: ["instruct"],
+        sizeBucket: null,
+        families: [],
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe("Llama 3 7B Instruct");
+    });
+
+    it("filters by size bucket", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: [],
+        sizeBucket: "3-7B",
+        families: [],
+      });
+      expect(result).toHaveLength(2);
+      expect(result.map((m) => m.id)).toContain("llama-3-7b-instruct");
+      expect(result.map((m) => m.id)).toContain("qwen-2.5-coder-3b");
+    });
+
+    it("filters by family", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: [],
+        sizeBucket: null,
+        families: ["qwen"],
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("qwen-2.5-coder-3b");
+    });
+
+    it("combines multiple filters with AND logic", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: ["base"],
+        sizeBucket: "35-70B",
+        families: ["mistral"],
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("mistral-70b-base");
+    });
+
+    it("returns empty array when no models match", () => {
+      const result = applyAdvancedModelFilters(models, {
+        selectedTypes: ["reasoning"],
+        sizeBucket: null,
+        families: [],
+      });
+      expect(result).toHaveLength(0);
+    });
+  });
 });

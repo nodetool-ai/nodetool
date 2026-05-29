@@ -481,6 +481,8 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         <div
           className={`content ${isScrollable ? "scrollable nowheel" : "noscroll"
             }`}
+          role="region"
+          aria-label="Node output"
           style={CONTENT_DIV_STYLE}
           tabIndex={0}
           onFocus={handleContentFocus}

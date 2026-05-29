@@ -184,6 +184,7 @@ async function ffmpegTransform(
 
 export class TextToVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.TextToVideo";
+  static readonly body = "content_card";
   static readonly title = "Text To Video";
   static readonly description =
     "Generate videos from text prompts using any supported video provider. Automatically routes to the appropriate backend (Gemini Veo, HuggingFace).\n    video, generation, AI, text-to-video, t2v";
@@ -291,6 +292,7 @@ export class TextToVideoNode extends BaseNode {
 
 export class ImageToVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ImageToVideo";
+  static readonly body = "content_card";
   static readonly title = "Image To Video";
   static readonly description =
     "Generate videos from input images using any supported video provider.\n    Animates static images into dynamic video content with AI-powered motion.\n    video, image-to-video, i2v, animation, AI, generation, sora, veo";
@@ -1013,6 +1015,7 @@ abstract class VideoTransformNode extends BaseNode {
 
 export class ConcatVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Concat";
+  static readonly body = "content_card";
   static readonly title = "Concatenate Video";
   static readonly description =
     "Concatenate multiple video files into a single video, including audio when available. Add inputs dynamically with the “add video input” button.\n    video, concat, merge, combine, audio, +";
@@ -2568,6 +2571,7 @@ export class GetVideoInfoNode extends BaseNode {
 
 export class VideoToVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.VideoToVideo";
+  static readonly body = "content_card";
   static readonly title = "Video To Video";
   static readonly description =
     "Restyle or edit an existing video with a text prompt using any supported video provider.\n    video, video-to-video, v2v, restyle, style-transfer, AI";
@@ -2650,6 +2654,7 @@ export class VideoToVideoNode extends BaseNode {
 
 export class LipSyncNode extends BaseNode {
   static readonly nodeType = "nodetool.video.LipSync";
+  static readonly body = "content_card";
   static readonly title = "Lip Sync";
   static readonly description =
     "Drive a face in a video to match speech in an audio track using any supported lip-sync provider.\n    video, lip-sync, lipsync, talking-head, dubbing, AI";

@@ -1,6 +1,11 @@
 import { describe, it, expect } from "@jest/globals";
 import {
   isHuggingFaceProvider,
+  isHuggingFaceLocalProvider,
+  isHuggingFaceInferenceProvider,
+  isLocalProvider,
+  isCloudProvider,
+  getModelUrl,
   toTitleCase,
   getProviderBaseName,
   formatGenericProviderName,
@@ -219,6 +224,124 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("huggingface/Test Provider")).toBe("https://huggingface.co/test-provider");
       expect(getProviderUrl("huggingface_test_provider")).toBe("https://huggingface.co/test-provider");
       expect(getProviderUrl("HuggingFaceTestProvider")).toBe("https://huggingface.co/testprovider");
+    });
+  });
+
+  describe("isHuggingFaceLocalProvider", () => {
+    it("returns true for plain 'huggingface'", () => {
+      expect(isHuggingFaceLocalProvider("huggingface")).toBe(true);
+      expect(isHuggingFaceLocalProvider("HuggingFace")).toBe(true);
+      expect(isHuggingFaceLocalProvider(" huggingface ")).toBe(true);
+    });
+
+    it("returns false for HuggingFace sub-providers", () => {
+      expect(isHuggingFaceLocalProvider("huggingface/fireworks-ai")).toBe(false);
+      expect(isHuggingFaceLocalProvider("huggingface_cerebras")).toBe(false);
+    });
+
+    it("returns false for undefined/empty", () => {
+      expect(isHuggingFaceLocalProvider(undefined)).toBe(false);
+      expect(isHuggingFaceLocalProvider("")).toBe(false);
+    });
+  });
+
+  describe("isHuggingFaceInferenceProvider", () => {
+    it("returns true for inference providers", () => {
+      expect(isHuggingFaceInferenceProvider("hf_inference")).toBe(true);
+      expect(isHuggingFaceInferenceProvider("huggingface_inference")).toBe(true);
+    });
+
+    it("returns false for non-inference providers", () => {
+      expect(isHuggingFaceInferenceProvider("huggingface")).toBe(false);
+      expect(isHuggingFaceInferenceProvider("openai")).toBe(false);
+    });
+
+    it("returns false for undefined/empty", () => {
+      expect(isHuggingFaceInferenceProvider(undefined)).toBe(false);
+      expect(isHuggingFaceInferenceProvider("")).toBe(false);
+    });
+  });
+
+  describe("isLocalProvider", () => {
+    it("returns true for local providers", () => {
+      expect(isLocalProvider("huggingface")).toBe(true);
+      expect(isLocalProvider("ollama")).toBe(true);
+      expect(isLocalProvider("llama_cpp")).toBe(true);
+      expect(isLocalProvider("llama-cpp")).toBe(true);
+      expect(isLocalProvider("llamacpp")).toBe(true);
+      expect(isLocalProvider("mlx")).toBe(true);
+    });
+
+    it("returns false for cloud providers", () => {
+      expect(isLocalProvider("openai")).toBe(false);
+      expect(isLocalProvider("anthropic")).toBe(false);
+      expect(isLocalProvider("google")).toBe(false);
+    });
+
+    it("returns false for undefined/empty", () => {
+      expect(isLocalProvider(undefined)).toBe(false);
+      expect(isLocalProvider("")).toBe(false);
+    });
+  });
+
+  describe("isCloudProvider", () => {
+    it("returns true for cloud providers", () => {
+      expect(isCloudProvider("openai")).toBe(true);
+      expect(isCloudProvider("anthropic")).toBe(true);
+    });
+
+    it("returns false for local providers", () => {
+      expect(isCloudProvider("ollama")).toBe(false);
+      expect(isCloudProvider("huggingface")).toBe(false);
+    });
+
+    it("returns false for undefined/empty", () => {
+      expect(isCloudProvider(undefined)).toBe(false);
+      expect(isCloudProvider("")).toBe(false);
+    });
+  });
+
+  describe("getModelUrl", () => {
+    it("returns null when modelId is missing", () => {
+      expect(getModelUrl("openai", undefined)).toBeNull();
+      expect(getModelUrl("openai", "")).toBeNull();
+    });
+
+    it("returns HuggingFace URL for HF provider", () => {
+      expect(getModelUrl("huggingface", "user/repo")).toBe("https://huggingface.co/user/repo");
+    });
+
+    it("returns Ollama library URL for Ollama models", () => {
+      expect(getModelUrl("ollama", "gemma:2b")).toBe("https://ollama.com/library/gemma");
+    });
+
+    it("returns OpenAI docs URL", () => {
+      expect(getModelUrl("openai", "gpt-4")).toBe("https://platform.openai.com/docs/models");
+    });
+
+    it("returns Anthropic docs URL", () => {
+      expect(getModelUrl("anthropic", "claude-3")).toBe("https://docs.anthropic.com/claude/docs/models-overview");
+    });
+
+    it("returns Google docs URL", () => {
+      expect(getModelUrl("gemini", "gemini-pro")).toBe("https://ai.google.dev/models");
+      expect(getModelUrl("google", "gemini-pro")).toBe("https://ai.google.dev/models");
+    });
+
+    it("infers Ollama from model ID with colon", () => {
+      expect(getModelUrl("", "llama3:latest")).toBe("https://ollama.com/library/llama3");
+    });
+
+    it("infers HuggingFace as default", () => {
+      expect(getModelUrl("", "user/model")).toBe("https://huggingface.co/user/model");
+    });
+
+    it("uses modelType hint for llama_model", () => {
+      expect(getModelUrl("", "some-model", "llama_model")).toBe("https://ollama.com/library/some-model");
+    });
+
+    it("returns null for unknown provider", () => {
+      expect(getModelUrl("unknown", "model")).toBeNull();
     });
   });
 });

@@ -165,6 +165,9 @@ const TraceRow = memo(function TraceRow({
       <div
         className={`trace-row ${expanded ? "expanded" : ""}`}
         onClick={handleClick}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClick(); }}
+        role="button"
+        tabIndex={0}
       >
         <span className="trace-time">{formatRelativeTime(event.relativeMs)}</span>
         <span className="trace-icon">{EVENT_ICONS[event.type]}</span>

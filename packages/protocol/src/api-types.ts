@@ -600,6 +600,12 @@ export interface NodeMetadata {
   namespace: string;
   node_type: string;
   layout: string;
+  /**
+   * Node body renderer. "content_card" opts the node into the media/text-forward
+   * ContentCardBody (variant derived from the primary output type). Absent or
+   * "default" uses the generic input/output body.
+   */
+  body?: string;
   properties: Property[];
   outputs: OutputSlot[];
 
@@ -699,19 +705,73 @@ export interface ResourceLimits {
 // Models
 // ---------------------------------------------------------------------------
 
-export type Provider =
-  | "openai"
-  | "anthropic"
-  | "google"
-  | "ollama"
-  | "huggingface"
-  | "replicate"
-  | "fal"
-  | "elevenlabs"
-  | "aime"
-  | "local"
-  | "empty"
-  | string;
+/**
+ * Canonical registry of model-provider identifiers.
+ *
+ * This is the single source of truth for provider IDs across the monorepo:
+ * the runtime provider registry, the cost calculator, and the web model menu
+ * all derive from here instead of re-spelling the literals. Keys are stable
+ * UPPER_SNAKE references; values are the wire identifiers stored on models and
+ * passed to `getProvider()`.
+ *
+ * Adding a provider? Add it here first, then register it in
+ * `@nodetool-ai/runtime`'s provider index.
+ */
+export const PROVIDER_IDS = {
+  // Hosted LLM / multimodal APIs
+  OPENAI: "openai",
+  ANTHROPIC: "anthropic",
+  GEMINI: "gemini",
+  GROQ: "groq",
+  MISTRAL: "mistral",
+  MOONSHOT: "moonshot",
+  MINIMAX: "minimax",
+  DEEPSEEK: "deepseek",
+  XAI: "xai",
+  COHERE: "cohere",
+  OPENROUTER: "openrouter",
+  TOGETHER: "together",
+  CEREBRAS: "cerebras",
+  // Media / 3D / utility APIs
+  REPLICATE: "replicate",
+  FAL_AI: "fal_ai",
+  KIE: "kie",
+  TOPAZ: "topaz",
+  ATLASCLOUD: "atlascloud",
+  AKI: "aki",
+  MESHY: "meshy",
+  RODIN: "rodin",
+  // Embeddings / reranking
+  VOYAGE: "voyage",
+  JINA: "jina",
+  // Local / self-hosted
+  OLLAMA: "ollama",
+  LMSTUDIO: "lmstudio",
+  LLAMA_CPP: "llama_cpp",
+  VLLM: "vllm",
+  HUGGINGFACE: "huggingface",
+  TRANSFORMERS_JS: "transformers_js",
+  // Test-only (gated behind NODETOOL_ENABLE_FAKE_PROVIDER)
+  FAKE: "fake"
+} as const;
+
+/** A provider identifier known to the registry above. */
+export type KnownProviderId = (typeof PROVIDER_IDS)[keyof typeof PROVIDER_IDS];
+
+/**
+ * Provider identifier. Resolves to a known {@link PROVIDER_IDS} value with
+ * editor autocompletion, but still accepts arbitrary strings — dynamic
+ * sub-providers (OpenRouter, HuggingFace inference) and Python-bridged
+ * providers (MLX, local HF) supply IDs that aren't enumerated above. The
+ * `(string & {})` arm preserves the literal hints while keeping the type open.
+ */
+export type ProviderId = KnownProviderId | (string & {});
+
+/**
+ * Alias of {@link ProviderId}. Retained as the field-type name used across the
+ * model interfaces below (`LanguageModel.provider`, `ProviderInfo.provider`, …).
+ */
+export type Provider = ProviderId;
 
 export type InferenceProvider =
   | "cerebras"

@@ -51,8 +51,7 @@ import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput, useUpstreamValues } from "../../../hooks/nodes/useNodeIO";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
-
-const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
+import { COMPOSITOR_NODE_TYPE } from "../../../constants/nodeTypes";
 
 /** Canonical blend modes are owned by `@nodetool-ai/gpu`. */
 export type CompositorBlendMode = BlendMode;
@@ -470,7 +469,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
       <FlexColumn className="layers" gap={0.5}>
         {imageKeys.length === 0 ? (
-          <div className="empty-state">No layers yet — add one below.</div>
+          <div className="empty-state">No layers yet - add one below.</div>
         ) : (
           imageKeys.map((key, idx) => (
             <LayerRow

@@ -33,8 +33,10 @@ export interface WelcomeTrack {
   outputHandle: string;
 }
 
-export const STRING_NODE_TYPE = "nodetool.constant.String";
-export const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
+export {
+  STRING_NODE_TYPE,
+  PREVIEW_NODE_TYPE
+} from "../../constants/nodeTypes";
 
 export const WELCOME_TRACKS: WelcomeTrack[] = [
   {

@@ -412,6 +412,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         }
       >
         <button
+          type="button"
           className={`search-mode-toggle ${
             isGlobalSearchMode ? "global-mode" : ""
           }`}
@@ -425,6 +426,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
 
       <input
         id="asset-search-input"
+        aria-label={isGlobalSearchMode ? "Search all assets" : "Search current folder"}
         className="search-input"
         ref={inputRef}
         type="text"
@@ -445,6 +447,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         </div>
       ) : (
         <button
+          type="button"
           className={`clear-search-btn ${
             localSearchTerm.trim() === "" ? "disabled" : ""
           }`}

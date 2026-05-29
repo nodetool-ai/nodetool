@@ -7,15 +7,16 @@ import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUt
 import { generateSnippetMetadata } from "../config/snippetMetadata";
 import { attachBundleFalUnitPricing } from "../utils/attachBundleFalUnitPricing";
 import { attachBundleKieUnitPricing } from "../utils/attachBundleKieUnitPricing";
+import { WORKFLOW_NODE_TYPE, PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 
-export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
+export { WORKFLOW_NODE_TYPE };
 
 const defaultMetadata: Record<string, NodeMetadata> = {
-  "nodetool.workflows.base_node.Preview": {
+  [PREVIEW_NODE_TYPE]: {
     title: "Preview",
     description: "Preview",
     namespace: "default",
-    node_type: "nodetool.workflows.base_node.Preview",
+    node_type: PREVIEW_NODE_TYPE,
     layout: "default",
     supports_dynamic_inputs: false,
     properties: [

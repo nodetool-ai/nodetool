@@ -266,7 +266,7 @@ const WorkflowCard = ({
           <Fade in={true}>
             <Box className="loading-overlay">
               <LoadingSpinner size="medium" />
-              <Text className="loading-text">Creating workflow...</Text>
+              <Text className="loading-text">Creating workflow…</Text>
             </Box>
           </Fade>
         )}
@@ -283,8 +283,8 @@ const WorkflowCard = ({
           )}
           {nodesOnlySearch && matchedNodes.length > 0 && (
             <Box className="matched-nodes">
-              {matchedNodes.slice(0, 3).map((match, idx) => (
-                <Text key={idx} className="matched-item">
+              {matchedNodes.slice(0, 3).map((match) => (
+                <Text key={match.text} className="matched-item">
                   {getNodeDisplayName(match.text) && (
                     <span className="matched-item-name">
                       {getNodeDisplayName(match.text)}

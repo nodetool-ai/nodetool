@@ -9,6 +9,7 @@ import type {} from "./window";
 import "./prismGlobal";
 
 import React, { Suspense, useEffect, useState } from "react";
+import { PREVIEW_NODE_TYPE } from "./constants/nodeTypes";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "./contexts/WorkflowManagerContext";
 import ReactDOM from "react-dom/client";
@@ -596,7 +597,7 @@ const preloadComfyMetadata = async (): Promise<void> => {
 
     const registeredNodeTypes = metadataStore.nodeTypes;
     const baseNodeComponent =
-      registeredNodeTypes["nodetool.workflows.base_node.Preview"] ||
+      registeredNodeTypes[PREVIEW_NODE_TYPE] ||
       Object.values(registeredNodeTypes)[0];
 
     if (baseNodeComponent) {
@@ -687,7 +688,7 @@ const AppWrapper = () => {
                           fontSize: "0.9rem"
                         }}
                       >
-                        Loading NodeTool...
+                        Loading NodeTool…
                       </span>
                     </div>
                   )}
@@ -712,6 +713,7 @@ const AppWrapper = () => {
                         Error loading application metadata.
                       </span>
                       <button
+                        type="button"
                         onClick={() => window.location.reload()}
                         style={{
                           padding: "8px 16px",
@@ -752,7 +754,7 @@ const AppWrapper = () => {
                                 fontSize: "0.9rem"
                               }}
                             >
-                              Preparing workspace...
+                              Preparing workspace…
                             </span>
                           </div>
                         }

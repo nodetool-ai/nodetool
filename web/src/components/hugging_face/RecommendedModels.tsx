@@ -80,7 +80,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
   }, [cacheStatuses, filteredModels]);
 
   if (!recommendedModels) {
-    return <div>Loading...</div>;
+    return <div>Loading…</div>;
   }
 
   return (

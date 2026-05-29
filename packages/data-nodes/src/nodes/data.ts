@@ -1684,6 +1684,7 @@ export class FilterNoneNode extends BaseNode {
 
 export class DescribeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Describe";
+  static readonly body = "content_card";
   static readonly title = "Describe";
   static readonly description =
     "Compute summary statistics for each numeric column: count, mean, std, min, 25%, 50%, 75%, max.\n    dataframe, statistics, describe, summary, stats, mean, std, min, max, quartile";

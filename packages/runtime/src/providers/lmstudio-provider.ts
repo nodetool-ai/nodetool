@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { OpenAIProvider } from "./openai-provider.js";
+import { LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import type { LanguageModel } from "./types.js";
 
 interface LMStudioProviderOptions {
@@ -29,7 +30,7 @@ export class LMStudioProvider extends OpenAIProvider {
       options.baseURL ??
       secrets.LMSTUDIO_API_URL ??
       process.env["LMSTUDIO_API_URL"] ??
-      "http://127.0.0.1:1234";
+      LMSTUDIO_DEFAULT_URL;
     const baseURL = rawBaseURL.replace(/\/+$/, "");
     const apiKey = secrets.LMSTUDIO_API_KEY ?? "lm-studio";
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);

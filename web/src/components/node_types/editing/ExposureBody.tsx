@@ -23,8 +23,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
-
-const EXPOSURE_NODE_TYPE = "lib.image.color_grading.Exposure";
+import { EXPOSURE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 interface SliderSpec {
   name: string;

@@ -79,6 +79,7 @@ function normalizeOutputFormat(
 
 export class TextTo3DNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.TextTo3D";
+  static readonly body = "content_card";
   static readonly title = "Text To 3D";
   static readonly description =
     "Generate 3D models from text prompts using AI providers (Meshy, Rodin).\n    3d, generation, AI, text-to-3d, t3d, mesh, create\n\n    Use cases:\n    - Create 3D models from text descriptions\n    - Generate game assets from prompts\n    - Prototype 3D concepts quickly\n    - Create 3D content for AR/VR";
@@ -148,6 +149,7 @@ export class TextTo3DNode extends BaseNode {
 
 export class ImageTo3DNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.ImageTo3D";
+  static readonly body = "content_card";
   static readonly title = "Image To 3D";
   static readonly description =
     "Generate 3D models from images using AI providers (Meshy, Rodin).\n    3d, generation, AI, image-to-3d, i3d, mesh, reconstruction\n\n    Use cases:\n    - Convert product photos to 3D models\n    - Create 3D assets from concept art\n    - Generate 3D characters from drawings\n    - Reconstruct objects from images";

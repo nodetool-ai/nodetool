@@ -38,6 +38,7 @@ import CommentNode from "./components/node/CommentNode";
 import SketchNode, {
   SKETCH_NODE_TYPE
 } from "./components/node/SketchNode/SketchNode";
+import { GROUP_NODE_TYPE, COMMENT_NODE_TYPE } from "./constants/nodeTypes";
 import PlaceholderNode from "./components/node_types/PlaceholderNode";
 import CustomEdge from "./components/node_editor/CustomEdge";
 import ControlEdge from "./components/node_editor/ControlEdge";
@@ -137,14 +138,31 @@ function inferMetadata(
 // ─── Workflow parser ─────────────────────────────────────────────
 
 function parseWorkflow(raw: unknown): Workflow {
-  const obj = raw as Record<string, unknown>;
-  const graph = obj.graph as { nodes?: Record<string, unknown>[]; edges?: Record<string, unknown>[] } | undefined | null;
-  const rawNodes = graph?.nodes ?? (obj.nodes as Record<string, unknown>[] | undefined) ?? [];
-  const rawEdges = graph?.edges ?? (obj.edges as Record<string, unknown>[] | undefined) ?? [];
+  const obj = (typeof raw === "object" && raw !== null ? raw : {}) as Record<
+    string,
+    unknown
+  >;
+  const str = (v: unknown, fallback: string): string =>
+    typeof v === "string" && v.length > 0 ? v : fallback;
+
+  const graph = obj.graph as
+    | { nodes?: Record<string, unknown>[]; edges?: Record<string, unknown>[] }
+    | undefined
+    | null;
+  const rawNodes =
+    graph?.nodes ??
+    (Array.isArray(obj.nodes)
+      ? (obj.nodes as Record<string, unknown>[])
+      : []);
+  const rawEdges =
+    graph?.edges ??
+    (Array.isArray(obj.edges)
+      ? (obj.edges as Record<string, unknown>[])
+      : []);
 
   return {
-    id: (obj.id as string) || "inline",
-    name: (obj.name as string) || "Workflow",
+    id: str(obj.id, "inline"),
+    name: str(obj.name, "Workflow"),
     access: "private",
     description: "",
     thumbnail: "",
@@ -155,19 +173,19 @@ function parseWorkflow(raw: unknown): Workflow {
     created_at: new Date().toISOString(),
     graph: {
       nodes: rawNodes.map((n, i) => ({
-        id: (n.id as string) || `node_${i}`,
-        type: (n.type as string) || "default",
+        id: str(n.id, `node_${i}`),
+        type: str(n.type, "default"),
         data: (n.properties ?? n.data ?? {}) as GraphNode["data"],
         ui_properties: (n.ui_properties ?? {}) as GraphNode["ui_properties"],
         dynamic_properties: {},
         dynamic_outputs: {}
       })),
       edges: rawEdges.map((e, i) => ({
-        id: (e.id as string) || `edge_${i}`,
-        source: e.source as string,
-        sourceHandle: (e.sourceHandle as string) || "output",
-        target: e.target as string,
-        targetHandle: (e.targetHandle as string) || "input"
+        id: str(e.id, `edge_${i}`),
+        source: str(e.source, ""),
+        sourceHandle: str(e.sourceHandle, "output"),
+        target: str(e.target, ""),
+        targetHandle: str(e.targetHandle, "input")
       }))
     }
   } as unknown as Workflow;
@@ -241,8 +259,8 @@ function GraphInner({
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
-      "nodetool.workflows.base_node.Group": GroupNode,
-      "nodetool.workflows.base_node.Comment": CommentNode,
+      [GROUP_NODE_TYPE]: GroupNode,
+      [COMMENT_NODE_TYPE]: CommentNode,
       [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
@@ -431,7 +449,7 @@ function App() {
           color: "#64748B"
         }}
       >
-        Loading...
+        Loading…
       </div>
     );
   }
