@@ -13,6 +13,13 @@ on:
           - "false"
           - "true"
 
+# Restrict the default GITHUB_TOKEN to read-only on repository contents.
+# This workflow only checks out code, installs deps, runs tests, and uploads
+# artifacts (artifact upload uses the Actions runtime token, not GITHUB_TOKEN),
+# so no write scopes are required.
+permissions:
+  contents: read
+
 jobs:
   screenshots:
     name: Capture screenshots
