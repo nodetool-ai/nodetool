@@ -25,11 +25,6 @@ jest.mock("../ToolSettingsPanels", () => ({
   }
 }));
 
-jest.mock("../tool-settings-panels/getToolSettingsLabel", () => ({
-  __esModule: true,
-  getToolSettingsLabel: () => "Settings"
-}));
-
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

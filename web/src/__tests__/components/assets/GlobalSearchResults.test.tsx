@@ -27,7 +27,7 @@ jest.mock("../../../hooks/assets/useAssetSelection", () => ({
   })
 }));
 
-jest.mock("../../../config/data_types", () => ({
+jest.mock("../../../config/IconForType", () => ({
   IconForType: () => <div>Icon</div>
 }));
 
