@@ -642,6 +642,16 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     [clipId, selectClip, addToSelection, toggleSelection]
   );
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.stopPropagation();
+        selectClip(clipId);
+      }
+    },
+    [clipId, selectClip]
+  );
+
   // ── Trim start ──────────────────────────────────────────────────────────
 
   const trimStartRef = useRef({ startX: 0, startMs: 0 });
@@ -746,6 +756,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       statusInfo={statusInfo}
       handleDragPointerDown={handleDragPointerDown}
       handleClick={handleClick}
+      handleKeyDown={handleKeyDown}
       handleTrimStartPointerDown={handleTrimStartPointerDown}
       handleTrimStartPointerMove={handleTrimStartPointerMove}
       handleTrimEndPointerDown={handleTrimEndPointerDown}
