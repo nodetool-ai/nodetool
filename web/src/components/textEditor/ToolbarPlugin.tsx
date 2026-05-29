@@ -15,7 +15,7 @@ import {
 } from "@lexical/utils";
 import { $patchStyleText } from "@lexical/selection";
 import { copyAsMarkdown } from "./exportMarkdown";
-import { INSERT_HORIZONTAL_RULE_COMMAND } from "./HorizontalRulePlugin";
+import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
 
 const toolbarStyles = css`
   display: flex;

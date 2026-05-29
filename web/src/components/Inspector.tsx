@@ -35,7 +35,8 @@ import { useExposedInputToggle } from "../hooks/nodes/useExposedInputToggle";
 import usePropertyValidationStore from "../stores/PropertyValidationStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
-import { IconForType, colorForType } from "../config/data_types";
+import { colorForType } from "../config/data_types";
+import { IconForType } from "../config/IconForType";
 
 const styles = (theme: Theme) =>
   css({

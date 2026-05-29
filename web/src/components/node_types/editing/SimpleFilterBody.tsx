@@ -36,11 +36,6 @@ import {
 } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
 
-export const SIMPLE_FILTER_NODE_TYPES = [
-  "lib.image.filter.Invert",
-  "lib.image.filter.ConvertToGrayscale"
-] as const;
-
 type SimpleFilterTab = "before" | "after";
 
 const styles = (theme: Theme) =>

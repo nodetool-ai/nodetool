@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import { Chip, Text, ToolbarIconButton, Box } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { IconForType } from "../../../config/data_types";
+import { IconForType } from "../../../config/IconForType";
 import { prettifyModelType } from "../../../utils/modelFormatting";
 import { useModels } from "./useModels";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";

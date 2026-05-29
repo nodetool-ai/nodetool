@@ -44,11 +44,13 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
-  InspectorToggleRow,
+  InspectorToggleRow
+} from "./InspectorPrimitives";
+import {
   formatTimecode,
   parseSeconds,
   parseTimecode
-} from "./InspectorPrimitives";
+} from "./InspectorPrimitives.helpers";
 import { ClipActions } from "./ClipActions";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";

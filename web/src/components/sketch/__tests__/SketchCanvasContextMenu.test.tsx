@@ -22,8 +22,7 @@ jest.mock("../ToolSettingsPanels", () => ({
   __esModule: true,
   ToolSettingsPanel: function MockToolSettingsPanel() {
     return null;
-  },
-  getToolSettingsLabel: () => "Settings"
+  }
 }));
 
 import React from "react";

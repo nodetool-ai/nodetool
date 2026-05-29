@@ -25,7 +25,7 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 import LoginIcon from "@mui/icons-material/Login";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import HubIcon from "@mui/icons-material/Hub";
-import { IconForType } from "./data_types";
+import { IconForType } from "./IconForType";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
 import {

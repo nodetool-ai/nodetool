@@ -7,11 +7,10 @@
  */
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import SketchCanvasPresentation, {
-  cursorStyleForTool,
-  canvasTransformStyle
-} from "../SketchCanvasPresentation";
+import SketchCanvasPresentation from "../SketchCanvasPresentation";
 import type { SketchCanvasPresentationProps } from "../SketchCanvasPresentation";
+import { cursorStyleForTool } from "../sketchCursorStyle";
+import { canvasTransformStyle } from "../sketchCanvasPresentation.helpers";
 import { TransformTool } from "../tools/TransformTool";
 
 // Mock MUI ThemeProvider — SketchCanvasPresentation uses useTheme.

@@ -43,7 +43,7 @@ jest.mock("../../../contexts/NodeContext", () => ({
   )
 }));
 
-jest.mock("../../../config/data_types", () => ({
+jest.mock("../../../config/IconForType", () => ({
   IconForType: () => null
 }));
 

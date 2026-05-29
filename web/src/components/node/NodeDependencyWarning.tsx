@@ -6,31 +6,12 @@ import type { Theme } from "@mui/material/styles";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "fast-deep-equal";
 import { getIsElectronDetails } from "../../utils/browser";
-
-export const RUNTIME_LABELS: Record<string, string> = {
-  ffmpeg: "FFmpeg & Codecs",
-  python: "Python",
-  nodejs: "Node.js",
-  bash: "Bash",
-  ruby: "Ruby",
-  lua: "Lua",
-  "yt-dlp": "yt-dlp",
-  pandoc: "Pandoc",
-  pdftotext: "PDF Tools (Poppler)",
-};
-
-/** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
-export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
-  python: "python",
-  nodejs: "nodejs",
-  bash: "bash",
-  ruby: "ruby",
-  lua: "lua",
-  ffmpeg: "ffmpeg",
-  pandoc: "pandoc",
-  pdftotext: "pdftotext",
-  "yt-dlp": "yt-dlp",
-};
+import {
+  RUNTIME_LABELS,
+  RUNTIME_TO_PACKAGE_ID,
+  ensureRuntimeStatuses,
+  getCachedRuntimeStatuses
+} from "./NodeDependencyWarning.helpers";
 
 const warningStyles = (theme: Theme) =>
   css({
@@ -98,33 +79,6 @@ interface NodeDependencyWarningProps {
   requiredRuntimes: string[];
 }
 
-/**
- * Cache runtime statuses across all instances so we don't call IPC per-node.
- * Refreshed once per mount cycle (first component to mount triggers the fetch).
- */
-let cachedStatuses: Record<string, boolean> | null = null;
-let fetchPromise: Promise<void> | null = null;
-
-export async function refreshRuntimeStatuses(): Promise<void> {
-  const api = window.api;
-  if (!api?.packages?.getRuntimeStatuses) {return;}
-  try {
-    const statuses: Array<{ id: string; installed: boolean }> =
-      await api.packages.getRuntimeStatuses();
-    const map: Record<string, boolean> = {};
-    for (const s of statuses) {
-      map[s.id] = s.installed;
-    }
-    cachedStatuses = map;
-  } catch {
-    // If IPC fails, assume nothing is installed so warnings stay visible.
-  }
-}
-
-export function getCachedRuntimeStatuses(): Record<string, boolean> | null {
-  return cachedStatuses;
-}
-
 const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   requiredRuntimes,
 }) => {
@@ -142,18 +96,12 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
     }
 
     // Only refresh statuses when cache is empty or explicitly forced.
-    if (!cachedStatuses || forceRefresh) {
-      if (!fetchPromise) {
-        fetchPromise = refreshRuntimeStatuses().finally(() => {
-          fetchPromise = null;
-        });
-      }
-      await fetchPromise;
-    }
+    await ensureRuntimeStatuses(forceRefresh);
 
+    const statuses = getCachedRuntimeStatuses();
     const missing = requiredRuntimes.filter((rt) => {
       const pkgId = RUNTIME_TO_PACKAGE_ID[rt] ?? rt;
-      return cachedStatuses ? !cachedStatuses[pkgId] : true;
+      return statuses ? !statuses[pkgId] : true;
     });
     setMissingRuntimes(missing);
     setLoading(false);

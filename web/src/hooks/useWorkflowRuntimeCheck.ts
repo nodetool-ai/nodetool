@@ -12,7 +12,7 @@ import {
   getCachedRuntimeStatuses,
   RUNTIME_TO_PACKAGE_ID,
   RUNTIME_LABELS,
-} from "../components/node/NodeDependencyWarning";
+} from "../components/node/NodeDependencyWarning.helpers";
 import { useNotificationStore } from "../stores/NotificationStore";
 
 export function useWorkflowRuntimeCheck(workflowId: string | null): void {

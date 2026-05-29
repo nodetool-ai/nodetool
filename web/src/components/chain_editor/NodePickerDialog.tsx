@@ -22,7 +22,7 @@ import { computeSearchResults } from "../../utils/nodeSearch";
 import {
   QUICK_ACTION_BUTTONS,
   type QuickActionDefinition,
-} from "../node_menu/QuickActionTiles";
+} from "../node_menu/QuickActionTiles.constants";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 
 interface NodePickerDialogProps {
