@@ -51,17 +51,14 @@ import {
   settingRowChildrenSx
 } from "./sketchStyles";
 import { displayCombo } from "./shortcuts";
-import {
-  Caption,
-  Divider,
-  FlexColumn,
-  FlexRow,
-  TabGroup,
-  TabPanel,
-  Text,
-  Tooltip,
-  Box
-} from "../ui_primitives";
+import { Caption } from "../ui_primitives/Caption";
+import { Divider } from "../ui_primitives/Divider";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { TabGroup, TabPanel } from "../ui_primitives/TabGroup";
+import { Text } from "../ui_primitives/Text";
+import { Tooltip } from "../ui_primitives/Tooltip";
+import { Box } from "../ui_primitives/Box";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
   return tool === "brush" || tool === "pencil" || tool === "eraser";

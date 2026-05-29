@@ -755,7 +755,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         <span className="property-reset-anchor">
           <div
             className={`reset-button${isChanged ? " is-active" : ""}`}
+            role={isChanged ? "button" : undefined}
+            tabIndex={isChanged ? 0 : undefined}
             onClick={isChanged ? handleResetToDefault : undefined}
+            onKeyDown={isChanged ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleResetToDefault(); } } : undefined}
             aria-hidden={!isChanged}
           >
             <SettingsBackupRestoreIcon />

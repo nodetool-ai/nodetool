@@ -340,6 +340,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           <Box className="search-input-wrapper">
             <input
               ref={inputRef}
+              aria-label="Find nodes"
               className="search-input"
               type="text"
               placeholder="Find nodes..."

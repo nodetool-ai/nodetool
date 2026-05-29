@@ -22,7 +22,9 @@ import {
   IconButton,
   Tooltip
 } from "@mui/material";
-import { FlexColumn, FlexRow, Box } from "../ui_primitives";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Box } from "../ui_primitives/Box";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   ColorMode,

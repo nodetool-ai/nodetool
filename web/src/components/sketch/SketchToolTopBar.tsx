@@ -11,7 +11,7 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { FlexRow } from "../ui_primitives";
+import { FlexRow } from "../ui_primitives/FlexRow";
 import {
   SketchTool,
   BrushSettings,

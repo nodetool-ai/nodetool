@@ -369,10 +369,13 @@ const FavoritesTiles = memo(function FavoritesTiles({
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleTileClick}
-                onKeyDown={(e) => {
+                onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    handleTileClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+                    const nodeTypeKey = e.currentTarget.dataset.nodeType;
+                    if (!nodeTypeKey) return;
+                    const meta = getMetadata(nodeTypeKey);
+                    if (meta) requestCreate(meta);
                   }
                 }}
                 onMouseEnter={handleTileMouseEnter}

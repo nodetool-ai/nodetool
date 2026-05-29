@@ -21,14 +21,12 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import {
-  Caption,
-  EditorButton,
-  EmptyState,
-  FlexColumn,
-  FlexRow,
-  LoadingSpinner
-} from "../ui_primitives";
+import { Caption } from "../ui_primitives/Caption";
+import { EmptyState } from "../ui_primitives/EmptyState";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
+import { EditorButton } from "../ui_primitives";
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";

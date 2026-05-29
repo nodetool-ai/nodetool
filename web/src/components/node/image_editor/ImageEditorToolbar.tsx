@@ -699,6 +699,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <div className="color-picker-row">
               <input
                 type="color"
+                aria-label="Stroke color picker"
                 value={shapeSettings.strokeColor}
                 onChange={(e) => onShapeSettingsChange({ strokeColor: e.target.value })}
                 className="color-preview"
@@ -706,6 +707,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               />
               <input
                 type="text"
+                aria-label="Stroke color hex value"
                 value={shapeSettings.strokeColor}
                 onChange={(e) => onShapeSettingsChange({ strokeColor: e.target.value })}
                 className="color-input"
@@ -754,6 +756,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 </Caption>
                 <input
                   type="color"
+                  aria-label="Shape fill color picker"
                   value={shapeSettings.fillColor}
                   onChange={(e) => onShapeSettingsChange({ fillColor: e.target.value })}
                   className="color-preview"
@@ -772,6 +775,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
             <div className="color-picker-row">
               <input
                 type="color"
+                aria-label="Text color picker"
                 value={textSettings.color}
                 onChange={(e) => onTextSettingsChange({ color: e.target.value })}
                 className="color-preview"
@@ -779,6 +783,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               />
               <input
                 type="text"
+                aria-label="Text color hex value"
                 value={textSettings.color}
                 onChange={(e) => onTextSettingsChange({ color: e.target.value })}
                 className="color-input"

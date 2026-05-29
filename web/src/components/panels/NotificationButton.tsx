@@ -8,7 +8,12 @@ import {
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box } from "../ui_primitives";
+import { CopyButton } from "../ui_primitives/CopyButton";
+import { Text } from "../ui_primitives/Text";
+import { Caption } from "../ui_primitives/Caption";
+import { NotificationBadge } from "../ui_primitives/NotificationBadge";
+import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
+import { Box } from "../ui_primitives/Box";
 import { useShallow } from "zustand/react/shallow";
 
 const popoverStyles = css({

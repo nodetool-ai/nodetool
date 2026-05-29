@@ -239,12 +239,12 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
         </div>
         {ollamaStatus === "checking" && (
           <div className="portal-setup-ollama-status">
-            Checking if Ollama is running...
+            Checking if Ollama is running…
           </div>
         )}
         {ollamaStatus === "running" && (
           <div className="portal-setup-ollama-status" style={{ color: "#4caf50" }}>
-            ✓ Ollama is running. Connecting...
+            ✓ Ollama is running. Connecting…
           </div>
         )}
         {ollamaStatus === "not-running" && (

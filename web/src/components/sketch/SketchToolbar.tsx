@@ -15,7 +15,9 @@ import {
   ToggleButtonGroup,
   ToggleButton
 } from "@mui/material";
-import { Divider, FlexColumn, Tooltip } from "../ui_primitives";
+import { Divider } from "../ui_primitives/Divider";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { Tooltip } from "../ui_primitives/Tooltip";
 import type { SelectToolMode, SketchTool } from "./types";
 import {
   getToolShortcutActionId,

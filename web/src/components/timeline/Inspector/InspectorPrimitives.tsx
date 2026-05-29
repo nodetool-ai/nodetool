@@ -21,7 +21,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Switch from "@mui/material/Switch";
 
-import { Tooltip } from "../../ui_primitives";
+import { Tooltip } from "../../ui_primitives/Tooltip";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 

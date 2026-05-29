@@ -35,7 +35,7 @@ const PDFViewerLoadingFallback: React.FC = () => (
   >
     <LoadingSpinner size="medium" />
     <Text size="small" color="secondary">
-      Loading PDF viewer...
+      Loading PDF viewer…
     </Text>
   </FlexColumn>
 );

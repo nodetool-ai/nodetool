@@ -22,7 +22,12 @@ import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
 import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
-import { FlexColumn, FlexRow, StatusIndicator, Text, Tooltip, Box } from "../ui_primitives";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { StatusIndicator } from "../ui_primitives/StatusIndicator";
+import { Text } from "../ui_primitives/Text";
+import { Tooltip } from "../ui_primitives/Tooltip";
+import { Box } from "../ui_primitives/Box";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
 

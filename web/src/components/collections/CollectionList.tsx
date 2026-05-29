@@ -149,7 +149,7 @@ const CollectionList = () => {
             </Text>
           )}
           {isLoading ? (
-            <Text sx={{ mt: 2 }}>Loading collections...</Text>
+            <Text sx={{ mt: 2 }}>Loading collections…</Text>
           ) : !collections?.collections.length ? (
             <EmptyCollectionState />
           ) : (

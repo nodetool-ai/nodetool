@@ -23,7 +23,9 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import AssetGrid from "../assets/AssetGrid";
 import ContextMenus from "../context_menus/ContextMenus";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
-import { FlexColumn, Text, Tooltip } from "../ui_primitives";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { Text } from "../ui_primitives/Text";
+import { Tooltip } from "../ui_primitives/Tooltip";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 
 const ASSET_PANEL_RAIL_WIDTH_PX = 28;

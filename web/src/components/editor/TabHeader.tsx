@@ -225,6 +225,7 @@ const TabHeader = ({
         {isEditing ? (
           <input
             type="text"
+            aria-label="Workflow name"
             defaultValue={workflow.name}
             autoFocus
             onFocus={handleInputFocus}

@@ -38,15 +38,13 @@ import type {
 import type { AgentProvider, AgentModelDescriptor } from "../../stores/AgentStore";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
-import {
-  Text,
-  Caption,
-  Tooltip,
-  SelectField,
-  FlexRow,
-  Dialog,
-  LoadingSpinner
-} from "../ui_primitives";
+import { Text } from "../ui_primitives/Text";
+import { Caption } from "../ui_primitives/Caption";
+import { Tooltip } from "../ui_primitives/Tooltip";
+import { SelectField } from "../ui_primitives/SelectField";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Dialog } from "../ui_primitives/Dialog";
+import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
 
 const PROVIDER_LABELS: Record<AgentProvider, string> = {
   pi: "Pi",

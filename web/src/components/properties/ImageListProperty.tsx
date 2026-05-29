@@ -488,7 +488,7 @@ const ImageListProperty = (props: PropertyProps) => {
                     }
                   }}
                   src={image.uri}
-                  alt={`Image ${index + 1}`}
+                  alt={`Item ${index + 1}`}
                   draggable={false}
                   onLoad={loadHandlers[image.uri]}
                 />

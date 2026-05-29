@@ -20,7 +20,9 @@ import {
 import CheckIcon from "@mui/icons-material/Check";
 import { CANVAS_PRESETS } from "./types";
 import { SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
-import { FlexColumn, FlexRow, StateIconButton } from "../ui_primitives";
+import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { StateIconButton } from "../ui_primitives/StateIconButton";
 
 function cycleArrayValue<T>(
   values: readonly T[],

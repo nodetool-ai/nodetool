@@ -1031,6 +1031,7 @@ const TextEditorModal = ({
                     }
                   >
                     <button
+                      type="button"
                       className="button"
                       onClick={handleToggleEditorMode}
                       aria-label={isCodeEditor ? "Switch to Rich Text" : "Switch to Code Editor"}
@@ -1046,6 +1047,7 @@ const TextEditorModal = ({
                   title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
                 >
                   <button
+                    type="button"
                     className="button"
                     onClick={toggleAssistantVisible}
                     aria-label={assistantVisible ? "Hide Assistant" : "Show Assistant"}
@@ -1059,6 +1061,7 @@ const TextEditorModal = ({
                 </Tooltip>
                 <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Download">
                   <button
+                    type="button"
                     className="button"
                     onClick={handleDownload}
                     aria-label="Download"
@@ -1071,6 +1074,7 @@ const TextEditorModal = ({
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   <button
+                    type="button"
                     className="button"
                     onClick={toggleFullscreen}
                     aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
@@ -1083,6 +1087,7 @@ const TextEditorModal = ({
                   title="Close Editor | Esc"
                 >
                   <button
+                    type="button"
                     className="button button-close"
                     onClick={onClose}
                     aria-label="Close Editor"

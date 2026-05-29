@@ -700,7 +700,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               <LoadingSpinner size={compact ? "small" : "medium"} />
               {!compact && (
                 <Text size="small" color="secondary">
-                  Loading model...
+                  Loading model…
                 </Text>
               )}
             </FlexColumn>
