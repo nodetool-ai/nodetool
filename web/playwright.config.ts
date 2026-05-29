@@ -64,7 +64,19 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        viewport: { width: 1920, height: 1080 }
+        viewport: { width: 1920, height: 1080 },
+        // Enable WebGPU via SwiftShader software renderer so the Sketch editor
+        // canvas initialises correctly in headless / CI environments that have
+        // no physical GPU.  SwiftShader is bundled with Chromium so no extra
+        // system packages are required.
+        launchOptions: {
+          args: [
+            "--enable-features=Vulkan,UseSkiaRenderer",
+            "--use-gl=angle",
+            "--use-angle=swiftshader",
+            "--enable-webgpu-developer-features"
+          ]
+        }
       }
     }
   ],
