@@ -84,22 +84,25 @@ export async function runInlineGraphJob(
     finish({ success: false, outputs, error: "Aborted" });
   };
 
+  const str = (v: unknown): string | undefined =>
+    typeof v === "string" ? v : undefined;
+
   const handler = (message: Record<string, unknown>): void => {
-    const msgWorkflow = message.workflow_id as string | null | undefined;
-    const msgJob = message.job_id as string | null | undefined;
+    const msgWorkflow = str(message.workflow_id);
+    const msgJob = str(message.job_id);
 
     if (msgWorkflow != null && msgWorkflow !== workflowId) {
       return;
     }
-    if (typeof msgJob === "string" && msgJob.length > 0 && msgJob !== jobId) {
+    if (msgJob != null && msgJob.length > 0 && msgJob !== jobId) {
       return;
     }
 
-    const type = message.type as string | undefined;
+    const type = str(message.type);
 
     if (type === "node_update") {
-      const status = message.status as string | undefined;
-      const nodeId = message.node_id as string | undefined;
+      const status = str(message.status);
+      const nodeId = str(message.node_id);
       const resultPayload = message.result;
 
       if (status === "completed" && nodeId != null) {
@@ -109,11 +112,12 @@ export async function runInlineGraphJob(
           outputs[nodeId] = resultPayload;
         }
       } else if (status === "error") {
-        const errMsg =
-          typeof message.error === "string" && message.error.length > 0
-            ? message.error
-            : "Node error";
-        finish({ success: false, outputs, error: errMsg });
+        const errMsg = str(message.error);
+        finish({
+          success: false,
+          outputs,
+          error: errMsg && errMsg.length > 0 ? errMsg : "Node error"
+        });
       }
       return;
     }
@@ -122,33 +126,38 @@ export async function runInlineGraphJob(
       return;
     }
 
-    const status = message.status as string | undefined;
-    const resultField = message.result as
-      | { outputs?: Record<string, unknown> }
-      | null
-      | undefined;
+    const status = str(message.status);
+    const resultField = message.result;
 
-    if (resultField != null && resultField.outputs != null) {
-      mergeOutputsRecord(outputs, resultField.outputs);
+    if (
+      resultField != null &&
+      typeof resultField === "object" &&
+      "outputs" in resultField &&
+      resultField.outputs != null &&
+      typeof resultField.outputs === "object"
+    ) {
+      mergeOutputsRecord(
+        outputs,
+        resultField.outputs as Record<string, unknown>
+      );
     }
 
     if (status === "failed") {
-      const errMsg =
-        typeof message.error === "string" && message.error.length > 0
-          ? message.error
-          : "Job failed";
-      finish({ success: false, outputs, error: errMsg });
+      const errMsg = str(message.error);
+      finish({
+        success: false,
+        outputs,
+        error: errMsg && errMsg.length > 0 ? errMsg : "Job failed"
+      });
       return;
     }
 
     if (status === "cancelled") {
+      const cancelMsg = str(message.message);
       finish({
         success: false,
         outputs,
-        error:
-          typeof message.message === "string" && message.message.length > 0
-            ? message.message
-            : "Cancelled"
+        error: cancelMsg && cancelMsg.length > 0 ? cancelMsg : "Cancelled"
       });
       return;
     }
