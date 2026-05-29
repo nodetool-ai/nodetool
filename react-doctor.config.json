@@ -1,5 +1,6 @@
 {
   "rules": {
-    "react-doctor/no-unknown-property": "off"
+    "react-doctor/no-unknown-property": "off",
+    "react-doctor/query-mutation-missing-invalidation": "off"
   }
 }
