@@ -184,20 +184,27 @@ combination may appear anywhere in the app.** This is enforced through the
 design tokens and the typography primitives — never write a raw `fontSize` /
 `fontWeight` that lands outside the table below.
 
-- **Allowed sizes** — sans: `18 / 15 / 13 / 11px` · mono: `13 / 12 / 11px`
+**Every font size is driven by a theme CSS variable.** The four sizes are
+defined ONCE, in `ThemeNodetool` (`fontSizeBig/Normal/Small/Smaller`), and
+referenced everywhere as `var(--fontSize*)`. Never hardcode a px/rem font size
+in a component, sx block, or CSS file — change the size in the theme and it
+propagates.
+
+- **Allowed sizes** — `var(--fontSizeBig)` 18 · `var(--fontSizeNormal)` 15 ·
+  `var(--fontSizeSmall)` 13 · `var(--fontSizeSmaller)` 11
 - **Allowed weights** — `400` (normal) · `500` (medium) · `600` (semibold).
   `200`, `300`, `700`, `800`, `bold`, `lighter` are forbidden.
 
-| Class | Role | Size | Weight | Use |
+| Class | Role | Var (px) | Weight | Use |
 |---|---|---|---|---|
-| **Sans** (`Inter`) | `title` | 18px | 600 | headings (h1–h3), dialog/section titles |
-| | `body` | 15px | 400 | default body text, paragraphs |
-| | `label` | 13px | 500 | form labels, buttons, controls, h4–h6, secondary text |
-| | `caption` | 11px | 400 | hints, metadata, badges |
-| **Mono** (`JetBrains Mono`) | `code` | 13px | 400 | code, values, editor text |
-| | `strong` | 13px | 600 | emphasized mono |
-| | `label` | 12px | 500 | mono keys / labels |
-| | `caption` | 11px | 400 | small mono, mono tooltips |
+| **Sans** (`Inter`) | `title` | `--fontSizeBig` (18) | 600 | headings (h1–h3), dialog/section titles |
+| | `body` | `--fontSizeNormal` (15) | 400 | default body text, paragraphs |
+| | `label` | `--fontSizeSmall` (13) | 500 | form labels, buttons, controls, h4–h6, secondary text |
+| | `caption` | `--fontSizeSmaller` (11) | 400 | hints, metadata, badges |
+| **Mono** (`JetBrains Mono`) | `code` | `--fontSizeSmall` (13) | 400 | code, values, editor text |
+| | `strong` | `--fontSizeSmall` (13) | 600 | emphasized mono |
+| | `label` | `--fontSizeSmall` (13) | 500 | mono keys / labels |
+| | `caption` | `--fontSizeSmaller` (11) | 400 | small mono, mono tooltips |
 
 ```tsx
 import { Text, Caption, Label } from "../ui_primitives";
@@ -215,7 +222,8 @@ import { TYPOGRAPHY } from "../ui_primitives";
 ```
 
 **Forbidden:**
-- `fontSize: "0.85rem"`, `fontSize: "14px"`, `fontSize: "20px"` — only `11/12/13/15/18px` exist.
+- Any hardcoded px/rem font size (`"0.85rem"`, `"14px"`, `"20px"`, even `"13px"`)
+  — reference `var(--fontSize*)` instead.
 - `fontWeight: 700`, `fontWeight: "bold"`, `fontWeight: 300` — only `400/500/600`.
 - Mixing a size with a weight that isn't its sanctioned pair (e.g. `15px / 600`).
 

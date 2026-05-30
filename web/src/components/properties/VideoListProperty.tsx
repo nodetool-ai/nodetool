@@ -83,7 +83,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".remove-button .MuiSvgIcon-root": {
-      fontSize: "15px"
+      fontSize: "var(--fontSizeNormal)"
     },
     ".dropzone": {
       position: "relative",
@@ -116,7 +116,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       textTransform: "uppercase",
       letterSpacing: "1px",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       margin: "1em",
       lineHeight: "1.1em"

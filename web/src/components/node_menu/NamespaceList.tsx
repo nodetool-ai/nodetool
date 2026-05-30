@@ -219,7 +219,7 @@ const namespaceStyles = (theme: Theme) =>
           backgroundColor: "transparent"
         },
         "& .MuiTypography-root": {
-          fontSize: "15px",
+          fontSize: "var(--fontSizeNormal)",
           fontWeight: 500,
           lineHeight: 1.2,
           color: theme.vars.palette.text.primary
@@ -246,7 +246,7 @@ const namespaceStyles = (theme: Theme) =>
     ".namespace-text": {
       color: "var(--palette-grey-500)",
       fontWeight: 400,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.15,
       padding: "0.4em 0 0 0",
       margin: "0.5em 0 0 0",
@@ -413,7 +413,7 @@ const InfoBox = memo(function InfoBox({
 
   return (
     <Box className="info-box">
-      <Text className="result-info" sx={{ fontSize: "13px" }}>
+      <Text className="result-info" sx={{ fontSize: "var(--fontSizeSmall)" }}>
         {buildContextMessage()}
       </Text>
     </Box>

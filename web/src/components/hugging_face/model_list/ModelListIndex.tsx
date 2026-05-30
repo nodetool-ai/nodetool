@@ -78,7 +78,7 @@ const styles = (theme: Theme) =>
     },
     ".model-list-header button": {
       padding: ".4em 1em",
-      fontSize: "15px"
+      fontSize: "var(--fontSizeNormal)"
     },
     "& .model-type-button": {
       padding: "0.25em 1em",

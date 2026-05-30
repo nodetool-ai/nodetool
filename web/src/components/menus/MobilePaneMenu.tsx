@@ -56,16 +56,16 @@ const styles = (theme: Theme) =>
     },
     ".menu-item-text": {
       "& .MuiListItemText-primary": {
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 500
       },
       "& .MuiListItemText-secondary": {
-        fontSize: "13px",
+        fontSize: "var(--fontSizeSmall)",
         opacity: 0.7
       }
     },
     ".menu-section-title": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       textTransform: "uppercase",
       letterSpacing: "0.05em",

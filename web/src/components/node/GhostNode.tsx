@@ -48,7 +48,7 @@ const GhostNode = memo(function GhostNode({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: "18px",
+        fontSize: "var(--fontSizeBig)",
         fontWeight: 500,
         backdropFilter: "blur(10px)",
         color: theme.accentColor
@@ -58,12 +58,12 @@ const GhostNode = memo(function GhostNode({
         borderRadius: "var(--rounded-xl)",
         background: theme.labelBackground,
         boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
-        fontSize: "13px",
+        fontSize: "var(--fontSizeSmall)",
         fontWeight: 600,
         letterSpacing: "0.02em"
       },
       hint: {
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         fontWeight: 500,
         letterSpacing: "0.04em",
         color: theme.hintColor

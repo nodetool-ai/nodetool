@@ -128,7 +128,7 @@ const placeholderStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       marginBottom: "2px",
       "& svg": {
-        fontSize: "18px",
+        fontSize: "var(--fontSizeBig)",
         color: theme.vars.palette.primary.light,
         opacity: 0.9
       }
@@ -754,7 +754,7 @@ const AgentPanel: React.FC = () => {
               aria-label="Resume session"
               sx={toolbarButtonSx}
             >
-              <ReplayIcon sx={{ fontSize: "15px" }} />
+              <ReplayIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
               <span>Resume</span>
             </EditorButton>
           </span>
@@ -768,7 +768,7 @@ const AgentPanel: React.FC = () => {
               aria-label="New session"
               sx={toolbarButtonSx}
             >
-              <AddIcon sx={{ fontSize: "15px" }} />
+              <AddIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
               <span>New</span>
             </EditorButton>
           </span>

@@ -31,9 +31,11 @@ const ThemeNodetool = createTheme({
     }
   },
   // Canonical sans type scale — only four sizes exist (18 / 15 / 13 / 11px).
-  // Legacy token names are kept so existing references keep working, but they
-  // now snap onto one of the four sanctioned sizes. See ui_primitives/tokens.ts
-  // (TYPOGRAPHY) for the size+weight combinations.
+  // These eight fields are the SINGLE SOURCE OF TRUTH: MUI emits them as the
+  // `--fontSize*` CSS custom properties that the rest of the app references via
+  // `var(--fontSize*)`. Legacy names collapse onto the four sizes. Change a size
+  // HERE and it propagates everywhere. See ui_primitives/tokens.ts (TYPOGRAPHY)
+  // for the size+weight combinations.
   fontSizeGiant: "18px", // → title
   fontSizeBigger: "18px", // → title
   fontSizeBig: "18px", // → title

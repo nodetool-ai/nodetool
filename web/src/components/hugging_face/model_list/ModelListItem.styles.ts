@@ -31,12 +31,12 @@ const modelListItemStyles = (theme: Theme) =>
         },
         "& .model-name": {
           WebkitLineClamp: 1,
-          fontSize: "15px",
+          fontSize: "var(--fontSizeNormal)",
           wordBreak: "normal",
           overflowWrap: "anywhere"
         },
         "& .model-owner": {
-          fontSize: "13px"
+          fontSize: "var(--fontSizeSmall)"
         },
         "& .actions-container": {
           minWidth: 0,
@@ -121,7 +121,7 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-owner": {
         color: theme.vars.palette.text.secondary,
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         marginRight: 0,
         marginBottom: ".15em",
         opacity: 0.8,
@@ -134,7 +134,7 @@ const modelListItemStyles = (theme: Theme) =>
         WebkitBoxOrient: "vertical",
         overflow: "hidden",
         textOverflow: "ellipsis",
-        fontSize: "18px",
+        fontSize: "var(--fontSizeBig)",
         fontWeight: 600,
         wordBreak: "break-word",
         letterSpacing: "-0.01em"
@@ -142,7 +142,7 @@ const modelListItemStyles = (theme: Theme) =>
       "& .model-path": {
         display: "block",
         color: theme.vars.palette.text.secondary,
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         marginTop: "0.25em"
       },
       "& .model-details": {
@@ -164,12 +164,12 @@ const modelListItemStyles = (theme: Theme) =>
 
       "& .model-info": {
         color: theme.vars.palette.text.secondary,
-        fontSize: "15px"
+        fontSize: "var(--fontSizeNormal)"
       },
       "& .pipeline-tag": {
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.secondary,
-        fontSize: "13px",
+        fontSize: "var(--fontSizeSmall)",
         fontWeight: 500,
         marginLeft: "0.5em",
         padding: ".3em .8em",

@@ -83,7 +83,7 @@ const styles = (theme: Theme) =>
       border: "none",
       outline: "none",
       background: "transparent",
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.primary,
       "&::placeholder": {
         color: theme.vars.palette.text.secondary,
@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
     },
     ".helper-text": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       marginTop: theme.spacing(0.5),
     },

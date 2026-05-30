@@ -186,7 +186,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
             borderRadius: 1,
             px: 0.5,
             gap: 0.5,
-            fontSize: "13px",
+            fontSize: "var(--fontSizeSmall)",
             color: typeFilterActive
               ? "var(--palette-primary-main)"
               : undefined
@@ -213,7 +213,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
             borderRadius: 1,
             px: 0.5,
             gap: 0.5,
-            fontSize: "13px",
+            fontSize: "var(--fontSizeSmall)",
             color: workflowFilter
               ? "var(--palette-primary-main)"
               : undefined

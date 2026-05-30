@@ -1038,7 +1038,7 @@ const InputContextMenu: React.FC = () => {
             ".node-button": { padding: 0 },
             ".icon-bg": { padding: 0, width: "16px", height: "16px" },
             ".icon-bg svg": {
-              fontSize: "13px",
+              fontSize: "var(--fontSizeSmall)",
               width: "12px",
               height: "12px"
             }

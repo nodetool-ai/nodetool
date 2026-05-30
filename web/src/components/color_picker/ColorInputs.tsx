@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
       "& .MuiInputBase-root": {
         backgroundColor: theme.vars.palette.grey[900],
         borderRadius: "var(--rounded-sm)",
-        fontSize: "13px"
+        fontSize: "var(--fontSizeSmall)"
       },
       "& .MuiInputBase-input": {
         padding: "8px",
@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
         marginRight: 0
       },
       "& .MuiTypography-root": {
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         color: theme.vars.palette.grey[500]
       }
     },

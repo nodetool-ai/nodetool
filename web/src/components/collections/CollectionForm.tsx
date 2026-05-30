@@ -65,10 +65,10 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(0.5),
       color: theme.vars.palette.text.secondary,
       fontWeight: 500,
-      fontSize: "13px"
+      fontSize: "var(--fontSizeSmall)"
     },
     ".field-icon": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       opacity: 0.7
     },
     ".text-input": {
@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".helper-text": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.4,
       opacity: 0.8
@@ -218,7 +218,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
             createMutation.isPending ? (
               <LoadingSpinner size="small" color="inherit" />
             ) : (
-              <AddCircleOutlineIcon sx={{ fontSize: "18px" }} />
+              <AddCircleOutlineIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             )
           }
         >

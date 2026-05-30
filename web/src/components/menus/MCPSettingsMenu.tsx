@@ -158,14 +158,14 @@ const MCPSettingsMenu = () => {
                         <CheckCircleIcon
                           sx={{
                             color: theme.palette.success.main,
-                            fontSize: "18px"
+                            fontSize: "var(--fontSizeBig)"
                           }}
                         />
                       ) : (
                         <CancelIcon
                           sx={{
                             color: theme.palette.text.disabled,
-                            fontSize: "18px"
+                            fontSize: "var(--fontSizeBig)"
                           }}
                         />
                       )}

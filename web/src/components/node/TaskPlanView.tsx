@@ -13,7 +13,7 @@ const cssStyles = css({
   ".task-list-title": {
     margin: "1rem 1rem",
     fontWeight: 600,
-    fontSize: "15px"
+    fontSize: "var(--fontSizeNormal)"
   }
 });
 

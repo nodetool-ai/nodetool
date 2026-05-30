@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.08)`,
       border: `1px solid rgba(${theme.vars.palette.warning.mainChannel} / 0.15)`,
       "svg": {
-        fontSize: "11px"
+        fontSize: "var(--fontSizeSmaller)"
       }
     }
   });

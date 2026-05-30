@@ -236,7 +236,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           height: 20
         },
         ".inspector-header-toolbar .MuiIconButton-root svg": {
-          fontSize: "13px"
+          fontSize: "var(--fontSizeSmall)"
         },
         ".inspector-header-toolbar .inspector-supplemental-action": {
           width: 22,

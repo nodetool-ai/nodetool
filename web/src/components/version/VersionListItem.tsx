@@ -163,7 +163,7 @@ const VersionListItem = React.memo(function VersionListItem({
             size="small"
             sx={{
               height: "16px",
-              fontSize: "11px",
+              fontSize: "var(--fontSizeSmaller)",
               opacity: 0.7,
               "& .MuiChip-label": { px: 0.5 }
             }}

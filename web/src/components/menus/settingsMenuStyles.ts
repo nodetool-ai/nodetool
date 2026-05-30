@@ -64,7 +64,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     "& .settings-page-header__title": {
       margin: 0,
       color: theme.vars.palette.text.primary,
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       fontWeight: 600,
       lineHeight: 1.2,
       letterSpacing: "-0.01em"
@@ -174,13 +174,13 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       transform: "rotate(0deg)"
     },
     ".settings-sidebar-chevron": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.secondary,
       transition: "transform 0.18s ease",
       transform: "rotate(-90deg)"
     },
     ".settings-sidebar-folder-icon": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       color: "var(--palette-primary-main)"
     },
     ".settings-sidebar-category-label": {

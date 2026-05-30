@@ -8,7 +8,7 @@
   /* background-color: #0d1117; */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
     Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  font-size: 15px;
+  font-size: var(--fontSizeNormal);
   line-height: 1.5;
   word-wrap: break-word;
 }
@@ -344,7 +344,7 @@
 .markdown-body samp {
   font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas,
     Liberation Mono, monospace;
-  font-size: 13px;
+  font-size: var(--fontSizeSmall);
 }
 
 .markdown-body pre {
@@ -352,7 +352,7 @@
   margin-bottom: 0;
   font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas,
     Liberation Mono, monospace;
-  font-size: 13px;
+  font-size: var(--fontSizeSmall);
   word-wrap: normal;
 }
 
@@ -766,7 +766,7 @@
 .markdown-body .csv-data th {
   padding: 4px;
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--fontSizeSmall);
   line-height: 1;
   text-align: left;
   white-space: nowrap;
@@ -798,7 +798,7 @@
 }
 
 .markdown-body .footnotes {
-  font-size: 13px;
+  font-size: var(--fontSizeSmall);
   color: #9198a1;
   border-top: 1px solid #3d444d;
 }

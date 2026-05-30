@@ -18,7 +18,7 @@ import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 
 const tooltipHintStyle: CSSProperties = {
-  fontSize: "11px",
+  fontSize: "var(--fontSizeSmaller)",
   opacity: 0.75,
   marginTop: "4px"
 };
@@ -46,7 +46,7 @@ const tileStyles = (theme: Theme) =>
       padding: "0 4px",
       "& h5": {
         margin: 0,
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 600,
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
@@ -127,7 +127,7 @@ const tileStyles = (theme: Theme) =>
       padding: "1em",
       textAlign: "center",
       color: theme.vars.palette.text.secondary,
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       opacity: 0.6
     },
     ".clear-button": {

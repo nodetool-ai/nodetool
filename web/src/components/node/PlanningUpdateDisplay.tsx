@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       flexShrink: 0,
       color: theme.vars.palette.success.main,
-      "& svg": { fontSize: "15px" },
+      "& svg": { fontSize: "var(--fontSizeNormal)" },
       "&.active svg": {
         color: theme.vars.palette.primary.main,
         animation: "spin 1.5s linear infinite"
@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
     },
 
     ".planning-name": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       color: theme.vars.palette.text.secondary,
       textTransform: "capitalize",
@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
     },
 
     ".planning-message": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       lineHeight: "1.3",
       overflow: "hidden",

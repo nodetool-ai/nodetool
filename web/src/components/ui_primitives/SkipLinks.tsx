@@ -15,7 +15,7 @@ const skipLinkStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       borderRadius: `0 0 ${theme.rounded.lg} ${theme.rounded.lg}`,
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       textDecoration: "none",
       transition: "top 0.2s ease",

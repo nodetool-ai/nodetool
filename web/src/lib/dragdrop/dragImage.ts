@@ -105,7 +105,7 @@ export function createAssetDragImage(
           justify-content: center;
           color: var(--palette-text-secondary);
           font-weight: 600;
-          font-size: 11px;
+          font-size: var(--fontSizeSmaller);
           text-transform: uppercase;
         `;
         // Extension
@@ -128,7 +128,7 @@ export function createAssetDragImage(
       name.textContent = asset.name;
       name.style.cssText = `
         color: var(--palette-text-primary);
-        font-size: 13px;
+        font-size: var(--fontSizeSmall);
         font-weight: 500;
         white-space: nowrap;
         overflow: hidden;
@@ -141,7 +141,7 @@ export function createAssetDragImage(
       details.textContent = asset.content_type || "Unknown type";
       details.style.cssText = `
         color: var(--palette-text-secondary);
-        font-size: 11px;
+        font-size: var(--fontSizeSmaller);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;

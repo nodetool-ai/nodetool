@@ -42,7 +42,7 @@ const tileStyles = (theme: Theme) =>
       padding: "0 4px",
       "& h5": {
         margin: 0,
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 600,
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
@@ -115,7 +115,7 @@ const tileStyles = (theme: Theme) =>
       marginBottom: "6px",
       transition: "transform 0.3s ease",
       "& svg": {
-        fontSize: "18px",
+        fontSize: "var(--fontSizeBig)",
         filter: theme.palette.mode === "dark"
           ? "drop-shadow(0 3px 5px rgba(0,0,0,0.35))"
           : "none"
@@ -140,7 +140,7 @@ const tileStyles = (theme: Theme) =>
       padding: "1em",
       textAlign: "center",
       color: theme.vars.palette.text.secondary,
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       opacity: 0.6
     },
     ".clear-button": {
@@ -320,7 +320,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                   <div>{nodeType}</div>
                   <div
                     style={{
-                      fontSize: "11px",
+                      fontSize: "var(--fontSizeSmaller)",
                       opacity: 0.75,
                       marginTop: "4px"
                     }}

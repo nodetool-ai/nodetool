@@ -56,12 +56,12 @@ const StringListProperty = (props: PropertyProps) => {
     color: "var(--palette-grey-100)",
     border: "1px solid var(--palette-grey-600)",
     "& .MuiChip-label": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       padding: "0 8px"
     },
     "& .MuiChip-deleteIcon": {
       color: "var(--palette-grey-400)",
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       "&:hover": {
         color: "var(--palette-grey-200)"
       }

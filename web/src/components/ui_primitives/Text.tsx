@@ -80,16 +80,18 @@ export const Text: React.FC<TextProps> = ({
 }) => {
   const theme = useTheme();
 
+  // Font sizes are driven by the theme CSS variables (single source of truth
+  // in ThemeNodetool). The eight legacy size names collapse onto the four vars.
   const getFontSize = () => {
     const sizeMap = {
-      giant: theme.fontSizeGiant,
-      bigger: theme.fontSizeBigger,
-      big: theme.fontSizeBig,
-      normal: theme.fontSizeNormal,
-      small: theme.fontSizeSmall,
-      smaller: theme.fontSizeSmaller,
-      tiny: theme.fontSizeTiny,
-      tinyer: theme.fontSizeTinyer
+      giant: "var(--fontSizeBig)",
+      bigger: "var(--fontSizeBig)",
+      big: "var(--fontSizeBig)",
+      normal: "var(--fontSizeNormal)",
+      small: "var(--fontSizeSmall)",
+      smaller: "var(--fontSizeSmaller)",
+      tiny: "var(--fontSizeSmaller)",
+      tinyer: "var(--fontSizeSmaller)"
     };
     return sizeMap[size];
   };

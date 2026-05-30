@@ -101,7 +101,7 @@ const LabeledSwitchInternal: React.FC<LabeledSwitchProps> = ({
           variant="body2"
           sx={{
             color: theme.palette.text.secondary,
-            fontSize: "13px",
+            fontSize: "var(--fontSizeSmall)",
             marginTop: theme.spacing(0),
           }}
         >

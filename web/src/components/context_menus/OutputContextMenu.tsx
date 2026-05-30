@@ -598,7 +598,7 @@ const OutputContextMenu: React.FC = () => {
               "&:hover": { backgroundColor: theme.vars.palette.action.hover },
               ".node-button": { padding: 0 },
               ".icon-bg": { padding: 0, width: "16px", height: "16px" },
-              ".icon-bg svg": { fontSize: "13px", width: "12px", height: "12px" }
+              ".icon-bg svg": { fontSize: "var(--fontSizeSmall)", width: "12px", height: "12px" }
             }
           }}
         >

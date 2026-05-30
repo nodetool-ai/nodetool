@@ -122,7 +122,7 @@ export const createStyles = (theme: Theme) =>
         alignItems: "center",
 
         svg: {
-          fontSize: "18px"
+          fontSize: "var(--fontSizeBig)"
         },
 
         ".file-name": {

@@ -186,7 +186,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             sx={{
               height: "32px",
               minWidth: 120,
-              fontSize: "15px",
+              fontSize: "var(--fontSizeNormal)",
               background: theme.vars.palette.action.hover,
               borderRadius: "var(--rounded-lg)",
               "& .MuiOutlinedInput-notchedOutline": {

@@ -112,7 +112,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       "& svg": { fontSize: 18 }
     },
     ".welcome-card-title": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       fontWeight: 500,
       letterSpacing: "-0.01em",
       color: theme.vars.palette.text.primary
@@ -120,7 +120,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-card-blurb": {
       marginTop: 2,
       marginBottom: 8,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.45,
       color: theme.vars.palette.text.secondary
     },
@@ -132,7 +132,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       background: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
       fontFamily: theme.fontFamily2,
-      fontSize: "11px"
+      fontSize: "var(--fontSizeSmaller)"
     },
 
     ".welcome-footer": {

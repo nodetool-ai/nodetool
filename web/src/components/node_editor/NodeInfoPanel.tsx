@@ -85,14 +85,14 @@ const styles = (theme: Theme) =>
       padding: "12px 16px"
     },
     "& .node-name": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       wordBreak: "break-word",
       marginBottom: "4px"
     },
     "& .node-description": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.5,
       marginTop: "8px"
@@ -105,7 +105,7 @@ const styles = (theme: Theme) =>
     },
     "& .node-tags span": {
       fontWeight: 500,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -121,12 +121,12 @@ const styles = (theme: Theme) =>
       }
     },
     "& .node-use-cases": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.5,
       marginTop: "8px",
       "& h5": {
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         fontWeight: 600,
         color: theme.vars.palette.text.primary,
         marginBottom: "4px",
@@ -148,12 +148,12 @@ const styles = (theme: Theme) =>
       borderLeft: `3px solid ${theme.vars.palette.error.main}`
     },
     "& .error-text": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.error.main,
       lineHeight: 1.4
     },
     "& .position-text": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       fontFamily: "monospace",
       marginTop: "8px"
@@ -165,7 +165,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-sm)",
       backgroundColor: "transparent",
       color: "var(--palette-grey-400)",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       textTransform: "uppercase",
       textAlign: "left",
       flexGrow: 1,
@@ -185,7 +185,7 @@ const styles = (theme: Theme) =>
     "& .action-button": {
       flex: 1,
       minWidth: "80px",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       padding: "6px 10px",
       borderRadius: "var(--rounded-md)",
       marginTop: "12px",

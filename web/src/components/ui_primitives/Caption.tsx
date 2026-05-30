@@ -59,9 +59,9 @@ const CaptionInternal: React.FC<CaptionProps> = ({
 
   const getFontSize = () => {
     const sizeMap = {
-      small: theme.fontSizeSmall, // 13px — label combo
-      smaller: theme.fontSizeSmaller, // 11px — caption combo
-      tiny: theme.fontSizeTiny // 11px — caption combo
+      small: "var(--fontSizeSmall)", // 13px — label combo
+      smaller: "var(--fontSizeSmaller)", // 11px — caption combo
+      tiny: "var(--fontSizeSmaller)" // 11px — caption combo
     };
     return sizeMap[size];
   };

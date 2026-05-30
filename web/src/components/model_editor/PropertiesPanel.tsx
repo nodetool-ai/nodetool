@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
         padding: "4px 6px",
         fontSize: theme.fontSizeSmall
       },
-      ".MuiSvgIcon-root": { fontSize: "15px" }
+      ".MuiSvgIcon-root": { fontSize: "var(--fontSizeNormal)" }
     },
     ".empty": { padding: "16px 8px" }
   });

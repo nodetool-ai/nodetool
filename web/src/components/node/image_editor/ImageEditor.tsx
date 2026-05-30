@@ -80,12 +80,12 @@ const styles = (theme: Theme) =>
             gap: "12px"
         },
         ".title-text": {
-            fontSize: "15px",
+            fontSize: "var(--fontSizeNormal)",
             fontWeight: 600,
             color: theme.vars.palette.text.primary
         },
         ".title-badge": {
-            fontSize: "11px",
+            fontSize: "var(--fontSizeSmaller)",
             padding: "2px 8px",
             borderRadius: "var(--rounded-sm)",
             backgroundColor: theme.vars.palette.primary.main,
@@ -102,7 +102,7 @@ const styles = (theme: Theme) =>
             gap: "6px",
             padding: "6px 12px",
             borderRadius: "var(--rounded-md)",
-            fontSize: "13px",
+            fontSize: "var(--fontSizeSmall)",
             fontWeight: 500,
             cursor: "pointer",
             transition: "all 0.15s ease"

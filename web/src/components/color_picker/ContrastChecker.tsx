@@ -34,20 +34,20 @@ const styles = (theme: Theme) =>
       gap: "4px"
     },
     ".preview-label": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       textTransform: "uppercase",
       opacity: 0.8
     },
     ".preview-text": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500
     },
     ".preview-text-large": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       fontWeight: 600
     },
     ".contrast-ratio": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       fontWeight: 600,
       textAlign: "center",
       margin: "8px 0"
@@ -66,14 +66,14 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".compliance-label": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       flex: 1
     },
     ".color-blindness-section": {
       marginTop: "8px"
     },
     ".color-blindness-title": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       color: theme.vars.palette.grey[400],
       marginBottom: "8px",
@@ -93,7 +93,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".cb-label": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       textAlign: "center"
     },

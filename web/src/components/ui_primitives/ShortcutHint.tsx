@@ -124,7 +124,7 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
           gap: size === "small" ? "2px" : "4px",
           padding: size === "small" ? "2px 4px" : "4px 6px",
           borderRadius: "var(--rounded-sm)",
-          fontSize: "11px",
+          fontSize: "var(--fontSizeSmaller)",
           fontWeight: 500,
           letterSpacing: "0.5px",
           transition: "all 0.2s ease",

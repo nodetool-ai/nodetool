@@ -84,7 +84,7 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(1)
     },
     "& .node-title": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       whiteSpace: "nowrap",
@@ -93,14 +93,14 @@ const styles = (theme: Theme) =>
     },
     "& .node-type": {
       fontFamily: "var(--fontFamilyMono)",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       gap: theme.spacing(0.5),
       opacity: 0.8
     },
     "& .property-chip": {
       height: 20,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       background: theme.vars.palette.action.hover,
       borderColor: theme.vars.palette.divider
     },
@@ -159,7 +159,7 @@ const NodeList: React.FC<{
                     variant="outlined"
                     sx={{
                       height: 16,
-                      fontSize: "11px",
+                      fontSize: "var(--fontSizeSmaller)",
                       fontWeight: 600,
                       px: 0.5,
                       background: theme.vars.palette.primary.main + "22",

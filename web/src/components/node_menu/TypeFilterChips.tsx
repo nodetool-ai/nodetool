@@ -167,13 +167,13 @@ const typeFilterChipsStyles = (theme: Theme) =>
       marginBottom: "12px"
     },
     ".menu-title": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary,
       fontWeight: 600,
       marginBottom: "4px"
     },
     ".menu-section-title": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.55px",

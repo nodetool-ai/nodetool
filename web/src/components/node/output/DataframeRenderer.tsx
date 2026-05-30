@@ -41,7 +41,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".dataframe-action-buttons .MuiIconButton-root svg": {
-      fontSize: "15px"
+      fontSize: "var(--fontSizeNormal)"
     }
   });
 

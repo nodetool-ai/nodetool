@@ -72,7 +72,7 @@ export function CustomEdge({
       color: "white",
       padding: "2px 8px",
       borderRadius: "10px",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       border: selected ? "1px solid var(--palette-background-paper)" : "none",
       // zIndex: "99999"

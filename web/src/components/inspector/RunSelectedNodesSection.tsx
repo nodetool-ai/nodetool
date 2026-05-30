@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
     },
     ".runs-label": {
       fontFamily: theme.fontFamily1,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".run-button .play-icon": {
-      fontSize: "18px"
+      fontSize: "var(--fontSizeBig)"
     },
     ".run-button .run-shortcut": {
       marginLeft: "auto",

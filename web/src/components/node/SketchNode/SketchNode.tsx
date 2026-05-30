@@ -210,7 +210,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       transition: "opacity 0.2s"
     },
     ".edit-overlay-label": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
       color: "rgba(255,255,255,0.85)",
       letterSpacing: "0.02em"

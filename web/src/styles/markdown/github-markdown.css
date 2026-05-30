@@ -133,7 +133,7 @@
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica,
     Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  font-size: 15px;
+  font-size: var(--fontSizeNormal);
   line-height: 1.5;
   word-wrap: break-word;
 }
@@ -486,7 +486,7 @@
     Liberation Mono,
     monospace
   );
-  font-size: 13px;
+  font-size: var(--fontSizeSmall);
 }
 
 .markdown-body pre {
@@ -502,7 +502,7 @@
     Liberation Mono,
     monospace
   );
-  font-size: 13px;
+  font-size: var(--fontSizeSmall);
   word-wrap: normal;
 }
 
@@ -916,7 +916,7 @@
 .markdown-body .csv-data th {
   padding: 4px;
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--fontSizeSmall);
   line-height: 1;
   text-align: left;
   white-space: nowrap;
@@ -948,7 +948,7 @@
 }
 
 .markdown-body .footnotes {
-  font-size: 13px;
+  font-size: var(--fontSizeSmall);
   color: var(--fgColor-muted);
   border-top: 1px solid var(--borderColor-default);
 }

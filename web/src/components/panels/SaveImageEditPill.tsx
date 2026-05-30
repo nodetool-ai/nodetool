@@ -64,7 +64,7 @@ const SaveImageEditPill = memo(function SaveImageEditPill({
           }
         }}
       >
-        <SaveIcon sx={{ fontSize: "15px" }} />
+        <SaveIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
         <span>{saving ? "Saving…" : "Save to image"}</span>
       </EditorButton>
     </Tooltip>

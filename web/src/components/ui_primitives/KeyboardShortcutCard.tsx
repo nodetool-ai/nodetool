@@ -154,7 +154,7 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
             mb: 1.5,
             textTransform: "uppercase",
             letterSpacing: "0.5px",
-            fontSize: "13px",
+            fontSize: "var(--fontSizeSmall)",
           }}
         >
           {title}

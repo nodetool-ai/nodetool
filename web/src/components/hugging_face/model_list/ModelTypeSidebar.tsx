@@ -51,7 +51,7 @@ const ModelTypeSidebar: React.FC = () => {
         sx={{
           px: 1.5,
           pb: 1,
-          fontSize: "11px",
+          fontSize: "var(--fontSizeSmaller)",
           fontWeight: 600,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
@@ -137,7 +137,7 @@ const ModelTypeSidebar: React.FC = () => {
                 <ListItemText
                   primary={prettifyModelType(type)}
                   primaryTypographyProps={{
-                    fontSize: "15px",
+                    fontSize: "var(--fontSizeNormal)",
                     fontWeight: isSelected ? 600 : 400,
                     color: isSelected
                       ? theme.vars.palette.primary.main
@@ -151,7 +151,7 @@ const ModelTypeSidebar: React.FC = () => {
                     sx={{
                       height: 20,
                       minWidth: 28,
-                      fontSize: "13px",
+                      fontSize: "var(--fontSizeSmall)",
                       fontWeight: 600,
                       ml: 1,
                       backgroundColor: "transparent",

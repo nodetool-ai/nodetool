@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap"
     },
     ".outliner-row .type-icon": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       opacity: 0.7
     },
     ".outliner-row .visibility-toggle": {
@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
       opacity: 0.6,
       "&:hover": { opacity: 1 }
     },
-    ".visibility-toggle svg": { fontSize: "15px" },
+    ".visibility-toggle svg": { fontSize: "var(--fontSizeNormal)" },
     ".empty": {
       padding: "12px 8px"
     }

@@ -226,7 +226,7 @@ const CollectionItem = ({
               textShadow: "0 0 10px rgb(var(--mui-palette-primary-mainChannel) / 0.2)"
             }}
           >
-            <UploadFileIcon sx={{ fontSize: "18px" }} />
+            <UploadFileIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             Drop files to upload
           </Text>
         </FlexRow>
@@ -238,7 +238,7 @@ const CollectionItem = ({
             truncate
             sx={{
               color: "text.primary",
-              fontSize: "18px",
+              fontSize: "var(--fontSizeBig)",
               flexShrink: 0,
               maxWidth: "150px"
             }}

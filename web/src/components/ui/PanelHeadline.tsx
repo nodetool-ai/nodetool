@@ -19,10 +19,10 @@ const styles = (theme: Theme) =>
 
     ".headline-actions .MuiIconButton-root": {
       padding: 2,
-      "& svg": { fontSize: "15px" }
+      "& svg": { fontSize: "var(--fontSizeNormal)" }
     },
     ".headline-title": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 400,
       letterSpacing: "0.01em",
       lineHeight: "1.4em",

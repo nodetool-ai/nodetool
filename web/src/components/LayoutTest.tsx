@@ -159,7 +159,7 @@ const styles = (theme: Theme) => css`
   
   .card-title {
     font-weight: 600;
-    font-size: 15px;
+    font-size: var(--fontSizeNormal);
     color: ${theme.vars.palette.text.primary};
   }
   

@@ -132,7 +132,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       border: "none",
       cursor: "pointer",
       fontFamily: "JetBrains Mono, monospace",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       color: currentPreset
         ? theme.palette.primary.main
@@ -186,7 +186,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         sx={containerSx}
       >
         <ToolbarIconButton
-          icon={<RemoveIcon sx={{ fontSize: "15px" }} />}
+          icon={<RemoveIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
           tooltip={getShortcutTooltip("zoomOut")}
           tooltipPlacement="top"
           onClick={handleZoomOut}
@@ -198,7 +198,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           title={
             <Box>
               <Box>{getShortcutTooltip("resetZoom")}</Box>
-              <Box sx={{ mt: 0.5, fontSize: "11px", opacity: 0.8 }}>
+              <Box sx={{ mt: 0.5, fontSize: "var(--fontSizeSmaller)", opacity: 0.8 }}>
                 Click for zoom presets
               </Box>
             </Box>
@@ -215,7 +215,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         </Tooltip>
 
         <ToolbarIconButton
-          icon={<AddIcon sx={{ fontSize: "15px" }} />}
+          icon={<AddIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
           tooltip={getShortcutTooltip("zoomIn")}
           tooltipPlacement="top"
           onClick={handleZoomIn}
@@ -233,7 +233,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         />
 
         <ToolbarIconButton
-          icon={<CenterFocusStrongIcon sx={{ fontSize: "15px" }} />}
+          icon={<CenterFocusStrongIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
           tooltip={getShortcutTooltip("fitView")}
           tooltipPlacement="top"
           onClick={handleFitView}
@@ -282,7 +282,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
               <ListItemText
                 primary={`${Math.round(preset * 100)}%`}
                 primaryTypographyProps={{
-                  fontSize: "13px",
+                  fontSize: "var(--fontSizeSmall)",
                   fontFamily: "JetBrains Mono, monospace",
                   textAlign: "center"
                 }}

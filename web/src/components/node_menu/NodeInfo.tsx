@@ -133,7 +133,7 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".inputs-outputs h4": {
       fontFamily: theme.fontFamily2,
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: "2em",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",

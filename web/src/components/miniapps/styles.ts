@@ -129,7 +129,7 @@ export const createStyles = (theme: Theme) => {
       letterSpacing: "0.18em",
       textTransform: "uppercase",
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px"
+      fontSize: "var(--fontSizeSmall)"
     },
 
     ".hero-subtitle": {
@@ -338,7 +338,7 @@ export const createStyles = (theme: Theme) => {
     },
 
     ".result-placeholder-icon": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       opacity: 0.4,
       marginBottom: theme.spacing(1)
     },

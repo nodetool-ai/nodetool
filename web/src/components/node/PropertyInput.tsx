@@ -80,7 +80,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
     },
 
     ".action-icon": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       cursor: "pointer",
       padding: 4,
       borderRadius: "var(--rounded-sm)",
@@ -116,7 +116,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
         color: theme.vars.palette.primary.main,
       },
       "& svg": {
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
       },
     },
 

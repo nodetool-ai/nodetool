@@ -218,9 +218,9 @@ const LayerItem: React.FC<LayerItemProps> = ({
             sx={GROUP_LAYER_ICON_BUTTON_SX}
           >
             {layer.collapsed ? (
-              <ChevronRightIcon sx={{ fontSize: "15px" }} />
+              <ChevronRightIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             ) : (
-              <ExpandMoreIcon sx={{ fontSize: "15px" }} />
+              <ExpandMoreIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             )}
           </IconButton>
         ) : null}
@@ -230,7 +230,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           layer.collapsed ? (
             <FolderOutlinedIcon
               sx={{
-                fontSize: "15px",
+                fontSize: "var(--fontSizeNormal)",
                 color: isPaintTarget ? "primary.contrastText" : "grey.500",
                 flexShrink: 0,
                 mr: "2px",
@@ -240,7 +240,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           ) : (
             <FolderOpenOutlinedIcon
               sx={{
-                fontSize: "15px",
+                fontSize: "var(--fontSizeNormal)",
                 color: isPaintTarget ? "primary.contrastText" : "grey.400",
                 flexShrink: 0,
                 mr: "2px",
@@ -292,7 +292,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 }
               }}
             >
-              <CenterFocusStrongIcon sx={{ fontSize: "18px" }} />
+              <CenterFocusStrongIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
         )}
@@ -340,7 +340,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 >
                   <LinkIcon
                     sx={{
-                      fontSize: "13px",
+                      fontSize: "var(--fontSizeSmall)",
                       color: "info.light",
                       flexShrink: 0,
                       opacity: 0.85
@@ -357,7 +357,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 >
                   <LockIcon
                     sx={{
-                      fontSize: "15px",
+                      fontSize: "var(--fontSizeNormal)",
                       color: "info.main",
                       flexShrink: 0,
                       opacity: 0.95

@@ -40,7 +40,7 @@ const styles = (theme: Theme) =>
     ".step-status-icon": {
       marginTop: "2px",
       color: theme.vars.palette.grey[600],
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       flexShrink: 0
     },
     ".step-completed-icon": {
@@ -51,7 +51,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.primary.main
     },
     ".step-text": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: "1.5",
       color: theme.vars.palette.grey[300],
       transition: "color 0.2s ease"

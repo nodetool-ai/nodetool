@@ -64,7 +64,7 @@ const propertyStyles = css({
     padding: 0
   },
   ".string-action-buttons .MuiIconButton-root svg": {
-    fontSize: "13px"
+    fontSize: "var(--fontSizeSmall)"
   }
 });
 
@@ -91,7 +91,7 @@ const StringProperty = ({
   const inspectorToolbarActionSx = useMemo(
     () => ({
       color: theme.vars.palette.common.white,
-      "& svg": { fontSize: "15px" }
+      "& svg": { fontSize: "var(--fontSizeNormal)" }
     }),
     [theme]
   );

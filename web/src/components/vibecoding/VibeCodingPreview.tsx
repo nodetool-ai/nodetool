@@ -28,7 +28,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.palette.background.paper
     },
     ".preview-title": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       color: theme.palette.text.primary
     },
@@ -57,7 +57,7 @@ const createStyles = (theme: Theme) =>
       padding: "24px"
     },
     ".preview-empty-icon": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       marginBottom: "16px",
       opacity: 0.5
     },

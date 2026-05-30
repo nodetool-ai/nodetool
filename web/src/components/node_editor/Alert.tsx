@@ -57,7 +57,7 @@ const styles = () =>
         paddingTop: "2px",
         opacity: 0.92,
         "& svg": {
-          fontSize: "18px"
+          fontSize: "var(--fontSizeBig)"
         }
       },
       "& .MuiAlert-action": {

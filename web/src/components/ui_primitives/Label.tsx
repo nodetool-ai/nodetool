@@ -57,9 +57,9 @@ export const Label: React.FC<LabelProps> = ({
   // drops to the caption combo (11px / 400). Both stay within the 4 combos.
   const getFontSize = () => {
     const sizeMap = {
-      small: theme.fontSizeSmaller, // 11px — caption combo
-      normal: theme.fontSizeSmall, // 13px — label combo
-      large: theme.fontSizeSmall // 13px — label combo
+      small: "var(--fontSizeSmaller)", // 11px — caption combo
+      normal: "var(--fontSizeSmall)", // 13px — label combo
+      large: "var(--fontSizeSmall)" // 13px — label combo
     };
     return sizeMap[size];
   };

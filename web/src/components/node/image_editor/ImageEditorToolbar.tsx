@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
       borderBottom: "none"
     },
     ".section-title": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       textTransform: "uppercase",
       color: theme.vars.palette.grey[500],
@@ -126,11 +126,11 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.grey[400]
     },
     ".slider-value": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       fontFamily: "monospace"
     },
@@ -158,7 +158,7 @@ const styles = (theme: Theme) =>
       borderRadius: "6px",
       padding: "6px 10px",
       color: theme.vars.palette.text.primary,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontFamily: "monospace",
       outline: "none",
       "&:focus": {
@@ -171,7 +171,7 @@ const styles = (theme: Theme) =>
       gap: "8px"
     },
     ".zoom-value": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.grey[400],
       minWidth: "45px",
       textAlign: "center",
@@ -190,7 +190,7 @@ const styles = (theme: Theme) =>
       gap: "4px",
       padding: "8px",
       borderRadius: "6px",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       cursor: "pointer",
       transition: "all 0.15s ease"
@@ -509,7 +509,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                       size="small"
                       sx={selectionSettings.mode === m ? { bgcolor: "primary.main", color: "primary.contrastText" } : {}}
                     >
-                      <Caption sx={{ fontSize: "11px", fontWeight: 600 }}>
+                      <Caption sx={{ fontSize: "var(--fontSizeSmaller)", fontWeight: 600 }}>
                         {m === "replace" ? "R" : m === "add" ? "+" : m === "subtract" ? "−" : "∩"}
                       </Caption>
                     </ToolbarIconButton>
@@ -744,7 +744,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
                 label="Filled"
                 sx={{
                   color: "grey.400",
-                  "& .MuiTypography-root": { fontSize: "13px" }
+                  "& .MuiTypography-root": { fontSize: "var(--fontSizeSmall)" }
                 }}
               />
             )}
@@ -819,7 +819,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               label="Bold"
               sx={{
                 color: "grey.400",
-                "& .MuiTypography-root": { fontSize: "13px" }
+                "& .MuiTypography-root": { fontSize: "var(--fontSizeSmall)" }
               }}
             />
             <FormControlLabel
@@ -834,7 +834,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
               label="Italic"
               sx={{
                 color: "grey.400",
-                "& .MuiTypography-root": { fontSize: "13px" }
+                "& .MuiTypography-root": { fontSize: "var(--fontSizeSmall)" }
               }}
             />
           </div>

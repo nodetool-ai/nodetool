@@ -206,7 +206,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             minWidth: 0,
                             pl: 0.5,
                             "& .search-input .MuiInputBase-root": {
-                                fontSize: "13px",
+                                fontSize: "var(--fontSizeSmall)",
                                 paddingLeft: 0.5,
                                 paddingRight: 0.5
                             },
@@ -220,7 +220,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 marginRight: "4px"
                             },
                             "& .search-input .search-icon": {
-                                fontSize: "15px"
+                                fontSize: "var(--fontSizeNormal)"
                             }
                         }}
                     >
@@ -251,7 +251,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         </Text>
                     </FlexRow>
                     <NavButton
-                        icon={<AddIcon sx={{ fontSize: "18px" }} />}
+                        icon={<AddIcon sx={{ fontSize: "var(--fontSizeBig)" }} />}
                         label="New conversation"
                         onClick={handleNewChat}
                         tabIndex={0}

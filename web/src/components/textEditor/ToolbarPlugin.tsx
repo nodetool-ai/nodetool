@@ -218,7 +218,7 @@ const ToolbarPlugin = () => {
         onClick={handleInsertHR}
         aria-label="Insert Horizontal Rule"
         title="Insert Horizontal Rule"
-        style={{ fontSize: "15px", fontWeight: 600 }}
+        style={{ fontSize: "var(--fontSizeNormal)", fontWeight: 600 }}
       >
         ─
       </button>

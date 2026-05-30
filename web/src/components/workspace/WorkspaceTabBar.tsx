@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       transition: "color 120ms, background-color 120ms",
       "&:hover": {
         color: theme.vars.palette.text.primary,
@@ -93,7 +93,7 @@ const styles = (theme: Theme) =>
       }
     },
 
-    "& .glyph": { flexShrink: 0, fontSize: "13px" },
+    "& .glyph": { flexShrink: 0, fontSize: "var(--fontSizeSmall)" },
     "& .tab-name": {
       flex: 1,
       overflow: "hidden",
@@ -127,16 +127,16 @@ const styles = (theme: Theme) =>
       background: "transparent",
       color: theme.vars.palette.primary.main,
       cursor: "pointer",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       whiteSpace: "nowrap",
       transition: "color 120ms, background-color 120ms",
       "& .new-tab-plus": {
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         lineHeight: 1
       },
       "& .new-tab-caret": {
-        fontSize: "13px",
+        fontSize: "var(--fontSizeSmall)",
         marginLeft: "1px",
         opacity: 0.75,
         lineHeight: 1
@@ -159,7 +159,7 @@ const styles = (theme: Theme) =>
         background: "transparent",
         color: theme.vars.palette.text.secondary,
         cursor: "pointer",
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         padding: "3px 12px",
         "&:first-of-type": { borderRadius: "4px 0 0 4px", borderRight: "none" },
         "&:last-of-type": { borderRadius: "0 4px 4px 0" },
@@ -192,7 +192,7 @@ const styles = (theme: Theme) =>
       "& svg, & .MuiSvgIcon-root": {
         width: "16px",
         height: "16px",
-        fontSize: "15px"
+        fontSize: "var(--fontSizeNormal)"
       }
     }
   });

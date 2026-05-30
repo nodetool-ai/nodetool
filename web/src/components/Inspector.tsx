@@ -88,7 +88,7 @@ const styles = (theme: Theme) =>
     },
     ".inspector-title": {
       fontFamily: theme.fontFamily1,
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       fontWeight: 600,
       letterSpacing: "-0.01em",
       lineHeight: 1.2,
@@ -131,7 +131,7 @@ const styles = (theme: Theme) =>
       padding: 0,
       opacity: 0.55,
       "&:hover": { opacity: 1, backgroundColor: "transparent" },
-      "& svg": { fontSize: "13px" }
+      "& svg": { fontSize: "var(--fontSizeSmall)" }
     },
     ".inspector-head-close": {
       paddingTop: "2px"
@@ -171,7 +171,7 @@ const styles = (theme: Theme) =>
     },
     ".inspector-tab .tab-count": {
       fontFamily: theme.fontFamily2,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       fontVariantNumeric: "tabular-nums"
     },
@@ -243,7 +243,7 @@ const styles = (theme: Theme) =>
       },
     ".property-required-badge": {
       fontFamily: theme.fontFamily1,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
@@ -319,7 +319,7 @@ const styles = (theme: Theme) =>
     },
     ".io-section-title": {
       fontFamily: theme.fontFamily1,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
@@ -345,7 +345,7 @@ const styles = (theme: Theme) =>
     },
     ".io-row-type": {
       fontFamily: theme.fontFamily2,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       padding: "2px 6px",
@@ -373,7 +373,7 @@ const styles = (theme: Theme) =>
     },
     ".help-tag": {
       fontFamily: theme.fontFamily2,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       padding: "2px 8px",

@@ -188,7 +188,7 @@ const MiniMapNavigator: React.FC = () => {
                   }
                 }}
               >
-                <LegendToggleIcon sx={{ fontSize: "15px" }} />
+                <LegendToggleIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
               </ToolbarIconButton>
             )}
             <ToolbarIconButton
@@ -205,7 +205,7 @@ const MiniMapNavigator: React.FC = () => {
                 }
               }}
             >
-              <PaletteIcon sx={{ fontSize: "15px" }} />
+              <PaletteIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             </ToolbarIconButton>
           </FlexRow>
         </div>
@@ -246,7 +246,7 @@ const MiniMapNavigator: React.FC = () => {
             >
               <ListItemIcon>
                 {colorMode === "default" ? (
-                  <CheckIcon sx={{ fontSize: "15px" }} />
+                  <CheckIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
                 ) : (
                   <span style={{ width: "1rem", display: "inline-block" }} />
                 )}
@@ -254,7 +254,7 @@ const MiniMapNavigator: React.FC = () => {
               <ListItemText
                 primary="Default Colors"
                 primaryTypographyProps={{
-                  fontSize: "15px"
+                  fontSize: "var(--fontSizeNormal)"
                 }}
               />
             </ListItemButton>
@@ -271,7 +271,7 @@ const MiniMapNavigator: React.FC = () => {
             >
               <ListItemIcon>
                 {colorMode === "type" ? (
-                  <CheckIcon sx={{ fontSize: "15px" }} />
+                  <CheckIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
                 ) : (
                   <span style={{ width: "1rem", display: "inline-block" }} />
                 )}
@@ -279,7 +279,7 @@ const MiniMapNavigator: React.FC = () => {
               <ListItemText
                 primary="Color by Type"
                 primaryTypographyProps={{
-                  fontSize: "15px"
+                  fontSize: "var(--fontSizeNormal)"
                 }}
               />
             </ListItemButton>
@@ -355,7 +355,7 @@ const MiniMapNavigator: React.FC = () => {
                   <ListItemText
                     primary={item.label}
                     primaryTypographyProps={{
-                      fontSize: "13px",
+                      fontSize: "var(--fontSizeSmall)",
                       color: theme.vars.palette.text.primary
                     }}
                   />

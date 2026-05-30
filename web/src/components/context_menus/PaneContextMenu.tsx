@@ -341,14 +341,14 @@ const PaneContextMenu: React.FC = () => {
               gap: "0.5em",
               padding: "4px 16px",
               color: "text.secondary",
-              fontSize: "11px",
+              fontSize: "var(--fontSizeSmaller)",
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: "0.5px"
             }}
           >
             <StarIcon
-              sx={{ fontSize: "15px", color: "warning.main" }}
+              sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main" }}
             />
             <Text>Favorites</Text>
           </FlexRow>,
@@ -361,7 +361,7 @@ const PaneContextMenu: React.FC = () => {
                 label={displayName}
                 IconComponent={
                   <StarIcon
-                    sx={{ fontSize: "15px", color: "warning.main", opacity: 0.7 }}
+                    sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main", opacity: 0.7 }}
                   />
                 }
                 tooltip={`Add ${displayName} node`}

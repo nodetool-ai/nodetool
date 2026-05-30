@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".dataframe-action-buttons .MuiIconButton-root svg": {
-      fontSize: "15px"
+      fontSize: "var(--fontSizeNormal)"
     },
     ".button-group": {
       display: "flex",
@@ -113,7 +113,7 @@ const styles = (theme: Theme) =>
       padding: "1em"
     },
     ".dropzone-content svg": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       color: theme.vars.palette.grey[400]
     },
     ".dropzone-text": {
@@ -125,7 +125,7 @@ const styles = (theme: Theme) =>
       lineHeight: "1.2"
     },
     ".dropzone-subtext": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontFamily: theme.fontFamily2,
       color: theme.vars.palette.grey[600]
     }

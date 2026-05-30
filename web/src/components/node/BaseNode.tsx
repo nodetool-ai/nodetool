@@ -363,7 +363,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       color: theme.vars.palette.warning.contrastText,
       padding: "2px 8px",
       borderRadius: 4,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       zIndex: 1000
     }),

@@ -14,13 +14,16 @@ import { Theme } from "@mui/material/styles";
  * size+weight combinations. No other combination may appear anywhere in the
  * app. Pick the role whose intent matches; never invent a new size or weight.
  *
- * Allowed font sizes:  sans → 18 / 15 / 13 / 11 px   mono → 13 / 12 / 11 px
- * Allowed font weights: 400 (normal) · 500 (medium) · 600 (semibold)
+ * Every size resolves to a theme CSS variable (`--fontSize*`, defined once in
+ * ThemeNodetool). Never hardcode a px font size — drive it off these vars.
+ *
+ * Allowed sizes:  --fontSizeBig 18 · --fontSizeNormal 15 · --fontSizeSmall 13 · --fontSizeSmaller 11
+ * Allowed weights: 400 (normal) · 500 (medium) · 600 (semibold)
  *
  * SANS (Inter — `fontFamily1`)            MONO (JetBrains Mono — `fontFamily2`)
  *   title   18px / 600  headings, titles    code     13px / 400  code, values
  *   body    15px / 400  default body text    strong   13px / 600  emphasized mono
- *   label   13px / 500  labels, buttons      label    12px / 500  mono keys/labels
+ *   label   13px / 500  labels, buttons      label    13px / 500  mono keys/labels
  *   caption 11px / 400  hints, metadata      caption  11px / 400  small mono / hints
  *
  * Headings collapse onto these roles (h1–h3 → title, h4–h6 → label). Anything
@@ -32,20 +35,20 @@ export const FONT_WEIGHT = {
   semibold: 600
 } as const;
 
-/** The four sanctioned sans (Inter) sizes, as px strings. */
+/** The four sanctioned sans (Inter) sizes, as theme CSS variables. */
 export const FONT_SIZE_SANS = {
-  title: "18px",
-  body: "15px",
-  label: "13px",
-  caption: "11px"
+  title: "var(--fontSizeBig)", // 18px
+  body: "var(--fontSizeNormal)", // 15px
+  label: "var(--fontSizeSmall)", // 13px
+  caption: "var(--fontSizeSmaller)" // 11px
 } as const;
 
-/** The four sanctioned mono (JetBrains Mono) sizes, as px strings. */
+/** The mono (JetBrains Mono) sizes, as theme CSS variables. */
 export const FONT_SIZE_MONO = {
-  code: "13px",
-  strong: "13px",
-  label: "12px",
-  caption: "11px"
+  code: "var(--fontSizeSmall)", // 13px
+  strong: "var(--fontSizeSmall)", // 13px
+  label: "var(--fontSizeSmall)", // 13px
+  caption: "var(--fontSizeSmaller)" // 11px
 } as const;
 
 type TypeStyle = {
@@ -115,7 +118,7 @@ export const TYPOGRAPHY = {
       lineHeight: 1.4
     }
   }
-} as const satisfies Record<"sans" | "mono", Record<string, TypeStyle>>;
+} satisfies Record<"sans" | "mono", Record<string, TypeStyle>>;
 
 /**
  * Motion / transition timing constants.

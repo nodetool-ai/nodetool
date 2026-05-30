@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
         display: "block",
         width: "18px",
         height: "18px",
-        fontSize: "18px",
+        fontSize: "var(--fontSizeBig)",
         marginRight: "4px"
       },
       "& .icon-container": {
@@ -142,7 +142,7 @@ const TemplatesButton = memo(function TemplatesButton({
           "& .templates-icon": {
             width: "16px",
             height: "16px",
-            fontSize: "15px"
+            fontSize: "var(--fontSizeNormal)"
           },
           "&:hover": {
             backgroundColor: "var(--palette-action-hover)",
@@ -228,7 +228,7 @@ const ReturnToTimelinePill = memo(function ReturnToTimelinePill() {
           }
         }}
       >
-        <ArrowBackIcon sx={{ fontSize: "15px" }} />
+        <ArrowBackIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
         <span>Timeline</span>
       </EditorButton>
     </Tooltip>
@@ -276,7 +276,7 @@ const ReturnToSketchPill = memo(function ReturnToSketchPill() {
           }
         }}
       >
-        <ArrowBackIcon sx={{ fontSize: "15px" }} />
+        <ArrowBackIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
         <span>Image</span>
       </EditorButton>
     </Tooltip>

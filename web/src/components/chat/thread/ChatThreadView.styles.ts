@@ -366,7 +366,7 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-card.run-subtask .tool-call-badge": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.04em",
       textTransform: "uppercase",
@@ -385,13 +385,13 @@ export const createStyles = (theme: Theme) => ({
       whiteSpace: "normal",
       fontWeight: 500,
       color: theme.vars.palette.text.primary,
-      fontSize: "13px"
+      fontSize: "var(--fontSizeSmall)"
     },
 
     ".tool-call-card.run-subtask .subtask-instructions": {
       whiteSpace: "pre-wrap",
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.45
     },
 
@@ -450,14 +450,14 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-name": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       whiteSpace: "nowrap"
     },
 
     ".tool-message": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary
     },
 

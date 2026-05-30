@@ -800,7 +800,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                 : "transparent",
                           border: `1px solid ${selected === p ? "transparent" : theme.vars.palette.divider}`,
                           fontWeight: 600,
-                          fontSize: "13px",
+                          fontSize: "var(--fontSizeSmall)",
                           color:
                             selected === p
                               ? "primary.contrastText"

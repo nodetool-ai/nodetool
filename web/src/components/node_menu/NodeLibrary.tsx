@@ -55,7 +55,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
         : theme.spacing(1.5, 1.5, 1, 1.5)
     },
     ".nl-title": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       letterSpacing: "-0.01em",
       color: theme.vars.palette.text.primary
@@ -67,7 +67,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       fontVariantNumeric: "tabular-nums"
     },
@@ -125,7 +125,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
       color: theme.vars.palette.text.secondary,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       lineHeight: 1,
       flexShrink: 0
@@ -183,7 +183,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       background: "transparent",
       borderRadius: "var(--rounded-md)",
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.2,
       textAlign: "left",
       cursor: "pointer",
@@ -191,7 +191,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       "& .nl-cat-icon": {
         display: "inline-flex",
         flexShrink: 0,
-        "& svg": { fontSize: "18px" }
+        "& svg": { fontSize: "var(--fontSizeBig)" }
       },
       "& .nl-cat-label": {
         flex: 1,
@@ -201,7 +201,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
         textOverflow: "ellipsis"
       },
       "& .nl-cat-count": {
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         opacity: 0.7,
         fontVariantNumeric: "tabular-nums"
       },
@@ -245,7 +245,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       padding: theme.spacing(2),
       textAlign: "center",
       color: theme.vars.palette.text.secondary,
-      fontSize: "15px"
+      fontSize: "var(--fontSizeNormal)"
     },
 
     ".nl-footer": {
@@ -255,7 +255,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       padding: theme.spacing(1, 1.5),
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px"
+      fontSize: "var(--fontSizeSmall)"
     },
     ".nl-footer-hint": {
       display: "inline-flex",

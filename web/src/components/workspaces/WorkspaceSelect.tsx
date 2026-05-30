@@ -51,7 +51,7 @@ const styles = (theme: Theme) =>
     },
     ".workspace-icon": {
       color: theme.vars.palette.text.secondary,
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       flexShrink: 0,
       opacity: 0.7
     },
@@ -61,7 +61,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     },
     ".workspace-name": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 400,
       color: theme.vars.palette.text.secondary,
       whiteSpace: "nowrap",
@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
       textOverflow: "ellipsis"
     },
     ".workspace-path": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       whiteSpace: "nowrap",
       overflow: "hidden",
@@ -79,24 +79,24 @@ const styles = (theme: Theme) =>
     ".workspace-path-inline": {
       color: theme.vars.palette.text.disabled,
       fontFamily: "monospace",
-      fontSize: "13px"
+      fontSize: "var(--fontSizeSmall)"
     },
     ".none-option": {
       color: theme.vars.palette.text.disabled,
       fontStyle: "italic",
-      fontSize: "15px"
+      fontSize: "var(--fontSizeNormal)"
     },
     ".create-option": {
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
       color: theme.vars.palette.text.secondary,
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 400
     },
     ".default-badge": {
       color: theme.vars.palette.text.disabled,
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       marginLeft: theme.spacing(0.5),
       verticalAlign: "middle",
       opacity: 0.6
@@ -234,7 +234,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 },
                 "& .workspace-icon": {
                   color: theme.vars.palette.text.secondary,
-                  fontSize: "18px",
+                  fontSize: "var(--fontSizeBig)",
                   flexShrink: 0,
                   opacity: 0.7
                 },
@@ -244,31 +244,31 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   overflow: "hidden"
                 },
                 "& .workspace-name": {
-                  fontSize: "15px",
+                  fontSize: "var(--fontSizeNormal)",
                   fontWeight: 400,
                   color: theme.vars.palette.text.secondary
                 },
                 "& .workspace-path": {
-                  fontSize: "11px",
+                  fontSize: "var(--fontSizeSmaller)",
                   color: theme.vars.palette.text.disabled,
                   fontFamily: "monospace"
                 },
                 "& .none-option": {
                   color: theme.vars.palette.text.disabled,
                   fontStyle: "italic",
-                  fontSize: "15px"
+                  fontSize: "var(--fontSizeNormal)"
                 },
                 "& .create-option": {
                   display: "flex",
                   alignItems: "center",
                   gap: "8px",
                   color: theme.vars.palette.text.secondary,
-                  fontSize: "15px",
+                  fontSize: "var(--fontSizeNormal)",
                   fontWeight: 400
                 },
                 "& .default-badge": {
                   color: theme.vars.palette.text.disabled,
-                  fontSize: "15px",
+                  fontSize: "var(--fontSizeNormal)",
                   marginLeft: "4px",
                   verticalAlign: "middle",
                   opacity: 0.6

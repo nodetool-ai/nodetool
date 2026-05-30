@@ -113,7 +113,7 @@ export const numberInputStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       cursor: "pointer",
       padding: 0,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       lineHeight: 1,
       userSelect: "none",
       WebkitUserSelect: "none",

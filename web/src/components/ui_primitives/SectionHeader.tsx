@@ -54,12 +54,12 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 
   const sizeStyles = {
     small: {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       padding: "4px 0",
     },
     medium: {
-      fontSize: theme.fontSizeSmall || "13px",
+      fontSize: theme.fontSizeSmall || "var(--fontSizeSmall)",
       fontWeight: 600,
       padding: "6px 0",
     },
@@ -98,7 +98,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         {subtitle && (
           <Typography
             sx={{
-              fontSize: "11px",
+              fontSize: "var(--fontSizeSmaller)",
               color: theme.vars.palette.text.secondary,
               mt: 0.5,
             }}

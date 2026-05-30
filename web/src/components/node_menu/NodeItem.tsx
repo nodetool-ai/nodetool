@@ -84,7 +84,7 @@ const NodeItem = memo(
         }
         return (
           <Box sx={{ maxWidth: 300 }}>
-            <Text sx={{ fontSize: "15px", fontWeight: 500, mb: 0.5 }}>
+            <Text sx={{ fontSize: "var(--fontSizeNormal)", fontWeight: 500, mb: 0.5 }}>
               {parsedDescription.description}
             </Text>
             {parsedDescription.tags.length > 0 && (
@@ -94,7 +94,7 @@ const NodeItem = memo(
                     key={tag}
                     component="span"
                     sx={{
-                      fontSize: "11px",
+                      fontSize: "var(--fontSizeSmaller)",
                       fontWeight: 500,
                       textTransform: "uppercase",
                       bgcolor: "grey.700",
@@ -111,10 +111,10 @@ const NodeItem = memo(
             )}
             {parsedDescription.useCases.raw && (
               <Box sx={{ mt: 1 }}>
-                <Text sx={{ fontSize: "11px", fontWeight: 600, color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
+                <Text sx={{ fontSize: "var(--fontSizeSmaller)", fontWeight: 600, color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
                   Use cases
                 </Text>
-                <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "13px", color: "grey.300" }}>
+                <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "var(--fontSizeSmall)", color: "grey.300" }}>
                   {parsedDescription.useCases.raw.split("\n").map((useCase, index) => (
                     <li key={`${useCase}-${index}`}>{useCase}</li>
                   ))}
@@ -304,7 +304,7 @@ const NodeItem = memo(
                 {isSelected && (
                   <CheckIcon
                     sx={{
-                      fontSize: "18px",
+                      fontSize: "var(--fontSizeBig)",
                       color: theme.vars.palette.primary.main,
                       padding: "2px"
                     }}
@@ -338,13 +338,13 @@ const NodeItem = memo(
                 delay={TOOLTIP_ENTER_DELAY}
                 slotProps={{
                   popper: { sx: { zIndex: 2000 } },
-                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", fontSize: "11px" } }
+                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", fontSize: "var(--fontSizeSmaller)" } }
                 }}
               >
                 <Box
                   component="span"
                   sx={{
-                    fontSize: "11px",
+                    fontSize: "var(--fontSizeSmaller)",
                     fontWeight: 600,
                     textTransform: "uppercase",
                     bgcolor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 20%, transparent)`,
@@ -364,7 +364,7 @@ const NodeItem = memo(
               <Box
                 component="span"
                 sx={{
-                  fontSize: "11px",
+                  fontSize: "var(--fontSizeSmaller)",
                   fontWeight: 600,
                   fontFamily: "monospace",
                   letterSpacing: "0.03em",

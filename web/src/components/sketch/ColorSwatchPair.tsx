@@ -161,7 +161,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             aria-label="Swap Colors (X)"
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: "3px" }}
           >
-            <SwapHorizIcon sx={{ fontSize: "13px" }} />
+            <SwapHorizIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
           </EditorButton>
         </Tooltip>
         <Tooltip

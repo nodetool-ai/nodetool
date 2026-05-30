@@ -106,7 +106,7 @@ const helpStyles = (theme: Theme) =>
       color: theme.vars.palette.secondary.contrastText,
       backgroundColor: theme.vars.palette.secondary.main,
       textDecoration: "none",
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       padding: "8px 14px",
       borderRadius: "var(--rounded-lg)",
@@ -128,7 +128,7 @@ const helpStyles = (theme: Theme) =>
         fontWeight: 600,
       },
       "& svg": {
-        fontSize: "18px",
+        fontSize: "var(--fontSizeBig)",
         // color: theme.vars.palette.primary.main
       }
     },

@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
     "& svg, & .MuiSvgIcon-root": {
       width: "16px",
       height: "16px",
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       margin: 0
     }
   });

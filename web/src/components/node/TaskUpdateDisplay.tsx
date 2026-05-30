@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
     ".task-animated-heading": {
       animation: "aiColorShift 4s infinite",
       fontFamily: theme.fontFamily1,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       letterSpacing: "0.5px",
       textTransform: "uppercase",
@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       padding: "0.25rem 0.625rem",
       borderRadius: "var(--rounded-xl)",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       textTransform: "uppercase",
       letterSpacing: "0.3px",
@@ -65,14 +65,14 @@ const styles = (theme: Theme) =>
 
     ".task-title": {
       fontWeight: 600,
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: "1.4",
       color: theme.vars.palette.grey[100],
       marginBottom: "0.25rem"
     },
 
     ".task-description": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: "1.5",
       color: theme.vars.palette.grey[400],
       paddingLeft: "0.5rem",
@@ -95,7 +95,7 @@ const styles = (theme: Theme) =>
     },
 
     ".steps-header": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       textTransform: "uppercase",
       color: theme.vars.palette.grey[500],

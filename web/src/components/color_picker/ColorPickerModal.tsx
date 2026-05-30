@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".modal-title": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary
     },
@@ -123,7 +123,7 @@ const styles = (theme: Theme) =>
       bottom: 0
     },
     ".preview-label": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       position: "relative",
       zIndex: 1
@@ -137,7 +137,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-sm)",
       padding: "4px 8px",
       color: "white",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       gap: "4px"
     },
     ".modal-footer": {

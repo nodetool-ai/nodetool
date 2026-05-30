@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
       zIndex: 2,
       color: theme.vars.palette.grey[500],
       backgroundColor: "transparent",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       lineHeight: "1",
       height: "auto",

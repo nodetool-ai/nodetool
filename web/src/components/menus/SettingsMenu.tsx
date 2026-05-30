@@ -922,7 +922,7 @@ function SettingsPage() {
                       >
                         <Text
                           sx={{
-                            fontSize: "15px",
+                            fontSize: "var(--fontSizeNormal)",
                             color: theme.palette.text.primary
                           }}
                         >

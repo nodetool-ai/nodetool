@@ -115,10 +115,10 @@ const styles = (theme: Theme) =>
         background: theme.vars.palette.action.selected,
         color: theme.vars.palette.text.primary
       },
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       padding: "6px 16px",
       "@media (max-width: 600px)": {
-        fontSize: "13px",
+        fontSize: "var(--fontSizeSmall)",
         padding: "4px 12px"
       }
     },
@@ -164,7 +164,7 @@ const styles = (theme: Theme) =>
     ".search-debug": {
       padding: "0 20px",
       marginBottom: "10px",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       maxHeight: "100px",
       overflowY: "auto"

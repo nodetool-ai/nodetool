@@ -141,7 +141,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       textTransform: "uppercase",
       letterSpacing: "0.05em",

@@ -419,7 +419,7 @@ export const DownloadProgress: React.FC<{
                         ml: 1,
                         minWidth: "auto",
                         padding: "2px 8px",
-                        fontSize: "13px"
+                        fontSize: "var(--fontSizeSmall)"
                       }}
                     >
                       Reconnect

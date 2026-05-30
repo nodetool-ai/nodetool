@@ -47,7 +47,7 @@ const ICONS = {
 const treeStyles = (theme: Theme) =>
   css({
     fontFamily: theme.fontFamily2 || "monospace",
-    fontSize: "13px",
+    fontSize: "var(--fontSizeSmall)",
     lineHeight: 1.6,
     padding: "0.75rem 0",
     userSelect: "text",
@@ -67,12 +67,12 @@ const treeStyles = (theme: Theme) =>
     ".tree-plan-label": {
       color: theme.vars.palette.primary.main,
       fontWeight: 600,
-      fontSize: "15px"
+      fontSize: "var(--fontSizeNormal)"
     },
 
     ".tree-plan-count": {
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       marginLeft: "0.25rem"
     },
 
@@ -121,7 +121,7 @@ const treeStyles = (theme: Theme) =>
 
     ".tree-task-meta": {
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       marginLeft: "0.5rem"
     },
 
@@ -131,12 +131,12 @@ const treeStyles = (theme: Theme) =>
 
     ".tree-step-output": {
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px"
+      fontSize: "var(--fontSizeSmall)"
     },
 
     ".tree-step-error": {
       color: theme.vars.palette.error.main,
-      fontSize: "13px"
+      fontSize: "var(--fontSizeSmall)"
     },
 
     ".tree-planning": {
@@ -150,7 +150,7 @@ const treeStyles = (theme: Theme) =>
     ".tree-planning-text": {
       fontFamily: theme.fontFamily1,
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       marginLeft: "0.25rem"
     },
 
@@ -171,7 +171,7 @@ const treeStyles = (theme: Theme) =>
 
     ".tree-planning-phase": {
       fontFamily: theme.fontFamily1,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       textTransform: "capitalize",
       letterSpacing: 0,
@@ -182,7 +182,7 @@ const treeStyles = (theme: Theme) =>
     ".tree-planning-content": {
       fontFamily: theme.fontFamily1,
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.45,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -191,7 +191,7 @@ const treeStyles = (theme: Theme) =>
 
     ".tree-log-entry": {
       color: theme.vars.palette.text.disabled,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       paddingLeft: "1.5rem"
     },
 
@@ -211,7 +211,7 @@ const treeStyles = (theme: Theme) =>
       borderLeft: `2px solid ${theme.vars.palette.divider}`,
       background: `${theme.vars.palette.action.hover}`,
       borderRadius: "0 var(--rounded-sm) var(--rounded-sm) 0",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.5,
       display: "flex",
       flexDirection: "column",
@@ -229,7 +229,7 @@ const treeStyles = (theme: Theme) =>
       fontWeight: 600,
       textTransform: "uppercase",
       letterSpacing: "0.04em",
-      fontSize: "11px"
+      fontSize: "var(--fontSizeSmaller)"
     },
 
     ".tree-step-inspector-body": {
@@ -237,7 +237,7 @@ const treeStyles = (theme: Theme) =>
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       fontFamily: theme.fontFamily2 || "monospace",
-      fontSize: "13px"
+      fontSize: "var(--fontSizeSmall)"
     },
 
     ".tree-step-inspector-code": {
@@ -245,7 +245,7 @@ const treeStyles = (theme: Theme) =>
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       fontFamily: theme.fontFamily2 || "monospace",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       background: theme.vars.palette.background.default,
       padding: "0.35rem 0.5rem",
       borderRadius: "var(--rounded-sm)",

@@ -78,7 +78,7 @@ const styles = (theme: Theme) =>
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       padding: "6px 12px",
       borderRadius: "var(--rounded-md)",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[400],
       display: "flex",
       gap: "16px"

@@ -88,7 +88,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         gap: theme.spacing(2)
       },
       ".result-title": {
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 400,
         color: theme.vars.palette.text.primary,
         lineHeight: 1.3,
@@ -97,7 +97,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         }
       },
       ".result-namespace": {
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
         letterSpacing: "0.5px",
@@ -106,7 +106,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         }
       },
       ".result-description": {
-        fontSize: "13px",
+        fontSize: "var(--fontSizeSmall)",
         color: theme.vars.palette.text.secondary,
         lineHeight: 1.4,
         marginTop: theme.spacing(1),
@@ -128,7 +128,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
           color: "var(--palette-primary-main)"
         },
         "& svg": {
-          fontSize: "15px"
+          fontSize: "var(--fontSizeNormal)"
         }
       },
       ".matched-tags-inline": {
@@ -143,7 +143,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         marginTop: theme.spacing(1.5)
       },
       ".result-tag": {
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         padding: theme.spacing(0.5, 1.5),
         borderRadius: "var(--rounded-lg)",
         backgroundColor: theme.vars.palette.action.selected,
@@ -151,7 +151,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         letterSpacing: "0.3px"
       },
       ".provider-tag": {
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         padding: "1px 5px",
         borderRadius: "var(--rounded-md)",
         letterSpacing: "0.3px",
@@ -180,7 +180,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(2),
-        fontSize: "11px"
+        fontSize: "var(--fontSizeSmaller)"
       },
       ".io-label": {
         color: theme.vars.palette.text.secondary,
@@ -196,7 +196,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       ".io-item": {
         padding: theme.spacing(0.5, 1),
         borderRadius: "3px",
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         borderLeft: "2px solid",
         backgroundColor: theme.vars.palette.action.hover
       }

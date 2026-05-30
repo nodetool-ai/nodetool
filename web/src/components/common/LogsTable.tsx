@@ -73,7 +73,7 @@ const tableStyles = (theme: Theme) =>
       padding: "0 12px",
       fontWeight: 500,
       color: theme.vars.palette.grey[400],
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       textTransform: "uppercase",
       letterSpacing: "0.05em"
     },
@@ -133,7 +133,7 @@ const tableStyles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary
     },
 
@@ -158,7 +158,7 @@ const tableStyles = (theme: Theme) =>
 
     ".timestamp": {
       fontFamily: theme.fontFamily2,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       opacity: 0,
       transition: "opacity 0.2s ease"
@@ -167,7 +167,7 @@ const tableStyles = (theme: Theme) =>
     ".empty": {
       height: "100%",
       color: theme.vars.palette.grey[500],
-      fontSize: "15px"
+      fontSize: "var(--fontSizeNormal)"
     },
 
     ".scroll-to-bottom": {
@@ -333,7 +333,7 @@ const RowItem = memo(({
                 maxHeight={300}
               >
                 <FlexColumn gap={0} sx={{ p: 2 }}>
-                  <pre style={{ margin: 0, fontSize: "13px", fontFamily: "monospace" }}>
+                  <pre style={{ margin: 0, fontSize: "var(--fontSizeSmall)", fontFamily: "monospace" }}>
                     {JSON.stringify(row.data, null, 2)}
                   </pre>
                   <FlexRow justify="flex-end" sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}>

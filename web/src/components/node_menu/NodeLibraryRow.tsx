@@ -42,7 +42,7 @@ const rowStyles = (theme: Theme) =>
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.primary
     },
     ".nl-fav": {

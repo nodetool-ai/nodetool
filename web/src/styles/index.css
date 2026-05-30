@@ -70,7 +70,7 @@ hr {
 }
 
 .tiny {
-  font-size: 11px !important;
+  font-size: var(--fontSizeSmaller) !important;
 }
 
 /* SCROLLBARS */
@@ -153,7 +153,7 @@ img::selection {
   color: var(--palette-grey-1000);
   cursor: pointer;
   font-family: var(--fontFamily1), "Roboto", arial, sans-serif;
-  font-size: 15px;
+  font-size: var(--fontSizeNormal);
   height: 40px;
   /* letter-spacing: 0.25px; */
   outline: none;

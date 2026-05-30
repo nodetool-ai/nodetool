@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
     ".label-name": {
       flexGrow: 1,
       flexBasis: 0,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.grey[400]
     },
     ".label-description": {
@@ -40,7 +40,7 @@ const styles = (theme: Theme) =>
       width: "auto",
       minWidth: "70px",
       flexGrow: 0,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.grey[400],
       marginRight: "1.5em" // Account for delete button width
     },

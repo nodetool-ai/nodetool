@@ -16,7 +16,7 @@
   --microtip-transition-duration: 0.18s;
   --microtip-transition-easing: ease-in-out;
   --microtip-transition-delay: 0s;
-  --microtip-font-size: 13px;
+  --microtip-font-size: var(--fontSizeSmall);
   --microtip-font-weight: 400;
   --microtip-text-transform: none;
 }

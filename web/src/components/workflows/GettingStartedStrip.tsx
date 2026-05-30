@@ -27,14 +27,14 @@ const stripStyles = (theme: Theme) =>
       gap: "12px"
     },
     ".strip-title": {
-      fontSize: "15px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       letterSpacing: "0.5px",
       textTransform: "uppercase",
       color: theme.vars.palette.primary.main
     },
     ".strip-subtitle": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary
     },
     ".strip-row": {
