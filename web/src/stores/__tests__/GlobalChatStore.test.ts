@@ -864,6 +864,10 @@ describe("GlobalChatStore", () => {
       await store.getState().connect();
       await new Promise((resolve) => setTimeout(resolve, 50));
       await store.getState().createNewThread();
+      // connect() now sends the client_tools_manifest (the builtin ui_* tools
+      // are always registered). Clear it so each test asserts only what its
+      // own action sends.
+      sentData = undefined;
     });
 
     afterEach(() => {

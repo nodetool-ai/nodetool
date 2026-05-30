@@ -76,9 +76,6 @@ import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout"
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
-const StandaloneChat = React.lazy(
-  () => import("./components/chat/containers/StandaloneChat")
-);
 const StandaloneMiniApp = React.lazy(
   () => import("./components/miniapps/StandaloneMiniApp")
 );
@@ -271,24 +268,6 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <StandaloneMiniApp />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/standalone-chat/:thread_id?",
-      element: (
-        <ProtectedRoute>
-          <div
-            style={{
-              display: "flex",
-              width: "100%",
-              height: "100%"
-            }}
-          >
-            <PanelLeft />
-            <StandaloneChat />
-            <PanelBottom />
-          </div>
         </ProtectedRoute>
       )
     },

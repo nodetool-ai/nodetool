@@ -14,7 +14,7 @@ import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
-import AgentPanel from "./AgentPanel";
+import PanelChat from "../chat/containers/PanelChat";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
@@ -362,7 +362,7 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && <PanelHeadline title="Agent" />}
-          <AgentPanel />
+          <PanelChat />
         </FlexColumn>
       )}
     </>
