@@ -1,3 +1,6 @@
 ## 2026-05-25 - O(N*M) Edge Filtering Bottleneck
 **Learning:** In `GroupNode.tsx` and `graph.ts`, nested `Array.find()` and `Array.some()` inside `Array.filter()` loops on edges and group nodes created an O(N*M) operation, severely degrading performance for large workflows when dragging groups or computing graphs.
 **Action:** Always convert the target search array into a `Set` of IDs (O(N) creation) and use `Set.has()` inside the loop (O(1) lookup), reducing the complexity to O(N+M).
+## 2026-05-25 - O(M) mapping optimization in Asset Selection
+**Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/hooks/assets/useAssetSelection.ts` where `sortedAssets.find(...)` was inside `assetIds.map(...)`. Although `assetIndexMap` was already memoized for O(1) lookups, it wasn't being utilized here. The reviewer missed that it was already declared, likely due to a truncated hunk diff context or failure to review the whole file.
+**Action:** Replaced the nested `.find` with `.get` using the existing O(1) `assetIndexMap` to achieve O(M) overall lookup time. When code reviews suggest missing variables, double-check the full file source to confirm existence, not just the patch context.
