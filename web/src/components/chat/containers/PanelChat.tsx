@@ -4,7 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import ChatView from "./ChatView";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
-import { Caption, FlexColumn, Text } from "../../ui_primitives";
+import { AlertBanner, Caption, FlexColumn, Text } from "../../ui_primitives";
 
 /**
  * PanelChat — the unified chat for the editor's left side panel.
@@ -135,6 +135,11 @@ const PanelChat: React.FC = () => {
       fullHeight
       sx={{ overflow: "hidden", minHeight: 0 }}
     >
+      {error && (
+        <AlertBanner severity="error" sx={{ m: 1, flexShrink: 0 }}>
+          {error}
+        </AlertBanner>
+      )}
       <ChatView
         status={chatStatus}
         messages={messages}
