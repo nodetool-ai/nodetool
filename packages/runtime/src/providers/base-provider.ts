@@ -826,7 +826,7 @@ function applyUsageAttributes(span: Span, usage: LlmUsage | null): void {
     ...(usage.cachedInputTokens !== undefined && {
       "gen_ai.usage.cached_input_tokens": usage.cachedInputTokens
     }),
-    ...(usage.cost !== undefined && { "gen_ai.usage.cost_credits": usage.cost })
+    ...(usage.cost !== undefined && { "gen_ai.usage.cost_usd": usage.cost })
   });
 }
 

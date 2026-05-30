@@ -841,7 +841,7 @@ export class ProcessingContext {
         properties: Record<string, unknown>
       ) => Promise<Record<string, unknown>>)
     | null = null;
-  /** Provider charge reported by the current node execution (e.g. KIE creditsConsumed). */
+  /** Provider charge (USD) reported by the current node execution (e.g. FAL/KIE generation). */
   private _providerCost: ProviderCost | null = null;
   /** Optional executor resolver for sub-workflow execution. */
   private _resolveExecutor:
