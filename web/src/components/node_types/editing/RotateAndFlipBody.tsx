@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
     "& > .handle-column": {
       top: theme.spacing(1),
       bottom: theme.spacing(1),
-      left: `calc(${theme.spacing(-0.5)})`
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -83,7 +83,7 @@ const styles = (theme: Theme) =>
     },
     ".controls": {
       flex: "0 0 auto",
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".angle-row": {
       paddingLeft: theme.spacing(0.5),
@@ -98,7 +98,7 @@ const styles = (theme: Theme) =>
       textAlign: "right"
     },
     ".action-row": {
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".outputs-row": {
       flex: "0 0 auto"

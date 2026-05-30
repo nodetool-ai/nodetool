@@ -28,7 +28,7 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
             component="span"
             className={isLast ? "namespace-part-last" : undefined}
             sx={{
-              fontWeight: isLast ? 500 : 300,
+              fontWeight: isLast ? 500 : 400,
               color: isLast ? "var(--palette-grey-400)" : "inherit"
             }}
           >
@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       padding: "12px 16px"
     },
     "& .node-name": {
-      fontSize: "16px",
+      fontSize: "15px",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       wordBreak: "break-word",
@@ -105,7 +105,7 @@ const styles = (theme: Theme) =>
     },
     "& .node-tags span": {
       fontWeight: 500,
-      fontSize: "10px",
+      fontSize: "11px",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
       }
     },
     "& .node-use-cases": {
-      fontSize: "12px",
+      fontSize: "13px",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.5,
       marginTop: "8px",
@@ -148,7 +148,7 @@ const styles = (theme: Theme) =>
       borderLeft: `3px solid ${theme.vars.palette.error.main}`
     },
     "& .error-text": {
-      fontSize: "12px",
+      fontSize: "13px",
       color: theme.vars.palette.error.main,
       lineHeight: 1.4
     },
@@ -165,7 +165,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-sm)",
       backgroundColor: "transparent",
       color: "var(--palette-grey-400)",
-      fontSize: "9px",
+      fontSize: "11px",
       textTransform: "uppercase",
       textAlign: "left",
       flexGrow: 1,
@@ -185,7 +185,7 @@ const styles = (theme: Theme) =>
     "& .action-button": {
       flex: 1,
       minWidth: "80px",
-      fontSize: "12px",
+      fontSize: "13px",
       padding: "6px 10px",
       borderRadius: "var(--rounded-md)",
       marginTop: "12px",

@@ -158,7 +158,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                   sx={{
                     backgroundColor: "var(--palette-grey-800)",
                     color: "var(--palette-grey-200)",
-                    fontSize: "0.7rem"
+                    fontSize: "11px"
                   }}
                 />
               ))}

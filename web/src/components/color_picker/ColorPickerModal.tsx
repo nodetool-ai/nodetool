@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".modal-title": {
-      fontSize: "14px",
+      fontSize: "15px",
       fontWeight: 600,
       color: theme.vars.palette.text.primary
     },
@@ -123,7 +123,7 @@ const styles = (theme: Theme) =>
       bottom: 0
     },
     ".preview-label": {
-      fontSize: "10px",
+      fontSize: "11px",
       fontWeight: 600,
       position: "relative",
       zIndex: 1

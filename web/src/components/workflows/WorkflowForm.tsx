@@ -75,7 +75,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
       color: theme.vars.palette.grey[200],
-      marginBottom: theme.spacing(0.75),
+      marginBottom: theme.spacing(1),
       display: "block"
     },
     
@@ -104,7 +104,7 @@ const styles = (theme: Theme) =>
     },
     
     ".MuiFormHelperText-root": {
-      fontSize: "0.7rem",
+      fontSize: "11px",
       color: theme.vars.palette.grey[400],
       marginTop: theme.spacing(0.5),
       marginLeft: 0

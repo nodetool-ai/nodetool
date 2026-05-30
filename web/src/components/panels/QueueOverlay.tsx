@@ -85,7 +85,7 @@ const cardSx: SxProps<Theme> = {
   border: "1px solid rgba(255,255,255,0.05)",
   borderRadius: "10px",
   px: 1.5,
-  py: 1.25
+  py: 1
 };
 
 const Dot = ({ color = "primary.main" }: { color?: string }) => (
@@ -163,7 +163,7 @@ const RunningCard = memo(function RunningCard({
           hoverColor="error.main"
         />
       </FlexRow>
-      <Box sx={{ mt: 1.25 }}>
+      <Box sx={{ mt: 1 }}>
         <RunBar />
       </Box>
     </Box>
@@ -230,7 +230,7 @@ const SectionLabel = ({ children }: { children: string }) => (
     sx={{
       display: "block",
       px: 0.5,
-      pt: 1.75,
+      pt: 2,
       pb: 1,
       textTransform: "uppercase",
       letterSpacing: "0.07em"
@@ -420,7 +420,7 @@ const QueueOverlay = memo(function QueueOverlay() {
 
   return (
     <Box css={overlayStyles(theme)} data-state={hasJobs ? "open" : "closed"}>
-      <FlexRow align="center" gap={1} sx={{ px: 1.75, py: 1.5, flex: "0 0 auto" }}>
+      <FlexRow align="center" gap={1} sx={{ px: 2, py: 1.5, flex: "0 0 auto" }}>
         <LayersIcon sx={{ fontSize: 17, color: "text.secondary" }} />
         <Text size="normal" weight={600} sx={{ flex: 1 }}>
           Queue
@@ -442,7 +442,7 @@ const QueueOverlay = memo(function QueueOverlay() {
         />
       </FlexRow>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", px: 1.75, pb: 1.75 }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto", px: 2, pb: 2 }}>
         {running.length > 0 && (
           <>
             <SectionLabel>Running</SectionLabel>

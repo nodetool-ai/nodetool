@@ -36,7 +36,7 @@ const containerStyles = (theme: Theme) =>
       inset: 0,
       zIndex: theme.zIndex.modal,
       backgroundColor: theme.vars.palette.background.default,
-      padding: 12
+      padding: 8
     },
     ".filters": {
       display: "block",
@@ -45,7 +45,7 @@ const containerStyles = (theme: Theme) =>
     },
     ".filters-left": {
       display: "flex",
-      gap: 10,
+      gap: 8,
       rowGap: 8,
       alignItems: "center",
       flexWrap: "wrap",

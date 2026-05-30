@@ -82,7 +82,7 @@ const styles = (theme: Theme) =>
     "& > .handle-column": {
       top: theme.spacing(1),
       bottom: theme.spacing(1),
-      left: `calc(${theme.spacing(-0.5)})`
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.25)
+      gap: theme.spacing(0.5)
     },
     ".histogram-canvas": {
       width: "100%",
@@ -123,7 +123,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       ".MuiToggleButton-root": {
         flex: "1 1 auto",
-        padding: `${theme.spacing(0.25)} ${theme.spacing(0.5)}`,
+        padding: `${theme.spacing(0.5)} ${theme.spacing(0.5)}`,
         fontSize: theme.fontSizeSmaller,
         fontFamily: theme.fontFamily2,
         textTransform: "none",
@@ -150,7 +150,7 @@ const styles = (theme: Theme) =>
       textAlign: "right"
     },
     ".action-row": {
-      paddingTop: theme.spacing(0.25),
+      paddingTop: theme.spacing(0.5),
       display: "flex",
       justifyContent: "flex-end"
     },

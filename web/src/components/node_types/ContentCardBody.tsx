@@ -107,21 +107,21 @@ const styles = (theme: Theme) =>
       "& > .handle-column": {
         top: 0,
         bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
+        left: `calc(${theme.spacing(0)})`
       },
       ".image-grid-preview": {
         width: "100%",
         height: "100%",
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
-        gap: theme.spacing(0.75),
-        padding: theme.spacing(0.75),
+        gap: theme.spacing(1),
+        padding: theme.spacing(1),
         overflow: "auto",
         alignContent: "start"
       },
       ".image-grid-tile": {
         aspectRatio: "1 / 1",
-        minHeight: theme.spacing(10),
+        minHeight: theme.spacing(8),
         borderRadius: "var(--rounded-sm)",
         overflow: "hidden"
       },

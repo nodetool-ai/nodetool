@@ -37,7 +37,7 @@ const badgeButtonStyles = (theme: Theme) =>
   css({
     cursor: "pointer",
     borderRadius: theme.rounded.xs,
-    padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+    padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
     border: "none",
     background: "transparent",
     display: "inline-flex",

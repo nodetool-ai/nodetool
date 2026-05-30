@@ -295,7 +295,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             sx={{
               padding: "3px 10px",
               minWidth: "unset",
-              fontSize: "0.7rem",
+              fontSize: "11px",
               fontWeight: 600,
               textTransform: "none",
               lineHeight: 1.4,
@@ -331,7 +331,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         </Box>
       </Box>
       <Box className="date-container">
-        {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "0.85rem", color: "warning.main" }} />}
+        {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "15px", color: "warning.main" }} />}
         {!hideDate && (
           <Text
             className="date"

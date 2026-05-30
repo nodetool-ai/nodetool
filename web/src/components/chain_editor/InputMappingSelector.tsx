@@ -135,8 +135,8 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
-                px: 1.25,
-                py: 0.75,
+                px: 1,
+                py: 1,
                 borderRadius: 1,
                 border: `1px solid ${
                   mapping
@@ -227,7 +227,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
             primary={`Source for "${activeInput}"`}
             secondary="Pick which node output feeds this input"
             slotProps={{
-              primary: { sx: { fontWeight: 700 } },
+              primary: { sx: { fontWeight: 600 } },
             }}
           />
         </MenuItem>

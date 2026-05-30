@@ -58,7 +58,7 @@ const styles = (theme: Theme) =>
       marginBottom: "0.1em"
     },
     ".missing-node-text": {
-      fontWeight: "bold",
+      fontWeight: 600,
       textAlign: "center",
       color: theme.vars.palette.error.main,
       padding: 0,

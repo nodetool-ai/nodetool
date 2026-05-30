@@ -584,7 +584,7 @@ const GlobalChat: React.FC = () => {
                   "&:hover": {
                     backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.98)`
                   },
-                  "& svg": { fontSize: "1.25rem" }
+                  "& svg": { fontSize: "18px" }
                 }}
               >
                 <ForumIcon />

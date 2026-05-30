@@ -132,7 +132,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       border: "none",
       cursor: "pointer",
       fontFamily: "JetBrains Mono, monospace",
-      fontSize: "0.75rem",
+      fontSize: "13px",
       fontWeight: 500,
       color: currentPreset
         ? theme.palette.primary.main
@@ -186,7 +186,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         sx={containerSx}
       >
         <ToolbarIconButton
-          icon={<RemoveIcon sx={{ fontSize: "1rem" }} />}
+          icon={<RemoveIcon sx={{ fontSize: "15px" }} />}
           tooltip={getShortcutTooltip("zoomOut")}
           tooltipPlacement="top"
           onClick={handleZoomOut}
@@ -198,7 +198,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           title={
             <Box>
               <Box>{getShortcutTooltip("resetZoom")}</Box>
-              <Box sx={{ mt: 0.5, fontSize: "0.7rem", opacity: 0.8 }}>
+              <Box sx={{ mt: 0.5, fontSize: "11px", opacity: 0.8 }}>
                 Click for zoom presets
               </Box>
             </Box>
@@ -215,7 +215,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         </Tooltip>
 
         <ToolbarIconButton
-          icon={<AddIcon sx={{ fontSize: "1rem" }} />}
+          icon={<AddIcon sx={{ fontSize: "15px" }} />}
           tooltip={getShortcutTooltip("zoomIn")}
           tooltipPlacement="top"
           onClick={handleZoomIn}
@@ -233,7 +233,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         />
 
         <ToolbarIconButton
-          icon={<CenterFocusStrongIcon sx={{ fontSize: "1rem" }} />}
+          icon={<CenterFocusStrongIcon sx={{ fontSize: "15px" }} />}
           tooltip={getShortcutTooltip("fitView")}
           tooltipPlacement="top"
           onClick={handleFitView}
@@ -282,7 +282,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
               <ListItemText
                 primary={`${Math.round(preset * 100)}%`}
                 primaryTypographyProps={{
-                  fontSize: "0.8rem",
+                  fontSize: "13px",
                   fontFamily: "JetBrains Mono, monospace",
                   textAlign: "center"
                 }}

@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-sm, 4px)",
       border: `1px solid ${theme.vars.palette.divider}`,
       background: theme.vars.palette.background.default,
-      padding: theme.spacing(0.75),
+      padding: theme.spacing(1),
       overflow: "auto"
     },
     ".composer-input": {
@@ -85,8 +85,8 @@ const styles = (theme: Theme) =>
     },
     ".composer-placeholder": {
       position: "absolute",
-      top: theme.spacing(0.75),
-      left: theme.spacing(0.75),
+      top: theme.spacing(1),
+      left: theme.spacing(1),
       color: theme.vars.palette.text.disabled,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
@@ -107,7 +107,7 @@ const styles = (theme: Theme) =>
     },
     ".variable-insert-chip": {
       cursor: "pointer",
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
       borderRadius: "var(--rounded-sm, 4px)",
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",

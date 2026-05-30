@@ -177,7 +177,7 @@ export const editorControlsComponents: Components<Theme> = {
     styleOverrides: {
       root: ({ theme }) => ({
         [`&.${editorUiClasses.menuItem}`]: {
-          fontWeight: 300,
+          fontWeight: 400,
           fontSize: theme.fontSizeTiny,
           padding: "4px 8px",
           transition: theme.transitions.create(["background-color"], {

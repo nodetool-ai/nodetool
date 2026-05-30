@@ -540,7 +540,7 @@ ul.multi-outputs li::marker {
 
 .handle-tooltip-name {
   font-size: var(--fontSizeSmaller);
-  font-weight: bold;
+  font-weight: 600;
   border: 0;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
   padding: 0.25em 0.5em;

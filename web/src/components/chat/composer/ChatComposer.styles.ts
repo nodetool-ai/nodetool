@@ -18,7 +18,7 @@ export const createStyles = (theme: Theme) =>
       alignItems: "stretch",
       borderRadius: 24,
       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1.5)}`,
+      padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       minHeight: "44px",
       boxSizing: "border-box",
       position: "relative",
@@ -61,7 +61,7 @@ export const createStyles = (theme: Theme) =>
       outline: "none",
       border: "0",
       borderColor: "transparent",
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1.25)} 0 ${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(1)} ${theme.spacing(1)} 0 ${theme.spacing(1)}`,
       margin: "0",
       boxSizing: "border-box",
       "&::placeholder": {
@@ -73,12 +73,12 @@ export const createStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       flexDirection: "row",
-      gap: theme.spacing(0.75),
+      gap: theme.spacing(1),
       flexShrink: 0,
-      padding: `0 ${theme.spacing(0.75)}`,
+      padding: `0 ${theme.spacing(1)}`,
       "& button": {
         top: "0",
-        padding: theme.spacing(0.75),
+        padding: theme.spacing(1),
         position: "relative",
         borderRadius: 12
       }
@@ -89,8 +89,8 @@ export const createStyles = (theme: Theme) =>
     ".file-preview-container": {
       display: "flex",
       flexWrap: "wrap",
-      gap: theme.spacing(0.75),
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1)}`
+      gap: theme.spacing(1),
+      padding: `${theme.spacing(1)} ${theme.spacing(1)}`
 
       // Mobile styles handled via separate CSS file
     },
@@ -122,7 +122,7 @@ export const createStyles = (theme: Theme) =>
         alignItems: "center",
 
         svg: {
-          fontSize: "24px"
+          fontSize: "18px"
         },
 
         ".file-name": {

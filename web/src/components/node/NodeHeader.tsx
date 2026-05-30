@@ -188,8 +188,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           width: "16px",
           height: "16px",
           borderRadius: BORDER_RADIUS.pill,
-          fontSize: "0.6rem",
-          fontWeight: 700,
+          fontSize: "11px",
+          fontWeight: 600,
           letterSpacing: "0.02em",
           color: "var(--palette-text-primary)",
           backgroundColor: "rgba(255, 255, 255, 0.12)",
@@ -401,7 +401,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               }
             }}
           >
-            <OpenInNew sx={{ fontSize: "0.85rem" }} />
+            <OpenInNew sx={{ fontSize: "15px" }} />
           </ToolbarIconButton>
         )}
         {data.bypassed && (
@@ -414,7 +414,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             onClick={handleOpenLogsDialog}
             sx={{ padding: "4px" }}
           >
-            <ListAltIcon sx={{ fontSize: "1rem" }} />
+            <ListAltIcon sx={{ fontSize: "15px" }} />
           </ToolbarIconButton>
         )}
       </FlexRow>

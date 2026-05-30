@@ -224,7 +224,7 @@ const styles = (theme: Theme) =>
       padding: 0,
       backgroundColor: theme.vars.palette.background.default,
       borderTop: `1px solid ${theme.vars.palette.divider}`,
-      fontSize: "12px",
+      fontSize: "13px",
       lineHeight: 1,
       color: theme.vars.palette.text.secondary,
       userSelect: "none",
@@ -273,7 +273,7 @@ const styles = (theme: Theme) =>
         height: "100%",
         padding: "0 12px",
         color: theme.vars.palette.text.secondary,
-        fontSize: "12px",
+        fontSize: "13px",
         lineHeight: 1,
         fontWeight: 400,
         textTransform: "none",
@@ -287,7 +287,7 @@ const styles = (theme: Theme) =>
         whiteSpace: "nowrap",
         transition: "background-color 120ms, color 120ms",
         "& svg": {
-          fontSize: "14px",
+          fontSize: "15px",
           color: theme.vars.palette.text.disabled
         },
         "&:hover": {
@@ -315,7 +315,7 @@ const styles = (theme: Theme) =>
       "& .tab-count": {
         color: theme.vars.palette.text.disabled,
         fontVariantNumeric: "tabular-nums",
-        fontSize: "11.5px"
+        fontSize: "11px"
       },
 
       "& .meta-cluster": {

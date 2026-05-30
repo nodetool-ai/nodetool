@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
     "& .search-input": {
       width: "100%",
       padding: "8px 12px",
-      fontSize: "14px",
+      fontSize: "15px",
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "var(--rounded-lg)",
       backgroundColor: theme.vars.palette.background.default,
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
     },
     "& .results-count": {
       padding: "8px 16px",
-      fontSize: "12px",
+      fontSize: "13px",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       borderBottom: `1px solid ${theme.vars.palette.divider}`
@@ -119,7 +119,7 @@ const styles = (theme: Theme) =>
     },
     "& .result-name": {
       flex: 1,
-      fontSize: "14px",
+      fontSize: "15px",
       color: theme.vars.palette.text.primary,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -170,7 +170,7 @@ const styles = (theme: Theme) =>
       textAlign: "center"
     },
     "& .empty-icon": {
-      fontSize: "32px",
+      fontSize: "18px",
       marginBottom: "8px",
       opacity: 0.5
     },

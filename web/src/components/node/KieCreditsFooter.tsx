@@ -131,7 +131,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
       py: 0,
       height: 20,
       borderRadius: 1,
-      fontSize: "0.65rem",
+      fontSize: "11px",
       fontWeight: 600,
       lineHeight: 1.4,
       minHeight: 0,
@@ -180,7 +180,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
       >
         {pricing?.source === "live" && (
           <span
-            style={{ marginRight: 3, fontSize: "0.55rem", opacity: 0.85 }}
+            style={{ marginRight: 3, fontSize: "11px", opacity: 0.85 }}
             aria-label="live price"
           >
             ●
@@ -196,7 +196,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
         placement={placement}
         paperSx={{
           minWidth: 220,
-          fontSize: "12px",
+          fontSize: "13px",
         }}
       >
         {pricing ? (
@@ -214,7 +214,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
               </Caption>
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "13px",
                   mt: 0.5,
                   whiteSpace: "pre-line",
                   color: theme.vars.palette.text.secondary,
@@ -240,7 +240,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
               </Caption>
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "13px",
                   mt: 0.5,
                   color: theme.vars.palette.text.secondary,
                 }}
@@ -269,7 +269,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
               <LoadingSpinner size={12} />
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "13px",
                   color: theme.vars.palette.text.secondary,
                 }}
               >
@@ -279,7 +279,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
           ) : creditsData === "error" || creditsData === null ? (
             <Text
               sx={{
-                fontSize: "12px",
+                fontSize: "13px",
                 color: theme.vars.palette.text.disabled,
                 mt: 0.5,
               }}
@@ -290,7 +290,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             <FlexColumn gap={0.5} sx={{ mt: 0.5 }}>
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "13px",
                   color: theme.vars.palette.warning.main,
                   lineHeight: 1.4,
                   wordBreak: "break-word",

@@ -21,13 +21,13 @@ const headerStyles = (theme: Theme) =>
     display: "flex",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    gap: 20,
-    paddingBottom: 16,
+    gap: 8,
+    paddingBottom: 8,
     flexWrap: "wrap",
     ".sec-title": {
       display: "flex",
       alignItems: "baseline",
-      gap: 12
+      gap: 8
     },
     ".sec-title h2": {
       fontSize: 19,
@@ -44,7 +44,7 @@ const headerStyles = (theme: Theme) =>
     ".sec-actions": {
       display: "flex",
       alignItems: "center",
-      gap: 10
+      gap: 8
     }
   });
 
@@ -75,7 +75,7 @@ const searchStyles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",
-    gap: 9,
+    gap: 8,
     height: 32,
     padding: "0 11px",
     background: theme.vars.palette.c_node_bg,
@@ -158,7 +158,7 @@ const linkStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
     fontSize: 13,
     color: theme.vars.palette.primary.main,
     background: "none",

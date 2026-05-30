@@ -91,7 +91,7 @@ const styles = (theme: Theme) =>
       padding: "4px"
     },
     ".header-actions .MuiIconButton-root svg": {
-      fontSize: "0.8rem"
+      fontSize: "13px"
     },
     ".constant-string-body": {
       position: "relative",

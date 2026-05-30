@@ -22,7 +22,7 @@
   width: calc(100% - 32px);
   margin: 16px;
   padding: 12px 16px;
-  font-size: 20px;
+  font-size: 18px;
   border: none;
   outline: none;
   background: var(--palette-grey-800);
@@ -46,7 +46,7 @@
   content-visibility: auto;
   cursor: pointer;
   height: 40px;
-  font-size: 16px;
+  font-size: 15px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -107,7 +107,7 @@
 
 [cmdk-group-heading] {
   user-select: none;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   margin: 16px 16px 8px;
   color: var(--palette-grey-500);
@@ -116,7 +116,7 @@
 }
 
 [cmdk-empty] {
-  font-size: 14px;
+  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;

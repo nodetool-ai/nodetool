@@ -6,7 +6,7 @@ import { isLikelyMarkdown } from "./markdown.helpers";
 const MARKDOWN_TEXT_STYLE = {
   padding: "0 0.5em",
   whiteSpace: "pre-wrap" as const,
-  fontWeight: "300" as const
+  fontWeight: 400 as const
 };
 
 type MaybeMarkdownProps = {

@@ -594,7 +594,7 @@ const AppWrapper = () => {
                       <span
                         style={{
                           color: "var(--palette-text-secondary)",
-                          fontSize: "0.9rem"
+                          fontSize: "15px"
                         }}
                       >
                         Loading NodeTool…
@@ -616,7 +616,7 @@ const AppWrapper = () => {
                       <span
                         style={{
                           color: "var(--palette-text-primary)",
-                          fontSize: "1rem"
+                          fontSize: "15px"
                         }}
                       >
                         Error loading application metadata.
@@ -631,7 +631,7 @@ const AppWrapper = () => {
                           backgroundColor: "transparent",
                           color: "var(--palette-text-primary)",
                           cursor: "pointer",
-                          fontSize: "0.85rem"
+                          fontSize: "15px"
                         }}
                       >
                         Refresh Page
@@ -660,7 +660,7 @@ const AppWrapper = () => {
                             <span
                               style={{
                                 color: "var(--palette-text-secondary)",
-                                fontSize: "0.9rem"
+                                fontSize: "15px"
                               }}
                             >
                               Preparing workspace…

@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       borderRadius: 6,
       display: "flex",
       alignItems: "flex-start",
-      gap: 10,
+      gap: 8,
       lineHeight: 1.35,
       transition: "background-color 120ms ease"
     },

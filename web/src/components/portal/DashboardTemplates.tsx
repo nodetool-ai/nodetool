@@ -26,17 +26,17 @@ const MAX_VISIBLE = 8;
 
 const styles = (theme: Theme) =>
   css({
-    paddingTop: 38,
+    paddingTop: 8,
     ".cats": {
       display: "flex",
       gap: 8,
       flexWrap: "wrap",
-      marginBottom: 18
+      marginBottom: 8
     },
     ".cat": {
       display: "inline-flex",
       alignItems: "center",
-      gap: 7,
+      gap: 6,
       height: 30,
       padding: "0 14px",
       borderRadius: 9999,
@@ -66,7 +66,7 @@ const styles = (theme: Theme) =>
     ".tpl-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 16,
+      gap: 8,
       [theme.breakpoints.down("lg")]: {
         gridTemplateColumns: "repeat(3, 1fr)"
       },

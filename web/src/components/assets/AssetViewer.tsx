@@ -245,7 +245,7 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translateX(-50%)",
       zIndex: 10001,
-      padding: theme.spacing(0.75, 1.5),
+      padding: theme.spacing(1, 1.5),
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: theme.shape.borderRadius,
       fontSize: theme.fontSizeSmaller,
@@ -337,7 +337,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       color: theme.vars.palette.text.primary,
       border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
       borderRadius: "50%",
-      padding: theme.spacing(0.6),
+      padding: theme.spacing(0.5),
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.primary.main

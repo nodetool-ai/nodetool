@@ -132,13 +132,13 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(0.5),
-      paddingRight: theme.spacing(0.25)
+      paddingRight: theme.spacing(0.5)
     },
     ".add-row": {
       flex: "0 0 auto",
       display: "flex",
       justifyContent: "flex-start",
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".outputs-row": {
       flex: "0 0 auto"

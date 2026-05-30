@@ -130,7 +130,7 @@ const styles = (
           "background-color 140ms ease-out, color 140ms ease-out",
 
         "& svg": {
-          fontSize: "1.125rem",
+          fontSize: "18px",
           color: theme.vars.palette.text.secondary,
           transition: "color 140ms ease-out"
         },
@@ -394,7 +394,7 @@ const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
       }
     },
     "& svg": {
-      fontSize: "1.25rem"
+      fontSize: "18px"
     }
   });
 
@@ -417,7 +417,7 @@ const mobileHeaderExtrasStyles = (theme: Theme) =>
         boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}44 inset`
       },
       "& svg": {
-        fontSize: "1.1rem"
+        fontSize: "18px"
       }
     }
   });

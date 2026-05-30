@@ -165,7 +165,7 @@ const styles = (theme: Theme) =>
       transition: "all 0.15s ease-out",
 
       "& svg": {
-        fontSize: "20px"
+        fontSize: "18px"
       },
 
       "&:hover": {
@@ -183,7 +183,7 @@ const styles = (theme: Theme) =>
       height: "44px",
       minHeight: "44px",
       "& svg": {
-        fontSize: "24px"
+        fontSize: "18px"
       },
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
@@ -232,8 +232,8 @@ const styles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.primary.main,
         color: theme.vars.palette.primary.contrastText,
         border: `2px solid ${theme.vars.palette.grey[900]}`,
-        fontSize: "0.6rem",
-        fontWeight: 700,
+        fontSize: "11px",
+        fontWeight: 600,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -599,7 +599,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
         {isComfyWorkflow && (
           <Tooltip title={comfyIsConnected ? `ComfyUI: ${comfyBaseUrl}` : "ComfyUI not connected — configure in Settings"}>
-            <FlexRow align="center" gap={0.5} sx={{ mr: 1, fontSize: "0.7rem", color: "text.secondary" }}>
+            <FlexRow align="center" gap={0.5} sx={{ mr: 1, fontSize: "11px", color: "text.secondary" }}>
               <Box
                 sx={{
                   width: 8,

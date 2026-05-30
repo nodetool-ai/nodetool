@@ -88,7 +88,7 @@ const styles = (theme: Theme) =>
       gap: "12px"
     },
     ".title-text": {
-      fontSize: "14px",
+      fontSize: "15px",
       fontWeight: 600,
       color: theme.vars.palette.text.primary
     },

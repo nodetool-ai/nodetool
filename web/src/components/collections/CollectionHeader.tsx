@@ -19,7 +19,7 @@ const CollectionHeader = () => {
         }}
         onClick={(e) => setFormatInfoAnchor(e.currentTarget)}
       >
-        <InfoIcon sx={{ fontSize: "1rem" }} />
+        <InfoIcon sx={{ fontSize: "15px" }} />
         <Text size="small" weight={600}>
           What are collections?
         </Text>

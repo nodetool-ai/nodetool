@@ -203,7 +203,7 @@ const ModelListItem: React.FC<
                   label={`Works with ${compatibilityCounts.total} node${compatibilityCounts.total > 1 ? "s" : ""}`}
                   size="small"
                   onClick={handleOpenDialog}
-                  icon={<VisibilityIcon style={{ fontSize: "1rem" }} />}
+                  icon={<VisibilityIcon style={{ fontSize: "15px" }} />}
                   sx={{
                     height: 20,
                     fontSize: theme.vars.fontSizeTiny,

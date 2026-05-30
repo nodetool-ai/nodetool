@@ -167,7 +167,7 @@ const CollectionItem = ({
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    py: 2.5,
+    py: 3,
     px: 3,
     position: "relative"
   }), [dragOverCollection, collection.name]);
@@ -216,7 +216,7 @@ const CollectionItem = ({
         >
           <Text
             size="normal"
-            weight={700}
+            weight={600}
             sx={{
               color: "primary.main",
               display: "flex",
@@ -226,7 +226,7 @@ const CollectionItem = ({
               textShadow: "0 0 10px rgb(var(--mui-palette-primary-mainChannel) / 0.2)"
             }}
           >
-            <UploadFileIcon sx={{ fontSize: "1.5rem" }} />
+            <UploadFileIcon sx={{ fontSize: "18px" }} />
             Drop files to upload
           </Text>
         </FlexRow>
@@ -238,7 +238,7 @@ const CollectionItem = ({
             truncate
             sx={{
               color: "text.primary",
-              fontSize: "1.1rem",
+              fontSize: "18px",
               flexShrink: 0,
               maxWidth: "150px"
             }}

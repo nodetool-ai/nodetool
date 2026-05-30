@@ -16,7 +16,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-compose-card": {
       width: "100%",
       borderRadius: 28,
-      padding: `${theme.spacing(2.25)} ${theme.spacing(2)} ${theme.spacing(1.5)}`,
+      padding: `${theme.spacing(2)} ${theme.spacing(2)} ${theme.spacing(1.5)}`,
       background:
         theme.palette.mode === "light"
           ? theme.vars.palette.background.paper
@@ -33,7 +33,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
           : "0 10px 40px rgba(0,0,0,0.45)",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1.75),
+      gap: theme.spacing(2),
       transition: `${MOTION.border}, ${MOTION.shadow}`,
       "&:focus-within": {
         borderColor:
@@ -76,7 +76,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-chip-row": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.25),
+      gap: theme.spacing(1),
       width: "100%",
       padding: `0 ${theme.spacing(2)}`,
       boxSizing: "border-box",
@@ -88,7 +88,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       height: 4,
       borderRadius: BORDER_RADIUS.circle,
       background: theme.vars.palette.grey[700],
-      margin: `0 ${theme.spacing(0.25)}`
+      margin: `0 ${theme.spacing(0.5)}`
     },
 
     ".media-chip-row .tools-button": {
@@ -150,7 +150,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       height: 36,
-      padding: `0 ${theme.spacing(2.5)}`,
+      padding: `0 ${theme.spacing(3)}`,
       borderRadius: BORDER_RADIUS.pill,
       background: `linear-gradient(135deg, ${theme.vars.palette.primary.main} 0%, ${theme.vars.palette.primary.light} 100%)`,
       color: theme.vars.palette.primary.contrastText,
@@ -196,7 +196,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       display: "flex",
       flexWrap: "wrap",
       alignItems: "center",
-      gap: theme.spacing(0.75),
+      gap: theme.spacing(1),
       padding: `0 ${theme.spacing(2)}`,
       boxSizing: "border-box"
     },

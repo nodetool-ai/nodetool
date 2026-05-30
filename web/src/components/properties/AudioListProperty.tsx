@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
     },
     ".audio-icon": {
       color: theme.vars.palette.grey[400],
-      fontSize: "24px"
+      fontSize: "18px"
     },
     ".audio-content": {
       flex: 1,
@@ -91,7 +91,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".remove-button .MuiSvgIcon-root": {
-      fontSize: "14px"
+      fontSize: "15px"
     },
     ".dropzone": {
       position: "relative",
@@ -124,7 +124,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       textTransform: "uppercase",
       letterSpacing: "1px",
-      fontSize: "10px",
+      fontSize: "11px",
       color: theme.vars.palette.grey[500],
       margin: "1em",
       lineHeight: "1.1em"

@@ -40,16 +40,16 @@ const styles = (theme: Theme) =>
     borderRadius: 14,
     backgroundColor: theme.vars.palette.background.paper,
     border: `1px solid ${theme.vars.palette.divider}`,
-    padding: 14,
+    padding: 8,
     display: "flex",
     flexDirection: "column",
-    gap: 12,
+    gap: 8,
 
     ".media-output-header": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: 12,
+      gap: 8,
       flexWrap: "wrap",
       color: theme.vars.palette.text.secondary
     },
@@ -57,7 +57,7 @@ const styles = (theme: Theme) =>
     ".media-output-meta": {
       display: "flex",
       alignItems: "center",
-      gap: 10,
+      gap: 8,
       flexWrap: "wrap"
     },
 

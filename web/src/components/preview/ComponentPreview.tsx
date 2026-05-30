@@ -461,7 +461,7 @@ const PreviewRecommendedModels: React.FC = () => {
         bgcolor: theme.palette.background.paper
       }}
     >
-      <Text size="big" weight={700} sx={{ mb: 1 }}>
+      <Text size="big" weight={600} sx={{ mb: 1 }}>
         Recommended Models
       </Text>
       <Text size="small" color="secondary" sx={{ mb: 3 }}>
@@ -605,7 +605,7 @@ const PreviewIndex: React.FC = () => {
         minHeight: "100vh"
       }}
     >
-      <Text size="big" weight={700} sx={{ mb: 1 }}>
+      <Text size="big" weight={600} sx={{ mb: 1 }}>
         Component Previews
       </Text>
       <Text size="small" color="secondary" sx={{ mb: 4 }}>

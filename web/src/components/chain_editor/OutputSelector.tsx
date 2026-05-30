@@ -34,8 +34,8 @@ export const OutputSelector: React.FC<OutputSelectorProps> = ({ outputs, selecte
         sx={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 0.75,
-          px: 1.25,
+          gap: 1,
+          px: 1,
           py: 0.5,
           borderRadius: 1,
           border: `1px solid ${theme.vars.palette.primary.main}30`,

@@ -53,14 +53,17 @@ export const Label: React.FC<LabelProps> = ({
 }) => {
   const theme = useTheme();
 
+  // Label is the sanctioned "label" role (13px / 500). The `small` variant
+  // drops to the caption combo (11px / 400). Both stay within the 4 combos.
   const getFontSize = () => {
     const sizeMap = {
-      small: theme.fontSizeSmaller,
-      normal: theme.fontSizeSmall,
-      large: theme.fontSizeNormal
+      small: theme.fontSizeSmaller, // 11px — caption combo
+      normal: theme.fontSizeSmall, // 13px — label combo
+      large: theme.fontSizeSmall // 13px — label combo
     };
     return sizeMap[size];
   };
+  const fontWeight = size === "small" ? 400 : 500;
 
   const getColor = () => {
     if (error) {
@@ -78,7 +81,7 @@ export const Label: React.FC<LabelProps> = ({
       htmlFor={htmlFor}
       sx={{
         fontSize: getFontSize(),
-        fontWeight: 500,
+        fontWeight,
         color: getColor(),
         display: "block",
         marginBottom: theme.spacing(0.5),

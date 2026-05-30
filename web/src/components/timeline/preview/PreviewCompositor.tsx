@@ -89,7 +89,7 @@ const overlayBadgeStyles = (color: string) =>
     backgroundColor: color,
     color: "#fff",
     pointerEvents: "none",
-    fontWeight: 700,
+    fontWeight: 600,
     letterSpacing: 0.5,
     textTransform: "uppercase"
   });

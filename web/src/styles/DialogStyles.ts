@@ -63,7 +63,7 @@ const dialogStyles = (theme: Theme) =>
     },
     ".button-confirm": {
       color: "var(--palette-primary-main)",
-      fontWeight: "bold"
+      fontWeight: 600
     },
     ".button-confirm.MuiButton-containedError": {
       color: theme.vars.palette.error.contrastText

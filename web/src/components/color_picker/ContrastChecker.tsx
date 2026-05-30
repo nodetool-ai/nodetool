@@ -34,21 +34,21 @@ const styles = (theme: Theme) =>
       gap: "4px"
     },
     ".preview-label": {
-      fontSize: "10px",
+      fontSize: "11px",
       textTransform: "uppercase",
       opacity: 0.8
     },
     ".preview-text": {
-      fontSize: "14px",
+      fontSize: "15px",
       fontWeight: 500
     },
     ".preview-text-large": {
       fontSize: "18px",
-      fontWeight: 700
+      fontWeight: 600
     },
     ".contrast-ratio": {
-      fontSize: "24px",
-      fontWeight: 700,
+      fontSize: "18px",
+      fontWeight: 600,
       textAlign: "center",
       margin: "8px 0"
     },
@@ -93,7 +93,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".cb-label": {
-      fontSize: "9px",
+      fontSize: "11px",
       color: theme.vars.palette.grey[500],
       textAlign: "center"
     },

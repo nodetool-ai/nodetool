@@ -272,7 +272,7 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
               <>
                 {/* Header Section */}
                 <div className="page-header">
-                  <Text size="bigger" weight={300}>
+                  <Text size="bigger" weight={400}>
                     {workflow.name}
                   </Text>
                   {workflow.description && (

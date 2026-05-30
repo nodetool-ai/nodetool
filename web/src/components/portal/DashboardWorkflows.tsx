@@ -17,7 +17,7 @@ type ViewMode = "grid" | "list";
 
 const styles = (theme: Theme) =>
   css({
-    paddingTop: 38,
+    paddingTop: 8,
     paddingBottom: 8,
     ".viewtog": {
       display: "flex",
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
     ".rec-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 16,
+      gap: 8,
       [theme.breakpoints.down("lg")]: {
         gridTemplateColumns: "repeat(3, 1fr)"
       },
@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
     ".rec-new": {
       display: "flex",
       flexDirection: "column",
-      gap: 10,
+      gap: 8,
       textAlign: "left",
       background: "transparent",
       border: "none",

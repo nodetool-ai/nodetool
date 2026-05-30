@@ -146,7 +146,7 @@ function ModelList<TModel extends ModelSelectorModel>({
   const badgeStyle = useMemo<React.CSSProperties>(() => ({
     flex: "0 0 auto",
     padding: "0px 6px",
-    fontSize: "10px",
+    fontSize: "11px",
     lineHeight: 1.4,
     borderRadius: 4,
     background: theme.vars.palette.action.hover,

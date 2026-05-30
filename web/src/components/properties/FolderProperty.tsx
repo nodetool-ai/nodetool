@@ -141,7 +141,7 @@ const FolderProperty = (props: PropertyProps) => {
             margin: "0"
           }}
         >
-          <CreateNewFolderIcon sx={{ fontSize: "1.2rem" }} />
+          <CreateNewFolderIcon sx={{ fontSize: "18px" }} />
         </EditorButton>
       </FlexRow>
       <Popover

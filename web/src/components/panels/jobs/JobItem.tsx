@@ -214,7 +214,7 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
             sx={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
-          <Text size="tinyer" color="secondary" truncate sx={{ px: 0.25 }}>
+          <Text size="tinyer" color="secondary" truncate sx={{ px: 0.5 }}>
             {asset.content_type?.split("/")[1] || "file"}
           </Text>
         )}
@@ -334,8 +334,8 @@ const JobItem = ({ job }: { job: Job }) => {
       onClick={handleClick}
       sx={{
         px: 1,
-        py: 0.75,
-        mb: 0.25,
+        py: 1,
+        mb: 0.5,
         borderRadius: "6px",
         cursor: "pointer",
         backgroundColor: isActive ? "action.selected" : "transparent",
@@ -367,7 +367,7 @@ const JobItem = ({ job }: { job: Job }) => {
       {/* All outputs, shown inline across the available width. */}
       <FlexRow
         gap={0.5}
-        sx={{ flex: "1 1 auto", minWidth: 0, overflowX: "auto", py: 0.25 }}
+        sx={{ flex: "1 1 auto", minWidth: 0, overflowX: "auto", py: 0.5 }}
       >
         {assets?.map((asset) => (
           <AssetThumb key={asset.id} asset={asset} />

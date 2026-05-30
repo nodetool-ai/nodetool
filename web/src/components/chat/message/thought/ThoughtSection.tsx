@@ -28,14 +28,14 @@ export const ThoughtSection: React.FC<ThoughtSectionProps> = React.memo(({
     fontSize: theme.vars.fontSizeSmaller,
     fontFamily: theme.vars.fontFamily2,
     color: theme.vars.palette.text.secondary,
-    fontWeight: "300",
+    fontWeight: 400,
     background: theme.vars.palette.grey[1000],
     borderRadius: "1em",
     ".markdown p": {
       fontFamily: theme.vars.fontFamily2,
       fontSize: theme.vars.fontSizeSmall,
       lineHeight: 1.2,
-      fontWeight: "300",
+      fontWeight: 400,
       color: theme.vars.palette.text.secondary
     }
   }), [theme]);

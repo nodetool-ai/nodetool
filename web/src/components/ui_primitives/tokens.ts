@@ -8,6 +8,116 @@
 import { Theme } from "@mui/material/styles";
 
 /**
+ * Typography System — Single Source of Truth
+ *
+ * STRICT RULE: Each font class (sans, mono) exposes EXACTLY FOUR
+ * size+weight combinations. No other combination may appear anywhere in the
+ * app. Pick the role whose intent matches; never invent a new size or weight.
+ *
+ * Allowed font sizes:  sans → 18 / 15 / 13 / 11 px   mono → 13 / 12 / 11 px
+ * Allowed font weights: 400 (normal) · 500 (medium) · 600 (semibold)
+ *
+ * SANS (Inter — `fontFamily1`)            MONO (JetBrains Mono — `fontFamily2`)
+ *   title   18px / 600  headings, titles    code     13px / 400  code, values
+ *   body    15px / 400  default body text    strong   13px / 600  emphasized mono
+ *   label   13px / 500  labels, buttons      label    12px / 500  mono keys/labels
+ *   caption 11px / 400  hints, metadata      caption  11px / 400  small mono / hints
+ *
+ * Headings collapse onto these roles (h1–h3 → title, h4–h6 → label). Anything
+ * larger than `title` or smaller than `caption` must snap to those bounds.
+ */
+export const FONT_WEIGHT = {
+  normal: 400,
+  medium: 500,
+  semibold: 600
+} as const;
+
+/** The four sanctioned sans (Inter) sizes, as px strings. */
+export const FONT_SIZE_SANS = {
+  title: "18px",
+  body: "15px",
+  label: "13px",
+  caption: "11px"
+} as const;
+
+/** The four sanctioned mono (JetBrains Mono) sizes, as px strings. */
+export const FONT_SIZE_MONO = {
+  code: "13px",
+  strong: "13px",
+  label: "12px",
+  caption: "11px"
+} as const;
+
+type TypeStyle = {
+  fontSize: string;
+  fontWeight: number;
+  fontFamily: string;
+  lineHeight: number;
+};
+
+/**
+ * The eight — and only eight — text styles. Spread one of these into an `sx`
+ * prop or `css()` block instead of writing raw `fontSize` / `fontWeight`.
+ *
+ * @example
+ * <Box sx={{ ...TYPOGRAPHY.sans.label }}>Channels</Box>
+ */
+export const TYPOGRAPHY = {
+  sans: {
+    title: {
+      fontSize: FONT_SIZE_SANS.title,
+      fontWeight: FONT_WEIGHT.semibold,
+      fontFamily: "var(--fontFamily1)",
+      lineHeight: 1.3
+    },
+    body: {
+      fontSize: FONT_SIZE_SANS.body,
+      fontWeight: FONT_WEIGHT.normal,
+      fontFamily: "var(--fontFamily1)",
+      lineHeight: 1.45
+    },
+    label: {
+      fontSize: FONT_SIZE_SANS.label,
+      fontWeight: FONT_WEIGHT.medium,
+      fontFamily: "var(--fontFamily1)",
+      lineHeight: 1.35
+    },
+    caption: {
+      fontSize: FONT_SIZE_SANS.caption,
+      fontWeight: FONT_WEIGHT.normal,
+      fontFamily: "var(--fontFamily1)",
+      lineHeight: 1.4
+    }
+  },
+  mono: {
+    code: {
+      fontSize: FONT_SIZE_MONO.code,
+      fontWeight: FONT_WEIGHT.normal,
+      fontFamily: "var(--fontFamily2)",
+      lineHeight: 1.5
+    },
+    strong: {
+      fontSize: FONT_SIZE_MONO.strong,
+      fontWeight: FONT_WEIGHT.semibold,
+      fontFamily: "var(--fontFamily2)",
+      lineHeight: 1.5
+    },
+    label: {
+      fontSize: FONT_SIZE_MONO.label,
+      fontWeight: FONT_WEIGHT.medium,
+      fontFamily: "var(--fontFamily2)",
+      lineHeight: 1.35
+    },
+    caption: {
+      fontSize: FONT_SIZE_MONO.caption,
+      fontWeight: FONT_WEIGHT.normal,
+      fontFamily: "var(--fontFamily2)",
+      lineHeight: 1.4
+    }
+  }
+} as const satisfies Record<"sans" | "mono", Record<string, TypeStyle>>;
+
+/**
  * Motion / transition timing constants.
  *
  * @example

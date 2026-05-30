@@ -183,7 +183,7 @@ const styles = (theme: Theme) =>
         left: "50%",
         width: "80%",
         fontSize: "var(--fontSizeSmaller)",
-        fontWeight: "300",
+        fontWeight: 400,
         transform: "translate(-50%, -50%)",
         zIndex: 0,
         color: theme.vars.palette.grey[200],

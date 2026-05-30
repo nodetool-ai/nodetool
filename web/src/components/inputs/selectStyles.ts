@@ -64,7 +64,7 @@ export const selectStyles = (theme: Theme) =>
     },
 
     ".option.matching": {
-      fontWeight: "bold",
+      fontWeight: 600,
       color: theme.vars.palette.grey[0]
     },
 
@@ -185,7 +185,7 @@ export const portalOptionsStyles = (theme: Theme) =>
     },
 
     ".option.matching": {
-      fontWeight: "bold",
+      fontWeight: 600,
       color: theme.vars.palette.grey[0]
     },
 

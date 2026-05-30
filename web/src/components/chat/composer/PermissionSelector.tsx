@@ -57,7 +57,7 @@ const menuStyles = (theme: Theme) =>
     ".permission-menu-item": {
       display: "flex",
       alignItems: "flex-start",
-      gap: 10,
+      gap: 8,
       padding: "9px 16px",
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
@@ -71,7 +71,7 @@ const menuStyles = (theme: Theme) =>
     },
     ".permission-menu-dot": {
       // Nudge down so the dot aligns with the label's first line.
-      marginTop: 5
+      marginTop: 6
     },
     ".permission-menu-check": {
       marginLeft: "auto",

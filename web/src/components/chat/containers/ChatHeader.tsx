@@ -70,7 +70,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           userSelect: "none",
           textAlign: "center",
           textTransform: "uppercase",
-          fontWeight: "light"
+          fontWeight: 400
         }}
       >
         {description}

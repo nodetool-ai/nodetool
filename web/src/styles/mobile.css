@@ -151,7 +151,7 @@
     min-width: auto !important;
     min-height: 44px !important;
     padding: 6px 12px !important;
-    font-size: 0.85rem !important;
+    font-size: 15px !important;
     flex: 1 !important;
   }
 
@@ -477,11 +477,11 @@
   }
 
   .mobile .chat-messages-list .loading-container {
-    padding: 15px 0 !important;
+    padding: 16px 0 !important;
   }
 
   .mobile .chat-messages-list .node-status {
-    font-size: 0.75rem !important;
+    font-size: 13px !important;
   }
 
   .mobile .chat-messages-list .node-progress {
@@ -493,7 +493,7 @@
   }
 
   .mobile .chat-messages-list .tool-call-card {
-    padding: 3px 6px !important;
+    padding: 2px 6px !important;
     font-size: 0.875em !important;
   }
 
@@ -502,12 +502,12 @@
   }
 
   .mobile .chat-messages-list .tool-message {
-    font-size: 0.8rem !important;
+    font-size: 13px !important;
   }
 
   .mobile .chat-messages-list .pretty-json {
     padding: 6px 8px !important;
-    font-size: 0.75rem !important;
+    font-size: 13px !important;
   }
 
   .mobile .chat-messages-list .execution-events-group {
@@ -556,7 +556,7 @@
   }
 
   .mobile .mini-app-page .hero {
-    padding: 20px 16px 16px !important;
+    padding: 16px 16px 16px !important;
     gap: 16px !important;
   }
 

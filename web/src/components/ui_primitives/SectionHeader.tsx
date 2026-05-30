@@ -65,7 +65,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
     },
     large: {
       fontSize: theme.fontSizeNormal || "14px",
-      fontWeight: 700,
+      fontWeight: 600,
       padding: "8px 0",
     },
   };
@@ -100,7 +100,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
             sx={{
               fontSize: "11px",
               color: theme.vars.palette.text.secondary,
-              mt: 0.25,
+              mt: 0.5,
             }}
           >
             {subtitle}

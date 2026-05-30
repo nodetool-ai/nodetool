@@ -99,7 +99,7 @@ function renderToolButton(def: ToolDefinition, selectMode: SelectToolMode) {
         enterDelay={SKETCH_TOOLTIP_DELAY_MS}
         enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
       >
-        <Icon sx={{ fontSize: "1.375rem" }} />
+        <Icon sx={{ fontSize: "18px" }} />
       </Tooltip>
     </ToggleButton>
   );

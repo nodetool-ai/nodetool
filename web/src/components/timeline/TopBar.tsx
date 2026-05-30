@@ -32,7 +32,7 @@ const styles = (theme: Theme) =>
     ".project-name": {
       cursor: "pointer",
       borderRadius: theme.rounded.sm,
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.5)}`,
+      padding: `${theme.spacing(0.5)} ${theme.spacing(0.5)}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       }

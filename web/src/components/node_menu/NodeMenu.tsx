@@ -316,7 +316,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 {searchTerm && searchTerm.trim() !== "" && (
                   <span
                     style={{
-                      fontSize: "0.75rem",
+                      fontSize: "13px",
                       color: "var(--palette-text-secondary)",
                       whiteSpace: "nowrap",
                       flexShrink: 0

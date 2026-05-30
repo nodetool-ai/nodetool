@@ -150,7 +150,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         gap={0.5}
         fullWidth
         sx={{
-          rowGap: 0.75
+          rowGap: 1
         }}
       >
         <FlexRow

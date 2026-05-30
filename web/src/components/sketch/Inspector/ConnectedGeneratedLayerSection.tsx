@@ -55,7 +55,7 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
         minHeight: 0,
         flex: 1,
         "& > [role='button']": {
-          padding: theme.spacing(0.75, 1),
+          padding: theme.spacing(1, 1),
           backgroundColor: theme.vars.palette.background.paper,
           borderBottom: `1px solid ${theme.vars.palette.divider}`
         }

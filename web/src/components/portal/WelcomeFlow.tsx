@@ -36,7 +36,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-eyebrow": {
       display: "flex",
       alignItems: "center",
-      gap: 9,
+      gap: 8,
       textTransform: "uppercase" as const,
       letterSpacing: "0.12em",
       fontSize: 12,
@@ -73,7 +73,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
-      gap: 12,
+      gap: 8,
       animation: `${rise} 700ms 320ms backwards`,
       [theme.breakpoints.down("md")]: {
         gridTemplateColumns: "repeat(2, 1fr)"
@@ -89,7 +89,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       background: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: 12,
-      padding: 18,
+      padding: 8,
       color: "inherit",
       font: "inherit",
       position: "relative",
@@ -108,19 +108,19 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       borderRadius: 6,
       display: "grid",
       placeItems: "center",
-      marginBottom: 14,
+      marginBottom: 8,
       "& svg": { fontSize: 18 }
     },
     ".welcome-card-title": {
-      fontSize: "1.0625rem",
+      fontSize: "18px",
       fontWeight: 500,
       letterSpacing: "-0.01em",
       color: theme.vars.palette.text.primary
     },
     ".welcome-card-blurb": {
       marginTop: 2,
-      marginBottom: 12,
-      fontSize: "0.8125rem",
+      marginBottom: 8,
+      fontSize: "13px",
       lineHeight: 1.45,
       color: theme.vars.palette.text.secondary
     },
@@ -132,14 +132,14 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       background: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
       fontFamily: theme.fontFamily2,
-      fontSize: "0.6875rem"
+      fontSize: "11px"
     },
 
     ".welcome-footer": {
       display: "flex",
       alignItems: "center",
-      gap: 14,
-      marginTop: 28,
+      gap: 8,
+      marginTop: 8,
       animation: `${rise} 700ms 480ms backwards`
     },
     ".welcome-skip": {

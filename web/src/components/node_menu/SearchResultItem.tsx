@@ -44,8 +44,8 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       flexDirection: compact ? "row" : "column",
       alignItems: compact ? "center" : "stretch",
       gap: compact ? theme.spacing(1) : 0,
-      padding: compact ? theme.spacing(0.75, 1.25) : theme.spacing(2.5, 3),
-      margin: compact ? theme.spacing(0.25, 0) : theme.spacing(0.5, 0),
+      padding: compact ? theme.spacing(1, 1) : theme.spacing(3, 3),
+      margin: compact ? theme.spacing(0.5, 0) : theme.spacing(0.5, 0),
       borderRadius: "var(--rounded-md)",
       cursor: "pointer",
       transition: "all 0.15s ease",
@@ -88,7 +88,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         gap: theme.spacing(2)
       },
       ".result-title": {
-        fontSize: "0.95rem",
+        fontSize: "15px",
         fontWeight: 400,
         color: theme.vars.palette.text.primary,
         lineHeight: 1.3,
@@ -97,7 +97,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         }
       },
       ".result-namespace": {
-        fontSize: "0.7rem",
+        fontSize: "11px",
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
         letterSpacing: "0.5px",
@@ -106,7 +106,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         }
       },
       ".result-description": {
-        fontSize: "0.8rem",
+        fontSize: "13px",
         color: theme.vars.palette.text.secondary,
         lineHeight: 1.4,
         marginTop: theme.spacing(1),
@@ -128,7 +128,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
           color: "var(--palette-primary-main)"
         },
         "& svg": {
-          fontSize: "16px"
+          fontSize: "15px"
         }
       },
       ".matched-tags-inline": {
@@ -143,7 +143,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         marginTop: theme.spacing(1.5)
       },
       ".result-tag": {
-        fontSize: "0.65rem",
+        fontSize: "11px",
         padding: theme.spacing(0.5, 1.5),
         borderRadius: "var(--rounded-lg)",
         backgroundColor: theme.vars.palette.action.selected,
@@ -151,7 +151,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         letterSpacing: "0.3px"
       },
       ".provider-tag": {
-        fontSize: "0.6rem",
+        fontSize: "11px",
         padding: "1px 5px",
         borderRadius: "var(--rounded-md)",
         letterSpacing: "0.3px",
@@ -164,7 +164,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         right: 0,
         top: "100%",
         zIndex: 100,
-        padding: theme.spacing(0, 3, 2.5, 3)
+        padding: theme.spacing(0, 3, 3, 3)
       },
       ".io-info": {
         padding: theme.spacing(2),
@@ -180,7 +180,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(2),
-        fontSize: "0.7rem"
+        fontSize: "11px"
       },
       ".io-label": {
         color: theme.vars.palette.text.secondary,
@@ -191,12 +191,12 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       ".io-items": {
         display: "flex",
         flexWrap: "wrap",
-        gap: theme.spacing(0.75)
+        gap: theme.spacing(1)
       },
       ".io-item": {
-        padding: theme.spacing(0.25, 1.25),
+        padding: theme.spacing(0.5, 1),
         borderRadius: "3px",
-        fontSize: "0.65rem",
+        fontSize: "11px",
         borderLeft: "2px solid",
         backgroundColor: theme.vars.palette.action.hover
       }

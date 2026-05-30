@@ -79,7 +79,7 @@ const scrollableContentStyles = (theme: Theme) =>
       },
       ".icon-bg svg": {
         color: theme.vars.palette.grey[400],
-        fontSize: "1rem"
+        fontSize: "15px"
       }
     },
     ".node:hover": {

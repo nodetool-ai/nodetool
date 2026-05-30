@@ -108,7 +108,7 @@ const PropertyDropzone = ({
         fontFamily: theme.fontFamily2,
         textTransform: "uppercase",
         letterSpacing: "1px",
-        fontSize: "10px",
+        fontSize: "11px",
         color: theme.vars.palette.grey[500]
       },
       ".dropzone .image-preview-surface": {

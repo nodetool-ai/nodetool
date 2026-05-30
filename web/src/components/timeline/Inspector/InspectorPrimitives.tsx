@@ -196,7 +196,7 @@ ClipIdentityCard.displayName = "ClipIdentityCard";
 const rowStyles = css({
   display: "flex",
   alignItems: "center",
-  gap: 12,
+  gap: 8,
   minHeight: 32,
   padding: "0 4px"
 });

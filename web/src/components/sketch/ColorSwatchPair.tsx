@@ -177,7 +177,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: "3px" }}
           >
             <Text
-              sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 700, lineHeight: 1 }}
+              sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 600, lineHeight: 1 }}
             >
               D
             </Text>

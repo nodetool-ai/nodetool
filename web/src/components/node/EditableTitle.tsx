@@ -142,14 +142,14 @@ const EditableTitle = memo(function EditableTitle({
       gap: "6px",
       marginBottom: "6px",
       opacity: 0.5,
-      fontSize: "10px",
+      fontSize: "11px",
       fontWeight: 600,
       textTransform: "uppercase",
       letterSpacing: "0.08em",
       color: theme.vars.palette.primary.light,
       transition: "opacity 0.2s ease",
       ".icon": {
-        fontSize: "12px"
+        fontSize: "13px"
       }
     },
 
@@ -178,7 +178,7 @@ const EditableTitle = memo(function EditableTitle({
       transform: "scale(0.9)",
       transition: "all 0.15s ease",
       ".icon": {
-        fontSize: "14px"
+        fontSize: "15px"
       },
       "&:hover": {
         color: theme.vars.palette.error.main,

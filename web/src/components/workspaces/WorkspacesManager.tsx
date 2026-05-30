@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
     },
     ".workspace-icon": {
       color: theme.vars.palette.primary.main,
-      fontSize: "1.5rem"
+      fontSize: "18px"
     },
     ".workspace-info": {
       flex: 1,
@@ -72,11 +72,11 @@ const styles = (theme: Theme) =>
     },
     ".workspace-name": {
       fontWeight: 500,
-      fontSize: "0.95rem",
+      fontSize: "15px",
       color: theme.vars.palette.text.primary
     },
     ".workspace-path": {
-      fontSize: "0.8rem",
+      fontSize: "13px",
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",

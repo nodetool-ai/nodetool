@@ -14,8 +14,12 @@ export interface TextProps extends Omit<TypographyProps, 'variant'> {
   size?: "giant" | "bigger" | "big" | "normal" | "small" | "smaller" | "tiny" | "tinyer";
   /** Text color variant */
   color?: "primary" | "secondary" | "error" | "warning" | "success" | "inherit" | string;
-  /** Font weight */
-  weight?: 200 | 300 | 400 | 500 | 600 | 700 | "normal" | "bold";
+  /**
+   * Font weight. Defaults to the sanctioned weight for the chosen size
+   * (the size+weight combo from the design system). Only override with an
+   * allowed weight (400/500/600) when the role's default genuinely doesn't fit.
+   */
+  weight?: 400 | 500 | 600 | "normal";
   /** Font family */
   family?: "primary" | "secondary";
   /** Truncate text with ellipsis */
@@ -66,7 +70,7 @@ export interface TextProps extends Omit<TypographyProps, 'variant'> {
 export const Text: React.FC<TextProps> = ({
   size = "normal",
   color = "inherit",
-  weight = "normal",
+  weight,
   family = "primary",
   truncate = false,
   lineClamp,
@@ -89,6 +93,22 @@ export const Text: React.FC<TextProps> = ({
     };
     return sizeMap[size];
   };
+
+  // Default weight follows the sanctioned size+weight combo for the size.
+  // sans: 18→600 (title), 15→400 (body), 13→500 (label), 11→400 (caption)
+  // mono: 13→400 (code), 12→500 (label), 11→400 (caption)
+  const getDefaultWeight = (): 400 | 500 | 600 => {
+    const titleSizes = ["giant", "bigger", "big"];
+    const labelSizes = ["small"];
+    if (titleSizes.includes(size)) {
+      return family === "secondary" ? 400 : 600;
+    }
+    if (labelSizes.includes(size)) {
+      return family === "secondary" ? 400 : 500;
+    }
+    return 400; // body + caption
+  };
+  const resolvedWeight = weight === "normal" ? 400 : weight ?? getDefaultWeight();
 
   const getColor = () => {
     const colorMap = {
@@ -131,7 +151,7 @@ export const Text: React.FC<TextProps> = ({
       sx={{
         fontSize: getFontSize() as string,
         color: getColor() as string,
-        fontWeight: weight as number | string,
+        fontWeight: resolvedWeight,
         fontFamily: getFontFamily() as string,
         ...getTruncateStyles(),
         ...sx

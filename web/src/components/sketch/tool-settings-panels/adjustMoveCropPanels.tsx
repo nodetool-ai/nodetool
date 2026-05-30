@@ -127,7 +127,7 @@ export const MoveSettingsPanel = memo(function MoveSettingsPanel({
       }
       label={
         <Text
-          sx={{ ...SKETCH_FONT, fontSize: "0.75rem", userSelect: "none" }}
+          sx={{ ...SKETCH_FONT, fontSize: "13px", userSelect: "none" }}
         >
           Auto-Select
         </Text>
@@ -176,7 +176,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         }
         label={
           <Text
-            sx={{ ...SKETCH_FONT, fontSize: "0.75rem", userSelect: "none" }}
+            sx={{ ...SKETCH_FONT, fontSize: "13px", userSelect: "none" }}
           >
             Auto-Select
           </Text>

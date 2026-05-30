@@ -134,7 +134,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
         }}
       >
         {chain.length === 0 ? (
-          <FlexColumn align="center" justify="center" sx={{ pt: 12 }}>
+          <FlexColumn align="center" justify="center" sx={{ pt: 8 }}>
             <EmptyState
               icon={<AccountTreeOutlinedIcon sx={{ fontSize: 48 }} />}
               title="Build Your Workflow"

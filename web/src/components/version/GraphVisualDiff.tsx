@@ -311,7 +311,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
                 key={node.id}
               title={
                 <FlexColumn gap={0} align="flex-start">
-                    <Caption sx={{ fontWeight: 700 }}>
+                    <Caption sx={{ fontWeight: 600 }}>
                       {node.type?.split(".").pop() || "Node"}
                     </Caption>
                     <Caption>
@@ -346,7 +346,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           {diff.addedNodes.length > 0 && (
             <FlexRow align="center" gap={0.25}>
               <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.success.main }} />
-              <Caption sx={{ fontSize: "0.6rem" }}>
+              <Caption sx={{ fontSize: "11px" }}>
                 {diff.addedNodes.length}
               </Caption>
             </FlexRow>
@@ -354,7 +354,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           {diff.removedNodes.length > 0 && (
             <FlexRow align="center" gap={0.25}>
               <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.error.main }} />
-              <Caption sx={{ fontSize: "0.6rem" }}>
+              <Caption sx={{ fontSize: "11px" }}>
                 {diff.removedNodes.length}
               </Caption>
             </FlexRow>
@@ -362,7 +362,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           {diff.modifiedNodes.length > 0 && (
             <FlexRow align="center" gap={0.25}>
               <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.warning.main }} />
-              <Caption sx={{ fontSize: "0.6rem" }}>
+              <Caption sx={{ fontSize: "11px" }}>
                 {diff.modifiedNodes.length}
               </Caption>
             </FlexRow>

@@ -440,7 +440,7 @@ const ViewCommands = memo(function ViewCommands() {
         {visible ? "Hide Mini Map" : "Show Mini Map"}
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => handleFitView({ padding: 0.4 }))}
+        onSelect={() => executeAndClose(() => handleFitView({ padding: 0.5 }))}
       >
         <FitScreenRoundedIcon /> Fit View
       </Command.Item>

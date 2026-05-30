@@ -64,7 +64,7 @@ const topRowStyles = css({
   display: "flex",
   flexDirection: "row",
   alignItems: "center",
-  gap: 10,
+  gap: 8,
   minWidth: 0
 });
 
@@ -385,7 +385,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
                 <span
                   style={{
                     fontSize: 10,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     letterSpacing: "0.04em"
                   }}
                 >

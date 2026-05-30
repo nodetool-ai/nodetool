@@ -265,11 +265,11 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 align="center"
                 wrap
                 sx={{
-                  columnGap: 10,
+                  columnGap: 8,
                   rowGap: 4,
-                  py: 0.25,
-                  pl: 0.75,
-                  ml: 0.25,
+                  py: 0.5,
+                  pl: 1,
+                  ml: 0.5,
                   borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
                   minWidth: 0
                 }}
@@ -376,7 +376,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 <TrashIcon width={16} height={16} />
               </IconButton>
               <IconButton size="small" aria-label="Cancel discard" onClick={() => setConfirmDiscard(false)}>
-                <CloseIcon sx={{ fontSize: "16px" }} />
+                <CloseIcon sx={{ fontSize: "15px" }} />
               </IconButton>
             </>
           ) : (

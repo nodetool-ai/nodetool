@@ -200,7 +200,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
             aria-label="Cancel color change"
             sx={{ p: SKETCH_SPACING.xs, color: SKETCH_COLORS.textSecondary, "&:hover": { color: SKETCH_COLORS.textPrimary, bgcolor: "rgba(255,255,255,0.06)" } }}
           >
-            <CloseIcon sx={{ fontSize: "16px" }} />
+            <CloseIcon sx={{ fontSize: "15px" }} />
           </IconButton>
         </Tooltip>
       </FlexRow>

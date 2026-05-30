@@ -48,7 +48,7 @@ export interface CaptionProps extends Omit<TypographyProps, 'variant'> {
  * <Caption italic>Optional field</Caption>
  */
 const CaptionInternal: React.FC<CaptionProps> = ({
-  size = "small",
+  size = "smaller",
   color = "secondary",
   italic = false,
   sx,
@@ -59,12 +59,15 @@ const CaptionInternal: React.FC<CaptionProps> = ({
 
   const getFontSize = () => {
     const sizeMap = {
-      small: theme.fontSizeSmall,
-      smaller: theme.fontSizeSmaller,
-      tiny: theme.fontSizeTiny
+      small: theme.fontSizeSmall, // 13px — label combo
+      smaller: theme.fontSizeSmaller, // 11px — caption combo
+      tiny: theme.fontSizeTiny // 11px — caption combo
     };
     return sizeMap[size];
   };
+
+  // Stay on the sanctioned combos: 13px text is medium (label), 11px is regular.
+  const fontWeight = size === "small" ? 500 : 400;
 
   const getColor = () => {
     const colorMap = {
@@ -82,6 +85,7 @@ const CaptionInternal: React.FC<CaptionProps> = ({
     <Typography
       sx={{
         fontSize: getFontSize(),
+        fontWeight,
         color: getColor(),
         fontStyle: italic ? "italic" : "normal",
         lineHeight: 1.4,

@@ -61,7 +61,7 @@ const workspaceTreeStyles = (theme: Theme) =>
     },
 
     ".workspace-header h6": {
-      fontSize: "0.85rem",
+      fontSize: "15px",
       fontWeight: 600,
       letterSpacing: "0.02em",
       textTransform: "uppercase",
@@ -98,7 +98,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
     ".open-folder-button": {
       textTransform: "none",
-      fontSize: "0.75rem",
+      fontSize: "13px",
       borderColor: theme.vars.palette.grey[600],
       color: theme.vars.palette.text.secondary,
       "&:hover": {
@@ -112,7 +112,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "2px",
       padding: "4px 8px",
-      fontSize: "0.75rem",
+      fontSize: "13px",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.grey[800],
       borderRadius: "var(--rounded-sm)",
@@ -135,7 +135,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
     ".breadcrumb-separator": {
       color: theme.vars.palette.grey[600],
-      fontSize: "14px",
+      fontSize: "15px",
       flexShrink: 0
     },
 
@@ -176,8 +176,8 @@ const treeViewStyles = (theme: Theme) => ({
   },
   ".MuiTreeItem-label": {
     backgroundColor: "transparent !important",
-    fontWeight: 300,
-    fontSize: "0.875rem"
+    fontWeight: 400,
+    fontSize: "15px"
   },
   ".MuiTreeItem-content:has(.MuiTreeItem-iconContainer svg) .MuiTreeItem-label":
   {

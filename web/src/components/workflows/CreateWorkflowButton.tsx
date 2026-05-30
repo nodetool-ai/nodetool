@@ -20,7 +20,7 @@ const styles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.primary.main,
     transition: "background-color 140ms ease-out",
     "& svg": {
-      fontSize: "1rem",
+      fontSize: "15px",
       color: theme.vars.palette.primary.contrastText
     },
     "&:hover": {

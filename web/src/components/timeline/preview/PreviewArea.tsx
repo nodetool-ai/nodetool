@@ -85,7 +85,7 @@ const controlBarStyles = (theme: Theme) =>
     paddingRight: theme.spacing(1),
     display: "flex",
     alignItems: "center",
-    gap: theme.spacing(0.25)
+    gap: theme.spacing(0.5)
   });
 
 const timecodeStyles = (theme: Theme) =>
@@ -114,7 +114,7 @@ const dividerStyles = (theme: Theme) =>
     height: 18,
     backgroundColor: theme.vars.palette.divider,
     flexShrink: 0,
-    margin: `0 ${theme.spacing(0.25)}`
+    margin: `0 ${theme.spacing(0.5)}`
   });
 
 export interface PreviewAreaProps {

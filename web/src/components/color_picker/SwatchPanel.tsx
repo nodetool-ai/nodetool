@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       justifyContent: "space-between"
     },
     ".section-title": {
-      fontSize: "12px",
+      fontSize: "13px",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       textTransform: "uppercase"

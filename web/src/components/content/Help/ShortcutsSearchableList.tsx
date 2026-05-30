@@ -112,7 +112,7 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
                       size="small"
                       sx={{
                         color: "var(--palette-grey-200)",
-                        fontWeight: 300
+                        fontWeight: 400
                       }}
                     >
                       {s.description}

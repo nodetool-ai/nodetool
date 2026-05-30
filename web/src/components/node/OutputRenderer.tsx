@@ -730,7 +730,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                             primaryTypographyProps={{
                               sx: {
                                 fontFamily: "monospace",
-                                fontSize: "0.85rem"
+                                fontSize: "15px"
                               }
                             }}
                             secondaryTypographyProps={{

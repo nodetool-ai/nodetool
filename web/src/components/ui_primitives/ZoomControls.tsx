@@ -28,7 +28,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".zoom-value": {
-      fontSize: "12px",
+      fontSize: "13px",
       color: theme.vars.palette.text.secondary,
       minWidth: "45px",
       textAlign: "center",

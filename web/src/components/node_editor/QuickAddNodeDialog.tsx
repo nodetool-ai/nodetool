@@ -84,7 +84,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       backgroundColor: theme.vars.palette.action.disabledBackground,
       color: theme.vars.palette.text.primary,
-      fontSize: "14px",
+      fontSize: "15px",
       fontWeight: 600
     },
     ".node-info": {
@@ -93,13 +93,13 @@ const styles = (theme: Theme) =>
     },
     ".node-title": {
       fontWeight: 500,
-      fontSize: "14px",
+      fontSize: "15px",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
     ".node-type": {
-      fontSize: "12px",
+      fontSize: "13px",
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
       gap: "8px"
     },
     ".namespace-chip": {
-      fontSize: "10px",
+      fontSize: "11px",
       height: "20px"
     },
     ".empty-state": {

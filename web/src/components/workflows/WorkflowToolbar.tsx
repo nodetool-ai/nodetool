@@ -57,7 +57,7 @@ const styles = (theme: Theme) =>
         "background-color 140ms ease-out, color 140ms ease-out",
 
       "& svg": {
-        fontSize: "1rem",
+        fontSize: "15px",
         color: theme.vars.palette.text.secondary,
         transition: "color 140ms ease-out"
       },
@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.error.main,
       transition: "background-color 140ms ease-out",
       "& svg": {
-        fontSize: "1rem",
+        fontSize: "15px",
         color: theme.vars.palette.error.main
       },
       "&:hover": {
@@ -124,7 +124,7 @@ const styles = (theme: Theme) =>
       border: "none",
       "& .MuiChip-deleteIcon": {
         color: theme.vars.palette.text.secondary,
-        fontSize: "14px",
+        fontSize: "15px",
         "&:hover": {
           color: theme.vars.palette.text.primary
         }

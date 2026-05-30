@@ -142,7 +142,7 @@ const TemplatesButton = memo(function TemplatesButton({
           "& .templates-icon": {
             width: "16px",
             height: "16px",
-            fontSize: "16px"
+            fontSize: "15px"
           },
           "&:hover": {
             backgroundColor: "var(--palette-action-hover)",
@@ -228,7 +228,7 @@ const ReturnToTimelinePill = memo(function ReturnToTimelinePill() {
           }
         }}
       >
-        <ArrowBackIcon sx={{ fontSize: "14px" }} />
+        <ArrowBackIcon sx={{ fontSize: "15px" }} />
         <span>Timeline</span>
       </EditorButton>
     </Tooltip>
@@ -276,7 +276,7 @@ const ReturnToSketchPill = memo(function ReturnToSketchPill() {
           }
         }}
       >
-        <ArrowBackIcon sx={{ fontSize: "14px" }} />
+        <ArrowBackIcon sx={{ fontSize: "15px" }} />
         <span>Image</span>
       </EditorButton>
     </Tooltip>

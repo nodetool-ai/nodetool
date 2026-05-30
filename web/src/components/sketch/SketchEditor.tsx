@@ -413,7 +413,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                   fontSize: theme.fontSizeSmall,
                   borderBottom: `1px solid ${theme.vars.palette.divider}`,
                   "& > [role='button']": {
-                    padding: theme.spacing(0.75, 1),
+                    padding: theme.spacing(1, 1),
                     backgroundColor: theme.vars.palette.background.paper
                   }
                 }}
@@ -431,7 +431,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                   minHeight: 0,
                   borderBottom: `1px solid ${theme.vars.palette.divider}`,
                   "& > [role='button']": {
-                    padding: theme.spacing(0.75, 1),
+                    padding: theme.spacing(1, 1),
                     backgroundColor: theme.vars.palette.background.paper
                   }
                 }}
@@ -511,7 +511,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                   fontSize: theme.fontSizeSmall,
                   borderBottom: `1px solid ${theme.vars.palette.divider}`,
                   "& > [role='button']": {
-                    padding: theme.spacing(0.75, 1),
+                    padding: theme.spacing(1, 1),
                     backgroundColor: theme.vars.palette.background.paper
                   }
                 }}

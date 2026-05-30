@@ -62,7 +62,7 @@ const quickTileStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       marginBottom: theme.spacing(0.5),
-      "& svg": { fontSize: "1.5rem" },
+      "& svg": { fontSize: "18px" },
     },
     ".tile-label": {
       fontSize: theme.fontSizeSmaller,

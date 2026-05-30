@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      fontSize: "12.5px",
+      fontSize: "13px",
       transition: "color 120ms, background-color 120ms",
       "&:hover": {
         color: theme.vars.palette.text.primary,
@@ -93,7 +93,7 @@ const styles = (theme: Theme) =>
       }
     },
 
-    "& .glyph": { flexShrink: 0, fontSize: "12px" },
+    "& .glyph": { flexShrink: 0, fontSize: "13px" },
     "& .tab-name": {
       flex: 1,
       overflow: "hidden",
@@ -127,7 +127,7 @@ const styles = (theme: Theme) =>
       background: "transparent",
       color: theme.vars.palette.primary.main,
       cursor: "pointer",
-      fontSize: "12.5px",
+      fontSize: "13px",
       fontWeight: 500,
       whiteSpace: "nowrap",
       transition: "color 120ms, background-color 120ms",
@@ -192,7 +192,7 @@ const styles = (theme: Theme) =>
       "& svg, & .MuiSvgIcon-root": {
         width: "16px",
         height: "16px",
-        fontSize: "16px"
+        fontSize: "15px"
       }
     }
   });
