@@ -24,6 +24,26 @@ function assetImageUrl(asset: Asset): string {
   return `${BASE_URL}/api/storage/${asset.id}`;
 }
 
+/**
+ * Stable `asset://{id}.{ext}` reference for the seeded base layer. The storage
+ * endpoint serves files by name, so the extension is required (a bare
+ * `asset://{id}` resolves to `/api/storage/{id}` and 404s). The authoritative
+ * filename lives in the asset's `get_url` (server-built `{id}.{ext}`); we lift
+ * just the storage key from it so the persisted reference never embeds a signed,
+ * expiring URL. Falls back to the bare id when no URL is available.
+ */
+function assetLayerUri(asset: Asset): string {
+  const url = asset.get_url ?? asset.thumb_url ?? "";
+  const path = url.split("?")[0].split("#")[0];
+  const marker = "/api/storage/";
+  const markerIndex = path.indexOf(marker);
+  const key =
+    markerIndex >= 0
+      ? path.slice(markerIndex + marker.length)
+      : path.split("/").pop() || asset.id;
+  return `asset://${key}`;
+}
+
 function loadImageSize(
   url: string
 ): Promise<{ width: number; height: number }> {
@@ -61,7 +81,7 @@ export async function ensureSketchDocumentForAsset(
   });
 
   const document = buildSeededImageDocument(created.document, {
-    assetId: asset.id,
+    imageUri: assetLayerUri(asset),
     width,
     height,
     name: asset.name || "Image"

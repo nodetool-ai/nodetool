@@ -41,7 +41,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
-import { useOpenImageInSketch } from "../../hooks/sketch/useOpenImageInSketch";
+import { useNavigate } from "react-router-dom";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
@@ -290,6 +290,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   // Editing opens the asset in a workspace tab (image → sketch editor,
   // model3d → 3D editor), retiring the legacy /assets/edit route.
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const navigate = useNavigate();
 
   // Reset compare mode when viewer closes
   useEffect(() => {
@@ -379,12 +380,18 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     setCompareAssetB(null);
   }, []);
 
-  const openImageInSketch = useOpenImageInSketch();
   const handleOpenImageEditor = useCallback(() => {
     if (currentAsset && isImage) {
-      void openImageInSketch(currentAsset);
+      openTab({
+        type: "image",
+        ref: currentAsset.id,
+        mode: "edit",
+        title: currentAsset.name || "Image"
+      });
+      navigate("/workspace");
+      handleClose();
     }
-  }, [currentAsset, isImage, openImageInSketch]);
+  }, [currentAsset, isImage, openTab, navigate, handleClose]);
 
   const handleOpenModel3DEditor = useCallback(() => {
     if (currentAsset && isModel3D) {
@@ -394,9 +401,10 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         mode: "edit",
         title: currentAsset.name || "3D model"
       });
+      navigate("/workspace");
       handleClose();
     }
-  }, [currentAsset, isModel3D, openTab, handleClose]);
+  }, [currentAsset, isModel3D, openTab, navigate, handleClose]);
 
 
   // Copy to clipboard state and handler
