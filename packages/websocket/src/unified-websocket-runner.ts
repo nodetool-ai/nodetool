@@ -711,6 +711,8 @@ interface ActiveJob {
   streamTask?: Promise<void>;
   /** For ComfyUI jobs: handle to cancel the underlying execution. */
   comfyHandle?: ComfyExecutionHandle;
+  /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
+  providerCostTotal?: number;
 }
 
 class ToolBridge {
@@ -1931,6 +1933,23 @@ export class UnifiedWebSocketRunner {
             }
           }
 
+          // Sum node-level provider charges (reported by FAL/Kie nodes) into the
+          // per-run total surfaced as job.cost. Persistence of each charge into
+          // the prediction ledger is handled by _persistNodeProviderCost (#3426);
+          // the amount unit follows reportProviderCost (USD once #3426 lands).
+          if (
+            outbound.type === "node_update" &&
+            outbound.status === "completed" &&
+            outbound.provider_cost != null
+          ) {
+            const amount = (outbound.provider_cost as { amount?: unknown })
+              .amount;
+            if (typeof amount === "number" && Number.isFinite(amount)) {
+              active.providerCostTotal =
+                (active.providerCostTotal ?? 0) + amount;
+            }
+          }
+
           // Materialize binary assets to temp URLs before sending over WebSocket
           if (outbound.type === "node_update" && outbound.result != null) {
             outbound.result = await active.context.normalizeOutputValue(
@@ -1996,6 +2015,9 @@ export class UnifiedWebSocketRunner {
           job.markFailed(active.error ?? "Unknown error");
         } else if (active.status === "cancelled") {
           job.markCancelled();
+        }
+        if ((active.providerCostTotal ?? 0) > 0) {
+          job.cost = active.providerCostTotal ?? null;
         }
         await job.save();
       }
