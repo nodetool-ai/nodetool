@@ -110,6 +110,7 @@ interface DataTableProps {
   onChange?: (data: DataframeRef) => void;
   isModalMode?: boolean;
   searchFilter?: string;
+  toolbarEnd?: React.ReactNode;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -117,7 +118,8 @@ const DataTable: React.FC<DataTableProps> = ({
   onChange,
   editable,
   isModalMode = false,
-  searchFilter = ""
+  searchFilter = "",
+  toolbarEnd
 }) => {
   const theme = useTheme();
   const tableRef = useRef<HTMLDivElement>(null);
@@ -285,7 +287,7 @@ const DataTable: React.FC<DataTableProps> = ({
     tabulatorDataRef.current = data; // track what data is currently in Tabulator
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
-      height: 200,
+      height: isModalMode ? "100%" : 200,
       data: data,
       columns: buildColumns(),
       columnDefaults: {
@@ -389,7 +391,9 @@ const DataTable: React.FC<DataTableProps> = ({
         canUndo={canUndo}
         canRedo={canRedo}
         onHistoryChange={updateHistoryState}
-      />
+      >
+        {toolbarEnd}
+      </TableActions>
 
       <div ref={tableRef} className="datatable" />
     </div>
@@ -404,6 +408,7 @@ export default memo(DataTable, (prevProps, nextProps) => {
     prevProps.editable === nextProps.editable &&
     prevProps.isModalMode === nextProps.isModalMode &&
     prevProps.searchFilter === nextProps.searchFilter &&
+    prevProps.toolbarEnd === nextProps.toolbarEnd &&
     isEqual(prevProps.dataframe, nextProps.dataframe)
   );
 });
