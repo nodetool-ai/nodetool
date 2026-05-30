@@ -15,7 +15,7 @@ const fakeContext = (bytes: Uint8Array) =>
   }) as never;
 
 describe("classifyAssetToken", () => {
-  it("classifies image and audio extensions", () => {
+  it("classifies image, audio and video extensions", () => {
     expect(classifyAssetToken("asset://a.png")).toEqual({
       kind: "image",
       mime: "image/png"
@@ -23,6 +23,14 @@ describe("classifyAssetToken", () => {
     expect(classifyAssetToken("asset://b.mp3")).toEqual({
       kind: "audio",
       mime: "audio/mpeg"
+    });
+    expect(classifyAssetToken("asset://c.mp4")).toEqual({
+      kind: "video",
+      mime: "video/mp4"
+    });
+    expect(classifyAssetToken("asset://d.mov")).toEqual({
+      kind: "video",
+      mime: "video/quicktime"
     });
   });
 
@@ -179,6 +187,43 @@ describe("mapPromptAssetsToInputs", () => {
       fakeContext(bytes)
     );
     expect(overrides).toEqual({});
+  });
+
+  it("routes image, audio and video mentions onto an omni node's slots", async () => {
+    const overrides = await mapPromptAssetsToInputs(
+      [
+        {
+          name: "prompt",
+          value: "drive asset://clip.mp4 with asset://track.wav and asset://ref.png"
+        }
+      ],
+      [
+        { name: "image", label: "image_url", kind: "image", hasSource: false },
+        { name: "audio", label: "audio_url", kind: "audio", hasSource: false },
+        { name: "video", label: "video_url", kind: "video", hasSource: false }
+      ],
+      fakeContext(bytes)
+    );
+    expect(overrides.video).toEqual({
+      type: "video",
+      uri: "asset://clip.mp4",
+      mimeType: "video/mp4",
+      data: b64
+    } satisfies InjectedAssetRef);
+    expect((overrides.audio as InjectedAssetRef).uri).toBe("asset://track.wav");
+    expect((overrides.image as InjectedAssetRef).uri).toBe("asset://ref.png");
+    expect(overrides.prompt).toBe("drive video_url with audio_url and image_url");
+  });
+
+  it("fills a wired video input from a mention only when empty", async () => {
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: "restyle asset://a.mp4 and asset://b.webm" }],
+      [{ name: "video", label: "video_url", kind: "video", hasSource: true }],
+      fakeContext(bytes)
+    );
+    // Slot is wired, so neither mention is placed; both are dropped from text.
+    expect(overrides.video).toBeUndefined();
+    expect(overrides.prompt).toBe("restyle and");
   });
 });
 

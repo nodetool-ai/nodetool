@@ -20,7 +20,7 @@
 import type { ProcessingContext } from "./context.js";
 import { loadMediaRefBytes } from "./media-ref-bytes.js";
 
-export type AssetMediaKind = "image" | "audio";
+export type AssetMediaKind = "image" | "audio" | "video";
 
 /** Matches an inline `asset://<id>.<ext>` token (greedy over the URI charset). */
 const ASSET_URI_RE = /asset:\/\/[A-Za-z0-9._~\-/]+/g;
@@ -46,10 +46,19 @@ const AUDIO_EXT_MIME: Record<string, string> = {
   opus: "audio/opus"
 };
 
+const VIDEO_EXT_MIME: Record<string, string> = {
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+  mkv: "video/x-matroska",
+  avi: "video/x-msvideo"
+};
+
 /**
- * Classify an `asset://<id>.<ext>` token by its extension. Only image and
- * audio are provider-consumable media; everything else (text, video, unknown)
- * returns null so the reference is left as literal text in the prompt.
+ * Classify an `asset://<id>.<ext>` token by its extension. Image, audio and
+ * video are provider-consumable media (reference-to-video / lipsync models take
+ * a video clip); everything else (text, unknown) returns null so the reference
+ * is left as literal text in the prompt.
  */
 export function classifyAssetToken(
   token: string
@@ -60,13 +69,14 @@ export function classifyAssetToken(
   const ext = (primary.split(".").pop() ?? "").toLowerCase();
   if (ext in IMAGE_EXT_MIME) return { kind: "image", mime: IMAGE_EXT_MIME[ext] };
   if (ext in AUDIO_EXT_MIME) return { kind: "audio", mime: AUDIO_EXT_MIME[ext] };
+  if (ext in VIDEO_EXT_MIME) return { kind: "video", mime: VIDEO_EXT_MIME[ext] };
   return null;
 }
 
 /**
  * Pick a media extension for a content type so a stored asset can be turned
  * back into a classifiable `asset://<id>.<ext>` token. Returns null for content
- * types that aren't a recognized image/audio kind (folders, video, documents).
+ * types that aren't a recognized image/audio/video kind (folders, documents).
  */
 function extForContentType(contentType: string): string | null {
   const ct = (contentType ?? "").toLowerCase().split(";")[0].trim();
@@ -76,8 +86,10 @@ function extForContentType(contentType: string): string | null {
   let sub = ct.slice(slash + 1).split("+")[0];
   if (ct === "audio/mpeg" || ct === "audio/mp3") sub = "mp3";
   else if (ct === "audio/mp4") sub = "m4a";
+  else if (ct === "video/quicktime") sub = "mov";
   if (top === "image" && sub in IMAGE_EXT_MIME) return sub;
   if (top === "audio" && sub in AUDIO_EXT_MIME) return sub;
+  if (top === "video" && sub in VIDEO_EXT_MIME) return sub;
   return null;
 }
 
@@ -311,7 +323,8 @@ export async function mapPromptAssetsToInputs(
   // fields, plus the per-field ref list used for relabeling.
   const queues: Record<AssetMediaKind, PromptAssetRef[]> = {
     image: [],
-    audio: []
+    audio: [],
+    video: []
   };
   const refsByField = new Map<string, PromptAssetRef[]>();
   for (const tf of textFields) {
@@ -344,7 +357,7 @@ export async function mapPromptAssetsToInputs(
   // Fill empty inputs in declaration order from the matching kind's queue,
   // recording which input label each placed mention was routed into.
   const labelByRef = new Map<PromptAssetRef, string>();
-  const cursor: Record<AssetMediaKind, number> = { image: 0, audio: 0 };
+  const cursor: Record<AssetMediaKind, number> = { image: 0, audio: 0, video: 0 };
   for (const field of assetFields) {
     if (field.hasSource) continue;
     const queue = queues[field.kind];

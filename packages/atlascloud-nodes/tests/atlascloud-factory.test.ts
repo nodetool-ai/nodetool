@@ -376,6 +376,136 @@ describe("createAtlasNodeClass.process", () => {
     expect((out.output as Record<string, unknown>).data).toBeTruthy();
   });
 
+  it("routes prompt @-mentions onto image / audio / video inputs", async () => {
+    const submitted: { body: Record<string, unknown> } = { body: {} };
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/generateVideo")) {
+        submitted.body = JSON.parse(init!.body as string);
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { id: "v" } })
+        } as Response;
+      }
+      if (u.includes("/prediction/v")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({
+              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
+            })
+        } as Response;
+      }
+      if (u === "https://cdn/out.mp4") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([1, 2]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const Cls = createAtlasNodeClass(
+      makeSpec({
+        modality: "video",
+        outputType: "video",
+        fields: [
+          { name: "prompt", type: "str", default: "" },
+          { name: "image", type: "image", default: null },
+          { name: "audio", type: "audio", default: null },
+          { name: "video", type: "video", default: null }
+        ]
+      })
+    ) as unknown as new () => {
+      prompt: string;
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (k: string, v: unknown) => void;
+    };
+    const node = new Cls();
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    node.prompt = "drive asset://clip.mp4 with asset://track.wav and asset://ref.png";
+
+    const assetBytes = Uint8Array.from([1, 2, 3]);
+    const b64 = Buffer.from(assetBytes).toString("base64");
+    await node.process({
+      storage: null,
+      resolveAssetBytes: async () => ({ bytes: assetBytes })
+    });
+
+    expect(submitted.body).toEqual({
+      model: "test/model/t2i",
+      prompt: "drive video with audio and image",
+      image: `data:image/png;base64,${b64}`,
+      audio: `data:audio/wav;base64,${b64}`,
+      video: `data:video/mp4;base64,${b64}`
+    });
+  });
+
+  it("does not override a wired media input from a mention", async () => {
+    const submitted: { body: Record<string, unknown> } = { body: {} };
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/generateVideo")) {
+        submitted.body = JSON.parse(init!.body as string);
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { id: "v" } })
+        } as Response;
+      }
+      if (u.includes("/prediction/v")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({
+              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
+            })
+        } as Response;
+      }
+      if (u === "https://cdn/out.mp4") {
+        return { ok: true, arrayBuffer: async () => Uint8Array.from([1]).buffer } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const Cls = createAtlasNodeClass(
+      makeSpec({
+        modality: "video",
+        outputType: "video",
+        fields: [
+          { name: "prompt", type: "str", default: "" },
+          { name: "video", type: "video", default: null }
+        ]
+      })
+    ) as unknown as new () => {
+      prompt: string;
+      video: unknown;
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (k: string, v: unknown) => void;
+    };
+    const node = new Cls();
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    node.prompt = "restyle asset://clip.mp4 now";
+    node.video = { uri: "https://input/wired.mp4" };
+
+    await node.process({
+      storage: null,
+      resolveAssetBytes: async () => ({ bytes: Uint8Array.from([9]) })
+    });
+
+    // Wired slot wins; the mention is dropped from the prompt rather than left dangling.
+    expect(submitted.body).toEqual({
+      model: "test/model/t2i",
+      prompt: "restyle now",
+      video: "https://input/wired.mp4"
+    });
+  });
+
   it("propagates structured AtlasCloud job failures", async () => {
     global.fetch = vi.fn(async (url: string | URL) => {
       const u = String(url);
