@@ -13,8 +13,12 @@
  * `asset://` URI to {@link loadMediaRefBytes} / `resolveMessageMediaUris`,
  * which dereference it to bytes / a data URI just before it is consumed. The
  * higher-level {@link mapPromptAssetsToInputs} does resolve, so provider nodes
- * (FAL / KIE / Replicate / image-to-image) can route a mentioned image into a
- * typed asset input with bytes already in hand.
+ * (FAL / KIE / Replicate / image-to-image) can route a mentioned image / audio
+ * / video into a typed asset input with bytes already in hand.
+ *
+ * A mentioned plain-text document (`.md`, `.txt`, `.csv`, `.json`, …) has no
+ * typed input to route to — {@link inlineTextAssetRefs} substitutes its decoded
+ * contents into the prompt text in place of the token.
  */
 
 import type { ProcessingContext } from "./context.js";
@@ -404,6 +408,10 @@ async function expandFolderRefs(
  *     tell which slot holds which image; mentions that could not be placed
  *     (an input was already wired, or capacity ran out) are dropped rather
  *     than left as a dangling URI.
+ *
+ * Plain-text document mentions are inlined into the prompt as their decoded
+ * contents (see {@link inlineTextAssetRefs}). This applies even when the node
+ * has no media inputs at all (e.g. a text-to-image prompt referencing a brief).
  *
  * Inputs that already carry a source are left untouched. Returns a flat map of
  * field name → replacement value (cleaned string for text fields, an
