@@ -15,6 +15,10 @@ declare module "react-syntax-highlighter/dist/esm/prism" {
     children?: React.ReactNode;
     customStyle?: React.CSSProperties;
     className?: string;
+    showLineNumbers?: boolean;
+    wrapLongLines?: boolean;
+    wrapLines?: boolean;
+    lineNumberStyle?: React.CSSProperties;
   }
   const SyntaxHighlighter: React.FC<SyntaxHighlighterProps>;
   export default SyntaxHighlighter;

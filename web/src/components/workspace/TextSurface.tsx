@@ -1,8 +1,8 @@
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import { useAssetById } from "../../serverState/useAssetById";
 import { FlexColumn, LoadingSpinner, Text } from "../ui_primitives";
-import TextViewer from "../asset_viewer/TextViewer";
 import TextDocumentEditor from "./TextDocumentEditor";
+import TextPreview from "./TextPreview";
 
 interface TextSurfaceProps {
   refId: string;
@@ -13,7 +13,8 @@ interface TextSurfaceProps {
 /**
  * The text-document surface for a workspace tab. `refId` is a text Asset id.
  *
- * - view mode renders the read-only TextViewer (which fetches the asset text).
+ * - view mode renders the content-type-aware TextPreview (markdown rendered,
+ *   code syntax-highlighted, CSV as a table, …).
  * - edit mode mounts the Monaco-backed TextDocumentEditor, which loads the
  *   text, infers a language from the filename, and saves edits back via the
  *   asset update API.
@@ -51,7 +52,7 @@ const TextSurface = ({ refId, mode }: TextSurfaceProps) => {
     return <TextDocumentEditor asset={asset} />;
   }
 
-  return <TextViewer asset={asset} />;
+  return <TextPreview asset={asset} />;
 };
 
 export default TextSurface;
