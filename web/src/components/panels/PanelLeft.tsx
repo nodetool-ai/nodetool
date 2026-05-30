@@ -70,7 +70,8 @@ const styles = (
     zIndex: 1100,
 
     ".drawer-content": {
-      height: "100%",
+      marginTop: "40px",
+      height: "calc(100% - 40px)",
       backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "4px 0 8px rgba(0, 0, 0, 0.05)",
@@ -162,6 +163,11 @@ const styles = (
       height: "100%",
       overflow: "hidden",
       padding: isMobile ? 0 : "0 0.75em"
+    },
+    // The node library manages its own internal spacing and its info strip
+    // bleeds to the panel borders, so it forgoes the shared horizontal padding.
+    "&.is-nodes .panel-inner-content": {
+      padding: 0
     }
   });
 };
@@ -319,7 +325,6 @@ const PanelContent = memo(function PanelContent({
           fullWidth
           fullHeight
           sx={{
-            margin: isMobile ? "0" : "0 1em",
             overflow: "hidden"
           }}
         >
@@ -597,7 +602,12 @@ const PanelLeft: React.FC = () => {
   }
 
   return (
-    <div css={styles(theme, hasHeader, false)} className="panel-left-container">
+    <div
+      css={styles(theme, hasHeader, false)}
+      className={`panel-left-container ${
+        activeView === "nodes" ? "is-nodes" : ""
+      }`}
+    >
       <ContextMenuProvider>
         <ContextMenus />
         <VerticalToolbar

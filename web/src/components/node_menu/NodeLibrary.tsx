@@ -32,9 +32,6 @@ import type { NodeMetadata } from "../../stores/ApiTypes";
 
 const ROW_HEIGHT = 36;
 
-const isMacPlatform =
-  typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
-
 const styles = (theme: Theme, isMobile: boolean) =>
   css({
     "&.nl-root": {
@@ -144,21 +141,32 @@ const styles = (theme: Theme, isMobile: boolean) =>
       minHeight: 0
     },
     ".nl-info": {
-      flex: "0 0 auto",
+      flex: "0 0 200px",
       display: "flex",
-      maxHeight: 200,
+      height: 200,
       overflow: "hidden",
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.background.paper,
       // NodeInfo pins its own width/maxHeight for the floating menu; here it
-      // fills the width and scrolls within this compact bottom strip, so the
-      // node list above keeps the rest of the height.
+      // fills the width and scrolls within this fixed-height bottom strip, so
+      // the node list above keeps the rest of the height.
       "& > div": {
         width: "100% !important",
+        height: "200px !important",
         maxHeight: "200px !important",
         flex: 1,
         minHeight: 0
       }
+    },
+    ".nl-info-empty": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      textAlign: "center",
+      padding: theme.spacing(3),
+      color: theme.vars.palette.text.secondary,
+      fontSize: "var(--fontSizeSmall)",
+      lineHeight: 1.5
     },
 
     ".nl-rail": {
@@ -297,19 +305,6 @@ const NodeLibrary = memo<NodeLibraryProps>(
       searchRef.current?.focus();
     }, []);
 
-    // ⌘K / Ctrl+K jumps focus back to the node search.
-    useEffect(() => {
-      const onKey = (e: KeyboardEvent) => {
-        if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
-          e.preventDefault();
-          searchRef.current?.focus();
-          searchRef.current?.select();
-        }
-      };
-      window.addEventListener("keydown", onKey);
-      return () => window.removeEventListener("keydown", onKey);
-    }, []);
-
     const allNodes = useMemo(
       () => Object.values(metadataRecord),
       [metadataRecord]
@@ -328,16 +323,13 @@ const NodeLibrary = memo<NodeLibraryProps>(
       [category, allNodes, query]
     );
 
-    // The info box follows the hovered row; it falls back to the first result
-    // so the bottom half is populated as soon as a category has nodes.
+    // The info box follows the hovered row; with nothing hovered it shows a
+    // helper hint instead of details.
     const infoNode = useMemo(() => {
-      if (nodes.length === 0) {
+      if (!hoveredType) {
         return null;
       }
-      return (
-        (hoveredType && nodes.find((n) => n.node_type === hoveredType)) ||
-        nodes[0]
-      );
+      return nodes.find((n) => n.node_type === hoveredType) ?? null;
     }, [nodes, hoveredType]);
 
     const virtualizer = useVirtualizer({
@@ -375,6 +367,8 @@ const NodeLibrary = memo<NodeLibraryProps>(
       []
     );
 
+    const handleListLeave = useCallback(() => setHoveredType(null), []);
+
     return (
       <div css={styles(theme, isMobile)} className="nl-root">
         <div className="nl-header">
@@ -394,7 +388,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
             placeholder="Search nodes…"
             aria-label="Search nodes"
           />
-          {query ? (
+          {query && (
             <button
               type="button"
               className="nl-search-clear"
@@ -403,12 +397,6 @@ const NodeLibrary = memo<NodeLibraryProps>(
             >
               <ClearIcon />
             </button>
-          ) : (
-            !isMobile && (
-              <span className="nl-kbd" aria-hidden>
-                {isMacPlatform ? "⌘K" : "Ctrl K"}
-              </span>
-            )
           )}
         </div>
 
@@ -436,7 +424,11 @@ const NodeLibrary = memo<NodeLibraryProps>(
                 <div className="nl-empty">No matching nodes</div>
               </div>
             ) : (
-              <div className="nl-list" ref={scrollRef}>
+              <div
+                className="nl-list"
+                ref={scrollRef}
+                onMouseLeave={handleListLeave}
+              >
                 <div
                   style={{
                     height: virtualizer.getTotalSize(),
@@ -470,11 +462,17 @@ const NodeLibrary = memo<NodeLibraryProps>(
             )}
           </div>
 
-          {infoNode && (
-            <div className="nl-info">
+          <div className="nl-info">
+            {infoNode ? (
               <NodeInfo nodeMetadata={infoNode} showConnections={false} />
-            </div>
-          )}
+            ) : (
+              <div className="nl-info-empty">
+                <Text component="span">
+                  Drag a node to place it on the workspace. Hover for details
+                </Text>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="nl-footer">
