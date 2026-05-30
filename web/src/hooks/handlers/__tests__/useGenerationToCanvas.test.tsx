@@ -12,8 +12,9 @@ const gcState: { currentThreadId: string | null; messageCache: Record<string, An
   messageCache: { t1: [] }
 };
 
+let nodeCounter = 0;
 const createNode = jest.fn((_meta: unknown, position: { x: number; y: number }) => ({
-  id: `node-${createNode.mock.calls.length}`,
+  id: `node-${(nodeCounter += 1)}`,
   position,
   data: { properties: {} as Record<string, unknown> }
 }));
@@ -53,6 +54,7 @@ beforeEach(() => {
   createNode.mockClear();
   addNode.mockClear();
   getMetadata.mockClear();
+  nodeCounter = 0;
   gcState.currentThreadId = "t1";
   gcState.messageCache = { t1: [] };
 });
