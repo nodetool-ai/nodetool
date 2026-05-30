@@ -1446,5 +1446,34 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_image_document_updated");
       await db.execute("DROP TABLE IF EXISTS image_documents");
     }
+  },
+
+  // ── Add unit-based billing columns to predictions ───────────────────
+  // Lets non-token providers (FAL image/video/audio generation, etc.) record
+  // how an estimated cost was derived: cost = unit_price * quantity (currency).
+  {
+    version: "20260529_000000",
+    name: "add_prediction_billing_fields",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      const columns: Record<string, string> = {
+        billing_unit: "TEXT",
+        quantity: "REAL",
+        unit_price: "REAL",
+        currency: "TEXT"
+      };
+      if (!(await db.tableExists("nodetool_predictions"))) return;
+      for (const [columnName, columnType] of Object.entries(columns)) {
+        if (!(await db.columnExists("nodetool_predictions", columnName))) {
+          await db.execute(
+            `ALTER TABLE nodetool_predictions ADD COLUMN ${columnName} ${columnType}`
+          );
+        }
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
   }
 ];

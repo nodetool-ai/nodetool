@@ -225,8 +225,8 @@ async function buildVideoClips(
 
 /**
  * Route `asset://` media mentioned inline in a node's text inputs onto its
- * empty image/audio uploads (and strip the mentions from the text). Shared with
- * FAL / Replicate / image-to-image via `mapPromptAssetsToInputs`.
+ * empty image/audio/video uploads (and strip the mentions from the text).
+ * Shared with FAL / Replicate / image-to-image via `mapPromptAssetsToInputs`.
  */
 async function promptAssetOverrides(
   instance: BaseNode,
@@ -239,8 +239,15 @@ async function promptAssetOverrides(
     .map((f) => ({ name: f.name, value: String(values[f.name] ?? "") }));
   const assetFields: PromptAssetInputField[] = [];
   for (const upload of spec.uploads ?? []) {
+    // Video-clip uploads carry per-clip start/end timing, not a plain ref, so
+    // they aren't a target for inline mentions; plain video uploads are.
     if (upload.isVideoClip) continue;
-    if (upload.kind !== "image" && upload.kind !== "audio") continue;
+    if (
+      upload.kind !== "image" &&
+      upload.kind !== "audio" &&
+      upload.kind !== "video"
+    )
+      continue;
     const value = values[upload.field];
     const list = Boolean(upload.isList);
     const hasSource = list

@@ -220,7 +220,12 @@ describe("createKieNodeClass omni chaining", () => {
 
     await node.process({ setProviderCost } as never);
 
-    expect(setProviderCost).toHaveBeenCalledWith("kie", 9, "credits");
+    expect(setProviderCost).toHaveBeenCalledWith("kie", 0.045, "USD", {
+      billing_unit: "credits",
+      quantity: 9,
+      unit_price: 0.005,
+      currency: "USD"
+    });
   });
 });
 

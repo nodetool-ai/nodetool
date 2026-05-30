@@ -9,12 +9,19 @@ vi.mock("../src/kie-base.js", async (importOriginal) => {
     kieExecuteTask: vi.fn(),
     kieImageRef: vi.fn(async (b64: string) => ({ type: "image", data: b64 })),
     reportKieProviderCost: vi.fn(),
-    uploadImageInput: vi.fn(async () => "https://cdn.example.com/img.png")
+    uploadImageInput: vi.fn(async () => "https://cdn.example.com/img.png"),
+    uploadAudioInput: vi.fn(async () => "https://cdn.example.com/audio.wav"),
+    uploadVideoInput: vi.fn(async () => "https://cdn.example.com/clip.mp4")
   };
 });
 
 const { createKieNodeClass } = await import("../src/kie-factory.js");
-import { kieExecuteTask, uploadImageInput } from "../src/kie-base.js";
+import {
+  kieExecuteTask,
+  uploadAudioInput,
+  uploadImageInput,
+  uploadVideoInput
+} from "../src/kie-base.js";
 
 function makeEditNode() {
   const spec: KieManifestEntry = {
@@ -59,6 +66,8 @@ describe("KIE prompt asset mapping", () => {
       creditsConsumed: 0
     } as never);
     vi.mocked(uploadImageInput).mockClear();
+    vi.mocked(uploadAudioInput).mockClear();
+    vi.mocked(uploadVideoInput).mockClear();
   });
 
   it("routes an asset:// mention into the image upload and strips it", async () => {
@@ -104,5 +113,57 @@ describe("KIE prompt asset mapping", () => {
       unknown
     >;
     expect(params.prompt).toBe("enhance now");
+  });
+
+  it("routes image, audio and video mentions onto their uploads", async () => {
+    const spec: KieManifestEntry = {
+      className: "Seedance2Reference",
+      moduleName: "video",
+      modelId: "bytedance-seedance-2",
+      title: "Seedance 2.0 Reference to Video",
+      description: "test",
+      outputType: "video",
+      pollInterval: 1000,
+      maxAttempts: 2,
+      fields: [
+        { name: "prompt", type: "str", default: "", required: true },
+        { name: "image", type: "image", default: null },
+        { name: "audio", type: "audio", default: null },
+        { name: "video", type: "video", default: null }
+      ],
+      uploads: [
+        { field: "image", kind: "image", paramName: "image_url" },
+        { field: "audio", kind: "audio", paramName: "audio_url" },
+        { field: "video", kind: "video", paramName: "video_url" }
+      ]
+    };
+    const NodeClass = createKieNodeClass(spec);
+    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
+    node.assign({
+      prompt: "drive asset://clip.mp4 with asset://track.wav and asset://ref.png"
+    });
+    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+
+    await node.process(ctx as never);
+
+    // Each kind was resolved to bytes and handed to the matching uploader.
+    expect(
+      (vi.mocked(uploadImageInput).mock.calls[0][1] as Record<string, unknown>).data
+    ).toBe(b64);
+    expect(
+      (vi.mocked(uploadAudioInput).mock.calls[0][1] as Record<string, unknown>).data
+    ).toBe(b64);
+    expect(
+      (vi.mocked(uploadVideoInput).mock.calls[0][1] as Record<string, unknown>).data
+    ).toBe(b64);
+
+    const params = vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<
+      string,
+      unknown
+    >;
+    expect(params.image_url).toBe("https://cdn.example.com/img.png");
+    expect(params.audio_url).toBe("https://cdn.example.com/audio.wav");
+    expect(params.video_url).toBe("https://cdn.example.com/clip.mp4");
+    expect(params.prompt).toBe("drive video_url with audio_url and image_url");
   });
 });

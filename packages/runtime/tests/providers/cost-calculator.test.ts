@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   CostType,
   CostCalculator,
@@ -8,7 +8,8 @@ import {
   calculateEmbeddingCost,
   calculateSpeechCost,
   calculateWhisperCost,
-  calculateImageCost
+  calculateImageCost,
+  calculateModel3DCost
 } from "../../src/providers/cost-calculator.js";
 
 describe("CostType enum", () => {
@@ -19,114 +20,113 @@ describe("CostType enum", () => {
     expect(CostType.DURATION_BASED).toBe("duration_based");
     expect(CostType.IMAGE_BASED).toBe("image_based");
     expect(CostType.VIDEO_BASED).toBe("video_based");
+    expect(CostType.TASK_BASED).toBe("task_based");
   });
 });
 
-
 describe("CostCalculator.getTier", () => {
-  it("returns tier for direct model lookup", () => {
-    expect(CostCalculator.getTier("gpt-4o", "openai")).toBe("topTierChat");
-    expect(CostCalculator.getTier("gpt-4o-mini", "openai")).toBe("lowTierChat");
+  it("returns null for token models (priced via genai-prices)", () => {
+    expect(CostCalculator.getTier("gpt-4o", "openai")).toBeNull();
+    expect(
+      CostCalculator.getTier("claude-3-5-sonnet-20241022", "anthropic")
+    ).toBeNull();
+  });
+
+  it("returns local tiers for non-token modalities", () => {
+    expect(CostCalculator.getTier("whisper-1", "openai")).toBe(
+      "whisperStandard"
+    );
+    expect(CostCalculator.getTier("tts-1", "openai")).toBe("ttsHd");
+    expect(CostCalculator.getTier("meshy-4", "meshy")).toBe(
+      "meshy4TextTexturedTier"
+    );
   });
 
   it("is case-insensitive", () => {
-    expect(CostCalculator.getTier("GPT-4O", "OpenAI")).toBe("topTierChat");
+    expect(CostCalculator.getTier("WHISPER-1", "OpenAI")).toBe(
+      "whisperStandard"
+    );
   });
 
   it("returns null for unknown model", () => {
     expect(CostCalculator.getTier("unknown-model", "openai")).toBeNull();
   });
-
-  it("returns null for unknown provider", () => {
-    expect(CostCalculator.getTier("gpt-4o", "unknown-provider")).toBeNull();
-  });
-
-  it("supports prefix matching", () => {
-    // "gpt-4o-2024-11-20" is a direct entry but "gpt-4o-2024-11-20-something" would prefix-match
-    // Let's use a model that would match via prefix
-    expect(CostCalculator.getTier("gpt-4o-2024-11-20", "openai")).toBe(
-      "topTierChat"
-    );
-  });
-
-  it("returns anthropic tiers", () => {
-    expect(
-      CostCalculator.getTier("claude-3-5-sonnet-20241022", "anthropic")
-    ).toBe("claude35Sonnet");
-    expect(CostCalculator.getTier("claude-3-haiku-20240307", "anthropic")).toBe(
-      "claude3Haiku"
-    );
-  });
 });
 
-describe("CostCalculator.calculate", () => {
-  it("returns 0 for unknown model with a warning", () => {
-    const warnSpy = vi
-      .spyOn(process.stderr, "write")
-      .mockImplementation(() => true);
+describe("CostCalculator.calculate – token pricing via genai-prices (USD)", () => {
+  it("prices a known chat model in real dollars", () => {
+    // gpt-4o-mini: $0.15/M input, $0.60/M output → 1M+1M ≈ $0.75
     const cost = CostCalculator.calculate(
-      "unknown-model",
-      { inputTokens: 1000 },
+      "gpt-4o-mini",
+      { inputTokens: 1_000_000, outputTokens: 1_000_000 },
       "openai"
     );
-    expect(cost).toBe(0);
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
+    expect(cost).toBeGreaterThan(0.5);
+    expect(cost).toBeLessThan(1.0);
   });
 
-  it("calculates token-based cost", () => {
+  it("charges cached input tokens at a discount", () => {
+    const usage = { inputTokens: 1_000_000, outputTokens: 0 };
+    const full = CostCalculator.calculate("gpt-4o-mini", usage, "openai");
+    const cached = CostCalculator.calculate(
+      "gpt-4o-mini",
+      { ...usage, cachedTokens: 1_000_000 },
+      "openai"
+    );
+    expect(cached).toBeLessThan(full);
+    expect(cached).toBeGreaterThan(0);
+  });
+
+  it("prices anthropic models", () => {
     const cost = CostCalculator.calculate(
-      "gpt-4o",
+      "claude-3-5-sonnet-20241022",
+      { inputTokens: 1000, outputTokens: 500 },
+      "anthropic"
+    );
+    expect(cost).toBeGreaterThan(0);
+  });
+
+  it("prices embeddings", () => {
+    const cost = CostCalculator.calculate(
+      "text-embedding-3-small",
+      { inputTokens: 1_000_000 },
+      "openai"
+    );
+    expect(cost).toBeGreaterThan(0);
+  });
+
+  it("returns 0 for local providers (ollama)", () => {
+    const cost = CostCalculator.calculate(
+      "llama3.2",
+      { inputTokens: 1000, outputTokens: 500 },
+      "ollama"
+    );
+    expect(cost).toBe(0);
+  });
+
+  it("returns 0 for an unknown model", () => {
+    const cost = CostCalculator.calculate(
+      "totally-made-up-model-xyz",
       { inputTokens: 1000, outputTokens: 500 },
       "openai"
     );
-    const tier = PRICING_TIERS.topTierChat;
-    const expected =
-      (1000 / 1000) * tier.inputPer1kTokens! +
-      (500 / 1000) * tier.outputPer1kTokens!;
-    expect(cost).toBeCloseTo(expected);
+    expect(cost).toBe(0);
   });
 
-  it("calculates token-based cost with cached tokens", () => {
-    // gpt-4.1 has cachedPer1kTokens
-    const cost = CostCalculator.calculate(
-      "gpt-4.1",
-      { inputTokens: 1000, outputTokens: 500, cachedTokens: 300 },
-      "openai"
-    );
-    const tier = PRICING_TIERS.gpt41Tier;
-    const nonCached = Math.max(0, 1000 - 300);
-    const expected =
-      (nonCached / 1000) * tier.inputPer1kTokens! +
-      (300 / 1000) * tier.cachedPer1kTokens! +
-      (500 / 1000) * tier.outputPer1kTokens!;
-    expect(cost).toBeCloseTo(expected);
+  it("returns 0 for empty usage on a known model", () => {
+    expect(CostCalculator.calculate("gpt-4o-mini", {}, "openai")).toBe(0);
   });
+});
 
-  it("ignores cached tokens when tier has no cachedPer1kTokens", () => {
-    // topTierChat (gpt-4o) has no cachedPer1kTokens
+describe("CostCalculator.calculate – local non-token modalities (USD)", () => {
+  it("calculates duration-based cost (Whisper)", () => {
     const cost = CostCalculator.calculate(
-      "gpt-4o",
-      { inputTokens: 1000, outputTokens: 500, cachedTokens: 300 },
+      "whisper-1",
+      { durationSeconds: 120 },
       "openai"
     );
-    const tier = PRICING_TIERS.topTierChat;
-    // cachedPer1kTokens is undefined so it goes to else branch
-    const expected =
-      (1000 / 1000) * tier.inputPer1kTokens! +
-      (500 / 1000) * tier.outputPer1kTokens!;
-    expect(cost).toBeCloseTo(expected);
-  });
-
-  it("calculates embedding cost", () => {
-    const cost = CostCalculator.calculate(
-      "text-embedding-3-small",
-      { inputTokens: 2000 },
-      "openai"
-    );
-    const tier = PRICING_TIERS.embeddingSmall;
-    const expected = (2000 / 1000) * tier.inputPer1kTokens!;
-    expect(cost).toBeCloseTo(expected);
+    expect(cost).toBeCloseTo((120 / 60) * PRICING_TIERS.whisperStandard.perMinute!);
+    expect(cost).toBeCloseTo(0.012);
   });
 
   it("calculates character-based cost (TTS)", () => {
@@ -135,233 +135,81 @@ describe("CostCalculator.calculate", () => {
       { inputCharacters: 5000 },
       "openai"
     );
-    const tier = PRICING_TIERS.ttsStandard;
-    const expected = (5000 / 1000) * tier.per1kChars!;
-    expect(cost).toBeCloseTo(expected);
+    expect(cost).toBeCloseTo((5000 / 1000) * PRICING_TIERS.ttsStandard.per1kChars!);
   });
 
-  it("calculates duration-based cost (Whisper)", () => {
-    const cost = CostCalculator.calculate(
-      "whisper-1",
-      { durationSeconds: 120 },
-      "openai"
-    );
-    const tier = PRICING_TIERS.whisperStandard;
-    const expected = (120 / 60) * tier.perMinute!;
-    expect(cost).toBeCloseTo(expected);
+  it("calculates task-based cost (3D)", () => {
+    const cost = calculateModel3DCost("meshy-4", "meshy");
+    expect(cost).toBeCloseTo(PRICING_TIERS.meshy4TextTexturedTier.perTask!);
   });
 
-  it("calculates image-based cost", () => {
-    // gpt-image-1.5 is token-based, but we can test via calculateImageCost for gpt-image-1
-    // Let's test directly with a forced image tier
-    const tier = PRICING_TIERS.imageGptMedium;
-    expect(tier.costType).toBe(CostType.IMAGE_BASED);
-    // We'll test via calculateImageCost below
-  });
-
-  it("handles empty usage info", () => {
-    const cost = CostCalculator.calculate("gpt-4o", {}, "openai");
-    expect(cost).toBe(0);
-  });
-
-  it("handles video-based cost type", () => {
-    // No current model maps to video-based, but we can test the logic
-    // by verifying the formula path exists
-    // We test indirectly: _calculateForTier is private, but we can
-    // create a scenario that reaches it if we had a video tier
-    // For now, verify the cost type enum exists
-    expect(CostType.VIDEO_BASED).toBe("video_based");
-  });
-
-  it("warns and returns 0 for undefined tier name", () => {
-    const warnSpy = vi
-      .spyOn(process.stderr, "write")
-      .mockImplementation(() => true);
-    // Temporarily add a bad mapping to test the "tier not defined" path
-    const original = MODEL_TO_TIER["openai:__test_model__"];
-    MODEL_TO_TIER["openai:__test_model__"] = "nonexistent_tier";
-    const cost = CostCalculator.calculate(
-      "__test_model__",
-      { inputTokens: 100 },
-      "openai"
-    );
-    expect(cost).toBe(0);
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("not defined")
-    );
-    // Cleanup
-    if (original === undefined) {
-      delete MODEL_TO_TIER["openai:__test_model__"];
-    } else {
-      MODEL_TO_TIER["openai:__test_model__"] = original;
-    }
-    warnSpy.mockRestore();
-  });
-});
-
-describe("calculateChatCost", () => {
-  it("calculates cost with default provider", () => {
-    const cost = calculateChatCost("gpt-4o-mini", 1000, 500);
-    expect(cost).toBeGreaterThan(0);
-  });
-
-  it("calculates cost with cached tokens", () => {
-    const cost = calculateChatCost("gpt-4.1", 1000, 500, 200, "openai");
-    expect(cost).toBeGreaterThan(0);
-  });
-
-  it("calculates cost for anthropic provider", () => {
-    const cost = calculateChatCost(
-      "claude-3-5-sonnet-20241022",
-      1000,
-      500,
-      0,
-      "anthropic"
-    );
-    expect(cost).toBeGreaterThan(0);
-  });
-});
-
-describe("calculateEmbeddingCost", () => {
-  it("calculates embedding cost", () => {
-    const cost = calculateEmbeddingCost("text-embedding-3-small", 1000);
-    expect(cost).toBeGreaterThan(0);
-  });
-
-  it("calculates embedding cost with explicit provider", () => {
-    const cost = calculateEmbeddingCost(
-      "text-embedding-3-large",
-      500,
-      "openai"
-    );
-    expect(cost).toBeGreaterThan(0);
-  });
-});
-
-describe("calculateSpeechCost", () => {
-  it("calculates TTS cost", () => {
-    const cost = calculateSpeechCost("tts-1", 1000);
-    expect(cost).toBeGreaterThan(0);
-  });
-
-  it("calculates TTS HD cost", () => {
-    const cost = calculateSpeechCost("tts-1-hd", 1000, "openai");
-    expect(cost).toBeGreaterThan(0);
-  });
-});
-
-describe("calculateWhisperCost", () => {
-  it("calculates whisper cost", () => {
-    const cost = calculateWhisperCost("whisper-1", 60);
-    expect(cost).toBeGreaterThan(0);
-  });
-
-  it("calculates low-cost whisper", () => {
-    const cost = calculateWhisperCost("gpt-4o-mini-transcribe", 120, "openai");
-    expect(cost).toBeGreaterThan(0);
-  });
-});
-
-describe("calculateImageCost", () => {
-  it("calculates gpt-image-1 cost with quality override (low)", () => {
-    const cost = calculateImageCost("gpt-image-1", 1, "low");
-    expect(cost).toBeCloseTo(PRICING_TIERS.imageGptLow.perImage!);
-  });
-
-  it("calculates gpt-image-1 cost with quality override (medium)", () => {
-    const cost = calculateImageCost("gpt-image-1", 2, "medium");
-    expect(cost).toBeCloseTo(PRICING_TIERS.imageGptMedium.perImage! * 2);
-  });
-
-  it("calculates gpt-image-1 cost with quality override (high)", () => {
-    const cost = calculateImageCost("gpt-image-1", 1, "high");
-    expect(cost).toBeCloseTo(PRICING_TIERS.imageGptHigh.perImage!);
-  });
-
-  it("defaults to medium quality for unknown quality", () => {
-    const cost = calculateImageCost("gpt-image-1", 1, "ultra");
-    expect(cost).toBeCloseTo(PRICING_TIERS.imageGptMedium.perImage!);
-  });
-
-  it("does not apply quality override for gpt-image-1.5", () => {
-    // gpt-image-1.5 is token-based, not affected by quality override logic
-    const cost = calculateImageCost("gpt-image-1.5", 1, "low", "openai");
-    // This goes through normal calculate path (token-based), so imageCount doesn't matter for token cost
-    // It will be 0 since no tokens are provided
-    expect(cost).toBe(0);
-  });
-
-  it("uses default provider and count", () => {
-    const cost = calculateImageCost("gpt-image-1");
-    expect(cost).toBeCloseTo(PRICING_TIERS.imageGptMedium.perImage!);
-  });
-
-  it("returns 0 for unknown image model", () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const cost = calculateImageCost(
-      "unknown-image-model",
-      1,
-      "medium",
-      "openai"
-    );
-    expect(cost).toBe(0);
-    warnSpy.mockRestore();
-  });
-});
-
-describe("CostCalculator – getTier prefix match", () => {
-  it("matches model by prefix when no exact match exists", () => {
-    // "gpt-4o-2024-05-13" is not an exact key but starts with "gpt-4o"
-    const tier = CostCalculator.getTier("gpt-4o-2024-05-13", "openai");
-    expect(tier).toBe("topTierChat");
-  });
-});
-
-describe("CostCalculator – VIDEO_BASED cost type", () => {
-  it("calculates video-based cost using videoSeconds", () => {
-    // We need to test the VIDEO_BASED branch.
-    // Since there's no predefined VIDEO_BASED tier mapped to a model,
-    // we can test _calculateForTier indirectly by adding a temporary mapping.
-    // Instead, test the calculate method with a custom tier via PRICING_TIERS.
+  it("calculates video-based cost via a custom tier", () => {
     const tierName = "__test_video__";
-    (PRICING_TIERS as any)[tierName] = {
+    (PRICING_TIERS as Record<string, unknown>)[tierName] = {
       costType: CostType.VIDEO_BASED,
       perSecondVideo: 0.05
     };
-    (MODEL_TO_TIER as any)["test:video-model"] = tierName;
-
+    (MODEL_TO_TIER as Record<string, string>)["test:video-model"] = tierName;
     try {
       const cost = CostCalculator.calculate(
         "video-model",
         { videoSeconds: 10 },
-        "test"
+        "test" as never
       );
       expect(cost).toBeCloseTo(0.5);
     } finally {
-      delete (PRICING_TIERS as any)[tierName];
-      delete (MODEL_TO_TIER as any)["test:video-model"];
+      delete (PRICING_TIERS as Record<string, unknown>)[tierName];
+      delete (MODEL_TO_TIER as Record<string, string>)["test:video-model"];
     }
   });
 });
 
-describe("CostCalculator – fallback return 0 for unknown cost type", () => {
-  it("returns 0 for an unknown cost type", () => {
-    const tierName = "__test_unknown_type__";
-    (PRICING_TIERS as any)[tierName] = {
-      costType: "unknown_type" as any
-    };
-    (MODEL_TO_TIER as any)["test:unknown-model"] = tierName;
+describe("convenience functions", () => {
+  it("calculateChatCost returns USD", () => {
+    expect(calculateChatCost("gpt-4o-mini", 1000, 500)).toBeGreaterThan(0);
+  });
 
-    try {
-      const cost = CostCalculator.calculate(
-        "unknown-model",
-        { inputTokens: 100 },
-        "test"
-      );
-      expect(cost).toBe(0);
-    } finally {
-      delete (PRICING_TIERS as any)[tierName];
-      delete (MODEL_TO_TIER as any)["test:unknown-model"];
-    }
+  it("calculateEmbeddingCost returns USD", () => {
+    expect(
+      calculateEmbeddingCost("text-embedding-3-small", 100_000)
+    ).toBeGreaterThan(0);
+  });
+
+  it("calculateSpeechCost returns USD", () => {
+    expect(calculateSpeechCost("tts-1", 1000)).toBeCloseTo(
+      (1000 / 1000) * PRICING_TIERS.ttsHd.per1kChars!
+    );
+  });
+
+  it("calculateWhisperCost returns USD", () => {
+    expect(calculateWhisperCost("whisper-1", 60)).toBeCloseTo(
+      PRICING_TIERS.whisperStandard.perMinute!
+    );
+  });
+});
+
+describe("calculateImageCost (gpt-image-1, per-image USD)", () => {
+  it("low quality", () => {
+    expect(calculateImageCost("gpt-image-1", 1, "low")).toBeCloseTo(
+      PRICING_TIERS.imageGptLow.perImage!
+    );
+  });
+
+  it("medium quality, multiple images", () => {
+    expect(calculateImageCost("gpt-image-1", 2, "medium")).toBeCloseTo(
+      PRICING_TIERS.imageGptMedium.perImage! * 2
+    );
+  });
+
+  it("high quality", () => {
+    expect(calculateImageCost("gpt-image-1", 1, "high")).toBeCloseTo(
+      PRICING_TIERS.imageGptHigh.perImage!
+    );
+  });
+
+  it("defaults to medium for unknown quality", () => {
+    expect(calculateImageCost("gpt-image-1", 1, "ultra")).toBeCloseTo(
+      PRICING_TIERS.imageGptMedium.perImage!
+    );
   });
 });

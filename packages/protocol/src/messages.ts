@@ -145,6 +145,16 @@ export interface ProviderCost {
   provider: string;
   amount: number;
   unit: string;
+  /** Provider model / endpoint the charge applies to (e.g. a FAL endpoint id). */
+  model?: string | null;
+  /** Billing unit the provider prices by (e.g. "megapixels", "seconds", "images"). */
+  billing_unit?: string | null;
+  /** Number of billing units consumed. */
+  quantity?: number | null;
+  /** Price per billing unit, in `unit`/currency terms. */
+  unit_price?: number | null;
+  /** ISO 4217 currency of `amount`/`unit_price` (e.g. "USD"). */
+  currency?: string | null;
 }
 
 export interface NodeUpdate {

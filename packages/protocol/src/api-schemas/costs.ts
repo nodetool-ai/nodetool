@@ -39,6 +39,10 @@ export const predictionResponse = z.object({
   total_tokens: z.number().nullable(),
   cached_tokens: z.number().nullable(),
   reasoning_tokens: z.number().nullable(),
+  billing_unit: z.string().nullable(),
+  quantity: z.number().nullable(),
+  unit_price: z.number().nullable(),
+  currency: z.string().nullable(),
   created_at: z.string().nullable(),
   metadata: z.record(z.string(), z.unknown()).nullable()
 });
