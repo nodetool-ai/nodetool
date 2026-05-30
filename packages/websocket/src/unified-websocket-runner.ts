@@ -56,7 +56,11 @@ import {
   type ComfyExecutionHandle
 } from "@nodetool-ai/runtime";
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
-import type { Chunk, ProcessingMessage } from "@nodetool-ai/protocol";
+import type {
+  Chunk,
+  ProcessingMessage,
+  ProviderCost
+} from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -1931,6 +1935,21 @@ export class UnifiedWebSocketRunner {
             }
           }
 
+          // Persist provider-reported spend (FAL / Kie / … generative nodes) so
+          // it shows up in the cost ledger alongside chat/LLM predictions.
+          if (
+            outbound.type === "node_update" &&
+            outbound.status === "completed" &&
+            outbound.provider_cost != null
+          ) {
+            await this._persistNodeProviderCost(
+              outbound.provider_cost as ProviderCost,
+              String(outbound.node_id ?? ""),
+              nodeType,
+              active.workflowId
+            );
+          }
+
           // Materialize binary assets to temp URLs before sending over WebSocket
           if (outbound.type === "node_update" && outbound.result != null) {
             outbound.result = await active.context.normalizeOutputValue(
@@ -3125,6 +3144,46 @@ export class UnifiedWebSocketRunner {
       };
       await this.saveMessageToDb(errorMsgData);
       await this.sendMessage(errorMsgData);
+    }
+  }
+
+  /**
+   * Persist a node-reported provider cost into the prediction ledger.
+   * Covers generative nodes (FAL, Kie, …) that call
+   * `context.setProviderCost()`. Best-effort: never throws.
+   */
+  private async _persistNodeProviderCost(
+    cost: ProviderCost,
+    nodeId: string,
+    nodeType: string,
+    workflowId: string | null
+  ): Promise<void> {
+    if (typeof cost.amount !== "number" || !Number.isFinite(cost.amount)) {
+      return;
+    }
+    try {
+      await Prediction.create({
+        user_id: this.userId ?? "1",
+        provider: cost.provider,
+        model: cost.model ?? nodeType,
+        cost: cost.amount,
+        currency: cost.currency ?? cost.unit ?? null,
+        billing_unit: cost.billing_unit ?? null,
+        quantity: cost.quantity ?? null,
+        unit_price: cost.unit_price ?? null,
+        workflow_id: workflowId,
+        node_id: nodeId,
+        status: "completed"
+      });
+      log.debug("Persisted node provider cost", {
+        provider: cost.provider,
+        model: cost.model ?? nodeType,
+        cost: cost.amount
+      });
+    } catch (err) {
+      log.warn("Failed to persist node provider cost", {
+        error: err instanceof Error ? err.message : String(err)
+      });
     }
   }
 

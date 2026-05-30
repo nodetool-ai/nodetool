@@ -857,7 +857,7 @@ export class ProcessingContext {
         properties: Record<string, unknown>
       ) => Promise<Record<string, unknown>>)
     | null = null;
-  /** Provider charge reported by the current node execution (e.g. KIE creditsConsumed). */
+  /** Provider charge (USD) reported by the current node execution (e.g. FAL/KIE generation). */
   private _providerCost: ProviderCost | null = null;
   /** Optional executor resolver for sub-workflow execution. */
   private _resolveExecutor:
@@ -1253,8 +1253,16 @@ export class ProcessingContext {
   }
 
   /** Record actual provider charge for the current node run (attached to completed NodeUpdate). */
-  setProviderCost(provider: string, amount: number, unit: string): void {
-    this._providerCost = { provider, amount, unit };
+  setProviderCost(
+    provider: string,
+    amount: number,
+    unit: string,
+    details?: Pick<
+      ProviderCost,
+      "model" | "billing_unit" | "quantity" | "unit_price" | "currency"
+    >
+  ): void {
+    this._providerCost = { provider, amount, unit, ...details };
   }
 
   getProviderCost(): ProviderCost | null {
