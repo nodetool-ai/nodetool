@@ -22,7 +22,7 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   timeline: true,
   model3d: true,
   text: true,
-  audio: false
+  audio: true
 };
 
 const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
