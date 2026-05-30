@@ -102,7 +102,15 @@ function uniqueLayerName(base: string): string {
   return `${base} ${n}`;
 }
 
-const ConnectedModePromptBarInner: React.FC = () => {
+interface ConnectedModePromptBarProps {
+  /** Document-level actions rendered at the trailing edge of the bar (e.g.
+   * Save/Done when the editor is embedded in an asset tab). */
+  trailingActions?: React.ReactNode;
+}
+
+const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
+  trailingActions
+}) => {
   const theme = useTheme();
 
   const genMode = useSketchStore((s) => s.genMode);
@@ -346,6 +354,8 @@ const ConnectedModePromptBarInner: React.FC = () => {
         >
           {descriptor.label}
         </EditorButton>
+
+        {trailingActions}
       </FlexRow>
 
       <Toast

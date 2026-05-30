@@ -11,7 +11,6 @@ import "./prismGlobal";
 import React, { Suspense, useEffect, useState } from "react";
 import { PREVIEW_NODE_TYPE } from "./constants/nodeTypes";
 import { useNavigate } from "react-router-dom";
-import { useWorkflowManager } from "./contexts/WorkflowManagerContext";
 import ReactDOM from "react-dom/client";
 
 import {
@@ -25,7 +24,6 @@ import ErrorBoundary from "./ErrorBoundary";
 
 // Lazy-load panel components to reduce initial bundle size
 const PanelLeft = React.lazy(() => import("./components/panels/PanelLeft"));
-const PanelRight = React.lazy(() => import("./components/panels/PanelRight"));
 const PanelBottom = React.lazy(() => import("./components/panels/PanelBottom"));
 import { LoadingSpinner } from "./components/ui_primitives/LoadingSpinner";
 import { ThemeProvider } from "@mui/material/styles";
@@ -50,7 +48,6 @@ import Login from "./components/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
-import { useSettingsStore } from "./stores/SettingsStore";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import { HEADER_HEIGHT } from "./config/constants";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
@@ -58,10 +55,7 @@ import { loadMetadata } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
 import type { ComfyUIObjectInfo } from "./services/ComfyUIService";
 import { comfyObjectInfoToMetadataMap } from "./utils/comfySchemaConverter";
-import {
-  FetchCurrentWorkflow,
-  WorkflowManagerProvider
-} from "./contexts/WorkflowManagerContext";
+import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
 const DownloadManagerDialog = React.lazy(
@@ -72,7 +66,6 @@ const RunWarningDialog = React.lazy(
 );
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
-const Alert = React.lazy(() => import("./components/node_editor/Alert"));
 import MobileClassProvider from "./components/MobileClassProvider";
 const AppHeader = React.lazy(() => import("./components/panels/AppHeader"));
 import { SkipLinks } from "./components/ui_primitives/SkipLinks";
@@ -86,9 +79,6 @@ const GlobalChat = React.lazy(
 const StandaloneChat = React.lazy(
   () => import("./components/chat/containers/StandaloneChat")
 );
-const MiniAppPage = React.lazy(
-  () => import("./components/miniapps/MiniAppPage")
-);
 const StandaloneMiniApp = React.lazy(
   () => import("./components/miniapps/StandaloneMiniApp")
 );
@@ -98,13 +88,9 @@ const ModelListIndex = React.lazy(
 const WorkflowGraphView = React.lazy(
   () => import("./components/graph_view/WorkflowGraphView")
 );
-const TabsNodeEditor = React.lazy(
-  () => import("./components/editor/TabsNodeEditor")
-);
 const AssetExplorer = React.lazy(
   () => import("./components/assets/AssetExplorer")
 );
-const AssetEditor = React.lazy(() => import("./components/assets/AssetEditor"));
 const CollectionsExplorer = React.lazy(
   () => import("./components/collections/CollectionsExplorer")
 );
@@ -134,6 +120,13 @@ const TimelineEditor = React.lazy(
 const SketchEditorPage = React.lazy(
   () => import("./components/sketch/SketchEditorPage")
 );
+const WorkspaceShell = React.lazy(
+  () => import("./components/workspace/WorkspaceShell")
+);
+import {
+  WorkflowEditorRedirect,
+  WorkflowAppRedirect
+} from "./components/workspace/RouteRedirects";
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
@@ -166,74 +159,20 @@ if (isLocalhost) {
 
 const NavigateToStart = () => {
   const state = useAuth((auth) => auth.state);
-  const showWelcomeOnStartup = useSettingsStore(
-    (state) => state.settings.showWelcomeOnStartup
-  );
-  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Handle navigation based on settings
+  // The tabbed workspace is the app entry point. Previously-open workflows are
+  // restored as tabs from localStorage by the WorkspaceTabsStore.
   useEffect(() => {
-    const handleNavigation = async () => {
-      // Helper to get workflow to open (current > first open > null)
-      const getExistingWorkflowId = (): string | null => {
-        const currentWorkflowId = localStorage.getItem("currentWorkflowId");
-        if (currentWorkflowId) {
-          return currentWorkflowId;
-        }
-        const openWorkflows = JSON.parse(
-          localStorage.getItem("openWorkflows") || "[]"
-        ) as string[];
-        if (openWorkflows.length > 0) {
-          return openWorkflows[0];
-        }
-        return null;
-      };
-
-      const navigateToEditor = async () => {
-        // Check for existing workflow first
-        const existingWorkflowId = getExistingWorkflowId();
-        if (existingWorkflowId) {
-          navigate(`/editor/${existingWorkflowId}`, { replace: true });
-          return;
-        }
-
-        // Only create new if no workflows are open
-        if (!isProcessing) {
-          setIsProcessing(true);
-          try {
-            const workflow = await createNewWorkflow();
-            navigate(`/editor/${workflow.id}`, { replace: true });
-          } catch (error) {
-            console.error("Failed to create workflow:", error);
-            navigate("/chat", { replace: true });
-          }
-        }
-      };
-
-      if (isLocalhost || state === "logged_in") {
-        // The dashboard (Portal) hosts the welcome flow for first-time users
-        // and the chat composer once that flow is dismissed. Opting out of
-        // the welcome screen jumps straight to the editor.
-        if (!showWelcomeOnStartup) {
-          await navigateToEditor();
-        } else {
-          navigate("/dashboard", { replace: true });
-        }
-      } else if (state === "logged_out" || state === "error") {
-        navigate("/login", { replace: true });
-      }
-    };
-
-    if (state !== "init") {
-      void handleNavigation();
+    if (state === "init") {
+      return;
     }
-  }, [state, showWelcomeOnStartup, createNewWorkflow, navigate, isProcessing]);
-
-  if (state === "init") {
-    return null;
-  }
+    if (isLocalhost || state === "logged_in") {
+      navigate("/workspace", { replace: true });
+    } else if (state === "logged_out" || state === "error") {
+      navigate("/login", { replace: true });
+    }
+  }, [state, navigate]);
 
   return null;
 };
@@ -323,24 +262,7 @@ function getRoutes() {
       path: "/apps/:workflowId?",
       element: (
         <ProtectedRoute>
-          <>
-            <SkipLinks />
-            <AppHeader />
-            <div
-              id="main-content"
-              style={{
-                display: "flex",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <PanelLeft />
-              <div style={{ flex: 1, display: "flex" }}>
-                <MiniAppPage />
-              </div>
-              <PanelBottom />
-            </div>
-          </>
+          <WorkflowAppRedirect />
         </ProtectedRoute>
       )
     },
@@ -384,14 +306,6 @@ function getRoutes() {
       )
     },
     {
-      path: "assets/edit/:assetId",
-      element: (
-        <ProtectedRoute>
-          <AssetEditor />
-        </ProtectedRoute>
-      )
-    },
-    {
       path: "collections",
       element: (
         <ProtectedRoute>
@@ -412,36 +326,7 @@ function getRoutes() {
       path: "editor/:workflow",
       element: (
         <ProtectedRoute>
-          <FetchCurrentWorkflow>
-            <div
-              className="page-enter"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <SkipLinks />
-              {/* Fixed application header at the very top */}
-              <AppHeader />
-              {/* Main editor area beneath the header */}
-              <div
-                id="main-content"
-                style={{
-                  display: "flex",
-                  width: "100%",
-                  height: "100%"
-                }}
-              >
-                <PanelLeft />
-                <TabsNodeEditor />
-                <PanelRight />
-                <PanelBottom />
-                <Alert />
-              </div>
-            </div>
-          </FetchCurrentWorkflow>
+          <WorkflowEditorRedirect />
         </ProtectedRoute>
       )
     },
@@ -516,6 +401,30 @@ function getRoutes() {
             <AppHeader />
             <React.Suspense fallback={<LoadingSpinner />}>
               <SketchEditorPage />
+            </React.Suspense>
+          </div>
+        </ProtectedRoute>
+      )
+    },
+    {
+      // New tabbed-document workspace (in progress). Lives alongside the
+      // existing routes; will become the default once all document types
+      // are wired. See docs/superpowers/specs/2026-05-30-tabbed-workspace-modes-design.md
+      path: "/workspace",
+      element: (
+        <ProtectedRoute>
+          <div
+            className="page-enter"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <SkipLinks />
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <WorkspaceShell />
             </React.Suspense>
           </div>
         </ProtectedRoute>

@@ -22,19 +22,34 @@ const rise = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-const styles = (theme: Theme) =>
+const pulse = keyframes`
+  0%, 100% { box-shadow: 0 0 0 3px rgba(80,250,123,0.12); }
+  50% { box-shadow: 0 0 0 5px rgba(80,250,123,0.05); }
+`;
+
+const styles = (theme: Theme, fullWidth: boolean) =>
   css({
     width: "100%",
-    maxWidth: 940,
+    maxWidth: fullWidth ? "100%" : 940,
     textAlign: "left" as const,
 
     ".welcome-eyebrow": {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
       textTransform: "uppercase" as const,
-      letterSpacing: "0.04em",
+      letterSpacing: "0.12em",
       fontSize: 12,
       fontWeight: 500,
       color: theme.vars.palette.text.secondary,
       animation: `${rise} 500ms 80ms backwards`
+    },
+    ".welcome-eyebrow-dot": {
+      width: 6,
+      height: 6,
+      borderRadius: 9999,
+      background: theme.vars.palette.success.main,
+      animation: `${pulse} 2.4s ease-in-out infinite`
     },
     ".welcome-heading": {
       margin: "6px 0 12px",
@@ -155,14 +170,32 @@ const styles = (theme: Theme) =>
 interface WelcomeFlowProps {
   onPick: (trackId: WelcomeTrackId) => void;
   onSkip: () => void;
+  /** Pulsing status dot before the eyebrow (used on the dashboard hero). */
+  statusDot?: boolean;
+  /** Span the parent container instead of capping at 940px, so the card grid
+   *  lines up with the template / workflow grids below it. */
+  fullWidth?: boolean;
+  /** Suppress the built-in skip footer when the host renders its own (e.g. the
+   *  dashboard hero, which places a composer and an "open empty canvas" action
+   *  below the cards). */
+  hideFooter?: boolean;
 }
 
-const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ onPick, onSkip }) => {
+const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
+  onPick,
+  onSkip,
+  statusDot = false,
+  fullWidth = false,
+  hideFooter = false
+}) => {
   const theme = useTheme();
 
   return (
-    <div css={styles(theme)}>
-      <div className="welcome-eyebrow">Welcome to NodeTool</div>
+    <div css={styles(theme, fullWidth)}>
+      <div className="welcome-eyebrow">
+        {statusDot && <span className="welcome-eyebrow-dot" />}
+        Welcome to NodeTool
+      </div>
       <h1 className="welcome-heading">What do you want to make today?</h1>
       <p className="welcome-sub">
         Pick one. We&apos;ll drop a starter graph onto the canvas so you can run
@@ -199,15 +232,17 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ onPick, onSkip }) => {
         })}
       </div>
 
-      <div className="welcome-footer">
-        <button type="button" className="welcome-skip" onClick={onSkip}>
-          Skip - explore on my own
-        </button>
-        <span className="welcome-footer-divider" />
-        <span className="welcome-footer-hint">
-          Each pick is a real, editable workflow.
-        </span>
-      </div>
+      {!hideFooter && (
+        <div className="welcome-footer">
+          <button type="button" className="welcome-skip" onClick={onSkip}>
+            Skip - explore on my own
+          </button>
+          <span className="welcome-footer-divider" />
+          <span className="welcome-footer-hint">
+            Each pick is a real, editable workflow.
+          </span>
+        </div>
+      )}
     </div>
   );
 };

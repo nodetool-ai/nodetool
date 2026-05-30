@@ -16,6 +16,18 @@ interface WorkflowCardProps {
   nodesOnlySearch: boolean;
   isLoading: boolean;
   onClick: (workflow: Workflow) => void;
+  /** Category accent; when set, tints the thumbnail to colour-code the card. */
+  tint?: string;
+  /** Category label; when set (with `tint`), shown as a colored pill leading
+   *  the tag list. */
+  categoryLabel?: string;
+  /** Tags to drop from the chip row (e.g. the category's own tags, which the
+   *  category pill already conveys). Case-insensitive. */
+  hideTags?: string[];
+  /** Cap on the number of plain tag chips shown after the category pill. */
+  maxChips?: number;
+  /** Description line clamp (default 3). */
+  descriptionLines?: number;
 }
 
 const HIDDEN_TAGS = new Set([
@@ -89,6 +101,15 @@ const cardStyles = (theme: Theme) =>
     },
     "&:hover .card-image": {
       transform: "scale(1.03)"
+    },
+    ".card-tint": {
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none",
+      transition: "opacity 0.2s ease"
+    },
+    "&:hover .card-tint": {
+      opacity: 0.85
     },
     ".package-badge": {
       position: "absolute",
@@ -187,6 +208,19 @@ const cardStyles = (theme: Theme) =>
       background: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
       textTransform: "lowercase"
+    },
+    ".chip-category": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "5px",
+      textTransform: "none",
+      fontWeight: 600
+    },
+    ".chip-dot": {
+      width: "6px",
+      height: "6px",
+      borderRadius: "999px",
+      flexShrink: 0
     }
   });
 
@@ -195,7 +229,12 @@ const WorkflowCard = ({
   matchedNodes,
   nodesOnlySearch,
   isLoading,
-  onClick
+  onClick,
+  tint,
+  categoryLabel,
+  hideTags,
+  maxChips = 3,
+  descriptionLines = 3
 }: WorkflowCardProps) => {
   const theme = useTheme();
 
@@ -225,11 +264,13 @@ const WorkflowCard = ({
   }, [workflow.package_name]);
 
   const chips = useMemo(() => {
-    const tags = (workflow.tags || []).filter(
-      (t) => !HIDDEN_TAGS.has(t.toLowerCase())
-    );
-    return tags.slice(0, 3);
-  }, [workflow.tags]);
+    const hidden = new Set(hideTags?.map((t) => t.toLowerCase()));
+    const tags = (workflow.tags || []).filter((t) => {
+      const lower = t.toLowerCase();
+      return !HIDDEN_TAGS.has(lower) && !hidden.has(lower);
+    });
+    return tags.slice(0, Math.max(0, maxChips));
+  }, [workflow.tags, hideTags, maxChips]);
 
   return (
     <Tooltip
@@ -278,6 +319,14 @@ const WorkflowCard = ({
             alt={workflow.name}
             loading="lazy"
           />
+          {tint && (
+            <div
+              className="card-tint"
+              style={{
+                background: `linear-gradient(180deg, ${tint}14 0%, ${tint}38 100%)`
+              }}
+            />
+          )}
           {packageBadge && (
             <Text className="package-badge">{packageBadge}</Text>
           )}
@@ -309,17 +358,41 @@ const WorkflowCard = ({
             {workflow.name}
           </Text>
           {workflow.description && (
-            <Text className="card-description">{workflow.description}</Text>
+            <Text
+              className="card-description"
+              style={{
+                WebkitLineClamp: descriptionLines,
+                maxHeight: `calc(0.75rem * 1.4 * ${descriptionLines})`
+              }}
+            >
+              {workflow.description}
+            </Text>
           )}
-          {chips.length > 0 && (
+          {(categoryLabel && tint) || chips.length > 0 ? (
             <Box className="chips-container">
+              {categoryLabel && tint && (
+                <span
+                  className="chip chip-category"
+                  style={{
+                    background: `${tint}24`,
+                    borderColor: `${tint}73`,
+                    color: tint
+                  }}
+                >
+                  <span
+                    className="chip-dot"
+                    style={{ background: tint }}
+                  />
+                  {categoryLabel}
+                </span>
+              )}
               {chips.map((tag) => (
                 <span key={tag} className="chip">
                   {tag}
                 </span>
               ))}
             </Box>
-          )}
+          ) : null}
         </Box>
       </Box>
     </Tooltip>

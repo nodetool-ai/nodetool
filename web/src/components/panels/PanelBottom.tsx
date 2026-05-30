@@ -522,7 +522,8 @@ const PanelBottom: React.FC = () => {
     }
   }, [activeView, setActiveView]);
 
-  if (!path.startsWith("/editor")) {
+  // Shown in the legacy editor (/editor) and the unified workspace (/workspace).
+  if (!path.startsWith("/editor") && !path.startsWith("/workspace")) {
     return null;
   }
 

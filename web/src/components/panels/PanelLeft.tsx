@@ -18,7 +18,8 @@ import AgentPanel from "./AgentPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
-import QuickAccessGrid from "../node_menu/QuickAccessGrid";
+import NodeLibrary from "../node_menu/NodeLibrary";
+import RailAppMenu from "./RailAppMenu";
 
 import { IconForType } from "../../config/IconForType";
 import {
@@ -60,8 +61,10 @@ const styles = (
   return css({
     position: "fixed",
     left: 0,
-    top: `${headerHeight}px`,
-    height: `calc(100vh - ${headerHeight}px)`,
+    // In the workspace shell the rail runs full-height (top 0) with the top
+    // bar inset to its right. Legacy layouts have no var and keep their offset.
+    top: `var(--workspace-rail-top, ${headerHeight}px)`,
+    height: `calc(100vh - var(--workspace-rail-top, ${headerHeight}px))`,
     display: "flex",
     flexDirection: "row",
     zIndex: 1100,
@@ -166,11 +169,13 @@ const styles = (
 const VerticalToolbar = memo(function VerticalToolbar({
   activeView,
   onViewChange,
-  handlePanelToggle
+  handlePanelToggle,
+  showAppMenu = false
 }: {
   activeView: string;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
+  showAppMenu?: boolean;
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
@@ -183,6 +188,12 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
   return (
     <div className="vertical-toolbar">
+      {showAppMenu && (
+        <>
+          <RailAppMenu />
+          <div className="toolbar-divider" aria-hidden />
+        </>
+      )}
       <QuickAccessSidebar
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
@@ -233,20 +244,11 @@ const PanelContent = memo(function PanelContent({
 
   if (activeView === "nodes") {
     return (
-      <FlexColumn
-        fullWidth
-        fullHeight
-        sx={{
-          overflow: "hidden",
-          margin: isMobile ? "0" : "0 0.5em"
-        }}
-      >
-        {!isMobile && <PanelHeadline title="Nodes" />}
-        <QuickAccessGrid
-          activeSubcategory={activeNodeCategory}
-          onSubcategoryChange={setActiveNodeCategory}
-        />
-      </FlexColumn>
+      <NodeLibrary
+        activeSubcategory={activeNodeCategory}
+        onSubcategoryChange={setActiveNodeCategory}
+        isMobile={isMobile}
+      />
     );
   }
 
@@ -529,6 +531,9 @@ const PanelLeft: React.FC = () => {
     location.pathname.startsWith("/standalone-chat") ||
     location.pathname.startsWith("/miniapp");
   const hasHeader = !isStandaloneMode;
+  // The rail owns the app menu (logo) only in the unified workspace shell;
+  // legacy routes still carry it in AppHeader.
+  const isWorkspace = location.pathname.startsWith("/workspace");
 
   const {
     ref: panelRef,
@@ -599,6 +604,7 @@ const PanelLeft: React.FC = () => {
           activeView={activeView}
           onViewChange={onViewChange}
           handlePanelToggle={handlePanelToggleClick}
+          showAppMenu={isWorkspace}
         />
 
         {isVisible && (

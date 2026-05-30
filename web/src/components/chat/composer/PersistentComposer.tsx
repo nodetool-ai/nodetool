@@ -30,6 +30,9 @@ type InputStatus =
 interface PositionedComposerProps {
   box: Box;
   visible: boolean;
+  /** Identity of the active slot; changes only on slot transitions, so the FLIP
+   *  animation fires on navigation but not while tracking a scrolling slot. */
+  slotKey: number;
   status: InputStatus;
   onSendMessage: ComposerSendHandler;
   onStop: () => void;
@@ -48,6 +51,7 @@ interface PositionedComposerProps {
 const PositionedComposer: React.FC<PositionedComposerProps> = ({
   box,
   visible,
+  slotKey,
   status,
   onSendMessage,
   onStop,
@@ -69,7 +73,7 @@ const PositionedComposer: React.FC<PositionedComposerProps> = ({
     return () => ro.disconnect();
   }, [setComposerHeight]);
 
-  useFlipPosition(rootRef, [box.top, box.left, box.width]);
+  useFlipPosition(rootRef, [box.top, box.left, box.width], slotKey);
 
   return (
     <div
@@ -130,6 +134,13 @@ const PersistentComposer: React.FC = () => {
 
   const [box, setBox] = useState<Box | null>(null);
 
+  // Bumped whenever the active slot element changes. Drives the FLIP animation
+  // (slot transitions animate; scroll/resize repositioning does not).
+  const [slotKey, setSlotKey] = useState(0);
+  useLayoutEffect(() => {
+    if (activeSlot) setSlotKey((k) => k + 1);
+  }, [activeSlot]);
+
   const measure = useCallback(() => {
     // No active slot (mid-route-transition or the Portal setup screen): keep
     // the last measured box so the overlay stays where it was. Resetting to
@@ -143,12 +154,28 @@ const PersistentComposer: React.FC = () => {
   useLayoutEffect(() => {
     measure();
     if (!activeSlot) return;
+
+    // Track a scrolling slot: when the start page scrolls, the slot moves and
+    // the fixed overlay must follow. Capture-phase catches scrolls from any
+    // nested scroll container, not just the window. rAF-throttled so we measure
+    // at most once per frame.
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        measure();
+      });
+    };
     window.addEventListener("resize", measure);
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
     const ro = new ResizeObserver(measure);
     ro.observe(activeSlot);
     return () => {
       window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", onScroll, { capture: true });
       ro.disconnect();
+      if (raf) cancelAnimationFrame(raf);
     };
   }, [activeSlot, measure]);
 
@@ -164,6 +191,7 @@ const PersistentComposer: React.FC = () => {
     <PositionedComposer
       box={box}
       visible={!!activeSlot}
+      slotKey={slotKey}
       status={inputStatus}
       onSendMessage={activeSend ?? NOOP}
       onStop={stopGeneration}

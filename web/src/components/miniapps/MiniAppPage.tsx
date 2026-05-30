@@ -37,10 +37,21 @@ import { useMiniAppsStore } from "../../stores/MiniAppsStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH } from "../../config/constants";
 
-const MiniAppPage: React.FC = () => {
+interface MiniAppPageProps {
+  /** When set, render this workflow instead of reading the route param. */
+  workflowId?: string;
+  /** Embedded in the workspace shell (no docked left panel to offset). */
+  embedded?: boolean;
+}
+
+const MiniAppPage: React.FC<MiniAppPageProps> = ({
+  workflowId: workflowIdProp,
+  embedded = false
+}) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const { workflowId } = useParams<{ workflowId?: string }>();
+  const params = useParams<{ workflowId?: string }>();
+  const workflowId = workflowIdProp ?? params.workflowId;
   const [_submitError, setSubmitError] = useState<string | null>(null);
 
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
@@ -162,14 +173,15 @@ const MiniAppPage: React.FC = () => {
   const isSubmitDisabled =
     !workflow || runnerState === "running" || runnerState === "connecting";
 
+  // Bind to THIS page's workflow store, not the global currentWorkflowId. The
+  // workspace keeps every tab mounted, so multiple MiniAppPages coexist; each
+  // must use its own workflow's store (created by the fetchWorkflow query above).
   const activeNodeStore = useWorkflowManager((state) =>
-    state.currentWorkflowId
-      ? state.nodeStores[state.currentWorkflowId]
-      : undefined
+    workflowId ? state.nodeStores[workflowId] : undefined
   );
   const isVisible = usePanelStore((state) => state.panel.isVisible);
   const panelSize = usePanelStore((state) => state.panel.panelSize);
-  const leftOffset = isVisible ? panelSize : TOOLBAR_WIDTH;
+  const leftOffset = embedded ? 0 : isVisible ? panelSize : TOOLBAR_WIDTH;
 
   // Check for custom HTML app
   const hasCustomApp = Boolean(workflow?.html_app);
@@ -216,7 +228,9 @@ const MiniAppPage: React.FC = () => {
         sx={{
           marginLeft: `${leftOffset}px`,
           width: "auto", // Allow auto width to fill available space
-          minHeight: "100vh",
+          minHeight: embedded ? "100%" : "100vh",
+          height: embedded ? "100%" : undefined,
+          overflow: embedded ? "auto" : undefined,
           transition: "margin-left 0.2s ease-out"
         }}
       >
@@ -254,7 +268,7 @@ const MiniAppPage: React.FC = () => {
               </Box>
             )}
 
-            {workflow && (
+            {workflow && activeNodeStore && (
               <>
                 {/* Header Section */}
                 <div className="page-header">
