@@ -1,4 +1,4 @@
-import { isTextAsset, languageFromAsset } from "../assetLanguage";
+import { isTextAsset, languageFromAsset, previewKind } from "../assetLanguage";
 
 describe("languageFromAsset", () => {
   it("resolves a language from common extensions", () => {
@@ -42,6 +42,20 @@ describe("isTextAsset", () => {
   it("is false for binary formats", () => {
     expect(isTextAsset({ name: "photo.png", content_type: "image/png" })).toBe(
       false
+    );
+  });
+});
+
+describe("previewKind", () => {
+  it("classifies markdown, csv, code and plain text", () => {
+    expect(previewKind({ name: "README.md" })).toBe("markdown");
+    expect(previewKind({ name: "data.csv" })).toBe("csv");
+    expect(previewKind({ name: "rows.tsv" })).toBe("csv");
+    expect(previewKind({ name: "main.py" })).toBe("code");
+    expect(previewKind({ name: "config.yaml" })).toBe("code");
+    expect(previewKind({ name: "notes.txt" })).toBe("text");
+    expect(previewKind({ name: "log", content_type: "text/plain" })).toBe(
+      "text"
     );
   });
 });

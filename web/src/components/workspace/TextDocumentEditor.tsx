@@ -1,20 +1,23 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import type * as monaco from "monaco-editor";
-import SearchIcon from "@mui/icons-material/Search";
 import WrapTextIcon from "@mui/icons-material/WrapText";
-import CodeIcon from "@mui/icons-material/Code";
 import SaveIcon from "@mui/icons-material/Save";
 
-import type { Asset } from "../../stores/ApiTypes";
+import type { Asset, DataframeRef } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
-import { languageFromAsset } from "../../utils/assetLanguage";
+import { languageFromAsset, previewKind } from "../../utils/assetLanguage";
+import {
+  csvDelimiterFor,
+  dataframeToCsv,
+  parseCsvToDataframe
+} from "../../utils/csvDataframe";
+import MonacoPane from "./MonacoPane";
+import DataTable from "../node/DataTable/DataTable";
 import {
   Caption,
   EditorButton,
@@ -66,25 +69,20 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       position: "relative"
     },
-    ".editor-status": {
-      position: "absolute",
-      inset: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: theme.vars.palette.text.secondary
-    },
-    ".editor-error": {
-      color: theme.vars.palette.error.main
+    ".table-host": {
+      flex: 1,
+      minHeight: 0,
+      overflow: "auto",
+      padding: "0.75em"
     }
   });
 
 /**
- * A Monaco-backed editor for any text-based asset, used as the edit surface of
- * a `text` workspace tab. It is the code-editor counterpart to the read-only
- * TextViewer: language is inferred from the filename, edits are tracked against
- * the loaded baseline, and Save persists the content back via the asset update
- * API (`Cmd/Ctrl+S` or the toolbar button).
+ * The edit surface of a `text` workspace tab. CSV/TSV assets open in the
+ * tabular DataTable editor; every other text format opens in Monaco with a
+ * filename-inferred language. Edits are tracked against the loaded baseline
+ * (dirty dot) and persisted back via the asset update API (Cmd/Ctrl+S or the
+ * toolbar Save button).
  */
 const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
   const theme = useTheme();
@@ -94,16 +92,9 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
     (state) => state.addNotification
   );
 
-  const {
-    MonacoEditor,
-    monacoLoadError,
-    isMonacoLoading,
-    loadMonacoIfNeeded,
-    monacoOnMount
-  } = useMonacoEditor();
-
   const language = useMemo(() => languageFromAsset(asset), [asset]);
-  const monacoTheme = theme.palette.mode === "light" ? "vs" : "vs-dark";
+  const kind = previewKind(asset);
+  const isCsv = kind === "csv";
   const getUrl = asset.get_url ?? undefined;
 
   const [content, setContent] = useState<string | null>(null);
@@ -137,10 +128,6 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
       setSavedContent(loadedText);
     }
   }, [loadedText, content]);
-
-  useEffect(() => {
-    void loadMonacoIfNeeded();
-  }, [loadMonacoIfNeeded]);
 
   const saveMutation = useMutation({
     mutationFn: (text: string) =>
@@ -179,54 +166,71 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
     saveMutation.mutate(content);
   }, [content, savedContent, isSaving, saveMutation]);
 
-  // Monaco's keybinding fires through a ref so the command — registered once on
-  // mount — always calls the latest save handler instead of a stale closure.
-  const saveRef = useRef(handleSave);
-  saveRef.current = handleSave;
+  // CSV editing round-trips through a DataframeRef: the text stays canonical
+  // for dirty-tracking and saving, the table just edits a parsed view of it.
+  const delimiter = useMemo(
+    () => csvDelimiterFor(asset.name ?? ""),
+    [asset.name]
+  );
+  const dataframe = useMemo<DataframeRef | null>(
+    () => (isCsv && content !== null ? parseCsvToDataframe(content, delimiter) : null),
+    [isCsv, content, delimiter]
+  );
 
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const handleDataframeChange = useCallback(
+    (df: DataframeRef) => setContent(dataframeToCsv(df, delimiter)),
+    [delimiter]
+  );
 
-  const handleMount = useCallback(
-    (
-      editor: monaco.editor.IStandaloneCodeEditor,
-      monacoInstance: typeof import("monaco-editor")
-    ) => {
-      editorRef.current = editor;
-      monacoOnMount(editor);
-      editor.addCommand(
-        monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.KeyS,
-        () => saveRef.current()
+  const body = () => {
+    if (textError) {
+      return (
+        <FlexColumn
+          fullWidth
+          fullHeight
+          sx={{ alignItems: "center", justifyContent: "center" }}
+        >
+          <Caption sx={{ color: "error.main" }}>
+            Failed to load text content
+          </Caption>
+        </FlexColumn>
       );
-    },
-    [monacoOnMount]
-  );
-
-  const handleChange = useCallback((value?: string) => {
-    setContent(value ?? "");
-  }, []);
-
-  const handleFind = useCallback(() => {
-    editorRef.current?.getAction?.("actions.find")?.run?.();
-  }, []);
-
-  const handleFormat = useCallback(() => {
-    editorRef.current?.getAction?.("editor.action.formatDocument")?.run?.();
-  }, []);
-
-  const editorOptions = useMemo(
-    () => ({
-      automaticLayout: true,
-      minimap: { enabled: true },
-      scrollBeyondLastLine: false,
-      wordWrap: wordWrap ? ("on" as const) : ("off" as const),
-      fontSize: 13,
-      tabSize: 2,
-      renderWhitespace: "selection" as const,
-      smoothScrolling: true,
-      scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10 }
-    }),
-    [wordWrap]
-  );
+    }
+    if (textLoading || content === null) {
+      return (
+        <FlexColumn
+          fullWidth
+          fullHeight
+          sx={{ alignItems: "center", justifyContent: "center" }}
+        >
+          <LoadingSpinner />
+        </FlexColumn>
+      );
+    }
+    if (isCsv && dataframe) {
+      return (
+        <div className="table-host">
+          <DataTable
+            dataframe={dataframe}
+            editable
+            isModalMode
+            onChange={handleDataframeChange}
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="editor-host">
+        <MonacoPane
+          value={content}
+          language={language ?? "plaintext"}
+          wordWrap={wordWrap}
+          onChange={setContent}
+          onSave={handleSave}
+        />
+      </div>
+    );
+  };
 
   return (
     <div css={styles(theme)}>
@@ -237,34 +241,24 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
         gap={1}
       >
         <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-          {isDirty && <span className="dirty-dot" aria-label="Unsaved changes" />}
+          {isDirty && (
+            <span className="dirty-dot" aria-label="Unsaved changes" />
+          )}
           <TruncatedText className="filename" showTooltip>
             {asset.name}
           </TruncatedText>
-          {language && (
-            <Caption className="language-tag">{language}</Caption>
-          )}
+          {language && <Caption className="language-tag">{language}</Caption>}
         </FlexRow>
         <FlexRow align="center" gap={0.5}>
-          <ToolbarIconButton
-            tooltip="Find (Ctrl/Cmd+F)"
-            icon={<SearchIcon />}
-            onClick={handleFind}
-            size="small"
-          />
-          <ToolbarIconButton
-            tooltip="Format document"
-            icon={<CodeIcon />}
-            onClick={handleFormat}
-            size="small"
-          />
-          <ToolbarIconButton
-            tooltip={wordWrap ? "Disable word wrap" : "Enable word wrap"}
-            icon={<WrapTextIcon />}
-            onClick={() => setWordWrap((w) => !w)}
-            active={wordWrap}
-            size="small"
-          />
+          {!isCsv && (
+            <ToolbarIconButton
+              tooltip={wordWrap ? "Disable word wrap" : "Enable word wrap"}
+              icon={<WrapTextIcon />}
+              onClick={() => setWordWrap((w) => !w)}
+              active={wordWrap}
+              size="small"
+            />
+          )}
           <EditorButton
             variant="contained"
             size="small"
@@ -277,35 +271,7 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
         </FlexRow>
       </FlexRow>
 
-      <div className="editor-host">
-        {textError ? (
-          <div className="editor-status editor-error">
-            Failed to load text content
-          </div>
-        ) : textLoading || content === null ? (
-          <FlexColumn className="editor-status">
-            <LoadingSpinner />
-          </FlexColumn>
-        ) : monacoLoadError ? (
-          <div className="editor-status editor-error">{monacoLoadError}</div>
-        ) : MonacoEditor ? (
-          <MonacoEditor
-            value={content}
-            onChange={handleChange}
-            language={language ?? "plaintext"}
-            theme={monacoTheme}
-            width="100%"
-            height="100%"
-            onMount={handleMount}
-            options={editorOptions}
-          />
-        ) : (
-          <FlexColumn className="editor-status">
-            <LoadingSpinner />
-            {isMonacoLoading && <Caption>Loading editor…</Caption>}
-          </FlexColumn>
-        )}
-      </div>
+      {body()}
     </div>
   );
 };

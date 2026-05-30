@@ -1,23 +1,19 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import Papa from "papaparse";
-import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
-import {
-  oneDark,
-  oneLight
-} from "react-syntax-highlighter/dist/esm/styles/prism";
 
 import type { Asset } from "../../stores/ApiTypes";
-import { languageFromAsset } from "../../utils/assetLanguage";
-import { useIsDarkMode } from "../../hooks/useIsDarkMode";
+import { languageFromAsset, previewKind } from "../../utils/assetLanguage";
+import { csvDelimiterFor, parseCsvToDataframe } from "../../utils/csvDataframe";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
+import MonacoPane from "./MonacoPane";
 import {
   Caption,
   CopyButton,
+  DataTable,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
@@ -32,23 +28,7 @@ interface TextPreviewProps {
 const textAssetKey = (id: string) => ["textAsset", id] as const;
 
 /** Cap CSV/TSV rows so a huge file can't lock up the table render. */
-const MAX_CSV_ROWS = 1000;
-
-/** Monaco language id → Prism language id (most match; map the divergent ones). */
-const PRISM_LANGUAGE: Record<string, string> = {
-  shell: "bash",
-  plaintext: "text"
-};
-
-type PreviewKind = "markdown" | "csv" | "code" | "text";
-
-const previewKind = (asset: Asset, language: string | undefined): PreviewKind => {
-  const name = (asset.name ?? "").toLowerCase();
-  if (language === "markdown") return "markdown";
-  if (name.endsWith(".csv") || name.endsWith(".tsv")) return "csv";
-  if (language && language !== "plaintext") return "code";
-  return "text";
-};
+const MAX_CSV_ROWS = 2000;
 
 const styles = (theme: Theme) =>
   css({
@@ -74,31 +54,6 @@ const styles = (theme: Theme) =>
       flex: 1,
       minHeight: 0
     },
-    ".plain-text": {
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word",
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmall,
-      padding: "1em 1.25em",
-      color: theme.vars.palette.text.primary
-    },
-    ".csv-table": {
-      borderCollapse: "collapse",
-      fontSize: theme.fontSizeSmall,
-      fontFamily: theme.fontFamily2,
-      "th, td": {
-        border: `1px solid ${theme.vars.palette.divider}`,
-        padding: "0.25em 0.6em",
-        textAlign: "left",
-        whiteSpace: "nowrap"
-      },
-      th: {
-        position: "sticky",
-        top: 0,
-        backgroundColor: theme.vars.palette.grey[800],
-        color: theme.vars.palette.text.primary
-      }
-    },
     ".csv-note": {
       padding: "0.5em 1.25em"
     },
@@ -110,43 +65,39 @@ const styles = (theme: Theme) =>
     }
   });
 
-const CsvPreview = ({ text }: { text: string }) => {
-  const { rows, truncated } = useMemo(() => {
-    const parsed = Papa.parse<string[]>(text.trim(), {
-      skipEmptyLines: true
-    });
-    const all = parsed.data ?? [];
+const CsvTableView = ({ text, name }: { text: string; name: string }) => {
+  const { columns, rows, truncated } = useMemo(() => {
+    const df = parseCsvToDataframe(text, csvDelimiterFor(name));
+    const cols = (df.columns ?? []).map((c, i) => ({
+      key: String(i),
+      label: c.name
+    }));
+    const allRows = (df.data ?? []) as unknown[][];
+    const mapped = allRows
+      .slice(0, MAX_CSV_ROWS)
+      .map((row) =>
+        Object.fromEntries(
+          row.map((cell, i) => [String(i), cell as React.ReactNode])
+        )
+      );
     return {
-      rows: all.slice(0, MAX_CSV_ROWS),
-      truncated: all.length > MAX_CSV_ROWS
+      columns: cols,
+      rows: mapped,
+      truncated: allRows.length > MAX_CSV_ROWS
     };
-  }, [text]);
+  }, [text, name]);
 
-  if (rows.length === 0) {
-    return <div className="plain-text">{text}</div>;
+  if (columns.length === 0) {
+    return (
+      <FlexColumn className="status">
+        <Caption>Empty table</Caption>
+      </FlexColumn>
+    );
   }
 
-  const [header, ...body] = rows;
   return (
     <ScrollArea direction="both" sx={{ width: "100%", height: "100%" }}>
-      <table className="csv-table">
-        <thead>
-          <tr>
-            {header.map((cell, i) => (
-              <th key={i}>{cell}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {body.map((row, r) => (
-            <tr key={r}>
-              {row.map((cell, c) => (
-                <td key={c}>{cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <DataTable columns={columns} rows={rows} compact bordered stickyHeader />
       {truncated && (
         <Caption className="csv-note">
           Showing first {MAX_CSV_ROWS} rows.
@@ -156,50 +107,23 @@ const CsvPreview = ({ text }: { text: string }) => {
   );
 };
 
-const CodePreview = ({
-  text,
-  language
-}: {
-  text: string;
-  language: string;
-}) => {
-  const isDark = useIsDarkMode();
-  const prismLanguage = PRISM_LANGUAGE[language] ?? language;
-  return (
-    <ScrollArea direction="both" sx={{ width: "100%", height: "100%" }}>
-      <SyntaxHighlighter
-        language={prismLanguage}
-        style={isDark ? oneDark : oneLight}
-        showLineNumbers
-        wrapLongLines={false}
-        customStyle={{
-          margin: 0,
-          padding: "1em 1.25em",
-          background: "transparent",
-          fontFamily: '"JetBrains Mono", monospace',
-          fontSize: "var(--fontSizeSmall)"
-        }}
-      >
-        {text}
-      </SyntaxHighlighter>
-    </ScrollArea>
-  );
-};
-
 /**
- * Read-only, content-type-aware preview for a text workspace tab (view mode).
- * Routes by file type: markdown → rendered, code/JSON/YAML → syntax-highlighted,
- * CSV/TSV → table, everything else → plain wrapped text. It shares the
- * `["textAsset", id]` query with TextDocumentEditor, so toggling view ↔ edit
- * reuses the cached text instead of re-fetching.
+ * Read-only, content-type-aware preview for a text workspace tab (view mode):
+ * markdown → rendered, CSV/TSV → MUI table view, everything else →
+ * syntax-highlighted read-only Monaco. Shares the `["textAsset", id]` query
+ * with TextDocumentEditor, so toggling view ↔ edit reuses the cached text.
  */
 const TextPreview = ({ asset }: TextPreviewProps) => {
   const theme = useTheme();
   const getUrl = asset.get_url ?? undefined;
   const language = useMemo(() => languageFromAsset(asset), [asset]);
-  const kind = previewKind(asset, language);
+  const kind = previewKind(asset);
 
-  const { data: text, isLoading, error } = useQuery({
+  const {
+    data: text,
+    isLoading,
+    error
+  } = useQuery({
     queryKey: textAssetKey(asset.id),
     enabled: !!getUrl,
     queryFn: async () => {
@@ -234,19 +158,22 @@ const TextPreview = ({ asset }: TextPreviewProps) => {
     switch (kind) {
       case "markdown":
         return (
-          <ScrollArea direction="vertical" sx={{ width: "100%", height: "100%" }}>
+          <ScrollArea
+            direction="vertical"
+            sx={{ width: "100%", height: "100%" }}
+          >
             <MarkdownRenderer content={text} fillContainer />
           </ScrollArea>
         );
       case "csv":
-        return <CsvPreview text={text} />;
-      case "code":
-        return <CodePreview text={text} language={language ?? "text"} />;
+        return <CsvTableView text={text} name={asset.name ?? ""} />;
       default:
         return (
-          <ScrollArea direction="vertical" sx={{ width: "100%", height: "100%" }}>
-            <div className="plain-text">{text}</div>
-          </ScrollArea>
+          <MonacoPane
+            value={text}
+            language={language ?? "plaintext"}
+            readOnly
+          />
         );
     }
   };

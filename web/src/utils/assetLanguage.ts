@@ -102,3 +102,25 @@ export const languageFromAsset = (asset: TextAssetLike): string | undefined => {
 /** Whether an asset holds editable text content. */
 export const isTextAsset = (asset: TextAssetLike): boolean =>
   languageFromAsset(asset) !== undefined;
+
+/** How a text asset should be rendered/edited, beyond raw language. */
+export type PreviewKind = "markdown" | "csv" | "code" | "text";
+
+const isCsvName = (name: string): boolean =>
+  name.endsWith(".csv") || name.endsWith(".tsv");
+
+/**
+ * Classify a text asset for the editor/preview surfaces:
+ * - `markdown` → rendered markdown,
+ * - `csv`      → tabular (data-table editor / MUI table view),
+ * - `code`     → syntax-highlighted (Monaco),
+ * - `text`     → plain text.
+ */
+export const previewKind = (asset: TextAssetLike): PreviewKind => {
+  const language = languageFromAsset(asset);
+  const name = (asset.name ?? "").toLowerCase();
+  if (language === "markdown") return "markdown";
+  if (isCsvName(name)) return "csv";
+  if (language && language !== "plaintext") return "code";
+  return "text";
+};
