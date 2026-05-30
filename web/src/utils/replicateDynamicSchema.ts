@@ -62,9 +62,9 @@ export async function resolveReplicateSchemaClient(
         typeof json === "object" &&
         json !== null &&
         "detail" in json &&
-        typeof (json as Record<string, unknown>).detail === "string"
+        typeof json.detail === "string"
       ) {
-        message = (json as Record<string, unknown>).detail as string;
+        message = json.detail;
       }
     } catch {
       // use text as-is

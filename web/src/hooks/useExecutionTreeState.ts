@@ -113,8 +113,8 @@ function normalizeContent(msg: Message): {
     }
   }
 
-  if (!eventType && content && typeof content === "object") {
-    eventType = (content as Record<string, unknown>).type as string | undefined;
+  if (!eventType && content && typeof content === "object" && !Array.isArray(content) && "type" in content) {
+    eventType = typeof content.type === "string" ? content.type : undefined;
   }
 
   return { content, eventType };
