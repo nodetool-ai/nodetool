@@ -344,10 +344,6 @@ const emptyState = {
   markers: [] as TimelineMarker[]
 };
 
-// ── Store type (with temporal API) ─────────────────────────────────────────
-
-export type TimelineStore = ReturnType<typeof createTimelineStore>;
-
 // ── Factory ────────────────────────────────────────────────────────────────
 
 export const createTimelineStore = (

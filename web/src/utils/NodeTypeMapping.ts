@@ -104,36 +104,6 @@ export const contentTypeToNodeType = (
 };
 
 /**
- * Maps internal types to input node types
- */
-export const inputForType = (type: TypeName): string | null => {
-  switch (type) {
-    case "str":
-      return "nodetool.input.StringInput";
-    case "dataframe":
-      return "nodetool.input.DataFrameInput";
-    case "int":
-      return "nodetool.input.IntegerInput";
-    case "float":
-      return "nodetool.input.FloatInput";
-    case "bool":
-      return "nodetool.input.BooleanInput";
-    case "image":
-      return "nodetool.input.ImageInput";
-    case "video":
-      return "nodetool.input.VideoInput";
-    case "audio":
-      return "nodetool.input.AudioInput";
-    case "document":
-      return "nodetool.input.DocumentInput";
-    case "model_3d":
-      return "nodetool.input.Model3DInput";
-    default:
-      return null;
-  }
-};
-
-/**
  * Maps constant node types to their corresponding input node types
  */
 export const constantToInputType = (constantType: string): string | null => {

@@ -20,6 +20,3 @@ export const MediaOverlaySuppressProvider = MediaOverlayContext.Provider;
 
 export const useMediaOverlay = (): MediaOverlayValue =>
   useContext(MediaOverlayContext);
-
-export const useMediaOverlaySuppressed = (): boolean =>
-  useContext(MediaOverlayContext).suppressed;

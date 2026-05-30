@@ -230,17 +230,3 @@ export const canConfigureExposedPlacement = (
   return (metadata.properties ?? []).some((p) => p.name === propertyName);
 };
 
-/** @deprecated Use canConfigureExposedPlacement — kept for advanced-only callers. */
-export const canPromotePropertyToInputHandle = (
-  metadata: NodeMetadata | undefined,
-  propertyName: string
-): boolean => {
-  if (!metadata) {
-    return false;
-  }
-  const fixedHandles = new Set([
-    ...(metadata.inline_fields ?? []),
-    ...(metadata.input_fields ?? [])
-  ]);
-  return !fixedHandles.has(propertyName);
-};
