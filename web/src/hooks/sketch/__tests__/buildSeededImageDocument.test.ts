@@ -32,9 +32,9 @@ function makeBaseDoc(): sketch.ImageDocumentData {
 }
 
 describe("buildSeededImageDocument", () => {
-  it("seeds the first layer with an asset:// reference and full-canvas bounds", () => {
+  it("seeds the first layer with the given image URI and full-canvas bounds", () => {
     const result = buildSeededImageDocument(makeBaseDoc(), {
-      assetId: "asset-123",
+      imageUri: "asset://asset-123.png",
       width: 10,
       height: 20,
       name: "photo.png"
@@ -49,13 +49,15 @@ describe("buildSeededImageDocument", () => {
     const decoded = JSON.parse(
       atob((layer.data as string).slice(SERIALIZED_PREFIX.length))
     );
-    expect(decoded.image).toBe("asset://asset-123");
+    // The reference must carry the file extension — a bare asset://{id} would
+    // resolve to /api/storage/{id} and 404.
+    expect(decoded.image).toBe("asset://asset-123.png");
     expect(decoded.bounds).toEqual({ x: 0, y: 0, width: 10, height: 20 });
   });
 
   it("preserves canvas, active layer, and bindings from the source document", () => {
     const result = buildSeededImageDocument(makeBaseDoc(), {
-      assetId: "a",
+      imageUri: "asset://a.png",
       width: 10,
       height: 20,
       name: "x"

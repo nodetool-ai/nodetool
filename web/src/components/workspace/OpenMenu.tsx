@@ -24,6 +24,7 @@ import {
   useWorkspaceTabsStore,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
+import { assetTabType } from "./assetTabType";
 import type { WorkflowList, AssetWithPath } from "../../stores/ApiTypes";
 
 /** Render a blank white PNG to seed a "New image" canvas asset. */
@@ -74,22 +75,6 @@ interface OpenMenuProps {
 }
 
 type MenuView = "root" | "workflows" | "assets";
-
-/** Map an asset's content type to the workspace tab type that can open it. */
-const assetTabType = (asset: AssetWithPath): WorkspaceTabType | null => {
-  const ct = asset.content_type ?? "";
-  const name = (asset.name ?? "").toLowerCase();
-  if (ct.startsWith("image/")) return "image";
-  if (ct.startsWith("audio/")) return "audio";
-  if (ct.startsWith("text/") || ct === "application/json") return "text";
-  if (
-    ct.startsWith("model/") ||
-    /\.(glb|gltf|obj|fbx|stl|ply|usdz)$/.test(name)
-  ) {
-    return "model3d";
-  }
-  return null;
-};
 
 /**
  * The `[+]` menu for the workspace tab bar: create a new workflow, or open an

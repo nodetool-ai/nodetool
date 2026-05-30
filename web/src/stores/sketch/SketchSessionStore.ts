@@ -96,6 +96,14 @@ const EMPTY_EXTRAS: LayerHashExtras = {
 interface SketchSessionState {
   // ── Document metadata ────────────────────────────────────────────────
   documentId: string | null;
+  /**
+   * Id of the document whose content the editor has actually hydrated into
+   * the global sketch store. Distinct from `documentId` (set the moment a
+   * document's *metadata* loads, before the editor mounts): the lifecycle
+   * hook uses this to decide whether a freshly-mounted editor still needs to
+   * seed the global store, vs. a revisit where the in-memory edits should win.
+   */
+  hydratedDocumentId: string | null;
   name: string;
   baseUpdatedAt: string | null;
   lastServerHash: string | null;
@@ -111,6 +119,8 @@ interface SketchSessionState {
     response: Pick<SketchDocumentResponse, "id" | "name" | "updatedAt">,
     serverHash: string
   ) => void;
+  /** Record that the editor has seeded the global store from this document. */
+  markHydrated: (documentId: string) => void;
   markSaving: () => void;
   markSaved: (updatedAt: string, serverHash: string) => void;
   markSaveFailed: (conflict: boolean) => void;
@@ -210,6 +220,7 @@ const getExtras = (
 export const useSketchSessionStore = create<SketchSessionState>((set, get) => ({
   // Document metadata ----------------------------------------------------
   documentId: null,
+  hydratedDocumentId: null,
   name: "",
   baseUpdatedAt: null,
   lastServerHash: null,
@@ -229,6 +240,7 @@ export const useSketchSessionStore = create<SketchSessionState>((set, get) => ({
       saveState: "idle",
       hasConflict: false
     }),
+  markHydrated: (documentId) => set({ hydratedDocumentId: documentId }),
   markSaving: () => set({ saveState: "saving", hasConflict: false }),
   markSaved: (updatedAt, serverHash) =>
     set({
@@ -241,6 +253,7 @@ export const useSketchSessionStore = create<SketchSessionState>((set, get) => ({
   reset: () =>
     set({
       documentId: null,
+      hydratedDocumentId: null,
       name: "",
       baseUpdatedAt: null,
       lastServerHash: null,

@@ -21,6 +21,7 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
+import { resolveAssetUri } from "../node/output/hooks";
 import {
   SKETCH_FONT,
   SKETCH_SPACING,
@@ -140,7 +141,10 @@ const LayerItem: React.FC<LayerItemProps> = ({
   bindingStatus
 }) => {
   const isGroup = layer.type === "group";
-  const thumbnailSrc = isGroup ? null : getLayerDataImageUrl(layer.data);
+  // Resolve the image ref to a fetchable URL — a raw `asset://` scheme is
+  // blocked by the page CSP when set directly as an <img src>.
+  const layerImage = isGroup ? null : getLayerDataImageUrl(layer.data);
+  const thumbnailSrc = layerImage ? resolveAssetUri(layerImage) : null;
 
   // Mockup-style sub-label under the name: blend mode + opacity (or MASK).
   const opacityPct = Math.round(layer.opacity * 100);
