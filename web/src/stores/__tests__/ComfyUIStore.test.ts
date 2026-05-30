@@ -5,7 +5,7 @@
  */
 
 import { act } from "@testing-library/react";
-import { useComfyUIStore, initializeComfyUI } from "../ComfyUIStore";
+import { useComfyUIStore } from "../ComfyUIStore";
 import type { ComfyUIObjectInfo } from "../../services/ComfyUIService";
 import { getComfyUIService } from "../../services/ComfyUIService";
 
@@ -730,31 +730,3 @@ describe("ComfyUIStore", () => {
   });
 });
 
-describe("initializeComfyUI", () => {
-  let mockService: any;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockLocalStorage.getItem.mockReturnValue("/comfy-api");
-
-    mockService = getComfyUIService();
-  });
-
-  it("initializes ComfyUI service with stored URL", () => {
-    mockLocalStorage.getItem.mockReturnValue("http://localhost:8000/api");
-
-    initializeComfyUI();
-
-    expect(mockService.setBaseUrl).toHaveBeenCalledWith(
-      "http://localhost:8000/api"
-    );
-  });
-
-  it("uses default URL when no URL is stored", () => {
-    mockLocalStorage.getItem.mockReturnValue(null);
-
-    initializeComfyUI();
-
-    expect(mockService.setBaseUrl).toHaveBeenCalledWith("/comfy-api");
-  });
-});

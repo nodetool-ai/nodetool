@@ -4,7 +4,6 @@ import {
   addExposedInput,
   applyExposedPlacementTarget,
   canConfigureExposedPlacement,
-  canPromotePropertyToInputHandle,
   getEffectiveExposedPlacement,
   getExposedInputPlacement,
   nextExposedInputPlacement,
@@ -175,22 +174,6 @@ describe("exposedInputs utility", () => {
       });
       expect(canConfigureExposedPlacement(md, "image")).toBe(true);
       expect(canConfigureExposedPlacement(md, "prompt")).toBe(true);
-    });
-  });
-
-  describe("canPromotePropertyToInputHandle", () => {
-    it("returns false for metadata input_fields and inline_fields", () => {
-      const md = baseMetadata({
-        input_fields: ["prompt"],
-        inline_fields: ["preview"]
-      });
-      expect(canPromotePropertyToInputHandle(md, "prompt")).toBe(false);
-      expect(canPromotePropertyToInputHandle(md, "preview")).toBe(false);
-      expect(canPromotePropertyToInputHandle(md, "input_text")).toBe(true);
-    });
-
-    it("returns false when metadata is missing", () => {
-      expect(canPromotePropertyToInputHandle(undefined, "x")).toBe(false);
     });
   });
 
