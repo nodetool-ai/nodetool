@@ -322,6 +322,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [currentAsset]
   );
 
+  // Check if current asset is audio (editable in the sample editor)
+  const isAudio = useMemo(() => {
+    const ct = currentAsset?.content_type || contentType;
+    return ct?.startsWith("audio/") || false;
+  }, [currentAsset?.content_type, contentType]);
+
   // Check if there are multiple images to compare
   const imageAssets = useMemo(
     () => assetsToUse.filter((a) => a.content_type?.startsWith("image/")),
@@ -405,6 +411,19 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       handleClose();
     }
   }, [currentAsset, isModel3D, openTab, navigate, handleClose]);
+
+  const handleOpenAudioEditor = useCallback(() => {
+    if (currentAsset && isAudio) {
+      openTab({
+        type: "audio",
+        ref: currentAsset.id,
+        mode: "edit",
+        title: currentAsset.name || "Audio"
+      });
+      navigate("/workspace");
+      handleClose();
+    }
+  }, [currentAsset, isAudio, openTab, navigate, handleClose]);
 
 
   // Copy to clipboard state and handler
@@ -747,6 +766,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               icon={<EditIcon />}
               tooltip="Edit in 3D Editor"
               onClick={handleOpenModel3DEditor}
+              className="button edit"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {isAudio && !compareMode && (
+            <ToolbarIconButton
+              icon={<EditIcon />}
+              tooltip="Edit Audio"
+              onClick={handleOpenAudioEditor}
               className="button edit"
               nodrag={false}
               sx={viewerActionButtonSx}
