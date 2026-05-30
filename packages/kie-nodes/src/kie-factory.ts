@@ -13,6 +13,11 @@ import {
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type {
+  PromptAssetTextField,
+  PromptAssetInputField
+} from "@nodetool-ai/runtime";
+import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import {
   getApiKey,
   kieExecuteTask,
@@ -218,6 +223,40 @@ async function buildVideoClips(
   );
 }
 
+/**
+ * Route `asset://` media mentioned inline in a node's text inputs onto its
+ * empty image/audio uploads (and strip the mentions from the text). Shared with
+ * FAL / Replicate / image-to-image via `mapPromptAssetsToInputs`.
+ */
+async function promptAssetOverrides(
+  instance: BaseNode,
+  spec: KieManifestEntry,
+  context?: Parameters<BaseNode["process"]>[0]
+): Promise<Record<string, unknown>> {
+  const values = instance as unknown as Record<string, unknown>;
+  const textFields: PromptAssetTextField[] = spec.fields
+    .filter((f) => f.type === "str")
+    .map((f) => ({ name: f.name, value: String(values[f.name] ?? "") }));
+  const assetFields: PromptAssetInputField[] = [];
+  for (const upload of spec.uploads ?? []) {
+    if (upload.isVideoClip) continue;
+    if (upload.kind !== "image" && upload.kind !== "audio") continue;
+    const value = values[upload.field];
+    const list = Boolean(upload.isList);
+    const hasSource = list
+      ? Array.isArray(value) && value.some(isRefSet)
+      : isRefSet(value);
+    assetFields.push({
+      name: upload.field,
+      label: upload.paramName ?? upload.field,
+      kind: upload.kind,
+      list,
+      hasSource
+    });
+  }
+  return mapPromptAssetsToInputs(textFields, assetFields, context);
+}
+
 async function buildParams(
   instance: BaseNode,
   spec: KieManifestEntry,
@@ -228,6 +267,11 @@ async function buildParams(
   const clipUploads = new Set(
     spec.uploads?.filter((u) => u.isVideoClip).map((u) => u.field) ?? []
   );
+  const overrides = await promptAssetOverrides(instance, spec, context);
+  const readValue = (name: string): unknown =>
+    name in overrides
+      ? overrides[name]
+      : (instance as unknown as Record<string, unknown>)[name];
 
   // Scalar and list[str] fields
   for (const field of spec.fields) {
@@ -241,7 +285,7 @@ async function buildParams(
       continue;
     }
 
-    const value = (instance as unknown as Record<string, unknown>)[field.name];
+    const value = readValue(field.name);
     const paramName = spec.paramNames?.[field.name] ?? field.name;
     const defLit = field.default ?? defaultForType(field.type);
 
@@ -276,9 +320,7 @@ async function buildParams(
     const groups = new Map<string, string[]>();
 
     for (const upload of spec.uploads) {
-      const value = (instance as unknown as Record<string, unknown>)[
-        upload.field
-      ];
+      const value = readValue(upload.field);
       const fn = uploadFnForKind(upload.kind);
 
       if (upload.isVideoClip) {

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/runtime": "*",
     "replicate": "*"
   },
   "devDependencies": {

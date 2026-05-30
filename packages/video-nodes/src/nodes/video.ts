@@ -2,7 +2,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes, mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -37,6 +37,19 @@ async function imageBytesAsync(
   if (!image || typeof image !== "object") return new Uint8Array();
   const bytes = await loadMediaRefBytes(image as ImageRefLike, context);
   return bytes ?? new Uint8Array();
+}
+
+/**
+ * Whether an image ref already points at a source (wired upstream, a stored
+ * asset, or inline bytes) rather than the empty default — used to decide if an
+ * inline `asset://` mention in the prompt should supply the input.
+ */
+function imageRefHasSource(image: unknown): boolean {
+  if (!image || typeof image !== "object") return false;
+  const ref = image as ImageRefLike & { asset_id?: unknown };
+  if (typeof ref.uri === "string" && ref.uri.trim() !== "") return true;
+  if (ref.data != null && ref.data !== "") return true;
+  return ref.asset_id != null && ref.asset_id !== "";
 }
 
 function filePath(uriOrPath: string): string {
@@ -390,8 +403,22 @@ export class ImageToVideoNode extends BaseNode {
   declare timeout_seconds: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const img = await imageBytesAsync(this.image, context);
-    const prompt = String(this.prompt ?? "");
+    let image = (this.image ?? {}) as ImageRefLike;
+    let prompt = String(this.prompt ?? "");
+
+    // An `asset://` image mentioned inline in the prompt (e.g. from the Prompt
+    // composer's @-mention) supplies the source frame when none is wired in,
+    // and is stripped from the textual instruction. Same mechanism as the
+    // image-to-image / provider video nodes.
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: prompt }],
+      [{ name: "image", kind: "image", hasSource: imageRefHasSource(image) }],
+      context
+    );
+    if (typeof overrides.prompt === "string") prompt = overrides.prompt;
+    if (overrides.image) image = overrides.image as ImageRefLike;
+
+    const img = await imageBytesAsync(image, context);
     const { providerId, modelId } = modelConfig(this.serialize());
     if (canUseProvider(context, providerId, modelId)) {
       const output = (await context.runProviderPrediction({

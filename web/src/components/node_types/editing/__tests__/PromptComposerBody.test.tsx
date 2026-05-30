@@ -123,6 +123,25 @@ describe("PromptComposerBody", () => {
     });
   });
 
+  it("shows the Variables label when the prompt references a variable", () => {
+    renderWithTheme(<PromptComposerBody {...makeProps()} />);
+    expect(screen.getByText("Variables")).toBeInTheDocument();
+  });
+
+  it("hides the Variables label when the prompt references none", () => {
+    renderWithTheme(
+      <PromptComposerBody
+        {...makeProps({
+          data: {
+            properties: { prompt: "what is this?" },
+            dynamic_properties: {}
+          }
+        })}
+      />
+    );
+    expect(screen.queryByText("Variables")).not.toBeInTheDocument();
+  });
+
   it("renders an inline image preview for an asset URN in the prompt", async () => {
     mockGet.mockResolvedValue({
       id: "abc123",

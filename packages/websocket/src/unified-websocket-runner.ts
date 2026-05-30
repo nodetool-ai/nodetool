@@ -568,6 +568,31 @@ function createRuntimeContext(opts: {
       }
       await asset.save();
       return asset;
+    },
+    listFolderAssets: async ({ userId, folderId }) => {
+      const folder = await Asset.find(userId, folderId);
+      if (!folder || folder.content_type !== "folder") return null;
+      const out: Array<{ id: string; content_type: string; name: string }> = [];
+      const seen = new Set<string>();
+      const visit = async (parentId: string): Promise<void> => {
+        if (seen.has(parentId)) return; // guard against cyclic parent links
+        seen.add(parentId);
+        const children = await Asset.getChildren(userId, parentId, 1000);
+        for (const child of children) {
+          if (child.content_type === "folder") {
+            await visit(child.id);
+          } else {
+            out.push({
+              id: child.id,
+              content_type: child.content_type,
+              name: child.name
+            });
+          }
+        }
+      };
+      await visit(folderId);
+      out.sort((a, b) => a.name.localeCompare(b.name));
+      return out;
     }
   });
 

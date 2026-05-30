@@ -417,6 +417,71 @@ describe("ImageToImageNode — empty image validation", () => {
 });
 
 // ---------------------------------------------------------------------------
+// 7b. ImageToImage — inline asset:// prompt mapping
+// ---------------------------------------------------------------------------
+
+describe("ImageToImageNode — inline asset prompt mapping", () => {
+  it("routes an asset:// image mentioned in the prompt into the input and strips the mention", async () => {
+    const node = new ImageToImageNode();
+    node.assign({
+      // image left at its empty default — the prompt mention should supply it
+      prompt: "make it a watercolor asset://abc123.png please"
+    });
+
+    const assetBytes = new Uint8Array(await makePngBuffer());
+    let captured: Record<string, unknown> | undefined;
+    const context = {
+      resolveAssetBytes: async (uri: string) => {
+        expect(uri).toBe("asset://abc123.png");
+        return { bytes: assetBytes };
+      },
+      runProviderPrediction: async (req: Record<string, unknown>) => {
+        captured = req;
+        return new Uint8Array(await makePngBuffer());
+      }
+    };
+
+    await node.process(context as never);
+
+    const params = (captured as { params: Record<string, unknown> }).params;
+    expect(Array.from(params.image as Uint8Array)).toEqual(
+      Array.from(assetBytes)
+    );
+    expect(params.prompt).toBe("make it a watercolor image please");
+  });
+
+  it("keeps an explicitly wired image and still strips the prompt mention", async () => {
+    const node = new ImageToImageNode();
+    const wired = new Uint8Array(await makePngBuffer(2, 2));
+    node.assign({
+      image: {
+        type: "image",
+        data: Buffer.from(wired).toString("base64"),
+        uri: ""
+      },
+      prompt: "enhance asset://other.png now"
+    });
+
+    let captured: Record<string, unknown> | undefined;
+    const context = {
+      resolveAssetBytes: async () => {
+        throw new Error("explicit image must take precedence over the mention");
+      },
+      runProviderPrediction: async (req: Record<string, unknown>) => {
+        captured = req;
+        return new Uint8Array(await makePngBuffer());
+      }
+    };
+
+    await node.process(context as never);
+
+    const params = (captured as { params: Record<string, unknown> }).params;
+    expect(Array.from(params.image as Uint8Array)).toEqual(Array.from(wired));
+    expect(params.prompt).toBe("enhance now");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 8. BatchToList validation
 // ---------------------------------------------------------------------------
 

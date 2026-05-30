@@ -11,6 +11,7 @@ import type {
   ProviderStreamItem,
   ToolCall
 } from "@nodetool-ai/runtime";
+import { findAssetRefs } from "@nodetool-ai/runtime";
 import type {
   Chunk,
   LanguageModel,
@@ -461,45 +462,6 @@ function logThreadWarning(
   });
 }
 
-const ASSET_URI_RE = /asset:\/\/[A-Za-z0-9._~\-/]+/g;
-
-const IMAGE_EXT_MIME: Record<string, string> = {
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  gif: "image/gif",
-  webp: "image/webp",
-  bmp: "image/bmp",
-  svg: "image/svg+xml"
-};
-
-const AUDIO_EXT_MIME: Record<string, string> = {
-  mp3: "audio/mpeg",
-  mpeg: "audio/mpeg",
-  wav: "audio/wav",
-  ogg: "audio/ogg",
-  m4a: "audio/mp4",
-  aac: "audio/aac",
-  flac: "audio/flac",
-  opus: "audio/opus"
-};
-
-/**
- * Classify an `asset://<id>.<ext>` token by its extension. Only image and
- * audio are provider-consumable media; everything else (text, video, unknown)
- * returns null so the reference is left as literal text in the prompt.
- */
-function classifyAssetToken(
-  token: string
-): { kind: "image" | "audio"; mime: string } | null {
-  const noScheme = token.slice("asset://".length);
-  const primary = noScheme.split(/[?#]/)[0];
-  const ext = (primary.split(".").pop() ?? "").toLowerCase();
-  if (ext in IMAGE_EXT_MIME) return { kind: "image", mime: IMAGE_EXT_MIME[ext] };
-  if (ext in AUDIO_EXT_MIME) return { kind: "audio", mime: AUDIO_EXT_MIME[ext] };
-  return null;
-}
-
 /**
  * Split a prompt containing inline `asset://<id>.<ext>` references into a
  * multimodal content array: text segments interleaved with image / audio
@@ -508,10 +470,13 @@ function classifyAssetToken(
  * dereferences the URIs to data URIs just before the provider call. Tokens
  * that aren't a supported media type (text, video, unknown) stay as literal
  * text so the model still sees the mention.
+ *
+ * Parsing is shared with non-chat tasks via {@link findAssetRefs}; see
+ * `@nodetool-ai/runtime`'s `prompt-asset-refs` module.
  */
 export function expandAssetReferences(prompt: string): MessageContent[] {
-  ASSET_URI_RE.lastIndex = 0;
-  if (!ASSET_URI_RE.test(prompt)) {
+  const refs = findAssetRefs(prompt);
+  if (refs.length === 0) {
     return [{ type: "text", text: prompt }];
   }
 
@@ -521,32 +486,20 @@ export function expandAssetReferences(prompt: string): MessageContent[] {
   };
 
   let cursor = 0;
-  let match: RegExpExecArray | null;
-  ASSET_URI_RE.lastIndex = 0;
-  while ((match = ASSET_URI_RE.exec(prompt)) !== null) {
-    let token = match[0];
-    // A trailing dot is sentence punctuation, not part of the extension.
-    const trailingDots = token.match(/\.+$/);
-    if (trailingDots) {
-      token = token.slice(0, token.length - trailingDots[0].length);
-    }
-    const classification = classifyAssetToken(token);
-    if (!classification) {
-      continue;
-    }
-    pushText(prompt.slice(cursor, match.index));
-    if (classification.kind === "image") {
+  for (const ref of refs) {
+    pushText(prompt.slice(cursor, ref.index));
+    if (ref.kind === "image") {
       parts.push({
         type: "image_url",
-        image: { uri: token, mimeType: classification.mime }
+        image: { uri: ref.uri, mimeType: ref.mime }
       });
     } else {
       parts.push({
         type: "audio",
-        audio: { uri: token, mimeType: classification.mime }
+        audio: { uri: ref.uri, mimeType: ref.mime }
       });
     }
-    cursor = match.index + token.length;
+    cursor = ref.index + ref.length;
   }
   pushText(prompt.slice(cursor));
 

@@ -11,6 +11,8 @@ export {
   resolveWorkspacePath,
   type AssetOutputMode,
   type CacheAdapter,
+  type FolderAssetEntry,
+  type ProcessingContextModelInterfaces,
   type S3Client,
   type StorageAdapter
 } from "./context.js";
@@ -73,6 +75,18 @@ export {
 } from "./image-codec.js";
 export { PythonNodeExecutor } from "./python-node-executor.js";
 export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
+export {
+  classifyAssetToken,
+  findAssetRefs,
+  findImageAssetRefs,
+  stripAssetRefs,
+  mapPromptAssetsToInputs,
+  type AssetMediaKind,
+  type PromptAssetRef,
+  type PromptAssetTextField,
+  type PromptAssetInputField,
+  type InjectedAssetRef
+} from "./prompt-asset-refs.js";
 export { logPythonWorkerStderr } from "./python-worker-stderr.js";
 export {
   type NodeExecutor,
