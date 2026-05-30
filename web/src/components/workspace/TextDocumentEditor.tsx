@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import WrapTextIcon from "@mui/icons-material/WrapText";
 import SaveIcon from "@mui/icons-material/Save";
+import type * as monaco from "monaco-editor";
 
 import type { Asset, DataframeRef } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -18,14 +18,13 @@ import {
 } from "../../utils/csvDataframe";
 import MonacoPane from "./MonacoPane";
 import DataTable from "../node/DataTable/DataTable";
+import EditorToolbar from "../textEditor/EditorToolbar";
 import {
   Caption,
   EditorButton,
   FlexColumn,
   FlexRow,
-  LoadingSpinner,
-  ToolbarIconButton,
-  TruncatedText
+  LoadingSpinner
 } from "../ui_primitives";
 
 interface TextDocumentEditorProps {
@@ -41,22 +40,18 @@ const styles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     backgroundColor: theme.vars.palette.grey[900],
-    ".editor-toolbar": {
+    color: theme.vars.palette.common.white,
+    ".editor-toolbar-row": {
       flex: "0 0 auto",
-      height: "2.5em",
-      padding: "0 0.5em 0 0.75em",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.grey[800]
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.grey[900],
+      ".editor-toolbar": {
+        flex: 1,
+        borderBottom: "none",
+        backgroundColor: "transparent"
+      }
     },
-    ".filename": {
-      color: theme.vars.palette.text.primary,
-      fontWeight: 500,
-      maxWidth: "40ch"
-    },
-    ".language-tag": {
-      textTransform: "uppercase",
-      letterSpacing: "0.05em"
-    },
+
     ".dirty-dot": {
       width: 8,
       height: 8,
@@ -72,8 +67,14 @@ const styles = (theme: Theme) =>
     ".table-host": {
       flex: 1,
       minHeight: 0,
-      overflow: "auto",
-      padding: "0.75em"
+      overflow: "hidden",
+      ".datatable.nowheel": {
+        height: "100%"
+      },
+      ".datatable.nowheel > .datatable": {
+        flex: 1,
+        minHeight: 0
+      }
     }
   });
 
@@ -100,6 +101,9 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
   const [content, setContent] = useState<string | null>(null);
   const [savedContent, setSavedContent] = useState<string | null>(null);
   const [wordWrap, setWordWrap] = useState(true);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   const {
     data: loadedText,
@@ -159,6 +163,33 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
   const isDirty = content !== null && content !== savedContent;
   const isSaving = saveMutation.isPending;
 
+  const updateHistoryState = useCallback(() => {
+    const model = editorRef.current?.getModel();
+    const alternativeVersionId = model?.getAlternativeVersionId() ?? 1;
+    const versionId = model?.getVersionId() ?? 1;
+    setCanUndo(alternativeVersionId < versionId);
+    setCanRedo(alternativeVersionId > versionId);
+  }, []);
+
+  const handleEditorMount = useCallback(
+    (editor: monaco.editor.IStandaloneCodeEditor) => {
+      editorRef.current = editor;
+      updateHistoryState();
+      editor.onDidChangeModelContent(updateHistoryState);
+    },
+    [updateHistoryState]
+  );
+
+  const handleUndo = useCallback(() => {
+    editorRef.current?.trigger("toolbar", "undo", null);
+    updateHistoryState();
+  }, [updateHistoryState]);
+
+  const handleRedo = useCallback(() => {
+    editorRef.current?.trigger("toolbar", "redo", null);
+    updateHistoryState();
+  }, [updateHistoryState]);
+
   const handleSave = useCallback(() => {
     if (content === null || content === savedContent || isSaving) {
       return;
@@ -215,6 +246,22 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
             editable
             isModalMode
             onChange={handleDataframeChange}
+            toolbarEnd={
+              <>
+                {isDirty && (
+                  <span className="dirty-dot" aria-label="Unsaved changes" />
+                )}
+                <EditorButton
+                  variant="contained"
+                  size="small"
+                  startIcon={<SaveIcon />}
+                  disabled={!isDirty || isSaving}
+                  onClick={handleSave}
+                >
+                  {isSaving ? "Saving…" : "Save"}
+                </EditorButton>
+              </>
+            }
           />
         </div>
       );
@@ -227,6 +274,7 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
           wordWrap={wordWrap}
           onChange={setContent}
           onSave={handleSave}
+          onEditorMount={handleEditorMount}
         />
       </div>
     );
@@ -234,42 +282,36 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
 
   return (
     <div css={styles(theme)}>
-      <FlexRow
-        className="editor-toolbar"
-        align="center"
-        justify="space-between"
-        gap={1}
-      >
-        <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-          {isDirty && (
-            <span className="dirty-dot" aria-label="Unsaved changes" />
-          )}
-          <TruncatedText className="filename" showTooltip>
-            {asset.name}
-          </TruncatedText>
-          {language && <Caption className="language-tag">{language}</Caption>}
-        </FlexRow>
-        <FlexRow align="center" gap={0.5}>
-          {!isCsv && (
-            <ToolbarIconButton
-              tooltip={wordWrap ? "Disable word wrap" : "Enable word wrap"}
-              icon={<WrapTextIcon />}
-              onClick={() => setWordWrap((w) => !w)}
-              active={wordWrap}
+      {!isCsv && (
+        <FlexRow
+          className="editor-toolbar-row"
+          align="center"
+          justify="space-between"
+        >
+          <EditorToolbar
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onToggleWordWrap={() => setWordWrap((w) => !w)}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            wordWrapEnabled={wordWrap}
+          />
+          <FlexRow align="center" gap={0.5} sx={{ px: 1 }}>
+            {isDirty && (
+              <span className="dirty-dot" aria-label="Unsaved changes" />
+            )}
+            <EditorButton
+              variant="contained"
               size="small"
-            />
-          )}
-          <EditorButton
-            variant="contained"
-            size="small"
-            startIcon={<SaveIcon />}
-            disabled={!isDirty || isSaving}
-            onClick={handleSave}
-          >
-            {isSaving ? "Saving…" : "Save"}
-          </EditorButton>
+              startIcon={<SaveIcon />}
+              disabled={!isDirty || isSaving}
+              onClick={handleSave}
+            >
+              {isSaving ? "Saving…" : "Save"}
+            </EditorButton>
+          </FlexRow>
         </FlexRow>
-      </FlexRow>
+      )}
 
       {body()}
     </div>

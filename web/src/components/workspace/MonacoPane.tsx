@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useTheme } from "@mui/material/styles";
 import type * as monaco from "monaco-editor";
 
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
@@ -13,6 +12,10 @@ interface MonacoPaneProps {
   onChange?: (value: string) => void;
   /** Registers Cmd/Ctrl+S inside the editor when provided. */
   onSave?: () => void;
+  onEditorMount?: (
+    editor: monaco.editor.IStandaloneCodeEditor,
+    monacoInstance: typeof import("monaco-editor")
+  ) => void;
 }
 
 /**
@@ -27,9 +30,9 @@ const MonacoPane = ({
   readOnly = false,
   wordWrap = true,
   onChange,
-  onSave
+  onSave,
+  onEditorMount
 }: MonacoPaneProps) => {
-  const theme = useTheme();
   const {
     MonacoEditor,
     monacoLoadError,
@@ -37,7 +40,7 @@ const MonacoPane = ({
     loadMonacoIfNeeded,
     monacoOnMount
   } = useMonacoEditor();
-  const monacoTheme = theme.palette.mode === "light" ? "vs" : "vs-dark";
+  const monacoTheme = "vs-dark";
 
   useEffect(() => {
     void loadMonacoIfNeeded();
@@ -54,12 +57,13 @@ const MonacoPane = ({
       monacoInstance: typeof import("monaco-editor")
     ) => {
       monacoOnMount(editor);
+      onEditorMount?.(editor, monacoInstance);
       editor.addCommand(
         monacoInstance.KeyMod.CtrlCmd | monacoInstance.KeyCode.KeyS,
         () => saveRef.current?.()
       );
     },
-    [monacoOnMount]
+    [monacoOnMount, onEditorMount]
   );
 
   const handleChange = useCallback(

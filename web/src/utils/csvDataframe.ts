@@ -26,10 +26,11 @@ export const parseCsvToDataframe = (
   });
   const rows = parsed.data ?? [];
   const [header = [], ...body] = rows;
+  const columns = header.length > 0 ? header : ["Column 1"];
   return {
     type: "dataframe",
     uri: "",
-    columns: header.map((name) => ({
+    columns: columns.map((name) => ({
       name: String(name),
       data_type: "string"
     })),

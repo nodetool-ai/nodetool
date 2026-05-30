@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
@@ -74,7 +75,53 @@ interface OpenMenuProps {
   onClose: () => void;
 }
 
-type MenuView = "root" | "workflows" | "assets";
+type MenuView = "root" | "texts" | "workflows" | "assets";
+
+interface TextFileTemplate {
+  label: string;
+  filename: string;
+  mimeType: string;
+  content: string;
+}
+
+const TEXT_FILE_TEMPLATES: readonly TextFileTemplate[] = [
+  {
+    label: "Markdown (.md)",
+    filename: "Untitled.md",
+    mimeType: "text/markdown",
+    content: "# Untitled\n"
+  },
+  {
+    label: "JSON (.json)",
+    filename: "Untitled.json",
+    mimeType: "application/json",
+    content: "{}\n"
+  },
+  {
+    label: "YAML (.yaml)",
+    filename: "Untitled.yaml",
+    mimeType: "application/x-yaml",
+    content: "---\n"
+  },
+  {
+    label: "CSV (.csv)",
+    filename: "Untitled.csv",
+    mimeType: "text/csv",
+    content: "Column 1\n"
+  },
+  {
+    label: "TSV (.tsv)",
+    filename: "Untitled.tsv",
+    mimeType: "text/tab-separated-values",
+    content: "Column 1\n"
+  },
+  {
+    label: "Plain text (.txt)",
+    filename: "Untitled.txt",
+    mimeType: "text/plain",
+    content: ""
+  }
+];
 
 /**
  * The `[+]` menu for the workspace tab bar: create a new workflow, or open an
@@ -124,6 +171,28 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       console.error("Failed to create image", error);
     }
   }, [createAsset, openTab, close]);
+
+  const handleNewText = useCallback(
+    async (template: TextFileTemplate) => {
+      try {
+        const asset = await createAsset(
+          new File([template.content], template.filename, {
+            type: template.mimeType
+          })
+        );
+        openTab({
+          type: "text",
+          ref: asset.id,
+          mode: "edit",
+          title: asset.name || template.filename
+        });
+        close();
+      } catch (error) {
+        console.error("Failed to create text file", error);
+      }
+    },
+    [createAsset, openTab, close]
+  );
 
   const handleNewVideo = useCallback(async () => {
     try {
@@ -234,6 +303,12 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               onClick={() => void handleNew()}
             />
             <MenuItemPrimitive
+              label="New text file…"
+              icon={<ArticleOutlinedIcon fontSize="small" />}
+              hasSubmenu
+              onClick={() => setView("texts")}
+            />
+            <MenuItemPrimitive
               label="New image"
               icon={<ImageOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewImage()}
@@ -259,6 +334,24 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               hasSubmenu
               onClick={() => setView("assets")}
             />
+          </>
+        )}
+
+        {view === "texts" && (
+          <>
+            <MenuItemPrimitive
+              label="Back"
+              icon={<ArrowBackRoundedIcon fontSize="small" />}
+              onClick={() => setView("root")}
+              dividerAfter
+            />
+            {TEXT_FILE_TEMPLATES.map((template) => (
+              <MenuItemPrimitive
+                key={template.filename}
+                label={template.label}
+                onClick={() => void handleNewText(template)}
+              />
+            ))}
           </>
         )}
 
