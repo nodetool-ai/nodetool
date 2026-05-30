@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Box,
@@ -6,10 +6,8 @@ import {
   EmptyState,
   FlexColumn,
   FlexRow,
-  LoadingSpinner,
-  Text
+  LoadingSpinner
 } from "../ui_primitives";
-import { EditorButton } from "../editor_ui";
 import { BASE_URL } from "../../stores/BASE_URL";
 import type { Asset } from "../../stores/ApiTypes";
 import { useSaveAudioToAsset } from "../../hooks/audio/useSaveAudioToAsset";
@@ -361,42 +359,6 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
   );
   const zoomFit = useCallback(() => setZoom(1), []);
 
-  const headerBar = useMemo(
-    () => (
-      <FlexRow
-        align="center"
-        justify="space-between"
-        sx={{
-          flexShrink: 0,
-          px: 1.5,
-          py: 0.75,
-          borderBottom: "1px solid var(--palette-divider)"
-        }}
-      >
-        <FlexColumn gap={0} sx={{ minWidth: 0 }}>
-          <Text size="normal" weight={600}>
-            {asset.name || "Audio"}
-          </Text>
-          <Caption>Audio sample editor</Caption>
-        </FlexColumn>
-        <FlexRow align="center" gap={1} sx={{ flexShrink: 0 }}>
-          <EditorButton
-            variant="contained"
-            size="small"
-            onClick={handleSave}
-            disabled={saving || loading || !!error}
-          >
-            {saving ? "Saving…" : "Save to audio"}
-          </EditorButton>
-          <EditorButton variant="text" size="small" onClick={onClose}>
-            Done
-          </EditorButton>
-        </FlexRow>
-      </FlexRow>
-    ),
-    [asset.name, handleSave, saving, loading, error, onClose]
-  );
-
   if (loading) {
     return (
       <FlexColumn fullWidth fullHeight align="center" justify="center">
@@ -407,37 +369,40 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
 
   if (error || !sample) {
     return (
-      <FlexColumn fullWidth fullHeight>
-        {headerBar}
-        <FlexColumn fullWidth fullHeight align="center" justify="center">
-          <EmptyState
-            variant="error"
-            title="Could not open audio editor"
-            description={error ?? "Audio could not be decoded."}
-          />
-        </FlexColumn>
+      <FlexColumn fullWidth fullHeight align="center" justify="center">
+        <EmptyState
+          variant="error"
+          title="Could not open audio editor"
+          description={error ?? "Audio could not be decoded."}
+          actionText="Done"
+          onAction={onClose}
+        />
       </FlexColumn>
     );
   }
 
   return (
     <FlexColumn fullWidth fullHeight sx={{ overflow: "hidden" }}>
-      {headerBar}
-
       <AudioEditorToolbar
         isPlaying={isPlaying}
         loop={loop}
+        zoom={zoom}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
         canZoomIn={zoom < MAX_ZOOM}
         canZoomOut={zoom > MIN_ZOOM}
         hasSelection={hasSelection}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
+        saving={saving}
+        canSave={!loading && !error}
         onTogglePlay={togglePlay}
         onStop={stop}
         onToggleLoop={handleToggleLoop}
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onZoomFit={zoomFit}
+        onZoomChange={setZoom}
         onTrim={handleTrim}
         onDelete={handleDelete}
         onSilence={handleSilence}
@@ -449,6 +414,8 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
         onReverse={handleReverse}
         onUndo={history.undo}
         onRedo={history.redo}
+        onSave={handleSave}
+        onDone={onClose}
       />
 
       <Box ref={waveAreaRef} sx={{ flex: 1, minHeight: 0, position: "relative" }}>

@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
     },
     "& .selection": {
       position: "absolute",
-      top: 0,
+      top: `${RULER_HEIGHT}px`,
       bottom: 0,
       backgroundColor: theme.vars.palette.primary.main,
       opacity: 0.22,
@@ -66,6 +66,57 @@ const styles = (theme: Theme) =>
   });
 
 const DRAG_THRESHOLD_PX = 3;
+const RULER_HEIGHT = 24;
+const MIN_TICK_SPACING_PX = 80;
+const TICK_INTERVALS_SECONDS = [
+  0.01,
+  0.025,
+  0.05,
+  0.1,
+  0.25,
+  0.5,
+  1,
+  2,
+  5,
+  10,
+  15,
+  30,
+  60,
+  120,
+  300,
+  600,
+  900,
+  1800,
+  3600
+];
+
+const chooseTickInterval = (pixelsPerSecond: number): number => {
+  const minSeconds = MIN_TICK_SPACING_PX / Math.max(1, pixelsPerSecond);
+  return (
+    TICK_INTERVALS_SECONDS.find((interval) => interval >= minSeconds) ??
+    TICK_INTERVALS_SECONDS[TICK_INTERVALS_SECONDS.length - 1]
+  );
+};
+
+const formatRulerTime = (seconds: number, interval: number): string => {
+  if (interval < 1) {
+    return `${seconds.toFixed(interval < 0.1 ? 2 : 1)}s`;
+  }
+
+  const rounded = Math.round(seconds);
+  const hours = Math.floor(rounded / 3600);
+  const minutes = Math.floor((rounded % 3600) / 60);
+  const secs = rounded % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(
+      2,
+      "0"
+    )}`;
+  }
+
+  return `${minutes}:${String(secs).padStart(2, "0")}`;
+};
 
 /**
  * Canvas waveform with click-to-seek and drag-to-select. Channels are drawn as
@@ -90,8 +141,10 @@ const WaveformView = ({
   const duration = sampleDuration(sample);
   const width = Math.max(1, Math.ceil(duration * pixelsPerSecond));
 
-  const waveColor = theme.vars.palette.grey[300];
-  const midColor = theme.vars.palette.grey[700];
+  const waveColor = theme.palette.grey[300];
+  const midColor = theme.palette.grey[700];
+  const rulerColor = theme.palette.text.secondary;
+  const rulerLineColor = theme.palette.divider;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -99,6 +152,7 @@ const WaveformView = ({
     if (!canvas || !container) return;
 
     const height = container.clientHeight;
+    const waveformHeight = Math.max(1, height - RULER_HEIGHT);
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
@@ -110,15 +164,31 @@ const WaveformView = ({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, width, height);
 
+    const tickInterval = chooseTickInterval(pixelsPerSecond);
+    ctx.strokeStyle = rulerLineColor;
+    ctx.fillStyle = rulerColor;
+    ctx.font = `${theme.fontSizeTiny} ${theme.fontFamily2}`;
+    ctx.textBaseline = "top";
+    ctx.beginPath();
+    ctx.moveTo(0, RULER_HEIGHT - 0.5);
+    ctx.lineTo(width, RULER_HEIGHT - 0.5);
+    for (let t = 0; t <= duration; t += tickInterval) {
+      const x = Math.round(t * pixelsPerSecond) + 0.5;
+      ctx.moveTo(x, RULER_HEIGHT - 8);
+      ctx.lineTo(x, RULER_HEIGHT);
+      ctx.fillText(formatRulerTime(t, tickInterval), x + 4, 4);
+    }
+    ctx.stroke();
+
     const channels = sample.channels;
     const lanes = numChannels(sample);
-    const laneHeight = height / lanes;
+    const laneHeight = waveformHeight / lanes;
     const frames = numFrames(sample);
     const samplesPerPx = frames / width;
 
     for (let c = 0; c < lanes; c += 1) {
       const data = channels[c];
-      const mid = laneHeight * c + laneHeight / 2;
+      const mid = RULER_HEIGHT + laneHeight * c + laneHeight / 2;
       const amp = (laneHeight / 2) * 0.92;
 
       ctx.fillStyle = midColor;
@@ -146,7 +216,18 @@ const WaveformView = ({
         ctx.fillRect(x, yMax, 1, Math.max(1, yMin - yMax));
       }
     }
-  }, [sample, width, waveColor, midColor]);
+  }, [
+    sample,
+    width,
+    duration,
+    pixelsPerSecond,
+    waveColor,
+    midColor,
+    rulerColor,
+    rulerLineColor,
+    theme.fontSizeTiny,
+    theme.fontFamily2
+  ]);
 
   const secondsFromEvent = useCallback(
     (clientX: number): number => {
