@@ -84,6 +84,52 @@ function normalizeBillingUnit(creditUnit: string): string {
   return "run";
 }
 
+/** A slug-like token already looks like a model id (lowercase, no spaces, has a separator). */
+const KIE_SLUG_LIKE = /^[a-z0-9]+([._/-][a-z0-9.]+)+$/;
+
+/** Lowercase, strip non-alphanumerics — collapses kie's slug variants to a comparable key. */
+export function normalizeKieModelId(id: string): string {
+  return id.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+/** Model id taken from the modelDescription prefix, but only when it already looks like one. */
+function modelIdFromDescription(description: string): string | null {
+  const prefix = (description.split(",")[0] ?? "").trim();
+  return prefix !== "" && KIE_SLUG_LIKE.test(prefix) ? prefix : null;
+}
+
+/** Model id from the anchor URL path (kie's marketing slugs / generation ids). */
+function modelIdFromAnchorPath(anchor: string): string | null {
+  try {
+    const url = new URL(anchor);
+    if (url.hostname.includes("docs")) {
+      return null; // doc links point at API guides, not model pages
+    }
+    const segments = url.pathname.split("/").filter(Boolean);
+    if (segments.length === 0) {
+      return null;
+    }
+    return segments.slice(-2).join("/");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve the kie model identifier for a pricing row. kie encodes it in three
+ * inconsistent places, so we try, highest-confidence first:
+ *   1. the `?model=` anchor query param (canonical generation id)
+ *   2. a slug-like prefix of modelDescription (e.g. "bytedance/seedance-2")
+ *   3. the anchor URL path (e.g. "qwen/image-edit", "topaz-image-upscale")
+ */
+export function kieModelKeyForRecord(record: KiePricingPageRecord): string | null {
+  return (
+    modelIdFromKiePricingAnchor(record.anchor ?? "") ??
+    modelIdFromDescription(record.modelDescription ?? "") ??
+    modelIdFromAnchorPath(record.anchor ?? "")
+  );
+}
+
 /**
  * Collapse paginated pricing rows into one summary per kie `model_id`.
  * Uses the minimum credit price when multiple tiers exist for the same model.
@@ -98,7 +144,10 @@ export function aggregateKiePricingByModelId(
   const grouped = new Map<string, KiePricingPageRecord[]>();
 
   for (const record of records) {
-    const modelId = modelIdFromKiePricingAnchor(record.anchor ?? "");
+    if (record.interfaceType === "chat") {
+      continue; // LLM/token pricing — not a media node we surface
+    }
+    const modelId = kieModelKeyForRecord(record);
     if (modelId == null) {
       continue;
     }
@@ -150,6 +199,65 @@ export function aggregateKiePricingByModelId(
   }
 
   return out;
+}
+
+/**
+ * Hand-verified map from our manifest model id → the kie catalog key, for cases
+ * where kie's pricing id can't be derived from ours by normalization. Each pair
+ * was checked against kie's live provider/price (see kie-pricing-api.test.ts).
+ *
+ * Suno music nodes: kie lists Suno operations under internal `ai-music-api/*`
+ * ids (every such row has provider "Suno"). Kling avatars: kie inserts a `v1`
+ * version token. Do NOT add pairs that merely look similar — e.g. seedance-2 vs
+ * seedance-2-fast or seedream-v4 vs 4.5 are different models with different prices.
+ */
+export const KIE_MODEL_ID_ALIASES: Readonly<Record<string, string>> = {
+  "generate-music": "ai-music-api/generate",
+  "upload-and-cover-audio": "ai-music-api/upload-and-cover-audio",
+  "upload-and-extend-audio": "ai-music-api/extend",
+  "add-instrumental": "ai-music-api/add-instrumental",
+  "get-timestamped-lyrics": "ai-music-api/timeStamped-lyrics",
+  "boost-music-style": "ai-music-api/boost-music-style",
+  "generate-cover": "ai-music-api/cover-generate",
+  "generate-mashup": "ai-music-api/mashup",
+  "convert-to-wav": "ai-music-api/convert-to-wav-format",
+  "separate-vocals": "ai-music-api/separate-vocals",
+  "generate-midi": "ai-music-api/generate-midi-from-audio",
+  "create-music-video": "ai-music-api/create-music-video",
+  "generate-sounds": "ai-music-api/sounds",
+  "kling/ai-avatar-pro": "kling/ai-avatar-v1-pro",
+  "kling/ai-avatar-standard": "kling/v1-avatar-standard",
+};
+
+/**
+ * Find the pricing for a manifest model id in an aggregated catalog, trying:
+ *   1. exact key, 2. curated alias, 3. a unique normalized-key match.
+ * Returns undefined when nothing matches or a normalized match is ambiguous.
+ */
+export function resolveKiePricing(
+  catalog: Record<string, KieModelPricingSummary>,
+  modelId: string,
+): KieModelPricingSummary | undefined {
+  const exact = catalog[modelId];
+  if (exact) {
+    return exact;
+  }
+
+  const aliased = KIE_MODEL_ID_ALIASES[modelId];
+  if (aliased && catalog[aliased]) {
+    return catalog[aliased];
+  }
+
+  const target = normalizeKieModelId(modelId);
+  let match: KieModelPricingSummary | undefined;
+  let count = 0;
+  for (const [key, summary] of Object.entries(catalog)) {
+    if (normalizeKieModelId(key) === target) {
+      match = summary;
+      count += 1;
+    }
+  }
+  return count === 1 ? match : undefined;
 }
 
 export async function fetchKiePricingPage(

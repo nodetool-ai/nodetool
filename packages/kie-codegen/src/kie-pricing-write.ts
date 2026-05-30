@@ -6,7 +6,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { NODE_TYPE_PRICING_SCHEMA_VERSION } from "@nodetool-ai/node-sdk";
 import type { PricingOutputPaths } from "@nodetool-ai/node-sdk";
-import type { KieModelPricingSummary } from "@nodetool-ai/kie-nodes/kie-pricing-api";
+import {
+  resolveKiePricing,
+  type KieModelPricingSummary,
+} from "@nodetool-ai/kie-nodes/kie-pricing-api";
 
 export interface KieManifestPricingEntry {
   className: string;
@@ -48,7 +51,7 @@ export function buildKiePricingBundles(
   const byNodeType: Record<string, KieUnitPricingEntry> = {};
 
   for (const entry of manifest) {
-    const summary = catalog[entry.modelId];
+    const summary = resolveKiePricing(catalog, entry.modelId);
     if (!summary) {
       continue;
     }

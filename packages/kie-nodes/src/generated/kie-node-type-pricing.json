@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "writtenAt": "2026-05-30T21:48:56.220Z",
+  "writtenAt": "2026-05-30T22:18:32.198Z",
   "byNodeType": {
     "kie.image.Seedream45TextToImage": {
       "model_id": "seedream/4.5-text-to-image",
@@ -38,6 +38,24 @@
       "tier_count": 1,
       "pricing_url": "https://kie.ai/seedream5-0-lite"
     },
+    "kie.image.ZImage": {
+      "model_id": "z-image",
+      "unit_price": 0.8,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.004,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/z-image"
+    },
+    "kie.image.GoogleNanoBanana2": {
+      "model_id": "nano-banana-2",
+      "unit_price": 8,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.04,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/nano-banana-2"
+    },
     "kie.image.GoogleImagen4Fast": {
       "model_id": "google/imagen4-fast",
       "unit_price": 4,
@@ -73,6 +91,15 @@
       "usd_price": 0.02,
       "tier_count": 1,
       "pricing_url": "https://kie.ai/nano-banana"
+    },
+    "kie.image.NanoBananaPro": {
+      "model_id": "nano-banana-pro",
+      "unit_price": 18,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.09,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/nano-banana-pro"
     },
     "kie.image.Flux2ProImageToImage": {
       "model_id": "flux-2/pro-image-to-image",
@@ -164,6 +191,33 @@
       "tier_count": 3,
       "pricing_url": "https://kie.ai/gpt-image-2"
     },
+    "kie.image.TopazImageUpscale": {
+      "model_id": "topaz-image-upscale",
+      "unit_price": 10,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.05,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/topaz-image-upscale"
+    },
+    "kie.image.RecraftRemoveBackground": {
+      "model_id": "recraft-remove-background",
+      "unit_price": 1,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.005,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/recraft-remove-background"
+    },
+    "kie.image.RecraftCrispUpscale": {
+      "model_id": "recraft-crisp-upscale",
+      "unit_price": 0.5,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.0025,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/recraft-crisp-upscale"
+    },
     "kie.image.IdeogramCharacterEdit": {
       "model_id": "ideogram/character-edit",
       "unit_price": 12,
@@ -188,7 +242,7 @@
       "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.06,
-      "tier_count": 2,
+      "tier_count": 3,
       "pricing_url": "https://kie.ai/ideogram/character"
     },
     "kie.image.IdeogramV3TextToImage": {
@@ -218,6 +272,24 @@
       "tier_count": 3,
       "pricing_url": "https://kie.ai/ideogram/v3"
     },
+    "kie.image.QwenImageEdit": {
+      "model_id": "qwen/image-edit",
+      "unit_price": 5,
+      "billing_unit": "megapixel",
+      "currency": "credits",
+      "usd_price": 0.03,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/qwen/image-edit"
+    },
+    "kie.image.Wan27Image": {
+      "model_id": "wan-2-7-image",
+      "unit_price": 4.8,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.024,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/wan-2-7-image"
+    },
     "kie.image.Wan27ImagePro": {
       "model_id": "wan/2-7-image-pro",
       "unit_price": 12,
@@ -226,6 +298,24 @@
       "usd_price": 0.06,
       "tier_count": 1,
       "pricing_url": "https://kie.ai/wan-2-7-image"
+    },
+    "kie.audio.ElevenlabsAudioIsolation": {
+      "model_id": "elevenlabs-audio-isolation",
+      "unit_price": 0.2,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.001,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/elevenlabs-audio-isolation"
+    },
+    "kie.audio.ElevenlabsTextToDialogueV3": {
+      "model_id": "elevenlabs/text-to-dialogue-v3",
+      "unit_price": 14,
+      "billing_unit": "1000 characters",
+      "currency": "credits",
+      "usd_price": 0.07,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/elevenlabs/text-to-dialogue-v3"
     },
     "kie.audio.ElevenlabsTextToSpeechMultilingualV2": {
       "model_id": "elevenlabs/text-to-speech-multilingual-v2",
@@ -244,6 +334,123 @@
       "usd_price": 0.03,
       "tier_count": 1,
       "pricing_url": "https://kie.ai/elevenlabs-tts"
+    },
+    "kie.audio.GenerateMusic": {
+      "model_id": "ai-music-api/generate",
+      "unit_price": 12,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.06,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.UploadAndCoverAudio": {
+      "model_id": "ai-music-api/upload-and-cover-audio",
+      "unit_price": 12,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.06,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.UploadAndExtendAudio": {
+      "model_id": "ai-music-api/extend",
+      "unit_price": 12,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.06,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.AddInstrumental": {
+      "model_id": "ai-music-api/add-instrumental",
+      "unit_price": 12,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.06,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.GetTimestampedLyrics": {
+      "model_id": "ai-music-api/timeStamped-lyrics",
+      "unit_price": 0.5,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.0025,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.BoostMusicStyle": {
+      "model_id": "ai-music-api/boost-music-style",
+      "unit_price": 0.4,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.002,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.GenerateCover": {
+      "model_id": "ai-music-api/cover-generate",
+      "unit_price": 0,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.GenerateMashup": {
+      "model_id": "ai-music-api/mashup",
+      "unit_price": 12,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.06,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.ConvertToWav": {
+      "model_id": "ai-music-api/convert-to-wav-format",
+      "unit_price": 0.4,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.002,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.SeparateVocals": {
+      "model_id": "ai-music-api/separate-vocals",
+      "unit_price": 10,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.05,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.GenerateMidi": {
+      "model_id": "ai-music-api/generate-midi-from-audio",
+      "unit_price": 0,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.CreateMusicVideo": {
+      "model_id": "ai-music-api/create-music-video",
+      "unit_price": 2,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.01,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "kie.audio.GenerateSounds": {
+      "model_id": "ai-music-api/sounds",
+      "unit_price": 2.5,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.0125,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
     },
     "kie.video.GrokImagineTextToVideo": {
       "model_id": "grok-imagine/text-to-video",
@@ -317,6 +524,24 @@
       "tier_count": 2,
       "pricing_url": "https://kie.ai/kling-2-5"
     },
+    "kie.video.KlingAiAvatarStandard": {
+      "model_id": "kling/v1-avatar-standard",
+      "unit_price": 8,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.04,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/kling-ai-avatar"
+    },
+    "kie.video.KlingAiAvatarPro": {
+      "model_id": "kling/ai-avatar-v1-pro",
+      "unit_price": 16,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.08,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/kling-ai-avatar"
+    },
     "kie.video.KlingV21MasterImageToVideo2": {
       "model_id": "kling/v2-1-master-image-to-video",
       "unit_price": 160,
@@ -352,6 +577,24 @@
       "usd_price": 0.125,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/kling/v2-1"
+    },
+    "kie.video.Kling26MotionControl": {
+      "model_id": "kling-2.6-motion-control",
+      "unit_price": 11,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.055,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/kling-2.6-motion-control"
+    },
+    "kie.video.BytedanceSeedance2": {
+      "model_id": "bytedance/seedance-2",
+      "unit_price": 11.5,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.057,
+      "tier_count": 6,
+      "pricing_url": "https://kie.ai/seedance-2-0"
     },
     "kie.video.BytedanceSeedance2Fast": {
       "model_id": "bytedance/seedance-2-fast",
@@ -550,6 +793,15 @@
       "usd_price": 0.14,
       "tier_count": 2,
       "pricing_url": "https://kie.ai/happyhorse-1-0"
+    },
+    "kie.video.GeminiOmniVideo": {
+      "model_id": "gemini-omni-video",
+      "unit_price": 90,
+      "billing_unit": "varies",
+      "currency": "credits",
+      "usd_price": 0.45,
+      "tier_count": 15,
+      "pricing_url": "https://kie.ai/gemini-omni"
     }
   }
 }
