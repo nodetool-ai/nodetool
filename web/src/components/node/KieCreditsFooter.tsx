@@ -58,9 +58,7 @@ function formatKieLastRun(cost: ProviderCost): string {
     typeof cost.quantity === "number" &&
     Number.isFinite(cost.quantity)
   ) {
-    parts.push(
-      `${formatKieCredits({ credit_balance: cost.quantity })} credits`,
-    );
+    parts.push(formatKieCredits({ credit_balance: cost.quantity }));
   }
   if (
     cost.currency === "USD" &&
