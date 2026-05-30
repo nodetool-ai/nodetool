@@ -16,32 +16,35 @@ function formatCreditAmount(amount: number): string {
   }).format(amount)} credits`;
 }
 
+/** A concrete per-unit suffix, or "" when the unit conveys nothing useful. */
+function billingUnitSuffix(p: KieUnitPricing): string {
+  const unit = p.billing_unit.trim();
+  if (unit === "" || unit === "run" || unit === "varies") {
+    return "";
+  }
+  return unit;
+}
+
 function formatKiePerUnitLine(
   p: KieUnitPricing,
   { vague }: { vague: boolean },
 ): string {
   const amount = formatCreditAmount(p.unit_price);
+  const unit = billingUnitSuffix(p);
   if (vague) {
-    return `From ${amount}`;
+    return unit === "" ? `From ${amount}` : `From ${amount} per ${unit}`;
   }
-  const unit = p.billing_unit.trim();
-  if (unit === "" || unit === "run") {
-    return amount;
-  }
-  return `${amount} per ${unit}`;
+  return unit === "" ? amount : `${amount} per ${unit}`;
 }
 
 /** Compact label for node chrome. */
 export function formatKieUnitPricingShort(p: KieUnitPricing): string {
   const base = formatCreditAmount(p.unit_price);
+  const unit = billingUnitSuffix(p);
   if (isKieVagueBillingSummary(p)) {
-    return `from ${base}`;
+    return unit === "" ? `from ${base}` : `from ${base} / ${unit}`;
   }
-  const unit = p.billing_unit.trim();
-  if (unit === "" || unit === "run") {
-    return base;
-  }
-  return `${base} / ${unit}`;
+  return unit === "" ? base : `${base} / ${unit}`;
 }
 
 function formatKiePricingAgeLine(p: KieUnitPricing): string {

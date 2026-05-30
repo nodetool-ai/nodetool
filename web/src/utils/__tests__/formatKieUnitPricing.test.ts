@@ -37,6 +37,12 @@ describe("formatKieUnitPricingShort", () => {
       formatKieUnitPricingShort({ ...base, billing_unit: "varies", tier_count: 3 }),
     ).toBe("from 5 credits");
   });
+
+  it("keeps the unit for multi-tier models that share one (e.g. per second)", () => {
+    expect(
+      formatKieUnitPricingShort({ ...base, billing_unit: "second", tier_count: 4 }),
+    ).toBe("from 5 credits / second");
+  });
 });
 
 describe("formatKieUnitPricingTooltip", () => {
@@ -64,6 +70,19 @@ describe("formatKieUnitPricingTooltip", () => {
     });
     expect(tooltip).toContain("From 14 credits");
     expect(tooltip).not.toContain("per varies");
+    expect(tooltip).toContain("Varies by resolution, duration, and quality.");
+  });
+
+  it("shows the per-unit rate for multi-tier models that share a unit", () => {
+    const tooltip = formatKieUnitPricingTooltip({
+      model_id: "bytedance/seedance-2-fast",
+      unit_price: 9,
+      billing_unit: "second",
+      currency: "credits",
+      tier_count: 4,
+      usd_price: 0.045,
+    });
+    expect(tooltip).toContain("From 9 credits per second");
     expect(tooltip).toContain("Varies by resolution, duration, and quality.");
   });
 });

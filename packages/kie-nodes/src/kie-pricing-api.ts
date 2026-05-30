@@ -87,6 +87,10 @@ function normalizeBillingUnit(creditUnit: string): string {
 /**
  * Collapse paginated pricing rows into one summary per kie `model_id`.
  * Uses the minimum credit price when multiple tiers exist for the same model.
+ * The billing unit is kept when every priced tier shares it (e.g. "per second"
+ * for a video model), and only falls back to "varies" when tiers genuinely
+ * disagree — so a per-second model reads "From 9 credits per second" rather
+ * than dropping the unit entirely.
  */
 export function aggregateKiePricingByModelId(
   records: readonly KiePricingPageRecord[],
@@ -111,19 +115,21 @@ export function aggregateKiePricingByModelId(
   for (const [modelId, rows] of grouped) {
     let minCredits: number | null = null;
     let minUsd: number | null = null;
-    let billingUnit = "";
+    let minUnit = "";
     let pricingUrl: string | undefined;
+    const units = new Set<string>();
 
     for (const row of rows) {
       const credits = parsePositiveNumber(row.creditPrice);
       if (credits == null) {
         continue;
       }
+      const unit = normalizeBillingUnit(row.creditUnit);
+      units.add(unit);
       if (minCredits == null || credits < minCredits) {
         minCredits = credits;
-        const usd = parsePositiveNumber(row.usdPrice);
-        minUsd = usd;
-        billingUnit = normalizeBillingUnit(row.creditUnit);
+        minUsd = parsePositiveNumber(row.usdPrice);
+        minUnit = unit;
       }
       pricingUrl ??= kiePricingPageUrlFromAnchor(row.anchor);
     }
@@ -132,14 +138,13 @@ export function aggregateKiePricingByModelId(
       continue;
     }
 
-    const tierCount = rows.length;
     out[modelId] = {
       model_id: modelId,
       unit_price: minCredits,
-      billing_unit: tierCount > 1 ? "varies" : billingUnit,
+      billing_unit: units.size === 1 ? minUnit : "varies",
       currency: "credits",
       usd_price: minUsd ?? undefined,
-      tier_count: tierCount,
+      tier_count: rows.length,
       pricing_url: pricingUrl,
     };
   }
