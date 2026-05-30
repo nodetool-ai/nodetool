@@ -19,12 +19,21 @@ function prefersReducedMotion(): boolean {
  * commit (the "First" position), because it was stored by the prior effect run
  * while the DOM was still in its old position. We animate the First→Last delta
  * away via the Web Animations API, then store Last for the next transition.
+ *
+ * `flipKey` distinguishes a genuine slot transition (navigation between the
+ * start page and the chat view) from a position update caused by scrolling or
+ * resizing. Every dependency change refreshes the stored rect so the next
+ * transition starts from the element's current position, but the animation only
+ * runs when `flipKey` changes. This lets the overlay track a scrolling slot
+ * (position updates, no animation) yet still FLIP smoothly on navigation.
  */
 export function useFlipPosition(
   ref: RefObject<HTMLElement | null>,
-  deps: DependencyList
+  deps: DependencyList,
+  flipKey?: unknown
 ): void {
   const prevRect = useRef<DOMRect | null>(null);
+  const prevKey = useRef(flipKey);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -32,9 +41,14 @@ export function useFlipPosition(
 
     const last = el.getBoundingClientRect();
     const first = prevRect.current;
+    const keyChanged = prevKey.current !== flipKey;
     prevRect.current = last;
+    prevKey.current = flipKey;
 
     if (!first) return;
+    // Scroll/resize updated the position: rect is refreshed above, but there
+    // is no transition to animate.
+    if (!keyChanged) return;
     if (prefersReducedMotion()) return;
 
     const dx = first.left - last.left;
