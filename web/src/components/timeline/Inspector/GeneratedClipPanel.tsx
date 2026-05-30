@@ -50,7 +50,7 @@ const inputsContainerStyles = (theme: Theme) =>
     ".inputs-shell": {
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(2.5)
+      gap: theme.spacing(3)
     },
     ".input-field": {
       display: "flex",
@@ -62,7 +62,7 @@ const inputsContainerStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.disabled,
       lineHeight: 1.35,
-      marginTop: theme.spacing(0.25)
+      marginTop: theme.spacing(0.5)
     }
   });
 

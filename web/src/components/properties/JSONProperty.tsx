@@ -18,7 +18,7 @@ const JSONProperty = (props: PropertyProps) => {
   const inspectorToolbarActionSx = useMemo(
     () => ({
       color: theme.vars.palette.common.white,
-      "& svg": { fontSize: "0.9375rem" }
+      "& svg": { fontSize: "var(--fontSizeNormal)" }
     }),
     [theme]
   );
@@ -165,7 +165,7 @@ const JSONProperty = (props: PropertyProps) => {
           padding: 0
         },
         ".json-action-buttons .MuiIconButton-root svg": {
-          fontSize: "0.75rem"
+          fontSize: "var(--fontSizeSmall)"
         },
         ".editor-wrapper": {
           height: "120px",

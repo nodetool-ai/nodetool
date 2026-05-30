@@ -63,7 +63,7 @@ const styles = (theme: Theme) =>
 
     // Smaller, cleaner icons in the asset toolbar
     ".asset-button-group .MuiSvgIcon-root, .asset-button-group svg": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       width: "18px",
       height: "18px",
       color: theme.vars.palette.grey[400]

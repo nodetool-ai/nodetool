@@ -114,7 +114,7 @@ const styles = (theme: Theme) =>
     ".mode-menu-item": {
       display: "flex",
       alignItems: "center",
-      gap: 12,
+      gap: 8,
       padding: "10px 16px",
       cursor: "pointer",
       color: theme.vars.palette.grey[100],

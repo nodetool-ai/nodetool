@@ -175,14 +175,14 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
             width: 32, height: 32, borderRadius: 1.25,
             display: "flex", alignItems: "center", justifyContent: "center",
             backgroundColor: `${nsColor}18`, color: nsColor,
-            fontSize: 14, fontWeight: 800,
+            fontSize: 14, fontWeight: 600,
           }}
         >
           {index + 1}
         </Box>
 
         <FlexColumn gap={0.25} sx={{ flex: 1, minWidth: 0 }}>
-          <Text size="small" weight={700} truncate>{node.metadata.title}</Text>
+          <Text size="small" weight={600} truncate>{node.metadata.title}</Text>
           {node.expanded && (
             <Text size="tiny" weight={600} sx={{ color: nsColor }}>
               {formatNs(node.metadata.namespace)}
@@ -209,7 +209,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       {outputValue !== undefined && !isRunning && (
         <Box
           sx={{
-            px: 1.75,
+            px: 2,
             pb: 1.5,
             ...(node.nodeType !== PREVIEW_NODE_TYPE && {
               maxHeight: 300,
@@ -223,7 +223,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
 
       {/* Expanded content */}
       <Collapse in={node.expanded} unmountOnExit>
-        <FlexColumn gap={1.5} sx={{ px: 1.75, pb: 1.75 }}>
+        <FlexColumn gap={1.5} sx={{ px: 2, pb: 2 }}>
           {node.metadata.description && (
             <Text size="smaller" color="secondary" lineClamp={3}>
               {node.metadata.description}

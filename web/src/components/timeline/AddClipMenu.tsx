@@ -99,7 +99,7 @@ const menuStyles = (theme: Theme) =>
 
 const workflowItemStyles = (theme: Theme) =>
   css({
-    padding: `${theme.spacing(0.75)} ${theme.spacing(1)}`,
+    padding: `${theme.spacing(1)} ${theme.spacing(1)}`,
     borderRadius: theme.rounded.xs,
     cursor: "pointer",
     "&:hover": {

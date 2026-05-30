@@ -199,7 +199,7 @@ const styles = (theme: Theme) =>
     "& .layer-item": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.75),
+      gap: theme.spacing(1),
       /* No vertical padding — thumbnails dictate row height. Left/right are 0
          so the thumbnail and visibility cell sit flush with the row edges
          (the row's background should not extend past them). */
@@ -259,7 +259,7 @@ const styles = (theme: Theme) =>
       "&.group-layer": {
         /* Shorter than raster rows: parent `.layer-item` min-height cleared here. */
         minHeight: "unset",
-        gap: theme.spacing(0.375),
+        gap: theme.spacing(0.5),
         paddingTop: 0,
         paddingBottom: 0,
         backgroundColor: alpha(theme.palette.common.white, 0.04),
@@ -352,7 +352,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
-      gap: theme.spacing(0.75)
+      gap: theme.spacing(1)
     },
     "& .opacity-row": {
       display: "flex",
@@ -956,7 +956,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }}
             >
               <AddIcon
-                sx={{ fontSize: "14px", color: theme.vars.palette.grey[400] }}
+                sx={{ fontSize: "var(--fontSizeNormal)", color: theme.vars.palette.grey[400] }}
               />
             </IconButton>
           </Tooltip>
@@ -979,7 +979,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }}
             >
               <AddIcon
-                sx={{ fontSize: "14px", color: theme.vars.palette.grey[500] }}
+                sx={{ fontSize: "var(--fontSizeNormal)", color: theme.vars.palette.grey[500] }}
               />
             </IconButton>
           </Tooltip>
@@ -1002,7 +1002,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }}
             >
               <AddIcon
-                sx={{ fontSize: "14px", color: theme.vars.palette.grey[600] }}
+                sx={{ fontSize: "var(--fontSizeNormal)", color: theme.vars.palette.grey[600] }}
               />
             </IconButton>
           </Tooltip>
@@ -1025,7 +1025,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }}
             >
               <AddIcon
-                sx={{ fontSize: "14px", color: theme.vars.palette.grey[300] }}
+                sx={{ fontSize: "var(--fontSizeNormal)", color: theme.vars.palette.grey[300] }}
               />
             </IconButton>
           </Tooltip>
@@ -1048,7 +1048,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 }
               }}
             >
-              <AutoAwesomeIcon sx={{ fontSize: "16px" }} />
+              <AutoAwesomeIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             </IconButton>
           </Tooltip>
           <Tooltip
@@ -1063,7 +1063,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               data-testid="layers-panel-add-image-to-image"
               sx={ADD_ACTION_ICON_SX}
             >
-              <AutoFixHighIcon sx={{ fontSize: "16px" }} />
+              <AutoFixHighIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="New empty layer group (folder)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
@@ -1073,7 +1073,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onClick={() => onAddGroup()}
               sx={ADD_ACTION_ICON_SX}
             >
-              <CreateNewFolderIcon sx={{ fontSize: "16px" }} />
+              <CreateNewFolderIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             </IconButton>
           </Tooltip>
           <Tooltip
@@ -1088,7 +1088,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               data-testid="layers-panel-generate-layer"
               sx={ADD_ACTION_ICON_SX}
             >
-              <AddPhotoAlternateIcon sx={{ fontSize: "16px" }} />
+              <AddPhotoAlternateIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             </IconButton>
           </Tooltip>
         </FlexRow>
@@ -1164,7 +1164,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         align="center"
         wrap
         gap={0.25}
-        sx={{ rowGap: 0.5, minHeight: 30, py: 0.25 }}
+        sx={{ rowGap: 0.5, minHeight: 30, py: 0.5 }}
       >
         {/* Mask */}
         <Tooltip
@@ -1216,7 +1216,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               ...(activeLayer?.alphaLock ? { color: "info.main" } : {})
             }}
           >
-            <LockIcon sx={{ fontSize: "1.125rem" }} />
+            <LockIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
           </IconButton>
         </Tooltip>
 
@@ -1234,7 +1234,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               disabled={!hasMultiLayerSelection}
               sx={OPS_ICON_SX}
             >
-              <CreateNewFolderIcon sx={{ fontSize: "1.125rem" }} />
+              <CreateNewFolderIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </span>
         </Tooltip>
@@ -1252,7 +1252,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onClick={() => onDuplicateLayer(activeLayerId)}
               sx={OPS_ICON_SX}
             >
-              <ContentCopyIcon sx={{ fontSize: "1.125rem" }} />
+              <ContentCopyIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
           <Tooltip
@@ -1488,7 +1488,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           handleLayerCtxClose();
         };
 
-        const menuItemSx = { fontSize: "0.8rem", py: "4px", minHeight: 0 };
+        const menuItemSx = { fontSize: "var(--fontSizeSmall)", py: "4px", minHeight: 0 };
 
         return (
           <Menu

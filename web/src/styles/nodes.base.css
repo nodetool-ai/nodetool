@@ -117,7 +117,7 @@
   width: calc(100% + 10px);
   height: 20px;
   padding: 0px 2px;
-  margin: 5px -5px 0;
+  margin: 4px -5px 0;
   background: var(--c_node_menu);
 }
 

@@ -456,7 +456,7 @@ const ProviderCard = memo(function ProviderCard({
             }}
           />
         ) : (
-          <Text size="big" weight={700}>
+          <Text size="big" weight={600}>
             {meta.name.charAt(0)}
           </Text>
         )}

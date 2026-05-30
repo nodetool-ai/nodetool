@@ -885,7 +885,7 @@ const InputContextMenu: React.FC = () => {
       }}
       transitionDuration={200}
     >
-      <Box sx={{ px: 0.75, py: 0.25 }}>
+      <Box sx={{ px: 1, py: 0.5 }}>
         <TextField
           inputRef={searchInputRef}
           size="small"
@@ -914,7 +914,7 @@ const InputContextMenu: React.FC = () => {
             },
             "& .MuiInputBase-input": {
               fontSize: "var(--fontSizeSmall)",
-              py: 0.25
+              py: 0.5
             }
           }}
           slotProps={{
@@ -942,7 +942,7 @@ const InputContextMenu: React.FC = () => {
         />
       </Box>
       {showStaticActions && (
-        <Box sx={{ px: 0.75, py: 0.1 }}>
+        <Box sx={{ px: 1, py: 0.5 }}>
           {collectElementConstantNodeMetadata && (
             <Box
               component="button"
@@ -1038,7 +1038,7 @@ const InputContextMenu: React.FC = () => {
             ".node-button": { padding: 0 },
             ".icon-bg": { padding: 0, width: "16px", height: "16px" },
             ".icon-bg svg": {
-              fontSize: "0.75rem",
+              fontSize: "var(--fontSizeSmall)",
               width: "12px",
               height: "12px"
             }

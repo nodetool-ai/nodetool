@@ -80,7 +80,7 @@ const cardStyles = (theme: Theme) =>
     },
     ".loading-text": {
       color: theme.vars.palette.primary.main,
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       marginTop: "12px",
       textAlign: "center",
       fontWeight: 500
@@ -115,7 +115,7 @@ const cardStyles = (theme: Theme) =>
       position: "absolute",
       top: "8px",
       right: "8px",
-      fontSize: "0.65rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.5px",
       backgroundColor: "rgba(0, 0, 0, 0.6)",
@@ -136,7 +136,7 @@ const cardStyles = (theme: Theme) =>
       zIndex: 5
     },
     ".matched-item": {
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       padding: "4px 8px",
       borderRadius: "var(--rounded-md)",
@@ -145,12 +145,12 @@ const cardStyles = (theme: Theme) =>
     },
     ".matched-item-name": {
       display: "block",
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.grey[900]
     },
     ".matched-item-namespace": {
       display: "block",
-      fontSize: "0.65rem",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[700],
       fontWeight: 500
     },
@@ -163,7 +163,7 @@ const cardStyles = (theme: Theme) =>
       minHeight: 0
     },
     ".card-title": {
-      fontSize: "0.9rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       lineHeight: 1.25,
@@ -178,7 +178,7 @@ const cardStyles = (theme: Theme) =>
       margin: 0
     },
     ".card-description": {
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.4,
       display: "-webkit-box",
@@ -199,7 +199,7 @@ const cardStyles = (theme: Theme) =>
       paddingTop: "6px"
     },
     ".chip": {
-      fontSize: "0.65rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
       letterSpacing: "0.3px",
       padding: "2px 8px",
@@ -284,7 +284,7 @@ const WorkflowCard = ({
           sx: {
             backgroundColor: theme.vars.palette.grey[800],
             color: theme.vars.palette.text.primary,
-            fontSize: "0.85rem",
+            fontSize: "var(--fontSizeNormal)",
             padding: "10px 14px",
             maxWidth: 300,
             borderRadius: "var(--rounded-lg)",

@@ -62,7 +62,7 @@ const styles = (theme: Theme) => css`
     }
     
     .breadcrumb-icon {
-      font-size: 18px;
+      font-size: var(--fontSizeBig);
     }
   }
   
@@ -76,13 +76,13 @@ const styles = (theme: Theme) => css`
     padding: 4px 8px;
     
     .breadcrumb-icon {
-      font-size: 18px;
+      font-size: var(--fontSizeBig);
     }
   }
   
   .breadcrumb-separator {
     color: ${theme.vars.palette.text.disabled};
-    font-size: 18px;
+    font-size: var(--fontSizeBig);
   }
   
   .home-button {

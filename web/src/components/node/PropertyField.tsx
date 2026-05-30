@@ -103,7 +103,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
 
   const propertySpacerStyle = useMemo(
     () => ({
-      marginLeft: 20,
+      marginLeft: 8,
       minHeight: 20,
       display: "flex" as const,
       alignItems: "center" as const

@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
       transition: "color 0.2s, opacity 0.2s",
       padding: 0,
       "& svg": {
-        fontSize: "1.4rem"
+        fontSize: "var(--fontSizeBig)"
       },
       "&:hover": {
         backgroundColor: "transparent"
@@ -122,7 +122,7 @@ const styles = (theme: Theme) =>
       transition: "color 0.2s",
       padding: 0,
       "& svg": {
-        fontSize: "1.2rem"
+        fontSize: "var(--fontSizeBig)"
       },
       "&:hover": {
         backgroundColor: "transparent",

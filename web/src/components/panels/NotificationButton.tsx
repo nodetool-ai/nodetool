@@ -130,8 +130,8 @@ const NotificationButton: React.FC = React.memo(() => {
               color="secondary"
               role="status"
               aria-live="polite"
-              sx={{ fontSize: "0.9rem" }}
-              weight={300}
+              sx={{ fontSize: "var(--fontSizeNormal)" }}
+              weight={400}
             >
               No notifications
             </Text>

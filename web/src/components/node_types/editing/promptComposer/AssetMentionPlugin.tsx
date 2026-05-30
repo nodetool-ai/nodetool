@@ -47,7 +47,7 @@ const menuStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
       borderRadius: "var(--rounded-sm, 4px)",
       cursor: "pointer",
       fontFamily: theme.fontFamily1,

@@ -144,7 +144,7 @@ const styles = (theme: Theme) =>
       },
       "& svg": {
         color: theme.vars.palette.grey[200] + " !important",
-        fontSize: "1.2rem"
+        fontSize: "var(--fontSizeBig)"
       }
     },
     ".asset-item-thumbnail": {
@@ -450,7 +450,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
               <FolderIcon
                 style={{
                   color: "var(--palette-grey-200)",
-                  fontSize: "1.2rem"
+                  fontSize: "var(--fontSizeBig)"
                 }}
               />
             ) : (

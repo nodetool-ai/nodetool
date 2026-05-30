@@ -21,7 +21,7 @@ const styles = css({
     }
   },
   "& .subgraph-icon": {
-    fontSize: "12px",
+    fontSize: "var(--fontSizeSmall)",
     flexShrink: 0
   },
   "& .subgraph-label": {

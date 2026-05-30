@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
       overflowX: "hidden"
     },
     "main": {
-      paddingBottom: 24
+      paddingBottom: 8
     },
 
     // Setup state (no provider configured yet)
@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "0 24px",
-      paddingTop: 64
+      paddingTop: 8
     },
     ".portal-setup-message": {
       maxWidth: 480,

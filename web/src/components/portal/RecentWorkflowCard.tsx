@@ -11,7 +11,7 @@ const styles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: 10,
+    gap: 8,
     textAlign: "left",
     background: "transparent",
     border: "none",
@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       left: 8,
       display: "inline-flex",
       alignItems: "center",
-      gap: 5,
+      gap: 6,
       fontFamily: theme.fontFamily2,
       fontSize: 10,
       color: theme.vars.palette.text.secondary,

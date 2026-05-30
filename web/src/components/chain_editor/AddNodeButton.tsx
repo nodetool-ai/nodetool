@@ -26,7 +26,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
           py: 1.5,
           borderRadius: 2,
           fontSize: theme.fontSizeNormal,
-          fontWeight: 700,
+          fontWeight: 600,
           textTransform: "none",
         }}
       >
@@ -36,7 +36,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
   }
 
   return (
-    <FlexColumn align="center" sx={{ py: 0.25 }}>
+    <FlexColumn align="center" sx={{ py: 0.5 }}>
       <Box sx={{ width: 2, height: 8, backgroundColor: theme.vars.palette.divider }} />
       <ToolbarIconButton
         size="small"

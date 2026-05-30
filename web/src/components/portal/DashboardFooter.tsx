@@ -13,7 +13,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: 16,
+      gap: 8,
       flexWrap: "wrap",
       minHeight: 46,
       padding: "10px 40px",

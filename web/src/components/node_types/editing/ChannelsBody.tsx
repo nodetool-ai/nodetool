@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
     "& > .handle-column": {
       top: theme.spacing(1),
       bottom: theme.spacing(1),
-      left: `calc(${theme.spacing(-0.5)})`
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -80,7 +80,7 @@ const styles = (theme: Theme) =>
     },
     ".controls": {
       flex: "0 0 auto",
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".channel-toggle": {
       width: "100%"

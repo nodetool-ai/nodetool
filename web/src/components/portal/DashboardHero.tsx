@@ -28,11 +28,11 @@ const heroStyles = (theme: Theme) =>
     },
     ".hero-wrap": {
       position: "relative",
-      paddingTop: 52,
-      paddingBottom: 40,
+      paddingTop: 8,
+      paddingBottom: 8,
       [theme.breakpoints.down("sm")]: {
-        paddingTop: 32,
-        paddingBottom: 28
+        paddingTop: 8,
+        paddingBottom: 8
       }
     },
     ".hero-composer": {
@@ -40,10 +40,10 @@ const heroStyles = (theme: Theme) =>
       maxWidth: 720
     },
     ".hero-foot": {
-      marginTop: 22,
+      marginTop: 8,
       display: "flex",
       alignItems: "center",
-      gap: 18,
+      gap: 8,
       flexWrap: "wrap"
     },
     ".hero-skip": {

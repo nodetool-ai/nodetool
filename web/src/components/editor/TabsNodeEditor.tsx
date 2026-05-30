@@ -91,7 +91,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       background: "transparent",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      fontSize: "12.5px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 400,
       lineHeight: 1,
       transition: "color 120ms, background-color 120ms",
@@ -145,7 +145,7 @@ const styles = (theme: Theme) =>
         padding: "4px",
         boxSizing: "border-box",
         borderRadius: "3px",
-        fontSize: "10px",
+        fontSize: "var(--fontSizeSmaller)",
         color: theme.vars.palette.text.disabled,
         cursor: "pointer",
         flexShrink: 0,
@@ -227,7 +227,7 @@ const styles = (theme: Theme) =>
       },
 
       "& svg": {
-        fontSize: "16px"
+        fontSize: "var(--fontSizeNormal)"
       }
     },
     "& .new-workflow-button": {
@@ -253,7 +253,7 @@ const styles = (theme: Theme) =>
       },
 
       "& svg": {
-        fontSize: "14px"
+        fontSize: "var(--fontSizeNormal)"
       }
     },
     "& .window-controls": {
@@ -268,7 +268,7 @@ const styles = (theme: Theme) =>
       border: "none",
       background: "transparent",
       color: theme.vars.palette.text.primary,
-      fontSize: "14px",
+      fontSize: "var(--fontSizeNormal)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

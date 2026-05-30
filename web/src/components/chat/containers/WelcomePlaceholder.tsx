@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
     },
 
     ".welcome-icon": {
-      fontSize: "2rem",
+      fontSize: "var(--fontSizeBig)",
       color: theme.vars.palette.primary.main,
       opacity: 0.7
     },
@@ -44,12 +44,12 @@ const styles = (theme: Theme) =>
     ".welcome-title": {
       color: theme.vars.palette.text.primary,
       fontWeight: 600,
-      fontSize: "1.15rem"
+      fontSize: "var(--fontSizeBig)"
     },
 
     ".welcome-subtitle": {
       color: theme.vars.palette.text.secondary,
-      fontSize: "0.9rem",
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: 1.6
     },
 

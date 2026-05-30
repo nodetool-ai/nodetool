@@ -177,7 +177,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       "& .MuiSelect-select": {
         color: theme.vars.palette.grey[100],
         padding: "4px 8px",
-        fontSize: "0.75rem"
+        fontSize: "var(--fontSizeSmall)"
       },
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.action.disabled

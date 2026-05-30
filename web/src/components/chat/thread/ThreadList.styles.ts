@@ -14,7 +14,7 @@ export const createStyles = (theme: Theme) =>
       minHeight: "100px",
       flex: 1,
       overflow: "auto",
-      padding: `${theme.spacing(0.75)} ${theme.spacing(0.75)} ${theme.spacing(1.5)}`,
+      padding: `${theme.spacing(1)} ${theme.spacing(1)} ${theme.spacing(1.5)}`,
       margin: 0,
       listStyle: "none",
       ...scrollbarStyles(theme),

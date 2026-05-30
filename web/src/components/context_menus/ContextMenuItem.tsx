@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily1,
       textTransform: "none",
       fontSize: theme.fontSizeNormal,
-      fontWeight: 300,
+      fontWeight: 400,
       letterSpacing: "0.3px",
       color: "var(--palette-text-primary)",
       textAlign: "left",

@@ -41,7 +41,7 @@ const tileStyles = (theme: Theme) =>
       padding: "0 4px",
       "& h5": {
         margin: 0,
-        fontSize: "0.85rem",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 600,
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
@@ -124,7 +124,7 @@ const tileStyles = (theme: Theme) =>
       "& .tile-icon": {
         marginBottom: "4px",
         "& svg": {
-          fontSize: "1.5rem"
+          fontSize: "var(--fontSizeBig)"
         }
       },
       "& .tile-label": {
@@ -138,7 +138,7 @@ const tileStyles = (theme: Theme) =>
       marginBottom: "6px",
       transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
       "& svg": {
-        fontSize: "1.75rem",
+        fontSize: "var(--fontSizeBig)",
         filter: theme.palette.mode === "dark"
           ? "drop-shadow(0 3px 5px rgba(0,0,0,0.35))"
           : "none"
@@ -271,7 +271,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   // Memoize tooltip subtitle style to avoid recreating on every render
   const tooltipSubtitleStyle = useMemo(
     () => ({
-      fontSize: "0.7rem" as const,
+      fontSize: "var(--fontSizeSmaller)" as const,
       opacity: 0.75,
       marginTop: "4px"
     }),

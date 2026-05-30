@@ -59,7 +59,7 @@ const nodeInfoStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".replicate-status": {
-      fontWeight: "400",
+      fontWeight: 400,
       width: "fit-content",
       color: theme.vars.palette.grey[0],
       display: "inline-flex",
@@ -108,7 +108,7 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".node-usecases": {
       fontSize: theme.fontSizeSmaller,
-      fontWeight: "300",
+      fontWeight: 400,
       color: theme.vars.palette.text.secondary,
       lineHeight: "1.3em",
       ul: {
@@ -133,7 +133,7 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".inputs-outputs h4": {
       fontFamily: theme.fontFamily2,
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: "2em",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",

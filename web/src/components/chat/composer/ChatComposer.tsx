@@ -130,7 +130,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
             align="center"
             sx={{
               px: 1.5,
-              py: 0.75,
+              py: 1,
               maxWidth: "400px",
               borderRadius: 2,
               backgroundColor: theme.vars.palette.background.paper,
@@ -144,7 +144,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
                 sx={{
                   display: "block",
                   fontWeight: 500,
-                  mb: 0.25
+                  mb: 0.5
                 }}
               >
                 Message queued

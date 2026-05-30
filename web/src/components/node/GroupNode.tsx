@@ -107,7 +107,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         whiteSpace: "pre",
         pointerEvents: "none",
         fontFamily: theme.fontFamily1,
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 400,
         letterSpacing: "0.02em"
       },
@@ -128,7 +128,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         color: "#ffffff",
         textShadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
         fontFamily: theme.fontFamily1,
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 400,
         letterSpacing: "0.02em",
         pointerEvents: "none",

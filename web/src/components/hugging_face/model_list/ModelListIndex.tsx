@@ -78,7 +78,7 @@ const styles = (theme: Theme) =>
     },
     ".model-list-header button": {
       padding: ".4em 1em",
-      fontSize: "0.9rem"
+      fontSize: "var(--fontSizeNormal)"
     },
     "& .model-type-button": {
       padding: "0.25em 1em",
@@ -119,7 +119,7 @@ const styles = (theme: Theme) =>
       borderLeft: `1px solid ${theme.vars.palette.divider}`
     },
     ".model-list-section": {
-      marginBottom: theme.spacing(5)
+      marginBottom: theme.spacing(6)
     }
   });
 
@@ -384,7 +384,7 @@ const ModelListIndex: React.FC = () => {
               align="flex-start"
               sx={{
                 pt: 1,
-                pb: 2.5,
+                pb: 3,
                 mb: 1,
                 borderBottom: `1px solid ${theme.vars.palette.divider}`
               }}
@@ -416,7 +416,7 @@ const ModelListIndex: React.FC = () => {
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Text size="bigger" weight={700} sx={{ fontSize: "1.5em", lineHeight: 1.2 }}>
+                <Text size="bigger" weight={600} sx={{ fontSize: "1.5em", lineHeight: 1.2 }}>
                   {prettifyModelType(selectedModelType)}
                 </Text>
                 <Text

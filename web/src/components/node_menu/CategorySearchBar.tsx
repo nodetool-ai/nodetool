@@ -13,8 +13,8 @@ const styles = (theme: Theme) =>
     "&.qa-search": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.75),
-      padding: theme.spacing(1, 1.25),
+      gap: theme.spacing(1),
+      padding: theme.spacing(1, 1),
       borderRadius: "var(--rounded-md)",
       background: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,

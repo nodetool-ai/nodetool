@@ -265,11 +265,11 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 align="center"
                 wrap
                 sx={{
-                  columnGap: 10,
+                  columnGap: 8,
                   rowGap: 4,
-                  py: 0.25,
-                  pl: 0.75,
-                  ml: 0.25,
+                  py: 0.5,
+                  pl: 1,
+                  ml: 0.5,
                   borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
                   minWidth: 0
                 }}
@@ -290,14 +290,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
           <Tooltip title={`Undo (${displayCombo("undo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
               <IconButton size="small" aria-label="Undo" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
-                <UndoIcon sx={{ fontSize: "18px" }} />
+                <UndoIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title={`Redo (${displayCombo("redo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
               <IconButton size="small" aria-label="Redo" onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
-                <RedoIcon sx={{ fontSize: "18px" }} />
+                <RedoIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
               </IconButton>
             </span>
           </Tooltip>
@@ -310,7 +310,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
               aria-expanded={shortcutsPaneOpen}
               color={shortcutsPaneOpen ? "primary" : "default"}
             >
-              <KeyboardOutlinedIcon sx={{ fontSize: "18px" }} />
+              <KeyboardOutlinedIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
 
@@ -325,7 +325,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
               onClick={(e) => setSymmetryAnchorEl(e.currentTarget)}
               color={symmetryActive ? "primary" : "default"}
             >
-              <FlipIcon sx={{ fontSize: "18px" }} />
+              <FlipIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
           <Menu
@@ -376,7 +376,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 <TrashIcon width={16} height={16} />
               </IconButton>
               <IconButton size="small" aria-label="Cancel discard" onClick={() => setConfirmDiscard(false)}>
-                <CloseIcon sx={{ fontSize: "16px" }} />
+                <CloseIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
               </IconButton>
             </>
           ) : (
@@ -389,7 +389,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
           <Tooltip title={`Export Image (${displayCombo("export-png")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton size="small" aria-label="Export Image" onClick={() => editorRef.current?.exportPng()}>
-              <SaveAltIcon sx={{ fontSize: "18px" }} />
+              <SaveAltIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
 
@@ -473,7 +473,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                     onClick={() => setShortcutsPaneOpen(false)}
                     aria-label="Close keyboard shortcuts"
                   >
-                    <CloseIcon sx={{ fontSize: "18px" }} />
+                    <CloseIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
                   </IconButton>
                 </Tooltip>
               </FlexRow>

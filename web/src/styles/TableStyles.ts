@@ -74,7 +74,7 @@ export const tableStyles = (theme: Theme) =>
       maxHeight: "30px",
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.grey[200],
-      fontWeight: "normal",
+      fontWeight: 400,
       borderBottom: `1px solid ${theme.vars.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col": {

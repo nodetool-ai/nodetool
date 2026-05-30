@@ -136,7 +136,7 @@ const StatusFooter = memo<StatusFooterProps>(
               ) : null}
               <span
                 style={{
-                  fontSize: "0.85rem",
+                  fontSize: "var(--fontSizeNormal)",
                   color: theme.vars.palette.text.secondary,
                   fontStyle: "italic"
                 }}
@@ -149,7 +149,7 @@ const StatusFooter = memo<StatusFooterProps>(
               </span>
               <span
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.text.disabled,
                   fontVariantNumeric: "tabular-nums",
                   marginLeft: "auto"
@@ -206,7 +206,7 @@ const StatusFooter = memo<StatusFooterProps>(
               <div
                 className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`}
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "var(--fontSizeSmall)",
                   padding: "0.5rem 0.75rem",
                   borderRadius: "var(--rounded-lg)",
                   backgroundColor: "rgba(30, 35, 40, 0.4)",

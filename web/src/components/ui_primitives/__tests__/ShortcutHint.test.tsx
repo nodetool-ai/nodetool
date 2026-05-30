@@ -50,7 +50,7 @@ describe("ShortcutHint", () => {
   it("renders with small size by default", () => {
     const { container } = render(<ShortcutHint shortcut={["Ctrl", "S"]} />);
     const hint = container.querySelector(".shortcut-hint");
-    expect(hint).toHaveStyle({ fontSize: "10px" });
+    expect(hint).toHaveStyle({ fontSize: "var(--fontSizeSmaller)" });
   });
 
   it("renders with medium size when specified", () => {
@@ -58,7 +58,7 @@ describe("ShortcutHint", () => {
       <ShortcutHint shortcut={["Ctrl", "S"]} size="medium" />
     );
     const hint = container.querySelector(".shortcut-hint");
-    expect(hint).toHaveStyle({ fontSize: "11px" });
+    expect(hint).toHaveStyle({ fontSize: "var(--fontSizeSmaller)" });
   });
 
   it("applies default class and layout styles", () => {

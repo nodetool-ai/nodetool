@@ -783,7 +783,7 @@ function FileBrowserDialog({
                         }
                         sx={{
                           px: 1.5,
-                          fontSize: "0.875rem",
+                          fontSize: "var(--fontSizeNormal)",
                           "&:hover": {
                             backgroundColor: theme.vars.palette.action.hover,
                           },
@@ -798,7 +798,7 @@ function FileBrowserDialog({
                           <Text
                             size="small"
                             truncate
-                            sx={{ flex: 1, minWidth: 0, fontSize: "0.875rem" }}
+                            sx={{ flex: 1, minWidth: 0, fontSize: "var(--fontSizeNormal)" }}
                           >
                             {file.name}
                           </Text>

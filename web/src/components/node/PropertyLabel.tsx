@@ -81,7 +81,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
       headerReset != null ||
       headerSupplemental != null);
   const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
-  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.75);
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1);
   // Only show inline descriptions when explicitly requested, not automatically in inspector
   const shouldShowInlineDescription = showDescriptionInline && !isInspector;
 
@@ -236,7 +236,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           height: 20
         },
         ".inspector-header-toolbar .MuiIconButton-root svg": {
-          fontSize: "0.75rem"
+          fontSize: "var(--fontSizeSmall)"
         },
         ".inspector-header-toolbar .inspector-supplemental-action": {
           width: 22,

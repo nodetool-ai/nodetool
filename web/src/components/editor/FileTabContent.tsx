@@ -116,7 +116,7 @@ const styles = (theme: Theme) =>
         outline: "none",
         padding: "16px",
         fontFamily: "monospace",
-        fontSize: "14px",
+        fontSize: "var(--fontSizeNormal)",
         lineHeight: 1.6,
         backgroundColor: theme.vars.palette.background.default,
         color: theme.vars.palette.text.primary,

@@ -16,7 +16,7 @@ const rowStyles = (theme: Theme) =>
     "&.nl-row": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.25),
+      gap: theme.spacing(1),
       width: "100%",
       height: "100%",
       padding: theme.spacing(0.5, 1),
@@ -42,7 +42,7 @@ const rowStyles = (theme: Theme) =>
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      fontSize: "0.9rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary
     },
     ".nl-fav": {

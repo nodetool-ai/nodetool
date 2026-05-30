@@ -42,7 +42,7 @@ const toolCallStyles = (theme: Theme) =>
       borderRadius: "var(--rounded-xs)",
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
-      fontSize: "0.65rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.05em",
       textTransform: "uppercase"
@@ -55,7 +55,7 @@ const toolCallStyles = (theme: Theme) =>
     ".id": {
       marginLeft: "auto",
       color: theme.vars.palette.grey[500],
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       flexShrink: 0
     },
     ".caret": {

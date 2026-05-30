@@ -51,7 +51,7 @@ const styles = (theme: Theme) =>
     "& > .handle-column": {
       top: theme.spacing(1),
       bottom: theme.spacing(1),
-      left: `calc(${theme.spacing(-0.5)})`
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -75,9 +75,9 @@ const styles = (theme: Theme) =>
       display: "grid",
       gridTemplateColumns: "auto 1fr auto",
       columnGap: theme.spacing(1),
-      rowGap: theme.spacing(0.75),
+      rowGap: theme.spacing(1),
       alignItems: "center",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)} ${theme.spacing(0.25)}`
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
     },
     ".ctrl-label": {
       fontSize: theme.fontSizeSmaller,
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       fontSize: theme.fontSizeSmaller,
       ".MuiSelect-select": {
-        padding: `${theme.spacing(0.25)} ${theme.spacing(1)} ${theme.spacing(0.25)} 0`
+        padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)} 0`
       }
     },
     ".outputs-row": {

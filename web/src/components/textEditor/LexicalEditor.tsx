@@ -32,7 +32,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".editor-text-bold": {
-      fontWeight: "bold"
+      fontWeight: 600
     },
     ".editor-text-italic": {
       fontStyle: "italic"
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
     },
     ".editor-input p, .editor-input ol,.editor-input ul": {
       color: theme.vars.palette.text.primary,
-      fontWeight: "300",
+      fontWeight: 400,
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.5em"
     },
@@ -69,17 +69,17 @@ const styles = (theme: Theme) =>
     ".editor-heading-h1": {
       fontSize: theme.fontSizeBigger,
       lineHeight: "1.2",
-      fontWeight: "bold",
+      fontWeight: 600,
       margin: "0.5em 0"
     },
     ".editor-heading-h2": {
       fontSize: theme.fontSizeBig,
-      fontWeight: "normal",
+      fontWeight: 400,
       margin: "0.5em 0"
     },
     ".editor-heading-h3": {
       fontSize: theme.fontSizeNormal,
-      fontWeight: "normal",
+      fontWeight: 400,
       margin: "0.5em 0"
     },
     ".editor-quote": {

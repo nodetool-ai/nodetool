@@ -102,7 +102,7 @@ const DataTypesList = ({
                 }}
               >
                 {type.namespace && (
-                  <Text size="small" weight={300} sx={{ width: "100%" }}>
+                  <Text size="small" weight={400} sx={{ width: "100%" }}>
                     {type.namespace}
                   </Text>
                 )}

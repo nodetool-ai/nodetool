@@ -50,9 +50,9 @@ const ModelTypeSidebar: React.FC = () => {
         color="secondary"
         sx={{
           px: 1.5,
-          pb: 1.25,
-          fontSize: "0.7rem",
-          fontWeight: 700,
+          pb: 1,
+          fontSize: "var(--fontSizeSmaller)",
+          fontWeight: 600,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
           opacity: 0.7
@@ -137,7 +137,7 @@ const ModelTypeSidebar: React.FC = () => {
                 <ListItemText
                   primary={prettifyModelType(type)}
                   primaryTypographyProps={{
-                    fontSize: "0.9rem",
+                    fontSize: "var(--fontSizeNormal)",
                     fontWeight: isSelected ? 600 : 400,
                     color: isSelected
                       ? theme.vars.palette.primary.main
@@ -151,7 +151,7 @@ const ModelTypeSidebar: React.FC = () => {
                     sx={{
                       height: 20,
                       minWidth: 28,
-                      fontSize: "0.75rem",
+                      fontSize: "var(--fontSizeSmall)",
                       fontWeight: 600,
                       ml: 1,
                       backgroundColor: "transparent",
@@ -159,7 +159,7 @@ const ModelTypeSidebar: React.FC = () => {
                         ? theme.vars.palette.primary.main
                         : theme.vars.palette.text.secondary,
                       "& .MuiChip-label": {
-                        px: 0.75
+                        px: 1
                       }
                     }}
                   />

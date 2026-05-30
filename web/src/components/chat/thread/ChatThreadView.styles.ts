@@ -207,7 +207,7 @@ export const createStyles = (theme: Theme) => ({
     ".message-header": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.6),
+      gap: theme.spacing(0.5),
       fontSize: theme.fontSizeTiny,
       lineHeight: 1
     },
@@ -291,7 +291,7 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      padding: theme.spacing(5, 0)
+      padding: theme.spacing(6, 0)
     },
 
     ".loading-dots": {
@@ -356,7 +356,7 @@ export const createStyles = (theme: Theme) => ({
       borderRadius: 6,
       padding: theme.spacing(0.5, 1),
       background: `${theme.vars.palette.primary.main}0a`,
-      marginBottom: theme.spacing(0.25)
+      marginBottom: theme.spacing(0.5)
     },
 
     ".tool-call-card.run-subtask .subtask-icon": {
@@ -366,8 +366,8 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-card.run-subtask .tool-call-badge": {
-      fontSize: "0.65rem",
-      fontWeight: 700,
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
       letterSpacing: "0.04em",
       textTransform: "uppercase",
       color: theme.vars.palette.primary.main,
@@ -385,13 +385,13 @@ export const createStyles = (theme: Theme) => ({
       whiteSpace: "normal",
       fontWeight: 500,
       color: theme.vars.palette.text.primary,
-      fontSize: "0.78rem"
+      fontSize: "var(--fontSizeSmall)"
     },
 
     ".tool-call-card.run-subtask .subtask-instructions": {
       whiteSpace: "pre-wrap",
       color: theme.vars.palette.text.secondary,
-      fontSize: "0.78rem",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.45
     },
 
@@ -450,14 +450,14 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-name": {
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       whiteSpace: "nowrap"
     },
 
     ".tool-message": {
-      fontSize: "0.72rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary
     },
 

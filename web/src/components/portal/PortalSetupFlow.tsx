@@ -14,7 +14,7 @@ const styles = (theme: Theme) =>
       fontSize: 14,
       color: theme.vars.palette.c_gray6,
       lineHeight: 1.6,
-      marginBottom: 14,
+      marginBottom: 8,
     },
     ".portal-setup-providers": {
       display: "flex",
@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
     ".portal-setup-provider": {
       display: "flex",
       alignItems: "center",
-      gap: 10,
+      gap: 8,
       background: theme.vars.palette.c_gray1,
       border: `1px solid ${theme.vars.palette.c_gray2}`,
       borderRadius: 10,
@@ -44,7 +44,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       fontSize: 14,
       color: "white",
-      fontWeight: "bold",
+      fontWeight: 600,
     },
     ".portal-setup-provider-info": {
       flex: 1,
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     ".portal-setup-note": {
       fontSize: 11,
       color: theme.vars.palette.c_gray4,
-      marginTop: 10,
+      marginTop: 8,
       textAlign: "center" as const,
     },
     ".portal-setup-ollama-status": {

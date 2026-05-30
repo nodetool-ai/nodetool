@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
       border: "none",
       color: theme.vars.palette.grey[100],
       backgroundColor: theme.vars.palette.grey[600],
-      fontWeight: "bold"
+      fontWeight: 600
     },
     ".button-expand:hover": {
       color: "var(--palette-primary-main)",

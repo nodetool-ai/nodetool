@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
     ".trace-list": {
       flex: 1,
       fontFamily: "monospace",
-      fontSize: "0.8rem",
+      fontSize: "var(--fontSizeSmall)",
     },
     ".trace-row": {
       display: "flex",
@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
         margin: 0,
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
-        fontSize: "0.75rem",
+        fontSize: "var(--fontSizeSmall)",
         maxHeight: 400,
         overflow: "auto",
         color: theme.vars.palette.text.secondary,
@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
       "& .llm-label": {
         fontWeight: 600,
         color: theme.vars.palette.text.primary,
-        fontSize: "0.75rem",
+        fontSize: "var(--fontSizeSmall)",
         marginBottom: 2,
       },
     },

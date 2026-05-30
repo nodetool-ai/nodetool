@@ -44,7 +44,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      paddingRight: 20
+      paddingRight: 8
     },
     "&::before": {
       content: '""',

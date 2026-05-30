@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       color: theme.vars.palette.grey[200],
       fontFamily: theme.fontFamily2,
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.5,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",

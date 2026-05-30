@@ -12,8 +12,8 @@ interface TaskPlanViewProps {
 const cssStyles = css({
   ".task-list-title": {
     margin: "1rem 1rem",
-    fontWeight: "bold",
-    fontSize: "1rem"
+    fontWeight: 600,
+    fontSize: "var(--fontSizeNormal)"
   }
 });
 

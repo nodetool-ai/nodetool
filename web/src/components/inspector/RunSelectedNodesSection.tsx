@@ -24,10 +24,10 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       borderTop: `1px solid ${theme.vars.palette.divider}`,
-      padding: `${theme.spacing(1.5)} ${theme.spacing(2.5)} ${theme.spacing(2)}`,
+      padding: `${theme.spacing(1.5)} ${theme.spacing(3)} ${theme.spacing(2)}`,
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1.25),
+      gap: theme.spacing(1),
       backgroundColor: theme.vars.palette.background.default
     },
     ".runs-row": {
@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
     },
     ".runs-label": {
       fontFamily: theme.fontFamily1,
-      fontSize: "0.6875rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       justifyContent: "center",
       gap: theme.spacing(1),
-      padding: `${theme.spacing(1.25)} ${theme.spacing(1.5)}`,
+      padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       fontSize: theme.fontSizeNormal,
@@ -81,7 +81,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".run-button .play-icon": {
-      fontSize: "1.125rem"
+      fontSize: "var(--fontSizeBig)"
     },
     ".run-button .run-shortcut": {
       marginLeft: "auto",

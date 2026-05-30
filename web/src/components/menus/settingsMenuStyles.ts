@@ -49,8 +49,8 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing(5),
-    padding: theme.spacing(5, 7, 4),
+    gap: theme.spacing(6),
+    padding: theme.spacing(6, 6, 4),
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     "& .settings-back": {
       flexShrink: 0
@@ -64,7 +64,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     "& .settings-page-header__title": {
       margin: 0,
       color: theme.vars.palette.text.primary,
-      fontSize: "1.5rem",
+      fontSize: "var(--fontSizeBig)",
       fontWeight: 600,
       lineHeight: 1.2,
       letterSpacing: "-0.01em"
@@ -154,7 +154,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     padding: "0.6em 1em 0.4em 0.75em",
     color: theme.vars.palette.grey[0],
     fontSize: theme.fontSizeSmaller,
-    fontWeight: "600",
+    fontWeight: 600,
     letterSpacing: "0.04em",
     textTransform: "uppercase",
     opacity: "0.85",
@@ -174,13 +174,13 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       transform: "rotate(0deg)"
     },
     ".settings-sidebar-chevron": {
-      fontSize: "1rem",
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.secondary,
       transition: "transform 0.18s ease",
       transform: "rotate(-90deg)"
     },
     ".settings-sidebar-folder-icon": {
-      fontSize: "1.05rem",
+      fontSize: "var(--fontSizeBig)",
       color: "var(--palette-primary-main)"
     },
     ".settings-sidebar-category-label": {
@@ -290,7 +290,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
         position: "relative",
         transform: "none",
         marginBottom: theme.spacing(2),
-        fontWeight: "500",
+        fontWeight: 500,
         color: theme.vars.palette.grey[0],
         fontSize: theme.fontSizeNormal
       },
@@ -317,7 +317,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     label: {
       color: theme.vars.palette.grey[0],
       fontSize: theme.fontSizeBig,
-      fontWeight: "500",
+      fontWeight: 500,
       padding: ".5em 0 .25em 0"
     },
     ".description": {
@@ -386,13 +386,13 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     color: theme.vars.palette.grey[0],
     margin: "0.5em 0 0.25em 0",
     padding: "0",
-    fontWeight: "500"
+    fontWeight: 500
   },
   h3: {
     fontSize: theme.fontSizeBigger,
     margin: "2em 0 0.5em 0",
     padding: "0.5em 0 0",
-    fontWeight: "500",
+    fontWeight: 500,
     color: theme.vars.palette.grey[0],
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     paddingBottom: "0.3em"

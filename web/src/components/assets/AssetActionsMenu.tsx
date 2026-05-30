@@ -158,7 +158,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
         gap={0.25}
         sx={{
           px: 0.5,
-          py: 0.25,
+          py: 0.5,
           "& .MuiIconButton-root": { padding: "4px" },
           "& .MuiSvgIcon-root": { fontSize: 14 }
         }}
@@ -185,8 +185,8 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           sx={{
             borderRadius: 1,
             px: 0.5,
-            gap: 0.25,
-            fontSize: "0.72rem",
+            gap: 0.5,
+            fontSize: "var(--fontSizeSmall)",
             color: typeFilterActive
               ? "var(--palette-primary-main)"
               : undefined
@@ -212,8 +212,8 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           sx={{
             borderRadius: 1,
             px: 0.5,
-            gap: 0.25,
-            fontSize: "0.72rem",
+            gap: 0.5,
+            fontSize: "var(--fontSizeSmall)",
             color: workflowFilter
               ? "var(--palette-primary-main)"
               : undefined
