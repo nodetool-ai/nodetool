@@ -35,10 +35,7 @@ import {
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
-import {
-  FrontendToolRegistry,
-  FrontendToolState
-} from "../lib/tools/frontendTools";
+import { FrontendToolRegistry } from "../lib/tools/frontendTools";
 import { uuidv4 } from "./uuidv4";
 import {
   handleChatWebSocketMessage,
@@ -183,10 +180,6 @@ export interface GlobalChatState {
   // Safety timeout tracking for loadMessages after delete
   loadMessagesTimeoutId: ReturnType<typeof setTimeout> | null;
 
-  // Frontend tool state
-  frontendToolState: FrontendToolState;
-  setFrontendToolState: (state: FrontendToolState) => void;
-
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -311,28 +304,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
       setPlanningUpdate: (update: PlanningUpdate | null) =>
         set({ currentPlanningUpdate: update }),
 
-      // Frontend tool state
-      frontendToolState: {
-        nodeMetadata: {},
-        currentWorkflowId: null,
-        getWorkflow: () => undefined,
-        addWorkflow: () => {},
-        removeWorkflow: () => {},
-        getNodeStore: () => undefined,
-        updateWorkflow: () => {},
-        saveWorkflow: () => Promise.resolve(),
-        getCurrentWorkflow: () => undefined,
-        setCurrentWorkflowId: () => {},
-        fetchWorkflow: () => Promise.resolve(),
-        newWorkflow: () => {
-          throw new Error("Not initialized");
-        },
-        createNew: () => Promise.reject(new Error("Not initialized")),
-        searchTemplates: () => Promise.reject(new Error("Not initialized")),
-        copy: () => Promise.reject(new Error("Not initialized"))
-      },
-      setFrontendToolState: (state: FrontendToolState) =>
-        set({ frontendToolState: state }),
       // Task updates
       currentTaskUpdate: null,
       setTaskUpdate: (update: TaskUpdate | null) =>
