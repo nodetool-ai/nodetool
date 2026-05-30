@@ -100,6 +100,10 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
 
   const [content, setContent] = useState<string | null>(null);
   const [savedContent, setSavedContent] = useState<string | null>(null);
+  // CSV edits are tracked as a live dataframe so a single edit survives even
+  // when CSV serialization is lossy (e.g. a trailing empty single-column row);
+  // `content` stays canonical for dirty-tracking and saving.
+  const [csvDataframe, setCsvDataframe] = useState<DataframeRef | null>(null);
   const [wordWrap, setWordWrap] = useState(true);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -132,6 +136,13 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
       setSavedContent(loadedText);
     }
   }, [loadedText, content]);
+
+  // Re-derive everything when the tab is pointed at a different asset.
+  useEffect(() => {
+    setContent(null);
+    setSavedContent(null);
+    setCsvDataframe(null);
+  }, [asset.id]);
 
   const saveMutation = useMutation({
     mutationFn: (text: string) =>
@@ -197,19 +208,28 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
     saveMutation.mutate(content);
   }, [content, savedContent, isSaving, saveMutation]);
 
-  // CSV editing round-trips through a DataframeRef: the text stays canonical
-  // for dirty-tracking and saving, the table just edits a parsed view of it.
   const delimiter = useMemo(
     () => csvDelimiterFor(asset.name ?? ""),
     [asset.name]
   );
-  const dataframe = useMemo<DataframeRef | null>(
-    () => (isCsv && content !== null ? parseCsvToDataframe(content, delimiter) : null),
-    [isCsv, content, delimiter]
-  );
+  // Render from the live dataframe once the user has edited it; before that,
+  // parse the loaded text. The table owns its row/column state so an edit is
+  // never lost to a lossy CSV round-trip.
+  const dataframe = useMemo<DataframeRef | null>(() => {
+    if (!isCsv) {
+      return null;
+    }
+    if (csvDataframe) {
+      return csvDataframe;
+    }
+    return content !== null ? parseCsvToDataframe(content, delimiter) : null;
+  }, [isCsv, csvDataframe, content, delimiter]);
 
   const handleDataframeChange = useCallback(
-    (df: DataframeRef) => setContent(dataframeToCsv(df, delimiter)),
+    (df: DataframeRef) => {
+      setCsvDataframe(df);
+      setContent(dataframeToCsv(df, delimiter));
+    },
     [delimiter]
   );
 
