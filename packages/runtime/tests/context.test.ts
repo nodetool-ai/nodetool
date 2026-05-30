@@ -891,6 +891,29 @@ describe("ProcessingContext – asset helper methods", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("resolveMessageMediaUris inlines asset:// text documents into text parts", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store(
+      "brief.md",
+      new TextEncoder().encode("# Brief\nMake it cinematic."),
+      "text/markdown"
+    );
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const resolved = await ctx.resolveMessageMediaUris([
+      {
+        role: "user",
+        content: [{ type: "text", text: "follow asset://brief.md exactly" }]
+      }
+    ]);
+
+    const parts = resolved[0].content as Array<Record<string, any>>;
+    expect(parts[0]).toEqual({
+      type: "text",
+      text: "follow # Brief\nMake it cinematic. exactly"
+    });
+  });
 });
 
 class MockProvider extends BaseProvider {

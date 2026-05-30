@@ -69,6 +69,63 @@ function makeI2INode() {
   });
 }
 
+function makeOmniNode() {
+  return createReplicateNodeClass({
+    endpointId: "owner/omni",
+    className: "OmniModel",
+    moduleName: "video.generate",
+    docstring: "test",
+    tags: [],
+    useCases: [],
+    outputType: "video",
+    inputFields: [
+      {
+        name: "prompt",
+        propType: "str",
+        tsType: "string",
+        default: "",
+        description: "",
+        fieldType: "input",
+        required: true
+      },
+      {
+        name: "video",
+        propType: "video",
+        tsType: "object",
+        default: {
+          type: "video",
+          uri: "",
+          asset_id: null,
+          data: null,
+          metadata: null,
+          duration: null,
+          format: null
+        },
+        description: "",
+        fieldType: "input",
+        required: false
+      },
+      {
+        name: "audio",
+        propType: "audio",
+        tsType: "object",
+        default: {
+          type: "audio",
+          uri: "",
+          asset_id: null,
+          data: null,
+          metadata: null
+        },
+        description: "",
+        fieldType: "input",
+        required: false
+      }
+    ],
+    outputFields: [],
+    enums: []
+  });
+}
+
 const assetBytes = new Uint8Array([7, 8, 9]);
 const b64 = Buffer.from(assetBytes).toString("base64");
 const ctx = { resolveAssetBytes: async () => ({ bytes: assetBytes }) };
@@ -104,5 +161,20 @@ describe("Replicate prompt asset mapping", () => {
     const args = replicateSubmit.mock.calls[0][2] as Record<string, unknown>;
     expect(args.image).toBe("uploaded:https://example.com/wired.png");
     expect(args.prompt).toBe("enhance now");
+  });
+
+  it("routes video and audio mentions into their respective inputs", async () => {
+    const NodeClass = makeOmniNode();
+    const instance = new NodeClass({});
+    instance.assign({
+      prompt: "drive asset://clip.mp4 with asset://track.wav"
+    });
+
+    await instance.process(ctx as never);
+
+    const args = replicateSubmit.mock.calls[0][2] as Record<string, unknown>;
+    expect(args.video).toContain(b64);
+    expect(args.audio).toContain(b64);
+    expect(args.prompt).toBe("drive video with audio");
   });
 });

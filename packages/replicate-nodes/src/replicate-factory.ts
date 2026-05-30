@@ -148,8 +148,8 @@ function computeFieldClassification(fields: ReplicateFieldDef[]) {
 
 /**
  * Route `asset://` media mentioned inline in a node's text inputs onto its
- * empty image/audio inputs (and strip the mentions from the text). Shared with
- * FAL / KIE / image-to-image via `mapPromptAssetsToInputs`.
+ * empty image/audio/video inputs (and strip the mentions from the text).
+ * Shared with FAL / KIE / image-to-image via `mapPromptAssetsToInputs`.
  */
 async function promptAssetOverrides(
   instance: BaseNode,
@@ -163,7 +163,7 @@ async function promptAssetOverrides(
     if (field.parentField) continue;
     if (EXCLUDED_FIELDS.has(field.name)) continue;
     const kind = assetKind(field.propType);
-    if (kind === "image" || kind === "audio") {
+    if (kind === "image" || kind === "audio" || kind === "video") {
       const list = isListAsset(field.propType);
       const value = values[field.name];
       const hasSource = list
