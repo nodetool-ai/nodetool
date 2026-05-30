@@ -35,11 +35,14 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     (assetIds: string[]) => {
       setSelectedAssetIds(assetIds);
       const selectedAssets = assetIds
-        .map((id) => sortedAssets.find((asset) => asset.id === id))
+        .map((id) => {
+          const idx = assetIndexMap.get(id);
+          return idx !== undefined ? sortedAssets[idx] : undefined;
+        })
         .filter((a): a is Asset => a !== undefined);
       setSelectedAssets(selectedAssets);
     },
-    [setSelectedAssetIds, setSelectedAssets, sortedAssets]
+    [setSelectedAssetIds, setSelectedAssets, sortedAssets, assetIndexMap]
   );
 
   const handleSelectAsset = useCallback(
