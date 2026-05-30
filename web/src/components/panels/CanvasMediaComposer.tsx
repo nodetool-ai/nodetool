@@ -3,7 +3,6 @@ import { useShallow } from "zustand/react/shallow";
 
 import MediaChatComposer from "../chat/composer/MediaChatComposer";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { useNodes } from "../../contexts/NodeContext";
 import { useGenerationToCanvas } from "../../hooks/handlers/useGenerationToCanvas";
 import type { MessageContent } from "../../stores/ApiTypes";
 import type {
@@ -39,7 +38,6 @@ const CanvasMediaComposer: React.FC = () => {
     }))
   );
 
-  const workflowId = useNodes((state) => state.workflow?.id);
   const { markGenerationStarted } = useGenerationToCanvas();
 
   // Establish the chat connection lazily so generation works even when the
@@ -72,12 +70,16 @@ const CanvasMediaComposer: React.FC = () => {
           ? mediaGeneration?.model ?? selectedModel?.id
           : selectedModel?.id,
         content,
-        workflow_id: workflowId ?? undefined,
+        // Intentionally no workflow_id: the canvas document is being edited,
+        // not run as a chat-responder. Setting it routes the backend into
+        // handleWorkflowMessage, which fails with "Workflow <id> not found".
+        // Generated assets reach the canvas via the thread message cache
+        // (see useGenerationToCanvas), not via this field.
         media_generation: isMedia ? mediaGeneration : null
       } as ChatOutgoingMessage;
       void sendMessage(outgoing);
     },
-    [markGenerationStarted, selectedModel, workflowId, sendMessage]
+    [markGenerationStarted, selectedModel, sendMessage]
   );
 
   return (
