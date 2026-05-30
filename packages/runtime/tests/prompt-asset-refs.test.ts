@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   classifyAssetToken,
+  classifyTextToken,
   findAssetRefs,
   findImageAssetRefs,
+  findTextAssetRefs,
+  inlineTextAssetRefs,
   stripAssetRefs,
   mapPromptAssetsToInputs,
   type InjectedAssetRef
@@ -12,6 +15,18 @@ import {
 const fakeContext = (bytes: Uint8Array) =>
   ({
     resolveAssetBytes: async () => ({ bytes })
+  }) as never;
+
+/** Context that resolves each asset:// URI to per-URI UTF-8 text. */
+const textContext = (byUri: Record<string, string>) =>
+  ({
+    resolveAssetBytes: async (uri: string) => {
+      const text = byUri[uri];
+      return {
+        bytes:
+          text === undefined ? null : new TextEncoder().encode(text)
+      };
+    }
   }) as never;
 
 describe("classifyAssetToken", () => {
@@ -38,6 +53,64 @@ describe("classifyAssetToken", () => {
     expect(classifyAssetToken("asset://doc.txt")).toBeNull();
     expect(classifyAssetToken("asset://noext")).toBeNull();
     expect(classifyAssetToken("https://x/a.png")).toBeNull();
+  });
+});
+
+describe("classifyTextToken", () => {
+  it("classifies text-document extensions", () => {
+    expect(classifyTextToken("asset://a.txt")).toEqual({ mime: "text/plain" });
+    expect(classifyTextToken("asset://b.md")).toEqual({ mime: "text/markdown" });
+    expect(classifyTextToken("asset://c.json")).toEqual({
+      mime: "application/json"
+    });
+  });
+
+  it("returns null for media and unknown tokens", () => {
+    expect(classifyTextToken("asset://a.png")).toBeNull();
+    expect(classifyTextToken("asset://b.mp4")).toBeNull();
+    expect(classifyTextToken("asset://noext")).toBeNull();
+  });
+});
+
+describe("findTextAssetRefs", () => {
+  it("locates text mentions and ignores media", () => {
+    const refs = findTextAssetRefs("read asset://notes.md not asset://a.png");
+    expect(refs.map((r) => r.uri)).toEqual(["asset://notes.md"]);
+  });
+});
+
+describe("inlineTextAssetRefs", () => {
+  it("replaces a text mention with the asset's decoded content", async () => {
+    const out = await inlineTextAssetRefs(
+      "summarize asset://notes.md please",
+      textContext({ "asset://notes.md": "# Title\n- one\n- two" })
+    );
+    expect(out).toBe("summarize # Title\n- one\n- two please");
+  });
+
+  it("preserves the document's own whitespace verbatim", async () => {
+    const doc = "col1,  col2\nx,    y";
+    const out = await inlineTextAssetRefs(
+      "data: asset://t.csv",
+      textContext({ "asset://t.csv": doc })
+    );
+    expect(out).toBe(`data: ${doc}`);
+  });
+
+  it("leaves the literal token when the asset can't be resolved", async () => {
+    const out = await inlineTextAssetRefs(
+      "open asset://missing.txt now",
+      textContext({})
+    );
+    expect(out).toBe("open asset://missing.txt now");
+  });
+
+  it("leaves media mentions untouched", async () => {
+    const out = await inlineTextAssetRefs(
+      "look asset://a.png here",
+      textContext({})
+    );
+    expect(out).toBe("look asset://a.png here");
   });
 });
 
@@ -224,6 +297,33 @@ describe("mapPromptAssetsToInputs", () => {
     // Slot is wired, so neither mention is placed; both are dropped from text.
     expect(overrides.video).toBeUndefined();
     expect(overrides.prompt).toBe("restyle and");
+  });
+
+  it("inlines a text-document mention even when the node has no media inputs", async () => {
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: "use this brief: asset://brief.md" }],
+      [],
+      textContext({ "asset://brief.md": "Make it cinematic." })
+    );
+    expect(overrides.prompt).toBe("use this brief: Make it cinematic.");
+  });
+
+  it("inlines text and routes media in the same prompt", async () => {
+    const overrides = await mapPromptAssetsToInputs(
+      [
+        {
+          name: "prompt",
+          value: "style asset://ref.png per asset://notes.txt thanks"
+        }
+      ],
+      [{ name: "image", label: "image_url", kind: "image", hasSource: false }],
+      textContext({ "asset://notes.txt": "soft pastel palette" })
+    );
+    // Image mention relabeled to its slot; text mention inlined to its content.
+    expect(overrides.prompt).toBe(
+      "style image_url per soft pastel palette thanks"
+    );
+    expect((overrides.image as InjectedAssetRef).uri).toBe("asset://ref.png");
   });
 });
 

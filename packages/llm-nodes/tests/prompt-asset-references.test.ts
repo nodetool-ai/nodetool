@@ -29,6 +29,14 @@ describe("expandAssetReferences", () => {
     ]);
   });
 
+  it("keeps a video mention as literal text rather than a media block", () => {
+    expect(expandAssetReferences("clip asset://reel.mp4 here")).toEqual([
+      { type: "text", text: "clip " },
+      { type: "text", text: "asset://reel.mp4" },
+      { type: "text", text: " here" }
+    ]);
+  });
+
   it("does not swallow a trailing sentence period into the reference", () => {
     const parts = expandAssetReferences("Here: asset://abc.png.");
     expect(parts).toEqual([

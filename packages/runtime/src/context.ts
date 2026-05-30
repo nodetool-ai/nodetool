@@ -13,6 +13,7 @@
 import type { AssetRef, ProcessingMessage, ProviderCost } from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
 import { encodeRawImageRef } from "./image-codec.js";
+import { inlineTextAssetRefs } from "./prompt-asset-refs.js";
 import { importNodeBuiltin } from "@nodetool-ai/config";
 
 // `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
@@ -2056,6 +2057,14 @@ export class ProcessingContext {
             });
             continue;
           }
+        }
+        if (part.type === "text" && part.text.includes("asset://")) {
+          // Inline any plain-text document mention (asset://doc.md, .txt, .csv …)
+          // as its decoded contents. Resolved here, at call time, so the stored
+          // thread message keeps the compact asset:// URI like media does.
+          const inlined = await inlineTextAssetRefs(part.text, this);
+          parts.push(inlined === part.text ? part : { type: "text", text: inlined });
+          continue;
         }
         parts.push(part);
       }
