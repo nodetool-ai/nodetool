@@ -195,7 +195,37 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-file-preview-row": {
       display: "flex",
       flexWrap: "wrap",
-      gap: theme.spacing(0.75)
+      alignItems: "center",
+      gap: theme.spacing(0.75),
+      padding: `0 ${theme.spacing(2)}`,
+      boxSizing: "border-box"
+    },
+
+    ".media-attach-btn": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: theme.spacing(0.5),
+      height: 28,
+      padding: `0 ${theme.spacing(1)}`,
+      borderRadius: BORDER_RADIUS.pill,
+      background: "transparent",
+      border: `1px dashed ${theme.vars.palette.grey[700]}`,
+      color: theme.vars.palette.grey[300],
+      cursor: "pointer",
+      fontFamily: theme.fontFamily1,
+      fontSize: 12,
+      transition: MOTION.background,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.grey[100]
+      },
+      "& svg": { fontSize: 15 }
+    },
+
+    ".media-kbd-hint": {
+      color: theme.vars.palette.grey[500],
+      whiteSpace: "nowrap",
+      flexShrink: 0
     },
 
     ".file-preview": {

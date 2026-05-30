@@ -125,7 +125,6 @@ const generateUUID = (): string => {
 };
 
 export { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
-export type { NodeUIProperties } from "./nodeUiDefaults";
 
 type NodeSelection = {
   nodes: Node<NodeData>[];

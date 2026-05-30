@@ -662,6 +662,8 @@ export interface JobResponse {
   job_type: string;
   workflow_id: string;
   status: string | null;
+  /** Human-readable run title (workflow name, or node name for a single-node run). */
+  name?: string | null;
   error?: string | null;
   started_at?: string | null;
   finished_at?: string | null;
@@ -682,6 +684,8 @@ export interface JobListResponse {
 export interface RunJobRequest {
   type?: "run_job_request";
   job_id?: string | null;
+  /** Human-readable title for the run (workflow name, or node name for a single-node run). */
+  job_name?: string | null;
   job_type?: string;
   execution_strategy?: string;
   workflow_id: string;

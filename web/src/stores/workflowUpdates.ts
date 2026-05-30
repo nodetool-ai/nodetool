@@ -85,15 +85,6 @@ export const mergeNodeUpdateProperties = ({
   };
 };
 
-const formatJobDurationSeconds = (
-  duration: number | null | undefined
-): string | null => {
-  if (typeof duration !== "number" || !Number.isFinite(duration)) {
-    return null;
-  }
-  return duration.toLocaleString(undefined, { maximumFractionDigits: 2 });
-};
-
 // Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
 let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () =>
   undefined;
@@ -351,6 +342,24 @@ export const handleUpdate = (
   }
   if (data.type === "job_update") {
     const job = data;
+    const runnerJobId = runnerStore.getState().job_id;
+    // The per-workflow runner represents the single full run. Concurrent
+    // inline/per-node jobs share this workflow_id but have their own job_id, so
+    // only updates for the runner's OWN job (or a fresh run when the runner is
+    // idle and hasn't claimed a job yet) may drive its state/job_id/queue.
+    // Otherwise an inline job's update could hijack the Stop button's target or
+    // clear the full run's queued position. The running-job COUNT below still
+    // tracks every job.
+    const runnerState = runnerStore.getState().state;
+    const isRunnerJob =
+      !job.job_id ||
+      job.job_id === runnerJobId ||
+      (runnerJobId === null &&
+        (runnerState === "idle" || runnerState === "connecting"));
+
+    // Whether this run was sitting in the backend's concurrency queue, so we
+    // can clear the "Queued…" status once it actually starts running.
+    const wasQueued = runnerStore.getState().queuePosition !== null;
 
     // Consolidate state mapping
     let newState:
@@ -383,22 +392,36 @@ export const handleUpdate = (
       newState = "error";
     }
 
-    if (newState) {
-      runnerStore.setState({ state: newState });
+    if (isRunnerJob) {
+      if (newState) {
+        runnerStore.setState({ state: newState });
+      }
+
+      if (job.job_id) {
+        runnerStore.setState({ job_id: job.job_id });
+      }
+
+      // Track queue position so the UI can show "Queued (#N)". Any
+      // non-queued update (running, completed, …) clears it.
+      runnerStore.setState({
+        queuePosition:
+          job.status === "queued" ? job.queue_position ?? null : null
+      });
     }
 
-    if (job.job_id) {
-      runnerStore.setState({ job_id: job.job_id });
-    }
-
-    if (job.run_state?.suspension_reason && newState === "suspended") {
+    if (
+      isRunnerJob &&
+      job.run_state?.suspension_reason &&
+      newState === "suspended"
+    ) {
       runnerStore.setState({ statusMessage: job.run_state.suspension_reason });
     }
 
-    // Invalidate jobs query to refresh the job panel when job state changes
-    // TEMPORARILY DISABLED "running" - testing performance impact of polling
+    // Refresh the Queue panel when a job moves between lifecycle columns.
+    // These are per-job (not per-node) updates, so the frequency is low.
     if (
-      // job.status === "running" ||
+      job.status === "queued" ||
+      job.status === "running" ||
       job.status === "completed" ||
       job.status === "cancelled" ||
       job.status === "failed" ||
@@ -417,16 +440,9 @@ export const handleUpdate = (
 
     switch (job.status) {
       case "completed": {
-        const formattedDuration = formatJobDurationSeconds(job.duration);
-        runner.addNotification({
-          type: "info",
-          alert: true,
-          content: formattedDuration
-            ? `Job completed in ${formattedDuration} seconds`
-            : "Job completed"
-        });
-        // Note: Don't clear edges on completion - keep the stream item counts visible
-        // Edges are cleared when a new run starts (in WorkflowRunner.ts)
+        // No toast — completion is reflected in the Queue panel/overlay.
+        // Don't clear edges on completion; keep the stream item counts visible.
+        // Edges are cleared when a new run starts (in WorkflowRunner.ts).
         clearProgress(workflow.id);
         clearTimings(workflow.id);
         break;
@@ -501,17 +517,18 @@ export const handleUpdate = (
         break;
       }
       case "queued":
-        runnerStore.setState({
-          statusMessage: "Worker is booting (may take a 15 seconds)..."
-        });
+        if (isRunnerJob) {
+          runnerStore.setState({
+            statusMessage:
+              job.message || "Worker is booting (may take a few seconds)..."
+          });
+        }
         break;
       case "running":
-        if (job.message) {
-          runner.addNotification({
-            type: "info",
-            alert: true,
-            content: job.message
-          });
+        // Clear the "Queued…" status carried over once the run actually starts.
+        // No "started" toast — the Queue panel/overlay shows the running job.
+        if (isRunnerJob && wasQueued) {
+          runnerStore.setState({ statusMessage: null });
         }
         break;
       case "suspended":

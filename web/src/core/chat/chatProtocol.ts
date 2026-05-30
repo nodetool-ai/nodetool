@@ -264,9 +264,9 @@ const generateTitleFromFirstUserMessage = (
     contentText = firstUserMessage.content;
   } else if (Array.isArray(firstUserMessage.content)) {
     const firstText = firstUserMessage.content.find(
-      (c) => c?.type === "text" && typeof c.text === "string"
+      (c): c is MessageTextContent => c?.type === "text" && typeof c.text === "string"
     );
-    contentText = (firstText as MessageTextContent | undefined)?.text || "";
+    contentText = firstText?.text || "";
   }
 
   const titleBase = contentText || "New conversation";
@@ -303,10 +303,7 @@ const applyEdgeUpdate = (
   state: GlobalChatState,
   update: EdgeUpdate
 ): ReducerResult => {
-  // EdgeUpdate already has workflow_id in its type definition
-  const workflowId = "workflow_id" in update
-    ? (update as EdgeUpdate & { workflow_id?: string }).workflow_id
-    : undefined;
+  const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
   if (effectiveWorkflowId) {
     useResultsStore
@@ -325,10 +322,7 @@ const applyNodeUpdate = (
   state: GlobalChatState,
   update: NodeUpdate
 ): ReducerResult => {
-  // NodeUpdate may have workflow_id as an optional field
-  const workflowId = "workflow_id" in update
-    ? (update as NodeUpdate & { workflow_id?: string }).workflow_id
-    : undefined;
+  const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
 
   if (effectiveWorkflowId) {
@@ -505,10 +499,7 @@ const applyOutputUpdate = (
     return noopUpdate;
   }
 
-  // OutputUpdate may have workflow_id as an optional field
-  const workflowId = "workflow_id" in update
-    ? (update as OutputUpdate & { workflow_id?: string }).workflow_id
-    : undefined;
+  const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[threadId];
   if (effectiveWorkflowId) {
     useResultsStore
@@ -668,7 +659,8 @@ function isPlanningUpdateContent(content: unknown): content is PlanningUpdate {
     typeof content === "object" &&
     content !== null &&
     !Array.isArray(content) &&
-    (content as Record<string, unknown>).type === "planning_update"
+    "type" in content &&
+    content.type === "planning_update"
   );
 }
 
@@ -677,7 +669,8 @@ function isTaskUpdateContent(content: unknown): content is TaskUpdate {
     typeof content === "object" &&
     content !== null &&
     !Array.isArray(content) &&
-    (content as Record<string, unknown>).type === "task_update"
+    "type" in content &&
+    content.type === "task_update"
   );
 }
 
@@ -686,7 +679,8 @@ function isLogUpdateContent(content: unknown): content is LogUpdate {
     typeof content === "object" &&
     content !== null &&
     !Array.isArray(content) &&
-    (content as Record<string, unknown>).type === "log_update"
+    "type" in content &&
+    content.type === "log_update"
   );
 }
 
@@ -788,7 +782,7 @@ const applyAssistantMessage = (
     }
     if (Array.isArray(message.content)) {
       return message.content
-        .map((c) => (c?.type === "text" ? (c as MessageTextContent).text : ""))
+        .map((c) => (c.type === "text" ? c.text : ""))
         .join("");
     }
     return "";
@@ -798,7 +792,7 @@ const applyAssistantMessage = (
     typeof msg.content === "string"
       ? msg.content
       : Array.isArray(msg.content)
-      ? msg.content.map((c) => (c?.type === "text" ? (c as MessageTextContent).text : "")).join("")
+      ? msg.content.map((c) => (c.type === "text" ? c.text : "")).join("")
       : "";
   const incomingNormalized = normalizeTextForComparison(incomingText);
 
@@ -806,9 +800,7 @@ const applyAssistantMessage = (
     for (let i = messages.length - 1; i >= 0; i--) {
       const candidate = messages[i];
       if (candidate?.role !== "assistant") {continue;}
-      // Messages may have an optional type field that isn't in the base type
-      const candidateWithType = candidate as Message & { type?: string };
-      if (candidateWithType.type !== "message") {continue;}
+      if (candidate.type !== "message") {continue;}
 
       const candidateId = candidate.id ?? null;
       const isLocalStream =
@@ -969,10 +961,7 @@ const applyNodeProgress = (
   state: GlobalChatState,
   progress: NodeProgress
 ): ReducerResult => {
-  // NodeProgress may have workflow_id as an optional field
-  const workflowId = "workflow_id" in progress
-    ? (progress as NodeProgress & { workflow_id?: string }).workflow_id
-    : undefined;
+  const workflowId = progress.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
   if (effectiveWorkflowId) {
     useResultsStore

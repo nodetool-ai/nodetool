@@ -15,6 +15,9 @@ jest.mock("react-router-dom", () => ({
 }));
 
 jest.mock("../../stores/WorkflowRunner");
+jest.mock("../useRunningJobs", () => ({
+  useRunningJobs: jest.fn(() => ({ data: [] }))
+}));
 jest.mock("../../contexts/NodeContext");
 jest.mock("../../contexts/WorkflowManagerContext");
 jest.mock("../../stores/SettingsStore");
@@ -78,7 +81,9 @@ describe("useFloatingToolbarActions", () => {
       cancel: mockCancel,
       pause: mockPause,
       resume: mockResume,
-      state: "idle"
+      state: "idle",
+      queuePosition: null,
+      pendingRuns: []
     };
     mockUseWebsocketRunner.mockImplementation((selector) => {
       // If selector is a function, call it with mock state
@@ -200,14 +205,16 @@ describe("useFloatingToolbarActions", () => {
       expect(mockRun).toHaveBeenCalled();
     });
 
-    it("does not run workflow when already running", async () => {
+    it("still calls run while running so the store can queue it", async () => {
       mockUseWebsocketRunner.mockImplementation((selector) => {
         const mockRunnerState = {
           run: mockRun,
           cancel: mockCancel,
           pause: mockPause,
           resume: mockResume,
-          state: "running"
+          state: "running",
+          queuePosition: null,
+          pendingRuns: []
         };
         if (typeof selector === 'function') {
           return selector(mockRunnerState as any);
@@ -221,7 +228,8 @@ describe("useFloatingToolbarActions", () => {
         await result.current.handleRun();
       });
 
-      expect(mockRun).not.toHaveBeenCalled();
+      // Clicking Run while busy now reaches the store, which enqueues it.
+      expect(mockRun).toHaveBeenCalled();
     });
 
     it("triggers autosave before running if enabled", async () => {
@@ -482,7 +490,9 @@ describe("useFloatingToolbarActions", () => {
           cancel: mockCancel,
           pause: mockPause,
           resume: mockResume,
-          state: "running"
+          state: "running",
+          queuePosition: null,
+          pendingRuns: []
         };
         if (typeof selector === 'function') {
           return selector(mockRunnerState as any);
@@ -504,7 +514,9 @@ describe("useFloatingToolbarActions", () => {
           cancel: mockCancel,
           pause: mockPause,
           resume: mockResume,
-          state: "paused"
+          state: "paused",
+          queuePosition: null,
+          pendingRuns: []
         };
         if (typeof selector === 'function') {
           return selector(mockRunnerState as any);

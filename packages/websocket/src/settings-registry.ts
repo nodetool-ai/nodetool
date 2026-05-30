@@ -128,6 +128,13 @@ s(
   "Number of days to keep autosave versions before cleanup (default: 7)"
 );
 
+// Execution
+s(
+  "MAX_CONCURRENT_JOBS",
+  "Execution",
+  "Maximum number of workflow runs a single client can execute at once (default: 4). Additional runs are queued and start automatically as running ones finish, preventing provider/API overload."
+);
+
 // ComfyUI
 s(
   "COMFYUI_ADDR",

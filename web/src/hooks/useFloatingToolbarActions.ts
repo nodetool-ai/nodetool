@@ -1,10 +1,14 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWebsocketRunner } from "../stores/WorkflowRunner";
+import { useRunningJobs } from "./useRunningJobs";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "./useAutosave";
+import useMetadataStore from "../stores/MetadataStore";
+import { useRunWarningStore } from "../stores/RunWarningStore";
+import { countHeavyNodes } from "../utils/heavyNodes";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useBottomPanelStore } from "../stores/BottomPanelStore";
 import { usePanelStore } from "../stores/PanelStore";
@@ -32,6 +36,10 @@ export interface FloatingToolbarActions {
   isWorkflowRunning: boolean;
   isPaused: boolean;
   isSuspended: boolean;
+  /** 1-based queue position while waiting for a run slot, else null. */
+  queuePosition: number | null;
+  /** Number of runs the user has queued behind the active run. */
+  pendingRunCount: number;
 }
 
 export const useFloatingToolbarActions = (): FloatingToolbarActions => {
@@ -49,6 +57,19 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const isWorkflowRunning = state === "running";
   const isPaused = state === "paused";
   const isSuspended = state === "suspended";
+  const queuePosition = useWebsocketRunner((state) => state.queuePosition);
+  const { data: jobs } = useRunningJobs();
+  const pendingRunCount = useMemo(
+    () =>
+      (jobs ?? []).filter(
+        (job) =>
+          job.workflow_id === workflow?.id &&
+          (job.status === "queued" ||
+            job.status === "scheduled" ||
+            job.status === "starting")
+      ).length,
+    [jobs, workflow?.id]
+  );
   const cancel = useWebsocketRunner((state) => state.cancel);
   const pause = useWebsocketRunner((state) => state.pause);
   const resume = useWebsocketRunner((state) => state.resume);
@@ -57,6 +78,15 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
   const autosave = useSettingsStore((state) => state.settings.autosave);
+  const confirmLargeRun = useSettingsStore(
+    (state) => state.settings.confirmLargeRun
+  );
+  const largeRunThreshold = useSettingsStore(
+    (state) => state.settings.largeRunThreshold
+  );
+  const requestRunConfirmation = useRunWarningStore(
+    (state) => state.requestConfirmation
+  );
 
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
@@ -73,7 +103,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const toggleMiniMap = useMiniMapStore((state) => state.toggleVisible);
 
   const handleRun = useCallback(async () => {
-    if (!isWorkflowRunning) {
+    const doRun = async () => {
       // Create a checkpoint version before execution if enabled
       if (autosave?.saveBeforeRun) {
         const w = getWorkflowById(workflow.id);
@@ -89,6 +119,29 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       // Access current state directly to avoid re-renders on every node drag
       const { nodes, edges } = nodeStore.getState();
       run({}, workflow, nodes, edges, undefined);
+    };
+
+    // Clicking Run while a run is in progress queues another run rather than
+    // being ignored — the store enqueues it and fires it when the current run
+    // finishes. "Run Workflow" fires every executable node at once, so warn
+    // first when a run would launch many provider/model nodes, unless the user
+    // disabled the warning or dismissed it for this session.
+    const { nodes } = nodeStore.getState();
+    const heavyCount = countHeavyNodes(
+      nodes,
+      useMetadataStore.getState().getMetadata
+    );
+    const suppressed = useRunWarningStore.getState().suppressedThisSession;
+    if (confirmLargeRun && !suppressed && heavyCount > largeRunThreshold) {
+      requestRunConfirmation({
+        heavyCount,
+        threshold: largeRunThreshold,
+        onConfirm: () => {
+          void doRun();
+        }
+      });
+    } else {
+      await doRun();
     }
     setTimeout(() => {
       const w = getWorkflowById(workflow.id);
@@ -97,13 +150,15 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       }
     }, 100);
   }, [
-    isWorkflowRunning,
     run,
     workflow,
     nodeStore,
     getWorkflowById,
     saveWorkflow,
-    autosave
+    autosave,
+    confirmLargeRun,
+    largeRunThreshold,
+    requestRunConfirmation
   ]);
 
   const handleStop = useCallback(() => {
@@ -195,6 +250,8 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     handleToggleMiniMap,
     isWorkflowRunning,
     isPaused,
-    isSuspended
+    isSuspended,
+    queuePosition,
+    pendingRunCount
   };
 };

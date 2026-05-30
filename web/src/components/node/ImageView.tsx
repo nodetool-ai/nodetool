@@ -10,7 +10,7 @@ import { createImageUrl } from "../../utils/imageUtils";
 import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
-import { useMediaOverlaySuppressed } from "./MediaOverlayContext";
+import { useMediaOverlay } from "./MediaOverlayContext";
 
 const hoverStyles = css({
   ".image-dimensions": {
@@ -38,7 +38,8 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const blobUrlRef = useRef<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
-  const overlaySuppressed = useMediaOverlaySuppressed();
+  const { suppressed: overlaySuppressed, onRequestOpenViewer } =
+    useMediaOverlay();
 
   const imageUrl = useMemo(() => {
     const result = createImageUrl(source, blobUrlRef.current);
@@ -113,8 +114,14 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   }, []);
 
   const handleDoubleClick = useCallback(() => {
+    // Inside a node's content card, defer to the parent so the viewer's gallery
+    // shows all of the node's generations rather than just this one image.
+    if (onRequestOpenViewer) {
+      onRequestOpenViewer();
+      return;
+    }
     setOpenViewer(true);
-  }, []);
+  }, [onRequestOpenViewer]);
 
   const handleDownload = useCallback(async () => {
     if (!imageUrl) { return; }
@@ -178,12 +185,14 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
       className="image-output"
       style={containerStyle}
     >
-      <AssetViewer
-        contentType="image/*"
-        url={imageUrl}
-        open={openViewer}
-        onClose={handleCloseViewer}
-      />
+      {!onRequestOpenViewer && (
+        <AssetViewer
+          contentType="image/*"
+          url={imageUrl}
+          open={openViewer}
+          onClose={handleCloseViewer}
+        />
+      )}
       {!overlaySuppressed && (
         <div
           className="image-view-actions"

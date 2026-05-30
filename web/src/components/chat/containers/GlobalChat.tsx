@@ -663,6 +663,7 @@ const GlobalChat: React.FC = () => {
               workflowId={workflowId}
               noMessagesPlaceholder={welcomePlaceholder}
               useExternalComposer
+              showConversationHeader
             />
           </FlexColumn>
         </FlexRow>

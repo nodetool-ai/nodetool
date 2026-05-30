@@ -5,6 +5,7 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
+import { initTestDb, Job } from "@nodetool-ai/models";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -604,5 +605,44 @@ describe("UnifiedWebSocketRunner", () => {
     expect(sinkValues).toEqual(["first", "second"]);
 
     await outputRunner.disconnect();
+  });
+
+  it("does not resurrect a job cancelled while it was queued", async () => {
+    // A run can be cancelled via the DB-only cancel path (tRPC `jobs.cancel`)
+    // while it is still sitting in the in-memory queue. drainQueue can then
+    // hand the still-queued request to startJob — the runner must honor the
+    // cancellation rather than flip it back to running/completed. Regression
+    // test for "cancel multiple, only one stays in the Cancelled lane".
+    initTestDb();
+    await Job.create({
+      id: "cancelled-while-queued",
+      workflow_id: "wf-1",
+      user_id: "1",
+      status: "cancelled",
+      name: "Cancelled run"
+    });
+
+    await runner.connect(ws);
+    await runner.handleCommand({
+      command: "run_job",
+      data: {
+        type: "run_job_request",
+        job_id: "cancelled-while-queued",
+        workflow_id: "wf-1",
+        graph: {
+          nodes: [{ id: "n1", type: "test.Node", name: "test.Node" }],
+          edges: []
+        },
+        params: {}
+      }
+    });
+
+    // Allow any (incorrect) execution to run to completion.
+    await new Promise((r) => setTimeout(r, 50));
+
+    const job = await Job.get<Job>("cancelled-while-queued");
+    expect(job?.status).toBe("cancelled");
+
+    await runner.disconnect();
   });
 });

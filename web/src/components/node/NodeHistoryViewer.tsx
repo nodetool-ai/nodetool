@@ -253,9 +253,17 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   }, []);
 
   const handleOpenViewer = useCallback(() => {
-    if (!currentAsset) return;
+    if (!currentAsset || showingLive) return;
     setViewerOpen(true);
-  }, [currentAsset]);
+  }, [currentAsset, showingLive]);
+
+  // Children (ImageView) render under this context: it suppresses their own
+  // overlay/viewer and routes "open" here, so the viewer's gallery reflects the
+  // node's full generation history.
+  const overlayValue = useMemo(
+    () => ({ suppressed: true, onRequestOpenViewer: handleOpenViewer }),
+    [handleOpenViewer]
+  );
 
   const handleCloseViewer = useCallback(() => {
     setViewerOpen(false);
@@ -320,7 +328,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     <div css={styles(theme)} className="node-history-viewer">
       <div className="body">
         {mode === "single" ? (
-          <MediaOverlaySuppressProvider value={{ suppressed: true }}>
+          <MediaOverlaySuppressProvider value={overlayValue}>
             <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
               {renderSingle(valueToRender)}
             </div>
@@ -455,6 +463,8 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
 
       {currentAsset && currentAsset.get_url ? (
         <AssetViewer
+          asset={currentAsset}
+          sortedAssets={mediaAssets}
           contentType={currentAsset.content_type ?? undefined}
           url={currentAsset.get_url}
           open={viewerOpen}

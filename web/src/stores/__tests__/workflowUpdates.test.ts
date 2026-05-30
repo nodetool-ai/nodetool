@@ -7,7 +7,8 @@ const mockRunnerStore = {
   getState: () => ({
     job_id: "job-1",
     state: "running",
-    addNotification: jest.fn()
+    addNotification: jest.fn(),
+    dequeueNextPendingRun: jest.fn()
   }),
   setState: jest.fn(),
   subscribe: jest.fn()

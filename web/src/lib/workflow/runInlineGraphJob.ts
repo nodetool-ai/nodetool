@@ -3,6 +3,7 @@ import { isLocalhost } from "../env";
 import { supabase } from "../supabaseClient";
 import { uuidv4 } from "../../stores/uuidv4";
 import { BASE_URL } from "../../stores/BASE_URL";
+import useMetadataStore from "../../stores/MetadataStore";
 import type { Edge, Node, WorkflowGraph } from "../../stores/ApiTypes";
 
 export type GraphNode = Node;
@@ -14,7 +15,30 @@ interface InlineGraphJobOptions {
   params?: Record<string, unknown>;
   signal?: AbortSignal;
   workflowId: string;
+  /** Run title shown in the queue. Defaults to a single-node graph's name. */
+  jobName?: string;
 }
+
+/**
+ * Title for a single-node inline run: the node's custom title, else its
+ * metadata title (same precedence as NodeHeader), else the type segment.
+ */
+const deriveInlineJobName = (graph: InlineGraph): string => {
+  const nodes = (graph?.nodes ?? []) as Array<{
+    type?: string;
+    data?: { title?: unknown };
+  }>;
+  if (nodes.length !== 1) {
+    return "";
+  }
+  const node = nodes[0];
+  const custom =
+    typeof node.data?.title === "string" ? node.data.title.trim() : "";
+  const metadataTitle = node.type
+    ? useMetadataStore.getState().getMetadata(node.type)?.title
+    : undefined;
+  return custom || metadataTitle || node.type?.split(".").pop() || "";
+};
 
 /** Result shape consumed by sketch `WebSocketNodeExecutor`. */
 interface InlineGraphJobResult {
@@ -182,6 +206,7 @@ export async function runInlineGraphJob(
       data: {
         type: "run_job_request",
         job_id: jobId,
+        job_name: options.jobName ?? deriveInlineJobName(graph),
         job_type: "workflow",
         execution_strategy: "threaded",
         workflow_id: workflowId,

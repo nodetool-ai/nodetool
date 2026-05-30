@@ -336,12 +336,4 @@ export const useComfyUIStore = create<ComfyUIState>((set, get) => ({
   }
 }));
 
-/**
- * Initialize ComfyUI service with stored URL
- */
-export function initializeComfyUI(): void {
-  const url = loadComfyUIUrl();
-  const service = getComfyUIService();
-  service.setBaseUrl(url);
-}
 
