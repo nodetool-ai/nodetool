@@ -13,7 +13,14 @@
  * (`asset://…`, `{{ name }}`), so existing `{{variable}}` substitution and the
  * backend asset dereferencing work whether or not a token is chipped.
  */
-import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -46,6 +53,7 @@ import {
   $serializePrompt,
   $setPromptFromString
 } from "./promptComposer/promptEditorState";
+import { variablesInPrompt } from "./promptComposer/promptTokens";
 import { PromptComposerContext } from "./promptComposer/promptComposerContext";
 import { PROMPT_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -128,8 +136,9 @@ const composerTheme = {
 /** Quick-insert bar: one chip per dynamic input + the add-variable button. */
 const VariableInsertBar: React.FC<{
   variableNames: string[];
+  showLabel: boolean;
   onAdd: () => void;
-}> = ({ variableNames, onAdd }) => {
+}> = ({ variableNames, showLabel, onAdd }) => {
   const [editor] = useLexicalComposerContext();
   const insertVariable = useCallback(
     (name: string) => {
@@ -141,7 +150,7 @@ const VariableInsertBar: React.FC<{
   );
   return (
     <div className="variable-bar">
-      <span className="variable-bar-label">Variables</span>
+      {showLabel && <span className="variable-bar-label">Variables</span>}
       {variableNames.map((name) => (
         <button
           key={name}
@@ -217,6 +226,16 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   );
   const lastWrittenRef = useRef<string>(initialPromptRef.current);
 
+  // Live prompt text, mirrored from the editor on every change so the
+  // "Variables" label can track whether the prompt actually references one.
+  const [promptText, setPromptText] = useState<string>(
+    initialPromptRef.current
+  );
+  const promptReferencesVariable = useMemo(
+    () => variablesInPrompt(promptText).length > 0,
+    [promptText]
+  );
+
   const initialConfig = useMemo<InitialConfigType>(
     () => ({
       namespace: "PromptComposer",
@@ -254,7 +273,9 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   const handleEditorChange = useCallback(
     (editorState: EditorState) => {
       editorState.read(() => {
-        writePrompt($serializePrompt());
+        const serialized = $serializePrompt();
+        setPromptText(serialized);
+        writePrompt(serialized);
       });
     },
     [writePrompt]
@@ -291,6 +312,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
 
           <VariableInsertBar
             variableNames={variableNames}
+            showLabel={promptReferencesVariable}
             onAdd={handleAddVariable}
           />
         </LexicalComposer>

@@ -125,9 +125,10 @@ export const recursiveOutput = z.object({
 export type RecursiveOutput = z.infer<typeof recursiveOutput>;
 
 // ── search (GET /api/assets/search) ──────────────────────────────
-// Minimum query length of 2 characters; matches by name substring.
+// Matches by name substring. An empty query matches everything, which lets
+// the `@`-mention typeahead show a list of assets before the user narrows it.
 export const searchInput = z.object({
-  query: z.string().min(2),
+  query: z.string(),
   content_type: z.string().optional(),
   page_size: z.number().int().min(1).max(10000).default(200),
   cursor: z.string().optional(),

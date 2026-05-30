@@ -12,7 +12,10 @@ import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { RAW_RGBA_MIME, isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import {
+  loadMediaRefBytes,
+  mapPromptAssetsToInputs
+} from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,6 +43,19 @@ async function imageBytesAsync(image: unknown, context?: ProcessingContext): Pro
   if (!image || typeof image !== "object") return new Uint8Array();
   const bytes = await loadMediaRefBytes(image as ImageRefLike, context);
   return bytes ?? new Uint8Array();
+}
+
+/**
+ * Whether an image ref already points at a source (a wired-in upstream image,
+ * a stored asset, or inline bytes) rather than the empty default. Used to
+ * decide if an inline `asset://` mention in the prompt should supply the input.
+ */
+function imageRefHasSource(image: unknown): boolean {
+  if (!image || typeof image !== "object") return false;
+  const ref = image as ImageRefLike & { asset_id?: unknown };
+  if (typeof ref.uri === "string" && ref.uri.trim() !== "") return true;
+  if (ref.data != null && ref.data !== "") return true;
+  return ref.asset_id != null && ref.asset_id !== "";
 }
 
 function filePath(uriOrPath: string): string {
@@ -1495,7 +1511,22 @@ export class ImageToImageNode extends BaseNode {
   declare timeout_seconds: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const image = (this.image ?? {}) as ImageRefLike;
+    let image = (this.image ?? {}) as ImageRefLike;
+    let prompt = String(this.prompt ?? "");
+
+    // Inline asset mentions (e.g. from the Prompt composer's @-mention) carry
+    // an `asset://<id>.<ext>` image reference in the prompt string. Text tasks
+    // expand these into image inputs; do the same here via the shared mapper —
+    // route the first referenced image into the transform input when none is
+    // wired in, and strip the mention out of the textual instruction.
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: prompt }],
+      [{ name: "image", kind: "image", hasSource: imageRefHasSource(image) }],
+      context
+    );
+    if (typeof overrides.prompt === "string") prompt = overrides.prompt;
+    if (overrides.image) image = overrides.image as ImageRefLike;
+
     const bytes = await imageBytesAsync(image, context);
     if (bytes.length === 0) {
       throw new Error("The input image is empty.");
@@ -1513,7 +1544,7 @@ export class ImageToImageNode extends BaseNode {
       model: modelId,
       params: {
         image: bytes,
-        prompt: String(this.prompt ?? ""),
+        prompt,
         negative_prompt: this.negative_prompt,
         target_width: width,
         target_height: height,

@@ -284,9 +284,25 @@ export interface AssetCreateParamsLike {
   nodeId?: string | null;
 }
 
+/** A non-folder asset surfaced when listing a folder's contents. */
+export interface FolderAssetEntry {
+  id: string;
+  content_type: string;
+  name: string;
+}
+
 export interface ProcessingContextModelInterfaces {
   getJob?: (args: { userId: string; jobId: string }) => Promise<unknown | null>;
   createAsset?: (args: AssetCreateParamsLike) => Promise<unknown>;
+  /**
+   * Recursively list the non-folder assets contained in `folderId`. Returns
+   * `null` when the id is not a folder (or does not exist) so callers can tell
+   * "not a folder" apart from "empty folder" (`[]`).
+   */
+  listFolderAssets?: (args: {
+    userId: string;
+    folderId: string;
+  }) => Promise<FolderAssetEntry[] | null>;
   createMessage?: (args: {
     userId: string;
     req: MessageCreateRequestLike;
@@ -1574,6 +1590,25 @@ export class ProcessingContext {
     nodeId?: string | null;
   }): Promise<unknown> {
     return this.createAsset(args);
+  }
+
+  /**
+   * Recursively list the non-folder assets in `folderId`, or `null` when the id
+   * is not a folder. Backed by the optional `listFolderAssets` model interface;
+   * returns `null` when that interface is not configured.
+   */
+  async listFolderAssets(
+    folderId: string
+  ): Promise<FolderAssetEntry[] | null> {
+    const fn = this._modelInterfaces?.listFolderAssets;
+    if (!fn) {
+      return null;
+    }
+    try {
+      return await fn({ userId: this.userId, folderId });
+    } catch {
+      return null;
+    }
   }
 
   private resolveSandboxFilePath(path: string): string {

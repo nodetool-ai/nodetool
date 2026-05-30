@@ -13,7 +13,12 @@ import {
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  ProcessingContext,
+  PromptAssetTextField,
+  PromptAssetInputField
+} from "@nodetool-ai/runtime";
+import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import {
   getFalApiKey,
   falSubmit,
@@ -135,6 +140,45 @@ function computeFieldClassification(
   );
 }
 
+/**
+ * Route `asset://` media mentioned inline in a node's text inputs onto its
+ * empty image/audio inputs (and strip the mentions from the text). Shared with
+ * KIE / Replicate / image-to-image via `mapPromptAssetsToInputs`.
+ */
+async function promptAssetOverrides(
+  instance: BaseNode,
+  spec: FalManifestEntry,
+  context?: ProcessingContext
+): Promise<Record<string, unknown>> {
+  const values = instance as unknown as Record<string, unknown>;
+  const textFields: PromptAssetTextField[] = [];
+  const assetFields: PromptAssetInputField[] = [];
+  for (const field of spec.inputFields) {
+    if (field.parentField) continue;
+    const kind = assetKind(field.propType);
+    if (kind === "image" || kind === "audio") {
+      const list = isListAsset(field.propType);
+      const value = values[field.name];
+      const hasSource = list
+        ? Array.isArray(value) && value.some(isRefSet)
+        : isRefSet(value);
+      assetFields.push({
+        name: field.name,
+        label: field.apiParamName ?? field.name,
+        kind,
+        list,
+        hasSource
+      });
+    } else if (field.propType.toLowerCase() === "str") {
+      textFields.push({
+        name: field.name,
+        value: String(values[field.name] ?? "")
+      });
+    }
+  }
+  return mapPromptAssetsToInputs(textFields, assetFields, context);
+}
+
 async function buildArgs(
   instance: BaseNode,
   spec: FalManifestEntry,
@@ -142,6 +186,7 @@ async function buildArgs(
   context?: ProcessingContext
 ): Promise<Record<string, unknown>> {
   const args: Record<string, unknown> = {};
+  const overrides = await promptAssetOverrides(instance, spec, context);
 
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
@@ -154,7 +199,10 @@ async function buildArgs(
       continue;
     }
 
-    const value = (instance as unknown as Record<string, unknown>)[field.name];
+    const value =
+      field.name in overrides
+        ? overrides[field.name]
+        : (instance as unknown as Record<string, unknown>)[field.name];
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
 
