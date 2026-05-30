@@ -347,6 +347,38 @@ async function waitForScreenshotReady(
       await ensureNoVisibleProgress(page);
       break;
     }
+    case "sketch-editor.png": {
+      // The standalone Image Editor mounts a toolbar, canvas, and a right-hand
+      // panel with Color / Layers / Canvas sections. Wait for the editor shell
+      // and the Layers section to appear; the WebGL canvas may not paint in
+      // headless mode but the editor chrome is the documentation surface.
+      await page
+        .locator(".sketch-editor, .sketch-editor__body")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await page
+        .getByText(/layers/i)
+        .first()
+        .waitFor({ state: "visible", timeout: 8000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      break;
+    }
+    case "timeline-editor.png": {
+      // The timeline route mounts a TopBar, a tracks region (with a resize
+      // separator), and a status bar even before the sequence finishes
+      // loading. Wait for the tracks separator as a stable landmark.
+      await page
+        .locator('[aria-label="Resize tracks panel"]')
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      break;
+    }
     default: {
       break;
     }
@@ -537,6 +569,24 @@ if (process.env.JEST_WORKER_ID) {
       await gotoPage(page, "/models");
       await waitForScreenshotReady(page, "models-list.png");
       await saveScreenshot(page, "models-list.png");
+    });
+
+    // ── Sketch / Image editor ─────────────────────────────────────────────────
+    // Backed by the seeded ImageDocument "sk-demo-portrait" (screenshot-server).
+    test("Sketch editor", async ({ page }) => {
+      test.skip(shouldSkip("sketch-editor.png"), "Already captured");
+      await gotoPage(page, "/sketch/sk-demo-portrait");
+      await waitForScreenshotReady(page, "sketch-editor.png");
+      await saveScreenshot(page, "sketch-editor.png");
+    });
+
+    // ── Timeline editor ────────────────────────────────────────────────────────
+    // Backed by the seeded TimelineSequence "tl-demo-promo" (screenshot-server).
+    test("Timeline editor", async ({ page }) => {
+      test.skip(shouldSkip("timeline-editor.png"), "Already captured");
+      await gotoPage(page, "/timeline/tl-demo-promo");
+      await waitForScreenshotReady(page, "timeline-editor.png");
+      await saveScreenshot(page, "timeline-editor.png");
     });
 
     // ── Settings ────────────────────────────────────────────────────────────

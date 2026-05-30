@@ -757,6 +757,23 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_timeline_sequence_user" ON "timeline_sequences" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_timeline_sequence_project" ON "timeline_sequences" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_timeline_sequence_updated" ON "timeline_sequences" ("updated_at");
+    CREATE TABLE IF NOT EXISTS "image_documents" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "workflow_id" text,
+      "name" text NOT NULL,
+      "width" integer NOT NULL DEFAULT 1024,
+      "height" integer NOT NULL DEFAULT 1024,
+      "background_color" text NOT NULL DEFAULT '#ffffff',
+      "document" text NOT NULL,
+      "thumbnail_asset_id" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_image_document_user" ON "image_documents" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_image_document_project" ON "image_documents" ("project_id");
+    CREATE INDEX IF NOT EXISTS "idx_image_document_updated" ON "image_documents" ("updated_at");
   `;
 }
 
