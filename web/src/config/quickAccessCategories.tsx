@@ -142,7 +142,7 @@ export const NODE_SUBCATEGORIES: readonly NodeSubcategory[] = [
   },
   {
     id: "io",
-    label: "Inputs / Outputs",
+    label: "I/O",
     icon: <LoginIcon />,
     filter: (m) =>
       m.node_type.startsWith("nodetool.input.") ||

@@ -502,7 +502,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     setEditorViewMode(editorViewMode === "graph" ? "chain" : "graph");
   }, [editorViewMode, setEditorViewMode]);
 
-  if (!path.startsWith("/editor")) {
+  // Shown in the legacy editor (/editor) and the unified workspace (/workspace).
+  // In the workspace it only mounts inside WorkflowEditorSurface, i.e. an active
+  // workflow tab in Edit mode, so this guard just excludes unrelated routes.
+  if (!path.startsWith("/editor") && !path.startsWith("/workspace")) {
     return null;
   }
 

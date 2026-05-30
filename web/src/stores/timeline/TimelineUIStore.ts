@@ -42,8 +42,6 @@ export interface TimelineUIState {
    * shown at a time to keep vertical layout tractable.
    */
   expandedFxTrackId: string | null;
-  /** Whether the left-side asset panel is visible. Collapses to a thin rail when false. */
-  assetPanelVisible: boolean;
 
   // ── Selection ────────────────────────────────────────────────────────────
 
@@ -87,11 +85,6 @@ export interface TimelineUIState {
   setExpandedFxTrackId: (trackId: string | null) => void;
   /** Toggle the inline DSP chain editor for the given track. */
   toggleExpandedFx: (trackId: string) => void;
-
-  // ── Asset panel ──────────────────────────────────────────────────────────
-
-  setAssetPanelVisible: (visible: boolean) => void;
-  toggleAssetPanel: () => void;
 }
 
 const MIN_MS_PER_PX = 0.5;
@@ -105,8 +98,6 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
   scrollLeftPx: 0,
   fullscreen: false,
   expandedFxTrackId: null,
-  assetPanelVisible: true,
-
   selectClip: (id) => set({ selectedClipIds: new Set([id]) }),
 
   addToSelection: (id) =>
@@ -153,12 +144,7 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
     set((state) => ({
       expandedFxTrackId:
         state.expandedFxTrackId === trackId ? null : trackId
-    })),
-
-  setAssetPanelVisible: (visible) => set({ assetPanelVisible: visible }),
-
-  toggleAssetPanel: () =>
-    set((state) => ({ assetPanelVisible: !state.assetPanelVisible }))
+    }))
 }));
 
 // ── Convenience selectors ──────────────────────────────────────────────────

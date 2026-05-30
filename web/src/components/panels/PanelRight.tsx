@@ -34,8 +34,8 @@ const styles = (theme: Theme, bottomOffset: number) =>
   css({
     position: "fixed",
     right: 0,
-    top: `${HEADER_AREA_HEIGHT}px`,
-    height: `calc(100vh - ${HEADER_AREA_HEIGHT}px - ${bottomOffset}px)`,
+    top: `var(--workspace-header-height, ${HEADER_AREA_HEIGHT}px)`,
+    height: `calc(100vh - var(--workspace-header-height, ${HEADER_AREA_HEIGHT}px) - ${bottomOffset}px)`,
     display: "flex",
     flexDirection: "row",
     zIndex: 1100,
@@ -290,10 +290,12 @@ const PanelRight: React.FC = () => {
   const bottomPanelVisible = useBottomPanelStore(
     (state) => state.panel.isVisible
   );
-  // Mirror PanelBottom: it only mounts under /editor and collapses to the
-  // header bar when not visible. Subtract whatever it actually occupies so
+  // Mirror PanelBottom: it mounts under /editor and /workspace, collapsing to
+  // the header bar when not visible. Subtract whatever it actually occupies so
   // the inspector's bottom (Runs section) isn't covered.
-  const bottomOffset = !pathname.startsWith("/editor")
+  const editorChrome =
+    pathname.startsWith("/editor") || pathname.startsWith("/workspace");
+  const bottomOffset = !editorChrome
     ? 0
     : bottomPanelVisible
       ? bottomPanelSize

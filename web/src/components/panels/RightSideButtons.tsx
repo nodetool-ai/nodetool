@@ -86,7 +86,6 @@ const RightSideButtons: React.FC = () => {
   return (
     <Box className="buttons-right" css={styles(theme)}>
       {!isProduction && !isMobile && <OverallDownloadProgress />}
-      <ThemeToggleButton />
       <NotificationButton />
       <Help open={helpOpen} handleClose={handleCloseHelp} />
       <HelpButton

@@ -125,7 +125,7 @@ export type AssetUpdate = {
   name?: string;
   parent_id?: string;
   content_type?: string;
-  metadata?: Record<string, never>;
+  metadata?: Record<string, unknown>;
   data?: string;
   data_encoding?: "base64";
 };

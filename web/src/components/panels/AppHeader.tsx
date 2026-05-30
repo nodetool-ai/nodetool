@@ -10,15 +10,12 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
+import SaveImageEditPill from "./SaveImageEditPill";
 import Logo from "../Logo";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { FlexRow, Tooltip, Box, Text } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import { isProduction } from "../../lib/env";
-import { trpcClient } from "../../trpc/client";
-import { useShallow } from "zustand/react/shallow";
 
 const workspacesEnabled = !isProduction;
 
@@ -33,27 +30,6 @@ function modeLabelForPath(path: string): string {
   if (path.startsWith("/dashboard")) return "Dashboard";
   return "";
 }
-
-const BrandLabel = memo(function BrandLabel({ path }: { path: string }) {
-  const mode = modeLabelForPath(path);
-  return (
-    <FlexRow align="baseline" gap={0.5} sx={{ flexShrink: 0, mr: 1, userSelect: "none" }}>
-      <Text size="small" weight={500} sx={{ color: "text.primary" }}>
-        Nodetool
-      </Text>
-      {mode && (
-        <>
-          <Text size="small" sx={{ color: "text.disabled" }}>
-            /
-          </Text>
-          <Text size="small" sx={{ color: "text.secondary" }}>
-            {mode}
-          </Text>
-        </>
-      )}
-    </FlexRow>
-  );
-});
 
 const styles = (theme: Theme) =>
   css({
@@ -106,52 +82,6 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       WebkitAppRegion: "no-drag"
     },
-    // Mode pills - underline tab strip (DESIGN.md §Navigation)
-    ".mode-pills": {
-      display: "flex",
-      alignItems: "center",
-      gap: "2px",
-      height: "1.6em",
-    },
-    ".mode-pill": {
-      padding: "5px 14px",
-      fontWeight: 400,
-      letterSpacing: "0.02em",
-      color: theme.vars.palette.text.secondary,
-      minWidth: "auto",
-      textTransform: "uppercase",
-      fontSize: theme.vars.fontSizeSmall,
-      transition: "all 0.2s ease-out",
-      border: "none",
-      borderBottom: "2px solid transparent",
-      backgroundColor: "transparent",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-      "& svg, & .icon-container svg": {
-        width: "15px",
-        height: "15px",
-        fontSize: "15px"
-      },
-      "& .icon-container": {
-        width: "15px",
-        height: "15px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-      },
-      "&:hover": {
-        color: theme.vars.palette.text.primary
-      },
-      "&.active": {
-        color: theme.vars.palette.text.primary,
-        borderBottomColor: theme.vars.palette.primary.main,
-        "& svg, & .icon-container svg": {
-          color: theme.vars.palette.text.primary
-        }
-      }
-    },
     ".logo-container": {
       display: "flex",
       alignItems: "center",
@@ -178,177 +108,6 @@ const styles = (theme: Theme) =>
     }
     // Mobile styles handled via separate CSS file
   });
-
-// Mode pills component - segmented control for Editor, Chat, Dashboard
-const ModePills = memo(function ModePills({ currentPath }: { currentPath: string }) {
-  const navigate = useNavigate();
-  const { currentWorkflowId, createNewWorkflow } = useWorkflowManager(
-    useShallow((state) => ({
-      currentWorkflowId: state.currentWorkflowId,
-      createNewWorkflow: state.createNew
-    }))
-  );
-  const { lastUsedThreadId, createNewThread, switchThread } = useGlobalChatStore(
-    useShallow((state) => ({
-      lastUsedThreadId: state.lastUsedThreadId,
-      createNewThread: state.createNewThread,
-      switchThread: state.switchThread
-    }))
-  );
-
-  // Determine active mode - only modes are active, not other routes
-  const isEditorActive = currentPath.startsWith("/editor");
-  const isChatActive = currentPath.startsWith("/chat");
-  const isAppActive = currentPath.startsWith("/apps");
-  const isSketchActive = currentPath.startsWith("/sketch");
-  const isTimelineActive = currentPath.startsWith("/timeline");
-
-  const handleEditorClick = useCallback(async () => {
-    if (currentWorkflowId) {
-      navigate(`/editor/${currentWorkflowId}`);
-    } else {
-      try {
-        const workflow = await createNewWorkflow();
-        navigate(`/editor/${workflow.id}`);
-      } catch (error) {
-        console.error("Failed to create new workflow:", error);
-      }
-    }
-  }, [navigate, currentWorkflowId, createNewWorkflow]);
-
-  const handleChatClick = useCallback(async () => {
-    try {
-      if (lastUsedThreadId) {
-        switchThread(lastUsedThreadId);
-        navigate(`/chat/${lastUsedThreadId}`);
-      } else {
-        const newThreadId = await createNewThread();
-        switchThread(newThreadId);
-        navigate(`/chat/${newThreadId}`);
-      }
-    } catch {
-      // Thread creation failed, navigate to chat without thread
-      navigate(`/chat`);
-    }
-  }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
-
-  const handleAppClick = useCallback(() => {
-    if (currentWorkflowId) {
-      navigate(`/apps/${currentWorkflowId}`);
-    }
-  }, [navigate, currentWorkflowId]);
-
-  const handleSketchClick = useCallback(async () => {
-    try {
-      const docs = await trpcClient.sketch.list.query({});
-      if (docs.length > 0) {
-        const mostRecent = docs.reduce((acc, cur) =>
-          cur.updatedAt > acc.updatedAt ? cur : acc
-        );
-        navigate(`/sketch/${mostRecent.id}`);
-        return;
-      }
-      const created = await trpcClient.sketch.create.mutate({
-        name: "Untitled image",
-        projectId: "default"
-      });
-      navigate(`/sketch/${created.id}`);
-    } catch (error) {
-      console.error("Failed to open Image Editor:", error);
-    }
-  }, [navigate]);
-
-  const handleTimelineClick = useCallback(async () => {
-    try {
-      const seqs = await trpcClient.timeline.list.query({});
-      if (seqs.length > 0) {
-        const mostRecent = seqs.reduce((acc, cur) =>
-          cur.updatedAt > acc.updatedAt ? cur : acc
-        );
-        navigate(`/timeline/${mostRecent.id}`);
-        return;
-      }
-      const created = await trpcClient.timeline.create.mutate({
-        name: "Untitled sequence",
-        projectId: "default"
-      });
-      navigate(`/timeline/${created.id}`);
-    } catch (error) {
-      console.error("Failed to open Timeline:", error);
-    }
-  }, [navigate]);
-
-  return (
-    <div className="mode-pills">
-      <Tooltip title="Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          type="button"
-          className={`mode-pill ${isEditorActive ? "active" : ""}`}
-          onClick={handleEditorClick}
-          tabIndex={-1}
-          aria-current={isEditorActive ? "page" : undefined}
-        >
-          <span>Editor</span>
-        </button>
-      </Tooltip>
-      <Tooltip title="Chat" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          type="button"
-          className={`mode-pill ${isChatActive ? "active" : ""}`}
-          onClick={handleChatClick}
-          tabIndex={-1}
-          aria-current={isChatActive ? "page" : undefined}
-        >
-          <span>Chat</span>
-        </button>
-      </Tooltip>
-      <Tooltip title={currentWorkflowId ? "Run as App" : "Open a workflow first"} delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <span style={{ display: "inline-flex" }}>
-          <button
-            type="button"
-            className={`mode-pill ${isAppActive ? "active" : ""}`}
-            onClick={handleAppClick}
-            tabIndex={-1}
-            aria-current={isAppActive ? "page" : undefined}
-            disabled={!currentWorkflowId}
-            style={{
-              opacity: currentWorkflowId ? 1 : 0.4,
-              cursor: currentWorkflowId ? "pointer" : "default"
-            }}
-          >
-            <span>App</span>
-          </button>
-        </span>
-      </Tooltip>
-      <Tooltip title="Timeline" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          type="button"
-          className={`mode-pill ${isTimelineActive ? "active" : ""}`}
-          onClick={handleTimelineClick}
-          tabIndex={-1}
-          aria-current={isTimelineActive ? "page" : undefined}
-          aria-label="Timeline"
-          data-testid="timeline-mode-pill"
-        >
-          <span>Timeline</span>
-        </button>
-      </Tooltip>
-      <Tooltip title="Image Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          type="button"
-          className={`mode-pill ${isSketchActive ? "active" : ""}`}
-          onClick={handleSketchClick}
-          tabIndex={-1}
-          aria-current={isSketchActive ? "page" : undefined}
-          aria-label="Image Editor"
-          data-testid="image-editor-mode-pill"
-        >
-          <span>Image</span>
-        </button>
-      </Tooltip>
-    </div>
-  );
-});
 
 // Templates button - positioned closer to right utility icons
 const TemplatesButton = memo(function TemplatesButton({
@@ -532,6 +291,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const isEditorRoute = path.startsWith("/editor/");
+  const sketchDocumentId = path.match(/^\/sketch\/([^/]+)/)?.[1];
 
   const handleLogoClick = useCallback(() => {
     navigate("/dashboard");
@@ -559,19 +319,17 @@ const AppHeader: React.FC = memo(function AppHeader() {
               />
             </div>
           </Tooltip>
-          {/* Brand label - "Nodetool / {Mode}" */}
-          <BrandLabel path={path} />
-          {/* Mode Pills - Editor, Chat, Dashboard */}
-          <ModePills currentPath={path} />
           {/* Return to Timeline pill — only shown when opened from timeline */}
           {isEditorRoute && <ReturnToTimelinePill />}
           {/* Return to Image Editor pill — only shown when opened from sketch */}
           {isEditorRoute && <ReturnToSketchPill />}
+          {/* Save-to-image pill — only while editing an asset-linked sketch */}
+          {sketchDocumentId && (
+            <SaveImageEditPill documentId={sketchDocumentId} />
+          )}
           <Box sx={{ flexGrow: 1 }} />
         </FlexRow>
         <div className="buttons-right">
-          {workspacesEnabled && !isMobile && <HeaderWorkspaceSelector />}
-          <TemplatesButton isActive={path.startsWith("/templates")} />
           <RightSideButtons />
         </div>
       </Toolbar>

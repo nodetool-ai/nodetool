@@ -178,6 +178,9 @@ export interface SketchEditorProps {
   onExportMask?: (dataUrl: string | null) => void;
   /** When true, window keyboard shortcuts for the editor are disabled (e.g. shortcuts help open). */
   suspendKeyboardShortcuts?: boolean;
+  /** Document-level actions rendered at the trailing edge of the top mode bar
+   * (e.g. Save/Done when embedded in an asset tab). */
+  headerActions?: React.ReactNode;
 }
 
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
@@ -189,7 +192,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
       onDocumentChange,
       onExportImage,
       onExportMask,
-      suspendKeyboardShortcuts
+      suspendKeyboardShortcuts,
+      headerActions
     },
     ref
   ) {
@@ -263,7 +267,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
       <FlexColumn className="sketch-editor" css={styles(theme)} gap={0}>
         {/* Top mode / prompt bar — full editor width above the 3-column body.
           Renders nothing without a bound document (in-node modal). */}
-        <ConnectedModePromptBar />
+        <ConnectedModePromptBar trailingActions={headerActions} />
 
         <FlexRow
           className="sketch-editor__body"

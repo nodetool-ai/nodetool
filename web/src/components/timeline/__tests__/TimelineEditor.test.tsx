@@ -58,10 +58,6 @@ jest.mock("../preview/PreviewArea", () => ({
   PreviewArea: () =>
     React.createElement("div", { "data-testid": "preview-area" }, "Preview")
 }));
-jest.mock("../TimelineAssetPanel", () => ({
-  TimelineAssetPanel: () =>
-    React.createElement("div", { "data-testid": "timeline-asset-panel" }, "Assets")
-}));
 
 // TopBarPrompt pulls in ImageModelSelect → useImageModelsByProvider, which
 // calls TanStack Query. The editor shell tests don't render a

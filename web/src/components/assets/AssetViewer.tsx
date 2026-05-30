@@ -17,7 +17,6 @@ const EASE_OUT_EXPO = "cubic-bezier(0.16, 1, 0.3, 1)";
 const EASE_OUT_QUINT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
-import { useNavigate } from "react-router-dom";
 //mui
 import { EditorButton, Dialog, Text } from "../ui_primitives";
 //icons
@@ -33,6 +32,7 @@ import { ImageComparer } from "../widgets";
 //components
 //store
 import { Asset } from "../../stores/ApiTypes";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 //utils
 import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -41,6 +41,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
+import { useOpenImageInSketch } from "../../hooks/sketch/useOpenImageInSketch";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
@@ -286,8 +287,9 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [compareAssetA, setCompareAssetA] = useState<Asset | null>(null);
   const [compareAssetB, setCompareAssetB] = useState<Asset | null>(null);
 
-  // Navigation for image editor
-  const navigate = useNavigate();
+  // Editing opens the asset in a workspace tab (image → sketch editor,
+  // model3d → 3D editor), retiring the legacy /assets/edit route.
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
 
   // Reset compare mode when viewer closes
   useEffect(() => {
@@ -377,17 +379,24 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     setCompareAssetB(null);
   }, []);
 
+  const openImageInSketch = useOpenImageInSketch();
   const handleOpenImageEditor = useCallback(() => {
     if (currentAsset && isImage) {
-      navigate(`/assets/edit/${currentAsset.id}`);
+      void openImageInSketch(currentAsset);
     }
-  }, [currentAsset, isImage, navigate]);
+  }, [currentAsset, isImage, openImageInSketch]);
 
   const handleOpenModel3DEditor = useCallback(() => {
     if (currentAsset && isModel3D) {
-      navigate(`/assets/edit/${currentAsset.id}`);
+      openTab({
+        type: "model3d",
+        ref: currentAsset.id,
+        mode: "edit",
+        title: currentAsset.name || "3D model"
+      });
+      handleClose();
     }
-  }, [currentAsset, isModel3D, navigate]);
+  }, [currentAsset, isModel3D, openTab, handleClose]);
 
 
   // Copy to clipboard state and handler

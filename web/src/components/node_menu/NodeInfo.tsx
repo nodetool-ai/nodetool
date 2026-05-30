@@ -6,6 +6,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { Tooltip, Text, Divider } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
+import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
@@ -341,7 +342,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                   <Text
                     className="type"
                     style={{
-                      borderColor: colorForType(property.type.type)
+                      borderColor: hexToRgba(colorForType(property.type.type), 0.4)
                     }}
                   >
                     {property.type.type}
@@ -363,7 +364,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                   <Text
                     className="type"
                     style={{
-                      borderColor: colorForType(property.type.type)
+                      borderColor: hexToRgba(colorForType(property.type.type), 0.4)
                     }}
                   >
                     {property.type.type}

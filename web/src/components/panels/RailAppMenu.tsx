@@ -1,0 +1,185 @@
+/** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
+import SettingsIcon from "@mui/icons-material/Settings";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import DownloadIcon from "@mui/icons-material/Download";
+import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
+
+import { useCombo } from "../../stores/KeyPressedStore";
+import { useAppHeaderStore } from "../../stores/AppHeaderStore";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import Help from "../content/Help/Help";
+import Logo from "../Logo";
+import { Popover, MenuItemPrimitive, Tooltip } from "../ui_primitives";
+
+const logoButtonStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "40px",
+    height: "34px",
+    margin: "0 5px",
+    padding: 0,
+    border: "none",
+    borderRadius: "8px",
+    background: "transparent",
+    cursor: "pointer",
+    opacity: 0.9,
+    transition: "background-color 140ms ease-out, opacity 140ms ease-out",
+    "&:hover": {
+      backgroundColor: theme.vars.palette.action.hover,
+      opacity: 1
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: "-2px"
+    }
+  });
+
+const menuStyles = () =>
+  css({
+    minWidth: "208px",
+    padding: "4px 0"
+  });
+
+/**
+ * The app menu docked at the top of the workspace rail. The logo opens a menu
+ * carrying the global actions that used to live in AppHeader's right cluster:
+ * Settings, Help, and Downloads (with live progress when active).
+ */
+const RailAppMenu: React.FC = () => {
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const anchorRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+
+  const { helpOpen, handleCloseHelp, handleOpenHelp, setHelpIndex } =
+    useAppHeaderStore(
+      useShallow((state) => ({
+        helpOpen: state.helpOpen,
+        handleCloseHelp: state.handleCloseHelp,
+        handleOpenHelp: state.handleOpenHelp,
+        setHelpIndex: state.setHelpIndex
+      }))
+    );
+
+  const handleShowKeyboardShortcuts = useCallback(() => {
+    setHelpIndex(1);
+    handleOpenHelp();
+  }, [setHelpIndex, handleOpenHelp]);
+
+  // Cmd+/ (Mac) or Ctrl+/ (Win/Linux) opens Help at Keyboard Shortcuts tab
+  useCombo(["Meta", "/"], handleShowKeyboardShortcuts);
+  useCombo(["Control", "/"], handleShowKeyboardShortcuts);
+
+  const close = useCallback(() => setOpen(false), []);
+
+  const goDashboard = useCallback(() => {
+    navigate("/dashboard");
+    close();
+  }, [navigate, close]);
+
+  const goSettings = useCallback(() => {
+    navigate("/settings");
+    close();
+  }, [navigate, close]);
+
+  const openHelp = useCallback(() => {
+    handleOpenHelp();
+    close();
+  }, [handleOpenHelp, close]);
+
+  const { downloads, openDownloadsDialog } = useModelDownloadStore(
+    useShallow((state) => ({
+      downloads: state.downloads,
+      openDownloadsDialog: state.openDialog
+    }))
+  );
+
+  // Aggregate percent across in-flight downloads; null when nothing is running.
+  const downloadProgress = useMemo(() => {
+    const active = Object.values(downloads).filter(
+      (download) => download.status === "progress"
+    );
+    if (active.length === 0) return null;
+    const total = active.reduce((sum, d) => sum + d.totalBytes, 0);
+    const done = active.reduce((sum, d) => sum + d.downloadedBytes, 0);
+    return total > 0 ? Math.round((done / total) * 100) : 0;
+  }, [downloads]);
+
+  const openDownloads = useCallback(() => {
+    openDownloadsDialog();
+    close();
+  }, [openDownloadsDialog, close]);
+
+  return (
+    <>
+      <Tooltip title="Menu" placement="right-start">
+        <button
+          ref={anchorRef}
+          type="button"
+          css={logoButtonStyles(theme)}
+          className="rail-app-logo"
+          aria-label="Open app menu"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <Logo
+            small
+            width="22px"
+            height="22px"
+            fontSize="1em"
+            borderRadius="4px"
+          />
+        </button>
+      </Tooltip>
+
+      <Popover
+        open={open}
+        anchorEl={anchorRef.current}
+        onClose={close}
+        placement="bottom-left"
+      >
+        <div css={menuStyles()} role="menu">
+          <MenuItemPrimitive
+            label="Dashboard"
+            icon={<SpaceDashboardOutlinedIcon />}
+            onClick={goDashboard}
+            dividerAfter
+          />
+          <MenuItemPrimitive
+            label="Settings"
+            icon={<SettingsIcon />}
+            onClick={goSettings}
+          />
+          <MenuItemPrimitive
+            label="Help"
+            icon={<HelpOutlineIcon />}
+            onClick={openHelp}
+          />
+          <MenuItemPrimitive
+            label="Downloads"
+            icon={<DownloadIcon />}
+            onClick={openDownloads}
+            secondary={
+              downloadProgress != null ? `${downloadProgress}%` : undefined
+            }
+          />
+        </div>
+      </Popover>
+
+      <Help open={helpOpen} handleClose={handleCloseHelp} />
+    </>
+  );
+};
+
+RailAppMenu.displayName = "RailAppMenu";
+
+export default RailAppMenu;
