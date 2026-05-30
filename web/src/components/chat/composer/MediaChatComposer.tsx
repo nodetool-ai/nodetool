@@ -127,6 +127,8 @@ export interface MediaChatComposerProps {
   allowedProviders?: string[];
   /** Hide non-tool-capable models in the language model picker. */
   requireToolSupport?: boolean;
+  /** Focus the prompt textarea on mount. Defaults to true (chat panel). */
+  autoFocus?: boolean;
 }
 
 /**
@@ -157,7 +159,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   selectedModel,
   onModelChange,
   allowedProviders,
-  requireToolSupport
+  requireToolSupport,
+  autoFocus = true
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -260,8 +263,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   // Focus on mount
   useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+    if (autoFocus) {
+      textareaRef.current?.focus();
+    }
+  }, [autoFocus]);
 
   // Close any open model / option dialogs whenever the mode changes. The
   // image- and video-model dialogs are intentionally shared between the

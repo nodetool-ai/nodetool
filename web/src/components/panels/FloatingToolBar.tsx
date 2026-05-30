@@ -40,6 +40,7 @@ import { MenuItemPrimitive } from "../ui_primitives/MenuItemPrimitive";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
+import CanvasMediaComposer from "./CanvasMediaComposer";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
 import { useShallow } from "zustand/react/shallow";
@@ -137,13 +138,28 @@ const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
   }
 );
 
-const styles = (theme: Theme) =>
+const containerStyles = (theme: Theme) =>
   css({
     position: "fixed",
     bottom: "20px",
     left: "50%",
     transform: "translateX(-50%)",
     zIndex: theme.zIndex.drawer,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "10px",
+    width: "min(720px, calc(100vw - 32px))",
+    // Let canvas interactions pass through the empty gap; the composer card
+    // and the controls pill re-enable pointer events for themselves.
+    pointerEvents: "none",
+    "& > *": {
+      pointerEvents: "auto"
+    }
+  });
+
+const pillStyles = (theme: Theme) =>
+  css({
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
@@ -511,13 +527,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   return (
     <>
-      <Box
-        css={styles(theme)}
-        className="floating-toolbar"
-        data-comfy-workflow={isComfyWorkflow ? "true" : "false"}
-        style={toolbarPosition}
-      >
-        {isMobile && (
+      <Box css={containerStyles(theme)} style={toolbarPosition}>
+        <CanvasMediaComposer />
+        <Box
+          css={pillStyles(theme)}
+          className="floating-toolbar"
+          data-comfy-workflow={isComfyWorkflow ? "true" : "false"}
+        >
+          {isMobile && (
           <ToolbarButton
             icon={<MoreHorizIcon />}
             tooltip="Menu"
@@ -660,6 +677,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           badge={pendingRunCount}
           aria-label="Run workflow"
         />
+        </Box>
       </Box>
 
       <Menu
