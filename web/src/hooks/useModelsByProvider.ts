@@ -93,13 +93,14 @@ export const useLanguageModelsByProvider = (options?: {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const aggregatedLanguageModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
-
-  const allModels = options?.requireToolSupport
-    ? aggregatedLanguageModels.filter((m) => m.supports_tools !== false)
-    : aggregatedLanguageModels;
+  const allModels = useMemo(() => {
+    const aggregated = queries
+      .filter((q) => q.data)
+      .flatMap((q) => q.data!.models);
+    return options?.requireToolSupport
+      ? aggregated.filter((m) => m.supports_tools !== false)
+      : aggregated;
+  }, [queries, options?.requireToolSupport]);
 
   // Track per-provider errors for debugging feedback
   const providerErrors = useMemo(() => {
@@ -130,9 +131,14 @@ export const useLanguageModelsByProvider = (options?: {
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,
@@ -222,18 +228,15 @@ export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): Mode
   const isFetching = queries.some((q) => q.isFetching);
   const error = providersError || queries.find((q) => q.error)?.error;
 
-  let allModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
-
-  // Filter by supported task. Lenient for generation tasks (untagged models
-  // pass); strict for specialized editing tasks (see STRICT_MODEL_TASKS).
-  if (opts?.task) {
-    const task = opts.task;
-    allModels = allModels.filter((m) => modelMatchesTask(m.supported_tasks, task));
-  }
-
-  // Debug logging removed
+  const task = opts?.task;
+  const allModels = useMemo(() => {
+    const aggregated = queries
+      .filter((q) => q.data)
+      .flatMap((q) => q.data!.models);
+    return task
+      ? aggregated.filter((m) => modelMatchesTask(m.supported_tasks, task))
+      : aggregated;
+  }, [queries, task]);
 
   const refetch = useMemo(
     () => async () => {
@@ -242,9 +245,14 @@ export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): Mode
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,
@@ -280,9 +288,10 @@ export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const allModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
+  const allModels = useMemo(
+    () => queries.filter((q) => q.data).flatMap((q) => q.data!.models),
+    [queries]
+  );
 
   const refetch = useMemo(
     () => async () => {
@@ -291,9 +300,14 @@ export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,
@@ -329,9 +343,10 @@ export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const allModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
+  const allModels = useMemo(
+    () => queries.filter((q) => q.data).flatMap((q) => q.data!.models),
+    [queries]
+  );
 
   const refetch = useMemo(
     () => async () => {
@@ -340,9 +355,14 @@ export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,
@@ -378,14 +398,15 @@ export const useVideoModelsByProvider = (opts?: { task?: VideoModelTask }): Mode
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  let allModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
-
-  if (opts?.task) {
-    const task = opts.task;
-    allModels = allModels.filter((m) => modelMatchesTask(m.supported_tasks, task));
-  }
+  const videoTask = opts?.task;
+  const allModels = useMemo(() => {
+    const aggregated = queries
+      .filter((q) => q.data)
+      .flatMap((q) => q.data!.models);
+    return videoTask
+      ? aggregated.filter((m) => modelMatchesTask(m.supported_tasks, videoTask))
+      : aggregated;
+  }, [queries, videoTask]);
 
   const refetch = useMemo(
     () => async () => {
@@ -394,9 +415,14 @@ export const useVideoModelsByProvider = (opts?: { task?: VideoModelTask }): Mode
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,

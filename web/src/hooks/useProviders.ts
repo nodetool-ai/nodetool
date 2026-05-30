@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { ProviderInfo } from "../stores/ApiTypes";
@@ -40,8 +41,9 @@ export const useProviders = (): UseProvidersResult => {
 export const useProvidersByCapability = (capability: string): UseProvidersResult => {
   const { providers, isLoading, isFetching, error } = useProviders();
 
-  const filteredProviders = providers.filter((p) =>
-    p.capabilities.includes(capability)
+  const filteredProviders = useMemo(
+    () => providers.filter((p) => p.capabilities.includes(capability)),
+    [providers, capability]
   );
 
   return {
