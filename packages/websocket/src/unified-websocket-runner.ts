@@ -2495,10 +2495,15 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    // Route to workflow processor when workflow_target or workflow_id is set.
+    // Route to the workflow processor ONLY when the client explicitly opts in
+    // via `workflow_target: "workflow"`. A bare `workflow_id` is context, not a
+    // routing signal: the editor binds the open workflow so `ui_*` tools target
+    // it, and that ambient id must not hijack the turn into running the
+    // workflow as a chatbot. Genuine workflow-chatbot runs set `workflow_target`
+    // (and carry `workflow_id`/`graph` for the processor to load/execute).
     const workflowTarget =
       typeof data.workflow_target === "string" ? data.workflow_target : null;
-    if (workflowTarget === "workflow" || workflowId) {
+    if (workflowTarget === "workflow") {
       await this.handleWorkflowMessage(data, requestSeq);
       return;
     }

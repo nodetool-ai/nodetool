@@ -205,9 +205,8 @@ function getRoutes() {
                 }}
               >
                 <SkipLinks />
-                {/* Fixed application header at the very top */}
-                <AppHeader />
-                {/* Main chat area beneath the header */}
+                {/* No AppHeader on chat — GlobalChat has its own
+                    "Back to editor" control. */}
                 <div
                   id="main-content"
                   style={{

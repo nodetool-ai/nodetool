@@ -13,8 +13,6 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AppsIcon from "@mui/icons-material/Apps";
 import DisplaySettingsIcon from "@mui/icons-material/Tv";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
 import ImageIcon from "@mui/icons-material/Image";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -129,6 +127,8 @@ export interface MediaChatComposerProps {
   allowedProviders?: string[];
   /** Hide non-tool-capable models in the language model picker. */
   requireToolSupport?: boolean;
+  /** Override the auto-generated, mode-aware textarea placeholder. */
+  placeholder?: string;
 }
 
 /**
@@ -159,7 +159,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   selectedModel,
   onModelChange,
   allowedProviders,
-  requireToolSupport
+  requireToolSupport,
+  placeholder: placeholderOverride
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -224,24 +225,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     useFileHandling();
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAttachClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleAttachChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        addFiles(Array.from(files));
-      }
-      // Reset so selecting the same file again re-triggers change.
-      e.target.value = "";
-    },
-    [addFiles]
-  );
-
   const { shiftKeyPressed, metaKeyPressed, altKeyPressed } = useKeyPressed(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("shift"),
@@ -403,6 +386,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   });
 
   const placeholder = useMemo(() => {
+    if (placeholderOverride) {
+      return placeholderOverride;
+    }
     if (isPi) {
       return "Message the Pi agent — it works in your workspace…";
     }
@@ -434,7 +420,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       return "Describe the motion…";
     }
     return "Continue the thread — or @ a node to compose with the canvas…";
-  }, [mode, isPi]);
+  }, [mode, isPi, placeholderOverride]);
 
   const isMediaMode =
     mode === "image" ||
@@ -738,12 +724,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     return m.name || m.id;
   }, [selectedModel, languageModel]);
 
-  const handleRetake = useCallback(() => {
-    setPrompt("");
-    clearFiles();
-    console.debug("Media composer reset");
-  }, [clearFiles]);
-
   const handleMoreClick = useCallback(() => {
     // Placeholder for "More" menu — additional options (seed, negative
     // prompt, guidance scale, etc.) will live here in a follow-up.
@@ -776,22 +756,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 onRemove={removeCallbacks.get(file.id)!}
               />
             ))}
-            <button
-              type="button"
-              className="media-attach-btn"
-              onClick={handleAttachClick}
-              aria-label="Attach files"
-            >
-              <AttachFileIcon />
-              <span>Attach</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              hidden
-              onChange={handleAttachChange}
-            />
           </div>
         )}
 
@@ -878,7 +842,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               {onMemoryToggle && (
                 <MediaControlChip
                   icon={<PsychologyOutlinedIcon fontSize="small" />}
-                  label={memoryEnabled ? "Memory: on" : "Memory: off"}
+                  title={memoryEnabled ? "Memory: on" : "Memory: off"}
                   active={!!memoryEnabled}
                   showChevron={false}
                   onClick={() => onMemoryToggle(!memoryEnabled)}
@@ -1323,27 +1287,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           )}
 
           <div className="media-chip-spacer" />
-
-          {!isMediaMode && (
-            <Text className="media-kbd-hint" aria-hidden size="smaller">
-              ↵ to send · ⇧↵ newline
-            </Text>
-          )}
-
-          {/* Retake (refresh) button */}
-          <Tooltip title="Clear prompt" delay={TOOLTIP_ENTER_DELAY}>
-            <span style={{ display: "inline-flex" }}>
-              <button
-                type="button"
-                className="media-retake-btn"
-                onClick={handleRetake}
-                disabled={!canGenerate}
-                aria-label="Clear prompt"
-              >
-                <RefreshIcon />
-              </button>
-            </span>
-          </Tooltip>
 
           {/* Primary Generate/Send button, or timer + stop when busy */}
           {isBusy ? (
