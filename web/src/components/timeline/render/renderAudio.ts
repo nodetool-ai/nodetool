@@ -45,7 +45,16 @@ export async function renderTimelineAudio(
 
   if (durationMs <= 0) return null;
 
-  const audioClips = clips.filter(isPlayableAudioClip);
+  const audioTracks = tracks.filter((track) => track.type === "audio");
+  const hasSolo = audioTracks.some((track) => track.solo);
+  const audibleTrackIds = new Set(
+    audioTracks
+      .filter((track) => !track.muted && (!hasSolo || track.solo))
+      .map((track) => track.id)
+  );
+  const audioClips = clips.filter(
+    (clip) => isPlayableAudioClip(clip) && audibleTrackIds.has(clip.trackId)
+  );
   if (audioClips.length === 0) return null;
 
   const resolved = await Promise.all(
