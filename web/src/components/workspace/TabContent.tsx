@@ -2,6 +2,7 @@ import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import WorkflowEditorSurface from "./WorkflowEditorSurface";
 import MiniAppPage from "../miniapps/MiniAppPage";
 import ImageSurface from "./ImageSurface";
+import SketchSurface from "./SketchSurface";
 import TextSurface from "./TextSurface";
 import Model3DSurface from "./Model3DSurface";
 import AudioSurface from "./AudioSurface";
@@ -28,6 +29,8 @@ const TabContent = ({ tab, active }: TabContentProps) => {
       );
     case "image":
       return <ImageSurface refId={tab.ref} mode={tab.mode} active={active} />;
+    case "sketch":
+      return <SketchSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "text":
       return <TextSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "model3d":

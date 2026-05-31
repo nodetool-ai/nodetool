@@ -3,8 +3,7 @@
  * TopBar — Timeline Editor top bar.
  *
  * Contains: project name, save status, Project / Library / Exports buttons,
- * Render All primary action, and an activity indicator slot (filled later by
- * NOD-311).
+ * export action, and an activity indicator slot.
  */
 
 import React, { memo } from "react";
@@ -17,8 +16,8 @@ import {
   Caption,
   EditorButton
 } from "../ui_primitives";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
 import { TopBarPrompt } from "./TopBarPrompt";
 
@@ -55,8 +54,10 @@ export interface TopBarProps {
   saveStatus?: string;
   /** Called when the user clicks the project name dropdown */
   onProjectNameClick?: () => void;
-  /** Called when the user clicks Render All */
-  onRenderAll?: () => void;
+  /** Called when the user clicks Export (renders the timeline to a video file) */
+  onExportVideo?: () => void;
+  /** True while an export render is in progress. */
+  isExporting?: boolean;
   /** Optional slot for an activity indicator (NOD-311) */
   activitySlot?: React.ReactNode;
 }
@@ -66,7 +67,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
     sequenceName = "Untitled Sequence",
     saveStatus,
     onProjectNameClick,
-    onRenderAll,
+    onExportVideo,
+    isExporting = false,
     activitySlot
   }) => {
     const theme = useTheme();
@@ -108,19 +110,23 @@ export const TopBar: React.FC<TopBarProps> = memo(
         {/* Center: quick-prompt generation bar */}
         <TopBarPrompt />
 
-        {/* Right: activity slot + Render All */}
+        {/* Right: activity slot + export */}
         <FlexRow gap={1} align="center">
           {/* Activity indicator slot — filled by NOD-311 */}
           {activitySlot}
 
-          <EditorButton
-            variant="contained"
-            onClick={onRenderAll}
-            startIcon={<PlayArrowIcon />}
-            size="small"
-          >
-            Render All
-          </EditorButton>
+          {onExportVideo && (
+            <EditorButton
+              variant="outlined"
+              onClick={onExportVideo}
+              disabled={isExporting}
+              startIcon={<FileDownloadIcon />}
+              size="small"
+            >
+              {isExporting ? "Exporting…" : "Export"}
+            </EditorButton>
+          )}
+
         </FlexRow>
       </FlexRow>
     );

@@ -19,6 +19,7 @@ import OpenMenu from "./OpenMenu";
 const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   workflow: true,
   image: true,
+  sketch: false,
   timeline: true,
   model3d: true,
   text: true,
@@ -28,6 +29,7 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
 const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   workflow: "⬡",
   image: "▦",
+  sketch: "✎",
   timeline: "▤",
   model3d: "◈",
   audio: "♪",
@@ -38,6 +40,7 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
 const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   workflow: colorForType("any"),
   image: colorForType("image"),
+  sketch: colorForType("image"),
   timeline: colorForType("video"),
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),

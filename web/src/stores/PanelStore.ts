@@ -12,6 +12,8 @@ import { persist } from "zustand/middleware";
  */
 export type LeftPanelView =
   | "workflows"
+  | "sketches"
+  | "timelines"
   | "settings"
   | "history"
   | "favorites"
@@ -63,6 +65,8 @@ const MAX_PANEL_SIZE = 800;
 
 const VALID_VIEWS: LeftPanelView[] = [
   "workflows",
+  "sketches",
+  "timelines",
   "settings",
   "history",
   "favorites",

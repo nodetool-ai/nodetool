@@ -23,11 +23,14 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   Caption,
+  Dialog,
   EditorButton,
   EmptyState,
   FlexColumn,
   FlexRow,
-  LoadingSpinner
+  LoadingSpinner,
+  ProgressBar,
+  Text
 } from "../ui_primitives";
 
 import { TopBar } from "./TopBar";
@@ -50,6 +53,7 @@ import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFresh
 import { useTimelineGenerationSubscriptions } from "../../hooks/timeline/useGenerateClip";
 import { useLoadTimelineIntoStore } from "../../hooks/timeline/useLoadTimelineIntoStore";
 import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
+import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -93,9 +97,10 @@ const previewRegionStyles = (theme: Theme) =>
 const inspectorRegionStyles = (theme: Theme) =>
   css({
     overflow: "hidden",
+    minHeight: 0,
     backgroundColor: theme.vars.palette.background.default,
-    alignItems: "center",
-    justifyContent: "center"
+    alignItems: "stretch",
+    justifyContent: "flex-start"
   });
 
 const dragHandleStyles = (theme: Theme) =>
@@ -114,6 +119,23 @@ const dragHandleStyles = (theme: Theme) =>
       boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
     }
   });
+
+/** Human-readable label for the current export phase. */
+function exportPhaseLabel(
+  progress: { phase: string; frame: number; totalFrames: number } | null
+): string {
+  if (!progress) return "Preparing…";
+  switch (progress.phase) {
+    case "audio":
+      return "Mixing audio…";
+    case "video":
+      return `Encoding frame ${progress.frame} / ${progress.totalFrames}`;
+    case "finalizing":
+      return "Finalizing…";
+    default:
+      return "Preparing…";
+  }
+}
 
 // ── Sub-region placeholder components ─────────────────────────────────────
 
@@ -139,7 +161,7 @@ const PreviewRegion: React.FC<{
     <FlexColumn
       css={previewRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "0 1 55%", minWidth: 0, width: 0 }}
+      sx={{ flex: "0 1 55%", minWidth: 0, minHeight: 0, width: 0 }}
     >
       {isLoading ? (
         <LoadingSpinner text="Loading sequence…" />
@@ -203,7 +225,7 @@ const InspectorRegion: React.FC = () => {
     <FlexColumn
       css={inspectorRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "0 1 45%", minWidth: 0, width: 0 }}
+      sx={{ flex: "0 1 45%", minWidth: 0, minHeight: 0, width: 0 }}
     >
       <TimelineInspector />
     </FlexColumn>
@@ -259,6 +281,19 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = memo(({
   // Activity counts for BottomStatusBar
   const generatingCount = useGeneratingCount();
   const failedCount = useFailedCount();
+
+  // Offline video export (frame-by-frame, 1:1 with the live preview).
+  const {
+    exportVideo,
+    cancel: cancelExport,
+    clearError: clearExportError,
+    isExporting,
+    progress: exportProgress,
+    error: exportError
+  } = useTimelineExport();
+  const handleExportVideo = useCallback(() => {
+    void exportVideo(sequence?.name);
+  }, [exportVideo, sequence?.name]);
 
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
@@ -388,6 +423,8 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = memo(({
           sequence?.name ??
           (sequenceUnavailable ? sequenceId : undefined)
         }
+        onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
+        isExporting={isExporting}
         activitySlot={<ActivityIndicator />}
       />
 
@@ -395,7 +432,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = memo(({
       <FlexRow
         fullWidth
         css={middleAreaStyles(theme)}
-        sx={{ flex: "1 1 auto", overflow: "hidden" }}
+        sx={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden" }}
       >
         <PreviewRegion
           isLoading={isLoading}
@@ -437,6 +474,40 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = memo(({
         generatingCount={generatingCount}
         failedCount={failedCount}
       />
+
+      {/* ── Export progress / error dialog ────────────────────────── */}
+      <Dialog
+        open={isExporting || exportError != null}
+        onClose={isExporting ? undefined : clearExportError}
+        title={exportError != null ? "Export failed" : "Exporting video"}
+        actions={
+          <EditorButton
+            variant={isExporting ? "outlined" : "contained"}
+            size="small"
+            onClick={isExporting ? cancelExport : clearExportError}
+          >
+            {isExporting ? "Cancel" : "Close"}
+          </EditorButton>
+        }
+      >
+        {exportError != null ? (
+          <Text size="small" sx={{ color: "error.main" }}>
+            {exportError}
+          </Text>
+        ) : (
+          <FlexColumn gap={1} sx={{ minWidth: 360, py: 1 }}>
+            <ProgressBar
+              value={Math.round((exportProgress?.ratio ?? 0) * 100)}
+              progressVariant={
+                exportProgress && exportProgress.totalFrames > 0
+                  ? "determinate"
+                  : "indeterminate"
+              }
+              label={exportPhaseLabel(exportProgress)}
+            />
+          </FlexColumn>
+        )}
+      </Dialog>
 
     </FlexColumn>
   );

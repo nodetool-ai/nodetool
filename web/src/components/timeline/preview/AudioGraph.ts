@@ -51,10 +51,19 @@ export class AudioGraph {
   private bufferCache = new Map<string, AudioBuffer>();
   private loadingPromises = new Map<string, Promise<AudioBuffer | null>>();
 
+  /**
+   * Optional pre-supplied context. The live preview leaves this undefined and
+   * lazily creates a real-time `AudioContext`; the offline renderer injects an
+   * `OfflineAudioContext` so the exact same scheduling + DSP graph mixes down
+   * the exported audio. Both are `BaseAudioContext`s for every node-creation
+   * call AudioGraph makes, so it is typed as `AudioContext` for the live path.
+   */
+  constructor(private readonly injectedContext?: AudioContext) {}
+
   /** Must be called from a user-gesture handler — triggers the autoplay policy. */
   getContext(): AudioContext {
     if (!this.ctx) {
-      this.ctx = new AudioContext();
+      this.ctx = this.injectedContext ?? new AudioContext();
       this.masterGain = this.ctx.createGain();
       this.masterGain.connect(this.ctx.destination);
     }
@@ -464,11 +473,14 @@ export class AudioGraph {
   }
 
   suspend(): void {
-    void this.ctx?.suspend();
+    // No-op on an OfflineAudioContext (no parameterless suspend).
+    const c = this.ctx as Partial<AudioContext> | null;
+    if (c && typeof c.suspend === "function") void c.suspend();
   }
 
   resume(): void {
-    void this.ctx?.resume();
+    const c = this.ctx as Partial<AudioContext> | null;
+    if (c && typeof c.resume === "function") void c.resume();
   }
 
   dispose(): void {
@@ -490,7 +502,9 @@ export class AudioGraph {
       }
     }
     this.trackChains.clear();
-    void this.ctx?.close();
+    // OfflineAudioContext has no close(); only close a real-time context.
+    const c = this.ctx as Partial<AudioContext> | null;
+    if (c && typeof c.close === "function") void c.close();
     this.ctx = null;
     this.masterGain = null;
   }

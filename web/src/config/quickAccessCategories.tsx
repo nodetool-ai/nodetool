@@ -2,7 +2,7 @@
 /**
  * Left-panel sidebar (top-level) and node-browser sub-tabs.
  *
- *  - `LEFT_PANEL_TOP_LEVEL` (5 entries): one icon per top-level view shown in
+ *  - `LEFT_PANEL_TOP_LEVEL`: one icon per top-level view shown in
  *    the vertical rail.
  *  - `NODE_SUBCATEGORIES` (8 entries): tile-grid sub-tabs nested inside the
  *    "Nodes" view. Each filters MetadataStore down to a node family.
@@ -18,6 +18,7 @@ import StarIcon from "@mui/icons-material/Star";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import ImageIcon from "@mui/icons-material/Image";
 import MovieIcon from "@mui/icons-material/Movie";
+import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import BuildIcon from "@mui/icons-material/Build";
@@ -118,6 +119,8 @@ const POPULAR_MODEL_RANK: ReadonlyMap<string, number> = new Map(
 export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
   { id: "nodes", label: "Nodes", icon: <HubIcon /> },
   { id: "workflows", label: "Workflows", icon: <GridViewIcon /> },
+  { id: "sketches", label: "Sketches", icon: <BrushOutlinedIcon /> },
+  { id: "timelines", label: "Timelines", icon: <MovieIcon /> },
   { id: "settings", label: "Settings", icon: <SettingsIcon /> },
   { id: "history", label: "History", icon: <HistoryIcon /> },
   { id: "favorites", label: "Favorites", icon: <StarIcon /> },

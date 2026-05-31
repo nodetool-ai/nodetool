@@ -202,8 +202,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         const trackType: "video" | "audio" =
           mediaType === "audio" ? "audio" : "video";
 
-        const rect = e.currentTarget.getBoundingClientRect();
-        const dropX = e.clientX - rect.left;
+        const rect = scrollableRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const dropX = Math.max(0, e.clientX - rect.left);
         const startMs = Math.max(
           0,
           Math.round((dropX + scrollLeftPx) * msPerPx)
@@ -420,6 +421,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             alignItems: "flex-start"
           }}
           fullWidth
+          onDragOver={handleEmptyAreaDragOver}
+          onDrop={handleEmptyAreaDrop}
         >
           {/* Header column */}
           <div css={headerColumnStyles(theme)}>
@@ -442,8 +445,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             css={scrollableAreaStyles}
             onScroll={handleScroll}
             onWheel={handleWheel}
-            onDragOver={handleEmptyAreaDragOver}
-            onDrop={handleEmptyAreaDrop}
           >
             <div
               css={lanesContainerStyles}
