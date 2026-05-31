@@ -1,4 +1,4 @@
-import { parseDataframeFile, isSupportedDataframeFile } from "../dataframeParsers";
+import { parseDataframeFile } from "../dataframeParsers";
 
 function csvFile(content: string, name = "test.csv"): File {
   const f = new File([content], name, { type: "text/csv" });
