@@ -31,9 +31,6 @@ export const sampleDuration = (sample: AudioSample): number =>
 export const secondsToFrame = (sample: AudioSample, seconds: number): number =>
   Math.round(seconds * sample.sampleRate);
 
-export const frameToSeconds = (sample: AudioSample, frame: number): number =>
-  sample.sampleRate > 0 ? frame / sample.sampleRate : 0;
-
 interface FrameRange {
   start: number;
   end: number;

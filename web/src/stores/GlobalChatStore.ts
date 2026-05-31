@@ -70,7 +70,7 @@ type AgentExecutionToolCalls = Record<
   Record<string, StepToolCall[]>
 >;
 
-export const DEFAULT_PERMISSION_MODE: PermissionMode = "default";
+const DEFAULT_PERMISSION_MODE: PermissionMode = "default";
 
 /** Decision a user can make on an inline tool-approval prompt. */
 export type ApprovalDecision = "allow" | "allow_for_chat" | "deny";

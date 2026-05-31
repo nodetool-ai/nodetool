@@ -16,7 +16,7 @@ export type ModelSelectorModel =
   | TTSModel
   | VideoModel;
 
-export type NormalizedModelMeta = {
+type NormalizedModelMeta = {
   sizeB?: number; // billions of params
   sizeBucket?: "1-2B" | "3-7B" | "8-15B" | "16-34B" | "35-70B" | "70B+";
   typeTags: string[]; // ["instruct","chat","base","sft","dpo","reasoning","code","math"]
@@ -76,7 +76,7 @@ export function normalizeModelMeta(m: LanguageModel): NormalizedModelMeta {
   };
 }
 
-export interface AdvancedModelFilters {
+interface AdvancedModelFilters {
   selectedTypes: TypeTag[];
   sizeBucket: SizeBucket | null;
   families: string[];

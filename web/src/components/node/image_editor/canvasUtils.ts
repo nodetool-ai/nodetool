@@ -54,7 +54,7 @@ export const canvasToImageCoords = (
 /**
  * Converts image coordinates to canvas coordinates
  */
-export const imageToCanvasCoords = (
+const imageToCanvasCoords = (
   imgX: number,
   imgY: number,
   canvas: HTMLCanvasElement,

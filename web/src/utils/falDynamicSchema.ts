@@ -4,7 +4,7 @@
  * app backend to avoid CORS; backend returns dynamic_properties and dynamic_outputs.
  */
 
-export interface DynamicInputMetadata {
+interface DynamicInputMetadata {
   type: string;
   type_args?: unknown[];
   optional?: boolean;
@@ -13,7 +13,7 @@ export interface DynamicInputMetadata {
   type_name?: string | null;
 }
 
-export interface ResolvedFalSchema {
+interface ResolvedFalSchema {
   dynamic_properties: Record<string, unknown>;
   dynamic_inputs?: Record<string, DynamicInputMetadata>;
   dynamic_outputs: Record<
