@@ -21,7 +21,7 @@ import { shallow } from "zustand/shallow";
 export const useDuplicateNodes = (
   vertical: boolean = false,
   keepUpstreamConnections: boolean = true
-) => {
+): (() => void) => {
   const reactFlow = useReactFlow();
   const {
     nodes,
