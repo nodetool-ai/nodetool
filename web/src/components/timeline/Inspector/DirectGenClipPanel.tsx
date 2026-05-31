@@ -56,6 +56,14 @@ const sectionStyles = (theme: Theme) =>
     padding: theme.spacing(1)
   });
 
+const panelSx = {
+  width: "100%",
+  height: "100%",
+  maxHeight: "100%",
+  minHeight: 0,
+  overflow: "auto"
+};
+
 const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   clipId
 }) => {
@@ -179,7 +187,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   const generateLabel = clip.currentAssetId ? "Regenerate" : "Generate";
 
   return (
-    <Panel sx={{ width: "100%", overflow: "auto" }}>
+    <Panel sx={panelSx}>
       <FlexColumn gap={0}>
         <GeneratedClipHeader clip={clip} />
 

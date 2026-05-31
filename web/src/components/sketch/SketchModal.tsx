@@ -387,7 +387,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             </Tooltip>
           )}
 
-          <Tooltip title={`Export Image (${displayCombo("export-png")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip title="Export Image" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton size="small" aria-label="Export Image" onClick={() => editorRef.current?.exportPng()}>
               <SaveAltIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>

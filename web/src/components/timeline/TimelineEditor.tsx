@@ -97,9 +97,10 @@ const previewRegionStyles = (theme: Theme) =>
 const inspectorRegionStyles = (theme: Theme) =>
   css({
     overflow: "hidden",
+    minHeight: 0,
     backgroundColor: theme.vars.palette.background.default,
-    alignItems: "center",
-    justifyContent: "center"
+    alignItems: "stretch",
+    justifyContent: "flex-start"
   });
 
 const dragHandleStyles = (theme: Theme) =>
@@ -160,7 +161,7 @@ const PreviewRegion: React.FC<{
     <FlexColumn
       css={previewRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "0 1 55%", minWidth: 0, width: 0 }}
+      sx={{ flex: "0 1 55%", minWidth: 0, minHeight: 0, width: 0 }}
     >
       {isLoading ? (
         <LoadingSpinner text="Loading sequence…" />
@@ -224,7 +225,7 @@ const InspectorRegion: React.FC = () => {
     <FlexColumn
       css={inspectorRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "0 1 45%", minWidth: 0, width: 0 }}
+      sx={{ flex: "0 1 45%", minWidth: 0, minHeight: 0, width: 0 }}
     >
       <TimelineInspector />
     </FlexColumn>
@@ -431,7 +432,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = memo(({
       <FlexRow
         fullWidth
         css={middleAreaStyles(theme)}
-        sx={{ flex: "1 1 auto", overflow: "hidden" }}
+        sx={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden" }}
       >
         <PreviewRegion
           isLoading={isLoading}

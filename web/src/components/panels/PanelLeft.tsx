@@ -9,11 +9,13 @@ import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
+import TimelineListPanel, { CreateTimelineButton } from "../timeline/TimelineListPanel";
+import SketchListPanel, { CreateSketchButton } from "../sketch/SketchListPanel";
 import PanelChat from "../chat/containers/PanelChat";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
@@ -28,6 +30,7 @@ import {
   usePanelStore
 } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import {
   LEFT_PANEL_TOP_LEVEL,
   getTopLevelCategory
@@ -53,6 +56,16 @@ const HEADER_HEIGHT_MOBILE = 40;
 const CHAT_ROUTE_HIDDEN_VIEWS: readonly LeftPanelView[] = LEFT_PANEL_TOP_LEVEL.filter(
   (cat) => cat.id !== "assets"
 ).map((cat) => cat.id);
+
+const WORKFLOW_EDIT_ONLY_VIEWS: readonly LeftPanelView[] = [
+  "nodes",
+  "settings",
+  "history",
+  "favorites"
+];
+
+const isWorkflowEditOnlyView = (view: string): view is LeftPanelView =>
+  (WORKFLOW_EDIT_ONLY_VIEWS as readonly string[]).includes(view);
 
 const styles = (
   theme: Theme,
@@ -352,6 +365,42 @@ const PanelContent = memo(function PanelContent({
           </ScrollArea>
         </FlexColumn>
       )}
+      {activeView === "sketches" && (
+        <FlexColumn
+          className="sketch-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Sketches"
+              actions={<CreateSketchButton />}
+            />
+          )}
+          <SketchListPanel />
+        </FlexColumn>
+      )}
+      {activeView === "timelines" && (
+        <FlexColumn
+          className="timeline-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Timelines"
+              actions={<CreateTimelineButton />}
+            />
+          )}
+          <TimelineListPanel />
+        </FlexColumn>
+      )}
       {activeView === "settings" && currentWorkflow && (
         <Box
           className="workflow-settings-container"
@@ -493,7 +542,7 @@ const MobilePanelLeft: React.FC<{
         className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
         css={mobileLauncherStyles(theme, hasHeader)}
         onClick={isVisible ? onClose : onOpen}
-        ariaLabel={isVisible ? "Close panel" : "Open workflows panel"}
+        ariaLabel={isVisible ? "Close panel" : "Open left panel"}
         aria-expanded={isVisible}
         tabIndex={-1}
         icon={<MenuIcon />}
@@ -503,7 +552,7 @@ const MobilePanelLeft: React.FC<{
         open={isVisible}
         onClose={onClose}
         title={launcherTitle}
-        ariaLabel="Workflows and assets panel"
+        ariaLabel="Workflows, sketches, timelines, and assets panel"
         headerExtras={
           <div css={mobileHeaderExtrasStyles(theme)}>
             <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
@@ -513,6 +562,24 @@ const MobilePanelLeft: React.FC<{
                 ariaLabel="Show workflows"
                 tabIndex={-1}
                 icon={<GridViewIcon />}
+              />
+            </Tooltip>
+            <Tooltip title="Sketches" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+              <ToolbarIconButton
+                className={`tab-button ${activeView === "sketches" ? "active" : ""}`}
+                onClick={() => handleSheetViewChange("sketches")}
+                ariaLabel="Show sketches"
+                tabIndex={-1}
+                icon={<IconForType iconName="image" showTooltip={false} iconSize="small" />}
+              />
+            </Tooltip>
+            <Tooltip title="Timelines" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+              <ToolbarIconButton
+                className={`tab-button ${activeView === "timelines" ? "active" : ""}`}
+                onClick={() => handleSheetViewChange("timelines")}
+                ariaLabel="Show timelines"
+                tabIndex={-1}
+                icon={<IconForType iconName="video" showTooltip={false} iconSize="small" />}
               />
             </Tooltip>
             <Tooltip title="Assets" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
@@ -527,6 +594,8 @@ const MobilePanelLeft: React.FC<{
 
             <Box sx={{ flex: 1 }} />
             {activeView === "workflows" && <CreateWorkflowButton />}
+            {activeView === "sketches" && <CreateSketchButton />}
+            {activeView === "timelines" && <CreateTimelineButton />}
           </div>
         }
       >
@@ -558,6 +627,10 @@ const PanelLeft: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
+  const activeWorkspaceTab = useWorkspaceTabsStore((state) => {
+    const activeTabId = state.activeTabId;
+    return state.tabs.find((tab) => tab.id === activeTabId) ?? null;
+  });
 
   const isStandaloneMode =
     location.pathname.startsWith("/standalone-chat") ||
@@ -569,6 +642,11 @@ const PanelLeft: React.FC = () => {
   // conversation sidebar, so the rail's "Agent" entry is redundant. The chat
   // route also drops the AppHeader, so the rail runs full-height there.
   const isChatRoute = location.pathname.startsWith("/chat");
+  const isWorkflowEditActive =
+    location.pathname.startsWith("/editor/") ||
+    (location.pathname.startsWith("/workspace") &&
+      activeWorkspaceTab?.type === "workflow" &&
+      activeWorkspaceTab.mode === "edit");
   const hasHeader = !isStandaloneMode && !isChatRoute;
 
   const {
@@ -591,21 +669,37 @@ const PanelLeft: React.FC = () => {
     (state) => state.setActiveNodeCategory
   );
   const setVisibility = usePanelStore((state) => state.setVisibility);
+  const setActiveView = usePanelStore((state) => state.setActiveView);
+
+  const displayActiveView: LeftPanelView =
+    isWorkflowEditOnlyView(activeView) && !isWorkflowEditActive
+      ? "workflows"
+      : (activeView as LeftPanelView);
+
+  const hiddenViews = useMemo<readonly LeftPanelView[] | undefined>(() => {
+    if (isChatRoute) {
+      return CHAT_ROUTE_HIDDEN_VIEWS;
+    }
+    return isWorkflowEditActive ? undefined : WORKFLOW_EDIT_ONLY_VIEWS;
+  }, [isChatRoute, isWorkflowEditActive]);
 
   const onViewChange = useCallback(
     (view: LeftPanelView) => {
+      if (isWorkflowEditOnlyView(view) && !isWorkflowEditActive) {
+        return;
+      }
       handlePanelToggle(view);
     },
-    [handlePanelToggle]
+    [handlePanelToggle, isWorkflowEditActive]
   );
 
   const handlePanelToggleClick = useCallback(() => {
-    handlePanelToggle(activeView);
-  }, [handlePanelToggle, activeView]);
+    handlePanelToggle(displayActiveView);
+  }, [handlePanelToggle, displayActiveView]);
 
   const handleMobileOpen = useCallback(() => {
-    handlePanelToggle(activeView);
-  }, [handlePanelToggle, activeView]);
+    handlePanelToggle(displayActiveView);
+  }, [handlePanelToggle, displayActiveView]);
 
   const handleMobileClose = useCallback(() => {
     setVisibility(false);
@@ -620,6 +714,12 @@ const PanelLeft: React.FC = () => {
     }
   }, [isChatRoute, setVisibility]);
 
+  useEffect(() => {
+    if (!isWorkflowEditActive && isWorkflowEditOnlyView(activeView)) {
+      setActiveView("workflows");
+    }
+  }, [activeView, isWorkflowEditActive, setActiveView]);
+
   if (isMobile && isChatRoute) {
     return null;
   }
@@ -627,7 +727,7 @@ const PanelLeft: React.FC = () => {
   if (isMobile) {
     return (
       <MobilePanelLeft
-        activeView={activeView as LeftPanelView}
+        activeView={displayActiveView}
         activeNodeCategory={activeNodeCategory}
         setActiveNodeCategory={setActiveNodeCategory}
         isVisible={isVisible}
@@ -644,17 +744,17 @@ const PanelLeft: React.FC = () => {
     <div
       css={styles(theme, hasHeader, false)}
       className={`panel-left-container ${
-        activeView === "nodes" ? "is-nodes" : ""
+        displayActiveView === "nodes" ? "is-nodes" : ""
       }`}
     >
       <ContextMenuProvider>
         <ContextMenus />
         <VerticalToolbar
-          activeView={activeView}
+          activeView={displayActiveView}
           onViewChange={onViewChange}
           handlePanelToggle={handlePanelToggleClick}
           showAppMenu={isWorkspace || isChatRoute}
-          hiddenViews={isChatRoute ? CHAT_ROUTE_HIDDEN_VIEWS : undefined}
+          hiddenViews={hiddenViews}
         />
 
         {isVisible && (
@@ -670,7 +770,10 @@ const PanelLeft: React.FC = () => {
             onKeyDown={(e) => {
               if (
                 e.key === "Escape" &&
-                (activeView === "nodes" || activeView === "workflows")
+                (displayActiveView === "nodes" ||
+                  displayActiveView === "workflows" ||
+                  displayActiveView === "sketches" ||
+                  displayActiveView === "timelines")
               ) {
                 e.stopPropagation();
                 setVisibility(false);
@@ -689,7 +792,7 @@ const PanelLeft: React.FC = () => {
             />
             <div className="panel-inner-content">
               <PanelContent
-                activeView={activeView}
+                activeView={displayActiveView}
                 activeNodeCategory={activeNodeCategory}
                 setActiveNodeCategory={setActiveNodeCategory}
                 handlePanelToggle={handlePanelToggle}

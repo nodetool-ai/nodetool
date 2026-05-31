@@ -49,6 +49,10 @@ function downloadBlob(bytes: Uint8Array, mimeType: string, filename: string): vo
   URL.revokeObjectURL(url);
 }
 
+function clipEndMs(clip: { startMs: number; durationMs: number }): number {
+  return clip.startMs + clip.durationMs;
+}
+
 export function useTimelineExport(): UseTimelineExportResult {
   const { tracks, clips, width, height, fps, durationMs } = useTimelineStore(
     useShallow((s) => ({
@@ -94,13 +98,22 @@ export function useTimelineExport(): UseTimelineExportResult {
       };
 
       try {
+        const clipsDurationMs = clips.reduce(
+          (max, clip) => Math.max(max, clipEndMs(clip)),
+          0
+        );
+        const exportDurationMs = Math.max(durationMs, clipsDurationMs);
+        if (exportDurationMs <= 0) {
+          throw new Error("Add a clip before exporting.");
+        }
+
         const { bytes, mimeType } = await renderTimeline({
           tracks,
           clips,
           width,
           height,
           fps,
-          durationMs,
+          durationMs: exportDurationMs,
           resolveUrl,
           signal: controller.signal,
           onProgress: setProgress

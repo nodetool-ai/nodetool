@@ -790,6 +790,16 @@ async function saveSnapshot(
   }
 }
 
+export async function saveCurrentSketchDocument(
+  onSaved?: (response: SketchDocumentResponse) => void
+): Promise<void> {
+  const store = useSketchSessionStore.getState();
+  if (!store.documentId) {
+    return;
+  }
+  await saveSnapshot(store.documentId, store.name, onSaved);
+}
+
 export function useStandaloneSketchDocument(
   response: SketchDocumentResponse | undefined,
   enabled = true
