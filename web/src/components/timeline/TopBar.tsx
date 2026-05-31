@@ -19,6 +19,7 @@ import {
 } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 
 import { TopBarPrompt } from "./TopBarPrompt";
 
@@ -57,6 +58,10 @@ export interface TopBarProps {
   onProjectNameClick?: () => void;
   /** Called when the user clicks Render All */
   onRenderAll?: () => void;
+  /** Called when the user clicks Export (renders the timeline to a video file) */
+  onExportVideo?: () => void;
+  /** True while an export render is in progress. */
+  isExporting?: boolean;
   /** Optional slot for an activity indicator (NOD-311) */
   activitySlot?: React.ReactNode;
 }
@@ -67,6 +72,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
     saveStatus,
     onProjectNameClick,
     onRenderAll,
+    onExportVideo,
+    isExporting = false,
     activitySlot
   }) => {
     const theme = useTheme();
@@ -112,6 +119,18 @@ export const TopBar: React.FC<TopBarProps> = memo(
         <FlexRow gap={1} align="center">
           {/* Activity indicator slot — filled by NOD-311 */}
           {activitySlot}
+
+          {onExportVideo && (
+            <EditorButton
+              variant="outlined"
+              onClick={onExportVideo}
+              disabled={isExporting}
+              startIcon={<FileDownloadIcon />}
+              size="small"
+            >
+              {isExporting ? "Exporting…" : "Export"}
+            </EditorButton>
+          )}
 
           <EditorButton
             variant="contained"

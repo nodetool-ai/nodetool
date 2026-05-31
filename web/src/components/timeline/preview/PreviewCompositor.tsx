@@ -24,6 +24,14 @@ import { getAssetUrl } from "../../../utils/assetHelpers";
 import { WebGPUCompositor } from "./gpu/compositor";
 import type { CompositeLayer, CompositorBlendMode } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
+import {
+  clipSourceTimeSec,
+  computeActiveLayers,
+  effectiveAssetId,
+  isClipActive,
+  trackZ,
+  MAX_VIDEO_LAYERS
+} from "./sceneModel";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -32,7 +40,7 @@ interface PlaceholderLayer {
   name: string;
 }
 
-const HOT_POOL_SIZE = 8;
+const HOT_POOL_SIZE = MAX_VIDEO_LAYERS;
 const COLD_POOL_SIZE = 4;
 const TOTAL_POOL_SIZE = HOT_POOL_SIZE + COLD_POOL_SIZE;
 /** Preload upcoming clips within this lookahead window (ms). */
@@ -40,14 +48,6 @@ const PRELOAD_LOOKAHEAD_MS = 30_000;
 /** LRU cap on cached decoded <img> elements. Keeps memory bounded in long
  *  sessions that touch many unique image assets. */
 const IMAGE_CACHE_MAX = 64;
-/**
- * Top-of-UI track (lowest `track.index`) renders on top in the composite —
- * matches Premiere / Resolve / FCP. Compositor draws layers from low z to
- * high z, so we invert the UI index. Constant offset keeps numbers
- * positive for DOM placeholder z-indices too.
- */
-const LAYER_Z_BASE = 1000;
-const trackZ = (uiIndex: number): number => LAYER_Z_BASE - uiIndex;
 
 const compositorStyles = css({
   position: "relative",
@@ -134,50 +134,11 @@ interface ActiveImageLayer {
   trackEffects?: TrackEffect[];
 }
 
-function isClipActive(clip: TimelineClip, currentTimeMs: number): boolean {
-  return (
-    currentTimeMs >= clip.startMs &&
-    currentTimeMs < clip.startMs + clip.durationMs
-  );
-}
-
-/**
- * Opacity multiplier for a clip given the playhead position. Implements
- * the incoming `transitionIn` ramp (0→1 over `durationMs`). Returns 1 when
- * no transition applies. Crossfade is the only type currently supported.
- */
-function transitionOpacity(clip: TimelineClip, currentTimeMs: number): number {
-  const t = clip.transitionIn;
-  if (!t || t.durationMs <= 0) return 1;
-  const intoClip = currentTimeMs - clip.startMs;
-  if (intoClip >= t.durationMs) return 1;
-  if (intoClip <= 0) return 0;
-  return intoClip / t.durationMs;
-}
-
 function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
   return (
     clip.startMs > currentTimeMs &&
     clip.startMs <= currentTimeMs + PRELOAD_LOOKAHEAD_MS
   );
-}
-
-function effectiveAssetId(clip: TimelineClip): string | undefined {
-  switch (clip.status) {
-    case "generated":
-    case "stale":
-    case "locked":
-    case "generating":
-      return clip.currentAssetId;
-    default:
-      return undefined;
-  }
-}
-
-function resolveBlendMode(
-  b: TimelineClip["blendMode"]
-): CompositorBlendMode {
-  return b ?? "normal";
 }
 
 export const PreviewCompositor: React.FC = memo(() => {
@@ -375,21 +336,6 @@ export const PreviewCompositor: React.FC = memo(() => {
     return () => ro.disconnect();
   }, [sequenceWidth, sequenceHeight]);
 
-  const sortedTracks = useMemo(
-    () => [...tracks].sort((a, b) => a.index - b.index),
-    [tracks]
-  );
-
-  const clipsByTrackId = useMemo(() => {
-    const m = new Map<string, TimelineClip[]>();
-    for (const c of clips) {
-      const arr = m.get(c.trackId);
-      if (arr) arr.push(c);
-      else m.set(c.trackId, [c]);
-    }
-    return m;
-  }, [clips]);
-
   const clipById = useMemo(
     () => new Map(clips.map((c) => [c.id, c])),
     [clips]
@@ -400,74 +346,49 @@ export const PreviewCompositor: React.FC = memo(() => {
     const imageLayers: ActiveImageLayer[] = [];
     const placeholders: PlaceholderLayer[] = [];
 
-    for (const track of sortedTracks) {
-      if (!track.visible) continue;
-      const trackClips = clipsByTrackId.get(track.id) ?? [];
-      // All clips overlapping the playhead. With transitions, two adjacent
-      // clips can be active simultaneously during the cross-fade overlap.
-      // Order by startMs so the outgoing (older) clip composites first and
-      // the incoming clip blends on top.
-      const activeClips = trackClips
-        .filter((c) => isClipActive(c, currentTimeMs))
-        .sort((a, b) => a.startMs - b.startMs);
+    // Same scene description the offline renderer consumes — so the preview
+    // and the exported video composite identical frames.
+    const layers = computeActiveLayers(tracks, clips, currentTimeMs, {
+      maxVideoLayers: HOT_POOL_SIZE
+    });
 
-      for (const clip of activeClips) {
-        if (clip.mediaType === "audio") continue;
+    for (const layer of layers) {
+      const url = resolveUrl(layer.assetId);
+      const placeholder: PlaceholderLayer = {
+        clipId: layer.clipId,
+        trackIndex: layer.trackIndex,
+        status: layer.clip.status,
+        name: layer.clip.name
+      };
 
-        const assetId = effectiveAssetId(clip);
-        const url = resolveUrl(assetId);
-        const baseOpacity = clip.opacity ?? 1;
-        const opacity = baseOpacity * transitionOpacity(clip, currentTimeMs);
-
-        if (
-          clip.mediaType === "image" &&
-          (track.type === "video" || track.type === "overlay")
-        ) {
-          imageLayers.push({
-            clipId: clip.id,
-            trackIndex: track.index,
-            blendMode: resolveBlendMode(clip.blendMode),
-            opacity,
-            assetUrl: url ?? "",
-            status: clip.status,
-            transform: clip.transform,
-            borderRadius: clip.borderRadius,
-            effects: clip.effects,
-            trackEffects: track.effects
-          });
-          if (!url) {
-            placeholders.push({
-              clipId: clip.id,
-              trackIndex: track.index,
-              status: clip.status,
-              name: clip.name
-            });
-          }
-        } else if (
-          (clip.mediaType === "video" || clip.mediaType === "overlay") &&
-          (track.type === "video" || track.type === "overlay")
-        ) {
-          if (url && videoSlots.length < HOT_POOL_SIZE) {
-            videoSlots.push({
-              clipId: clip.id,
-              trackIndex: track.index,
-              blendMode: resolveBlendMode(clip.blendMode),
-              opacity,
-              assetUrl: url,
-              transform: clip.transform,
-              borderRadius: clip.borderRadius,
-              effects: clip.effects,
-              trackEffects: track.effects
-            });
-          } else if (!url) {
-            placeholders.push({
-              clipId: clip.id,
-              trackIndex: track.index,
-              status: clip.status,
-              name: clip.name
-            });
-          }
-        }
+      if (layer.kind === "image") {
+        imageLayers.push({
+          clipId: layer.clipId,
+          trackIndex: layer.trackIndex,
+          blendMode: layer.blendMode,
+          opacity: layer.opacity,
+          assetUrl: url ?? "",
+          status: layer.clip.status,
+          transform: layer.transform,
+          borderRadius: layer.borderRadius,
+          effects: layer.effects,
+          trackEffects: layer.trackEffects
+        });
+        if (!url) placeholders.push(placeholder);
+      } else if (url) {
+        videoSlots.push({
+          clipId: layer.clipId,
+          trackIndex: layer.trackIndex,
+          blendMode: layer.blendMode,
+          opacity: layer.opacity,
+          assetUrl: url,
+          transform: layer.transform,
+          borderRadius: layer.borderRadius,
+          effects: layer.effects,
+          trackEffects: layer.trackEffects
+        });
+      } else {
+        placeholders.push(placeholder);
       }
     }
 
@@ -476,7 +397,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       activeImageLayers: imageLayers,
       placeholderLayers: placeholders
     };
-  }, [sortedTracks, clipsByTrackId, currentTimeMs, resolveUrl, urlCacheVersion]);
+  }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion]);
 
   // Source dims + transform for the single selected clip, but only while it is
   // actually rendered (active at the playhead) so the gizmo traces a visible
@@ -561,12 +482,7 @@ export const PreviewCompositor: React.FC = memo(() => {
       const rate = clip?.speedBaked
         ? 1
         : Math.max(0.0001, clip?.speedMultiplier ?? 1);
-      const intoClipTimelineSec =
-        (currentTimeMs - (clip?.startMs ?? 0)) / 1000;
-      const targetSec = Math.max(
-        0,
-        intoClipTimelineSec * rate + (clip?.inPointMs ?? 0) / 1000
-      );
+      const targetSec = clip ? clipSourceTimeSec(clip, currentTimeMs) : 0;
 
       // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
       // a subsequent play() can reject with AbortError. Defer until the

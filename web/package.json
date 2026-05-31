@@ -46,6 +46,7 @@
     "fuse.js": "^7.4.0",
     "jszip": "^3.10.1",
     "lexical": "^0.32.1",
+    "mediabunny": "^1.45.4",
     "monaco-editor": "^0.55.1",
     "papaparse": "^5.5.3",
     "plotly.js": "^3.5.1",
