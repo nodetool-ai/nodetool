@@ -50,10 +50,14 @@ function extFromUri(uri: string | undefined): string | undefined {
  * The workflow is supplied in ComfyUI's API ("prompt") format — a map of
  * node id to `{ class_type, inputs }`. The web UI loads a workflow (paste or
  * drop a `.json`/`.png`) and exposes its `Load*` nodes as typed inputs and
- * `Save*` nodes as typed outputs. Each dynamic handle is keyed
+ * `Save*` nodes as streaming outputs. Dynamic input handles are keyed
  * `"<comfyNodeId>:<field>"`; connected values are injected into the prompt
- * before submission (assets are uploaded to the ComfyUI server first), and
- * output files are returned per output node as `"<comfyNodeId>:<kind>"`.
+ * before submission (assets are uploaded to the ComfyUI server first).
+ *
+ * Outputs stream: this is a streaming-output node, so each save node's media
+ * is emitted on a per-node slot keyed `"<comfyNodeId>:image|audio|video"` the
+ * moment that node finishes — one item per file, so batches naturally produce
+ * multiple outputs. A final `output` slot carries the raw ComfyUI history.
  */
 export class ComfyWorkflowNode extends BaseNode {
   static readonly nodeType = "lib.comfy.RunWorkflow";
@@ -62,8 +66,8 @@ export class ComfyWorkflowNode extends BaseNode {
     "Run a ComfyUI workflow on a ComfyUI server.\n    comfy, comfyui, workflow, image, diffusion\n\n    Use cases:\n    - Generate images with an existing ComfyUI workflow\n    - Call a local or remote ComfyUI server (RunPod, etc.)\n    - Embed ComfyUI generation inside a NodeTool workflow";
   static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
+  static readonly isStreamingOutput = true;
   static readonly metadataOutputTypes = {
-    images: "list[image]",
     output: "dict[str, any]"
   };
 
@@ -137,20 +141,37 @@ export class ComfyWorkflowNode extends BaseNode {
     node.inputs[field] = value;
   }
 
-  /** Convert downloaded ComfyUI output files into NodeTool media refs. */
-  private filesToRefs(
+  /** Build a single NodeTool media ref from one downloaded ComfyUI file. */
+  private fileToRef(
     kind: "image" | "audio" | "video",
-    files: ComfyFileOutput[]
-  ): Array<Record<string, unknown>> {
-    return files.map((f) => ({
-      type: kind,
-      uri: "",
-      data: f.data,
-      mimeType: f.mimeType
-    }));
+    file: ComfyFileOutput
+  ): Record<string, unknown> {
+    return { type: kind, uri: "", data: file.data, mimeType: file.mimeType };
   }
 
+  /**
+   * Buffered fallback for non-streaming consumers: drain the streaming output
+   * and merge frames into a single record (slots with multiple files collapse
+   * to an array).
+   */
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const merged: Record<string, unknown> = {};
+    for await (const frame of this.genProcess(context)) {
+      for (const [key, value] of Object.entries(frame)) {
+        if (key in merged) {
+          const prev = merged[key];
+          merged[key] = Array.isArray(prev) ? [...prev, value] : [prev, value];
+        } else {
+          merged[key] = value;
+        }
+      }
+    }
+    return merged;
+  }
+
+  async *genProcess(
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
     const endpoint = String(this.endpoint ?? "").trim();
     if (!endpoint) {
       throw new Error("ComfyUI endpoint is required");
@@ -235,48 +256,72 @@ export class ComfyWorkflowNode extends BaseNode {
       }
     };
 
-    const { result } = executeComfy(prompt, endpoint, onProgress, timeoutMs);
-    const res = await result;
+    // Bridge the executor's onNodeOutput WS callback into this generator: each
+    // downloaded file becomes one queued frame that we yield to its node slot.
+    const queue: Array<Record<string, unknown>> = [];
+    let notify: (() => void) | null = null;
+    const wake = (): void => {
+      const fn = notify;
+      notify = null;
+      fn?.();
+    };
 
+    let fileCount = 0;
+    const onNodeOutput = (cnId: string, outs: ComfyNodeOutputs): void => {
+      const groups: Array<["image" | "audio" | "video", ComfyFileOutput[]]> = [
+        ["image", outs.images ?? []],
+        ["audio", outs.audio ?? []],
+        ["video", outs.video ?? []]
+      ];
+      for (const [kind, files] of groups) {
+        for (const file of files) {
+          fileCount += 1;
+          queue.push({ [`${cnId}:${kind}`]: this.fileToRef(kind, file) });
+        }
+      }
+      if (queue.length > 0) {
+        logLine(`Output from #${cnId}`);
+        wake();
+      }
+    };
+
+    let settledResult: Awaited<typeof result> | null = null;
+    const { result } = executeComfy(
+      prompt,
+      endpoint,
+      onProgress,
+      timeoutMs,
+      onNodeOutput
+    );
+    const done = result.then((r) => {
+      settledResult = r;
+      wake();
+    });
+
+    // Drain streamed outputs as they arrive, until execution settles.
+    while (settledResult === null || queue.length > 0) {
+      if (queue.length === 0) {
+        await new Promise<void>((resolve) => {
+          notify = resolve;
+        });
+        continue;
+      }
+      yield queue.shift() as Record<string, unknown>;
+    }
+    await done;
+
+    const res = settledResult as Awaited<typeof result>;
     if (res.status !== "completed") {
       logLine(res.error ?? "ComfyUI execution failed", "error");
       throw new Error(res.error ?? "ComfyUI execution failed");
     }
 
-    const imageCount = res.images?.length ?? 0;
     logLine(
-      `ComfyUI workflow completed (${imageCount} image${imageCount === 1 ? "" : "s"})`
+      `ComfyUI workflow completed (${fileCount} file${fileCount === 1 ? "" : "s"})`
     );
 
-    const output: Record<string, unknown> = {
-      // Legacy convenience outputs (flat across all nodes + raw history).
-      images: (res.images ?? []).map((img) => ({
-        type: "image",
-        uri: "",
-        data: img.data,
-        mimeType: "image/png"
-      })),
-      output: res.raw_output ?? {}
-    };
-
-    // Per-node typed outputs keyed "<comfyNodeId>:<kind>".
-    const nodeOutputs: Record<string, ComfyNodeOutputs> =
-      res.nodeOutputs ?? {};
-    for (const [nodeId, outs] of Object.entries(nodeOutputs)) {
-      if (outs.images?.length) {
-        output[`${nodeId}:images`] = this.filesToRefs("image", outs.images);
-      }
-      if (outs.audio?.length) {
-        const refs = this.filesToRefs("audio", outs.audio);
-        output[`${nodeId}:audio`] = refs.length === 1 ? refs[0] : refs;
-      }
-      if (outs.video?.length) {
-        const refs = this.filesToRefs("video", outs.video);
-        output[`${nodeId}:video`] = refs.length === 1 ? refs[0] : refs;
-      }
-    }
-
-    return output;
+    // Final frame: raw ComfyUI history on the static `output` slot.
+    yield { output: res.raw_output ?? {} };
   }
 }
 

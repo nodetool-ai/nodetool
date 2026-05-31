@@ -62,21 +62,25 @@ const LOAD_CLASS_INPUTS: Record<string, { field: string; type: string }> = {
   VHS_LoadVideo: { field: "video", type: "video" }
 };
 
-/** Curated Save / Preview classes -> typed output. */
+/**
+ * Curated Save / Preview classes -> streaming output kind. Outputs stream one
+ * item per file, so each slot is a singular media type (not a list), keyed
+ * `"<nodeId>:<kind>"` to match the backend's emitted handles.
+ */
 const SAVE_CLASS_OUTPUTS: Record<
   string,
-  { kind: "images" | "audio" | "video"; type: string }
+  { kind: "image" | "audio" | "video" }
 > = {
-  SaveImage: { kind: "images", type: "list[image]" },
-  PreviewImage: { kind: "images", type: "list[image]" },
-  SaveAnimatedWEBP: { kind: "images", type: "list[image]" },
-  SaveAnimatedPNG: { kind: "images", type: "list[image]" },
-  SaveAudio: { kind: "audio", type: "audio" },
-  SaveAudioMP3: { kind: "audio", type: "audio" },
-  SaveAudioOpus: { kind: "audio", type: "audio" },
-  PreviewAudio: { kind: "audio", type: "audio" },
-  SaveVideo: { kind: "video", type: "video" },
-  VHS_VideoCombine: { kind: "video", type: "video" }
+  SaveImage: { kind: "image" },
+  PreviewImage: { kind: "image" },
+  SaveAnimatedWEBP: { kind: "image" },
+  SaveAnimatedPNG: { kind: "image" },
+  SaveAudio: { kind: "audio" },
+  SaveAudioMP3: { kind: "audio" },
+  SaveAudioOpus: { kind: "audio" },
+  PreviewAudio: { kind: "audio" },
+  SaveVideo: { kind: "video" },
+  VHS_VideoCombine: { kind: "video" }
 };
 
 const meta = (type: string): TypeMetadata => ({
@@ -120,18 +124,18 @@ function resolveLoadInput(
   return field ? { field, type } : null;
 }
 
-/** Resolve a Save or Preview class to its output kind + type. */
+/** Resolve a Save or Preview class to its streaming output kind. */
 function resolveSaveOutput(
   classType: string
-): { kind: "images" | "audio" | "video"; type: string } | null {
+): { kind: "image" | "audio" | "video" } | null {
   const curated = SAVE_CLASS_OUTPUTS[classType];
   if (curated) return curated;
   if (!classType.startsWith("Save") && !classType.startsWith("Preview")) {
     return null;
   }
-  if (classType.includes("Audio")) return { kind: "audio", type: "audio" };
-  if (classType.includes("Video")) return { kind: "video", type: "video" };
-  return { kind: "images", type: "list[image]" };
+  if (classType.includes("Audio")) return { kind: "audio" };
+  if (classType.includes("Video")) return { kind: "video" };
+  return { kind: "image" };
 }
 
 function inferScalarType(value: unknown): string {
@@ -274,8 +278,10 @@ export function resolveComfySchema(prompt: ComfyPrompt): ComfyResolvedSchema {
     const saveOutput = resolveSaveOutput(node.class_type);
 
     if (saveOutput) {
+      // Singular media slot keyed "<nodeId>:<kind>" — the backend is a
+      // streaming-output node and emits one media ref per file as it runs.
       const handle = `${nodeId}:${saveOutput.kind}`;
-      dynamic_outputs[handle] = meta(saveOutput.type);
+      dynamic_outputs[handle] = meta(saveOutput.kind);
     }
 
     if (loadInput && !isComfyConnection(node.inputs[loadInput.field])) {

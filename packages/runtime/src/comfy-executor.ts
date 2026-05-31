@@ -99,7 +99,8 @@ export function executeComfy(
   prompt: ComfyPrompt,
   addr: string,
   onProgress?: (event: ComfyProgressEvent) => void,
-  timeoutMs = 600000
+  timeoutMs = 600000,
+  onNodeOutput?: (nodeId: string, outputs: ComfyNodeOutputs) => void
 ): ComfyExecutionHandle {
   const base = normalizeBaseUrl(addr);
   const clientId = `nodetool-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -192,20 +193,41 @@ export function executeComfy(
       return { status: "failed", error: `Submit error: ${errMsg}` };
     }
 
+    // Streaming state: per-node outputs are downloaded+emitted live as each
+    // save node finishes; cached nodes are reconciled from history afterward.
+    const streamState: ComfyStreamState = {
+      base,
+      emitted: new Set<string>(),
+      collected: {},
+      onNodeOutput
+    };
+
     // Listen for progress events on the already-connected WebSocket
     const listenResult = await listenForCompletion(
       ws,
       promptId,
       onProgress,
-      timeoutMs
+      timeoutMs,
+      streamState
     );
 
     if (listenResult.status === "failed") {
       return listenResult;
     }
 
-    // Fetch outputs from history (images, audio, video — grouped per node)
-    const nodeOutputs = await fetchOutputs(base, promptId);
+    // Reconcile from history: cached nodes (and any not captured live) don't
+    // emit `executed`, so fetch them now — skipping those already streamed.
+    const fromHistory = await fetchOutputs(
+      base,
+      promptId,
+      streamState.emitted
+    );
+    for (const [nodeId, outputs] of Object.entries(fromHistory)) {
+      streamState.collected[nodeId] = outputs;
+      onNodeOutput?.(nodeId, outputs);
+    }
+
+    const nodeOutputs = streamState.collected;
     const images: ComfyImage[] = [];
     for (const out of Object.values(nodeOutputs)) {
       for (const img of out.images ?? []) {
@@ -224,19 +246,35 @@ export function executeComfy(
   return { result, cancel };
 }
 
+/** Shared, mutable streaming state threaded through the WS listener. */
+interface ComfyStreamState {
+  base: string;
+  /** Node ids whose outputs were downloaded+emitted live (skip in history). */
+  emitted: Set<string>;
+  /** All emitted outputs, keyed by node id (for the final result). */
+  collected: Record<string, ComfyNodeOutputs>;
+  onNodeOutput?: (nodeId: string, outputs: ComfyNodeOutputs) => void;
+}
+
 /**
  * Listen on an already-connected ComfyUI WebSocket for the prompt to complete,
- * streaming progress events along the way.
+ * streaming progress events along the way. When a save/output node finishes
+ * (`executed`), its files are downloaded immediately and pushed via
+ * `stream.onNodeOutput`, so results surface as each node completes rather than
+ * batched at the end.
  */
 function listenForCompletion(
   ws: WebSocket,
   promptId: string,
   onProgress: ((event: ComfyProgressEvent) => void) | undefined,
-  timeoutMs: number
+  timeoutMs: number,
+  stream: ComfyStreamState
 ): Promise<ComfyExecutorResult> {
   return new Promise((resolve) => {
     let settled = false;
     let currentNode: string | null = null;
+    // In-flight per-node downloads; settle waits for these to finish.
+    const pending: Array<Promise<void>> = [];
 
     const settle = (result: ComfyExecutorResult) => {
       if (settled) return;
@@ -249,7 +287,9 @@ function listenForCompletion(
       } catch {
         /* Intentional: best-effort WebSocket close during cleanup */
       }
-      resolve(result);
+      // Drain any in-flight downloads before resolving so streamed outputs
+      // are reflected in the final result.
+      void Promise.allSettled(pending).then(() => resolve(result));
     };
 
     const timer = setTimeout(() => {
@@ -333,6 +373,26 @@ function listenForCompletion(
           const nodeId = data.node != null ? String(data.node) : null;
           const output = (data.output ?? {}) as Record<string, unknown>;
           onProgress?.({ type: "executed", node: nodeId, output });
+          // Download this node's files now and stream them out, so outputs
+          // surface as each save node completes (not batched at the end).
+          if (nodeId && !stream.emitted.has(nodeId)) {
+            stream.emitted.add(nodeId);
+            pending.push(
+              (async () => {
+                const outputs = await downloadNodeOutput(
+                  stream.base,
+                  output as ComfyRawNodeOutput
+                );
+                if (Object.keys(outputs).length === 0) return;
+                stream.collected[nodeId] = outputs;
+                stream.onNodeOutput?.(nodeId, outputs);
+              })().catch((err) => {
+                log.warn(
+                  `Failed to stream output for node ${nodeId}: ${String(err)}`
+                );
+              })
+            );
+          }
           break;
         }
 
@@ -414,13 +474,47 @@ async function downloadOutputFile(
   }
 }
 
+/** Raw ComfyUI output-node payload (from `executed` events and `/history`). */
+interface ComfyRawNodeOutput {
+  images?: ComfyOutputFile[];
+  audio?: ComfyOutputFile[];
+  // VHS and core video nodes report under different keys
+  gifs?: ComfyOutputFile[];
+  videos?: ComfyOutputFile[];
+}
+
+/** Download all files in one output-node payload, grouped by media kind. */
+async function downloadNodeOutput(
+  base: string,
+  raw: ComfyRawNodeOutput
+): Promise<ComfyNodeOutputs> {
+  const collected: ComfyNodeOutputs = {};
+  const groups: Array<[keyof ComfyNodeOutputs, ComfyOutputFile[]]> = [
+    ["images", raw.images ?? []],
+    ["audio", raw.audio ?? []],
+    ["video", [...(raw.gifs ?? []), ...(raw.videos ?? [])]]
+  ];
+  for (const [kind, files] of groups) {
+    if (files.length === 0) continue;
+    const downloaded: ComfyFileOutput[] = [];
+    for (const file of files) {
+      const out = await downloadOutputFile(base, file);
+      if (out) downloaded.push(out);
+    }
+    if (downloaded.length > 0) collected[kind] = downloaded;
+  }
+  return collected;
+}
+
 /**
  * Fetch output files from ComfyUI history after a prompt completes, grouped
- * per node and by media kind (images, audio, video).
+ * per node and by media kind. Skips nodes already emitted live (`emitted`) so
+ * cached/non-streamed nodes are reconciled without double-downloading.
  */
 async function fetchOutputs(
   base: string,
-  promptId: string
+  promptId: string,
+  emitted?: Set<string>
 ): Promise<Record<string, ComfyNodeOutputs>> {
   const result: Record<string, ComfyNodeOutputs> = {};
   try {
@@ -432,35 +526,13 @@ async function fetchOutputs(
     const histData = (await histRes.json()) as Record<string, unknown>;
     const entry = histData[promptId] as Record<string, unknown> | undefined;
     const outputs = entry?.outputs as
-      | Record<
-          string,
-          {
-            images?: ComfyOutputFile[];
-            audio?: ComfyOutputFile[];
-            // VHS and core video nodes report under different keys
-            gifs?: ComfyOutputFile[];
-            videos?: ComfyOutputFile[];
-          }
-        >
+      | Record<string, ComfyRawNodeOutput>
       | undefined;
     if (!outputs) return result;
 
     for (const [nodeId, nodeOutput] of Object.entries(outputs)) {
-      const collected: ComfyNodeOutputs = {};
-      const groups: Array<[keyof ComfyNodeOutputs, ComfyOutputFile[]]> = [
-        ["images", nodeOutput.images ?? []],
-        ["audio", nodeOutput.audio ?? []],
-        ["video", [...(nodeOutput.gifs ?? []), ...(nodeOutput.videos ?? [])]]
-      ];
-      for (const [kind, files] of groups) {
-        if (files.length === 0) continue;
-        const downloaded: ComfyFileOutput[] = [];
-        for (const file of files) {
-          const out = await downloadOutputFile(base, file);
-          if (out) downloaded.push(out);
-        }
-        if (downloaded.length > 0) collected[kind] = downloaded;
-      }
+      if (emitted?.has(nodeId)) continue;
+      const collected = await downloadNodeOutput(base, nodeOutput);
       if (Object.keys(collected).length > 0) result[nodeId] = collected;
     }
   } catch (err) {

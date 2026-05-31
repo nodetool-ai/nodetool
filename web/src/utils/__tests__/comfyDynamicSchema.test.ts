@@ -91,9 +91,9 @@ describe("resolveComfySchema", () => {
     expect(schema.dynamic_properties["10:image"]).toBe("input.png");
   });
 
-  it("exposes SaveImage as a typed list[image] output", () => {
-    expect(schema.dynamic_outputs["9:images"]).toMatchObject({
-      type: "list[image]"
+  it("exposes SaveImage as a singular streaming image output", () => {
+    expect(schema.dynamic_outputs["9:image"]).toMatchObject({
+      type: "image"
     });
   });
 
@@ -110,7 +110,7 @@ describe("resolveComfySchema", () => {
     const handles = schema.availableParams.map((p) => p.handle);
     expect(handles).not.toContain("3:model");
     expect(handles).not.toContain("6:clip");
-    expect(handles).not.toContain("9:images");
+    expect(handles).not.toContain("9:image");
   });
 
   it("does not duplicate the auto-exposed media field as a param", () => {

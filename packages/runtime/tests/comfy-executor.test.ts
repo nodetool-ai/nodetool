@@ -179,6 +179,54 @@ describe("executeComfy", () => {
     expect(result.images).toHaveLength(1);
   });
 
+  it("streams per-node outputs live on `executed` events", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ prompt_id: "ps" }));
+    // /view downloads for the streamed file, then empty /history reconcile
+    mockFetch.mockImplementation((url: string) =>
+      url.includes("/history/")
+        ? Promise.resolve(jsonResponse({ ps: { outputs: {} } }))
+        : Promise.resolve(binaryResponse(new Uint8Array([1, 2, 3])))
+    );
+
+    const streamed: Array<{ nodeId: string; kinds: string[] }> = [];
+    const handle = executeComfy(
+      samplePrompt,
+      "127.0.0.1:8188",
+      undefined,
+      600000,
+      (nodeId, outputs) => {
+        streamed.push({ nodeId, kinds: Object.keys(outputs) });
+      }
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    // A save node finishes and reports its file
+    lastWsInstance?.emit(
+      "message",
+      JSON.stringify({
+        type: "executed",
+        data: {
+          prompt_id: "ps",
+          node: "9",
+          output: {
+            images: [{ filename: "img.png", subfolder: "", type: "output" }]
+          }
+        }
+      })
+    );
+    await new Promise((r) => setTimeout(r, 20));
+    lastWsInstance?.emit(
+      "message",
+      JSON.stringify({ type: "execution_success", data: { prompt_id: "ps" } })
+    );
+
+    const result = await handle.result;
+    expect(result.status).toBe("completed");
+    // The output was streamed live (before completion), not only batched.
+    expect(streamed).toEqual([{ nodeId: "9", kinds: ["images"] }]);
+    // And it is reflected in the final result without a duplicate history fetch.
+    expect(result.nodeOutputs?.["9"].images).toHaveLength(1);
+  });
+
   it("uploadComfyFile POSTs to /upload/image and returns the stored name", async () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ name: "stored.png", subfolder: "" })
