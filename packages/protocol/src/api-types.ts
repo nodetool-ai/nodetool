@@ -245,6 +245,8 @@ export interface Asset {
   size?: number | null;
   duration?: number | null;
   metadata?: Record<string, unknown> | null;
+  /** Sketch document that backs this image asset, if any. */
+  sketch_document_id?: string | null;
   workflow_id: string | null;
   node_id?: string | null;
   job_id?: string | null;

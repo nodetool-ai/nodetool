@@ -21,6 +21,8 @@ export class Asset extends DBModel {
   declare size: number | null;
   declare duration: number | null;
   declare metadata: Record<string, unknown> | null;
+  /** Sketch document that backs this image asset, if any (1:1 link). */
+  declare sketch_document_id: string | null;
   declare workflow_id: string | null;
   declare node_id: string | null;
   declare job_id: string | null;
@@ -39,6 +41,7 @@ export class Asset extends DBModel {
     this.size ??= null;
     this.duration ??= null;
     this.metadata ??= null;
+    this.sketch_document_id ??= null;
     this.workflow_id ??= null;
     this.node_id ??= null;
     this.job_id ??= null;

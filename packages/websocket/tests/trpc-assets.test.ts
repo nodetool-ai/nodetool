@@ -255,6 +255,7 @@ describe("assets router", () => {
         job_id: null,
         timeline_id: null,
         metadata: null,
+        sketch_document_id: null,
         size: null
       });
       expect(result.id).toBe("new");
@@ -285,6 +286,7 @@ describe("assets router", () => {
         job_id: "job-1",
         timeline_id: null,
         metadata: { a: 1 },
+        sketch_document_id: null,
         size: 42
       });
     });

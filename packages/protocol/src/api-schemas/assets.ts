@@ -13,6 +13,7 @@ export const assetResponse = z.object({
   content_type: z.string(),
   size: z.number().nullable(),
   metadata: z.record(z.string(), z.unknown()).nullable(),
+  sketch_document_id: z.string().nullable(),
   created_at: z.string(),
   get_url: z.string().nullable(),
   thumb_url: z.string().nullable(),
@@ -61,6 +62,7 @@ export const createInput = z.object({
   job_id: z.string().nullable().optional(),
   timeline_id: z.string().nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  sketch_document_id: z.string().nullable().optional(),
   size: z.number().nullable().optional()
 });
 export type CreateInput = z.infer<typeof createInput>;
@@ -75,6 +77,7 @@ export const updateInput = z.object({
   content_type: z.string().optional(),
   parent_id: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  sketch_document_id: z.string().nullable().optional(),
   size: z.number().optional(),
   data: z.string().nullable().optional(),
   data_encoding: z.enum(["base64", "utf-8"]).nullable().optional()

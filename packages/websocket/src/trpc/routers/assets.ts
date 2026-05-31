@@ -89,6 +89,7 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
     content_type: asset.content_type,
     size: asset.size ?? null,
     metadata: asset.metadata ?? null,
+    sketch_document_id: asset.sketch_document_id ?? null,
     created_at: asset.created_at,
     get_url: getUrl,
     thumb_url: thumbUrl,
@@ -186,6 +187,7 @@ export const assetsRouter = router({
           content_type: "folder",
           size: null,
           metadata: null,
+          sketch_document_id: null,
           created_at: "",
           get_url: null,
           thumb_url: null,
@@ -217,6 +219,7 @@ export const assetsRouter = router({
         job_id: input.job_id ?? null,
         timeline_id: input.timeline_id ?? null,
         metadata: input.metadata ?? null,
+        sketch_document_id: input.sketch_document_id ?? null,
         size: input.size ?? null
       })) as unknown as AssetModel;
       return toAssetResponse(asset);
@@ -237,6 +240,9 @@ export const assetsRouter = router({
       }
       if (input.parent_id !== undefined) asset.parent_id = input.parent_id;
       if (input.metadata !== undefined) asset.metadata = input.metadata;
+      if (input.sketch_document_id !== undefined) {
+        asset.sketch_document_id = input.sketch_document_id;
+      }
       if (input.size !== undefined) asset.size = input.size;
 
       if (input.data != null) {
