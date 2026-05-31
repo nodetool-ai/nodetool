@@ -1260,7 +1260,12 @@ export class ProcessingContext {
     unit: string,
     details?: Pick<
       ProviderCost,
-      "model" | "billing_unit" | "quantity" | "unit_price" | "currency"
+      | "model"
+      | "billing_unit"
+      | "quantity"
+      | "unit_price"
+      | "currency"
+      | "provider_request_id"
     >
   ): void {
     this._providerCost = { provider, amount, unit, ...details };

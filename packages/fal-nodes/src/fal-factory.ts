@@ -21,7 +21,7 @@ import type {
 import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import {
   getFalApiKey,
-  falSubmit,
+  falSubmitWithMeta,
   falImageToRef,
   removeNulls,
   isRefSet,
@@ -350,8 +350,12 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     ): Promise<Record<string, unknown>> {
       const apiKey = getFalApiKey(this._secrets);
       const args = await buildArgs(this, specRef, apiKey, context);
-      const res = await falSubmit(apiKey, endpointId, args);
-      reportFalCost(context, nodeType, res, args);
+      const { data: res, requestId } = await falSubmitWithMeta(
+        apiKey,
+        endpointId,
+        args
+      );
+      reportFalCost(context, nodeType, res, args, requestId);
       if (isImageOutput) {
         const images = res.images as
           | Array<{

@@ -155,6 +155,12 @@ export interface ProviderCost {
   unit_price?: number | null;
   /** ISO 4217 currency of `amount`/`unit_price` (e.g. "USD"). */
   currency?: string | null;
+  /**
+   * Provider-side request identifier (e.g. a FAL queue request id). Lets the
+   * runner reconcile the initial estimate against the provider's actual billed
+   * cost after the fact. `amount` is an estimate until reconciled.
+   */
+  provider_request_id?: string | null;
 }
 
 export interface NodeUpdate {
