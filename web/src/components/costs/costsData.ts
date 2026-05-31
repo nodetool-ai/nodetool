@@ -42,15 +42,77 @@ export interface ProviderMeta {
   total: number;
 }
 
-/** Legend order (matches the header chips left-to-right). */
-export const PROVIDERS: ProviderMeta[] = [
-  { id: "openai", label: "OpenAI", color: "#4FD18B", total: 1.35 },
-  { id: "anthropic", label: "Anthropic", color: "#F2A65A", total: 0.981 },
-  { id: "replicate", label: "Replicate", color: "#E85FB0", total: 0.236 },
-  { id: "fal", label: "fal.ai", color: "#85A9F4", total: 0.778 },
-  { id: "huggingface", label: "Hugging Face", color: "#B79CF5", total: 0.011 },
-  { id: "local", label: "Local", color: "#34D9C4", total: 0.0 }
+/**
+ * Presentation (label + swatch) for known providers, plus a deterministic
+ * fallback so providers the API returns that aren't preset still render with a
+ * stable colour. Keyed by the provider id the backend stores.
+ */
+const PROVIDER_PRESET: Record<string, { label: string; color: string }> = {
+  openai: { label: "OpenAI", color: "#4FD18B" },
+  anthropic: { label: "Anthropic", color: "#F2A65A" },
+  replicate: { label: "Replicate", color: "#E85FB0" },
+  fal: { label: "fal.ai", color: "#85A9F4" },
+  huggingface: { label: "Hugging Face", color: "#B79CF5" },
+  hugging_face: { label: "Hugging Face", color: "#B79CF5" },
+  local: { label: "Local", color: "#34D9C4" },
+  ollama: { label: "Ollama", color: "#34D9C4" },
+  llamacpp: { label: "llama.cpp", color: "#34D9C4" },
+  gemini: { label: "Gemini", color: "#F4C20D" },
+  google: { label: "Gemini", color: "#F4C20D" },
+  groq: { label: "Groq", color: "#F55036" },
+  mistral: { label: "Mistral", color: "#FF7000" },
+  cohere: { label: "Cohere", color: "#39CCCC" }
+};
+
+const FALLBACK_PALETTE = [
+  "#7CC4FF",
+  "#FFD166",
+  "#C792EA",
+  "#80CBC4",
+  "#F78C6C",
+  "#A3BE8C",
+  "#E0A3FF"
 ];
+
+const hashString = (s: string): number => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+
+export const providerColor = (id: string): string =>
+  PROVIDER_PRESET[id]?.color ??
+  FALLBACK_PALETTE[hashString(id) % FALLBACK_PALETTE.length];
+
+export const providerLabel = (id: string): string =>
+  PROVIDER_PRESET[id]?.label ??
+  id.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+const SAMPLE_PROVIDER_TOTALS: Record<ProviderId, number> = {
+  openai: 1.35,
+  anthropic: 0.981,
+  replicate: 0.236,
+  fal: 0.778,
+  huggingface: 0.011,
+  local: 0.0
+};
+
+/** Legend order (matches the header chips left-to-right). */
+export const PROVIDERS: ProviderMeta[] = (
+  [
+    "openai",
+    "anthropic",
+    "replicate",
+    "fal",
+    "huggingface",
+    "local"
+  ] as ProviderId[]
+).map((id) => ({
+  id,
+  label: providerLabel(id),
+  color: providerColor(id),
+  total: SAMPLE_PROVIDER_TOTALS[id]
+}));
 
 /** Bottom-to-top order the stacked bars are painted in. */
 export const STACK_ORDER: ProviderId[] = [
@@ -70,9 +132,6 @@ export const PROVIDER_BY_ID: Record<ProviderId, ProviderMeta> =
     },
     {} as Record<ProviderId, ProviderMeta>
   );
-
-export const providerColor = (id: ProviderId): string =>
-  PROVIDER_BY_ID[id]?.color ?? "#8A8F98";
 
 export const WORKFLOWS = [
   "Product shots batch",
@@ -113,7 +172,7 @@ const dayDate = (index: number): Date => {
 
 export interface DayPoint {
   date: Date;
-  values: Record<ProviderId, number>;
+  values: Record<string, number>;
   total: number;
 }
 
@@ -138,7 +197,7 @@ const buildDailySeries = (): DayPoint[] => {
     scale[p.id] = sum > 0 ? p.total / sum : 0;
   }
   return Array.from({ length: WINDOW_DAYS }, (_, i) => {
-    const values = {} as Record<ProviderId, number>;
+    const values = {} as Record<string, number>;
     let total = 0;
     for (const p of PROVIDERS) {
       const v = DAY_WEIGHTS[p.id][i] * scale[p.id];
@@ -158,7 +217,7 @@ export interface Execution {
   title: string;
   category: NodeCategory;
   workflow: string;
-  providerId: ProviderId;
+  providerId: string;
   model: string;
   tokensIn: number | null;
   tokensOut: number | null;
@@ -377,7 +436,7 @@ export const spendDelta = { fraction: 0.64, direction: "up" as const };
 export interface GroupRow {
   key: string;
   name: string;
-  providerId?: ProviderId;
+  providerId?: string;
   model?: string;
   executions: number;
   cost: number;
@@ -390,7 +449,7 @@ const GROUP_FIELD: Record<
   (e: Execution) => {
     key: string;
     name: string;
-    providerId?: ProviderId;
+    providerId?: string;
     model?: string;
   }
 > = {
@@ -398,7 +457,7 @@ const GROUP_FIELD: Record<
   workflow: (e) => ({ key: e.workflow, name: e.workflow }),
   provider: (e) => ({
     key: e.providerId,
-    name: PROVIDER_BY_ID[e.providerId].label,
+    name: providerLabel(e.providerId),
     providerId: e.providerId
   }),
   model: (e) => ({
@@ -525,7 +584,7 @@ export const executionsToCsv = (execs: Execution[]): string => {
       e.id,
       e.title,
       e.workflow,
-      PROVIDER_BY_ID[e.providerId].label,
+      providerLabel(e.providerId),
       e.model,
       e.tokensIn ?? "",
       e.tokensOut ?? "",

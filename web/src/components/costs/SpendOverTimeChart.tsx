@@ -3,14 +3,13 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Box, FlexRow, FlexColumn, Text } from "../ui_primitives";
 import {
-  PROVIDERS,
-  STACK_ORDER,
-  PROVIDER_BY_ID,
+  providerColor,
+  providerLabel,
   formatMoney,
   formatAxisDate,
-  type DayPoint,
-  type ProviderId
+  type DayPoint
 } from "./costsData";
+import type { ProviderView } from "./costsView";
 
 const PLOT_HEIGHT = 240;
 const X_AXIS_HEIGHT = 22;
@@ -18,34 +17,47 @@ const Y_LABEL_WIDTH = 52;
 
 export interface SpendOverTimeChartProps {
   days: DayPoint[];
+  /** Providers shown in the legend (in order). */
+  providers: ProviderView[];
+  /** Provider ids bottom-to-top within each stacked bar. */
+  stackOrder: string[];
   /** Providers currently enabled (legend + stacks); defaults to all. */
-  activeProviders?: Set<ProviderId>;
+  activeProviders?: Set<string>;
   rangeLabel: string;
 }
 
 const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
   days,
+  providers,
+  stackOrder,
   activeProviders,
   rangeLabel
 }) => {
   const theme = useTheme();
   const [hovered, setHovered] = useState<number | null>(null);
 
+  const colorOf = useCallback(
+    (id: string) =>
+      providers.find((p) => p.id === id)?.color ?? providerColor(id),
+    [providers]
+  );
+
   const isActive = useCallback(
-    (id: ProviderId) => !activeProviders || activeProviders.has(id),
+    (id: string) => !activeProviders || activeProviders.has(id),
     [activeProviders]
   );
 
   const { axisMax, ticks, legendTotals } = useMemo(() => {
-    const totals = {} as Record<ProviderId, number>;
-    for (const p of PROVIDERS) totals[p.id] = 0;
+    const totals: Record<string, number> = {};
+    for (const p of providers) totals[p.id] = 0;
     let maxStack = 0;
     for (const d of days) {
       let stack = 0;
-      for (const id of STACK_ORDER) {
+      for (const id of stackOrder) {
         if (!isActive(id)) continue;
-        totals[id] += d.values[id];
-        stack += d.values[id];
+        const v = d.values[id] ?? 0;
+        totals[id] = (totals[id] ?? 0) + v;
+        stack += v;
       }
       maxStack = Math.max(maxStack, stack);
     }
@@ -55,7 +67,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
       ticks: [1, 0.75, 0.5, 0.25, 0].map((f) => f * max),
       legendTotals: totals
     };
-  }, [days, isActive]);
+  }, [days, providers, stackOrder, isActive]);
 
   return (
     <Box
@@ -82,7 +94,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
           </Text>
         </FlexRow>
         <FlexRow gap={2} wrap align="center" sx={{ rowGap: 0.5 }}>
-          {PROVIDERS.map((p) => (
+          {providers.map((p) => (
             <FlexRow
               key={p.id}
               gap={0.75}
@@ -105,7 +117,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                 {p.label}
               </Text>
               <Text size="small" family="secondary" color="secondary">
-                {formatMoney(legendTotals[p.id])}
+                {formatMoney(legendTotals[p.id] ?? 0)}
               </Text>
             </FlexRow>
           ))}
@@ -160,8 +172,8 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
           }}
         >
           {days.map((day, index) => {
-            const visibleTotal = STACK_ORDER.reduce(
-              (sum, id) => (isActive(id) ? sum + day.values[id] : sum),
+            const visibleTotal = stackOrder.reduce(
+              (sum, id) => (isActive(id) ? sum + (day.values[id] ?? 0) : sum),
               0
             );
             const barPx = (visibleTotal / axisMax) * PLOT_HEIGHT;
@@ -184,7 +196,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
               >
                 <Box
                   sx={{
-                    height: Math.max(barPx, 2),
+                    height: Math.max(barPx, visibleTotal > 0 ? 2 : 0),
                     borderRadius: "5px 5px 0 0",
                     overflow: "hidden",
                     display: "flex",
@@ -196,8 +208,9 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                       : "none"
                   }}
                 >
-                  {STACK_ORDER.filter(isActive).map((id) => {
-                    const segPx = (day.values[id] / axisMax) * PLOT_HEIGHT;
+                  {stackOrder.filter(isActive).map((id) => {
+                    const segPx =
+                      ((day.values[id] ?? 0) / axisMax) * PLOT_HEIGHT;
                     if (segPx < 0.4) return null;
                     return (
                       <Box
@@ -205,14 +218,21 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                         sx={{
                           height: segPx,
                           flexShrink: 0,
-                          backgroundColor: PROVIDER_BY_ID[id].color
+                          backgroundColor: colorOf(id)
                         }}
                       />
                     );
                   })}
                 </Box>
 
-                {isHovered && <BarTooltip day={day} isActive={isActive} />}
+                {isHovered && (
+                  <BarTooltip
+                    day={day}
+                    stackOrder={stackOrder}
+                    colorOf={colorOf}
+                    isActive={isActive}
+                  />
+                )}
               </Box>
             );
           })}
@@ -257,11 +277,13 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
 
 const BarTooltip: React.FC<{
   day: DayPoint;
-  isActive: (id: ProviderId) => boolean;
-}> = ({ day, isActive }) => {
+  stackOrder: string[];
+  colorOf: (id: string) => string;
+  isActive: (id: string) => boolean;
+}> = ({ day, stackOrder, colorOf, isActive }) => {
   const theme = useTheme();
-  const total = STACK_ORDER.reduce(
-    (sum, id) => (isActive(id) ? sum + day.values[id] : sum),
+  const total = stackOrder.reduce(
+    (sum, id) => (isActive(id) ? sum + (day.values[id] ?? 0) : sum),
     0
   );
   return (
@@ -285,9 +307,9 @@ const BarTooltip: React.FC<{
         {formatAxisDate(day.date)}
       </Text>
       <FlexColumn gap={0.25}>
-        {[...STACK_ORDER]
+        {[...stackOrder]
           .reverse()
-          .filter((id) => isActive(id) && day.values[id] > 0)
+          .filter((id) => isActive(id) && (day.values[id] ?? 0) > 0)
           .map((id) => (
             <FlexRow key={id} justify="space-between" align="center" gap={1.5}>
               <FlexRow gap={0.75} align="center">
@@ -296,15 +318,15 @@ const BarTooltip: React.FC<{
                     width: 8,
                     height: 8,
                     borderRadius: "2px",
-                    backgroundColor: PROVIDER_BY_ID[id].color
+                    backgroundColor: colorOf(id)
                   }}
                 />
                 <Text size="smaller" color="secondary">
-                  {PROVIDER_BY_ID[id].label}
+                  {providerLabel(id)}
                 </Text>
               </FlexRow>
               <Text size="smaller" family="secondary">
-                {formatMoney(day.values[id])}
+                {formatMoney(day.values[id] ?? 0)}
               </Text>
             </FlexRow>
           ))}

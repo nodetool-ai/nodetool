@@ -3,6 +3,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+
+// No backend in unit tests — fall back to the bundled sample view.
+jest.mock("../useCostsDashboard", () => ({
+  useCostsDashboard: () => ({ view: null, isLoading: false, isError: false })
+}));
+
 import CostsDashboard from "../CostsDashboard";
 
 const renderDashboard = () =>

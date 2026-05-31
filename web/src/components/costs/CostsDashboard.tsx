@@ -11,6 +11,7 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import NorthIcon from "@mui/icons-material/North";
+import SouthIcon from "@mui/icons-material/South";
 
 import {
   Box,
@@ -27,10 +28,6 @@ import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
 import { CostsTable } from "./CostsTable";
 import {
-  PROVIDERS,
-  WORKFLOWS,
-  daysForRange,
-  executionsForRange,
   groupExecutions,
   executionsToCsv,
   formatMoney,
@@ -38,18 +35,13 @@ import {
   formatRangeLabel,
   splitMoney,
   providerColor,
-  PROVIDER_BY_ID,
-  grandTotal,
-  executionCount,
-  failedCount,
-  avgPerExecution,
-  topCostDriver,
-  spendDelta,
+  providerLabel,
   type DateRange,
   type GroupByKey,
-  type ProviderId,
   type Execution
 } from "./costsData";
+import { sampleToView } from "./costsView";
+import { useCostsDashboard } from "./useCostsDashboard";
 
 const RANGE_OPTIONS: DateRange[] = ["7d", "14d", "30d", "90d"];
 const GROUP_OPTIONS: { value: GroupByKey; label: string }[] = [
@@ -95,18 +87,18 @@ const matchesSearch = (
 ): boolean => {
   if (!q) return true;
   const needle = q.toLowerCase();
-  const providerLabel = PROVIDER_BY_ID[e.providerId].label.toLowerCase();
+  const provider = providerLabel(e.providerId).toLowerCase();
   switch (groupBy) {
     case "nodeType":
       return e.title.toLowerCase().includes(needle);
     case "workflow":
       return e.workflow.toLowerCase().includes(needle);
     case "provider":
-      return providerLabel.includes(needle);
+      return provider.includes(needle);
     case "model":
       return e.model.toLowerCase().includes(needle);
     default:
-      return [e.title, e.workflow, e.model, e.id, providerLabel]
+      return [e.title, e.workflow, e.model, e.id, provider]
         .join(" ")
         .toLowerCase()
         .includes(needle);
@@ -119,32 +111,46 @@ const CostsDashboard: React.FC = () => {
   const [range, setRange] = useState<DateRange>("14d");
   const [groupBy, setGroupBy] = useState<GroupByKey>("execution");
   const [search, setSearch] = useState("");
-  const [providerSel, setProviderSel] = useState<Set<ProviderId>>(
-    () => new Set(PROVIDERS.map((p) => p.id))
+  // null = "all selected" (universe-agnostic); a Set = an explicit subset.
+  const [providerSel, setProviderSel] = useState<Set<string> | null>(null);
+  const [workflowSel, setWorkflowSel] = useState<Set<string> | null>(null);
+
+  // Live data when available, otherwise the bundled sample (offline preview).
+  const { view: apiView } = useCostsDashboard(range);
+  const view = useMemo(() => apiView ?? sampleToView(range), [apiView, range]);
+
+  const providerUniverse = useMemo(
+    () => view.providers.map((p) => p.id),
+    [view.providers]
   );
-  const [workflowSel, setWorkflowSel] = useState<Set<string>>(
-    () => new Set(WORKFLOWS)
+  const workflowUniverse = useMemo(
+    () => Array.from(new Set(view.executions.map((e) => e.workflow))).sort(),
+    [view.executions]
   );
 
-  const days = useMemo(() => daysForRange(range), [range]);
+  const providersAllSelected = providerSel === null;
+  const workflowsAllSelected = workflowSel === null;
+
   const rangeLabel = useMemo(
     () =>
-      days.length
-        ? formatRangeLabel(days[0].date, days[days.length - 1].date)
+      view.days.length
+        ? formatRangeLabel(
+            view.days[0].date,
+            view.days[view.days.length - 1].date
+          )
         : "",
-    [days]
+    [view.days]
   );
 
-  const providersAllSelected = providerSel.size === PROVIDERS.length;
-  const workflowsAllSelected = workflowSel.size === WORKFLOWS.length;
-
-  // Range + provider + workflow filters (everything except the text search).
+  // Provider + workflow filters (everything except the text search).
   const scopedExecs = useMemo(
     () =>
-      executionsForRange(range).filter(
-        (e) => providerSel.has(e.providerId) && workflowSel.has(e.workflow)
+      view.executions.filter(
+        (e) =>
+          (providerSel === null || providerSel.has(e.providerId)) &&
+          (workflowSel === null || workflowSel.has(e.workflow))
       ),
-    [range, providerSel, workflowSel]
+    [view.executions, providerSel, workflowSel]
   );
 
   const tableExecs = useMemo(
@@ -179,8 +185,16 @@ const CostsDashboard: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [tableExecs, range]);
 
-  const driverShare = topCostDriver.cost / grandTotal;
-  const total = splitMoney(grandTotal);
+  const stats = view.stats;
+  const total = splitMoney(stats.totalSpend);
+  const driver = stats.topDriver;
+  const driverShare =
+    driver && stats.totalSpend > 0 ? driver.cost / stats.totalSpend : 0;
+  const delta = stats.deltaFraction;
+  const deltaUp = (delta ?? 0) >= 0;
+  const deltaColor = deltaUp
+    ? theme.vars.palette.error.main
+    : theme.vars.palette.success.main;
 
   return (
     <Box
@@ -217,7 +231,7 @@ const CostsDashboard: React.FC = () => {
                 weight={600}
                 sx={{ color: theme.vars.palette.text.primary }}
               >
-                {WORKFLOWS.length} workflows
+                {stats.workflowCount} workflows
               </Text>{" "}
               · {rangeLabel}
             </Text>
@@ -242,21 +256,25 @@ const CostsDashboard: React.FC = () => {
               label={providersAllSelected ? "All providers" : "Providers"}
               count={
                 providersAllSelected
-                  ? String(PROVIDERS.length)
-                  : `${providerSel.size}/${PROVIDERS.length}`
+                  ? String(providerUniverse.length)
+                  : `${providerSel.size}/${providerUniverse.length}`
               }
-              options={PROVIDERS.map((p) => ({
+              options={view.providers.map((p) => ({
                 key: p.id,
                 label: p.label,
                 color: p.color
               }))}
-              selected={providerSel as Set<string>}
+              selected={providerSel ?? new Set(providerUniverse)}
               onToggle={(key) =>
-                setProviderSel((prev) => toggleSet(prev, key as ProviderId))
+                setProviderSel((prev) => {
+                  const next = toggleSet(
+                    prev ?? new Set(providerUniverse),
+                    key
+                  );
+                  return next.size === providerUniverse.length ? null : next;
+                })
               }
-              onSelectAll={() =>
-                setProviderSel(new Set(PROVIDERS.map((p) => p.id)))
-              }
+              onSelectAll={() => setProviderSel(null)}
               onClear={() => setProviderSel(new Set())}
             />
 
@@ -266,12 +284,20 @@ const CostsDashboard: React.FC = () => {
               count={
                 workflowsAllSelected
                   ? undefined
-                  : `${workflowSel.size}/${WORKFLOWS.length}`
+                  : `${workflowSel.size}/${workflowUniverse.length}`
               }
-              options={WORKFLOWS.map((w) => ({ key: w, label: w }))}
-              selected={workflowSel}
-              onToggle={(key) => setWorkflowSel((prev) => toggleSet(prev, key))}
-              onSelectAll={() => setWorkflowSel(new Set(WORKFLOWS))}
+              options={workflowUniverse.map((w) => ({ key: w, label: w }))}
+              selected={workflowSel ?? new Set(workflowUniverse)}
+              onToggle={(key) =>
+                setWorkflowSel((prev) => {
+                  const next = toggleSet(
+                    prev ?? new Set(workflowUniverse),
+                    key
+                  );
+                  return next.size === workflowUniverse.length ? null : next;
+                })
+              }
+              onSelectAll={() => setWorkflowSel(null)}
               onClear={() => setWorkflowSel(new Set())}
             />
 
@@ -314,60 +340,65 @@ const CostsDashboard: React.FC = () => {
             decimal={total.decimal}
             caption={`vs prior ${range}`}
             badge={
-              <FlexRow
-                gap={0.25}
-                align="center"
-                sx={{
-                  padding: "1px 6px",
-                  borderRadius: "6px",
-                  backgroundColor: `${theme.vars.palette.error.main}1F`
-                }}
-              >
-                <NorthIcon
+              delta === null ? undefined : (
+                <FlexRow
+                  gap={0.25}
+                  align="center"
                   sx={{
-                    fontSize: 12,
-                    color: theme.vars.palette.error.main
+                    padding: "1px 6px",
+                    borderRadius: "6px",
+                    backgroundColor: `${deltaColor}1F`
                   }}
-                />
-                <Text
-                  size="smaller"
-                  weight={600}
-                  sx={{ color: theme.vars.palette.error.main }}
                 >
-                  {formatPercent(spendDelta.fraction)}
-                </Text>
-              </FlexRow>
+                  {deltaUp ? (
+                    <NorthIcon sx={{ fontSize: 12, color: deltaColor }} />
+                  ) : (
+                    <SouthIcon sx={{ fontSize: 12, color: deltaColor }} />
+                  )}
+                  <Text size="smaller" weight={600} sx={{ color: deltaColor }}>
+                    {formatPercent(Math.abs(delta))}
+                  </Text>
+                </FlexRow>
+              )
             }
           />
           <CostStatCard
             label="Node executions"
             icon={GridViewIcon}
-            value={String(executionCount)}
-            caption={`${failedCount} failed · ${WORKFLOWS.length} workflows`}
+            value={String(stats.executionCount)}
+            caption={`${stats.failedCount} failed · ${stats.workflowCount} workflows`}
           />
           <CostStatCard
             label="Avg / execution"
             icon={ShowChartIcon}
-            value={formatMoney(avgPerExecution)}
+            value={formatMoney(stats.avgPerExecution)}
             caption="across all node types"
           />
           <CostStatCard
             label="Top cost driver"
             icon={BarChartIcon}
-            value={topCostDriver.label}
-            valueDotColor={providerColor(topCostDriver.providerId)}
-            caption={`${formatMoney(topCostDriver.cost)} · ${formatPercent(
-              driverShare
-            )} of spend`}
+            value={driver ? driver.label : "—"}
+            valueDotColor={
+              driver ? providerColor(driver.providerId) : undefined
+            }
+            caption={
+              driver
+                ? `${formatMoney(driver.cost)} · ${formatPercent(
+                    driverShare
+                  )} of spend`
+                : "no spend yet"
+            }
           />
         </FlexRow>
 
         {/* chart */}
         <Box sx={{ mb: 3 }}>
           <SpendOverTimeChart
-            days={days}
-            activeProviders={providersAllSelected ? undefined : providerSel}
-            rangeLabel={`daily · last ${days.length} days`}
+            days={view.days}
+            providers={view.providers}
+            stackOrder={view.stackOrder}
+            activeProviders={providerSel ?? undefined}
+            rangeLabel={`daily · last ${view.days.length} days`}
           />
         </Box>
 
@@ -582,6 +613,11 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               labelProps={{ sx: { mx: 0, gap: 0.5, py: 0.25 } }}
             />
           ))}
+          {options.length === 0 && (
+            <Text size="small" color="secondary" sx={{ px: 1, py: 0.5 }}>
+              No options
+            </Text>
+          )}
         </FlexColumn>
       </Popover>
     </>

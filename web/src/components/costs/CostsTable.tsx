@@ -6,7 +6,7 @@ import { CostNodeIcon } from "./CostNodeIcon";
 import {
   groupExecutions,
   providerColor,
-  PROVIDER_BY_ID,
+  providerLabel,
   formatMoney,
   formatRuntime,
   formatTokens,
@@ -64,7 +64,7 @@ const ProviderModel: React.FC<{
         }}
       />
       <Text size="small" sx={{ color: theme.vars.palette.text.primary }}>
-        {PROVIDER_BY_ID[providerId].label}
+        {providerLabel(providerId)}
       </Text>
       <Text size="smaller" family="secondary" color="secondary" truncate>
         {model}
