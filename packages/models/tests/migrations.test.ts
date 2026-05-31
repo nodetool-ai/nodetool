@@ -423,11 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-<<<<<<< HEAD
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 36;
-=======
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 37;
->>>>>>> origin/main
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 38;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
