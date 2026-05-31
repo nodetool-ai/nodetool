@@ -179,8 +179,10 @@ export function computeActiveLayers(
         layers.push({ kind: "image", ...common });
       } else {
         // video | overlay
-        if (videoCount >= maxVideoLayers) continue;
-        videoCount += 1;
+        if (common.assetId) {
+          if (videoCount >= maxVideoLayers) continue;
+          videoCount += 1;
+        }
         layers.push({ kind: "video", ...common });
       }
     }
