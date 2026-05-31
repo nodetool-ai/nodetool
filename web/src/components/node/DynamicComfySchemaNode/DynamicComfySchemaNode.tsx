@@ -62,9 +62,7 @@ const DynamicComfySchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const metadata = useMetadataStore((state) => state.getMetadata(type));
   const status = useStatusStore((state) => state.getStatus(workflow_id, id));
   const statusValue =
-    status && status !== null && typeof status !== "object"
-      ? status
-      : undefined;
+    status && typeof status !== "object" ? status : undefined;
 
   const nodeType = useMemo(
     () => ({
