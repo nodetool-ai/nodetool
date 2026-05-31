@@ -7,7 +7,8 @@ import {
   type ProcessingContext,
   type MediaRefValue,
   type ComfyNodeOutputs,
-  type ComfyFileOutput
+  type ComfyFileOutput,
+  type ComfyProgressEvent
 } from "@nodetool-ai/runtime";
 
 type ComfyPrompt = Record<
@@ -177,12 +178,75 @@ export class ComfyWorkflowNode extends BaseNode {
 
     const timeoutMs = Math.max(1, Number(this.timeout ?? 600)) * 1000;
 
-    const { result } = executeComfy(prompt, endpoint, undefined, timeoutMs);
+    const nodeCount = Object.keys(prompt).length;
+    const self = this as unknown as Record<string, unknown>;
+    const nodeId = String(self.__node_id ?? "");
+    const nodeName = String(self.__node_name ?? "Run ComfyUI Workflow");
+    const logLine = (
+      content: string,
+      severity: "info" | "warning" | "error" = "info"
+    ): void => {
+      context?.postMessage({
+        type: "log_update",
+        node_id: nodeId,
+        node_name: nodeName,
+        content,
+        severity
+      });
+    };
+
+    logLine(`Running ComfyUI workflow (${nodeCount} nodes) on ${endpoint}`);
+
+    const onProgress = (event: ComfyProgressEvent): void => {
+      switch (event.type) {
+        case "execution_start":
+          logLine("Execution started");
+          break;
+        case "execution_cached":
+          if (event.cached_nodes?.length) {
+            logLine(`Reused cache for ${event.cached_nodes.length} node(s)`);
+          }
+          break;
+        case "executing":
+          if (event.node) {
+            const cls = prompt[event.node]?.class_type ?? event.node;
+            logLine(`Executing ${cls} (#${event.node})`);
+          }
+          break;
+        case "progress":
+          if (
+            typeof event.progress === "number" &&
+            typeof event.total === "number" &&
+            event.total > 0
+          ) {
+            context?.postMessage({
+              type: "node_progress",
+              node_id: nodeId,
+              progress: event.progress,
+              total: event.total
+            });
+          }
+          break;
+        case "execution_error":
+          logLine(`ComfyUI error: ${event.error ?? "unknown"}`, "error");
+          break;
+        default:
+          break;
+      }
+    };
+
+    const { result } = executeComfy(prompt, endpoint, onProgress, timeoutMs);
     const res = await result;
 
     if (res.status !== "completed") {
+      logLine(res.error ?? "ComfyUI execution failed", "error");
       throw new Error(res.error ?? "ComfyUI execution failed");
     }
+
+    const imageCount = res.images?.length ?? 0;
+    logLine(
+      `ComfyUI workflow completed (${imageCount} image${imageCount === 1 ? "" : "s"})`
+    );
 
     const output: Record<string, unknown> = {
       // Legacy convenience outputs (flat across all nodes + raw history).
