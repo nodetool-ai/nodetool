@@ -151,7 +151,8 @@ export const assetsRouter = router({
         !input.content_type &&
         !input.workflow_id &&
         !input.node_id &&
-        !input.job_id
+        !input.job_id &&
+        !input.timeline_id
           ? ctx.userId
           : input.parent_id;
 
@@ -161,6 +162,7 @@ export const assetsRouter = router({
         workflowId: input.workflow_id,
         nodeId: input.node_id,
         jobId: input.job_id,
+        timelineId: input.timeline_id,
         limit: input.page_size
       });
       return {

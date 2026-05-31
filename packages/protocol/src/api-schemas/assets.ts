@@ -32,6 +32,7 @@ export const listInput = z.object({
   workflow_id: z.string().optional(),
   node_id: z.string().optional(),
   job_id: z.string().optional(),
+  timeline_id: z.string().optional(),
   page_size: z.number().int().min(1).max(10000).default(10000)
 });
 export type ListInput = z.infer<typeof listInput>;

@@ -144,6 +144,17 @@ describe("assets router", () => {
       );
     });
 
+    it("filters by timeline_id without forcing the home folder", async () => {
+      (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[], ""]);
+
+      const caller = createCaller(makeCtx());
+      await caller.assets.list({ timeline_id: "seq-1" });
+      expect(Asset.paginate).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({ parentId: undefined, timelineId: "seq-1" })
+      );
+    });
+
     it("maps assets through toAssetResponse with get_url + thumb_url", async () => {
       const a = makeAsset({
         id: "img-1",
