@@ -62,7 +62,6 @@ header_pages:
   - image-editor.md
   - templates-gallery.md
   - vibecoding.md
-  - comfyui-integration.md
   # Chat & Agents
   - global-chat.md
   - agent-config-schema.md

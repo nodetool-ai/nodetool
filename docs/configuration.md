@@ -36,7 +36,6 @@ The in-app Settings dialog is the easiest way to manage everything. It has a sid
 | **Folders** | Workspace, cache, and asset directories |
 | **Secrets** | Encrypted provider tokens and credentials |
 | **Remote** | Point the app at a remote NodeTool server |
-| **ComfyUI** | Integration settings for the ComfyUI sidecar |
 | **About** | Version and build info |
 
 ![Settings Subviews](assets/screenshots/screenshot-placeholder.svg)
