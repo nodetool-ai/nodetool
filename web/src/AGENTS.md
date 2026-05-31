@@ -113,4 +113,3 @@ The Vite dev server proxies these paths to the backend:
 - `/api/*` → `http://localhost:7777`
 - `/ws/*` → `ws://localhost:7777`
 - `/storage/*` → `http://localhost:7777`
-- `/comfy-api/*` → `http://localhost:8000` (optional ComfyUI)

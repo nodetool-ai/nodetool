@@ -37,6 +37,7 @@ import {
 } from "../node/DynamicFalSchemaNode";
 import DynamicKieSchemaNode from "../node/DynamicKieSchemaNode/DynamicKieSchemaNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode/KieSchemaLoader";
+import DynamicComfySchemaNode from "../node/DynamicComfySchemaNode/DynamicComfySchemaNode";
 import {
   DynamicReplicateNode,
   DYNAMIC_REPLICATE_NODE_TYPE
@@ -51,7 +52,8 @@ import {
   COMMENT_NODE_TYPE,
   PREVIEW_NODE_TYPE,
   REROUTE_NODE_TYPE,
-  STRING_NODE_TYPE
+  STRING_NODE_TYPE,
+  DYNAMIC_COMFY_NODE_TYPE
 } from "../../constants/nodeTypes";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
@@ -405,6 +407,7 @@ const ReactFlowWrapper = ({
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
       "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
+      [DYNAMIC_COMFY_NODE_TYPE]: DynamicComfySchemaNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       [SUBGRAPH_NODE_TYPE]: SubgraphNode,
       [SKETCH_NODE_TYPE]: SketchNode,

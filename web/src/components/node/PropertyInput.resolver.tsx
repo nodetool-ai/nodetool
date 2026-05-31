@@ -239,7 +239,7 @@ function handleListType(
 }
 
 function handleModelTypes(type: string): ComponentType<PropertyProps> {
-  const modelPrefixes = ["comfy.", "hf.", "tjs."];
+  const modelPrefixes = ["hf.", "tjs."];
 
   if (type.endsWith("_model")) {
     return ModelProperty;

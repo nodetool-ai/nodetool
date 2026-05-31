@@ -2,7 +2,7 @@
  * Setting model – stores unencrypted settings per user.
  *
  * Parallel to Secret but without encryption – for non-secret config
- * like COMFYUI_ADDR, paths, autosave settings, etc.
+ * like paths, autosave settings, etc.
  */
 
 import { eq, and } from "drizzle-orm";

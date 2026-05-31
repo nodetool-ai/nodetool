@@ -9,7 +9,6 @@ import type {} from "./window";
 import "./prismGlobal";
 
 import React, { Suspense, useEffect, useState } from "react";
-import { PREVIEW_NODE_TYPE } from "./constants/nodeTypes";
 import { useNavigate } from "react-router-dom";
 import ReactDOM from "react-dom/client";
 
@@ -52,9 +51,6 @@ import { initKeyListeners } from "./stores/KeyPressedStore";
 import { HEADER_HEIGHT } from "./config/constants";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
-import useMetadataStore from "./stores/MetadataStore";
-import type { ComfyUIObjectInfo } from "./services/ComfyUIService";
-import { comfyObjectInfoToMetadataMap } from "./utils/comfySchemaConverter";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
@@ -481,48 +477,6 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
-const preloadComfyMetadata = async (): Promise<void> => {
-  try {
-    // Load bundled ComfyUI schema snapshot (no network request)
-    const objectInfoModule =
-      await import("./data/comfy-object-info.json").catch(() => null);
-    if (!objectInfoModule) {
-      console.info("[startup] No bundled ComfyUI schema found, skipping preload");
-      return;
-    }
-    const objectInfo = (objectInfoModule.default ??
-      objectInfoModule) as unknown as ComfyUIObjectInfo;
-    const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
-    const comfyMetadataCount = Object.keys(comfyMetadata).length;
-    if (comfyMetadataCount === 0) {
-      return;
-    }
-
-    const metadataStore = useMetadataStore.getState();
-    metadataStore.setMetadata({
-      ...metadataStore.metadata,
-      ...comfyMetadata
-    });
-
-    const registeredNodeTypes = metadataStore.nodeTypes;
-    const baseNodeComponent =
-      registeredNodeTypes[PREVIEW_NODE_TYPE] ||
-      Object.values(registeredNodeTypes)[0];
-
-    if (baseNodeComponent) {
-      Object.keys(comfyMetadata).forEach((nodeType) => {
-        metadataStore.addNodeType(nodeType, baseNodeComponent);
-      });
-    }
-
-    console.info(
-      `[startup] Loaded ${comfyMetadataCount} ComfyUI node metadata entries from bundled schema`
-    );
-  } catch (error) {
-    console.warn("[startup] ComfyUI metadata preload skipped", error);
-  }
-};
-
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
   const authState = useAuth((s) => s.state);
@@ -552,11 +506,6 @@ const AppWrapper = () => {
     loadMetadata()
       .then((data) => {
         setStatus(data);
-        if (data === "success") {
-          // Load Comfy metadata in the background so imported comfy workflows
-          // are immediately recognized without manual connect steps.
-          void preloadComfyMetadata();
-        }
       })
       .catch((error) => {
         console.error("Failed to load metadata:", error);

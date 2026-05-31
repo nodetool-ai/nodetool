@@ -50,7 +50,6 @@ import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
-import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 
@@ -193,7 +192,6 @@ export interface NodeStoreState {
   ) => void;
   setEdges: (edges: Edge[]) => void;
   getWorkflow: () => Workflow;
-  isComfyWorkflow: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
   updateWorkflowSetting: (key: string, value: string | number | boolean | null) => void;
   validateConnection: (
@@ -231,54 +229,6 @@ export type NodeStore = UseBoundStore<
     temporal: StoreApi<TemporalState<PartializedNodeStore>>;
   }
 >;
-
-let comfyMetadataHydrationPromise: Promise<void> | null = null;
-
-const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
-  const comfyNodeTypes = nodeTypes.filter((type) => type.startsWith("comfy."));
-  if (comfyNodeTypes.length === 0) {
-    return;
-  }
-
-  const metadataStore = useMetadataStore.getState();
-  const missingComfyTypes = comfyNodeTypes.filter(
-    (type) => !metadataStore.metadata[type]
-  );
-  if (missingComfyTypes.length === 0) {
-    return;
-  }
-
-  if (!comfyMetadataHydrationPromise) {
-    comfyMetadataHydrationPromise = (async () => {
-      try {
-        // Use ComfyUIStore.connect() which goes through the backend proxy
-        const { useComfyUIStore } = await import("./ComfyUIStore");
-        const comfyStore = useComfyUIStore.getState();
-        if (!comfyStore.isConnected && !comfyStore.isConnecting) {
-          await comfyStore.connect();
-        }
-        // connect() registers metadata in MetadataStore, so we're done
-        console.info("[NodeStore] Hydrated ComfyUI metadata via backend proxy");
-      } catch (error) {
-        console.warn(
-          "[NodeStore] Failed to hydrate missing ComfyUI metadata",
-          error
-        );
-        const { useNotificationStore } = await import("./NotificationStore");
-        useNotificationStore.getState().addNotification({
-          type: "warning",
-          content:
-            "Could not connect to ComfyUI. Configure the host in ComfyUI Settings.",
-          alert: true,
-          timeout: 10000,
-          dedupeKey: "comfyui-not-running"
-        });
-      } finally {
-        comfyMetadataHydrationPromise = null;
-      }
-    })();
-  }
-};
 
 /**
  * Creates a new node store instance with default values
@@ -318,12 +268,6 @@ export const createNodeStore = (
           }
         }
 
-        hydrateMissingComfyMetadata(
-          sanitizedNodes
-            .map((node) => node.type || "")
-            .filter((type) => type.length > 0)
-        );
-
         // Store the unsubscribe function for cleanup
         let unsubscribeMetadata: (() => void) | null = null;
 
@@ -353,9 +297,6 @@ export const createNodeStore = (
         let lastNodesForGetSelection: Node<NodeData>[] | null = null;
         let lastEdgesForGetSelection: Edge[] | null = null;
         let lastSelection: NodeSelection = { nodes: [], edges: [] };
-        let lastNodesForComfy: Node<NodeData>[] | null = null;
-        let lastWorkflowForComfy: WorkflowAttributes | null = null;
-        let lastIsComfy = false;
 
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
@@ -1056,42 +997,15 @@ export const createNodeStore = (
               };
             });
             const settings = workflow.settings || {};
-            const hasComfyNodes = nodes.some(
-              (node) =>
-                typeof node.type === "string" && node.type.startsWith("comfy.")
-            );
 
             return {
               ...workflow,
-              settings: hasComfyNodes
-                ? { ...settings, [COMFY_WORKFLOW_FLAG]: true }
-                : settings,
+              settings,
               graph: {
                 edges: edges.map(reactFlowEdgeToGraphEdge),
                 nodes: nodes.map(reactFlowNodeToGraphNode)
               }
             };
-          },
-          isComfyWorkflow: (): boolean => {
-            const nodes = get().nodes;
-            const workflow = get().workflow;
-            if (nodes === lastNodesForComfy && workflow === lastWorkflowForComfy) {
-              return lastIsComfy;
-            }
-            lastNodesForComfy = nodes;
-            lastWorkflowForComfy = workflow;
-            const settings = workflow.settings as
-              | Record<string, unknown>
-              | undefined;
-            if (settings?.[COMFY_WORKFLOW_FLAG] === true) {
-              lastIsComfy = true;
-              return true;
-            }
-            lastIsComfy = nodes.some(
-              (node) =>
-                typeof node.type === "string" && node.type.startsWith("comfy.")
-            );
-            return lastIsComfy;
           },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
