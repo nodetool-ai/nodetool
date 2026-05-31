@@ -21,6 +21,7 @@ function toPredictionResponse(pred: Prediction): PredictionResponse {
     id: pred.id,
     user_id: pred.user_id,
     node_id: pred.node_id ?? "",
+    node_type: pred.node_type ?? "",
     provider: pred.provider,
     model: pred.model,
     workflow_id: pred.workflow_id ?? null,

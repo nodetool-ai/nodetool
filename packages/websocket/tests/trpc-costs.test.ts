@@ -56,6 +56,7 @@ describe("costs router", () => {
       id: "p1",
       user_id: "user-1",
       node_id: "n1",
+      node_type: "nodetool.llm.GenerateText",
       provider: "openai",
       model: "gpt-4",
       workflow_id: null,
@@ -285,6 +286,7 @@ describe("costs router", () => {
         {
           id: "p1",
           node_id: "n1",
+          node_type: "nodetool.llm.GenerateText",
           workflow_id: "wf1",
           workflow_name: "Product shots batch",
           provider: "openai",

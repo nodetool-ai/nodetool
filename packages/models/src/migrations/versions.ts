@@ -1475,5 +1475,22 @@ export const migrations: MigrationDef[] = [
     async down() {
       // no-op: dropping columns is unsafe across dialects and versions
     }
+  },
+  {
+    version: "20260531_000000",
+    name: "add_prediction_node_type",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_predictions"))) return;
+      if (!(await db.columnExists("nodetool_predictions", "node_type"))) {
+        await db.execute(
+          `ALTER TABLE nodetool_predictions ADD COLUMN node_type TEXT NOT NULL DEFAULT ''`
+        );
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
   }
 ];

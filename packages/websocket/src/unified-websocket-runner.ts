@@ -3186,6 +3186,7 @@ export class UnifiedWebSocketRunner {
         user_id: this.userId ?? "1",
         provider: cost.provider,
         model: cost.model ?? nodeType,
+        node_type: nodeType,
         cost: cost.amount,
         currency: cost.currency ?? cost.unit ?? null,
         billing_unit: cost.billing_unit ?? null,

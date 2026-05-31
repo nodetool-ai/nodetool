@@ -30,6 +30,7 @@ export const predictionResponse = z.object({
   id: z.string(),
   user_id: z.string(),
   node_id: z.string(),
+  node_type: z.string(),
   provider: z.string(),
   model: z.string(),
   workflow_id: z.string().nullable(),
@@ -152,6 +153,7 @@ export const dashboardStats = z.object({
 export const dashboardExecution = z.object({
   id: z.string(),
   node_id: z.string(),
+  node_type: z.string(),
   workflow_id: z.string().nullable(),
   workflow_name: z.string().nullable(),
   provider: z.string(),

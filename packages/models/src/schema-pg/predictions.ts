@@ -7,6 +7,7 @@ export const predictions = pgTable(
     id: text("id").primaryKey(),
     user_id: text("user_id").notNull(),
     node_id: text("node_id").notNull().default(""),
+    node_type: text("node_type").notNull().default(""),
     provider: text("provider").notNull().default(""),
     model: text("model").notNull().default(""),
     workflow_id: text("workflow_id"),

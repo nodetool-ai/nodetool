@@ -58,6 +58,7 @@ export interface DashboardData {
   executions: {
     id: string;
     node_id: string;
+    node_type: string;
     workflow_id: string | null;
     workflow_name: string | null;
     provider: string;
@@ -106,11 +107,26 @@ const RANGE_DAYS: Record<DateRange, number> = {
 
 export const rangeToDays = (range: DateRange): number => RANGE_DAYS[range];
 
-/** Best-effort node category from provider/model, for the table's leading icon. */
+/**
+ * Best-effort node category for the table's leading icon. The node type's
+ * namespace (when present) is the strongest signal; otherwise fall back to
+ * model-name heuristics.
+ */
 export const inferCategory = (
   _provider: string,
-  model: string
+  model: string,
+  nodeType = ""
 ): NodeCategory => {
+  const t = nodeType.toLowerCase();
+  if (t) {
+    if (/\.audio|whisper|tts|speech/.test(t)) return "audio";
+    if (/embed/.test(t)) return "embedding";
+    if (/upscal|esrgan/.test(t)) return "upscale";
+    if (/removebg|background|segment/.test(t)) return "background";
+    if (/\.image|\.video/.test(t)) return "image";
+    if (/\.text/.test(t)) return "text";
+    if (/llm|agent|chat|generate/.test(t)) return "llm";
+  }
   const m = model.toLowerCase();
   if (/whisper|tts|audio|speech|voice|musicgen/.test(m)) return "audio";
   if (/embed/.test(m)) return "embedding";
@@ -120,6 +136,12 @@ export const inferCategory = (
   if (/sdxl|flux|stable|diffusion|image|dall|imagen|pixart|kandinsky/.test(m))
     return "image";
   return "llm";
+};
+
+/** Human-friendly node title: last segment of the node type, else model/id. */
+const nodeTitle = (nodeType: string, model: string, nodeId: string): string => {
+  if (nodeType) return nodeType.split(".").pop() || nodeType;
+  return model || nodeId || "node";
 };
 
 const parseLocalDate = (ymd: string): Date => {
@@ -149,8 +171,8 @@ export const apiToView = (api: DashboardData): CostsView => {
 
   const executions: Execution[] = api.executions.map((e) => ({
     id: e.id,
-    title: e.model || e.node_id || "node",
-    category: inferCategory(e.provider, e.model),
+    title: nodeTitle(e.node_type, e.model, e.node_id),
+    category: inferCategory(e.provider, e.model, e.node_type),
     workflow: e.workflow_name ?? e.workflow_id ?? "—",
     providerId: e.provider,
     model: e.model,

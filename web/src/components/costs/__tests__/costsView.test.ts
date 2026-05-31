@@ -41,6 +41,7 @@ const api: DashboardData = {
     {
       id: "p1",
       node_id: "n1",
+      node_type: "nodetool.llm.GenerateText",
       workflow_id: "wf1",
       workflow_name: "Alpha",
       provider: "openai",
@@ -56,6 +57,7 @@ const api: DashboardData = {
     {
       id: "p2",
       node_id: "n2",
+      node_type: "nodetool.image.StableDiffusionXL",
       workflow_id: "wf1",
       workflow_name: "Alpha",
       provider: "replicate",
@@ -71,6 +73,7 @@ const api: DashboardData = {
     {
       id: "p3",
       node_id: "n3",
+      node_type: "",
       workflow_id: null,
       workflow_name: null,
       provider: "openai",
@@ -107,8 +110,9 @@ describe("apiToView", () => {
 
   it("maps executions, inferring category and normalizing status", () => {
     expect(view.executions).toHaveLength(3);
+    // title is the node type's last segment; category from its namespace
     expect(view.executions[0]).toMatchObject({
-      title: "gpt-4o",
+      title: "GenerateText",
       category: "llm",
       workflow: "Alpha",
       providerId: "openai",
@@ -118,11 +122,13 @@ describe("apiToView", () => {
       tokensIn: 100
     });
     expect(view.executions[1]).toMatchObject({
+      title: "StableDiffusionXL",
       category: "image",
       status: "error"
     });
-    // null workflow falls back to a dash; whisper → audio
+    // no node type → title falls back to the model; whisper → audio
     expect(view.executions[2]).toMatchObject({
+      title: "whisper-large-v3",
       workflow: "—",
       category: "audio",
       status: "ok"
@@ -183,5 +189,15 @@ describe("inferCategory", () => {
     expect(inferCategory("fal", "birefnet")).toBe("background");
     expect(inferCategory("replicate", "real-esrgan-x4")).toBe("upscale");
     expect(inferCategory("openai", "gpt-4o")).toBe("llm");
+  });
+
+  it("prefers the node type namespace when present", () => {
+    expect(inferCategory("openai", "gpt-4o", "nodetool.image.Flux")).toBe(
+      "image"
+    );
+    expect(inferCategory("openai", "x", "nodetool.audio.Whisper")).toBe(
+      "audio"
+    );
+    expect(inferCategory("local", "x", "nodetool.llm.Agent")).toBe("llm");
   });
 });

@@ -65,6 +65,7 @@ export interface DashboardDayResult {
 export interface DashboardExecutionResult {
   id: string;
   node_id: string;
+  node_type: string;
   workflow_id: string | null;
   workflow_name: string | null;
   provider: string;
@@ -110,6 +111,7 @@ export class Prediction extends DBModel {
   declare id: string;
   declare user_id: string;
   declare node_id: string;
+  declare node_type: string;
   declare provider: string;
   declare model: string;
   declare workflow_id: string | null;
@@ -142,6 +144,7 @@ export class Prediction extends DBModel {
     this.id ??= createTimeOrderedUuid();
     this.created_at ??= now;
     this.node_id ??= "";
+    this.node_type ??= "";
     this.provider ??= "";
     this.model ??= "";
     this.status ??= "pending";
@@ -467,6 +470,7 @@ export class Prediction extends DBModel {
       executions.push({
         id: p.id as string,
         node_id: (p.node_id as string) ?? "",
+        node_type: (p.node_type as string) ?? "",
         workflow_id,
         workflow_name: workflow_id ? (wfNames.get(workflow_id) ?? null) : null,
         provider: (p.provider as string) ?? "",

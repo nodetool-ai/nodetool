@@ -14,6 +14,7 @@ async function createPrediction(
   return Prediction.create<Prediction>({
     user_id: (data.user_id as string) ?? "u1",
     node_id: (data.node_id as string) ?? "node-1",
+    node_type: (data.node_type as string) ?? "",
     provider: (data.provider as string) ?? "openai",
     model: (data.model as string) ?? "gpt-4o",
     workflow_id: (data.workflow_id as string | null | undefined) ?? null,
@@ -38,6 +39,7 @@ describe("Prediction model", () => {
     const prediction = await Prediction.create<Prediction>({ user_id: "u1" });
     expect(prediction.id).toBeTruthy();
     expect(prediction.node_id).toBe("");
+    expect(prediction.node_type).toBe("");
     expect(prediction.provider).toBe("");
     expect(prediction.model).toBe("");
     expect(prediction.status).toBe("pending");
@@ -459,6 +461,7 @@ describe("Prediction.aggregateDashboard", () => {
       user_id: "u1",
       provider: "openai",
       model: "gpt-4o",
+      node_type: "nodetool.llm.GenerateText",
       cost: 1,
       workflow_id: "wf-1",
       duration: 2.5,
@@ -476,6 +479,7 @@ describe("Prediction.aggregateDashboard", () => {
       workflow_name: "Product shots batch",
       provider: "openai",
       model: "gpt-4o",
+      node_type: "nodetool.llm.GenerateText",
       duration: 2.5
     });
   });
