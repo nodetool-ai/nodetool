@@ -1476,6 +1476,7 @@ export const migrations: MigrationDef[] = [
       // no-op: dropping columns is unsafe across dialects and versions
     }
   },
+<<<<<<< HEAD
 
   // ── Link rendered videos back to their source timeline ──────────────
   // A video exported from the timeline editor stores the sequence id here so
@@ -1490,6 +1491,40 @@ export const migrations: MigrationDef[] = [
       if (!(await db.columnExists("nodetool_assets", "timeline_id"))) {
         await db.execute(
           "ALTER TABLE nodetool_assets ADD COLUMN timeline_id TEXT"
+=======
+  {
+    version: "20260531_000000",
+    name: "add_prediction_node_type",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_predictions"))) return;
+      if (!(await db.columnExists("nodetool_predictions", "node_type"))) {
+        await db.execute(
+          `ALTER TABLE nodetool_predictions ADD COLUMN node_type TEXT NOT NULL DEFAULT ''`
+        );
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
+  },
+  // ── Add provider_request_id for cost reconciliation ─────────────────
+  // Lets the runner refine an estimated provider cost into the actual billed
+  // amount by looking the charge up via the provider's request id (e.g. FAL).
+  {
+    version: "20260601_000000",
+    name: "add_prediction_provider_request_id",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_predictions"))) return;
+      if (
+        !(await db.columnExists("nodetool_predictions", "provider_request_id"))
+      ) {
+        await db.execute(
+          `ALTER TABLE nodetool_predictions ADD COLUMN provider_request_id TEXT`
+>>>>>>> origin/main
         );
       }
     },

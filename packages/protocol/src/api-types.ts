@@ -863,6 +863,10 @@ export interface VideoModel {
   provider: Provider;
   path?: string | null;
   supported_tasks?: string[];
+  /** Per-model option constraints derived from the provider manifest. */
+  durations?: number[] | null;
+  resolutions?: string[] | null;
+  aspect_ratios?: string[] | null;
 }
 
 export interface LlamaModel {
@@ -917,6 +921,12 @@ export interface UnifiedModel {
   supports_tools?: boolean | null;
   /** Voice IDs supported by this model. Only meaningful for TTS models. */
   voices?: string[] | null;
+  /** Allowed clip durations (seconds). Only meaningful for video models. */
+  durations?: number[] | null;
+  /** Allowed output resolutions (e.g. "720p"). Only meaningful for video models. */
+  resolutions?: string[] | null;
+  /** Allowed aspect ratios (e.g. "16:9"). Only meaningful for video models. */
+  aspect_ratios?: string[] | null;
 }
 
 export interface ModelPack {

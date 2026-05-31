@@ -157,6 +157,9 @@ export interface GlobalChatState extends ChatPiSlice {
   memoryEnabled: boolean;
   setMemoryEnabled: (enabled: boolean) => void;
 
+  /** Clear the current error (e.g. when dismissing an error banner). */
+  clearError: () => void;
+
   // Agent execution trace
   agentExecutionToolCalls: AgentExecutionToolCalls;
 
@@ -323,6 +326,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       memoryEnabled: false,
       setMemoryEnabled: (enabled: boolean) => set({ memoryEnabled: enabled }),
+
+      clearError: () => set({ error: null }),
 
       // Agent execution trace
       agentExecutionToolCalls: {},
