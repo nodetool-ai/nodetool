@@ -3,8 +3,10 @@ import { Text, Caption, FlexColumn, Box } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
-import type { NodeMetadata } from "../../../stores/ApiTypes";
+import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
+
+const EMPTY_PROPERTIES: Property[] = [];
 
 export interface DynamicComfySchemaContentProps {
   id: string;
@@ -73,11 +75,14 @@ export const DynamicComfySchemaContent: React.FC<DynamicComfySchemaContentProps>
               "& .action-icons": { display: "none" }
             }}
           >
+            {/* Static props (workflow, endpoint, timeout) are managed via the
+                loader and Inspector — not shown inline or as input handles.
+                Only the workflow-derived dynamic inputs render here. */}
             <NodeInputs
               id={id}
               nodeMetadata={nodeMetadata}
               layout={nodeMetadata.layout}
-              properties={nodeMetadata.properties}
+              properties={EMPTY_PROPERTIES}
               nodeType={nodeType}
               data={data}
               showHandle={!isConstantNode}

@@ -127,7 +127,10 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
         if (key in existing) dynamic_properties[key] = existing[key];
       }
       updateNodeData(nodeId, {
-        properties: { ...data.properties, workflow: schema.prompt },
+        properties: {
+          ...data.properties,
+          workflow: JSON.stringify(schema.prompt)
+        },
         dynamic_inputs,
         dynamic_outputs: schema.dynamic_outputs,
         dynamic_properties

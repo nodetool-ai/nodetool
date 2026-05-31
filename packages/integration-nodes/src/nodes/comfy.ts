@@ -82,11 +82,11 @@ export class ComfyWorkflowNode extends BaseNode {
   declare endpoint: any;
 
   @prop({
-    type: "dict[str, any]",
-    default: {},
+    type: "str",
+    default: "",
     title: "Workflow",
     description:
-      "ComfyUI workflow in API (prompt) format: a map of node id to { class_type, inputs }.",
+      "ComfyUI workflow in API (prompt) format, as a JSON string: a map of node id to { class_type, inputs }.",
     required: true
   })
   declare workflow: any;
@@ -99,6 +99,32 @@ export class ComfyWorkflowNode extends BaseNode {
     min: 1
   })
   declare timeout: any;
+
+  /**
+   * Parse the `workflow` prop into a ComfyUI prompt object. The prop holds a
+   * JSON string (API prompt format); a raw object is also accepted for
+   * backward compatibility with previously-saved graphs.
+   */
+  private parseWorkflow(value: unknown): ComfyPrompt {
+    let parsed: unknown = value;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return {};
+      try {
+        parsed = JSON.parse(trimmed);
+      } catch (err) {
+        throw new Error(
+          `ComfyUI workflow is not valid JSON: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
+      }
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed as ComfyPrompt;
+  }
 
   /**
    * Inject a single dynamic input value into the prompt at
@@ -177,12 +203,8 @@ export class ComfyWorkflowNode extends BaseNode {
       throw new Error("ComfyUI endpoint is required");
     }
 
-    const source = this.workflow as ComfyPrompt | undefined;
-    if (
-      !source ||
-      typeof source !== "object" ||
-      Object.keys(source).length === 0
-    ) {
+    const source = this.parseWorkflow(this.workflow);
+    if (Object.keys(source).length === 0) {
       throw new Error(
         "ComfyUI workflow is required (API prompt format: { nodeId: { class_type, inputs } })"
       );
