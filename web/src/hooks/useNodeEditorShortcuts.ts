@@ -71,10 +71,18 @@ import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
  */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
+interface NodeEditorShortcutsResult {
+  packageNameDialogOpen: boolean;
+  packageNameInput: string;
+  setPackageNameInput: (value: string) => void;
+  handleSaveExampleConfirm: () => Promise<void>;
+  handleSaveExampleCancel: () => void;
+}
+
 export const useNodeEditorShortcuts = (
   active: boolean,
   onShowShortcuts?: () => void
-) => {
+): NodeEditorShortcutsResult => {
   const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
   const [packageNameInput, setPackageNameInput] = useState("");
 

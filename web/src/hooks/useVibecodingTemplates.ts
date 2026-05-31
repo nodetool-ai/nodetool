@@ -38,7 +38,14 @@ export interface Template {
  * );
  * ```
  */
-export const useVibecodingTemplates = () => {
+interface UseVibecodingTemplatesResult {
+  templates: Template[] | undefined;
+  isLoading: boolean;
+  isFetching: boolean;
+  error: Error | null;
+}
+
+export const useVibecodingTemplates = (): UseVibecodingTemplatesResult => {
   const {
     data: templates,
     isLoading,
