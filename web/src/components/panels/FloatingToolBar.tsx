@@ -2,11 +2,12 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useEffect } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery, Menu } from "@mui/material";
 import { Tooltip, Box } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -36,7 +37,9 @@ import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import CanvasMediaComposer from "./CanvasMediaComposer";
+import ConversationOverlay from "./ConversationOverlay";
 
 /** Live elapsed-time readout shown inside the Run button while a run is active. */
 const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
@@ -76,7 +79,8 @@ const containerStyles = (theme: Theme) =>
     width: "min(820px, calc(100vw - 32px))",
     display: "flex",
     flexDirection: "column",
-    alignItems: "stretch"
+    alignItems: "stretch",
+    gap: "8px"
   });
 
 // Workflow controls embedded in the composer footer: an always-visible Run
@@ -162,6 +166,42 @@ const actionStyles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]
       }
+    },
+
+    ".composer-convo": {
+      position: "relative",
+      width: "32px",
+      height: "32px",
+      backgroundColor: "transparent",
+      color: theme.vars.palette.grey[400],
+      "& svg": { fontSize: "19px" },
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[800],
+        color: theme.vars.palette.grey[100]
+      },
+      "&.active": {
+        backgroundColor: theme.vars.palette.grey[800],
+        color: theme.vars.palette.grey[100]
+      },
+      ".convo-badge": {
+        position: "absolute",
+        top: "-2px",
+        right: "-2px",
+        minWidth: "15px",
+        height: "15px",
+        padding: "0 3px",
+        boxSizing: "border-box",
+        borderRadius: "999px",
+        backgroundColor: theme.vars.palette.grey[600],
+        color: theme.vars.palette.grey[50],
+        border: `2px solid ${theme.vars.palette.grey[900]}`,
+        fontSize: "var(--fontSizeTiny)",
+        fontWeight: 600,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        lineHeight: 1
+      }
     }
   });
 
@@ -244,6 +284,29 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const isRunningish = isWorkflowRunning || isPaused || isSuspended;
 
+  // Conversation overlay: floats above the composer, showing the active chat
+  // thread. It surfaces dynamically — auto-opening whenever a new message
+  // arrives or a generation starts — and can be collapsed back to a toggle.
+  const conversationCount = useGlobalChatStore((state) =>
+    state.currentThreadId
+      ? state.messageCache[state.currentThreadId]?.length ?? 0
+      : 0
+  );
+  const chatBusy = useGlobalChatStore(
+    (state) => state.status === "loading" || state.status === "streaming"
+  );
+  const [conversationCollapsed, setConversationCollapsed] = useState(false);
+  const prevCount = useRef(conversationCount);
+  useEffect(() => {
+    if (conversationCount > prevCount.current || chatBusy) {
+      setConversationCollapsed(false);
+    }
+    prevCount.current = conversationCount;
+  }, [conversationCount, chatBusy]);
+
+  const hasConversation = conversationCount > 0 || chatBusy;
+  const conversationOpen = hasConversation && !conversationCollapsed;
+
   // Keyboard shortcuts: Ctrl/Cmd+Enter runs (queues while running), Escape stops.
   useCombo(["control", "enter"], handleRun, true);
   useCombo(["meta", "enter"], handleRun, true);
@@ -281,6 +344,29 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflowActions = (
     <span css={actionStyles(theme)} className="composer-workflow-actions">
+      {hasConversation && (
+        <Tooltip
+          title={conversationOpen ? "Hide conversation" : "Show conversation"}
+          placement="top"
+          delay={TOOLTIP_ENTER_DELAY}
+        >
+          <button
+            type="button"
+            className={cn("composer-convo", conversationOpen && "active")}
+            onClick={() => setConversationCollapsed((v) => !v)}
+            aria-label="Toggle conversation"
+            aria-pressed={conversationOpen}
+          >
+            <ForumOutlinedIcon />
+            {conversationCount > 0 && (
+              <span className="convo-badge" aria-hidden>
+                {conversationCount}
+              </span>
+            )}
+          </button>
+        </Tooltip>
+      )}
+
       {isRunningish && (
         <Tooltip
           title={getShortcutTooltip("stopWorkflow")}
@@ -345,6 +431,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         data-comfy-workflow={isComfyWorkflow ? "true" : "false"}
         style={toolbarPosition}
       >
+        {conversationOpen && (
+          <ConversationOverlay
+            onCollapse={() => setConversationCollapsed(true)}
+          />
+        )}
         <CanvasMediaComposer leadingActions={workflowActions} />
       </Box>
 
