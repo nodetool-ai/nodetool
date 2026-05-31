@@ -83,6 +83,22 @@ export const createMediaComposerStyles = (theme: Theme) =>
       flexWrap: "wrap"
     },
 
+    // Idle state: dim the border and footer controls while the composer is
+    // unfocused, brightening them back on focus. The textarea stays full
+    // opacity so the placeholder/prompt remains readable.
+    ".media-compose-card.dimmed": {
+      borderColor:
+        theme.palette.mode === "light"
+          ? theme.vars.palette.grey[800]
+          : theme.vars.palette.grey[900]
+    },
+    ".media-compose-card.dimmed .media-chip-row": {
+      opacity: 0.55
+    },
+    ".media-compose-card .media-chip-row": {
+      transition: "opacity 0.2s ease"
+    },
+
     ".media-chip-row .divider-dot": {
       width: 4,
       height: 4,

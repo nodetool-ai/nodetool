@@ -152,6 +152,10 @@ interface VideoModelSelection {
   id: string;
   provider: string;
   name: string;
+  /** Per-model option constraints from the provider manifest (optional). */
+  durations?: number[];
+  resolutions?: string[];
+  aspectRatios?: string[];
 }
 
 interface VideoGenerationParams {
