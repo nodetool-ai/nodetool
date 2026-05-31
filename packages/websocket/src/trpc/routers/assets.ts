@@ -94,7 +94,8 @@ async function toAssetResponse(asset: AssetModel): Promise<AssetResponse> {
     thumb_url: thumbUrl,
     duration: asset.duration ?? null,
     node_id: asset.node_id ?? null,
-    job_id: asset.job_id ?? null
+    job_id: asset.job_id ?? null,
+    timeline_id: asset.timeline_id ?? null
   };
 }
 
@@ -188,7 +189,8 @@ export const assetsRouter = router({
           thumb_url: null,
           duration: null,
           node_id: null,
-          job_id: null
+          job_id: null,
+          timeline_id: null
         };
       }
 
@@ -211,6 +213,7 @@ export const assetsRouter = router({
         workflow_id: input.workflow_id ?? null,
         node_id: input.node_id ?? null,
         job_id: input.job_id ?? null,
+        timeline_id: input.timeline_id ?? null,
         metadata: input.metadata ?? null,
         size: input.size ?? null
       })) as unknown as AssetModel;

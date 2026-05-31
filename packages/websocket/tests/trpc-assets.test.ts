@@ -242,6 +242,7 @@ describe("assets router", () => {
         workflow_id: null,
         node_id: null,
         job_id: null,
+        timeline_id: null,
         metadata: null,
         size: null
       });
@@ -271,6 +272,7 @@ describe("assets router", () => {
         workflow_id: "wf-1",
         node_id: "node-1",
         job_id: "job-1",
+        timeline_id: null,
         metadata: { a: 1 },
         size: 42
       });

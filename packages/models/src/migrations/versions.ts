@@ -1475,5 +1475,26 @@ export const migrations: MigrationDef[] = [
     async down() {
       // no-op: dropping columns is unsafe across dialects and versions
     }
+  },
+
+  // ── Link rendered videos back to their source timeline ──────────────
+  // A video exported from the timeline editor stores the sequence id here so
+  // "edit" on the video can reopen its underlying timeline.
+  {
+    version: "20260531_000000",
+    name: "add_timeline_id_to_assets",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "timeline_id"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_assets ADD COLUMN timeline_id TEXT"
+        );
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
   }
 ];

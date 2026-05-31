@@ -18,7 +18,8 @@ export const assetResponse = z.object({
   thumb_url: z.string().nullable(),
   duration: z.number().nullable(),
   node_id: z.string().nullable(),
-  job_id: z.string().nullable()
+  job_id: z.string().nullable(),
+  timeline_id: z.string().nullable().optional()
 });
 export type AssetResponse = z.infer<typeof assetResponse>;
 
@@ -57,6 +58,7 @@ export const createInput = z.object({
   workflow_id: z.string().nullable().optional(),
   node_id: z.string().nullable().optional(),
   job_id: z.string().nullable().optional(),
+  timeline_id: z.string().nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   size: z.number().nullable().optional()
 });

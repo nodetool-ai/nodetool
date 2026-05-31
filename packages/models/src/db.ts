@@ -287,6 +287,7 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     workflow_id: "text",
     node_id: "text",
     job_id: "text",
+    timeline_id: "text",
     created_at: "text",
     updated_at: "text"
   },
@@ -573,6 +574,7 @@ function getCreateSchemaSql(): string {
       "workflow_id" text,
       "node_id" text,
       "job_id" text,
+      "timeline_id" text,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
