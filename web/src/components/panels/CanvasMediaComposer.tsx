@@ -17,7 +17,16 @@ import type {
  * {@link useGenerationToCanvas}). Generation still routes through the chat
  * pipeline, so results also remain visible in the chat panel's history.
  */
-const CanvasMediaComposer: React.FC = () => {
+export interface CanvasMediaComposerProps {
+  /** Workflow controls (Run button + menu) rendered inside the composer
+   *  footer. Supplied by FloatingToolBar; kept here so the canvas composer
+   *  stays a thin wrapper over MediaChatComposer. */
+  leadingActions?: React.ReactNode;
+}
+
+const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
+  leadingActions
+}) => {
   const {
     status,
     sendMessage,
@@ -93,6 +102,7 @@ const CanvasMediaComposer: React.FC = () => {
       memoryEnabled={memoryEnabled}
       onMemoryToggle={setMemoryEnabled}
       autoFocus={false}
+      leadingActions={leadingActions}
     />
   );
 };

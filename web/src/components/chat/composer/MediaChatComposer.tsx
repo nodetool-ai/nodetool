@@ -129,6 +129,9 @@ export interface MediaChatComposerProps {
   requireToolSupport?: boolean;
   /** Focus the prompt textarea on mount. Defaults to true (chat panel). */
   autoFocus?: boolean;
+  /** Extra actions rendered at the start of the footer chip row (e.g. the
+   *  canvas Run button + workflow menu). Empty in the chat panel. */
+  leadingActions?: React.ReactNode;
 }
 
 /**
@@ -160,7 +163,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   onModelChange,
   allowedProviders,
   requireToolSupport,
-  autoFocus = true
+  autoFocus = true,
+  leadingActions
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -826,6 +830,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         )}
 
         <div className="media-chip-row">
+          {/* Host-supplied actions at the start of the footer (e.g. the canvas
+              Run button + workflow menu). Empty in the chat panel. */}
+          {leadingActions}
+
           {/* Mode selector chip */}
           <MediaControlChip
             icon={modeIcon}

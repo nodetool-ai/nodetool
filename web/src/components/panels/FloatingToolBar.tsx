@@ -2,25 +2,15 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useEffect, useState } from "react";
-import {
-  Fab,
-  useMediaQuery,
-  Menu
-} from "@mui/material";
-import { Tooltip, FlexRow, Box } from "../ui_primitives";
+import React, { memo, useCallback, useEffect } from "react";
+import { useMediaQuery, Menu } from "@mui/material";
+import { Tooltip, Box } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
-import { useLocation } from "react-router-dom";
-import { useNodes } from "../../contexts/NodeContext";
-import { useSettingsStore } from "../../stores/SettingsStore";
-import { useComfyUIStore } from "../../stores/ComfyUIStore";
-import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import MobilePaneMenu from "../menus/MobilePaneMenu";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
@@ -31,10 +21,16 @@ import EditIcon from "@mui/icons-material/Edit";
 import LinearScaleIcon from "@mui/icons-material/LinearScale";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useLocation } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
+
+import { useNodes } from "../../contexts/NodeContext";
+import { useSettingsStore } from "../../stores/SettingsStore";
+import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
+import { useCombo } from "../../stores/KeyPressedStore";
+import MobilePaneMenu from "../menus/MobilePaneMenu";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { cn } from "../editor_ui/editorUtils";
@@ -42,78 +38,11 @@ import { MenuItemPrimitive } from "../ui_primitives/MenuItemPrimitive";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
-import CanvasMediaComposer from "./CanvasMediaComposer";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
-import { useShallow } from "zustand/react/shallow";
+import CanvasMediaComposer from "./CanvasMediaComposer";
 
-interface ToolbarButtonProps {
-  icon: React.ReactNode;
-  tooltip: string;
-  shortcut?: string;
-  variant?: "primary" | "secondary" | "neutral" | "stop";
-  className?: string;
-  onClick?: (e: React.MouseEvent<HTMLElement>) => void;
-  disabled?: boolean;
-  /** When greater than 0, renders a small count badge on the button corner. */
-  badge?: number;
-  "aria-label"?: string;
-}
-
-const ToolbarButton: React.FC<ToolbarButtonProps> = memo(
-  function ToolbarButton({
-    icon,
-    tooltip,
-    shortcut,
-    variant = "neutral",
-    className,
-    onClick,
-    disabled,
-    badge,
-    "aria-label": ariaLabel
-  }) {
-    const title = shortcut ? getShortcutTooltip(shortcut) : tooltip;
-    const showBadge = typeof badge === "number" && badge > 0;
-
-    const fabElement = (
-      <Fab
-        className={cn(
-          "floating-action-button",
-          variant,
-          className,
-          disabled && "disabled"
-        )}
-        onClick={onClick}
-        disabled={disabled}
-        aria-label={ariaLabel || tooltip}
-        disableRipple
-      >
-        {icon}
-        {showBadge && (
-          <span className="run-queue-badge" aria-hidden>
-            {badge}
-          </span>
-        )}
-      </Fab>
-    );
-
-    return (
-      <Tooltip title={title} delay={TOOLTIP_ENTER_DELAY} placement="top">
-        {disabled ? (
-          <span style={{ display: "inline-flex" }}>{fabElement}</span>
-        ) : (
-          fabElement
-        )}
-      </Tooltip>
-    );
-  }
-);
-
-// Format seconds into precise time display
-// Returns text and size key: "smaller" | "tiny" | "tinyer"
-// NOTE: This function is now in utils/timeFormat.ts and imported above
-
-// Running time display component
+/** Live elapsed-time readout shown inside the Run button while a run is active. */
 const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
   function RunningTime({ isRunning, timerKey }) {
     const theme = useTheme();
@@ -124,7 +53,6 @@ const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
       tiny: theme.fontSizeTiny,
       tinyer: theme.fontSizeTinyer
     };
-
     return (
       <span
         style={{
@@ -140,6 +68,8 @@ const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
   }
 );
 
+// The toolbar is now just the media composer, centered at the bottom. The
+// workflow controls live inside the composer footer (Run button + a ⋮ menu).
 const containerStyles = (theme: Theme) =>
   css({
     position: "fixed",
@@ -147,131 +77,54 @@ const containerStyles = (theme: Theme) =>
     left: "50%",
     transform: "translateX(-50%)",
     zIndex: theme.zIndex.drawer,
+    width: "min(820px, calc(100vw - 32px))",
     display: "flex",
     flexDirection: "column",
-    alignItems: "center",
-    gap: "10px",
-    width: "min(720px, calc(100vw - 32px))",
-    // Let canvas interactions pass through the empty gap; the composer card
-    // and the controls pill re-enable pointer events for themselves.
-    pointerEvents: "none",
-    "& > *": {
-      pointerEvents: "auto"
-    },
+    alignItems: "stretch"
+  });
 
-    // Subtle handle that reveals the canvas controls pill. Kept low-key so the
-    // composer stays the focus; brightens on hover and when the pill is open.
-    ".controls-toggle": {
+// Workflow controls embedded in the composer footer: an always-visible Run
+// button (+ contextual Stop while running) and a ⋮ button opening a normal
+// dropdown menu for everything else. Kept compact so the composer doesn't grow.
+const actionStyles = (theme: Theme) =>
+  css({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    marginRight: "6px",
+    paddingRight: "8px",
+    borderRight: `1px solid ${theme.vars.palette.divider}`,
+
+    "& button": {
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      width: "48px",
-      height: "16px",
-      padding: 0,
       border: "none",
-      borderRadius: "999px",
-      backgroundColor: theme.vars.palette.grey[900],
-      color: theme.vars.palette.grey[500],
       cursor: "pointer",
-      opacity: 0.4,
-      transition: "opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease",
-      "& svg": { fontSize: "16px" },
-      "&:hover": {
-        opacity: 1,
-        color: theme.vars.palette.grey[200],
-        backgroundColor: theme.vars.palette.grey[800]
-      },
-      "&.active": {
-        opacity: 0.9,
-        color: theme.vars.palette.grey[300]
-      }
-    }
-  });
-
-const pillStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: "2px",
-    padding: "6px 8px",
-    backgroundColor: theme.vars.palette.grey[900],
-    borderRadius: "999px",
-    border: `1px solid ${theme.vars.palette.grey[800]}`,
-    boxShadow: `0 4px 20px ${theme.vars.palette.common.black}1A`,
-
-    ".floating-action-button": {
-      width: "36px",
-      height: "36px",
-      minHeight: "36px",
-      position: "relative",
-      borderRadius: "var(--rounded-circle)",
-      border: "none",
-      boxShadow: "none",
-      transition: "all 0.15s ease-out",
-
-      "& svg": {
-        fontSize: "var(--fontSizeBig)"
-      },
-
-      "&:hover": {
-        transform: "scale(1.05)"
-      },
-
-      "&:active": {
-        transform: "scale(0.95)"
-      }
+      borderRadius: "999px",
+      transition: "background-color 0.15s ease, color 0.15s ease"
     },
 
-    /* Run button stays larger to remain the focal point */
-    ".floating-action-button.primary": {
-      width: "44px",
-      height: "44px",
-      minHeight: "44px",
-      "& svg": {
-        fontSize: "var(--fontSizeBig)"
-      },
+    ".composer-run": {
+      position: "relative",
+      minWidth: "36px",
+      height: "36px",
+      padding: "0 10px",
+      gap: "4px",
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
-      borderRadius: "var(--rounded-circle)",
-      boxShadow: `0 4px 16px ${theme.vars.palette.success.main}50, 0 0 20px ${theme.vars.palette.success.main}30`,
-      position: "relative",
-      overflow: "visible",
-      transition: "all 0.3s ease",
-      "&:hover": {
-        borderRadius: "var(--rounded-circle)",
-        backgroundColor: theme.vars.palette.primary.light,
-        boxShadow: `0 6px 20px ${theme.vars.palette.primary.main}60, 0 0 28px ${theme.vars.palette.success.main}40`
-      },
+      "& svg": { fontSize: "20px" },
+      "&:hover": { backgroundColor: theme.vars.palette.primary.light },
       "&.running": {
         backgroundColor: theme.vars.palette.grey[800],
-        color: theme.vars.palette.grey[100],
-        borderRadius: "var(--rounded-circle)",
-        boxShadow: `0 2px 8px ${theme.vars.palette.common.black}30`,
-        opacity: 1,
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          inset: "-3px",
-          borderRadius: "inherit",
-          padding: "3px",
-          background: `conic-gradient(from 0deg, transparent 40%, ${theme.vars.palette.primary.main} 95%, ${theme.vars.palette.primary.main})`,
-          WebkitMask:
-            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
-          animation: "border-spin 2s linear infinite",
-          pointerEvents: "none",
-          zIndex: -1
-        }
+        color: theme.vars.palette.grey[100]
       },
-      /* Count of runs queued behind the active run */
       ".run-queue-badge": {
         position: "absolute",
-        top: "-2px",
-        right: "-2px",
-        minWidth: "18px",
-        height: "18px",
+        top: "-3px",
+        right: "-3px",
+        minWidth: "16px",
+        height: "16px",
         padding: "0 4px",
         boxSizing: "border-box",
         borderRadius: "999px",
@@ -283,134 +136,35 @@ const pillStyles = (theme: Theme) =>
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        lineHeight: 1,
-        pointerEvents: "none",
-        zIndex: 2
+        lineHeight: 1
       }
     },
 
-    ".floating-action-button.secondary": {
-      backgroundColor: theme.vars.palette.grey[800],
-      color: theme.vars.palette.grey[300],
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700],
-        color: theme.vars.palette.grey[100]
-      }
-    },
-
-    ".floating-action-button.neutral": {
+    ".composer-stop": {
+      width: "32px",
+      height: "32px",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
+      "& svg": { fontSize: "18px" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
-        color: theme.vars.palette.grey[200]
-      }
-    },
-
-    ".floating-action-button.disabled": {
-      opacity: 0.4,
-      pointerEvents: "none"
-    },
-
-    ".floating-action-button.stop": {
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[400],
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800],
-        color: theme.vars.palette.warning.main
-      },
-      "&.active": {
         color: theme.vars.palette.warning.main
       }
     },
 
-    /* Node menu button: flat to match the rest of the toolbar */
-    ".floating-action-button.node-menu": {
+    ".composer-menu": {
+      width: "32px",
+      height: "32px",
       backgroundColor: "transparent",
-      color: theme.vars.palette.grey[300],
+      color: theme.vars.palette.grey[400],
+      "& svg": { fontSize: "20px" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]
-      }
-    },
-
-    ".floating-action-button.node-menu-attention": {
-      animation: "node-menu-attention 2.4s ease-in-out infinite",
-      "&:hover": {
-        animation: "none",
-        backgroundColor: theme.vars.palette.info.main,
-        color: theme.vars.palette.info.contrastText,
-        boxShadow: `0 6px 16px ${theme.vars.palette.common.black}35, 0 0 20px ${theme.vars.palette.info.main}25`
-      },
-      "@media (prefers-reduced-motion: reduce)": {
-        animation: "none",
-        backgroundColor: theme.vars.palette.info.main,
-        color: theme.vars.palette.info.contrastText,
-        boxShadow: `0 4px 12px ${theme.vars.palette.info.main}30`
-      }
-    },
-
-    /* Mini app button: vibrant inviting color */
-    ".floating-action-button.mini-app": {
-      backgroundColor: theme.vars.palette.info.main,
-      color: theme.vars.palette.info.contrastText,
-      borderColor: theme.vars.palette.info.main,
-      boxShadow: `0 4px 14px ${theme.vars.palette.common.black}35, 0 0 16px ${theme.vars.palette.info.main}30`,
-      filter: "saturate(1.1)",
-      "&:hover": {
-        backgroundColor: theme.vars.palette.info.dark,
-        borderColor: theme.vars.palette.info.dark,
-        boxShadow: `0 6px 18px ${theme.vars.palette.common.black}40, 0 0 24px ${theme.vars.palette.info.main}40`,
-        transform: "scale(1.06)"
-      }
-    },
-
-    /* Instant update button: glowing effect when active */
-    ".floating-action-button.instant-update": {
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[400],
-      "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800],
-        color: theme.vars.palette.grey[200]
       },
       "&.active": {
-        backgroundColor: theme.vars.palette.warning.main,
-        color: theme.vars.palette.warning.contrastText,
-        boxShadow: `0 0 12px ${theme.vars.palette.warning.main}`,
-        "&:hover": {
-          backgroundColor: theme.vars.palette.warning.dark,
-          boxShadow: `0 0 16px ${theme.vars.palette.warning.main}`
-        }
-      }
-    },
-
-    "@keyframes pulse-scale": {
-      "0%": { transform: "scale(1)" },
-      "50%": { transform: "scale(1.1)" },
-      "100%": { transform: "scale(1)" }
-    },
-    "@keyframes border-spin": {
-      "0%": { transform: "rotate(0deg)" },
-      "100%": { transform: "rotate(360deg)" }
-    },
-    "@keyframes node-menu-attention": {
-      "0%, 100%": {
-        backgroundColor: "transparent",
-        color: theme.vars.palette.grey[400],
-        boxShadow: "none"
-      },
-      "50%": {
-        backgroundColor: theme.vars.palette.info.main,
-        color: theme.vars.palette.info.contrastText,
-        boxShadow: `0 0 16px ${theme.vars.palette.info.main}40`
-      }
-    },
-
-    ".minimap-active": {
-      backgroundColor: `${theme.vars.palette.primary.main}20`,
-      color: theme.vars.palette.primary.main,
-      "&:hover": {
-        backgroundColor: `${theme.vars.palette.primary.main}30`
+        backgroundColor: theme.vars.palette.grey[800],
+        color: theme.vars.palette.grey[100]
       }
     }
   });
@@ -421,22 +175,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const path = location.pathname;
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  // Canvas controls are tucked away by default so the media composer stays the
-  // focus; a subtle handle reveals them, and an active run force-shows them so
-  // Stop is always reachable.
-  const [controlsOpen, setControlsOpen] = useState(false);
-
-  // Use extracted hooks
   const {
     paneMenuOpen,
     actionsMenuAnchor,
-    advancedMenuAnchor,
     handleOpenPaneMenu,
     handleClosePaneMenu,
     handleOpenActionsMenu,
-    handleCloseActionsMenu,
-    handleOpenAdvancedMenu,
-    handleCloseAdvancedMenu
+    handleCloseActionsMenu
   } = useFloatingToolbarState();
 
   const {
@@ -484,318 +229,224 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflow = useNodes((state) => state.workflow);
   const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
-  const { comfyIsConnected, comfyIsConnecting, comfyConnectionError, comfyBaseUrl } =
+  const { comfyIsConnected, comfyIsConnecting, comfyConnectionError } =
     useComfyUIStore(
       useShallow((state) => ({
         comfyIsConnected: state.isConnected,
         comfyIsConnecting: state.isConnecting,
-        comfyConnectionError: state.connectionError,
-        comfyBaseUrl: state.baseUrl
+        comfyConnectionError: state.connectionError
       }))
     );
 
-  // Auto-connect to ComfyUI when a comfy workflow is loaded (once per workflow)
+  // Auto-connect to ComfyUI when a comfy workflow is loaded (once per workflow).
   useEffect(() => {
-    if (isComfyWorkflow && !comfyIsConnected && !comfyIsConnecting && !comfyConnectionError) {
+    if (
+      isComfyWorkflow &&
+      !comfyIsConnected &&
+      !comfyIsConnecting &&
+      !comfyConnectionError
+    ) {
       useComfyUIStore.getState().connect().catch(() => {});
     }
   }, [isComfyWorkflow, comfyIsConnected, comfyIsConnecting, comfyConnectionError]);
 
-  // Subscribe only to emptiness state to avoid re-renders on every node drag
-  const isEmptyWorkflow = useNodes(
-    (state) => state.nodes.length === 0 && state.edges.length === 0
-  );
+  const isRunningish = isWorkflowRunning || isPaused || isSuspended;
 
-  // Keyboard shortcuts
-  // Always active: while a run is in progress, the shortcut queues another run.
+  // Keyboard shortcuts: Ctrl/Cmd+Enter runs (queues while running), Escape stops.
   useCombo(["control", "enter"], handleRun, true);
   useCombo(["meta", "enter"], handleRun, true);
-  useCombo(
-    ["escape"],
-    handleStop,
-    true,
-    isWorkflowRunning || isPaused || isSuspended
+  useCombo(["escape"], handleStop, true, isRunningish);
+
+  const runWithClose = useCallback(
+    (fn: () => void) => () => {
+      fn();
+      handleCloseActionsMenu();
+    },
+    [handleCloseActionsMenu]
   );
 
   const handleToggleInstantUpdate = useCallback(() => {
     setInstantUpdate(!instantUpdate);
   }, [instantUpdate, setInstantUpdate]);
 
-  const shouldHighlightNodeMenu =
-    isEmptyWorkflow && workflow?.name === "New Workflow";
-
-  const handleToggleTraceAndCloseMenu = useCallback(() => {
-    handleToggleTrace();
-    handleCloseActionsMenu();
-  }, [handleToggleTrace, handleCloseActionsMenu]);
-
-  const handleEditWorkflowAndCloseMenu = useCallback(() => {
-    handleEditWorkflow();
-    handleCloseActionsMenu();
-  }, [handleEditWorkflow, handleCloseActionsMenu]);
-
-  const handleDownloadAndCloseMenu = useCallback(() => {
-    handleDownload();
-    handleCloseActionsMenu();
-  }, [handleDownload, handleCloseActionsMenu]);
-
-  const handleRunAsAppAndCloseMenu = useCallback(() => {
-    handleRunAsApp();
-    handleCloseActionsMenu();
-  }, [handleRunAsApp, handleCloseActionsMenu]);
-
-  const handleToggleMiniMapAndCloseMenu = useCallback(() => {
-    handleToggleMiniMap();
-    handleCloseAdvancedMenu();
-  }, [handleToggleMiniMap, handleCloseAdvancedMenu]);
-
   const handleToggleViewMode = useCallback(() => {
     setEditorViewMode(editorViewMode === "graph" ? "chain" : "graph");
   }, [editorViewMode, setEditorViewMode]);
 
-  const isRunningish = isWorkflowRunning || isPaused || isSuspended;
-  const controlsVisible = controlsOpen || isRunningish;
-
   // Shown in the legacy editor (/editor) and the unified workspace (/workspace).
-  // In the workspace it only mounts inside WorkflowEditorSurface, i.e. an active
-  // workflow tab in Edit mode, so this guard just excludes unrelated routes.
   if (!path.startsWith("/editor") && !path.startsWith("/workspace")) {
     return null;
   }
 
-  return (
-    <>
-      <Box css={containerStyles(theme)} style={toolbarPosition}>
-        {controlsVisible && (
-        <Box
-          css={pillStyles(theme)}
-          className="floating-toolbar"
-          data-comfy-workflow={isComfyWorkflow ? "true" : "false"}
-        >
-          {isMobile && (
-          <ToolbarButton
-            icon={<MoreHorizIcon />}
-            tooltip="Menu"
-            variant="neutral"
-            onClick={handleOpenPaneMenu}
-            aria-label="Open canvas menu"
-          />
-        )}
+  const runTooltip =
+    pendingRunCount > 0
+      ? `Running — ${pendingRunCount} queued (click to queue another)`
+      : queuePosition != null
+        ? `Queued (#${queuePosition})`
+        : isWorkflowRunning
+          ? "Running (click to queue another run)"
+          : getShortcutTooltip("runWorkflow");
 
-        {editorViewMode === "graph" && (
-          <span style={{ display: "inline-flex" }}>
-            <ToolbarButton
-              icon={<AddCircleIcon />}
-              tooltip="Add Node"
-              shortcut="openNodeMenu"
-              variant={shouldHighlightNodeMenu ? "neutral" : "secondary"}
-              className={cn(
-                !shouldHighlightNodeMenu && "node-menu",
-                shouldHighlightNodeMenu && "node-menu-attention"
-              )}
-              onClick={handleToggleNodeMenu}
-              aria-label="Add node"
-            />
-          </span>
-        )}
-        <ToolbarButton
-          icon={editorViewMode === "graph" ? <LinearScaleIcon /> : <AccountTreeIcon />}
-          tooltip={editorViewMode === "graph" ? "Chain View" : "Graph View"}
-          variant="neutral"
-          onClick={handleToggleViewMode}
-          aria-label="Toggle editor view mode"
-        />
-        {editorViewMode === "graph" && (
-          <ToolbarButton
-            icon={<LayoutIcon />}
-            tooltip="Auto Layout"
-            variant="neutral"
-            onClick={handleAutoLayout}
-            aria-label="Auto layout nodes"
-          />
-        )}
-        <ToolbarButton
-          icon={<SaveIcon />}
-          tooltip="Save"
-          shortcut="saveWorkflow"
-          variant="neutral"
-          onClick={handleSave}
-          aria-label="Save workflow"
-        />
-        <ToolbarButton
-          icon={<BoltIcon />}
-          tooltip={
-            instantUpdate
-              ? "Instant Update: ON - Property changes trigger execution"
-              : "Instant Update: OFF - Click to enable"
-          }
-          variant="neutral"
-          className={cn("instant-update", instantUpdate && "active")}
-          onClick={handleToggleInstantUpdate}
-          aria-label="Toggle instant update"
-        />
-        <ToolbarButton
-          icon={<MoreVertIcon />}
-          tooltip="More"
-          variant="neutral"
-          onClick={handleOpenActionsMenu}
-          aria-label="More actions"
-        />
-
-        {(isPaused || isSuspended) && (
-          <ToolbarButton
-            icon={<PlayCircleIcon />}
-            tooltip="Resume"
-            variant="secondary"
-            onClick={handleResume}
-            aria-label="Resume workflow"
-          />
-        )}
-
-        {isComfyWorkflow && (
-          <Tooltip title={comfyIsConnected ? `ComfyUI: ${comfyBaseUrl}` : "ComfyUI not connected — configure in Settings"}>
-            <FlexRow align="center" gap={0.5} sx={{ mr: 1, fontSize: "var(--fontSizeSmaller)", color: "text.secondary" }}>
-              <Box
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "var(--rounded-circle)",
-                  bgcolor: comfyIsConnected ? "success.main" : "grey.500",
-                }}
-              />
-              ComfyUI
-            </FlexRow>
-          </Tooltip>
-        )}
-
-        <Box
-          css={css({
-            width: "1px",
-            height: "20px",
-            backgroundColor: theme.vars.palette.grey[800],
-            margin: "0 6px"
-          })}
-        />
-
-        <ToolbarButton
-          icon={<StopIcon />}
-          tooltip="Stop (interrupt execution)"
-          shortcut="stopWorkflow"
-          variant="stop"
-          className={isWorkflowRunning ? "active" : undefined}
-          disabled={!(isWorkflowRunning || isPaused || isSuspended)}
-          onClick={handleStop}
-          aria-label="Stop workflow"
-        />
-
-        <ToolbarButton
-          icon={
-            isWorkflowRunning ? (
-              <RunningTime
-                isRunning={isWorkflowRunning}
-                timerKey={workflow?.id}
-              />
-            ) : (
-              <PlayArrow />
-            )
-          }
-          tooltip={
-            pendingRunCount > 0
-              ? `Running — ${pendingRunCount} queued (click to queue another)`
-              : queuePosition != null
-                ? `Queued (#${queuePosition})`
-                : isWorkflowRunning
-                  ? "Running (click to queue another run)"
-                  : "Run"
-          }
-          shortcut={isWorkflowRunning ? undefined : "runWorkflow"}
-          variant="primary"
-          className={isWorkflowRunning ? "running" : undefined}
-          onClick={handleRun}
-          badge={pendingRunCount}
-          aria-label="Run workflow"
-        />
-        </Box>
-        )}
+  const workflowActions = (
+    <span css={actionStyles(theme)} className="composer-workflow-actions">
+      {isRunningish && (
         <Tooltip
-          title="Canvas controls — Run, Save, Add Node…"
+          title={getShortcutTooltip("stopWorkflow")}
           placement="top"
           delay={TOOLTIP_ENTER_DELAY}
         >
           <button
             type="button"
-            className={cn("controls-toggle", controlsOpen && "active")}
-            onClick={() => setControlsOpen((v) => !v)}
-            aria-label={
-              controlsVisible ? "Hide canvas controls" : "Show canvas controls"
-            }
-            aria-expanded={controlsVisible}
+            className="composer-stop"
+            onClick={handleStop}
+            aria-label="Stop workflow"
           >
-            {controlsVisible ? <ExpandMoreIcon /> : <ExpandLessIcon />}
+            <StopIcon />
           </button>
         </Tooltip>
-        <CanvasMediaComposer />
+      )}
+
+      <Tooltip title={runTooltip} placement="top" delay={TOOLTIP_ENTER_DELAY}>
+        <button
+          type="button"
+          className={cn("composer-run", isWorkflowRunning && "running")}
+          onClick={handleRun}
+          aria-label="Run workflow"
+        >
+          {isWorkflowRunning ? (
+            <RunningTime isRunning timerKey={workflow?.id} />
+          ) : (
+            <PlayArrow />
+          )}
+          {pendingRunCount > 0 && (
+            <span className="run-queue-badge" aria-hidden>
+              {pendingRunCount}
+            </span>
+          )}
+        </button>
+      </Tooltip>
+
+      <Tooltip
+        title="Workflow actions"
+        placement="top"
+        delay={TOOLTIP_ENTER_DELAY}
+      >
+        <button
+          type="button"
+          className={cn("composer-menu", actionsMenuAnchor && "active")}
+          onClick={handleOpenActionsMenu}
+          aria-label="Workflow actions"
+          aria-haspopup="menu"
+          aria-expanded={Boolean(actionsMenuAnchor)}
+        >
+          <MoreVertIcon />
+        </button>
+      </Tooltip>
+    </span>
+  );
+
+  return (
+    <>
+      <Box
+        css={containerStyles(theme)}
+        className="floating-toolbar"
+        data-comfy-workflow={isComfyWorkflow ? "true" : "false"}
+        style={toolbarPosition}
+      >
+        <CanvasMediaComposer leadingActions={workflowActions} />
       </Box>
 
       <Menu
         anchorEl={actionsMenuAnchor}
         open={Boolean(actionsMenuAnchor)}
         onClose={handleCloseActionsMenu}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
-        slotProps={{
-          paper: {
-            sx: { minWidth: "200px", maxWidth: "280px" }
-          }
-        }}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "right" }}
+        slotProps={{ paper: { sx: { minWidth: "220px", maxWidth: "280px" } } }}
       >
+        {editorViewMode === "graph" && (
+          <MenuItemPrimitive
+            label="Add Node"
+            icon={<AddCircleIcon fontSize="small" />}
+            onClick={runWithClose(handleToggleNodeMenu)}
+          />
+        )}
+        {editorViewMode === "graph" && (
+          <MenuItemPrimitive
+            label="Auto Layout"
+            icon={<LayoutIcon fontSize="small" />}
+            onClick={runWithClose(handleAutoLayout)}
+          />
+        )}
         <MenuItemPrimitive
-          label={bottomPanelVisible ? "Hide Trace" : "Show Trace"}
-          icon={<TimelineIcon fontSize="small" />}
-          onClick={handleToggleTraceAndCloseMenu}
-        />
-        <MenuItemPrimitive
-          label="Workflow Settings"
-          icon={<EditIcon fontSize="small" />}
-          onClick={handleEditWorkflowAndCloseMenu}
-        />
-        <MenuItemPrimitive
-          label="Advanced"
-          icon={<MapIcon fontSize="small" />}
-          onClick={handleOpenAdvancedMenu as (event: React.MouseEvent) => void}
-          hasSubmenu
-        />
-        <MenuItemPrimitive
-          label="Download JSON"
-          icon={<DownloadIcon fontSize="small" />}
-          onClick={handleDownloadAndCloseMenu}
-        />
-        <MenuItemPrimitive
-          label="Run as App"
-          icon={<RocketLaunchIcon fontSize="small" />}
-          onClick={handleRunAsAppAndCloseMenu}
-        />
-      </Menu>
-
-      <Menu
-        anchorEl={advancedMenuAnchor}
-        open={Boolean(advancedMenuAnchor)}
-        onClose={handleCloseAdvancedMenu}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        transformOrigin={{ vertical: "bottom", horizontal: "center" }}
-        slotProps={{
-          paper: {
-            sx: { minWidth: "180px", maxWidth: "220px" }
+          label={editorViewMode === "graph" ? "Chain View" : "Graph View"}
+          icon={
+            editorViewMode === "graph" ? (
+              <LinearScaleIcon fontSize="small" />
+            ) : (
+              <AccountTreeIcon fontSize="small" />
+            )
           }
-        }}
-      >
+          onClick={runWithClose(handleToggleViewMode)}
+        />
+        <MenuItemPrimitive
+          label="Save"
+          icon={<SaveIcon fontSize="small" />}
+          onClick={runWithClose(handleSave)}
+        />
+        <MenuItemPrimitive
+          label="Instant Update"
+          icon={<BoltIcon fontSize="small" />}
+          secondary={instantUpdate ? "On" : "Off"}
+          onClick={runWithClose(handleToggleInstantUpdate)}
+        />
+        {(isPaused || isSuspended) && (
+          <MenuItemPrimitive
+            label="Resume"
+            icon={<PlayCircleIcon fontSize="small" />}
+            onClick={runWithClose(handleResume)}
+          />
+        )}
+        {isRunningish && (
+          <MenuItemPrimitive
+            label="Stop"
+            icon={<StopIcon fontSize="small" />}
+            onClick={runWithClose(handleStop)}
+          />
+        )}
         <MenuItemPrimitive
           label="Mini Map"
           icon={<MapIcon fontSize="small" />}
           secondary={isMiniMapVisible ? "Visible" : "Hidden"}
-          className={cn(isMiniMapVisible && "minimap-active")}
-          onClick={handleToggleMiniMapAndCloseMenu}
+          onClick={runWithClose(handleToggleMiniMap)}
         />
+        <MenuItemPrimitive
+          label={bottomPanelVisible ? "Hide Trace" : "Show Trace"}
+          icon={<TimelineIcon fontSize="small" />}
+          onClick={runWithClose(handleToggleTrace)}
+        />
+        <MenuItemPrimitive
+          label="Workflow Settings"
+          icon={<EditIcon fontSize="small" />}
+          onClick={runWithClose(handleEditWorkflow)}
+        />
+        <MenuItemPrimitive
+          label="Download JSON"
+          icon={<DownloadIcon fontSize="small" />}
+          onClick={runWithClose(handleDownload)}
+        />
+        <MenuItemPrimitive
+          label="Run as App"
+          icon={<RocketLaunchIcon fontSize="small" />}
+          onClick={runWithClose(handleRunAsApp)}
+        />
+        {isMobile && (
+          <MenuItemPrimitive
+            label="Panels…"
+            icon={<MoreHorizIcon fontSize="small" />}
+            onClick={runWithClose(handleOpenPaneMenu)}
+          />
+        )}
       </Menu>
 
       <MobilePaneMenu open={paneMenuOpen} onClose={handleClosePaneMenu} />
