@@ -1539,6 +1539,7 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     content_type: asset.content_type,
     size: asset.size ?? null,
     metadata: asset.metadata ?? null,
+    sketch_document_id: asset.sketch_document_id ?? null,
     created_at: asset.created_at,
     get_url: getUrl,
     thumb_url: thumbUrl,
