@@ -43,6 +43,7 @@ function makeJob(opts: {
   started_at?: string | null;
   finished_at?: string | null;
   error?: string | null;
+  cost?: number | null;
 }) {
   return {
     id: opts.id ?? "job-1",
@@ -52,6 +53,7 @@ function makeJob(opts: {
     started_at: opts.started_at ?? null,
     finished_at: opts.finished_at ?? null,
     error: opts.error ?? null,
+    cost: opts.cost ?? null,
     markCancelled: vi.fn(function (this: { status: string }) {
       this.status = "cancelled";
     }),
@@ -94,6 +96,15 @@ describe("jobs router", () => {
         limit: 50,
         workflowId: undefined
       });
+    });
+
+    it("surfaces the persisted run cost when present", async () => {
+      const j = makeJob({ id: "j-cost", status: "completed", cost: 45 });
+      (Job.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[j], ""]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.jobs.list({ limit: 50 });
+      expect(result.jobs[0]).toMatchObject({ id: "j-cost", cost: 45 });
     });
 
     it("coerces empty cursor to null", async () => {

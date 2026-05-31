@@ -27,7 +27,7 @@ import {
   MenuItemPrimitive,
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
-import type { NodeMetadata } from "../../stores/ApiTypes";
+import type { NodeMetadata, ProviderCost } from "../../stores/ApiTypes";
 import { isKieNodeMetadata } from "../../utils/isKieNode";
 import {
   KIE_API_KEY_URL,
@@ -45,6 +45,33 @@ import {
   isKieVagueBillingSummary,
   kiePricingExternalUrl,
 } from "../../utils/formatKieUnitPricing";
+
+/**
+ * Format a kie node's actual last-run charge. Since #3426, `provider_cost.amount`
+ * is USD with the credit count carried in `quantity` — show both so it reads in
+ * the credits users buy and the dollars actually billed.
+ */
+function formatKieLastRun(cost: ProviderCost): string {
+  const parts: string[] = [];
+  if (
+    cost.billing_unit === "credits" &&
+    typeof cost.quantity === "number" &&
+    Number.isFinite(cost.quantity)
+  ) {
+    parts.push(formatKieCredits({ credit_balance: cost.quantity }));
+  }
+  if (
+    cost.currency === "USD" &&
+    typeof cost.amount === "number" &&
+    Number.isFinite(cost.amount)
+  ) {
+    parts.push(`$${cost.amount.toFixed(4)}`);
+  }
+  if (parts.length === 0 && typeof cost.amount === "number") {
+    return `${cost.amount}${cost.unit ? ` ${cost.unit}` : ""}`;
+  }
+  return parts.join(" · ");
+}
 
 export interface KieCreditsFooterProps {
   metadata: NodeMetadata;
@@ -344,7 +371,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
                   mt: 0.5,
                 }}
               >
-                {formatKieCredits({ credit_balance: lastRunCost.amount })} credits
+                {formatKieLastRun(lastRunCost)}
               </Text>
             </FlexColumn>
           </>

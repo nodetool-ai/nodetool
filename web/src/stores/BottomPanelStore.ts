@@ -37,8 +37,12 @@ export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
 ];
 
 const ALL_BOTTOM_VIEWS: BottomPanelView[] = BOTTOM_PANEL_GROUPS.flatMap(
-  (g) => g.views as BottomPanelView[]
+  (g) => [...g.views]
 );
+
+function isBottomPanelView(value: unknown): value is BottomPanelView {
+  return typeof value === "string" && (ALL_BOTTOM_VIEWS as readonly string[]).includes(value);
+}
 
 interface PanelState {
   panelSize: number;
@@ -166,10 +170,8 @@ export const useBottomPanelStore = create<ResizePanelState>()(
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<ResizePanelState>;
         const persistedPanel = (persisted.panel ?? {}) as Partial<PanelState>;
-        const activeView = ALL_BOTTOM_VIEWS.includes(
-          persistedPanel.activeView as BottomPanelView
-        )
-          ? (persistedPanel.activeView as BottomPanelView)
+        const activeView = isBottomPanelView(persistedPanel.activeView)
+          ? persistedPanel.activeView
           : currentState.panel.activeView;
         return {
           ...currentState,

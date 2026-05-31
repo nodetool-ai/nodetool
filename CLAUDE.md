@@ -274,7 +274,7 @@ workflow.run                       (kernel WorkflowRunner)
 
 Every `llm.chat` / `llm.stream` span carries `gen_ai.usage.input_tokens`,
 `gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, and
-`gen_ai.usage.cost_credits`. Token counts also appear in the `llm_call`
+`gen_ai.usage.cost_usd`. Token counts also appear in the `llm_call`
 message events emitted by `BaseProvider`.
 
 #### Sinks

@@ -3,7 +3,7 @@ import type { NodeData } from "../stores/NodeData";
 
 export type ExposedInputPlacement = "handle" | "labeled";
 
-export type ExposedInputPlacementData = Pick<
+type ExposedInputPlacementData = Pick<
   NodeData,
   "exposedInputs" | "exposedInputsLabeled" | "exposedInputsHidden"
 >;
@@ -158,7 +158,7 @@ export const removeExposedInput = (
   propertyName: string
 ): string[] => removeFromList(current, propertyName);
 
-export type ExposedInputListsPatch = {
+type ExposedInputListsPatch = {
   exposedInputs?: string[];
   exposedInputsLabeled?: string[];
   exposedInputsHidden?: string[];

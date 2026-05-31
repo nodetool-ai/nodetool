@@ -493,11 +493,15 @@ export function expandAssetReferences(prompt: string): MessageContent[] {
         type: "image_url",
         image: { uri: ref.uri, mimeType: ref.mime }
       });
-    } else {
+    } else if (ref.kind === "audio") {
       parts.push({
         type: "audio",
         audio: { uri: ref.uri, mimeType: ref.mime }
       });
+    } else {
+      // Video (and any other non-chat media): keep the mention as literal text
+      // so the model still sees the reference rather than a mislabeled block.
+      pushText(ref.uri);
     }
     cursor = ref.index + ref.length;
   }

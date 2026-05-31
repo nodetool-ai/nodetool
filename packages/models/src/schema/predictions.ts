@@ -25,6 +25,12 @@ export const predictions = sqliteTable(
     total_tokens: integer("total_tokens"),
     cached_tokens: integer("cached_tokens"),
     reasoning_tokens: integer("reasoning_tokens"),
+    // Unit-based billing provenance (e.g. FAL image/video/audio generation).
+    // cost = unit_price * quantity, expressed in `currency`.
+    billing_unit: text("billing_unit"),
+    quantity: real("quantity"),
+    unit_price: real("unit_price"),
+    currency: text("currency"),
     created_at: text("created_at"),
     started_at: text("started_at"),
     completed_at: text("completed_at"),

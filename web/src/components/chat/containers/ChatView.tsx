@@ -137,6 +137,8 @@ type ChatViewProps = {
    * buttons). Only used when composerVariant is "simple".
    */
   composerToolbar?: React.ReactNode;
+  /** Override the composer's textarea placeholder. */
+  composerPlaceholder?: string;
   /**
    * When true, ChatView does not render its own composer. Instead it renders a
    * bottom ComposerSlot wired to its send handler, and the shared
@@ -187,6 +189,7 @@ const ChatView = ({
   workflowId,
   composerVariant,
   composerToolbar,
+  composerPlaceholder,
   useExternalComposer = false,
   showConversationHeader = false
 }: ChatViewProps) => {
@@ -255,7 +258,6 @@ const ChatView = ({
               currentTaskUpdate={currentTaskUpdate}
               currentLogUpdate={currentLogUpdate}
               onInsertCode={onInsertCode}
-              showMessageMeta={showConversationHeader}
             />
           ) : (
             noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
@@ -282,6 +284,7 @@ const ChatView = ({
             requireToolSupport={requireToolSupport}
             variant={composerVariant}
             composerToolbar={composerToolbar}
+            placeholder={composerPlaceholder}
           />
         )}
       </div>

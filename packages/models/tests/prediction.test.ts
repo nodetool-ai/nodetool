@@ -43,6 +43,36 @@ describe("Prediction model", () => {
     expect(prediction.created_at).toBeTruthy();
   });
 
+  it("persists unit-based billing fields", async () => {
+    const prediction = await Prediction.create<Prediction>({
+      user_id: "u1",
+      provider: "fal",
+      model: "fal-ai/veo3",
+      cost: 3.2,
+      currency: "USD",
+      billing_unit: "seconds",
+      quantity: 8,
+      unit_price: 0.4,
+      status: "completed"
+    });
+    const found = await Prediction.find(prediction.id);
+    expect(found).not.toBeNull();
+    expect(found!.provider).toBe("fal");
+    expect(found!.cost).toBe(3.2);
+    expect(found!.currency).toBe("USD");
+    expect(found!.billing_unit).toBe("seconds");
+    expect(found!.quantity).toBe(8);
+    expect(found!.unit_price).toBe(0.4);
+  });
+
+  it("defaults billing fields to null", async () => {
+    const prediction = await Prediction.create<Prediction>({ user_id: "u1" });
+    expect(prediction.billing_unit).toBeNull();
+    expect(prediction.quantity).toBeNull();
+    expect(prediction.unit_price).toBeNull();
+    expect(prediction.currency).toBeNull();
+  });
+
   it("find returns a prediction by id", async () => {
     const prediction = await createPrediction({ user_id: "u1" });
     const found = await Prediction.find(prediction.id);

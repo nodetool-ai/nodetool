@@ -7,7 +7,7 @@
 
 // ---- debounce ----
 
-export interface DebouncedFunction<T extends (...args: any[]) => void> {
+interface DebouncedFunction<T extends (...args: any[]) => void> {
   (...args: Parameters<T>): void;
   cancel(): void;
 }
@@ -42,7 +42,7 @@ export function debounce<T extends (...args: any[]) => void>(
 
 // ---- throttle ----
 
-export interface ThrottledFunction<T extends (...args: any[]) => void> {
+interface ThrottledFunction<T extends (...args: any[]) => void> {
   (...args: Parameters<T>): void;
   cancel(): void;
 }

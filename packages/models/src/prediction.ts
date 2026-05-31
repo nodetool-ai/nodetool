@@ -59,6 +59,10 @@ export class Prediction extends DBModel {
   declare total_tokens: number | null;
   declare cached_tokens: number | null;
   declare reasoning_tokens: number | null;
+  declare billing_unit: string | null;
+  declare quantity: number | null;
+  declare unit_price: number | null;
+  declare currency: string | null;
   declare created_at: string | null;
   declare started_at: string | null;
   declare completed_at: string | null;
@@ -87,6 +91,10 @@ export class Prediction extends DBModel {
     this.total_tokens ??= null;
     this.cached_tokens ??= null;
     this.reasoning_tokens ??= null;
+    this.billing_unit ??= null;
+    this.quantity ??= null;
+    this.unit_price ??= null;
+    this.currency ??= null;
     this.started_at ??= null;
     this.completed_at ??= null;
     this.duration ??= null;

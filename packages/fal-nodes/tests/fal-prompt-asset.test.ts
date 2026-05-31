@@ -203,3 +203,80 @@ describe("FAL multi-image video mapping", () => {
     expect(args.prompt).toBe("start from image_url only");
   });
 });
+
+/** A Seedance-style reference-to-video node taking image + audio + video. */
+function makeOmniReferenceNode() {
+  return createFalNodeClass({
+    endpointId: "bytedance/seedance-2.0/reference-to-video",
+    className: "Seedance2Reference",
+    moduleName: "video",
+    docstring: "test",
+    tags: [],
+    useCases: [],
+    outputType: "video",
+    outputFields: [{ name: "video", propType: "video" }],
+    enums: [],
+    inputFields: [
+      {
+        name: "prompt",
+        propType: "str",
+        tsType: "string",
+        default: "",
+        description: "",
+        fieldType: "input",
+        required: true
+      },
+      imageField("image_url"),
+      {
+        name: "audio_url",
+        propType: "audio",
+        tsType: "object",
+        default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+        description: "",
+        fieldType: "input",
+        required: false
+      },
+      {
+        name: "video_url",
+        propType: "video",
+        tsType: "object",
+        default: {
+          type: "video",
+          uri: "",
+          asset_id: null,
+          data: null,
+          metadata: null,
+          duration: null,
+          format: null
+        },
+        description: "",
+        fieldType: "input",
+        required: false
+      }
+    ]
+  });
+}
+
+describe("FAL omni reference-to-video mapping", () => {
+  beforeEach(() => {
+    falSubmit.mockReset();
+    falSubmit.mockResolvedValue({ video: { url: "out.mp4" } });
+  });
+
+  it("routes image, audio and video mentions to their typed inputs", async () => {
+    const NodeClass = makeOmniReferenceNode();
+    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
+    node.assign({
+      prompt: "drive asset://clip.mp4 with asset://track.wav and asset://ref.png"
+    });
+
+    await node.process(ctx as never);
+
+    const args = falSubmit.mock.calls[0][2] as Record<string, unknown>;
+    // Image takes the data-URL path; audio and video upload via the CDN path.
+    expect(args.image_url).toBe(`data:image/png;base64,${b64}`);
+    expect(args.audio_url).toBe(`falcdn:${b64}`);
+    expect(args.video_url).toBe(`falcdn:${b64}`);
+    expect(args.prompt).toBe("drive video_url with audio_url and image_url");
+  });
+});

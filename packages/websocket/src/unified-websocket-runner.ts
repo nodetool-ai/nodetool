@@ -56,7 +56,11 @@ import {
   type ComfyExecutionHandle
 } from "@nodetool-ai/runtime";
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
-import type { Chunk, ProcessingMessage } from "@nodetool-ai/protocol";
+import type {
+  Chunk,
+  ProcessingMessage,
+  ProviderCost
+} from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -711,6 +715,8 @@ interface ActiveJob {
   streamTask?: Promise<void>;
   /** For ComfyUI jobs: handle to cancel the underlying execution. */
   comfyHandle?: ComfyExecutionHandle;
+  /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
+  providerCostTotal?: number;
 }
 
 class ToolBridge {
@@ -1931,6 +1937,8 @@ export class UnifiedWebSocketRunner {
             }
           }
 
+          await this._handleNodeProviderCost(active, outbound, nodeType);
+
           // Materialize binary assets to temp URLs before sending over WebSocket
           if (outbound.type === "node_update" && outbound.result != null) {
             outbound.result = await active.context.normalizeOutputValue(
@@ -1989,13 +1997,18 @@ export class UnifiedWebSocketRunner {
       // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
       // while the job is still executing in memory. Don't overwrite that with a
       // completed/failed status when the in-flight run finishes.
-      if (job && job.status !== "cancelled") {
-        if (active.status === "completed") {
-          job.markCompleted();
-        } else if (active.status === "failed") {
-          job.markFailed(active.error ?? "Unknown error");
-        } else if (active.status === "cancelled") {
-          job.markCancelled();
+      if (job) {
+        if (job.status !== "cancelled") {
+          if (active.status === "completed") {
+            job.markCompleted();
+          } else if (active.status === "failed") {
+            job.markFailed(active.error ?? "Unknown error");
+          } else if (active.status === "cancelled") {
+            job.markCancelled();
+          }
+        }
+        if (active.providerCostTotal != null) {
+          job.cost = active.providerCostTotal;
         }
         await job.save();
       }
@@ -2495,10 +2508,15 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    // Route to workflow processor when workflow_target or workflow_id is set.
+    // Route to the workflow processor ONLY when the client explicitly opts in
+    // via `workflow_target: "workflow"`. A bare `workflow_id` is context, not a
+    // routing signal: the editor binds the open workflow so `ui_*` tools target
+    // it, and that ambient id must not hijack the turn into running the
+    // workflow as a chatbot. Genuine workflow-chatbot runs set `workflow_target`
+    // (and carry `workflow_id`/`graph` for the processor to load/execute).
     const workflowTarget =
       typeof data.workflow_target === "string" ? data.workflow_target : null;
-    if (workflowTarget === "workflow" || workflowId) {
+    if (workflowTarget === "workflow") {
       await this.handleWorkflowMessage(data, requestSeq);
       return;
     }
@@ -3125,6 +3143,72 @@ export class UnifiedWebSocketRunner {
       };
       await this.saveMessageToDb(errorMsgData);
       await this.sendMessage(errorMsgData);
+    }
+  }
+
+  /** Persist and accumulate provider cost from a completed node_update. */
+  private async _handleNodeProviderCost(
+    active: ActiveJob,
+    outbound: Record<string, unknown>,
+    nodeType: string
+  ): Promise<void> {
+    if (
+      outbound.type !== "node_update" ||
+      outbound.status !== "completed" ||
+      outbound.provider_cost == null
+    ) {
+      return;
+    }
+    const providerCost = outbound.provider_cost as ProviderCost;
+    await this._persistNodeProviderCost(
+      providerCost,
+      String(outbound.node_id ?? ""),
+      nodeType,
+      active.workflowId
+    );
+    const amount = (providerCost as { amount?: unknown }).amount;
+    if (typeof amount === "number" && Number.isFinite(amount)) {
+      active.providerCostTotal = (active.providerCostTotal ?? 0) + amount;
+    }
+  }
+
+  /**
+   * Persist a node-reported provider cost into the prediction ledger.
+   * Covers generative nodes (FAL, Kie, …) that call
+   * `context.setProviderCost()`. Best-effort: never throws.
+   */
+  private async _persistNodeProviderCost(
+    cost: ProviderCost,
+    nodeId: string,
+    nodeType: string,
+    workflowId: string | null
+  ): Promise<void> {
+    if (typeof cost.amount !== "number" || !Number.isFinite(cost.amount)) {
+      return;
+    }
+    try {
+      await Prediction.create({
+        user_id: this.userId ?? "1",
+        provider: cost.provider,
+        model: cost.model ?? nodeType,
+        cost: cost.amount,
+        currency: cost.currency ?? cost.unit ?? null,
+        billing_unit: cost.billing_unit ?? null,
+        quantity: cost.quantity ?? null,
+        unit_price: cost.unit_price ?? null,
+        workflow_id: workflowId,
+        node_id: nodeId,
+        status: "completed"
+      });
+      log.debug("Persisted node provider cost", {
+        provider: cost.provider,
+        model: cost.model ?? nodeType,
+        cost: cost.amount
+      });
+    } catch (err) {
+      log.warn("Failed to persist node provider cost", {
+        error: err instanceof Error ? err.message : String(err)
+      });
     }
   }
 
@@ -4200,20 +4284,28 @@ export class UnifiedWebSocketRunner {
               workflowId
           };
 
-          // Capture output_update values for the response message
-          if (outbound.type === "output_update") {
+          if (
+            outbound.type === "node_update" ||
+            outbound.type === "output_update"
+          ) {
             const nodeId = String(outbound.node_id ?? "");
             const graphNodes = graph.nodes ?? [];
             const node = graphNodes.find((n) => n.id === nodeId);
             const nodeType = typeof node?.type === "string" ? node.type : "";
-            if (nodeType.includes("Output")) {
-              const nodeName =
-                typeof outbound.node_name === "string"
-                  ? outbound.node_name
-                  : nodeType;
-              result[nodeName] = outbound.value;
-            } else {
-              continue; // Skip non-output node output_updates
+
+            await this._handleNodeProviderCost(active, outbound, nodeType);
+
+            // Capture output_update values for the response message
+            if (outbound.type === "output_update") {
+              if (nodeType.includes("Output")) {
+                const nodeName =
+                  typeof outbound.node_name === "string"
+                    ? outbound.node_name
+                    : nodeType;
+                result[nodeName] = outbound.value;
+              } else {
+                continue; // Skip non-output node output_updates
+              }
             }
           }
 
@@ -4250,11 +4342,16 @@ export class UnifiedWebSocketRunner {
         const job = (await Job.get(jobId)) as Job | null;
         // Don't overwrite a cancelled row (DB-only tRPC cancel) when the
         // in-flight run finishes — keep the cancellation authoritative.
-        if (job && job.status !== "cancelled") {
-          if (active.status === "completed") job.markCompleted();
-          else if (active.status === "failed")
-            job.markFailed(active.error ?? "Unknown error");
-          else if (active.status === "cancelled") job.markCancelled();
+        if (job) {
+          if (job.status !== "cancelled") {
+            if (active.status === "completed") job.markCompleted();
+            else if (active.status === "failed")
+              job.markFailed(active.error ?? "Unknown error");
+            else if (active.status === "cancelled") job.markCancelled();
+          }
+          if (active.providerCostTotal != null) {
+            job.cost = active.providerCostTotal;
+          }
           await job.save();
         }
       } catch (error) {

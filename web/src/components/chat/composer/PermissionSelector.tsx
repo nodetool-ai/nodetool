@@ -127,7 +127,7 @@ const PermissionSelector: React.FC = () => {
         ref={buttonRef}
         className="permission-selector-trigger"
         icon={<span css={dotCss(dotColor(theme, activeMode.tone))} />}
-        label={activeMode.label}
+        title={`Permission: ${activeMode.label}`}
         active={open}
         showChevron
         onClick={() => setOpen(true)}

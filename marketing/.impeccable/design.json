@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-30T00:00:00.000Z",
+  "title": "Design System: NodeTool Marketing",
+  "extensions": {
+    "colorMeta": {
+      "blue-cta": { "role": "primary", "displayName": "Action Blue", "canonical": "#2563eb", "tonalRamp": ["#0a1733", "#11214d", "#162d6b", "#1d3a8f", "#2563eb", "#3b82f6", "#60a5fa", "#bfdbfe"] },
+      "fuchsia": { "role": "secondary", "displayName": "Studio Fuchsia", "canonical": "#e879f9", "tonalRamp": ["#3b0a44", "#581c63", "#761f85", "#a224b8", "#c026d3", "#d946ef", "#e879f9", "#f5d0fe"] },
+      "rose": { "role": "secondary", "displayName": "Studio Rose", "canonical": "#fb7185", "tonalRamp": ["#4c0519", "#6b0f25", "#9f1239", "#be123c", "#e11d48", "#f43f5e", "#fb7185", "#fecdd3"] },
+      "amber-glow": { "role": "tertiary", "displayName": "Amber Glow", "canonical": "#fcd34d", "tonalRamp": ["#451a03", "#78350f", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#fef3c7"] },
+      "emerald": { "role": "tertiary", "displayName": "Signal Emerald", "canonical": "#34d399", "tonalRamp": ["#022c22", "#064e3b", "#065f46", "#047857", "#059669", "#10b981", "#34d399", "#a7f3d0"] },
+      "canvas": { "role": "neutral", "displayName": "Canvas", "canonical": "#020617", "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#e2e8f0"] },
+      "surface": { "role": "neutral", "displayName": "Surface", "canonical": "#0f172a", "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"] },
+      "text-muted": { "role": "neutral", "displayName": "Muted Text", "canonical": "#94a3b8", "tonalRamp": ["#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headlines only. Solid white with at most one gradient phrase." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles, near-white, normal weight. Scale carries hierarchy." },
+      "body": { "displayName": "Body", "purpose": "Paragraph copy, 65-75ch measure, secondary/muted text." },
+      "label": { "displayName": "Label", "purpose": "Uppercase eyebrow badges and pills, 0.18em tracking." },
+      "mono": { "displayName": "Mono", "purpose": "JetBrains Mono, code and terminal UI only." }
+    },
+    "shadows": [
+      { "name": "soft", "value": "0 20px 60px -28px rgba(2,6,23,0.7), 0 8px 24px -10px rgba(120,53,15,0.35)", "purpose": "Default resting elevation for glass cards." },
+      { "name": "strong", "value": "0 30px 90px -32px rgba(2,6,23,0.8), 0 16px 40px -16px rgba(120,53,15,0.45)", "purpose": "Hover and featured-card elevation." },
+      { "name": "blue-cta", "value": "0 10px 30px -10px rgba(30,58,138,0.4)", "purpose": "Tinted glow under the primary blue CTA." }
+    ],
+    "motion": [
+      { "name": "fly-in", "value": "transform 600ms cubic-bezier(0.2,0.8,0.2,1), opacity 600ms ease", "purpose": "IntersectionObserver scroll reveal: 16px rise + fade." },
+      { "name": "lift", "value": "transform 0.25s cubic-bezier(0.2,0.8,0.2,1)", "purpose": "2px hover lift on cards and interactive surfaces." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one action color. Hero CTA, downloads, primary conversions.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><polyline points=\"7 10 12 15 17 10\"/><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"/></svg>Download</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; background: #2563eb; color: #fff; padding: 14px 24px; border: none; border-radius: 12px; font-size: 0.875rem; font-weight: 600; box-shadow: 0 10px 30px -10px rgba(30,58,138,0.4); transition: background 0.2s, box-shadow 0.2s; cursor: pointer; } .ds-btn-primary:hover { background: #3b82f6; box-shadow: 0 12px 36px -10px rgba(30,58,138,0.6); } .ds-btn-primary:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action paired with the primary CTA. Glass on dark.",
+      "html": "<button class=\"ds-btn-ghost\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><polygon points=\"5 3 19 12 5 21 5 3\"/></svg>See it in action</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 8px; background: rgba(15,23,42,0.6); color: #f1f5f9; padding: 14px 24px; border: 1px solid #334155; border-radius: 12px; font-size: 0.875rem; font-weight: 600; backdrop-filter: blur(8px); transition: border-color 0.2s, background 0.2s; cursor: pointer; } .ds-btn-ghost:hover { border-color: #64748b; background: rgba(30,41,59,0.6); } .ds-btn-ghost:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }"
+    },
+    {
+      "name": "Eyebrow Badge",
+      "kind": "chip",
+      "refersTo": "badge-pill",
+      "description": "Uppercase status pill with a pulsing dot. Used above hero headlines.",
+      "html": "<span class=\"ds-badge\"><span class=\"ds-badge-dot\"></span>Open Source<span class=\"ds-badge-sep\">&bull;</span>BYOK</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border: 1px solid rgba(59,130,246,0.3); background: rgba(59,130,246,0.1); border-radius: 9999px; color: #93c5fd; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; } .ds-badge-dot { width: 6px; height: 6px; border-radius: 9999px; background: #60a5fa; } .ds-badge-sep { color: rgba(59,130,246,0.6); }"
+    },
+    {
+      "name": "Glass Card",
+      "kind": "card",
+      "refersTo": "card-glass",
+      "description": "Translucent slate pane suspended in lit haze. The default container.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Every model, your keys</h3><p class=\"ds-card-body\">Call any provider with your own API keys. No credits, no markup, no curated roster.</p></div>",
+      "css": ".ds-card { background: rgba(15,23,42,0.6); border: 1px solid rgba(30,41,59,0.6); box-shadow: 0 20px 60px -28px rgba(2,6,23,0.7), 0 8px 24px -10px rgba(120,53,15,0.35), inset 0 0 0 1px rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; backdrop-filter: blur(12px); transition: transform 0.25s cubic-bezier(0.2,0.8,0.2,1), border-color 0.25s, box-shadow 0.25s; } .ds-card:hover { transform: translateY(-2px); border-color: rgba(59,130,246,0.5); box-shadow: 0 30px 90px -32px rgba(2,6,23,0.8), 0 16px 40px -16px rgba(120,53,15,0.45); } .ds-card-title { margin: 0 0 8px; color: #fff; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; } .ds-card-body { margin: 0; color: #94a3b8; font-size: 1.0625rem; line-height: 1.55; }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Top-nav link, secondary text warming to action blue on hover.",
+      "html": "<a class=\"ds-nav-link\" href=\"#\">Developers</a>",
+      "css": ".ds-nav-link { color: #e2e8f0; font-size: 1rem; font-weight: 500; text-decoration: none; transition: color 0.2s; } .ds-nav-link:hover { color: #3b82f6; } .ds-nav-link:focus-visible { outline: 2px solid #60a5fa; outline-offset: 4px; border-radius: 4px; }"
+    },
+    {
+      "name": "Glow-Backed Hero Media",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature pattern: product screenshot in a glass frame over a multi-stop radial glow.",
+      "html": "<div class=\"ds-hero-media\"><div class=\"ds-hero-glow\"></div><div class=\"ds-hero-frame\"><div class=\"ds-hero-shot\"></div></div></div>",
+      "css": ".ds-hero-media { position: relative; padding: 24px; } .ds-hero-glow { position: absolute; inset: -24px; z-index: 0; border-radius: 32px; filter: blur(48px); opacity: 0.7; background: radial-gradient(60% 60% at 50% 0%, rgba(168,85,247,0.35), transparent 60%), radial-gradient(50% 60% at 100% 100%, rgba(244,114,182,0.25), transparent 60%), radial-gradient(50% 60% at 0% 100%, rgba(59,130,246,0.25), transparent 60%); } .ds-hero-frame { position: relative; z-index: 1; border-radius: 16px; border: 1px solid rgba(51,65,85,0.6); background: rgba(15,23,42,0.8); box-shadow: 0 30px 90px -32px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05); padding: 6px; backdrop-filter: blur(12px); } .ds-hero-shot { aspect-ratio: 16 / 10; border-radius: 12px; background: linear-gradient(135deg, #0f172a, #020617); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Midnight Studio",
+    "overview": "A dark professional studio where the work is the only thing lit. The canvas is near-black slate; product screenshots, nodes, and headlines float in pools of colored light: blue, fuchsia, and amber glows blooming softly behind the surfaces. The mood is focused and after-hours. Color is atmosphere, not chrome. Surfaces are translucent slate glass with hairline borders and a faint white ring, lifted off the canvas rather than flat boxes. Type is Inter, large and confident for headlines, quiet and readable for body; JetBrains Mono appears only where code is literally shown. It rejects generic SaaS, enterprise stiffness, and crypto hype. Dark because the work glows best in the dark, not because dark looks edgy.",
+    "keyCharacteristics": [
+      "Near-black slate canvas with atmospheric colored glows (blue / fuchsia / amber)",
+      "Translucent glass surfaces: backdrop-blur, hairline borders, faint white ring",
+      "Blue as the action color; fuchsia and rose as creative energy; amber as warmth",
+      "Inter throughout, JetBrains Mono only for real code",
+      "Soft, exponential motion: fly-in reveals and 2px hover lifts, never bounce"
+    ],
+    "rules": [
+      { "name": "The Light-Has-A-Source Rule", "body": "Color appears as glow or as a single solid action color, never as decorative gradient fills on content blocks. If a color is on screen, it is either lighting something or marking an action.", "section": "colors" },
+      { "name": "The Legacy Amber Rule", "body": "The old amber-and-teal system (--text-link #f59e0b, gradient-clip headings, amber wordmark) is deprecated. New work uses Action Blue for links and solid near-white for headings.", "section": "colors" },
+      { "name": "The One-Gradient-Span Rule", "body": "A headline gets at most one gradient-colored phrase, and only on the hero. Everywhere else headings are solid white. Hierarchy comes from size and weight, never from coloring whole headings.", "section": "typography" },
+      { "name": "The Lit-Haze Rule", "body": "Elevation is glow + soft tinted shadow + blur, together. Never a single crisp dark drop-shadow. If a surface looks like a 2014 Material card, widen the blur, tint the shadow, add the glow behind it.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the canvas near-black slate (#020617) and let colored glows do the lighting.",
+      "Do use Action Blue (#2563eb) as the one action color: CTAs, focused borders, active nav, links.",
+      "Do build surfaces as glass: slate-900/60 + hairline border + ring-white/5 + backdrop-blur.",
+      "Do elevate with the Lit-Haze recipe: wide soft tinted shadow + glow + blur, together.",
+      "Do restrict gradients to one phrase on the hero headline and to atmospheric glows.",
+      "Do keep visible 2px focus rings on every interactive element; the dark ground demands it.",
+      "Do hold body copy to 65-75ch and verify Muted Text (#94a3b8) hits WCAG AA on its actual surface; lift to slate-300 (#cbd5e1) wherever it doesn't."
+    ],
+    "donts": [
+      "Don't revive the legacy amber-and-teal system: no --text-link #f59e0b, no gradient-clip headings, no amber wordmark. Gradient-clipped heading text is banned outright.",
+      "Don't use the shadcn ui/Button (pink->cyan) or ui/Card (white) defaults; they are stale and off-system.",
+      "Don't ship a generic SaaS landing: no cream backgrounds, no identical icon-heading-text card grids, no big-number hero-metric template.",
+      "Don't drift enterprise: no navy-and-gray corporate flatness, no stock photography, no jargon.",
+      "Don't go crypto-hype: no neon-on-black, no gradient overload, no breathless revolutionary copy.",
+      "Don't use a single crisp dark drop-shadow (the 2014-Material look); widen and tint it.",
+      "Don't add side-stripe borders (border-left/border-right >1px as a colored accent)."
+    ]
+  }
+}

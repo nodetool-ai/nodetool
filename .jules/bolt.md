@@ -4,3 +4,6 @@
 ## 2026-05-25 - O(M) mapping optimization in Asset Selection
 **Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/hooks/assets/useAssetSelection.ts` where `sortedAssets.find(...)` was inside `assetIds.map(...)`. Although `assetIndexMap` was already memoized for O(1) lookups, it wasn't being utilized here. The reviewer missed that it was already declared, likely due to a truncated hunk diff context or failure to review the whole file.
 **Action:** Replaced the nested `.find` with `.get` using the existing O(1) `assetIndexMap` to achieve O(M) overall lookup time. When code reviews suggest missing variables, double-check the full file source to confirm existence, not just the patch context.
+## 2026-05-25 - O(M*N) mapping optimization in Merge Plan Indexing
+**Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/components/sketch/layerMergeSelection.ts` where `layers.findIndex(...)` was called inside `selectedLayers.map(...)` and subsequently sorted. Since we needed the sorted indices of the subset relative to the original array, iterating over the main array once natively yields sorted indices in O(N).
+**Action:** Replace `subset.map(x => master.findIndex(y => y.id === x.id)).sort()` with an O(N) scan: create a Set of subset IDs, then iterate the master array once, pushing indices where the Set has the master item's ID.

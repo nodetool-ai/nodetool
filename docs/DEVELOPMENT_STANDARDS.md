@@ -437,7 +437,7 @@ We use **OpenTelemetry** for tracing across agents and workflows (`workflow.run`
 - **Structured logs** only. JSON, single-line, with `level`, `timestamp`, `traceId`, `spanId`, `message`, and contextual fields.
 - **Log levels**: `error` (alertable), `warn` (recoverable), `info` (lifecycle), `debug` (developer-only, gated by env). No `console.log` in `packages/*/src/` in committed code.
 - **Trace IDs propagate** across process boundaries via `traceparent` (HTTP) and explicit context propagation (WebSocket, IPC).
-- **Cost telemetry**: every LLM call records `gen_ai.usage.cost_credits`.
+- **Cost telemetry**: every LLM call records `gen_ai.usage.cost_usd`.
 
 ---
 

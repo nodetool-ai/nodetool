@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "writtenAt": "2026-05-23T18:14:02.794Z",
+  "writtenAt": "2026-05-30T22:18:32.198Z",
   "prices": {
     "happyhorse/reference-to-video": {
       "model_id": "happyhorse/reference-to-video",
       "unit_price": 28,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.14,
       "tier_count": 2,
@@ -14,7 +14,7 @@
     "happyhorse/video-edit": {
       "model_id": "happyhorse/video-edit",
       "unit_price": 28,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.14,
       "tier_count": 2,
@@ -23,7 +23,7 @@
     "happyhorse/image-to-video": {
       "model_id": "happyhorse/image-to-video",
       "unit_price": 28,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.14,
       "tier_count": 2,
@@ -32,7 +32,7 @@
     "happyhorse/text-to-video": {
       "model_id": "happyhorse/text-to-video",
       "unit_price": 28,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.14,
       "tier_count": 2,
@@ -41,7 +41,7 @@
     "gpt-image-2-image-to-image": {
       "model_id": "gpt-image-2-image-to-image",
       "unit_price": 6,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.03,
       "tier_count": 3,
@@ -50,7 +50,7 @@
     "gpt-image-2-text-to-image": {
       "model_id": "gpt-image-2-text-to-image",
       "unit_price": 6,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.03,
       "tier_count": 3,
@@ -59,7 +59,7 @@
     "wan/2-7-videoedit": {
       "model_id": "wan/2-7-videoedit",
       "unit_price": 16,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.08,
       "tier_count": 2,
@@ -68,7 +68,7 @@
     "wan/2-7-r2v": {
       "model_id": "wan/2-7-r2v",
       "unit_price": 16,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.08,
       "tier_count": 2,
@@ -77,7 +77,7 @@
     "wan/2-7-image-to-video": {
       "model_id": "wan/2-7-image-to-video",
       "unit_price": 16,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.08,
       "tier_count": 2,
@@ -86,7 +86,7 @@
     "wan/2-7-text-to-video": {
       "model_id": "wan/2-7-text-to-video",
       "unit_price": 16,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.08,
       "tier_count": 2,
@@ -95,7 +95,7 @@
     "bytedance/seedance-2-fast": {
       "model_id": "bytedance/seedance-2-fast",
       "unit_price": 9,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.045,
       "tier_count": 4,
@@ -113,7 +113,7 @@
     "grok-imagine/extend": {
       "model_id": "grok-imagine/extend",
       "unit_price": 10,
-      "billing_unit": "varies",
+      "billing_unit": "run",
       "currency": "credits",
       "usd_price": 0.05,
       "tier_count": 4,
@@ -164,24 +164,6 @@
       "tier_count": 1,
       "pricing_url": "https://kie.ai/seedream5-0-lite"
     },
-    "sora-2-image-to-video-stable": {
-      "model_id": "sora-2-image-to-video-stable",
-      "unit_price": 35,
-      "billing_unit": "varies",
-      "currency": "credits",
-      "usd_price": 0.175,
-      "tier_count": 2,
-      "pricing_url": "https://kie.ai/sora-2"
-    },
-    "sora-2-text-to-video-stable": {
-      "model_id": "sora-2-text-to-video-stable",
-      "unit_price": 35,
-      "billing_unit": "varies",
-      "currency": "credits",
-      "usd_price": 0.175,
-      "tier_count": 2,
-      "pricing_url": "https://kie.ai/sora-2"
-    },
     "ai-music-api/boost-music-style": {
       "model_id": "ai-music-api/boost-music-style",
       "unit_price": 0.4,
@@ -194,7 +176,7 @@
     "kling-2.6/text-to-video": {
       "model_id": "kling-2.6/text-to-video",
       "unit_price": 55,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.275,
       "tier_count": 4,
@@ -203,7 +185,7 @@
     "kling-2.6/image-to-video": {
       "model_id": "kling-2.6/image-to-video",
       "unit_price": 110,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.55,
       "tier_count": 3,
@@ -212,7 +194,7 @@
     "wan/2-6-video-to-video": {
       "model_id": "wan/2-6-video-to-video",
       "unit_price": 70,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.35,
       "tier_count": 6,
@@ -221,7 +203,7 @@
     "wan/2-6-image-to-video": {
       "model_id": "wan/2-6-image-to-video",
       "unit_price": 70,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.35,
       "tier_count": 6,
@@ -230,7 +212,7 @@
     "wan/2-6-text-to-video": {
       "model_id": "wan/2-6-text-to-video",
       "unit_price": 70,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.35,
       "tier_count": 6,
@@ -239,7 +221,7 @@
     "flux-2/flex-text-to-image": {
       "model_id": "flux-2/flex-text-to-image",
       "unit_price": 14,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.07,
       "tier_count": 2,
@@ -248,7 +230,7 @@
     "flux-2/flex-image-to-image": {
       "model_id": "flux-2/flex-image-to-image",
       "unit_price": 14,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.07,
       "tier_count": 2,
@@ -257,7 +239,7 @@
     "flux-2/pro-text-to-image": {
       "model_id": "flux-2/pro-text-to-image",
       "unit_price": 5,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.025,
       "tier_count": 2,
@@ -266,7 +248,7 @@
     "flux-2/pro-image-to-image": {
       "model_id": "flux-2/pro-image-to-image",
       "unit_price": 5,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.025,
       "tier_count": 2,
@@ -284,7 +266,7 @@
     "grok-imagine/image-to-video": {
       "model_id": "grok-imagine/image-to-video",
       "unit_price": 1.6,
-      "billing_unit": "varies",
+      "billing_unit": "second",
       "currency": "credits",
       "usd_price": 0.008,
       "tier_count": 2,
@@ -320,7 +302,7 @@
     "hailuo/2-3-image-to-video-pro": {
       "model_id": "hailuo/2-3-image-to-video-pro",
       "unit_price": 45,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.225,
       "tier_count": 3,
@@ -329,29 +311,11 @@
     "hailuo/2-3-image-to-video-standard": {
       "model_id": "hailuo/2-3-image-to-video-standard",
       "unit_price": 30,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.15,
       "tier_count": 3,
       "pricing_url": "https://kie.ai/hailuo-2-3"
-    },
-    "sora-2-image-to-video": {
-      "model_id": "sora-2-image-to-video",
-      "unit_price": 30,
-      "billing_unit": "varies",
-      "currency": "credits",
-      "usd_price": 0.15,
-      "tier_count": 2,
-      "pricing_url": "https://kie.ai/sora-2"
-    },
-    "sora-2-text-to-video": {
-      "model_id": "sora-2-text-to-video",
-      "unit_price": 30,
-      "billing_unit": "varies",
-      "currency": "credits",
-      "usd_price": 0.15,
-      "tier_count": 2,
-      "pricing_url": "https://kie.ai/sora-2"
     },
     "veo/extend": {
       "model_id": "veo/extend",
@@ -371,46 +335,10 @@
       "tier_count": 1,
       "pricing_url": "https://kie.ai/veo-3-1"
     },
-    "sora-watermark-remover": {
-      "model_id": "sora-watermark-remover",
-      "unit_price": 10,
-      "billing_unit": "removal",
-      "currency": "credits",
-      "usd_price": 0.05,
-      "tier_count": 1,
-      "pricing_url": "https://kie.ai/sora-2"
-    },
-    "sora-2-pro-image-to-video": {
-      "model_id": "sora-2-pro-image-to-video",
-      "unit_price": 150,
-      "billing_unit": "varies",
-      "currency": "credits",
-      "usd_price": 0.75,
-      "tier_count": 4,
-      "pricing_url": "https://kie.ai/sora-2-pro"
-    },
-    "sora-2-pro-text-to-video": {
-      "model_id": "sora-2-pro-text-to-video",
-      "unit_price": 150,
-      "billing_unit": "varies",
-      "currency": "credits",
-      "usd_price": 0.75,
-      "tier_count": 4,
-      "pricing_url": "https://kie.ai/sora-2-pro"
-    },
-    "sora-2-pro-storyboard": {
-      "model_id": "sora-2-pro-storyboard",
-      "unit_price": 150,
-      "billing_unit": "varies",
-      "currency": "credits",
-      "usd_price": 0.75,
-      "tier_count": 2,
-      "pricing_url": "https://kie.ai/sora-2-pro"
-    },
     "kling/v2-5-turbo-text-to-video-pro": {
       "model_id": "kling/v2-5-turbo-text-to-video-pro",
       "unit_price": 42,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.21,
       "tier_count": 2,
@@ -419,7 +347,7 @@
     "kling/v2-5-turbo-image-to-video-pro": {
       "model_id": "kling/v2-5-turbo-image-to-video-pro",
       "unit_price": 42,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.21,
       "tier_count": 2,
@@ -428,7 +356,7 @@
     "wan/2-5-text-to-video": {
       "model_id": "wan/2-5-text-to-video",
       "unit_price": 60,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.3,
       "tier_count": 4,
@@ -437,7 +365,7 @@
     "wan/2-5-image-to-video": {
       "model_id": "wan/2-5-image-to-video",
       "unit_price": 60,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.3,
       "tier_count": 4,
@@ -446,7 +374,7 @@
     "wan/2-2-a14b-image-to-video-turbo": {
       "model_id": "wan/2-2-a14b-image-to-video-turbo",
       "unit_price": 60,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.3,
       "tier_count": 2,
@@ -455,7 +383,7 @@
     "wan/2-2-a14b-text-to-video-turbo": {
       "model_id": "wan/2-2-a14b-text-to-video-turbo",
       "unit_price": 40,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.2,
       "tier_count": 3,
@@ -464,7 +392,7 @@
     "hailuo/02-text-to-video-standard": {
       "model_id": "hailuo/02-text-to-video-standard",
       "unit_price": 30,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.15,
       "tier_count": 2,
@@ -473,7 +401,7 @@
     "hailuo/02-image-to-video-standard": {
       "model_id": "hailuo/02-image-to-video-standard",
       "unit_price": 12,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.06,
       "tier_count": 3,
@@ -518,7 +446,7 @@
     "ideogram/v3-remix": {
       "model_id": "ideogram/v3-remix",
       "unit_price": 3.5,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.0175,
       "tier_count": 3,
@@ -527,7 +455,7 @@
     "ideogram/v3-edit": {
       "model_id": "ideogram/v3-edit",
       "unit_price": 3.5,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.0175,
       "tier_count": 3,
@@ -599,7 +527,7 @@
     "ai-music-api/separate-vocals": {
       "model_id": "ai-music-api/separate-vocals",
       "unit_price": 10,
-      "billing_unit": "varies",
+      "billing_unit": "request",
       "currency": "credits",
       "usd_price": 0.05,
       "tier_count": 2,
@@ -662,16 +590,16 @@
     "ideogram/character": {
       "model_id": "ideogram/character",
       "unit_price": 12,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.06,
-      "tier_count": 2,
+      "tier_count": 3,
       "pricing_url": "https://kie.ai/ideogram/character"
     },
     "ideogram/character-remix": {
       "model_id": "ideogram/character-remix",
       "unit_price": 12,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.06,
       "tier_count": 3,
@@ -680,7 +608,7 @@
     "ideogram/character-edit": {
       "model_id": "ideogram/character-edit",
       "unit_price": 12,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.06,
       "tier_count": 3,
@@ -689,7 +617,7 @@
     "kling/v2-1-pro": {
       "model_id": "kling/v2-1-pro",
       "unit_price": 50,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.25,
       "tier_count": 2,
@@ -698,7 +626,7 @@
     "kling/v2-1-master-text-to-video": {
       "model_id": "kling/v2-1-master-text-to-video",
       "unit_price": 160,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.8,
       "tier_count": 2,
@@ -707,7 +635,7 @@
     "kling/v2-1-standard": {
       "model_id": "kling/v2-1-standard",
       "unit_price": 25,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.125,
       "tier_count": 2,
@@ -716,7 +644,7 @@
     "kling/v2-1-master-image-to-video": {
       "model_id": "kling/v2-1-master-image-to-video",
       "unit_price": 160,
-      "billing_unit": "varies",
+      "billing_unit": "video",
       "currency": "credits",
       "usd_price": 0.8,
       "tier_count": 2,
@@ -725,7 +653,7 @@
     "ideogram/v3-text-to-image": {
       "model_id": "ideogram/v3-text-to-image",
       "unit_price": 3.5,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.0175,
       "tier_count": 3,
@@ -734,7 +662,7 @@
     "gpt-image/1.5-image-to-image": {
       "model_id": "gpt-image/1.5-image-to-image",
       "unit_price": 4,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.02,
       "tier_count": 2,
@@ -743,7 +671,7 @@
     "gpt-image/1.5-text-to-image": {
       "model_id": "gpt-image/1.5-text-to-image",
       "unit_price": 4,
-      "billing_unit": "varies",
+      "billing_unit": "image",
       "currency": "credits",
       "usd_price": 0.02,
       "tier_count": 2,
@@ -757,6 +685,321 @@
       "usd_price": 0.04,
       "tier_count": 1,
       "pricing_url": "https://kie.ai/google/imagen4"
+    },
+    "ai-music-api/timeStamped-lyrics": {
+      "model_id": "ai-music-api/timeStamped-lyrics",
+      "unit_price": 0.5,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.0025,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "ai-music-api/cover-generate": {
+      "model_id": "ai-music-api/cover-generate",
+      "unit_price": 0,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "ai-music-api/generate-persona": {
+      "model_id": "ai-music-api/generate-persona",
+      "unit_price": 0,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "ai-music-api/generate-midi-from-audio": {
+      "model_id": "ai-music-api/generate-midi-from-audio",
+      "unit_price": 0,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "gemini-omni-video": {
+      "model_id": "gemini-omni-video",
+      "unit_price": 90,
+      "billing_unit": "varies",
+      "currency": "credits",
+      "usd_price": 0.45,
+      "tier_count": 15,
+      "pricing_url": "https://kie.ai/gemini-omni"
+    },
+    "bytedance/seedance-2": {
+      "model_id": "bytedance/seedance-2",
+      "unit_price": 11.5,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.057,
+      "tier_count": 6,
+      "pricing_url": "https://kie.ai/seedance-2-0"
+    },
+    "wan-2-7-image": {
+      "model_id": "wan-2-7-image",
+      "unit_price": 4.8,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.024,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/wan-2-7-image"
+    },
+    "qwen-image-2": {
+      "model_id": "qwen-image-2",
+      "unit_price": 5.6,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.028,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/qwen-image-2"
+    },
+    "kling-3-motion-control": {
+      "model_id": "kling-3-motion-control",
+      "unit_price": 20,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.1,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/kling-3-motion-control"
+    },
+    "nano-banana-2": {
+      "model_id": "nano-banana-2",
+      "unit_price": 8,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.04,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/nano-banana-2"
+    },
+    "kling-3-0": {
+      "model_id": "kling-3-0",
+      "unit_price": 14,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.07,
+      "tier_count": 6,
+      "pricing_url": "https://kie.ai/kling-3-0"
+    },
+    "recraft-remove-background": {
+      "model_id": "recraft-remove-background",
+      "unit_price": 1,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.005,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/recraft-remove-background"
+    },
+    "elevenlabs/text-to-dialogue-v3": {
+      "model_id": "elevenlabs/text-to-dialogue-v3",
+      "unit_price": 14,
+      "billing_unit": "1000 characters",
+      "currency": "credits",
+      "usd_price": 0.07,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/elevenlabs/text-to-dialogue-v3"
+    },
+    "kling-2-6": {
+      "model_id": "kling-2-6",
+      "unit_price": 55,
+      "billing_unit": "video",
+      "currency": "credits",
+      "usd_price": 0.275,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/kling-2-6"
+    },
+    "z-image": {
+      "model_id": "z-image",
+      "unit_price": 0.8,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.004,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/z-image"
+    },
+    "nano-banana-pro": {
+      "model_id": "nano-banana-pro",
+      "unit_price": 18,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.09,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/nano-banana-pro"
+    },
+    "veo-3-1": {
+      "model_id": "veo-3-1",
+      "unit_price": 30,
+      "billing_unit": "video",
+      "currency": "credits",
+      "usd_price": 0.15,
+      "tier_count": 19,
+      "pricing_url": "https://kie.ai/veo-3-1"
+    },
+    "4o-image-api": {
+      "model_id": "4o-image-api",
+      "unit_price": 6,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.03,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/4o-image-api"
+    },
+    "flux-kontext-api": {
+      "model_id": "flux-kontext-api",
+      "unit_price": 5,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.025,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/flux-kontext-api"
+    },
+    "wan-animate": {
+      "model_id": "wan-animate",
+      "unit_price": 6,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.03,
+      "tier_count": 6,
+      "pricing_url": "https://kie.ai/wan-animate"
+    },
+    "wan/v2-2": {
+      "model_id": "wan/v2-2",
+      "unit_price": 40,
+      "billing_unit": "video",
+      "currency": "credits",
+      "usd_price": 0.2,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/wan/v2-2"
+    },
+    "topaz-video-upscaler": {
+      "model_id": "topaz-video-upscaler",
+      "unit_price": 8,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.04,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/topaz-video-upscaler"
+    },
+    "infinitalk": {
+      "model_id": "infinitalk",
+      "unit_price": 3,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.015,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/infinitalk"
+    },
+    "recraft-crisp-upscale": {
+      "model_id": "recraft-crisp-upscale",
+      "unit_price": 0.5,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.0025,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/recraft-crisp-upscale"
+    },
+    "ideogram-reframe": {
+      "model_id": "ideogram-reframe",
+      "unit_price": 3.5,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.0175,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/ideogram-reframe"
+    },
+    "elevenlabs-audio-isolation": {
+      "model_id": "elevenlabs-audio-isolation",
+      "unit_price": 0.2,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.001,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/elevenlabs-audio-isolation"
+    },
+    "elevenlabs-sound-effect": {
+      "model_id": "elevenlabs-sound-effect",
+      "unit_price": 0.24,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.0012,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/elevenlabs-sound-effect"
+    },
+    "wan-speech-to-video-turbo": {
+      "model_id": "wan-speech-to-video-turbo",
+      "unit_price": 12,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.06,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/wan-speech-to-video-turbo"
+    },
+    "qwen-image": {
+      "model_id": "qwen-image",
+      "unit_price": 4,
+      "billing_unit": "megapixel",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/qwen-image"
+    },
+    "nano-banana": {
+      "model_id": "nano-banana",
+      "unit_price": 4,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.02,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/nano-banana"
+    },
+    "runway-api": {
+      "model_id": "runway-api",
+      "unit_price": 12,
+      "billing_unit": "video",
+      "currency": "credits",
+      "usd_price": 0.06,
+      "tier_count": 6,
+      "pricing_url": "https://kie.ai/runway-api"
+    },
+    "suno-api": {
+      "model_id": "suno-api",
+      "unit_price": 12,
+      "billing_unit": "request",
+      "currency": "credits",
+      "usd_price": 0.06,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/suno-api"
+    },
+    "qwen/image-edit": {
+      "model_id": "qwen/image-edit",
+      "unit_price": 5,
+      "billing_unit": "megapixel",
+      "currency": "credits",
+      "usd_price": 0.03,
+      "tier_count": 1,
+      "pricing_url": "https://kie.ai/qwen/image-edit"
+    },
+    "topaz-image-upscale": {
+      "model_id": "topaz-image-upscale",
+      "unit_price": 10,
+      "billing_unit": "image",
+      "currency": "credits",
+      "usd_price": 0.05,
+      "tier_count": 3,
+      "pricing_url": "https://kie.ai/topaz-image-upscale"
+    },
+    "kling-2.6-motion-control": {
+      "model_id": "kling-2.6-motion-control",
+      "unit_price": 11,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.055,
+      "tier_count": 2,
+      "pricing_url": "https://kie.ai/kling-2.6-motion-control"
     }
   }
 }

@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import {
   aggregateKiePricingByModelId,
   fetchAllKiePricingRecords,
+  resolveKiePricing,
   type KieModelPricingSummary,
 } from "@nodetool-ai/kie-nodes/kie-pricing-api";
 
@@ -45,7 +46,7 @@ const kiePricingRoute: FastifyPluginAsync = async (app) => {
       const catalog = await getKiePricingCatalog();
       const byModelId: Record<string, KieModelPricingSummary> = {};
       for (const id of modelIds) {
-        const entry = catalog[id];
+        const entry = resolveKiePricing(catalog, id);
         if (entry) {
           byModelId[id] = entry;
         }

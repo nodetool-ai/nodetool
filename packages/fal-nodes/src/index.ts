@@ -9,6 +9,8 @@ export { FalProvider } from "./fal-provider.js";
 export { FalRawNode, FalDynamicNode } from "./fal-dynamic.js";
 export { createFalNodeClass, loadFalNodesFromManifest } from "./fal-factory.js";
 export type { FalManifestEntry } from "./fal-factory.js";
+export { estimateFalCost, reportFalCost, getFalPricing } from "./fal-cost.js";
+export type { FalCostEstimate, FalPricingEntry } from "./fal-cost.js";
 
 function loadManifest(): FalManifestEntry[] {
   const dir = dirname(fileURLToPath(import.meta.url));

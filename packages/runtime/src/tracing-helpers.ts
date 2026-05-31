@@ -61,7 +61,7 @@ export interface LlmUsage {
   inputTokens: number;
   outputTokens: number;
   cachedInputTokens?: number;
-  /** In NodeTool credits (1 credit ≈ $0.01). */
+  /** Cost of the call in US dollars. */
   cost?: number;
 }
 

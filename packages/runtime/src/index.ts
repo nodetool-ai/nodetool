@@ -77,12 +77,16 @@ export { PythonNodeExecutor } from "./python-node-executor.js";
 export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 export {
   classifyAssetToken,
+  classifyTextToken,
   findAssetRefs,
   findImageAssetRefs,
+  findTextAssetRefs,
+  inlineTextAssetRefs,
   stripAssetRefs,
   mapPromptAssetsToInputs,
   type AssetMediaKind,
   type PromptAssetRef,
+  type TextAssetRef,
   type PromptAssetTextField,
   type PromptAssetInputField,
   type InjectedAssetRef

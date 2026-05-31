@@ -28,6 +28,10 @@ function toPredictionResponse(pred: Prediction): PredictionResponse {
     total_tokens: pred.total_tokens ?? null,
     cached_tokens: pred.cached_tokens ?? null,
     reasoning_tokens: pred.reasoning_tokens ?? null,
+    billing_unit: pred.billing_unit ?? null,
+    quantity: pred.quantity ?? null,
+    unit_price: pred.unit_price ?? null,
+    currency: pred.currency ?? null,
     created_at: pred.created_at,
     metadata: pred.metadata ?? null
   };

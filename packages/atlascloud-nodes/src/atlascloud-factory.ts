@@ -16,6 +16,12 @@ import {
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
+import type {
+  AssetMediaKind,
+  PromptAssetInputField,
+  PromptAssetTextField
+} from "@nodetool-ai/runtime";
 import {
   atlasPoll,
   atlasSubmit,
@@ -308,6 +314,58 @@ function computeFieldClassification(fields: AtlasFieldDef[]) {
   return classifyFields(fields.map((f) => ({ name: f.name, propType: f.type })));
 }
 
+/** Whether an asset ref already points at a source (so a mention shouldn't fill it). */
+function refHasSource(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const r = value as AssetRef & { asset_id?: unknown };
+  if (typeof r.uri === "string" && r.uri.trim() !== "") return true;
+  if (typeof r.data === "string" && r.data.length > 0) return true;
+  if (r.data instanceof Uint8Array && r.data.byteLength > 0) return true;
+  return r.asset_id != null && r.asset_id !== "";
+}
+
+/**
+ * Route `asset://` media mentioned inline in a node's text inputs onto its
+ * empty image/audio/video inputs (and strip the mentions from the text). Shared
+ * with FAL / KIE / Replicate / image-to-image via `mapPromptAssetsToInputs` —
+ * lets a Seedance reference-to-video node pull its reference image, audio track
+ * and video clip straight from the prompt's @-mentions.
+ */
+function promptAssetOverrides(
+  instance: Record<string, unknown>,
+  spec: AtlasManifestEntry,
+  context: ProcessContext | undefined
+): Promise<Record<string, unknown>> {
+  const textFields: PromptAssetTextField[] = [];
+  const assetFields: PromptAssetInputField[] = [];
+  for (const field of spec.fields) {
+    const value = instance[field.name];
+    if (ASSET_TYPES.has(field.type)) {
+      assetFields.push({
+        name: field.name,
+        kind: field.type as AssetMediaKind,
+        list: false,
+        hasSource: refHasSource(value)
+      });
+      continue;
+    }
+    const listMatch = LIST_ASSET_RE.exec(field.type);
+    if (listMatch) {
+      assetFields.push({
+        name: field.name,
+        kind: listMatch[1] as AssetMediaKind,
+        list: true,
+        hasSource: Array.isArray(value) && value.some(refHasSource)
+      });
+      continue;
+    }
+    if (field.type === "str") {
+      textFields.push({ name: field.name, value: String(value ?? "") });
+    }
+  }
+  return mapPromptAssetsToInputs(textFields, assetFields, context);
+}
+
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
@@ -324,8 +382,18 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
       const apiKey = getApiKey(this._secrets);
       const input: Record<string, unknown> = {};
 
+      const overrides = await promptAssetOverrides(
+        this as unknown as Record<string, unknown>,
+        specRef,
+        context
+      );
+      const readValue = (name: string): unknown =>
+        name in overrides
+          ? overrides[name]
+          : (this as unknown as Record<string, unknown>)[name];
+
       for (const f of specRef.fields) {
-        const v = (this as unknown as Record<string, unknown>)[f.name];
+        const v = readValue(f.name);
         if (v === undefined || v === null) continue;
 
         if (ASSET_TYPES.has(f.type)) {

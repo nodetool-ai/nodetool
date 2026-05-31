@@ -145,7 +145,7 @@ export const assetMediaKind = (ext: string): AssetMediaKind => {
 };
 
 /** Serialize a single token back to its on-disk text encoding. */
-export const tokenToString = (token: PromptToken): string => {
+const tokenToString = (token: PromptToken): string => {
   switch (token.kind) {
     case "text":
       return token.text;
