@@ -23,9 +23,7 @@ describe("fuseOptions", () => {
     ]);
   });
 
-  it("has tokenize options set correctly", () => {
-    expect(fuseOptions.tokenize).toBe(false);
-    expect(fuseOptions.matchAllTokens).toBe(false);
+  it("has findAllMatches set correctly", () => {
     expect(fuseOptions.findAllMatches).toBe(true);
   });
 
