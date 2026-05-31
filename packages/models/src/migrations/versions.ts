@@ -1476,13 +1476,52 @@ export const migrations: MigrationDef[] = [
       // no-op: dropping columns is unsafe across dialects and versions
     }
   },
+  {
+    version: "20260531_000000",
+    name: "add_prediction_node_type",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_predictions"))) return;
+      if (!(await db.columnExists("nodetool_predictions", "node_type"))) {
+        await db.execute(
+          `ALTER TABLE nodetool_predictions ADD COLUMN node_type TEXT NOT NULL DEFAULT ''`
+        );
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
+  },
+  // ── Add provider_request_id for cost reconciliation ─────────────────
+  // Lets the runner refine an estimated provider cost into the actual billed
+  // amount by looking the charge up via the provider's request id (e.g. FAL).
+  {
+    version: "20260601_000000",
+    name: "add_prediction_provider_request_id",
+    createsTables: [],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_predictions"))) return;
+      if (
+        !(await db.columnExists("nodetool_predictions", "provider_request_id"))
+      ) {
+        await db.execute(
+          `ALTER TABLE nodetool_predictions ADD COLUMN provider_request_id TEXT`
+        );
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
+  },
 
   // ── Promote the sketch→asset link to a first-class column ────────────
   // The sketch document backing an image asset used to live in the asset's
   // `metadata` JSON under `sketchDocumentId`. Hoist it into a dedicated
   // `sketch_document_id` column and backfill existing rows from metadata.
   {
-    version: "20260531_000000",
+    version: "20260602_000000",
     name: "add_sketch_document_id_to_assets",
     createsTables: [],
     modifiesTables: ["nodetool_assets"],

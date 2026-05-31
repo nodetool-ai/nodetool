@@ -14,6 +14,7 @@ vi.mock("../src/fal-base.js", () => ({
     uri: image.url
   }),
   falSubmit,
+  falSubmitWithMeta: async (...args) => ({ data: await falSubmit(...args), requestId: "req-test" }),
   getFalApiKey: () => "test-key",
   imageToDataUrl,
   isRefSet: (ref: unknown) => {

@@ -198,6 +198,7 @@ type ProviderCostSetter = (
     quantity?: number | null;
     unit_price?: number | null;
     currency?: string | null;
+    provider_request_id?: string | null;
   }
 ) => void;
 
@@ -210,26 +211,32 @@ export function reportFalCost(
   context: unknown,
   nodeType: string,
   res: Record<string, unknown>,
-  args: Record<string, unknown> = {}
+  args: Record<string, unknown> = {},
+  requestId: string | null = null
 ): void {
   const setter = (context as { setProviderCost?: unknown } | null | undefined)
     ?.setProviderCost;
   if (typeof setter !== "function") return;
 
   const estimate = estimateFalCost(nodeType, res, args);
-  if (!estimate) return;
 
+  // With a request id, the runner can reconcile to the actual billed amount,
+  // so emit a (zero) placeholder even when local pricing is unknown.
+  if (!estimate && !requestId) return;
+
+  const pricing = getFalPricing(nodeType);
   (setter as ProviderCostSetter).call(
     context,
-    estimate.provider,
-    estimate.cost,
-    estimate.currency,
+    "fal",
+    estimate?.cost ?? 0,
+    estimate?.currency ?? "USD",
     {
-      model: estimate.model,
-      billing_unit: estimate.billingUnit,
-      quantity: estimate.quantity,
-      unit_price: estimate.unitPrice,
-      currency: estimate.currency
+      model: estimate?.model ?? pricing?.endpoint_id ?? nodeType,
+      billing_unit: estimate?.billingUnit ?? null,
+      quantity: estimate?.quantity ?? null,
+      unit_price: estimate?.unitPrice ?? null,
+      currency: estimate?.currency ?? "USD",
+      provider_request_id: requestId
     }
   );
 }
