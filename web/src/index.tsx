@@ -101,6 +101,9 @@ const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
 );
 const Portal = React.lazy(() => import("./components/portal/Portal"));
+const CostsDashboard = React.lazy(
+  () => import("./components/costs/CostsDashboard")
+);
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(
   () => import("./components/ChatMarkdownTest")
@@ -250,6 +253,28 @@ function getRoutes() {
           >
             <AppHeader />
             <SettingsPage />
+          </div>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/costs",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%",
+              paddingTop: HEADER_HEIGHT
+            }}
+          >
+            <SkipLinks />
+            <AppHeader />
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <CostsDashboard />
+            </React.Suspense>
           </div>
         </ProtectedRoute>
       )
