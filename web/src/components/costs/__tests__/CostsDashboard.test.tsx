@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
@@ -72,9 +73,11 @@ const view: CostsView = {
 
 const renderDashboard = () =>
   render(
-    <ThemeProvider theme={mockTheme}>
-      <CostsDashboard />
-    </ThemeProvider>
+    <MemoryRouter>
+      <ThemeProvider theme={mockTheme}>
+        <CostsDashboard />
+      </ThemeProvider>
+    </MemoryRouter>
   );
 
 describe("CostsDashboard", () => {
