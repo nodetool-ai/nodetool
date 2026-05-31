@@ -243,6 +243,7 @@ describe("assets router", () => {
         node_id: null,
         job_id: null,
         metadata: null,
+        sketch_document_id: null,
         size: null
       });
       expect(result.id).toBe("new");
@@ -272,6 +273,7 @@ describe("assets router", () => {
         node_id: "node-1",
         job_id: "job-1",
         metadata: { a: 1 },
+        sketch_document_id: null,
         size: 42
       });
     });
