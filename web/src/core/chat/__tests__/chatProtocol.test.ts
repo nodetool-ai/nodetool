@@ -367,7 +367,6 @@ describe("chatProtocol", () => {
       ({
         status: "connected",
         wsManager: { send: jest.fn() },
-        frontendToolState: {},
         currentThreadId: null,
         threads: {},
         messageCache: {},
@@ -406,7 +405,6 @@ describe("chatProtocol", () => {
         wsManager: { send: jest.fn() },
         workflowId: null,
         threadWorkflowId: {},
-        frontendToolState: { fetchWorkflow: jest.fn().mockResolvedValue(undefined) },
         currentThreadId: null,
         threads: {},
         messageCache: {},

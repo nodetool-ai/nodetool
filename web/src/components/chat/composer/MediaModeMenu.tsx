@@ -13,6 +13,7 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import TuneIcon from "@mui/icons-material/Tune";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import {
   Caption,
@@ -28,6 +29,12 @@ interface MediaModeMenuProps {
   onClose: () => void;
   value: MediaMode;
   onChange: (mode: MediaMode) => void;
+  /** Show the workspace-aware Pi agent as a selectable mode. */
+  showPi?: boolean;
+  /** Whether Pi is the active mode (so media `value` is not highlighted). */
+  piSelected?: boolean;
+  /** Called when the user picks Pi. */
+  onSelectPi?: () => void;
 }
 
 interface ModeItem {
@@ -152,7 +159,10 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
   open,
   onClose,
   value,
-  onChange
+  onChange,
+  showPi = false,
+  piSelected = false,
+  onSelectPi
 }) => {
   const theme = useTheme();
   return (
@@ -173,7 +183,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
           Mode
         </Caption>
         {MODES.map((m) => {
-          const selected = m.id === value;
+          const selected = !piSelected && m.id === value;
           return (
             <div
               key={m.id}
@@ -228,6 +238,48 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
             </div>
           );
         })}
+
+        {showPi && onSelectPi && (
+          <>
+            <Caption className="mode-menu-header" size="small">
+              Agent
+            </Caption>
+            <div
+              role="menuitemradio"
+              aria-checked={piSelected}
+              tabIndex={0}
+              className={`mode-menu-item${piSelected ? " selected" : ""}`}
+              onClick={() => {
+                onSelectPi();
+                onClose();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectPi();
+                  onClose();
+                }
+              }}
+            >
+              <span className="mode-menu-icon">
+                <SmartToyOutlinedIcon fontSize="small" />
+              </span>
+              <FlexRow gap={0.5} align="center" sx={{ flex: 1, minWidth: 0 }}>
+                <Text size="normal" weight={500} sx={{ color: "inherit" }}>
+                  Pi Agent
+                </Text>
+                <Caption size="tiny" color="secondary">
+                  workspace
+                </Caption>
+              </FlexRow>
+              {piSelected && (
+                <span className="mode-menu-check">
+                  <CheckIcon fontSize="small" />
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </Popover>
   );

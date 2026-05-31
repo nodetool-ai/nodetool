@@ -13,8 +13,6 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AppsIcon from "@mui/icons-material/Apps";
 import DisplaySettingsIcon from "@mui/icons-material/Tv";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
 import ImageIcon from "@mui/icons-material/Image";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -56,6 +54,8 @@ import type {
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
 import MediaModeMenu from "./MediaModeMenu";
+import PiComposerControls, { piModeAvailable } from "./PiComposerControls";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import MediaOptionMenu, { MediaOption } from "./MediaOptionMenu";
 import MediaAspectRatioMenu from "./MediaAspectRatioMenu";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
@@ -127,6 +127,8 @@ export interface MediaChatComposerProps {
   allowedProviders?: string[];
   /** Hide non-tool-capable models in the language model picker. */
   requireToolSupport?: boolean;
+  /** Override the auto-generated, mode-aware textarea placeholder. */
+  placeholder?: string;
 }
 
 /**
@@ -157,7 +159,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   selectedModel,
   onModelChange,
   allowedProviders,
-  requireToolSupport
+  requireToolSupport,
+  placeholder: placeholderOverride
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -184,6 +187,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // Language-model selection from chat store (used in chat mode & forwarded
   // as provider/model for media calls when a media model is not picked).
   const languageModel = useGlobalChatStore((s) => s.selectedModel);
+
+  // Unified routing mode: "pi" swaps the chat-model controls for the
+  // workspace-aware Pi agent and routes sends through the agent socket.
+  const globalMode = useGlobalChatStore((s) => s.mode);
+  const setGlobalMode = useGlobalChatStore((s) => s.setMode);
+  const isPi = globalMode === "pi";
 
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
 
@@ -216,24 +225,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     useFileHandling();
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAttachClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleAttachChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        addFiles(Array.from(files));
-      }
-      // Reset so selecting the same file again re-triggers change.
-      e.target.value = "";
-    },
-    [addFiles]
-  );
-
   const { shiftKeyPressed, metaKeyPressed, altKeyPressed } = useKeyPressed(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("shift"),
@@ -395,6 +386,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   });
 
   const placeholder = useMemo(() => {
+    if (placeholderOverride) {
+      return placeholderOverride;
+    }
+    if (isPi) {
+      return "Message the Pi agent — it works in your workspace…";
+    }
     if (mode === "image") {
       return "Describe the image you want to generate…";
     }
@@ -423,7 +420,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       return "Describe the motion…";
     }
     return "Continue the thread — or @ a node to compose with the canvas…";
-  }, [mode]);
+  }, [mode, isPi, placeholderOverride]);
 
   const isMediaMode =
     mode === "image" ||
@@ -493,6 +490,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   // Mode icon for the mode chip
   const modeIcon = useMemo(() => {
+    if (isPi) return <SmartToyOutlinedIcon fontSize="small" />;
     if (mode === "image") return <ImageIcon fontSize="small" />;
     if (mode === "image_edit") return <AutoFixHighIcon fontSize="small" />;
     if (mode === "video") return <VideocamIcon fontSize="small" />;
@@ -500,9 +498,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "audio") return <RecordVoiceOverIcon fontSize="small" />;
     if (mode === "chat") return <ChatBubbleOutlineIcon fontSize="small" />;
     return <AutoAwesomeIcon fontSize="small" />;
-  }, [mode]);
+  }, [mode, isPi]);
 
   const modeLabel = useMemo(() => {
+    if (isPi) return "Pi";
     if (mode === "image") return "Image";
     if (mode === "image_edit") return "Image Edit";
     if (mode === "video") return "Video";
@@ -513,7 +512,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "retake") return "Retake";
     if (mode === "extend") return "Extend";
     return "Motion";
-  }, [mode]);
+  }, [mode, isPi]);
 
   // Model dialog selection callbacks
   const handlePickImageModel = useCallback(
@@ -725,12 +724,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     return m.name || m.id;
   }, [selectedModel, languageModel]);
 
-  const handleRetake = useCallback(() => {
-    setPrompt("");
-    clearFiles();
-    console.debug("Media composer reset");
-  }, [clearFiles]);
-
   const handleMoreClick = useCallback(() => {
     // Placeholder for "More" menu — additional options (seed, negative
     // prompt, guidance scale, etc.) will live here in a follow-up.
@@ -763,22 +756,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 onRemove={removeCallbacks.get(file.id)!}
               />
             ))}
-            <button
-              type="button"
-              className="media-attach-btn"
-              onClick={handleAttachClick}
-              aria-label="Attach files"
-            >
-              <AttachFileIcon />
-              <span>Attach</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              hidden
-              onChange={handleAttachChange}
-            />
           </div>
         )}
 
@@ -836,11 +813,21 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             value={mode}
             onChange={(m: MediaMode) => {
               setMode(m);
+              setGlobalMode("chat");
+            }}
+            showPi={piModeAvailable}
+            piSelected={isPi}
+            onSelectPi={() => {
+              setMode("chat");
+              setGlobalMode("pi");
             }}
           />
 
+          {/* Pi mode: workspace + model pickers instead of the chat model. */}
+          {isPi && <PiComposerControls disabled={isBusy} />}
+
           {/* Model chip — changes based on mode */}
-          {mode === "chat" && (
+          {!isPi && mode === "chat" && (
             <>
               <MediaControlChip
                 ref={languageModelAnchorRef}
@@ -855,7 +842,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               {onMemoryToggle && (
                 <MediaControlChip
                   icon={<PsychologyOutlinedIcon fontSize="small" />}
-                  label={memoryEnabled ? "Memory: on" : "Memory: off"}
+                  title={memoryEnabled ? "Memory: on" : "Memory: off"}
                   active={!!memoryEnabled}
                   showChevron={false}
                   onClick={() => onMemoryToggle(!memoryEnabled)}
@@ -1300,27 +1287,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           )}
 
           <div className="media-chip-spacer" />
-
-          {!isMediaMode && (
-            <Text className="media-kbd-hint" aria-hidden size="smaller">
-              ↵ to send · ⇧↵ newline
-            </Text>
-          )}
-
-          {/* Retake (refresh) button */}
-          <Tooltip title="Clear prompt" delay={TOOLTIP_ENTER_DELAY}>
-            <span style={{ display: "inline-flex" }}>
-              <button
-                type="button"
-                className="media-retake-btn"
-                onClick={handleRetake}
-                disabled={!canGenerate}
-                aria-label="Clear prompt"
-              >
-                <RefreshIcon />
-              </button>
-            </span>
-          </Tooltip>
 
           {/* Primary Generate/Send button, or timer + stop when busy */}
           {isBusy ? (
