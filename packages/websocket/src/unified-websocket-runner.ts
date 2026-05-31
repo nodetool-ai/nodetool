@@ -715,6 +715,8 @@ interface ActiveJob {
   streamTask?: Promise<void>;
   /** For ComfyUI jobs: handle to cancel the underlying execution. */
   comfyHandle?: ComfyExecutionHandle;
+  /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
+  providerCostTotal?: number;
 }
 
 class ToolBridge {
@@ -1935,20 +1937,7 @@ export class UnifiedWebSocketRunner {
             }
           }
 
-          // Persist provider-reported spend (FAL / Kie / … generative nodes) so
-          // it shows up in the cost ledger alongside chat/LLM predictions.
-          if (
-            outbound.type === "node_update" &&
-            outbound.status === "completed" &&
-            outbound.provider_cost != null
-          ) {
-            await this._persistNodeProviderCost(
-              outbound.provider_cost as ProviderCost,
-              String(outbound.node_id ?? ""),
-              nodeType,
-              active.workflowId
-            );
-          }
+          await this._handleNodeProviderCost(active, outbound, nodeType);
 
           // Materialize binary assets to temp URLs before sending over WebSocket
           if (outbound.type === "node_update" && outbound.result != null) {
@@ -2008,13 +1997,18 @@ export class UnifiedWebSocketRunner {
       // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
       // while the job is still executing in memory. Don't overwrite that with a
       // completed/failed status when the in-flight run finishes.
-      if (job && job.status !== "cancelled") {
-        if (active.status === "completed") {
-          job.markCompleted();
-        } else if (active.status === "failed") {
-          job.markFailed(active.error ?? "Unknown error");
-        } else if (active.status === "cancelled") {
-          job.markCancelled();
+      if (job) {
+        if (job.status !== "cancelled") {
+          if (active.status === "completed") {
+            job.markCompleted();
+          } else if (active.status === "failed") {
+            job.markFailed(active.error ?? "Unknown error");
+          } else if (active.status === "cancelled") {
+            job.markCancelled();
+          }
+        }
+        if (active.providerCostTotal != null) {
+          job.cost = active.providerCostTotal;
         }
         await job.save();
       }
@@ -3147,6 +3141,32 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  /** Persist and accumulate provider cost from a completed node_update. */
+  private async _handleNodeProviderCost(
+    active: ActiveJob,
+    outbound: Record<string, unknown>,
+    nodeType: string
+  ): Promise<void> {
+    if (
+      outbound.type !== "node_update" ||
+      outbound.status !== "completed" ||
+      outbound.provider_cost == null
+    ) {
+      return;
+    }
+    const providerCost = outbound.provider_cost as ProviderCost;
+    await this._persistNodeProviderCost(
+      providerCost,
+      String(outbound.node_id ?? ""),
+      nodeType,
+      active.workflowId
+    );
+    const amount = (providerCost as { amount?: unknown }).amount;
+    if (typeof amount === "number" && Number.isFinite(amount)) {
+      active.providerCostTotal = (active.providerCostTotal ?? 0) + amount;
+    }
+  }
+
   /**
    * Persist a node-reported provider cost into the prediction ledger.
    * Covers generative nodes (FAL, Kie, …) that call
@@ -4259,20 +4279,28 @@ export class UnifiedWebSocketRunner {
               workflowId
           };
 
-          // Capture output_update values for the response message
-          if (outbound.type === "output_update") {
+          if (
+            outbound.type === "node_update" ||
+            outbound.type === "output_update"
+          ) {
             const nodeId = String(outbound.node_id ?? "");
             const graphNodes = graph.nodes ?? [];
             const node = graphNodes.find((n) => n.id === nodeId);
             const nodeType = typeof node?.type === "string" ? node.type : "";
-            if (nodeType.includes("Output")) {
-              const nodeName =
-                typeof outbound.node_name === "string"
-                  ? outbound.node_name
-                  : nodeType;
-              result[nodeName] = outbound.value;
-            } else {
-              continue; // Skip non-output node output_updates
+
+            await this._handleNodeProviderCost(active, outbound, nodeType);
+
+            // Capture output_update values for the response message
+            if (outbound.type === "output_update") {
+              if (nodeType.includes("Output")) {
+                const nodeName =
+                  typeof outbound.node_name === "string"
+                    ? outbound.node_name
+                    : nodeType;
+                result[nodeName] = outbound.value;
+              } else {
+                continue; // Skip non-output node output_updates
+              }
             }
           }
 
@@ -4309,11 +4337,16 @@ export class UnifiedWebSocketRunner {
         const job = (await Job.get(jobId)) as Job | null;
         // Don't overwrite a cancelled row (DB-only tRPC cancel) when the
         // in-flight run finishes — keep the cancellation authoritative.
-        if (job && job.status !== "cancelled") {
-          if (active.status === "completed") job.markCompleted();
-          else if (active.status === "failed")
-            job.markFailed(active.error ?? "Unknown error");
-          else if (active.status === "cancelled") job.markCancelled();
+        if (job) {
+          if (job.status !== "cancelled") {
+            if (active.status === "completed") job.markCompleted();
+            else if (active.status === "failed")
+              job.markFailed(active.error ?? "Unknown error");
+            else if (active.status === "cancelled") job.markCancelled();
+          }
+          if (active.providerCostTotal != null) {
+            job.cost = active.providerCostTotal;
+          }
           await job.save();
         }
       } catch (error) {

@@ -1430,7 +1430,7 @@ export function toJobResponse(job: Job): JsonObject {
     started_at: job.started_at ?? null,
     finished_at: job.finished_at ?? null,
     error: job.error ?? null,
-    cost: null
+    cost: job.cost ?? null
   };
 }
 

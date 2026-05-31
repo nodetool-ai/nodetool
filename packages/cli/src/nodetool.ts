@@ -598,7 +598,8 @@ jobs
           id: r["id"],
           status: r["status"],
           workflow_id: r["workflow_id"],
-          started_at: r["started_at"]
+          started_at: r["started_at"],
+          cost: r["cost"] ?? ""
         }))
       );
     } catch (e) {
@@ -630,7 +631,8 @@ jobs
           id: j["id"],
           status: j["status"],
           workflow_id: j["workflow_id"],
-          error: j["error"] ?? ""
+          error: j["error"] ?? "",
+          cost: j["cost"] ?? ""
         }
       ]);
     } catch (e) {
