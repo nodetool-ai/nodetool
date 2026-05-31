@@ -1,7 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { isProduction } from "../../lib/env";
 import useMetadataStore from "../../stores/MetadataStore";
-import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import { useSecrets } from "../useSecrets";
 import useNamespaceTree from "../useNamespaceTree";
 
@@ -18,11 +17,6 @@ jest.mock("../useSecrets", () => ({
   useSecrets: jest.fn()
 }));
 
-jest.mock("../../stores/ComfyUIStore", () => ({
-  __esModule: true,
-  useComfyUIStore: jest.fn()
-}));
-
 describe("useNamespaceTree", () => {
   const mockMetadata = {
     "node1": { namespace: "openai.chat", type: "nodetool.openai.Chat" },
@@ -30,8 +24,7 @@ describe("useNamespaceTree", () => {
     "node3": { namespace: "anthropic.completion", type: "nodetool.anthropic.Completion" },
     "node4": { namespace: "huggingface.text", type: "nodetool.huggingface.Text" },
     "node5": { namespace: "default", type: "nodetool.base.Prompt" },
-    "node6": { namespace: "replicate.image", type: "nodetool.replicate.Image" },
-    "node7": { namespace: "comfy.sampler", node_type: "comfy.test.Sampler" }
+    "node6": { namespace: "replicate.image", type: "nodetool.replicate.Image" }
   };
 
   beforeEach(() => {
@@ -48,13 +41,6 @@ describe("useNamespaceTree", () => {
         return keysWithApiKey.includes(key);
       })
     });
-
-    (useComfyUIStore as unknown as jest.Mock).mockImplementation(
-      (selector?: (state: { isConnected: boolean }) => unknown) => {
-        const state = { isConnected: false };
-        return selector ? selector(state) : state;
-      }
-    );
   });
 
   describe("tree structure building", () => {
@@ -250,22 +236,4 @@ describe("useNamespaceTree", () => {
     });
   });
 
-  describe("Comfy visibility", () => {
-    it("hides comfy namespaces when ComfyUI is not connected", () => {
-      const { result } = renderHook(() => useNamespaceTree());
-      expect(result.current["comfy"]).toBeUndefined();
-    });
-
-    it("shows comfy namespaces when ComfyUI is connected", () => {
-      (useComfyUIStore as unknown as jest.Mock).mockImplementation(
-        (selector?: (state: { isConnected: boolean }) => unknown) => {
-          const state = { isConnected: true };
-          return selector ? selector(state) : state;
-        }
-      );
-
-      const { result } = renderHook(() => useNamespaceTree());
-      expect(result.current["comfy"]).toBeDefined();
-    });
-  });
 });

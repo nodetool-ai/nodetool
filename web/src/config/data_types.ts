@@ -7,8 +7,6 @@ function stringToColor(str: string): string {
   return `#${((hash >>> 0) & 0xffffff).toString(16).padStart(6, "0")}`;
 }
 
-import { COMFY_DATA_TYPES } from "./comfy_data_types";
-
 /**
  * SpectraNode palette — core "500" tone for each conceptual category
  * Most node types are mapped to these category buckets.
@@ -655,7 +653,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   }
 ];
 
-let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES, ...COMFY_DATA_TYPES];
+let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES];
 const DATA_TYPE_MAP: Record<string, DataType> = {};
 
 /** Resolved built-in datatype for coloring, icons, and Help blurbs (includes tjs.* family). */

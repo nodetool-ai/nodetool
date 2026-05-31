@@ -53,7 +53,7 @@ describe("isAutoRunInputNode", () => {
   it("returns false for non-input node types", () => {
     expect(isAutoRunInputNode("nodetool.constant.String")).toBe(false);
     expect(isAutoRunInputNode("nodetool.output.ImageOutput")).toBe(false);
-    expect(isAutoRunInputNode("comfy.image.LoadImage")).toBe(false);
+    expect(isAutoRunInputNode("lib.image.LoadImage")).toBe(false);
     expect(isAutoRunInputNode("")).toBe(false);
   });
 });

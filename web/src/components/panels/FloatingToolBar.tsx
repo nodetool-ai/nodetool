@@ -8,7 +8,7 @@ import {
   useMediaQuery,
   Menu
 } from "@mui/material";
-import { Tooltip, FlexRow, Box } from "../ui_primitives";
+import { Tooltip, Box } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
@@ -16,7 +16,6 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import { useLocation } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import { useCombo } from "../../stores/KeyPressedStore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -432,23 +431,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const isMiniMapVisible = useMiniMapStore((state) => state.visible);
 
   const workflow = useNodes((state) => state.workflow);
-  const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
-  const { comfyIsConnected, comfyIsConnecting, comfyConnectionError, comfyBaseUrl } =
-    useComfyUIStore(
-      useShallow((state) => ({
-        comfyIsConnected: state.isConnected,
-        comfyIsConnecting: state.isConnecting,
-        comfyConnectionError: state.connectionError,
-        comfyBaseUrl: state.baseUrl
-      }))
-    );
-
-  // Auto-connect to ComfyUI when a comfy workflow is loaded (once per workflow)
-  useEffect(() => {
-    if (isComfyWorkflow && !comfyIsConnected && !comfyIsConnecting && !comfyConnectionError) {
-      useComfyUIStore.getState().connect().catch(() => {});
-    }
-  }, [isComfyWorkflow, comfyIsConnected, comfyIsConnecting, comfyConnectionError]);
 
   // Subscribe only to emptiness state to avoid re-renders on every node drag
   const isEmptyWorkflow = useNodes(
@@ -514,7 +496,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       <Box
         css={styles(theme)}
         className="floating-toolbar"
-        data-comfy-workflow={isComfyWorkflow ? "true" : "false"}
         style={toolbarPosition}
       >
         {isMobile && (
@@ -595,22 +576,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             onClick={handleResume}
             aria-label="Resume workflow"
           />
-        )}
-
-        {isComfyWorkflow && (
-          <Tooltip title={comfyIsConnected ? `ComfyUI: ${comfyBaseUrl}` : "ComfyUI not connected — configure in Settings"}>
-            <FlexRow align="center" gap={0.5} sx={{ mr: 1, fontSize: "var(--fontSizeSmaller)", color: "text.secondary" }}>
-              <Box
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "var(--rounded-circle)",
-                  bgcolor: comfyIsConnected ? "success.main" : "grey.500",
-                }}
-              />
-              ComfyUI
-            </FlexRow>
-          </Tooltip>
         )}
 
         <Box

@@ -35,7 +35,7 @@ describe("isContentCardNode", () => {
     ).toBe(true);
     // Any namespace opts in via body — there is no name/namespace matching.
     expect(
-      isContentCardNode(meta("comfy.image.SomeModel", "image", "content_card"))
+      isContentCardNode(meta("lib.image.SomeModel", "image", "content_card"))
     ).toBe(true);
     expect(
       isContentCardNode(meta("some.pkg.Whatever", "dict", "content_card"))

@@ -19,7 +19,6 @@ const PROVIDER_NAMESPACES = new Set([
   "fal",
   "replicate",
   "kie",
-  "comfyui",
   "apify",
   "messaging",
   "search"
