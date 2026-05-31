@@ -5,7 +5,7 @@
  * dynamic_properties, dynamic_inputs, and dynamic_outputs.
  */
 
-export interface ReplicateDynamicInputMetadata {
+interface ReplicateDynamicInputMetadata {
   type: string;
   type_args?: unknown[];
   optional?: boolean;
@@ -17,7 +17,7 @@ export interface ReplicateDynamicInputMetadata {
   default?: unknown;
 }
 
-export interface ResolvedReplicateSchema {
+interface ResolvedReplicateSchema {
   dynamic_properties: Record<string, unknown>;
   dynamic_inputs?: Record<string, ReplicateDynamicInputMetadata>;
   dynamic_outputs: Record<

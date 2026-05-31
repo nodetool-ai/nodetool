@@ -7,7 +7,7 @@
 // -----------------------------------------------------------------
 
 /** The minimal asset shape needed to detect a text language. */
-export interface TextAssetLike {
+interface TextAssetLike {
   name?: string | null;
   content_type?: string | null;
 }
@@ -104,7 +104,7 @@ export const isTextAsset = (asset: TextAssetLike): boolean =>
   languageFromAsset(asset) !== undefined;
 
 /** How a text asset should be rendered/edited, beyond raw language. */
-export type PreviewKind = "markdown" | "csv" | "code" | "text";
+type PreviewKind = "markdown" | "csv" | "code" | "text";
 
 const isCsvName = (name: string): boolean =>
   name.endsWith(".csv") || name.endsWith(".tsv");
