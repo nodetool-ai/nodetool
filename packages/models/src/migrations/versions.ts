@@ -1476,6 +1476,8 @@ export const migrations: MigrationDef[] = [
       // no-op: dropping columns is unsafe across dialects and versions
     }
   },
+
+  // ── Add node_type to predictions ───────────────────────────────
   {
     version: "20260531_000000",
     name: "add_prediction_node_type",
@@ -1493,7 +1495,8 @@ export const migrations: MigrationDef[] = [
       // no-op: dropping columns is unsafe across dialects and versions
     }
   },
-  // ── Add provider_request_id for cost reconciliation ─────────────────
+
+  // ── Add provider_request_id for cost reconciliation ────────────
   // Lets the runner refine an estimated provider cost into the actual billed
   // amount by looking the charge up via the provider's request id (e.g. FAL).
   {
@@ -1516,7 +1519,28 @@ export const migrations: MigrationDef[] = [
     }
   },
 
-  // ── Promote the sketch→asset link to a first-class column ────────────
+  // ── Link rendered videos back to their source timeline ───────────
+  // A video exported from the timeline editor stores the sequence id here so
+  // "edit" on the video can reopen its underlying timeline.
+  {
+    version: "20260601_000001",
+    name: "add_timeline_id_to_assets",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "timeline_id"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_assets ADD COLUMN timeline_id TEXT"
+        );
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
+  },
+
+  // ── Promote the sketch→asset link to a first-class column ────────
   // The sketch document backing an image asset used to live in the asset's
   // `metadata` JSON under `sketchDocumentId`. Hoist it into a dedicated
   // `sketch_document_id` column and backfill existing rows from metadata.

@@ -19,6 +19,9 @@ export const assets = sqliteTable(
     workflow_id: text("workflow_id"),
     node_id: text("node_id"),
     job_id: text("job_id"),
+    // Source timeline a video was rendered from. Lets "edit" on a video open
+    // its underlying timeline sequence for re-editing.
+    timeline_id: text("timeline_id"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

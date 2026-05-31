@@ -250,6 +250,8 @@ export interface Asset {
   workflow_id: string | null;
   node_id?: string | null;
   job_id?: string | null;
+  /** Source timeline a video was rendered from, if any. */
+  timeline_id?: string | null;
   created_at: string;
   /** URL to download/access the asset (computed by API) */
   get_url: string | null;
