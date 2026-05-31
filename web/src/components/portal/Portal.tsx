@@ -12,7 +12,6 @@ import useSecretsStore from "../../stores/SecretsStore";
 import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { usePanelStore } from "../../stores/PanelStore";
 import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
-import AppHeader from "../panels/AppHeader";
 import ComposerSlot from "../chat/composer/ComposerSlot";
 import PortalSetupFlow from "./PortalSetupFlow";
 import DashboardHero from "./DashboardHero";
@@ -178,7 +177,6 @@ const Portal: React.FC = () => {
   if (portalState === "setup") {
     return (
       <Box css={styles(theme)}>
-        <AppHeader />
         <div className="portal-setup-container">
           <div className="portal-setup-message">
             <PortalSetupFlow onComplete={handleSetupComplete} />
@@ -190,7 +188,6 @@ const Portal: React.FC = () => {
 
   return (
     <Box css={styles(theme)}>
-      <AppHeader />
       <div className="dashboard-scroll">
         <main>
           <DashboardHero

@@ -9,12 +9,12 @@ import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useEffect } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
-import AgentPanel from "./AgentPanel";
+import PanelChat from "../chat/containers/PanelChat";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
@@ -43,10 +43,16 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
 
-import { Fullscreen } from "@mui/icons-material";
+import { Fullscreen, OpenInFull } from "@mui/icons-material";
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;
+
+// On the global chat route the rail only offers Assets — everything else is
+// hidden (stable reference for memo).
+const CHAT_ROUTE_HIDDEN_VIEWS: readonly LeftPanelView[] = LEFT_PANEL_TOP_LEVEL.filter(
+  (cat) => cat.id !== "assets"
+).map((cat) => cat.id);
 
 const styles = (
   theme: Theme,
@@ -176,12 +182,14 @@ const VerticalToolbar = memo(function VerticalToolbar({
   activeView,
   onViewChange,
   handlePanelToggle,
-  showAppMenu = false
+  showAppMenu = false,
+  hiddenViews
 }: {
   activeView: string;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
   showAppMenu?: boolean;
+  hiddenViews?: readonly LeftPanelView[];
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
@@ -203,6 +211,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <QuickAccessSidebar
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
+        hiddenViews={hiddenViews}
       />
       <div style={{ flexGrow: 1 }} />
       <div className="toolbar-divider" aria-hidden />
@@ -247,6 +256,10 @@ const PanelContent = memo(function PanelContent({
     navigate("/assets");
     handlePanelToggle("assets");
   }, [navigate, handlePanelToggle]);
+
+  const handleOpenChatRoute = useCallback(() => {
+    navigate("/chat");
+  }, [navigate]);
 
   if (activeView === "nodes") {
     return (
@@ -361,8 +374,22 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          {!isMobile && <PanelHeadline title="Agent" />}
-          <AgentPanel />
+          {!isMobile && (
+            <PanelHeadline
+              title="Agent"
+              actions={
+                <Tooltip title="Open in full chat" placement="right-start">
+                  <ToolbarIconButton
+                    onClick={handleOpenChatRoute}
+                    tabIndex={-1}
+                    ariaLabel="Open in full chat"
+                    icon={<OpenInFull />}
+                  />
+                </Tooltip>
+              }
+            />
+          )}
+          <PanelChat />
         </FlexColumn>
       )}
     </>
@@ -535,10 +562,14 @@ const PanelLeft: React.FC = () => {
   const isStandaloneMode =
     location.pathname.startsWith("/standalone-chat") ||
     location.pathname.startsWith("/miniapp");
-  const hasHeader = !isStandaloneMode;
   // The rail owns the app menu (logo) only in the unified workspace shell;
   // legacy routes still carry it in AppHeader.
   const isWorkspace = location.pathname.startsWith("/workspace");
+  // On the global chat route the chat owns the screen and renders its own
+  // conversation sidebar, so the rail's "Agent" entry is redundant. The chat
+  // route also drops the AppHeader, so the rail runs full-height there.
+  const isChatRoute = location.pathname.startsWith("/chat");
+  const hasHeader = !isStandaloneMode && !isChatRoute;
 
   const {
     ref: panelRef,
@@ -580,7 +611,15 @@ const PanelLeft: React.FC = () => {
     setVisibility(false);
   }, [setVisibility]);
 
-  const isChatRoute = location.pathname.startsWith("/chat");
+  // Entering the chat route collapses the rail — the chat takes the full
+  // screen there and provides its own conversation sidebar. Runs once per
+  // route entry, so manually re-opening the panel afterwards is respected.
+  useEffect(() => {
+    if (isChatRoute) {
+      setVisibility(false);
+    }
+  }, [isChatRoute, setVisibility]);
+
   if (isMobile && isChatRoute) {
     return null;
   }
@@ -614,7 +653,8 @@ const PanelLeft: React.FC = () => {
           activeView={activeView}
           onViewChange={onViewChange}
           handlePanelToggle={handlePanelToggleClick}
-          showAppMenu={isWorkspace}
+          showAppMenu={isWorkspace || isChatRoute}
+          hiddenViews={isChatRoute ? CHAT_ROUTE_HIDDEN_VIEWS : undefined}
         />
 
         {isVisible && (

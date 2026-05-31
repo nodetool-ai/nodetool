@@ -64,6 +64,8 @@ type ChatInputSectionProps = {
    * buttons). Only used by the "simple" variant.
    */
   composerToolbar?: React.ReactNode;
+  /** Override the composer's textarea placeholder. */
+  placeholder?: string;
 };
 
 const ChatInputSection = ({
@@ -78,7 +80,8 @@ const ChatInputSection = ({
   allowedProviders,
   requireToolSupport,
   variant = "media",
-  composerToolbar
+  composerToolbar,
+  placeholder
 }: ChatInputSectionProps) => {
   const isLoading = status === "loading";
   const isStreaming = status === "streaming";
@@ -108,6 +111,7 @@ const ChatInputSection = ({
             onMemoryToggle={onMemoryToggle}
             allowedProviders={allowedProviders}
             requireToolSupport={requireToolSupport}
+            placeholder={placeholder}
           />
         )}
       </div>

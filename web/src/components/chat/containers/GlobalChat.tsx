@@ -20,6 +20,7 @@ import {
 } from "../../ui_primitives";
 import ForumIcon from "@mui/icons-material/Forum";
 import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useTheme } from "@mui/material/styles";
 import ThreadList from "../thread/ThreadList";
 import { useParams, useNavigate } from "react-router-dom";
@@ -498,6 +499,23 @@ const GlobalChat: React.FC = () => {
         // Mobile styles handled via separate CSS file
       }}
     >
+      {/* Back to the editor workspace */}
+      <EditorButton
+        className="back-to-editor"
+        variant="text"
+        onClick={() => navigate("/workspace")}
+        startIcon={<ArrowBackIcon sx={{ fontSize: "var(--fontSizeBig)" }} />}
+        sx={{
+          position: "absolute",
+          top: 28,
+          right: 16,
+          zIndex: 200,
+          whiteSpace: "nowrap",
+          fontSize: "var(--fontSizeNormal)"
+        }}
+      >
+        Back to editor
+      </EditorButton>
       {/* Main Chat Area */}
       <FlexColumn
         sx={{ height: "100%", maxHeight: "100%" }}
@@ -543,7 +561,6 @@ const GlobalChat: React.FC = () => {
           sx={{
             position: "relative",
             height: "100%",
-            marginTop: isMobile ? "48px" : "50px", // Offset for AppHeader
             minHeight: 0,
             flex: 1,
             overflow: "hidden",

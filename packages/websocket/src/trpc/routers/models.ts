@@ -76,7 +76,10 @@ const unifiedModelSchema = z.object({
   trending_score: z.number().nullish(),
   image: z.string().nullish(),
   supports_tools: z.boolean().nullish(),
-  voices: z.array(z.string()).nullish()
+  voices: z.array(z.string()).nullish(),
+  durations: z.array(z.number()).nullish(),
+  resolutions: z.array(z.string()).nullish(),
+  aspect_ratios: z.array(z.string()).nullish()
 });
 
 const modelsListOutput = z.array(unifiedModelSchema);
@@ -623,6 +626,9 @@ function toUnifiedModel(
     provider: string;
     voices?: string[];
     supportedTasks?: string[];
+    durations?: number[];
+    resolutions?: string[];
+    aspectRatios?: string[];
   },
   type: string
 ): UnifiedModel {
@@ -636,7 +642,10 @@ function toUnifiedModel(
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
     tags: [model.provider],
     voices: model.voices ?? null,
-    supported_tasks: model.supportedTasks ?? null
+    supported_tasks: model.supportedTasks ?? null,
+    durations: model.durations ?? null,
+    resolutions: model.resolutions ?? null,
+    aspect_ratios: model.aspectRatios ?? null
   };
 }
 

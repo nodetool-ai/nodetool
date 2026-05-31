@@ -96,10 +96,8 @@ import {
   TodoUpdate,
   ToolCallUpdate
 } from "../../stores/ApiTypes";
-import {
-  FrontendToolRegistry,
-  FrontendToolState
-} from "../../lib/tools/frontendTools";
+import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
+import { getFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 import type {
   GlobalChatState,
   StepToolCall
@@ -1043,11 +1041,17 @@ async function executeToolCall(
 
   const startTime = Date.now();
   try {
+    // Resolve the canonical frontend-tool runtime state lazily — the same
+    // source the agent (`/ws/agent`) bridge uses, so `ui_*` tools behave
+    // identically in every chat mode. It is wired by the workflow editor
+    // (PanelRight); when no editor is mounted (e.g. the global /chat route
+    // with no open workflow) accessing it throws, which surfaces as a tool
+    // error instead of silently mutating a stub.
     const threadWorkflowId =
       get().threadWorkflowId?.[thread_id] ?? get().workflowId ?? null;
     if (threadWorkflowId) {
       try {
-        await get().frontendToolState.fetchWorkflow(threadWorkflowId);
+        await getFrontendToolRuntimeState().fetchWorkflow(threadWorkflowId);
       } catch (e) {
         console.warn("Failed to fetch workflow for tool call:", e);
       }
@@ -1067,12 +1071,14 @@ async function executeToolCall(
       effectiveArgs,
       tool_call_id,
       {
-        getState: () =>
-          ({
-            ...(get().frontendToolState as FrontendToolState),
+        getState: () => {
+          const runtimeState = getFrontendToolRuntimeState();
+          return {
+            ...runtimeState,
             currentWorkflowId:
-              threadWorkflowId ?? get().frontendToolState.currentWorkflowId
-          }) as FrontendToolState
+              threadWorkflowId ?? runtimeState.currentWorkflowId
+          };
+        }
       }
     );
 

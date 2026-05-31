@@ -116,3 +116,12 @@ export type {
 export { RECOMMENDED_MODELS } from "./recommended-models.js";
 export type { RecommendedUnifiedModel } from "./recommended-models.js";
 export { clearProviderCache, getProviderCacheVersion } from "./provider-cache.js";
+export {
+  registerCostReconciler,
+  getCostReconciler
+} from "./cost-reconciler.js";
+export type {
+  CostReconciler,
+  CostReconcileInput,
+  ReconciledCost
+} from "./cost-reconciler.js";

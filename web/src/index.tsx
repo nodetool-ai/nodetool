@@ -72,9 +72,6 @@ import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout"
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
-const StandaloneChat = React.lazy(
-  () => import("./components/chat/containers/StandaloneChat")
-);
 const StandaloneMiniApp = React.lazy(
   () => import("./components/miniapps/StandaloneMiniApp")
 );
@@ -97,6 +94,9 @@ const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
 );
 const Portal = React.lazy(() => import("./components/portal/Portal"));
+const CostsDashboard = React.lazy(
+  () => import("./components/costs/CostsDashboard")
+);
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(
   () => import("./components/ChatMarkdownTest")
@@ -204,9 +204,8 @@ function getRoutes() {
                 }}
               >
                 <SkipLinks />
-                {/* Fixed application header at the very top */}
-                <AppHeader />
-                {/* Main chat area beneath the header */}
+                {/* No AppHeader on chat — GlobalChat has its own
+                    "Back to editor" control. */}
                 <div
                   id="main-content"
                   style={{
@@ -251,6 +250,25 @@ function getRoutes() {
       )
     },
     {
+      path: "/costs",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <CostsDashboard />
+            </React.Suspense>
+          </div>
+        </ProtectedRoute>
+      )
+    },
+    {
       path: "/login",
       element: <Login />
     },
@@ -267,24 +285,6 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <StandaloneMiniApp />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/standalone-chat/:thread_id?",
-      element: (
-        <ProtectedRoute>
-          <div
-            style={{
-              display: "flex",
-              width: "100%",
-              height: "100%"
-            }}
-          >
-            <PanelLeft />
-            <StandaloneChat />
-            <PanelBottom />
-          </div>
         </ProtectedRoute>
       )
     },

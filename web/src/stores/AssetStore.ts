@@ -126,6 +126,7 @@ export type AssetUpdate = {
   parent_id?: string;
   content_type?: string;
   metadata?: Record<string, unknown>;
+  sketch_document_id?: string | null;
   data?: string;
   data_encoding?: "base64";
 };
@@ -561,6 +562,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
           ? req.content_type
           : prev.content_type,
       ...(req.metadata !== undefined ? { metadata: req.metadata } : {}),
+      ...(req.sketch_document_id !== undefined
+        ? { sketch_document_id: req.sketch_document_id }
+        : {}),
       ...(req.data !== undefined ? { data: req.data } : {}),
       ...(req.data_encoding !== undefined
         ? { data_encoding: req.data_encoding }

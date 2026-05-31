@@ -24,6 +24,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 const AppHeader = React.lazy(() => import("../panels/AppHeader"));
+const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
 const ModelListIndex = React.lazy(
   () => import("../hugging_face/model_list/ModelListIndex")
 );
@@ -79,6 +80,12 @@ const PREVIEWS: PreviewEntry[] = [
     label: "Dashboard",
     description: "Main dashboard / portal page",
     viewport: { width: 1920, height: 1080 }
+  },
+  {
+    id: "costs",
+    label: "Costs Dashboard",
+    description: "Spend analytics: stat cards, stacked bar chart and table",
+    viewport: { width: 1500, height: 1080 }
   },
   {
     id: "models",
@@ -361,6 +368,14 @@ const PreviewDashboard: React.FC = () => (
   <FullscreenBox preview="dashboard">
     <Portal />
   </FullscreenBox>
+);
+
+const PreviewCosts: React.FC = () => (
+  <Box data-preview="costs" sx={{ width: "100%", height: "100vh" }}>
+    <Suspense fallback={<LoadingSpinner />}>
+      <CostsDashboard />
+    </Suspense>
+  </Box>
 );
 
 const PreviewModels: React.FC = () => (
@@ -673,6 +688,7 @@ const PreviewIndex: React.FC = () => {
 const COMPONENT_MAP: Record<string, React.FC> = {
   "app-header": PreviewAppHeader,
   dashboard: PreviewDashboard,
+  costs: PreviewCosts,
   models: PreviewModels,
   assets: PreviewAssets,
   "confirm-dialog": PreviewConfirmDialog,
