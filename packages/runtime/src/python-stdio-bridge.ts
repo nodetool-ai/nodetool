@@ -225,6 +225,11 @@ export class PythonStdioBridge extends EventEmitter {
       const proc = spawn(candidate.command, args, {
         stdio: ["pipe", "pipe", "pipe"],
         env: {
+          // Default before the spread so a user-set value still wins. Reduces
+          // CUDA allocator fragmentation (the WDDM PCIe-spill on VAE decode);
+          // only takes effect when set before torch initializes CUDA, which is
+          // why it belongs here rather than in a node's process().
+          PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True",
           ...process.env,
           TQDM_DISABLE: "1",
           HF_HUB_DISABLE_PROGRESS_BARS: "1",
