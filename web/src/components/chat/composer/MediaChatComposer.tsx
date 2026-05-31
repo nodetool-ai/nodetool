@@ -50,7 +50,8 @@ import type {
   MediaMode,
   ImageResolution,
   VideoResolution,
-  AudioFormat
+  AudioFormat,
+  AspectRatioOption
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
 import MediaModeMenu from "./MediaModeMenu";
@@ -109,6 +110,49 @@ function useElapsedTime(active: boolean): number {
   return elapsed;
 }
 
+/** Extract per-model video option constraints (manifest enums) from a model. */
+function videoModelConstraints(model: VideoModel): {
+  durations?: number[];
+  resolutions?: string[];
+  aspectRatios?: string[];
+} {
+  const durations = model.durations?.filter((d) => Number.isFinite(d));
+  const resolutions = model.resolutions ?? undefined;
+  const aspectRatios = model.aspect_ratios ?? undefined;
+  return {
+    durations: durations && durations.length > 0 ? durations : undefined,
+    resolutions:
+      resolutions && resolutions.length > 0 ? resolutions : undefined,
+    aspectRatios:
+      aspectRatios && aspectRatios.length > 0 ? aspectRatios : undefined
+  };
+}
+
+/** Keep `value` if the model allows it; otherwise snap to the first allowed. */
+function clampToAllowed<T>(value: T, allowed?: Array<T | string>): T {
+  if (!allowed || allowed.length === 0) return value;
+  if ((allowed as unknown[]).includes(value)) return value;
+  return allowed[0] as T;
+}
+
+/** Build aspect-ratio menu options from a model's allowed list. */
+function buildAspectOptions(
+  allowed: string[],
+  fallback: AspectRatioOption[]
+): AspectRatioOption[] {
+  const options = allowed
+    .map((id) => {
+      const known = fallback.find((a) => a.id === id);
+      if (known) return known;
+      const m = id.match(/^(\d+):(\d+)$/);
+      return m
+        ? { id, label: id, width: Number(m[1]), height: Number(m[2]) }
+        : null;
+    })
+    .filter((x): x is AspectRatioOption => x != null);
+  return options.length > 0 ? options : fallback;
+}
+
 export interface MediaChatComposerProps {
   isLoading: boolean;
   isStreaming: boolean;
@@ -129,9 +173,13 @@ export interface MediaChatComposerProps {
   requireToolSupport?: boolean;
   /** Focus the prompt textarea on mount. Defaults to true (chat panel). */
   autoFocus?: boolean;
-  /** Extra actions rendered at the start of the footer chip row (e.g. the
+  /** When true, the composer minimizes to just the input (+ leading Run
+   *  button) while unfocused and empty, expanding to the full chip row on
+   *  focus. Used by the canvas composer; off in the chat panel. */
+  collapsible?: boolean;
+  /** Extra actions rendered at the end of the footer chip row (e.g. the
    *  canvas Run button + workflow menu). Empty in the chat panel. */
-  leadingActions?: React.ReactNode;
+  trailingActions?: React.ReactNode;
   /** Override the auto-generated, mode-aware textarea placeholder. */
   placeholder?: string;
 }
@@ -166,12 +214,15 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   allowedProviders,
   requireToolSupport,
   autoFocus = true,
-  leadingActions,
-  placeholder: placeholderOverride
+  trailingActions,
+  placeholder: placeholderOverride,
+  collapsible = false
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
+  const [focused, setFocused] = useState(false);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Mode + media params from persistent store
   const mode = useMediaGenerationStore((s) => s.mode);
@@ -547,13 +598,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handlePickVideoModel = useCallback(
     (model: VideoModel) => {
+      const constraints = videoModelConstraints(model);
       setVideoParams({
         model: {
           type: "video_model",
           id: model.id,
           provider: model.provider,
-          name: model.name || ""
-        }
+          name: model.name || "",
+          ...constraints
+        },
+        duration: clampToAllowed(videoParams.duration, constraints.durations),
+        resolution: clampToAllowed(
+          videoParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          videoParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -562,7 +624,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setVideoModelOpen(false);
     },
-    [setVideoParams, addRecentModel]
+    [setVideoParams, addRecentModel, videoParams.duration, videoParams.resolution, videoParams.aspectRatio]
   );
 
   const handlePickImageEditModel = useCallback(
@@ -588,13 +650,27 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handlePickImageToVideoModel = useCallback(
     (model: VideoModel) => {
+      const constraints = videoModelConstraints(model);
       setImageToVideoParams({
         model: {
           type: "video_model",
           id: model.id,
           provider: model.provider,
-          name: model.name || ""
-        }
+          name: model.name || "",
+          ...constraints
+        },
+        duration: clampToAllowed(
+          imageToVideoParams.duration,
+          constraints.durations
+        ),
+        resolution: clampToAllowed(
+          imageToVideoParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          imageToVideoParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -603,7 +679,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setVideoModelOpen(false);
     },
-    [setImageToVideoParams, addRecentModel]
+    [setImageToVideoParams, addRecentModel, imageToVideoParams.duration, imageToVideoParams.resolution, imageToVideoParams.aspectRatio]
   );
 
   const handlePickTtsModel = useCallback(
@@ -630,25 +706,47 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     [setAudioParams, addRecentModel, audioParams.voice]
   );
 
-  // Option lists
-  const durationOptions = useMemo<MediaOption<number>[]>(
-    () =>
-      VIDEO_DURATIONS.map((d) => ({
-        id: d,
-        label: `${d} Sec`,
-        icon: <AccessTimeIcon fontSize="small" />
-      })),
-    []
-  );
+  // The active video model for the current mode drives which duration /
+  // resolution / aspect options are offered (falling back to the full set when
+  // the model declares no constraints).
+  const activeVideoModel =
+    mode === "video"
+      ? videoParams.model
+      : mode === "image_to_video"
+        ? imageToVideoParams.model
+        : null;
 
-  const videoResolutionOptions = useMemo<MediaOption<VideoResolution>[]>(
+  // Option lists
+  const durationOptions = useMemo<MediaOption<number>[]>(() => {
+    const values =
+      activeVideoModel?.durations && activeVideoModel.durations.length > 0
+        ? activeVideoModel.durations
+        : VIDEO_DURATIONS;
+    return values.map((d) => ({
+      id: d,
+      label: `${d} Sec`,
+      icon: <AccessTimeIcon fontSize="small" />
+    }));
+  }, [activeVideoModel?.durations]);
+
+  const videoResolutionOptions = useMemo<MediaOption<VideoResolution>[]>(() => {
+    const values =
+      activeVideoModel?.resolutions && activeVideoModel.resolutions.length > 0
+        ? (activeVideoModel.resolutions as VideoResolution[])
+        : VIDEO_RESOLUTIONS;
+    return values.map((r) => ({
+      id: r,
+      label: r,
+      icon: <DisplaySettingsIcon fontSize="small" />
+    }));
+  }, [activeVideoModel?.resolutions]);
+
+  const videoAspectOptions = useMemo<AspectRatioOption[]>(
     () =>
-      VIDEO_RESOLUTIONS.map((r) => ({
-        id: r,
-        label: r,
-        icon: <DisplaySettingsIcon fontSize="small" />
-      })),
-    []
+      activeVideoModel?.aspectRatios && activeVideoModel.aspectRatios.length > 0
+        ? buildAspectOptions(activeVideoModel.aspectRatios, VIDEO_ASPECT_RATIOS)
+        : VIDEO_ASPECT_RATIOS,
+    [activeVideoModel?.aspectRatios]
   );
 
   const imageResolutionOptions = useMemo<MediaOption<ImageResolution>[]>(
@@ -743,6 +841,41 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const isDisabled = disabled || isBusy;
   const elapsed = useElapsedTime(isBusy);
 
+  // When `collapsible`, the composer dims its border + footer controls while
+  // unfocused and idle, brightening on focus (or pending content / open menu /
+  // active generation). Blur is delayed so clicking a chip — which momentarily
+  // blurs the textarea before its menu opens — doesn't flash the dim state.
+  const anyMenuOpen =
+    !!modeAnchor ||
+    !!durationAnchor ||
+    !!resolutionAnchor ||
+    !!aspectAnchor ||
+    !!variationsAnchor ||
+    !!voiceAnchor ||
+    !!speedAnchor ||
+    !!audioFormatAnchor ||
+    !!strengthAnchor ||
+    !!stepsAnchor ||
+    imageModelOpen ||
+    videoModelOpen ||
+    languageModelOpen ||
+    ttsModelOpen;
+  const hasContent = prompt.trim().length > 0 || droppedFiles.length > 0;
+  const dimmed =
+    collapsible && !focused && !hasContent && !anyMenuOpen && !isBusy;
+
+  const handleFocus = useCallback(() => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+    setFocused(true);
+  }, []);
+  const handleBlur = useCallback(() => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+    blurTimer.current = setTimeout(() => setFocused(false), 150);
+  }, []);
+  useEffect(() => () => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+  }, []);
+
   const removeCallbacks = useMemo(
     () => new Map(droppedFiles.map((f) => [f.id, () => removeFile(f.id)])),
     [droppedFiles, removeFile]
@@ -751,7 +884,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   return (
     <div css={createMediaComposerStyles(theme)} className="media-chat-composer">
       <div
-        className={`media-compose-card${isDragging ? " dragging" : ""}`}
+        className={`media-compose-card${isDragging ? " dragging" : ""}${
+          dimmed ? " dimmed" : ""
+        }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -777,6 +912,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           onInput={adjustHeight}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={placeholder}
           rows={1}
           spellCheck={false}
@@ -807,10 +944,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         )}
 
         <div className="media-chip-row">
-          {/* Host-supplied actions at the start of the footer (e.g. the canvas
-              Run button + workflow menu). Empty in the chat panel. */}
-          {leadingActions}
-
           {/* Mode selector chip */}
           <MediaControlChip
             icon={modeIcon}
@@ -1011,7 +1144,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={videoParams.aspectRatio}
-                options={VIDEO_ASPECT_RATIOS}
+                options={videoAspectOptions}
                 onChange={(v) => setVideoParams({ aspectRatio: v })}
               />
 
@@ -1198,7 +1331,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={imageToVideoParams.aspectRatio}
-                options={VIDEO_ASPECT_RATIOS}
+                options={videoAspectOptions}
                 onChange={(v) => setImageToVideoParams({ aspectRatio: v })}
               />
 
@@ -1328,6 +1461,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               {isMediaMode ? "Generate" : <ArrowUpwardIcon fontSize="small" />}
             </button>
           )}
+
+          {/* Host-supplied actions at the end of the footer (e.g. the canvas
+              Run button + workflow menu). Empty in the chat panel. */}
+          {trailingActions}
         </div>
       </div>
 

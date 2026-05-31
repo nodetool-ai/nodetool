@@ -4,7 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery, Menu } from "@mui/material";
-import { Tooltip, Box } from "../ui_primitives";
+import { Tooltip, Box, AlertBanner } from "../ui_primitives";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
@@ -91,9 +92,9 @@ const actionStyles = (theme: Theme) =>
     display: "inline-flex",
     alignItems: "center",
     gap: "4px",
-    marginRight: "6px",
-    paddingRight: "8px",
-    borderRight: `1px solid ${theme.vars.palette.divider}`,
+    marginLeft: "6px",
+    paddingLeft: "8px",
+    borderLeft: `1px solid ${theme.vars.palette.divider}`,
 
     "& button": {
       display: "inline-flex",
@@ -152,7 +153,7 @@ const actionStyles = (theme: Theme) =>
       }
     },
 
-    ".composer-menu": {
+    ".composer-menu, .composer-action": {
       width: "32px",
       height: "32px",
       backgroundColor: "transparent",
@@ -227,6 +228,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleSave,
     handleDownload,
     handleAutoLayout,
+    handleToggleNodeMenu,
     handleToggleMiniMap,
     isWorkflowRunning,
     isPaused,
@@ -295,6 +297,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const chatBusy = useGlobalChatStore(
     (state) => state.status === "loading" || state.status === "streaming"
   );
+  // Chat/media-generation errors land in the store but the canvas has no thread
+  // view to surface them, so show them as a dismissible banner above the composer.
+  const chatError = useGlobalChatStore((state) => state.error);
+  const clearChatError = useGlobalChatStore((state) => state.clearError);
   const [conversationCollapsed, setConversationCollapsed] = useState(false);
   const prevCount = useRef(conversationCount);
   useEffect(() => {
@@ -344,6 +350,23 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const workflowActions = (
     <span css={actionStyles(theme)} className="composer-workflow-actions">
+      {editorViewMode === "graph" && (
+        <Tooltip
+          title={getShortcutTooltip("openNodeMenu")}
+          placement="top"
+          delay={TOOLTIP_ENTER_DELAY}
+        >
+          <button
+            type="button"
+            className="composer-action"
+            onClick={handleToggleNodeMenu}
+            aria-label="Add node"
+          >
+            <AddCircleIcon />
+          </button>
+        </Tooltip>
+      )}
+
       {hasConversation && (
         <Tooltip
           title={conversationOpen ? "Hide conversation" : "Show conversation"}
@@ -404,6 +427,30 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         </button>
       </Tooltip>
 
+      {editorViewMode === "graph" && (
+        <Tooltip title="Auto Layout" placement="top" delay={TOOLTIP_ENTER_DELAY}>
+          <button
+            type="button"
+            className="composer-action"
+            onClick={handleAutoLayout}
+            aria-label="Auto layout"
+          >
+            <LayoutIcon />
+          </button>
+        </Tooltip>
+      )}
+
+      <Tooltip title="Save" placement="top" delay={TOOLTIP_ENTER_DELAY}>
+        <button
+          type="button"
+          className="composer-action"
+          onClick={handleSave}
+          aria-label="Save workflow"
+        >
+          <SaveIcon />
+        </button>
+      </Tooltip>
+
       <Tooltip
         title="Workflow actions"
         placement="top"
@@ -436,7 +483,17 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             onCollapse={() => setConversationCollapsed(true)}
           />
         )}
-        <CanvasMediaComposer leadingActions={workflowActions} />
+        {chatError && (
+          <AlertBanner
+            severity="error"
+            compact
+            onClose={clearChatError}
+            sx={{ borderRadius: "12px" }}
+          >
+            {chatError}
+          </AlertBanner>
+        )}
+        <CanvasMediaComposer trailingActions={workflowActions} />
       </Box>
 
       <Menu
@@ -447,13 +504,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         transformOrigin={{ vertical: "bottom", horizontal: "right" }}
         slotProps={{ paper: { sx: { minWidth: "220px", maxWidth: "280px" } } }}
       >
-        {editorViewMode === "graph" && (
-          <MenuItemPrimitive
-            label="Auto Layout"
-            icon={<LayoutIcon fontSize="small" />}
-            onClick={runWithClose(handleAutoLayout)}
-          />
-        )}
         <MenuItemPrimitive
           label={editorViewMode === "graph" ? "Chain View" : "Graph View"}
           icon={
@@ -464,11 +514,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             )
           }
           onClick={runWithClose(handleToggleViewMode)}
-        />
-        <MenuItemPrimitive
-          label="Save"
-          icon={<SaveIcon fontSize="small" />}
-          onClick={runWithClose(handleSave)}
         />
         <MenuItemPrimitive
           label="Instant Update"

@@ -24,6 +24,14 @@ export interface VideoModel {
   name: string;
   provider: ProviderId;
   supportedTasks?: string[];
+  /**
+   * Per-model option constraints derived from the provider manifest's enum
+   * fields. When present the composer offers only these values (e.g. a model
+   * that only supports 5s/10s clips), avoiding 422s from unsupported params.
+   */
+  durations?: number[];
+  resolutions?: string[];
+  aspectRatios?: string[];
 }
 
 export interface TTSModel {

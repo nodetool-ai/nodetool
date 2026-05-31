@@ -21,11 +21,11 @@ export interface CanvasMediaComposerProps {
   /** Workflow controls (Run button + menu) rendered inside the composer
    *  footer. Supplied by FloatingToolBar; kept here so the canvas composer
    *  stays a thin wrapper over MediaChatComposer. */
-  leadingActions?: React.ReactNode;
+  trailingActions?: React.ReactNode;
 }
 
 const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
-  leadingActions
+  trailingActions
 }) => {
   const {
     status,
@@ -102,7 +102,8 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       memoryEnabled={memoryEnabled}
       onMemoryToggle={setMemoryEnabled}
       autoFocus={false}
-      leadingActions={leadingActions}
+      collapsible
+      trailingActions={trailingActions}
     />
   );
 };
