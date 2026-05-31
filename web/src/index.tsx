@@ -266,12 +266,9 @@ function getRoutes() {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              height: "100%",
-              paddingTop: HEADER_HEIGHT
+              height: "100%"
             }}
           >
-            <SkipLinks />
-            <AppHeader />
             <React.Suspense fallback={<LoadingSpinner />}>
               <CostsDashboard />
             </React.Suspense>

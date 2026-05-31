@@ -128,6 +128,7 @@ export class Prediction extends DBModel {
   declare quantity: number | null;
   declare unit_price: number | null;
   declare currency: string | null;
+  declare provider_request_id: string | null;
   declare created_at: string | null;
   declare started_at: string | null;
   declare completed_at: string | null;
@@ -161,6 +162,7 @@ export class Prediction extends DBModel {
     this.quantity ??= null;
     this.unit_price ??= null;
     this.currency ??= null;
+    this.provider_request_id ??= null;
     this.started_at ??= null;
     this.completed_at ??= null;
     this.duration ??= null;

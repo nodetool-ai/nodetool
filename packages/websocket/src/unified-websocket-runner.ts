@@ -52,6 +52,7 @@ import {
   ProcessingContext as RuntimeProcessingContext,
   executeComfy,
   encodeRawRgbaToPng,
+  getCostReconciler,
   type ComfyProgressEvent,
   type ComfyExecutionHandle
 } from "@nodetool-ai/runtime";
@@ -3182,7 +3183,7 @@ export class UnifiedWebSocketRunner {
       return;
     }
     try {
-      await Prediction.create({
+      const prediction = await Prediction.create<Prediction>({
         user_id: this.userId ?? "1",
         provider: cost.provider,
         model: cost.model ?? nodeType,
@@ -3192,6 +3193,7 @@ export class UnifiedWebSocketRunner {
         billing_unit: cost.billing_unit ?? null,
         quantity: cost.quantity ?? null,
         unit_price: cost.unit_price ?? null,
+        provider_request_id: cost.provider_request_id ?? null,
         workflow_id: workflowId,
         node_id: nodeId,
         status: "completed"
@@ -3201,8 +3203,61 @@ export class UnifiedWebSocketRunner {
         model: cost.model ?? nodeType,
         cost: cost.amount
       });
+      // The amount above is an estimate for providers that bill out-of-band.
+      // If the provider exposes a request-keyed billing API, refine it to the
+      // actual charge in the background (best-effort, never blocks the run).
+      if (cost.provider_request_id) {
+        void this._reconcileProviderCost(
+          prediction,
+          cost.provider,
+          cost.provider_request_id,
+          cost.model ?? null
+        );
+      }
     } catch (err) {
       log.warn("Failed to persist node provider cost", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  }
+
+  /**
+   * Replace an estimated provider cost with the provider's actual billed
+   * amount, looked up by request id. Runs detached; swallows all errors and
+   * leaves the estimate in place when no actual is available.
+   */
+  private async _reconcileProviderCost(
+    prediction: Prediction,
+    provider: string,
+    requestId: string,
+    endpointId: string | null
+  ): Promise<void> {
+    const reconciler = getCostReconciler(provider);
+    if (!reconciler) return;
+    try {
+      const apiKey = await getSecret(
+        `${provider.toUpperCase()}_API_KEY`,
+        this.userId ?? undefined
+      );
+      const actual = await reconciler({
+        requestId,
+        endpointId,
+        secrets: apiKey ? { [`${provider.toUpperCase()}_API_KEY`]: apiKey } : {}
+      });
+      if (!actual) return;
+      await prediction.update({
+        cost: actual.cost,
+        currency: actual.currency ?? prediction.currency,
+        quantity: actual.quantity ?? prediction.quantity,
+        unit_price: actual.unit_price ?? prediction.unit_price
+      });
+      log.debug("Reconciled provider cost to actual", {
+        provider,
+        requestId,
+        cost: actual.cost
+      });
+    } catch (err) {
+      log.warn("Failed to reconcile provider cost", {
         error: err instanceof Error ? err.message : String(err)
       });
     }

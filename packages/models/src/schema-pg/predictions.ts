@@ -26,6 +26,9 @@ export const predictions = pgTable(
     quantity: real("quantity"),
     unit_price: real("unit_price"),
     currency: text("currency"),
+    // Provider-side request id (e.g. FAL queue request id) used to reconcile
+    // the estimated cost against the provider's actual billed amount.
+    provider_request_id: text("provider_request_id"),
     created_at: text("created_at"),
     started_at: text("started_at"),
     completed_at: text("completed_at"),
