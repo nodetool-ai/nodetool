@@ -104,10 +104,12 @@ export {
   type FakeContextHandle,
   type FakeContextOptions
 } from "./testing.js";
-export { executeComfy } from "./comfy-executor.js";
+export { executeComfy, uploadComfyFile } from "./comfy-executor.js";
 export type {
   ComfyExecutorResult,
   ComfyImage,
+  ComfyFileOutput,
+  ComfyNodeOutputs,
   ComfyProgressEvent,
   ComfyExecutionHandle
 } from "./comfy-executor.js";

@@ -13,11 +13,36 @@ export interface ComfyImage {
   filename: string;
 }
 
+/** A single file produced by a ComfyUI output node (image, audio, or video). */
+export interface ComfyFileOutput {
+  /** base64-encoded file bytes */
+  data: string;
+  filename: string;
+  mimeType: string;
+}
+
+/** Outputs produced by one ComfyUI node, grouped by media kind. */
+export interface ComfyNodeOutputs {
+  images?: ComfyFileOutput[];
+  audio?: ComfyFileOutput[];
+  video?: ComfyFileOutput[];
+}
+
 export interface ComfyExecutorResult {
   status: "completed" | "failed";
+  /** Flat list of all output images, across every node (legacy convenience). */
   images?: ComfyImage[];
+  /** Per-node outputs keyed by ComfyUI node id, grouped by media kind. */
+  nodeOutputs?: Record<string, ComfyNodeOutputs>;
   raw_output?: Record<string, unknown>;
   error?: string;
+}
+
+/** ComfyUI history output file descriptor. */
+interface ComfyOutputFile {
+  filename: string;
+  subfolder: string;
+  type: string;
 }
 
 /** Progress events emitted during execution. */
@@ -179,12 +204,19 @@ export function executeComfy(
       return listenResult;
     }
 
-    // Fetch images from history
-    const images = await fetchOutputImages(base, promptId);
+    // Fetch outputs from history (images, audio, video — grouped per node)
+    const nodeOutputs = await fetchOutputs(base, promptId);
+    const images: ComfyImage[] = [];
+    for (const out of Object.values(nodeOutputs)) {
+      for (const img of out.images ?? []) {
+        images.push({ type: "image", data: img.data, filename: img.filename });
+      }
+    }
 
     return {
       status: "completed",
       images,
+      nodeOutputs,
       raw_output: listenResult.raw_output
     };
   })();
@@ -332,67 +364,140 @@ function listenForCompletion(
   });
 }
 
+const MIME_BY_EXT: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  bmp: "image/bmp",
+  wav: "audio/wav",
+  mp3: "audio/mpeg",
+  ogg: "audio/ogg",
+  flac: "audio/flac",
+  m4a: "audio/mp4",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+  mkv: "video/x-matroska"
+};
+
+function mimeForFilename(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  return MIME_BY_EXT[ext] ?? "application/octet-stream";
+}
+
+/** Download one history output file and return it base64-encoded. */
+async function downloadOutputFile(
+  base: string,
+  file: ComfyOutputFile
+): Promise<ComfyFileOutput | null> {
+  try {
+    const params = new URLSearchParams({
+      filename: file.filename,
+      subfolder: file.subfolder,
+      type: file.type
+    });
+    const viewRes = await fetch(`${base}/view?${params.toString()}`, {
+      signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS)
+    });
+    if (!viewRes.ok) return null;
+    const buffer = await viewRes.arrayBuffer();
+    return {
+      data: Buffer.from(buffer).toString("base64"),
+      filename: file.filename,
+      mimeType: mimeForFilename(file.filename)
+    };
+  } catch (err) {
+    log.warn(`Failed to fetch output ${file.filename}: ${String(err)}`);
+    return null;
+  }
+}
+
 /**
- * Fetch output images from ComfyUI history after prompt completes.
+ * Fetch output files from ComfyUI history after a prompt completes, grouped
+ * per node and by media kind (images, audio, video).
  */
-async function fetchOutputImages(
+async function fetchOutputs(
   base: string,
   promptId: string
-): Promise<ComfyImage[]> {
-  const images: ComfyImage[] = [];
+): Promise<Record<string, ComfyNodeOutputs>> {
+  const result: Record<string, ComfyNodeOutputs> = {};
   try {
     const histRes = await fetch(`${base}/history/${promptId}`, {
       signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS)
     });
-    if (!histRes.ok) return images;
+    if (!histRes.ok) return result;
 
     const histData = (await histRes.json()) as Record<string, unknown>;
     const entry = histData[promptId] as Record<string, unknown> | undefined;
-    if (!entry) return images;
-
-    const outputs = entry.outputs as
+    const outputs = entry?.outputs as
       | Record<
           string,
           {
-            images?: Array<{
-              filename: string;
-              subfolder: string;
-              type: string;
-            }>;
+            images?: ComfyOutputFile[];
+            audio?: ComfyOutputFile[];
+            // VHS and core video nodes report under different keys
+            gifs?: ComfyOutputFile[];
+            videos?: ComfyOutputFile[];
           }
         >
       | undefined;
+    if (!outputs) return result;
 
-    if (outputs) {
-      for (const nodeOutput of Object.values(outputs)) {
-        if (!nodeOutput.images) continue;
-        for (const img of nodeOutput.images) {
-          try {
-            const params = new URLSearchParams({
-              filename: img.filename,
-              subfolder: img.subfolder,
-              type: img.type
-            });
-            const viewRes = await fetch(`${base}/view?${params.toString()}`, {
-              signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS)
-            });
-            if (viewRes.ok) {
-              const buffer = await viewRes.arrayBuffer();
-              const base64 = Buffer.from(buffer).toString("base64");
-              images.push({
-                type: "image",
-                data: base64,
-                filename: img.filename
-              });
-            }
-          } catch (err) {
-            log.warn(`Failed to fetch image ${img.filename}: ${String(err)}`);
-          }
+    for (const [nodeId, nodeOutput] of Object.entries(outputs)) {
+      const collected: ComfyNodeOutputs = {};
+      const groups: Array<[keyof ComfyNodeOutputs, ComfyOutputFile[]]> = [
+        ["images", nodeOutput.images ?? []],
+        ["audio", nodeOutput.audio ?? []],
+        ["video", [...(nodeOutput.gifs ?? []), ...(nodeOutput.videos ?? [])]]
+      ];
+      for (const [kind, files] of groups) {
+        if (files.length === 0) continue;
+        const downloaded: ComfyFileOutput[] = [];
+        for (const file of files) {
+          const out = await downloadOutputFile(base, file);
+          if (out) downloaded.push(out);
         }
+        if (downloaded.length > 0) collected[kind] = downloaded;
       }
+      if (Object.keys(collected).length > 0) result[nodeId] = collected;
     }
   } catch (err) {
     log.warn(`Failed to fetch history for ${promptId}: ${String(err)}`);
   }
-  return images;
+  return result;
+}
+
+/**
+ * Upload a file to a ComfyUI server's input folder via `/upload/image`
+ * (ComfyUI accepts arbitrary input files on this endpoint, not just images).
+ * Returns the stored filename to reference from a Load* node's input.
+ */
+export async function uploadComfyFile(
+  addr: string,
+  bytes: Uint8Array,
+  filename: string,
+  mimeType = "application/octet-stream"
+): Promise<string> {
+  const base = normalizeBaseUrl(addr);
+  const form = new FormData();
+  const view = new Uint8Array(bytes);
+  const ab = view.buffer.slice(
+    view.byteOffset,
+    view.byteOffset + view.byteLength
+  ) as ArrayBuffer;
+  form.append("image", new Blob([ab], { type: mimeType }), filename);
+  form.append("overwrite", "true");
+  const res = await fetch(`${base}/upload/image`, {
+    method: "POST",
+    body: form
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`ComfyUI upload failed (${res.status}): ${text}`);
+  }
+  const data = (await res.json()) as { name?: string; subfolder?: string };
+  const name = data.name ?? filename;
+  return data.subfolder ? `${data.subfolder}/${name}` : name;
 }
