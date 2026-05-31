@@ -6,17 +6,6 @@
  * same way regardless of source.
  */
 import {
-  PROVIDERS,
-  STACK_ORDER,
-  WORKFLOWS,
-  daysForRange,
-  executionsForRange,
-  grandTotal,
-  executionCount,
-  failedCount,
-  avgPerExecution,
-  topCostDriver,
-  spendDelta,
   providerColor,
   providerLabel,
   type DateRange,
@@ -209,29 +198,3 @@ export const apiToView = (api: DashboardData): CostsView => {
     }
   };
 };
-
-/** The bundled sample view, used as a fallback (e.g. offline preview). */
-export const sampleToView = (range: DateRange): CostsView => ({
-  providers: PROVIDERS.map((p) => ({
-    id: p.id,
-    label: p.label,
-    color: p.color,
-    total: p.total
-  })),
-  stackOrder: [...STACK_ORDER],
-  days: daysForRange(range),
-  executions: executionsForRange(range),
-  stats: {
-    totalSpend: grandTotal,
-    executionCount,
-    failedCount,
-    avgPerExecution,
-    topDriver: {
-      label: topCostDriver.label,
-      providerId: topCostDriver.providerId,
-      cost: topCostDriver.cost
-    },
-    deltaFraction: spendDelta.fraction,
-    workflowCount: WORKFLOWS.length
-  }
-});

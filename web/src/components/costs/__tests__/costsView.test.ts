@@ -1,6 +1,5 @@
 import {
   apiToView,
-  sampleToView,
   rangeToDays,
   inferCategory,
   type DashboardData
@@ -149,25 +148,6 @@ describe("apiToView", () => {
       providerId: "openai",
       cost: 1.2
     });
-  });
-});
-
-describe("sampleToView", () => {
-  it("returns the curated sample headline for the full window", () => {
-    const view = sampleToView("14d");
-    expect(view.providers).toHaveLength(6);
-    expect(view.days).toHaveLength(14);
-    expect(view.executions).toHaveLength(161);
-    expect(view.stats.totalSpend).toBeCloseTo(3.356, 6);
-    expect(view.stats.executionCount).toBe(161);
-    expect(view.stats.failedCount).toBe(9);
-    expect(view.stats.workflowCount).toBe(4);
-    expect(view.stats.deltaFraction).toBeCloseTo(0.64, 6);
-    expect(view.stats.topDriver?.label).toBe("GPT-4o");
-  });
-
-  it("slices the window for shorter ranges", () => {
-    expect(sampleToView("7d").days).toHaveLength(7);
   });
 });
 

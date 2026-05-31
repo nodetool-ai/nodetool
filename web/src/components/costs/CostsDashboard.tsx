@@ -22,7 +22,8 @@ import {
   ToggleOption,
   SearchInput,
   Checkbox,
-  Popover
+  Popover,
+  LoadingSpinner
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -40,7 +41,6 @@ import {
   type GroupByKey,
   type Execution
 } from "./costsData";
-import { sampleToView } from "./costsView";
 import { useCostsDashboard } from "./useCostsDashboard";
 
 const RANGE_OPTIONS: DateRange[] = ["7d", "14d", "30d", "90d"];
@@ -115,42 +115,37 @@ const CostsDashboard: React.FC = () => {
   const [providerSel, setProviderSel] = useState<Set<string> | null>(null);
   const [workflowSel, setWorkflowSel] = useState<Set<string> | null>(null);
 
-  // Live data when available, otherwise the bundled sample (offline preview).
-  const { view: apiView } = useCostsDashboard(range);
-  const view = useMemo(() => apiView ?? sampleToView(range), [apiView, range]);
+  const { view, isLoading, isError } = useCostsDashboard(range);
 
+  const allExecs = useMemo(() => view?.executions ?? [], [view]);
   const providerUniverse = useMemo(
-    () => view.providers.map((p) => p.id),
-    [view.providers]
+    () => (view?.providers ?? []).map((p) => p.id),
+    [view]
   );
   const workflowUniverse = useMemo(
-    () => Array.from(new Set(view.executions.map((e) => e.workflow))).sort(),
-    [view.executions]
+    () => Array.from(new Set(allExecs.map((e) => e.workflow))).sort(),
+    [allExecs]
   );
 
   const providersAllSelected = providerSel === null;
   const workflowsAllSelected = workflowSel === null;
 
-  const rangeLabel = useMemo(
-    () =>
-      view.days.length
-        ? formatRangeLabel(
-            view.days[0].date,
-            view.days[view.days.length - 1].date
-          )
-        : "",
-    [view.days]
-  );
+  const rangeLabel = useMemo(() => {
+    const days = view?.days ?? [];
+    return days.length
+      ? formatRangeLabel(days[0].date, days[days.length - 1].date)
+      : "";
+  }, [view]);
 
   // Provider + workflow filters (everything except the text search).
   const scopedExecs = useMemo(
     () =>
-      view.executions.filter(
+      allExecs.filter(
         (e) =>
           (providerSel === null || providerSel.has(e.providerId)) &&
           (workflowSel === null || workflowSel.has(e.workflow))
       ),
-    [view.executions, providerSel, workflowSel]
+    [allExecs, providerSel, workflowSel]
   );
 
   const tableExecs = useMemo(
@@ -185,17 +180,6 @@ const CostsDashboard: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [tableExecs, range]);
 
-  const stats = view.stats;
-  const total = splitMoney(stats.totalSpend);
-  const driver = stats.topDriver;
-  const driverShare =
-    driver && stats.totalSpend > 0 ? driver.cost / stats.totalSpend : 0;
-  const delta = stats.deltaFraction;
-  const deltaUp = (delta ?? 0) >= 0;
-  const deltaColor = deltaUp
-    ? theme.vars.palette.error.main
-    : theme.vars.palette.success.main;
-
   return (
     <Box
       sx={{
@@ -224,17 +208,23 @@ const CostsDashboard: React.FC = () => {
             >
               Costs
             </Text>
-            <Text size="normal" color="secondary">
-              Spend per node execution across{" "}
-              <Text
-                component="span"
-                weight={600}
-                sx={{ color: theme.vars.palette.text.primary }}
-              >
-                {stats.workflowCount} workflows
-              </Text>{" "}
-              · {rangeLabel}
-            </Text>
+            {view ? (
+              <Text size="normal" color="secondary">
+                Spend per node execution across{" "}
+                <Text
+                  component="span"
+                  weight={600}
+                  sx={{ color: theme.vars.palette.text.primary }}
+                >
+                  {view.stats.workflowCount} workflows
+                </Text>{" "}
+                · {rangeLabel}
+              </Text>
+            ) : (
+              <Text size="normal" color="secondary">
+                Spend per node execution
+              </Text>
+            )}
           </FlexColumn>
 
           <FlexRow gap={1.5} align="center" wrap sx={{ rowGap: 1 }}>
@@ -251,218 +241,308 @@ const CostsDashboard: React.FC = () => {
               ))}
             </ToggleGroup>
 
-            <FilterDropdown
-              icon={<FilterListIcon sx={{ fontSize: 16 }} />}
-              label={providersAllSelected ? "All providers" : "Providers"}
-              count={
-                providersAllSelected
-                  ? String(providerUniverse.length)
-                  : `${providerSel.size}/${providerUniverse.length}`
-              }
-              options={view.providers.map((p) => ({
-                key: p.id,
-                label: p.label,
-                color: p.color
-              }))}
-              selected={providerSel ?? new Set(providerUniverse)}
-              onToggle={(key) =>
-                setProviderSel((prev) => {
-                  const next = toggleSet(
-                    prev ?? new Set(providerUniverse),
-                    key
-                  );
-                  return next.size === providerUniverse.length ? null : next;
-                })
-              }
-              onSelectAll={() => setProviderSel(null)}
-              onClear={() => setProviderSel(new Set())}
-            />
+            {view && (
+              <>
+                <FilterDropdown
+                  icon={<FilterListIcon sx={{ fontSize: 16 }} />}
+                  label={providersAllSelected ? "All providers" : "Providers"}
+                  count={
+                    providersAllSelected
+                      ? String(providerUniverse.length)
+                      : `${providerSel.size}/${providerUniverse.length}`
+                  }
+                  options={view.providers.map((p) => ({
+                    key: p.id,
+                    label: p.label,
+                    color: p.color
+                  }))}
+                  selected={providerSel ?? new Set(providerUniverse)}
+                  onToggle={(key) =>
+                    setProviderSel((prev) => {
+                      const next = toggleSet(
+                        prev ?? new Set(providerUniverse),
+                        key
+                      );
+                      return next.size === providerUniverse.length
+                        ? null
+                        : next;
+                    })
+                  }
+                  onSelectAll={() => setProviderSel(null)}
+                  onClear={() => setProviderSel(new Set())}
+                />
 
-            <FilterDropdown
-              icon={<AccountTreeIcon sx={{ fontSize: 15 }} />}
-              label={workflowsAllSelected ? "All workflows" : "Workflows"}
-              count={
-                workflowsAllSelected
-                  ? undefined
-                  : `${workflowSel.size}/${workflowUniverse.length}`
-              }
-              options={workflowUniverse.map((w) => ({ key: w, label: w }))}
-              selected={workflowSel ?? new Set(workflowUniverse)}
-              onToggle={(key) =>
-                setWorkflowSel((prev) => {
-                  const next = toggleSet(
-                    prev ?? new Set(workflowUniverse),
-                    key
-                  );
-                  return next.size === workflowUniverse.length ? null : next;
-                })
-              }
-              onSelectAll={() => setWorkflowSel(null)}
-              onClear={() => setWorkflowSel(new Set())}
-            />
+                <FilterDropdown
+                  icon={<AccountTreeIcon sx={{ fontSize: 15 }} />}
+                  label={workflowsAllSelected ? "All workflows" : "Workflows"}
+                  count={
+                    workflowsAllSelected
+                      ? undefined
+                      : `${workflowSel.size}/${workflowUniverse.length}`
+                  }
+                  options={workflowUniverse.map((w) => ({ key: w, label: w }))}
+                  selected={workflowSel ?? new Set(workflowUniverse)}
+                  onToggle={(key) =>
+                    setWorkflowSel((prev) => {
+                      const next = toggleSet(
+                        prev ?? new Set(workflowUniverse),
+                        key
+                      );
+                      return next.size === workflowUniverse.length
+                        ? null
+                        : next;
+                    })
+                  }
+                  onSelectAll={() => setWorkflowSel(null)}
+                  onClear={() => setWorkflowSel(new Set())}
+                />
 
-            <Box
-              component="button"
-              type="button"
-              onClick={handleExport}
-              sx={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                height: 38,
-                padding: "0 16px",
-                borderRadius: "10px",
-                border: "none",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                fontSize: "13px",
-                fontWeight: 600,
-                color: theme.vars.palette.primary.contrastText,
-                backgroundColor: theme.vars.palette.primary.main,
-                transition: "background-color 120ms ease",
-                "&:hover": {
-                  backgroundColor: theme.vars.palette.primary.dark
-                }
-              }}
-            >
-              <FileDownloadIcon sx={{ fontSize: 17 }} />
-              Export CSV
-            </Box>
-          </FlexRow>
-        </FlexRow>
-
-        {/* stat cards */}
-        <FlexRow gap={2} wrap sx={{ mb: 3 }}>
-          <CostStatCard
-            label="Total spend"
-            icon={AttachMoneyIcon}
-            value={total.whole}
-            decimal={total.decimal}
-            caption={`vs prior ${range}`}
-            badge={
-              delta === null ? undefined : (
-                <FlexRow
-                  gap={0.25}
-                  align="center"
+                <Box
+                  component="button"
+                  type="button"
+                  onClick={handleExport}
                   sx={{
-                    padding: "1px 6px",
-                    borderRadius: "6px",
-                    backgroundColor: `${deltaColor}1F`
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    height: 38,
+                    padding: "0 16px",
+                    borderRadius: "10px",
+                    border: "none",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: theme.vars.palette.primary.contrastText,
+                    backgroundColor: theme.vars.palette.primary.main,
+                    transition: "background-color 120ms ease",
+                    "&:hover": {
+                      backgroundColor: theme.vars.palette.primary.dark
+                    }
                   }}
                 >
-                  {deltaUp ? (
-                    <NorthIcon sx={{ fontSize: 12, color: deltaColor }} />
-                  ) : (
-                    <SouthIcon sx={{ fontSize: 12, color: deltaColor }} />
-                  )}
-                  <Text size="smaller" weight={600} sx={{ color: deltaColor }}>
-                    {formatPercent(Math.abs(delta))}
-                  </Text>
-                </FlexRow>
-              )
-            }
-          />
-          <CostStatCard
-            label="Node executions"
-            icon={GridViewIcon}
-            value={String(stats.executionCount)}
-            caption={`${stats.failedCount} failed · ${stats.workflowCount} workflows`}
-          />
-          <CostStatCard
-            label="Avg / execution"
-            icon={ShowChartIcon}
-            value={formatMoney(stats.avgPerExecution)}
-            caption="across all node types"
-          />
-          <CostStatCard
-            label="Top cost driver"
-            icon={BarChartIcon}
-            value={driver ? driver.label : "—"}
-            valueDotColor={
-              driver ? providerColor(driver.providerId) : undefined
-            }
-            caption={
-              driver
-                ? `${formatMoney(driver.cost)} · ${formatPercent(
-                    driverShare
-                  )} of spend`
-                : "no spend yet"
-            }
-          />
-        </FlexRow>
-
-        {/* chart */}
-        <Box sx={{ mb: 3 }}>
-          <SpendOverTimeChart
-            days={view.days}
-            providers={view.providers}
-            stackOrder={view.stackOrder}
-            activeProviders={providerSel ?? undefined}
-            rangeLabel={`daily · last ${view.days.length} days`}
-          />
-        </Box>
-
-        {/* group-by + search */}
-        <FlexRow
-          justify="space-between"
-          align="center"
-          wrap
-          sx={{ rowGap: 1.5, mb: 2 }}
-        >
-          <FlexRow gap={1.5} align="center">
-            <Text
-              size="smaller"
-              weight={600}
-              sx={{
-                letterSpacing: "0.07em",
-                textTransform: "uppercase",
-                color: theme.vars.palette.text.disabled
-              }}
-            >
-              Group by
-            </Text>
-            <ToggleGroup
-              exclusive
-              value={groupBy}
-              onChange={(_, v) => v && setGroupBy(v as GroupByKey)}
-              sx={segmentedSx(theme)}
-            >
-              {GROUP_OPTIONS.map((o) => (
-                <ToggleOption key={o.value} value={o.value}>
-                  {o.label}
-                </ToggleOption>
-              ))}
-            </ToggleGroup>
-          </FlexRow>
-
-          <FlexRow gap={2} align="center">
-            <Box sx={{ width: 240 }}>
-              <SearchInput
-                value={search}
-                onChange={setSearch}
-                placeholder="Filter nodes, models…"
-                fullWidth
-              />
-            </Box>
-            <Text
-              size="smaller"
-              family="secondary"
-              sx={{
-                color: theme.vars.palette.text.disabled,
-                whiteSpace: "nowrap"
-              }}
-            >
-              {visibleCount} of {totalCount}
-            </Text>
+                  <FileDownloadIcon sx={{ fontSize: 17 }} />
+                  Export CSV
+                </Box>
+              </>
+            )}
           </FlexRow>
         </FlexRow>
 
-        {/* table */}
-        <CostsTable executions={tableExecs} groupBy={groupBy} />
+        {isLoading ? (
+          <StateMessage>
+            <LoadingSpinner />
+          </StateMessage>
+        ) : isError ? (
+          <StateMessage>
+            <Text color="secondary">
+              Couldn&apos;t load cost data. Please try again.
+            </Text>
+          </StateMessage>
+        ) : view ? (
+          <DashboardContent
+            view={view}
+            range={range}
+            groupBy={groupBy}
+            setGroupBy={setGroupBy}
+            search={search}
+            setSearch={setSearch}
+            providerSel={providerSel}
+            tableExecs={tableExecs}
+            visibleCount={visibleCount}
+            totalCount={totalCount}
+          />
+        ) : (
+          <StateMessage>
+            <Text color="secondary">No cost data for this period.</Text>
+          </StateMessage>
+        )}
       </Box>
     </Box>
   );
 };
+
+// --- content (success state) ------------------------------------------------
+
+interface DashboardContentProps {
+  view: NonNullable<ReturnType<typeof useCostsDashboard>["view"]>;
+  range: DateRange;
+  groupBy: GroupByKey;
+  setGroupBy: (g: GroupByKey) => void;
+  search: string;
+  setSearch: (s: string) => void;
+  providerSel: Set<string> | null;
+  tableExecs: Execution[];
+  visibleCount: number;
+  totalCount: number;
+}
+
+const DashboardContent: React.FC<DashboardContentProps> = ({
+  view,
+  range,
+  groupBy,
+  setGroupBy,
+  search,
+  setSearch,
+  providerSel,
+  tableExecs,
+  visibleCount,
+  totalCount
+}) => {
+  const theme = useTheme();
+  const stats = view.stats;
+  const total = splitMoney(stats.totalSpend);
+  const driver = stats.topDriver;
+  const driverShare =
+    driver && stats.totalSpend > 0 ? driver.cost / stats.totalSpend : 0;
+  const delta = stats.deltaFraction;
+  const deltaUp = (delta ?? 0) >= 0;
+  const deltaColor = deltaUp
+    ? theme.vars.palette.error.main
+    : theme.vars.palette.success.main;
+
+  return (
+    <>
+      {/* stat cards */}
+      <FlexRow gap={2} wrap sx={{ mb: 3 }}>
+        <CostStatCard
+          label="Total spend"
+          icon={AttachMoneyIcon}
+          value={total.whole}
+          decimal={total.decimal}
+          caption={`vs prior ${range}`}
+          badge={
+            delta === null ? undefined : (
+              <FlexRow
+                gap={0.25}
+                align="center"
+                sx={{
+                  padding: "1px 6px",
+                  borderRadius: "6px",
+                  backgroundColor: `${deltaColor}1F`
+                }}
+              >
+                {deltaUp ? (
+                  <NorthIcon sx={{ fontSize: 12, color: deltaColor }} />
+                ) : (
+                  <SouthIcon sx={{ fontSize: 12, color: deltaColor }} />
+                )}
+                <Text size="smaller" weight={600} sx={{ color: deltaColor }}>
+                  {formatPercent(Math.abs(delta))}
+                </Text>
+              </FlexRow>
+            )
+          }
+        />
+        <CostStatCard
+          label="Node executions"
+          icon={GridViewIcon}
+          value={String(stats.executionCount)}
+          caption={`${stats.failedCount} failed · ${stats.workflowCount} workflows`}
+        />
+        <CostStatCard
+          label="Avg / execution"
+          icon={ShowChartIcon}
+          value={formatMoney(stats.avgPerExecution)}
+          caption="across all node types"
+        />
+        <CostStatCard
+          label="Top cost driver"
+          icon={BarChartIcon}
+          value={driver ? driver.label : "—"}
+          valueDotColor={driver ? providerColor(driver.providerId) : undefined}
+          caption={
+            driver
+              ? `${formatMoney(driver.cost)} · ${formatPercent(
+                  driverShare
+                )} of spend`
+              : "no spend yet"
+          }
+        />
+      </FlexRow>
+
+      {/* chart */}
+      <Box sx={{ mb: 3 }}>
+        <SpendOverTimeChart
+          days={view.days}
+          providers={view.providers}
+          stackOrder={view.stackOrder}
+          activeProviders={providerSel ?? undefined}
+          rangeLabel={`daily · last ${view.days.length} days`}
+        />
+      </Box>
+
+      {/* group-by + search */}
+      <FlexRow
+        justify="space-between"
+        align="center"
+        wrap
+        sx={{ rowGap: 1.5, mb: 2 }}
+      >
+        <FlexRow gap={1.5} align="center">
+          <Text
+            size="smaller"
+            weight={600}
+            sx={{
+              letterSpacing: "0.07em",
+              textTransform: "uppercase",
+              color: theme.vars.palette.text.disabled
+            }}
+          >
+            Group by
+          </Text>
+          <ToggleGroup
+            exclusive
+            value={groupBy}
+            onChange={(_, v) => v && setGroupBy(v as GroupByKey)}
+            sx={segmentedSx(theme)}
+          >
+            {GROUP_OPTIONS.map((o) => (
+              <ToggleOption key={o.value} value={o.value}>
+                {o.label}
+              </ToggleOption>
+            ))}
+          </ToggleGroup>
+        </FlexRow>
+
+        <FlexRow gap={2} align="center">
+          <Box sx={{ width: 240 }}>
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Filter nodes, models…"
+              fullWidth
+            />
+          </Box>
+          <Text
+            size="smaller"
+            family="secondary"
+            sx={{
+              color: theme.vars.palette.text.disabled,
+              whiteSpace: "nowrap"
+            }}
+          >
+            {visibleCount} of {totalCount}
+          </Text>
+        </FlexRow>
+      </FlexRow>
+
+      {/* table */}
+      <CostsTable executions={tableExecs} groupBy={groupBy} />
+    </>
+  );
+};
+
+const StateMessage: React.FC<React.PropsWithChildren> = ({ children }) => (
+  <FlexColumn
+    align="center"
+    justify="center"
+    gap={1.5}
+    sx={{ minHeight: 320, width: "100%" }}
+  >
+    {children}
+  </FlexColumn>
+);
 
 // --- filter dropdown --------------------------------------------------------
 
