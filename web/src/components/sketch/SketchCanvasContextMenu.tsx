@@ -146,7 +146,7 @@ interface ToolGridButtonProps {
   compact?: boolean;
 }
 
-function ToolGridButton({
+const ToolGridButton = memo(function ToolGridButton({
   definition,
   selected,
   shortcut,
@@ -214,7 +214,7 @@ function ToolGridButton({
       />
     </ButtonBase>
   );
-}
+});
 
 export interface SketchCanvasContextMenuProps {
   /** Applied to the menu paper (e.g. `sketch-editor__context-menu`). */

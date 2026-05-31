@@ -73,6 +73,22 @@ PrettyJson.displayName = "PrettyJson";
  */
 const RUN_SUBTASK_TOOL_NAME = "run_subtask";
 
+function formatTime(dateStr?: string | null): string | null {
+  if (!dateStr) {
+    return null;
+  }
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * ToolCallCard - Memoized component for displaying tool calls.
  * Extracted outside MessageView to prevent recreation on every render.
@@ -261,18 +277,17 @@ export const MessageView: React.FC<
 }) => {
   const insertIntoEditor = useEditorInsertion();
 
-  // Memoize handlers to prevent recreation on every render
-  const handleCopy = useCallback(() => {
-    let textToCopy = "";
+  const copyText = useMemo(() => {
     if (typeof message.content === "string") {
-      textToCopy = message.content;
-    } else if (Array.isArray(message.content)) {
-      textToCopy = message.content
+      return message.content;
+    }
+    if (Array.isArray(message.content)) {
+      return message.content
         .filter((c) => c.type === "text")
         .map((c) => (c as MessageTextContent).text)
         .join("\n");
     }
-    return textToCopy;
+    return "";
   }, [message.content]);
 
   const createToggleHandler = useCallback((key: string) => {
@@ -403,24 +418,6 @@ export const MessageView: React.FC<
       | Array<MessageTextContent | MessageImageContent>
       | string;
 
-    // Format timestamp for display
-    const formatTime = (dateStr?: string | null) => {
-      if (!dateStr) {
-        return null;
-      }
-      try {
-        const date = new Date(dateStr);
-        return date.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false
-        });
-      } catch {
-        // Date parsing failed, return null
-        return null;
-      }
-    };
-
     const formattedTime = formatTime(message.created_at);
     return (
       <div className={messageClass}>
@@ -508,7 +505,7 @@ export const MessageView: React.FC<
               <span className="message-model">{message.model}</span>
             )}
             <CopyButton
-              value={handleCopy()}
+              value={copyText}
               buttonSize="small"
               tooltip="Copy to clipboard"
             />

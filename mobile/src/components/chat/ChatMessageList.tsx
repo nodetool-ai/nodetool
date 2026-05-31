@@ -57,7 +57,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
     if (isStreaming && flatListRef.current && isNearBottomRef.current) {
       flatListRef.current?.scrollToEnd({ animated: false });
     }
-  }, [isStreaming, messages]);
+  }, [isStreaming, messages.length]);
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
