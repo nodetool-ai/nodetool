@@ -9,15 +9,11 @@ import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
-import TimelineIcon from "@mui/icons-material/Timeline";
 import DownloadIcon from "@mui/icons-material/Download";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import EditIcon from "@mui/icons-material/Edit";
 import LinearScaleIcon from "@mui/icons-material/LinearScale";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -191,10 +187,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleSave,
     handleDownload,
     handleAutoLayout,
-    handleRunAsApp,
-    handleEditWorkflow,
-    handleToggleNodeMenu,
-    handleToggleTrace,
     handleToggleMiniMap,
     isWorkflowRunning,
     isPaused,
@@ -366,13 +358,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       >
         {editorViewMode === "graph" && (
           <MenuItemPrimitive
-            label="Add Node"
-            icon={<AddCircleIcon fontSize="small" />}
-            onClick={runWithClose(handleToggleNodeMenu)}
-          />
-        )}
-        {editorViewMode === "graph" && (
-          <MenuItemPrimitive
             label="Auto Layout"
             icon={<LayoutIcon fontSize="small" />}
             onClick={runWithClose(handleAutoLayout)}
@@ -421,24 +406,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           onClick={runWithClose(handleToggleMiniMap)}
         />
         <MenuItemPrimitive
-          label={bottomPanelVisible ? "Hide Trace" : "Show Trace"}
-          icon={<TimelineIcon fontSize="small" />}
-          onClick={runWithClose(handleToggleTrace)}
-        />
-        <MenuItemPrimitive
-          label="Workflow Settings"
-          icon={<EditIcon fontSize="small" />}
-          onClick={runWithClose(handleEditWorkflow)}
-        />
-        <MenuItemPrimitive
           label="Download JSON"
           icon={<DownloadIcon fontSize="small" />}
           onClick={runWithClose(handleDownload)}
-        />
-        <MenuItemPrimitive
-          label="Run as App"
-          icon={<RocketLaunchIcon fontSize="small" />}
-          onClick={runWithClose(handleRunAsApp)}
         />
         {isMobile && (
           <MenuItemPrimitive
