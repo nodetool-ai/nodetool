@@ -40,7 +40,6 @@ export class HttpGetTextNode extends BaseNode {
     output: "str",
     status: "int"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url"];
   static readonly inputFields = [];
 
@@ -71,7 +70,6 @@ export class HttpGetJsonNode extends BaseNode {
     output: "any",
     status: "int"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url"];
   static readonly inputFields = [];
 
@@ -104,7 +102,6 @@ export class HttpGetBytesNode extends BaseNode {
     output: "bytes",
     status: "int"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url"];
   static readonly inputFields = [];
 
@@ -140,7 +137,6 @@ export class HttpPostNode extends BaseNode {
     output: "any",
     status: "int"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url"];
   static readonly inputFields = ["body"];
 
@@ -174,7 +170,6 @@ export class HttpPutNode extends BaseNode {
     output: "any",
     status: "int"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url"];
   static readonly inputFields = ["body"];
 
@@ -208,7 +203,6 @@ export class HttpPatchNode extends BaseNode {
     output: "any",
     status: "int"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url"];
   static readonly inputFields = ["body"];
 
@@ -242,7 +236,6 @@ export class HttpDeleteNode extends BaseNode {
     output: "bool",
     status: "int"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url"];
   static readonly inputFields = [];
 

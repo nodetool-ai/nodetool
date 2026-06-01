@@ -11,7 +11,6 @@ export class ExtractLinksMarkdownLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, str]]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -55,7 +54,6 @@ export class ExtractHeadersMarkdownLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -101,7 +99,6 @@ export class ExtractBulletListsMarkdownLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -140,7 +137,6 @@ export class ExtractNumberedListsMarkdownLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -209,7 +205,6 @@ export class ExtractTablesMarkdownLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",

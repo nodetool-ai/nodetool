@@ -43,12 +43,6 @@ describe("TensorFlow.js nodes — registration & interface", () => {
     }
   });
 
-  it("each node is exposed as an agent tool", () => {
-    for (const NodeClass of LIB_TENSORFLOW_NODES) {
-      expect(NodeClass.exposeAsTool).toBe(true);
-    }
-  });
-
   it("MobileNet classify declares image + top_k properties", () => {
     const props = TensorflowMobileNetClassifyNode.getDeclaredProperties();
     const names = props.map((p) => p.name).sort();

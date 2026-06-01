@@ -482,10 +482,6 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     value: ["KIE_API_KEY"],
     configurable: true
   });
-  Object.defineProperty(KieNodeClass, "exposeAsTool", {
-    value: true,
-    configurable: true
-  });
   if (isGenerativeOutput) {
     Object.defineProperty(KieNodeClass, "autoSaveAsset", {
       value: true,

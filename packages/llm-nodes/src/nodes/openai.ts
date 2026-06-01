@@ -35,7 +35,6 @@ export class EmbeddingNode extends BaseNode {
     output: "list"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "Input" })
   declare input: any;
@@ -163,7 +162,6 @@ export class ModerationNode extends BaseNode {
   static readonly inlineFields = ["input"];
   static readonly inputFields: string[] = [];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -233,7 +231,6 @@ export class CreateImageNode extends BaseNode {
     output: "image"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -335,7 +332,6 @@ export class EditImageNode extends BaseNode {
     output: "image"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -496,7 +492,6 @@ export class TextToSpeechNode extends BaseNode {
   static readonly inputFields: string[] = [];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly autoSaveAsset = true;
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "enum",
@@ -576,7 +571,6 @@ export class TranslateNode extends BaseNode {
     output: "str"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -645,7 +639,6 @@ export class TranscribeNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["audio", "prompt"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "enum",

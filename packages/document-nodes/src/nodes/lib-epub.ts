@@ -113,7 +113,6 @@ export class EpubMetadataLibNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["epub"];
   static readonly metadataOutputTypes = { output: "dict" };
-  static readonly exposeAsTool = true;
 
   @prop(EPUB_INPUT)
   declare epub: any;
@@ -139,7 +138,6 @@ export class EpubTableOfContentsLibNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["epub"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(EPUB_INPUT)
   declare epub: any;
@@ -172,7 +170,6 @@ export class EpubExtractTextLibNode extends BaseNode {
   static readonly inlineFields = ["chapter_separator"];
   static readonly inputFields = ["epub"];
   static readonly metadataOutputTypes = { output: "str" };
-  static readonly exposeAsTool = true;
 
   @prop(EPUB_INPUT)
   declare epub: any;
@@ -215,7 +212,6 @@ export class EpubExtractChaptersLibNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["epub"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(EPUB_INPUT)
   declare epub: any;

@@ -20,7 +20,6 @@ export class ConstantBoolNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -116,7 +115,6 @@ export class ConstantTextListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[str]"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -142,7 +140,6 @@ export class ConstantDictNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -162,7 +159,6 @@ export class ConstantAudioNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "audio"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -192,7 +188,6 @@ export class ConstantImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -222,7 +217,6 @@ export class ConstantVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -254,7 +248,6 @@ export class ConstantDocumentNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "document"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -284,7 +277,6 @@ export class ConstantJSONNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "json"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -314,7 +306,6 @@ export class ConstantModel3DNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -347,7 +338,6 @@ export class ConstantDataFrameNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -378,7 +368,6 @@ export class ConstantAudioListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[audio]"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -404,7 +393,6 @@ export class ConstantImageListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[image]"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -430,7 +418,6 @@ export class ConstantVideoListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[video]"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -501,7 +488,6 @@ export class ConstantImageSizeNode extends BaseNode {
     width: "int",
     height: "int"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -577,7 +563,6 @@ export class ConstantDateTimeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "datetime"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["year", "month"];
   static readonly inputFields = [];
 
@@ -696,7 +681,6 @@ export class ConstantASRModelNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "asr_model"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -716,7 +700,6 @@ export class ConstantEmbeddingModelNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "embedding_model"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -741,7 +724,6 @@ export class ConstantImageModelNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image_model"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -761,7 +743,6 @@ export class ConstantLanguageModelNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "language_model"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -786,7 +767,6 @@ export class ConstantTTSModelNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "tts_model"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
@@ -806,7 +786,6 @@ export class ConstantVideoModelNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video_model"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 

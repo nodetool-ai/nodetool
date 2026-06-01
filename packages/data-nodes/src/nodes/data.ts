@@ -194,7 +194,6 @@ export class FilterDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -237,7 +236,6 @@ export class SliceDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -291,7 +289,6 @@ export class SaveDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -353,7 +350,6 @@ export class ImportCSVNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -379,7 +375,6 @@ export class LoadCSVURLNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -411,7 +406,6 @@ export class LoadCSVFileDataNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -440,7 +434,6 @@ export class FromListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "list[any]",
@@ -495,7 +488,6 @@ export class JSONToDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "JSON" })
   declare text: any;
@@ -517,7 +509,6 @@ export class ToListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -549,7 +540,6 @@ export class SelectColumnNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -599,7 +589,6 @@ export class ExtractColumnNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[any]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -641,7 +630,6 @@ export class AddColumnNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -702,7 +690,6 @@ export class MergeDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -756,7 +743,6 @@ export class AppendDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -814,7 +800,6 @@ export class JoinDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -921,7 +906,6 @@ export class FindRowNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1015,7 +999,6 @@ export class DropDuplicatesNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1048,7 +1031,6 @@ export class DropNANode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1087,7 +1069,6 @@ export class ForEachRowNode extends BaseNode {
     row: "dict",
     index: "any"
   };
-  static readonly exposeAsTool = true;
 
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -1136,7 +1117,6 @@ export class LoadCSVAssetsNode extends BaseNode {
     dataframes: "list",
     names: "list"
   };
-  static readonly exposeAsTool = true;
 
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -1215,7 +1195,6 @@ export class AggregateNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1317,7 +1296,6 @@ export class PivotNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1414,7 +1392,6 @@ export class RenameNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1467,7 +1444,6 @@ export class FillNANode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",

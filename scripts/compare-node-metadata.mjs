@@ -117,7 +117,6 @@ function normalizeMetadata(metadata) {
     required_settings: metadata.required_settings ?? [],
     is_dynamic: metadata.is_dynamic ?? false,
     is_streaming_output: metadata.is_streaming_output ?? false,
-    expose_as_tool: metadata.expose_as_tool ?? false,
     supports_dynamic_outputs: metadata.supports_dynamic_outputs ?? false,
     model_packs: sortJson(metadata.model_packs ?? []),
     properties: (metadata.properties ?? []).map((property) => ({

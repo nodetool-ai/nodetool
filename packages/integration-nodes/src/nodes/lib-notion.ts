@@ -99,7 +99,6 @@ export class NotionSearchLibNode extends BaseNode {
     result: "dict",
     results: "list"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -233,7 +232,6 @@ export class NotionGetPageLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
 
   @prop({
@@ -306,7 +304,6 @@ export class NotionGetPageContentLibNode extends BaseNode {
     block: "dict",
     blocks: "list"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -373,7 +370,6 @@ export class NotionCreatePageLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
 
   @prop({
@@ -512,7 +508,6 @@ export class NotionUpdatePageLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
 
   @prop({
@@ -606,7 +601,6 @@ export class NotionQueryDatabaseLibNode extends BaseNode {
     result: "dict",
     results: "list"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = ["NOTION_API_KEY"];
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {

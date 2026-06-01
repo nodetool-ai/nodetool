@@ -50,7 +50,6 @@ export class GroundedSearchNode extends BaseNode {
     text: "str"
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -167,7 +166,6 @@ export class EmbeddingNode extends BaseNode {
     output: "list"
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -234,7 +232,6 @@ export class ImageGenerationNode extends BaseNode {
     output: "image"
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -402,7 +399,6 @@ export class TextToVideoGeminiNode extends BaseNode {
     output: "video"
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -488,7 +484,6 @@ export class ImageToVideoGeminiNode extends BaseNode {
     output: "video"
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -648,7 +643,6 @@ export class TextToSpeechGeminiNode extends BaseNode {
     output: "audio"
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -818,7 +812,6 @@ export class TranscribeGeminiNode extends BaseNode {
     output: "str"
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",

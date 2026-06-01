@@ -1305,7 +1305,6 @@ export class TextToImageNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -1414,7 +1413,6 @@ export class ImageToImageNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image"];
   static readonly autoSaveAsset = true;
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "image_model",
@@ -2391,7 +2389,6 @@ export class UpscaleImageNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -2472,7 +2469,6 @@ export class RemoveBackgroundNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -2532,7 +2528,6 @@ export class RelightImageNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
   static readonly inlineFields = [];
   static readonly inputFields = ["image", "prompt"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -2612,7 +2607,6 @@ export class VectorizeImageNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "svg_element" };
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "image_model",

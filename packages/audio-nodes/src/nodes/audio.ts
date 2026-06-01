@@ -266,7 +266,6 @@ export class SaveAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -397,7 +396,6 @@ export class NormalizeAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -447,7 +445,6 @@ export class OverlayAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["a", "b"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -499,7 +496,6 @@ export class RemoveSilenceNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -586,7 +582,6 @@ export class SliceAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -639,7 +634,6 @@ export class MonoToStereoNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -676,7 +670,6 @@ export class StereoToMonoNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -720,7 +713,6 @@ export class ReverseAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -752,7 +744,6 @@ export class FadeInAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -797,7 +788,6 @@ export class FadeOutAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -844,7 +834,6 @@ export class RepeatAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -952,7 +941,6 @@ export class TrimAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -1035,7 +1023,6 @@ export class ConcatAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
-  static readonly exposeAsTool = true;
   static readonly supportsDynamicInputs = true;
 
   async process(): Promise<Record<string, unknown>> {
@@ -1056,7 +1043,6 @@ export class ConcatAudioListNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio_files"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "list[audio]",
@@ -1088,7 +1074,6 @@ export class TextToSpeechNode extends BaseNode {
   static readonly inlineFields: string[] = ["text"];
   static readonly inputFields: string[] = ["text"];
   static readonly autoSaveAsset = true;
-  static readonly exposeAsTool = true;
 
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {

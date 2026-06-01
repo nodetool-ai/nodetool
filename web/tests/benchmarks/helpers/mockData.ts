@@ -27,7 +27,6 @@ export const MOCK_NODE_METADATA = [
       { name: "output", type: { type: "str", optional: false, type_args: [] }, stream: false }
     ],
     recommended_models: [],
-    expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
     required_settings: []
@@ -47,7 +46,6 @@ export const MOCK_NODE_METADATA = [
       { name: "output", type: { type: "int", optional: false, type_args: [] }, stream: false }
     ],
     recommended_models: [],
-    expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
     required_settings: []
@@ -70,7 +68,6 @@ export const MOCK_NODE_METADATA = [
     recommended_models: [
       { id: "gpt-4o", name: "GPT-4o", type: "language_model", repo_id: null, downloaded: true }
     ],
-    expose_as_tool: true,
     supports_dynamic_outputs: false,
     is_streaming_output: true,
     required_settings: ["OPENAI_API_KEY"]
@@ -95,7 +92,6 @@ export const MOCK_NODE_METADATA = [
     recommended_models: [
       { id: "stable-diffusion-xl-base", name: "SDXL Base", type: "stable_diffusion", repo_id: "stabilityai/stable-diffusion-xl-base-1.0", downloaded: false }
     ],
-    expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
     required_settings: []
@@ -117,7 +113,6 @@ export const MOCK_NODE_METADATA = [
       { name: "output", type: { type: "str", optional: false, type_args: [] }, stream: false }
     ],
     recommended_models: [],
-    expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
     required_settings: []
@@ -137,7 +132,6 @@ export const MOCK_NODE_METADATA = [
       { name: "output", type: { type: "any", optional: true, type_args: [] }, stream: false }
     ],
     recommended_models: [],
-    expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
     required_settings: []

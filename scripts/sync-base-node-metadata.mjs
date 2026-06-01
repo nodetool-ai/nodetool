@@ -264,7 +264,6 @@ for (const file of files) {
       "requiredSettings",
       "isStreamingOutput",
       "isDynamic",
-      "exposeAsTool",
       "supportsDynamicOutputs",
 
       "recommendedModels",
@@ -288,9 +287,6 @@ for (const file of files) {
     }
     if (py.is_dynamic) {
       desiredStatics.set("isDynamic", "  static readonly isDynamic = true;");
-    }
-    if (py.expose_as_tool) {
-      desiredStatics.set("exposeAsTool", "  static readonly exposeAsTool = true;");
     }
     if (py.supports_dynamic_outputs) {
       desiredStatics.set("supportsDynamicOutputs", "  static readonly supportsDynamicOutputs = true;");

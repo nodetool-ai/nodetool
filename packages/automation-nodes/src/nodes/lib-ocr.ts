@@ -81,7 +81,6 @@ export class OcrExtractTextLibNode extends BaseNode {
   static readonly inlineFields = ["language"];
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "str" };
-  static readonly exposeAsTool = true;
 
   @prop(IMAGE_INPUT)
   declare image: any;
@@ -113,7 +112,6 @@ export class OcrExtractDataLibNode extends BaseNode {
   static readonly inlineFields = ["language"];
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "dict" };
-  static readonly exposeAsTool = true;
 
   @prop(IMAGE_INPUT)
   declare image: any;

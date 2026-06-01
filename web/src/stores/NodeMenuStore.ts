@@ -110,22 +110,14 @@ export type NodeMenuStore = {
   getSelectedNode: () => NodeMetadata | null;
 };
 
-type NodeMenuStoreOptions = {
-  onlyTools?: boolean;
-};
-
-export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
+export const createNodeMenuStore = () =>
   create<NodeMenuStore>((set, get) => {
     let searchTimeout: ReturnType<typeof setTimeout> | null = null;
     let hoveredNodeTimeout: ReturnType<typeof setTimeout> | null = null;
     let pendingSearchId = 0;
 
-    const getFilteredMetadata = () => {
-      const all = Object.values(useMetadataStore.getState().metadata);
-      return options.onlyTools
-        ? all.filter((n) => n.expose_as_tool)
-        : all;
-    };
+    const getFilteredMetadata = () =>
+      Object.values(useMetadataStore.getState().metadata);
     const filterNodes = (nodes: NodeMetadata[]) =>
       filterNodesUtil(
         nodes,

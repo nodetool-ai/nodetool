@@ -81,7 +81,6 @@ export class FetchRSSFeedLibNode extends BaseNode {
     author: "str",
     items: "list"
   };
-  static readonly exposeAsTool = true;
 
   static readonly inlineFields = ["url"];
   static readonly inputFields = [];

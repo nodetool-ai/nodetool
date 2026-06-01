@@ -494,10 +494,6 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
     value: ["ATLASCLOUD_API_KEY"],
     configurable: true
   });
-  Object.defineProperty(AtlasNodeClass, "exposeAsTool", {
-    value: true,
-    configurable: true
-  });
   Object.defineProperty(AtlasNodeClass, "autoSaveAsset", {
     value: true,
     configurable: true

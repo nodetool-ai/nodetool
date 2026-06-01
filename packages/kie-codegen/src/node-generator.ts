@@ -140,7 +140,6 @@ export class KieNodeGenerator {
       `  static readonly metadataOutputTypes = { output: ${JSON.stringify(node.outputType)} };`
     );
     lines.push(`  static readonly requiredSettings = ["KIE_API_KEY"];`);
-    lines.push(`  static readonly exposeAsTool = true;`);
 
     // Compute and emit field classification
     const { inlineFields, inputFields } = computeFieldClassification(node.fields);

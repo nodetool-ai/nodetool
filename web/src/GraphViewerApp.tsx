@@ -121,7 +121,6 @@ function inferMetadata(
     required_settings: [],
     supports_dynamic_inputs: false,
     is_streaming_output: false,
-    expose_as_tool: false,
     supports_dynamic_outputs: false
   } as NodeMetadata;
 }
@@ -344,7 +343,6 @@ export default function App() {
             required_settings: [],
             supports_dynamic_inputs: false,
             is_streaming_output: false,
-            expose_as_tool: false,
             supports_dynamic_outputs: false,
             ...partial
           } as NodeMetadata;

@@ -621,7 +621,6 @@ export interface NodeMetadata {
   is_streaming_output: boolean;
   input_mode?: InputMode;
   output_correlation?: Record<string, OutputCorrelation>;
-  expose_as_tool: boolean;
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;

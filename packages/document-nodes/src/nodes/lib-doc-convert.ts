@@ -224,7 +224,6 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "document",
