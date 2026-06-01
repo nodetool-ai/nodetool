@@ -21,7 +21,7 @@ import {
 } from "react";
 import type { SketchDocument, SketchTool } from "../types";
 import { hydrateSketchStore } from "../state";
-import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
+import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import type { useCanvasActions } from "./useCanvasActions";
 import type { useSegmentation } from "./useSegmentation";
 import type { SketchPersistenceSnapshot } from "../../../stores/sketch/persistence";
@@ -92,6 +92,9 @@ export function useEditorLifecycle({
 }: UseEditorLifecycleParams): EditorLifecycleResult {
   // ─── Canvas-ready gating ──────────────────────────────────────────
   const [canvasReady, setCanvasReady] = useState(false);
+
+  // Stores for the surrounding editor instance (per tab / modal).
+  const instance = useSketchInstance();
 
   // Snapshot of the document as it was when the editor first loaded
   const initialDocumentRef = useRef(initialDocument);
@@ -167,12 +170,12 @@ export function useEditorLifecycle({
   useLayoutEffect(() => {
     initialDocumentRef.current = initialDocument;
 
-    const session = useSketchSessionStore.getState();
+    const session = instance.session.getState();
     const isSameDocRevisit =
       documentId !== undefined && session.hydratedDocumentId === documentId;
     if (!isSameDocRevisit) {
       if (initialEditorState) {
-        hydrateSketchStore({
+        hydrateSketchStore(instance.editor, {
           document: initialEditorState.document,
           activeTool: initialEditorState.activeTool,
           zoom: initialEditorState.zoom,
@@ -188,7 +191,7 @@ export function useEditorLifecycle({
       }
     }
     setCanvasReady(true);
-  }, [documentId, initialDocument, initialEditorState, setDocument]);
+  }, [documentId, initialDocument, initialEditorState, setDocument, instance]);
 
   // ─── Autosave on document changes ─────────────────────────────────
   // ## Autosave boundary contract

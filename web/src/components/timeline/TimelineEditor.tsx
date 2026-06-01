@@ -42,6 +42,7 @@ import {
 } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
 import { ActivityIndicator } from "./ActivityIndicator";
@@ -242,9 +243,15 @@ interface TimelineEditorProps {
    * run outside the router.
    */
   sequenceId?: string;
+  /**
+   * Whether this editor is the focused/visible surface. Drives which instance
+   * receives imperative undo/redo and save actions. Defaults to `true` for the
+   * standalone route; the workspace tab passes its active flag.
+   */
+  active?: boolean;
 }
 
-export const TimelineEditor: React.FC<TimelineEditorProps> = memo(({
+const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo(({
   sequenceId: sequenceIdProp
 }) => {
   const { sequenceId: sequenceIdParam } = useParams<{ sequenceId: string }>();
@@ -512,6 +519,23 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = memo(({
     </FlexColumn>
   );
 });
+
+TimelineEditorBody.displayName = "TimelineEditorBody";
+
+/**
+ * Wraps the editor body in a {@link TimelineProvider} so each tab / page gets
+ * its own isolated timeline stores (document, UI, playback). The load and
+ * autosave hooks run inside the body, under the provider, so they bind to this
+ * instance's stores rather than a shared singleton.
+ */
+export const TimelineEditor: React.FC<TimelineEditorProps> = ({
+  active = true,
+  ...bodyProps
+}) => (
+  <TimelineProvider active={active}>
+    <TimelineEditorBody {...bodyProps} />
+  </TimelineProvider>
+);
 
 TimelineEditor.displayName = "TimelineEditor";
 

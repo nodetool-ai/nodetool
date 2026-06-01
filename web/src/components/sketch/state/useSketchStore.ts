@@ -13,7 +13,7 @@
  *   - UiSlice        — ephemeral UI flags, layer multi-select, isolation
  */
 
-import { create } from "zustand";
+import { create, type StoreApi, type UseBoundStore } from "zustand";
 import {
   createDocumentSlice,
   createViewportSlice,
@@ -46,15 +46,32 @@ export type SketchStore = DocumentSlice &
   UiSlice &
   RuntimeSlice;
 
-export const useSketchStore = create<SketchStore>((...a) => ({
-  ...createDocumentSlice(...a),
-  ...createViewportSlice(...a),
-  ...createToolSlice(...a),
-  ...createHistorySlice(...a),
-  ...createSelectionSlice(...a),
-  ...createUiSlice(...a),
-  ...createRuntimeSlice(...a)
-}));
+/** Vanilla store handle for a single sketch-editor instance. */
+export type SketchStoreApi = UseBoundStore<StoreApi<SketchStore>>;
+
+/**
+ * Create a fresh, isolated sketch-editor store. One instance per editor
+ * surface (workspace tab, standalone page, in-node modal) so multiple
+ * documents can be edited in parallel without sharing layers, history,
+ * viewport, or tool state. See {@link SketchProvider}.
+ */
+export const createSketchStore = (): SketchStoreApi =>
+  create<SketchStore>((...a) => ({
+    ...createDocumentSlice(...a),
+    ...createViewportSlice(...a),
+    ...createToolSlice(...a),
+    ...createHistorySlice(...a),
+    ...createSelectionSlice(...a),
+    ...createUiSlice(...a),
+    ...createRuntimeSlice(...a)
+  }));
+
+// The reactive `useSketchStore` hook (context-bound) is re-exported from the
+// instance module below so call sites keep importing it from "../state".
+export {
+  useSketchStore,
+  useSketchStoreApi
+} from "../../../stores/sketch/SketchInstance";
 
 export interface PersistedSketchStoreState {
   document: SketchDocument;
@@ -65,9 +82,12 @@ export interface PersistedSketchStoreState {
   historyIndex?: number;
 }
 
-export function hydrateSketchStore(state: PersistedSketchStoreState): void {
+export function hydrateSketchStore(
+  store: StoreApi<SketchStore>,
+  state: PersistedSketchStoreState
+): void {
   const normalized = normalizeSketchDocument(state.document);
-  useSketchStore.setState({
+  store.setState({
     document: normalized,
     toolSettings: normalized.toolSettings,
     activeTool: state.activeTool ?? "select",

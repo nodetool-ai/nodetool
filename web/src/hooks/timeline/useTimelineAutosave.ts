@@ -19,7 +19,7 @@
  */
 import { useEffect, useRef } from "react";
 
-import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
 
@@ -53,6 +53,7 @@ export function useTimelineAutosave(
   options: UseTimelineAutosaveOptions = {}
 ): void {
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
+  const store = useTimelineStoreApi();
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<DocumentSnapshot | null>(null);
@@ -82,7 +83,7 @@ export function useTimelineAutosave(
         const updatedAt = (response as { updatedAt?: unknown } | undefined)
           ?.updatedAt;
         if (typeof updatedAt === "string") {
-          useTimelineStore.getState().setBaseUpdatedAt(updatedAt);
+          store.getState().setBaseUpdatedAt(updatedAt);
         }
       } catch (error) {
         console.error("Timeline autosave failed:", error);
@@ -136,7 +137,7 @@ export function useTimelineAutosave(
     let lastMarkers: TimelineStoreState["markers"] | null = null;
     let lastDurationMs: number | null = null;
 
-    const unsubscribe = useTimelineStore.subscribe((state) => {
+    const unsubscribe = store.subscribe((state) => {
       if (!state.sequenceId) return;
       const docUnchanged =
         state.sequenceId === lastSequenceId &&
@@ -166,5 +167,5 @@ export function useTimelineAutosave(
         flush();
       }
     };
-  }, [debounceMs]);
+  }, [debounceMs, store]);
 }

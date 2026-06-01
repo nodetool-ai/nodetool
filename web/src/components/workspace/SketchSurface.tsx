@@ -7,8 +7,8 @@ interface SketchSurfaceProps {
   active: boolean;
 }
 
-const SketchSurface = ({ refId }: SketchSurfaceProps) => {
-  return <StandaloneSketchEditor documentId={refId} />;
+const SketchSurface = ({ refId, active }: SketchSurfaceProps) => {
+  return <StandaloneSketchEditor documentId={refId} active={active} />;
 };
 
 export default SketchSurface;

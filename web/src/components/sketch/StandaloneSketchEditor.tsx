@@ -33,6 +33,7 @@ import SketchEditor, { type SketchEditorHandle } from "./SketchEditor";
 import { trpc } from "../../trpc/client";
 import type { SketchDocument } from "./types";
 import { useStandaloneSketchDocument } from "../../stores/sketch/SketchSessionStore";
+import { SketchProvider } from "../../stores/sketch/SketchInstance";
 import { useSaveSketchDocument } from "../../hooks/sketch/useSaveSketchDocument";
 
 const containerStyles = (theme: Theme) =>
@@ -49,10 +50,18 @@ interface StandaloneSketchEditorProps {
   documentId: string;
   /** Actions rendered at the trailing edge of the editor's top mode bar. */
   headerActions?: React.ReactNode;
+  /**
+   * Whether this editor is the focused/visible surface. Drives which instance
+   * receives imperative tool/keyboard/save actions. Defaults to `true` for the
+   * standalone page; the workspace tab passes its active flag.
+   */
+  active?: boolean;
 }
 
-const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = memo(
-  function StandaloneSketchEditor({ documentId, headerActions }) {
+const StandaloneSketchEditorBody: React.FC<
+  Omit<StandaloneSketchEditorProps, "active">
+> = memo(
+  function StandaloneSketchEditorBody({ documentId, headerActions }) {
     const theme = useTheme();
     const styles = useMemo(() => containerStyles(theme), [theme]);
     const editorRef = useRef<SketchEditorHandle | null>(null);
@@ -180,6 +189,23 @@ const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = memo(
       </div>
     );
   }
+);
+
+StandaloneSketchEditorBody.displayName = "StandaloneSketchEditorBody";
+
+/**
+ * Wraps the editor body in a {@link SketchProvider} so each tab / page gets
+ * its own isolated sketch stores (editor, session, canvas refs). The autosave
+ * and save hooks run inside the body, under the provider, so they bind to this
+ * instance's stores rather than a shared singleton.
+ */
+const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = ({
+  active = true,
+  ...bodyProps
+}) => (
+  <SketchProvider active={active}>
+    <StandaloneSketchEditorBody {...bodyProps} />
+  </SketchProvider>
 );
 
 StandaloneSketchEditor.displayName = "StandaloneSketchEditor";

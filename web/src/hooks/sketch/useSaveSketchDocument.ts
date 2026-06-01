@@ -1,25 +1,27 @@
 import { useCallback, useState } from "react";
 
 import {
-  saveCurrentSketchDocument,
+  saveSketchDocument,
   useSketchSessionStore
 } from "../../stores/sketch/SketchSessionStore";
+import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import { trpc } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
 export function useSaveSketchDocument() {
   const utils = trpc.useUtils();
+  const instance = useSketchInstance();
   const saveState = useSketchSessionStore((state) => state.saveState);
   const [saving, setSaving] = useState(false);
 
   const save = useCallback(async () => {
-    const session = useSketchSessionStore.getState();
+    const session = instance.session.getState();
     if (!session.documentId) {
       return;
     }
     setSaving(true);
     try {
-      await saveCurrentSketchDocument((saved) => {
+      await saveSketchDocument(instance, (saved) => {
         utils.sketch.get.setData({ id: saved.id }, saved);
       });
       useNotificationStore.getState().addNotification({
@@ -32,7 +34,7 @@ export function useSaveSketchDocument() {
     } finally {
       setSaving(false);
     }
-  }, [utils]);
+  }, [utils, instance]);
 
   return { save, saving: saving || saveState === "saving" };
 }
