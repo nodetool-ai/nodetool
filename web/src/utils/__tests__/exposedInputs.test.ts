@@ -5,9 +5,7 @@ import {
   applyExposedPlacementTarget,
   canConfigureExposedPlacement,
   getEffectiveExposedPlacement,
-  getExposedInputPlacement,
   nextExposedInputPlacement,
-  removeExposedInput,
   resolveExposedInputLabeledNames,
   resolveExposedInputNames,
   resolveInlineFieldNames
@@ -195,30 +193,4 @@ describe("exposedInputs utility", () => {
     });
   });
 
-  describe("getExposedInputPlacement", () => {
-    it("returns handle or labeled or null", () => {
-      const data = baseData({
-        exposedInputs: ["a"],
-        exposedInputsLabeled: ["b"]
-      });
-      expect(getExposedInputPlacement(data, "a")).toBe("handle");
-      expect(getExposedInputPlacement(data, "b")).toBe("labeled");
-      expect(getExposedInputPlacement(data, "c")).toBeNull();
-    });
-  });
-
-  describe("removeExposedInput", () => {
-    it("removes a matching entry", () => {
-      expect(removeExposedInput(["a", "b"], "a")).toEqual(["b"]);
-    });
-
-    it("returns the same reference when entry is missing", () => {
-      const list = ["a"];
-      expect(removeExposedInput(list, "missing")).toBe(list);
-    });
-
-    it("handles undefined current list", () => {
-      expect(removeExposedInput(undefined, "x")).toEqual([]);
-    });
-  });
 });

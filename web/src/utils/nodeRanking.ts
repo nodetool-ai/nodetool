@@ -102,14 +102,6 @@ function buildConfig<T extends NodeMetadata>(
   };
 }
 
-export function scoreNodeMetadata(
-  meta: NodeMetadata,
-  terms: readonly string[],
-  options: ScoreOptions = {}
-): number {
-  return scoreItem(meta, terms, buildConfig<NodeMetadata>(options));
-}
-
 export function rankNodeMetadata<T extends NodeMetadata>(
   nodes: readonly T[],
   terms: readonly string[],

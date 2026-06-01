@@ -45,7 +45,7 @@ interface TypedOutput {
  */
 type AssetOutput = TypedOutput | string | Uint8Array | unknown[] | null;
 
-export type CreateAssetFileOptions = {
+type CreateAssetFileOptions = {
   /**
    * Cap large text outputs (especially streaming chunk joins) to avoid browser OOM
    * or `RangeError: Invalid string length`.

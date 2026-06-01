@@ -3,7 +3,6 @@
  */
 import {
   searchTermsFromQuery,
-  scoreNodeMetadata,
   rankNodeMetadata,
 } from "../nodeRanking";
 import type { NodeMetadata } from "../../stores/ApiTypes";
@@ -50,71 +49,6 @@ describe("searchTermsFromQuery", () => {
     const terms = searchTermsFromQuery("blur");
     const unique = new Set(terms);
     expect(terms.length).toBe(unique.size);
-  });
-});
-
-describe("scoreNodeMetadata", () => {
-  const coreNode = makeNode({
-    node_type: "nodetool.image.Blur",
-    title: "Blur",
-    namespace: "nodetool.image",
-    description: "Apply gaussian blur to an image",
-  });
-
-  const providerNode = makeNode({
-    node_type: "openai.GPT",
-    title: "GPT",
-    namespace: "openai",
-    description: "OpenAI GPT model",
-  });
-
-  it("returns 0 for empty terms", () => {
-    expect(scoreNodeMetadata(coreNode, [])).toBe(0);
-  });
-
-  it("scores title matches higher than description", () => {
-    const titleScore = scoreNodeMetadata(coreNode, ["blur"]);
-    const descOnly = makeNode({
-      title: "Effect",
-      node_type: "nodetool.image.Effect",
-      namespace: "nodetool.image",
-      description: "Apply gaussian blur to an image",
-    });
-    const descScore = scoreNodeMetadata(descOnly, ["blur"]);
-    expect(titleScore).toBeGreaterThan(descScore);
-  });
-
-  it("applies core multiplier for nodetool namespace", () => {
-    const score = scoreNodeMetadata(coreNode, ["blur"]);
-    expect(score).toBeGreaterThan(0);
-  });
-
-  it("returns 0 for provider nodes when not included", () => {
-    expect(
-      scoreNodeMetadata(providerNode, ["gpt"], { includeProviderNodes: false })
-    ).toBe(0);
-  });
-
-  it("scores provider nodes when included", () => {
-    expect(
-      scoreNodeMetadata(providerNode, ["gpt"], { includeProviderNodes: true })
-    ).toBeGreaterThan(0);
-  });
-
-  it("returns 0 when namespace prefix does not match", () => {
-    expect(
-      scoreNodeMetadata(coreNode, ["blur"], {
-        namespacePrefix: "openai",
-      })
-    ).toBe(0);
-  });
-
-  it("scores when namespace prefix matches", () => {
-    expect(
-      scoreNodeMetadata(coreNode, ["blur"], {
-        namespacePrefix: "nodetool",
-      })
-    ).toBeGreaterThan(0);
   });
 });
 
