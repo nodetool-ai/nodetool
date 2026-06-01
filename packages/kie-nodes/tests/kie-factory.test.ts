@@ -90,7 +90,7 @@ describe("createKieNodeClass omni chaining", () => {
       ...videoSpec,
       fields: [
         ...videoSpec.fields,
-        { name: "video_list", type: "video_clip_list", default: [] }
+        { name: "video_list", type: "list[video]", default: [] }
       ],
       uploads: [
         {

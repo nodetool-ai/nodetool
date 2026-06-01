@@ -50,8 +50,7 @@ export interface KieFieldDef {
     | "list[str]"
     | "list[image]"
     | "list[video]"
-    | "list[audio]"
-    | "video_clip_list";
+    | "list[audio]";
   default?: unknown;
   title?: string;
   description?: string;
@@ -116,8 +115,7 @@ function isAssetType(type: string): boolean {
     "video",
     "list[image]",
     "list[video]",
-    "list[audio]",
-    "video_clip_list"
+    "list[audio]"
   ].includes(type);
 }
 
@@ -188,7 +186,6 @@ function defaultForType(type: string): unknown {
     case "list[video]":
     case "list[audio]":
     case "list[str]":
-    case "video_clip_list":
       return [];
     default:
       return "";

@@ -48,8 +48,7 @@ function isAssetType(type: string): boolean {
     "video",
     "list[image]",
     "list[video]",
-    "list[audio]",
-    "video_clip_list"
+    "list[audio]"
   ].includes(type);
 }
 
