@@ -990,18 +990,30 @@ export const createTimelineStore = (
     )
   );
 
-// ── Singleton store ────────────────────────────────────────────────────────
+// ── Store handle type ───────────────────────────────────────────────────────
 
-/**
- * The global singleton TimelineStore instance.
- * Use `createTimelineStore` in unit tests for isolation.
- */
-export const useTimelineStore = createTimelineStore();
+/** A single timeline-document store instance (with its zundo `temporal`). */
+export type TimelineStoreApi = ReturnType<typeof createTimelineStore>;
 
-// ── Typed temporal accessor ────────────────────────────────────────────────
+/** Read the zundo temporal (undo/redo) state of a given store instance. */
+export const timelineTemporalOf = (
+  store: TimelineStoreApi
+): TemporalState<PartializedState> =>
+  (
+    store as unknown as {
+      temporal: { getState: () => TemporalState<PartializedState> };
+    }
+  ).temporal.getState();
 
-/** Access undo / redo / clear on the singleton store. */
-export const getTimelineTemporal = (): TemporalState<PartializedState> =>
-  (useTimelineStore as unknown as { temporal: { getState: () => TemporalState<PartializedState> } })
-    .temporal.getState();
+export type { PartializedState as TimelinePartializedState };
+
+// The context-bound `useTimelineStore` hook and the active-instance
+// `getTimelineTemporal` accessor are defined against the surrounding instance
+// in the instance module and re-exported so existing imports keep resolving
+// from this path.
+export {
+  useTimelineStore,
+  useTimelineStoreApi,
+  getTimelineTemporal
+} from "./TimelineInstance";
 

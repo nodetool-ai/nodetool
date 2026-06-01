@@ -40,6 +40,7 @@ import HandleTooltip from "../../HandleTooltip";
 import { Slugify } from "../../../utils/TypeHandler";
 import { SketchModal } from "../../sketch";
 import { useSketchStore } from "../../sketch";
+import { SketchProvider } from "../../../stores/sketch/SketchInstance";
 import {
   SketchDocument,
   createDefaultDocument,
@@ -1285,15 +1286,17 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         <EditableTitle nodeId={props.id} title={props.data.title} />
       ) : null}
 
-      <SketchModal
-        open={isModalOpen}
-        title="Image Editor"
-        initialDocument={editorDocument || sketchDoc}
-        onClose={handleCloseEditor}
-        onDocumentChange={handleDocumentChange}
-        onExportImage={handleExportImage}
-        onExportMask={handleExportMask}
-      />
+      <SketchProvider active={isModalOpen}>
+        <SketchModal
+          open={isModalOpen}
+          title="Image Editor"
+          initialDocument={editorDocument || sketchDoc}
+          onClose={handleCloseEditor}
+          onDocumentChange={handleDocumentChange}
+          onExportImage={handleExportImage}
+          onExportMask={handleExportMask}
+        />
+      </SketchProvider>
     </Box>
   );
 };
