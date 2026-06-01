@@ -62,7 +62,7 @@ generators with no real editor (the clip-farm tools). Studio is both: generative
 
 Every entry point lands on the same artifact — a transcript-bound sequence:
 
-- **Topic.** "5-minute explainer on how RAG works." Studio researches, writes a
+- **Topic.** "90-second explainer on how RAG works." Studio researches, writes a
   script, picks a voice, generates voiceover, fills b-roll, captions it, and cuts
   to the beat.
 - **Script.** Paste your own words; Studio voices and illustrates them.
@@ -139,6 +139,49 @@ Studio is a creator surface over NodeTool's existing infrastructure. The mapping
 The agent's output target is the transcript-bound sequence the manual editor
 produces — generation and hand-editing share one data model, so anything the
 agent makes, you can refine, and anything you build, the agent can extend.
+
+### Simple surface, NodeTool engine underneath
+
+Studio's surface is deliberately simple — a transcript and a preview. But it is
+*not* a black box. **Underneath the surface is the full NodeTool engine**, and
+experts can look — and reach — under the hood:
+
+- The assembly that produced a video is a real NodeTool **workflow graph**.
+  Power users can open it, inspect every node, fork it, and rewire it.
+- Brand kits, voice choices, and the "fill this beat" steps are **reusable
+  workflow templates**, not hardcoded magic. A studio or agency can build a custom
+  pipeline once and run it behind the simple surface for every project.
+- This is the wedge no clip-farm competitor has: the easy surface *and* a
+  programmable engine. Casual users never see it; experts can take it as far as
+  NodeTool goes.
+
+### Open question: the agent harness + node workflows
+
+The biggest unsolved design problem — and the thing we need to figure out — is
+**how the assembly agent is harnessed and which node workflows it drives** to turn
+an idea into a bound sequence. This is the engineering heart of the product and is
+not yet specified. Open questions:
+
+- **Agent harness.** Is assembly one planning agent (TaskPlanner → steps), a fixed
+  pipeline of specialized SimpleAgents (researcher → scriptwriter → caster →
+  b-roll director → captioner), or a hybrid where a planner orchestrates
+  deterministic workflow sub-graphs? What does each beat's "fill" step look like
+  as an agent task, and how does it write back into the `TimelineSequence`?
+- **Node workflows.** What concrete graphs of existing/new nodes realize each
+  capability — script generation, voiceover (`text-to-audio`), b-roll
+  (`text-to-video` + stock search), transcription/highlight-finding for the clip
+  machine, caption timing, auto-reframe with subject tracking? Which already exist
+  in `base-nodes` and which must be built?
+- **Determinism vs. agency.** Where do we want a reliable, repeatable workflow
+  (so output is consistent and cheap) versus genuine agent reasoning (so it
+  handles open-ended topics)? Short-form's ≤3-min bound should make more of this
+  deterministic than a long-form tool could.
+- **Editability handoff.** How does agent output map cleanly onto the
+  transcript-bound model so every generated beat remains hand-editable and
+  re-runnable, with version history intact?
+
+Resolving this — designing the agent harness and the underlying node workflows —
+is the first real engineering milestone before any of the surface gets built.
 
 ---
 
