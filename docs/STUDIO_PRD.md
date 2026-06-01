@@ -128,7 +128,7 @@ A creator opens Studio, types *"weekly update on our launch, punchy, 45 seconds,
 vertical."* Ninety seconds later there's a captioned, voiced, b-rolled vertical
 video on screen. They delete one sentence, reword the hook, swap the voice to
 their clone, hit a brand preset, and export — then generate the 16:9 cut for
-YouTube from the same project. Start to publish: under five minutes. That's the
+YouTube from the same project. Start to publish: under three minutes. That's the
 €50/month.
 
 ---
