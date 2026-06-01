@@ -12,7 +12,7 @@
  *  - Zero counts are hidden.
  */
 
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -91,7 +91,10 @@ const ClipListPopover: React.FC<ClipListPopoverProps> = memo(
       [selectClip, onClose]
     );
 
-    const affectedClips = clips.filter((c) => clipIds.includes(c.id));
+    const affectedClips = useMemo(
+      () => clips.filter((c) => clipIds.includes(c.id)),
+      [clips, clipIds]
+    );
 
     return (
       <Popover
