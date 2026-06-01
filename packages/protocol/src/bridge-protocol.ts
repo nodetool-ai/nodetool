@@ -42,4 +42,4 @@ export const BRIDGE_PROTOCOL_VERSION = 1;
  * prebuild check will refuse to build the Electron app until a wheel
  * satisfying this lower bound exists on the registry.
  */
-export const MIN_NODETOOL_CORE_VERSION = "0.7.0rc8";
+export const MIN_NODETOOL_CORE_VERSION = "0.7.0";
