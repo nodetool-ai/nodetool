@@ -218,7 +218,14 @@ async function buildArgs(
               if (u) urls.push(u);
             }
           }
-          if (urls.length) args[apiName] = urls;
+          if (urls.length) {
+            // Asset-wrapper lists (e.g. list[ImageInput] collapsed to
+            // list[image]) carry a nestedAssetKey; the API expects an array of
+            // objects like [{ image_url: url }], not bare URL strings.
+            args[apiName] = field.nestedAssetKey
+              ? urls.map((u) => ({ [field.nestedAssetKey!]: u }))
+              : urls;
+          }
         }
       } else if (field.nestedAssetKey) {
         const ref = value as Record<string, unknown> | undefined;

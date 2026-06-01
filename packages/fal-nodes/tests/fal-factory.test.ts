@@ -99,6 +99,83 @@ describe("FAL factory argument building", () => {
     });
   });
 
+  it("wraps a list[image] field with nestedAssetKey into [{ image_url }]", async () => {
+    const NodeClass = createFalNodeClass({
+      endpointId: "fal-ai/test",
+      className: "WrapperListModel",
+      moduleName: "image_to_image",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "str",
+      outputFields: [],
+      enums: [],
+      inputFields: [
+        {
+          name: "inputs",
+          propType: "list[image]",
+          tsType: "image[]",
+          default: [],
+          description: "",
+          fieldType: "input",
+          required: false,
+          nestedAssetKey: "image_url"
+        }
+      ]
+    });
+
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).inputs = [
+      { type: "image", uri: "https://example.com/a.png" },
+      { type: "image", uri: "https://example.com/b.png" }
+    ];
+
+    await instance.process();
+
+    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+      inputs: [
+        { image_url: "uploaded:https://example.com/a.png" },
+        { image_url: "uploaded:https://example.com/b.png" }
+      ]
+    });
+  });
+
+  it("leaves a plain list[image] field (no nestedAssetKey) as bare URLs", async () => {
+    const NodeClass = createFalNodeClass({
+      endpointId: "fal-ai/test",
+      className: "PlainListModel",
+      moduleName: "image_to_image",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "str",
+      outputFields: [],
+      enums: [],
+      inputFields: [
+        {
+          name: "image_urls",
+          propType: "list[image]",
+          tsType: "image[]",
+          default: [],
+          description: "",
+          fieldType: "input",
+          required: false
+        }
+      ]
+    });
+
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).image_urls = [
+      { type: "image", uri: "https://example.com/a.png" }
+    ];
+
+    await instance.process();
+
+    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+      image_urls: ["uploaded:https://example.com/a.png"]
+    });
+  });
+
   it("forwards ProcessingContext to asset upload resolution", async () => {
     const NodeClass = createFalNodeClass({
       endpointId: "fal-ai/test",
