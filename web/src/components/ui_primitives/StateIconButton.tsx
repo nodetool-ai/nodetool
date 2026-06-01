@@ -208,10 +208,10 @@ export const StateIconButton = memo(
             transition: "all 0.15s ease",
             ...(isActive && {
               color:
-                theme.vars.palette[color]?.main ||
+                (color !== "default" ? theme.vars.palette[color]?.main : undefined) ||
                 theme.vars.palette.primary.main,
               backgroundColor: `${
-                theme.vars.palette[color]?.main ||
+                (color !== "default" ? theme.vars.palette[color]?.main : undefined) ||
                 theme.vars.palette.primary.main
               }1a`
             }),

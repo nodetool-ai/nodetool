@@ -2,6 +2,10 @@ import "@mui/material/styles";
 import type { PaletteOptions } from "@mui/material/styles";
 
 declare module "@mui/material/styles" {
+  interface CssThemeVariables {
+    enabled: true;
+  }
+
   interface ThemeOptions {
     /**
      * Enable auto-generated CSS custom properties.
@@ -86,10 +90,6 @@ declare module "@mui/material/styles" {
     fontSizeTinyer: string;
     fontFamily1: string;
     fontFamily2: string;
-    // Ensure theme.vars is treated as always present in our codebase
-    // MUI's internal theme.vars structure is complex and cannot be easily typed
-     
-    vars: any;
     rounded: {
       xs: string;
       sm: string;
@@ -218,9 +218,65 @@ declare module "@mui/material/styles" {
     };
   }
 
+  interface PaletteCommonChannel {
+    whiteChannel: string;
+    blackChannel: string;
+  }
+
+  interface PaletteActionChannel {
+    hoverChannel: string;
+  }
+
   interface Color {
     0?: string;
+    850?: string;
     1000?: string;
+  }
+
+  interface ThemeVars {
+    fontSizeGiant: string;
+    fontSizeBigger: string;
+    fontSizeBig: string;
+    fontSizeNormal: string;
+    fontSizeSmall: string;
+    fontSizeSmaller: string;
+    fontSizeTiny: string;
+    fontSizeTinyer: string;
+    fontFamily1: string;
+    fontFamily2: string;
+    rounded: {
+      xs: string;
+      sm: string;
+      md: string;
+      lg: string;
+      xl: string;
+      xxl: string;
+      pill: string;
+      circle: string;
+      dialog: string;
+      node: string;
+      buttonSmall: string;
+      buttonLarge: string;
+    };
+    editor: {
+      heightNode: string;
+      heightInspector: string;
+      padXNode: string;
+      padYNode: string;
+      padXInspector: string;
+      padYInspector: string;
+      controlRadius: string;
+      menuRadius: string;
+      menuShadow: string;
+    };
+    virtualScroll: {
+      overscan: {
+        small: string;
+        normal: string;
+        large: string;
+        gridRow: string;
+      };
+    };
   }
 
   // Extend ZIndex with app-specific levels used across the project

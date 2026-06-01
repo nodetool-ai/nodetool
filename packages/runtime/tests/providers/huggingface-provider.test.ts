@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { HuggingFaceProvider } from "../../src/providers/huggingface-provider.js";
 import type { Message, TextToImageParams } from "../../src/providers/types.js";
 
@@ -382,7 +382,15 @@ describe("HuggingFaceProvider", () => {
   });
 
   describe("model listing", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
     it("returns language models", async () => {
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "meta-llama/Llama-3.1-8B-Instruct" }]
+      } as Response);
       const provider = new HuggingFaceProvider(
         { HF_TOKEN: "hf_test" },
         { hfClient: makeMockHfClient() }
@@ -391,9 +399,14 @@ describe("HuggingFaceProvider", () => {
       const models = await provider.getAvailableLanguageModels();
       expect(models.length).toBeGreaterThan(0);
       expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+      expect(fetchMock).toHaveBeenCalledOnce();
     });
 
     it("returns image models", async () => {
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "black-forest-labs/FLUX.1-schnell" }]
+      } as Response);
       const provider = new HuggingFaceProvider(
         { HF_TOKEN: "hf_test" },
         { hfClient: makeMockHfClient() }
@@ -402,9 +415,14 @@ describe("HuggingFaceProvider", () => {
       const models = await provider.getAvailableImageModels();
       expect(models.length).toBeGreaterThan(0);
       expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+      expect(fetchMock).toHaveBeenCalledOnce();
     });
 
     it("returns TTS models", async () => {
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "facebook/mms-tts-eng" }]
+      } as Response);
       const provider = new HuggingFaceProvider(
         { HF_TOKEN: "hf_test" },
         { hfClient: makeMockHfClient() }
@@ -413,6 +431,7 @@ describe("HuggingFaceProvider", () => {
       const models = await provider.getAvailableTTSModels();
       expect(models.length).toBeGreaterThan(0);
       expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+      expect(fetchMock).toHaveBeenCalledOnce();
     });
   });
 });

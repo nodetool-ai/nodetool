@@ -368,8 +368,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     (props.data.properties.headline as string | undefined) || "Group"
   );
 
-  const [color, setColor] = useState(
-    props.data.properties.group_color || theme.vars.palette.c_bg_group
+  const [color, setColor] = useState<string | null>(
+    (props.data.properties.group_color as string) || theme.vars.palette.c_bg_group || null
   );
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
