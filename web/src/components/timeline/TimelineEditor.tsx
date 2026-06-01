@@ -54,6 +54,7 @@ import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFresh
 import { useTimelineGenerationSubscriptions } from "../../hooks/timeline/useGenerateClip";
 import { useLoadTimelineIntoStore } from "../../hooks/timeline/useLoadTimelineIntoStore";
 import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
+import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
 import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
@@ -271,6 +272,9 @@ const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo((
   // Persist subsequent edits back via trpc.timeline.update (debounced).
   useTimelineAutosave();
 
+  // Imperative save for the Save button (forces an immediate PATCH).
+  const { save: handleSave, isSaving } = useTimelineSave();
+
   // Reconcile clips against current workflow state on mount.
   useWorkflowFreshnessCheck(sequenceId ?? null);
   useTimelineGenerationSubscriptions();
@@ -432,6 +436,8 @@ const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo((
         }
         onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
         isExporting={isExporting}
+        onSave={sequenceUnavailable ? undefined : handleSave}
+        isSaving={isSaving}
         activitySlot={<ActivityIndicator />}
       />
 
