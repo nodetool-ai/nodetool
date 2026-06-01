@@ -7,3 +7,6 @@
 ## 2026-05-25 - O(M*N) mapping optimization in Merge Plan Indexing
 **Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/components/sketch/layerMergeSelection.ts` where `layers.findIndex(...)` was called inside `selectedLayers.map(...)` and subsequently sorted. Since we needed the sorted indices of the subset relative to the original array, iterating over the main array once natively yields sorted indices in O(N).
 **Action:** Replace `subset.map(x => master.findIndex(y => y.id === x.id)).sort()` with an O(N) scan: create a Set of subset IDs, then iterate the master array once, pushing indices where the Set has the master item's ID.
+## 2026-05-25 - O(N*M) Layer Grouping Optimization
+**Learning:** In `web/src/components/sketch/state/slices/documentSlice.ts`, the `groupLayers` function suffered from O(N*M) performance degradation due to nested operations: `.find()`, `.indexOf()`, and `.some()` inside `.map()` array iterations over layers.
+**Action:** Replace nested array lookups with a single-pass loop over the source array using a `Set` for subset lookups. This allows building the filtered selection and their corresponding indices in O(N) time and simplifies later `.some()` mapping iterations to O(N) using `.has()`.
