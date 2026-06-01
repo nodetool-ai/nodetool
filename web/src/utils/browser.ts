@@ -1,4 +1,4 @@
-export interface ElectronDetectionDetails {
+interface ElectronDetectionDetails {
   isElectron: boolean;
   isRendererProcess: boolean; // from window.process.type === 'renderer'
   hasElectronVersionInWindowProcess: boolean; // from window.process.versions.electron

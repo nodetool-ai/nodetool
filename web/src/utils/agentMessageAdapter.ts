@@ -145,25 +145,3 @@ export function agentMessageToNodeToolMessage(
   }
 }
 
-/**
- * Convert a NodeTool Message to a plain text string suitable for
- * sending to the agent via session.send().
- */
-export function nodeToolMessageToText(message: Message): string {
-  if (typeof message.content === "string") {
-    return message.content;
-  }
-  if (Array.isArray(message.content)) {
-    return message.content
-      .filter(
-        (block): block is { type: "text"; text: string } =>
-          typeof block === "object" &&
-          block !== null &&
-          "type" in block &&
-          block.type === "text"
-      )
-      .map((block) => block.text)
-      .join("\n");
-  }
-  return "";
-}

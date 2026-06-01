@@ -1,56 +1,6 @@
 import {
-  modelInfoToEndpointId,
   resolveFalSchemaClient,
 } from "../falDynamicSchema";
-
-describe("modelInfoToEndpointId", () => {
-  it("returns null for empty input", () => {
-    expect(modelInfoToEndpointId("")).toBeNull();
-    expect(modelInfoToEndpointId("  ")).toBeNull();
-  });
-
-  it("returns endpoint id from a bare path", () => {
-    expect(modelInfoToEndpointId("fal-ai/flux-2/klein/4b/base/edit")).toBe(
-      "fal-ai/flux-2/klein/4b/base/edit"
-    );
-  });
-
-  it("trims whitespace from bare path", () => {
-    expect(modelInfoToEndpointId("  fal-ai/flux-2  ")).toBe("fal-ai/flux-2");
-  });
-
-  it("strips trailing punctuation from endpoint id", () => {
-    expect(modelInfoToEndpointId("fal-ai/flux-2.")).toBe("fal-ai/flux-2");
-    expect(modelInfoToEndpointId("fal-ai/flux-2)")).toBe("fal-ai/flux-2");
-    expect(modelInfoToEndpointId("fal-ai/flux-2;")).toBe("fal-ai/flux-2");
-  });
-
-  it("extracts endpoint id from fal.ai model URL", () => {
-    expect(
-      modelInfoToEndpointId("https://fal.ai/models/fal-ai/flux-2")
-    ).toBe("fal-ai/flux-2");
-  });
-
-  it("extracts endpoint id from fal.ai URL with trailing slash", () => {
-    expect(
-      modelInfoToEndpointId("https://fal.ai/models/fal-ai/flux-2/")
-    ).toBe("fal-ai/flux-2");
-  });
-
-  it("returns null for non-fal HTTP URL", () => {
-    expect(
-      modelInfoToEndpointId("https://example.com/models/fal-ai/flux-2")
-    ).toBeNull();
-  });
-
-  it("returns null for fal HTTP URL without /models/ path", () => {
-    expect(modelInfoToEndpointId("https://fal.ai/pricing")).toBeNull();
-  });
-
-  it("returns null for plain text that is not a path or URL", () => {
-    expect(modelInfoToEndpointId("some random text")).toBeNull();
-  });
-});
 
 describe("resolveFalSchemaClient", () => {
   const originalFetch = global.fetch;

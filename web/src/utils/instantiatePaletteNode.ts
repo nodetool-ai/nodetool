@@ -10,7 +10,7 @@ import {
 } from "./codeOutputInference";
 import { CODE_NODE_TYPE } from "../components/node/codeNodeUi";
 
-export type PaletteCreateNodeFn = (
+type PaletteCreateNodeFn = (
   metadata: NodeMetadata,
   position: XYPosition,
   properties?: Record<string, unknown>

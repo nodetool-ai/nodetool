@@ -23,49 +23,6 @@ interface ResolvedFalSchema {
   endpoint_id?: string;
 }
 
-function sanitizeEndpointId(value: string): string {
-  return value
-    .trim()
-    .replace(/[)\]}>.,;:]+$/, "") // Removed unnecessary escape
-    .trim();
-}
-
-/**
- * Normalize user input (URL, endpoint id, or path) to a fal.ai endpoint id
- * suitable for the OpenAPI URL.
- */
-export function modelInfoToEndpointId(modelInfo: string): string | null {
-  const raw = (modelInfo ?? "").trim();
-  if (!raw) {return null;}
-
-  // Already looks like endpoint id (e.g. "fal-ai/flux-2/klein/4b/base/edit")
-  if (raw.includes("/") && !raw.includes(" ") && !raw.startsWith("http")) {
-    return sanitizeEndpointId(raw);
-  }
-
-  // fal.ai model URL -> extract path after /models/
-  if (
-    raw.startsWith("http") &&
-    raw.includes("fal.ai") &&
-    raw.includes("/models/")
-  ) {
-    try {
-      const u = new URL(raw);
-      if (u.pathname.startsWith("/models/")) {
-        const path = u.pathname
-          .replace(/^\/models\/?,?/, "")
-          .replace(/\/?$/, "");
-        const id = path || u.pathname.replace("/models/", "");
-        return sanitizeEndpointId(id);
-      }
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
-
 /**
  * Resolve FAL dynamic schema via backend (uses base URL to avoid CORS).
  * Accepts pasted OpenAPI JSON, llms.txt, fal.ai URL, or endpoint id.
