@@ -9,6 +9,26 @@ raw recording, or hand it a URL — Studio writes, voices, illustrates, captions
 cuts, and reframes a finished video you can publish. Then you edit it like a
 document: change the words, and the video changes with them.
 
+## Product focus: short-form, ≤3 minutes
+
+Studio is built for **short-form video, three minutes max** — Shorts, Reels,
+TikToks, ads, clips, micro-lessons, and explainers that fit the formats people
+actually watch and share. This is a deliberate constraint, not a limitation:
+
+- **It's where the demand and cadence are.** The €50/month creator publishes
+  short-form *often*; that volume is the whole business. Long-form is a different,
+  smaller, slower market.
+- **It makes the hard parts tractable.** Generation cost, render time, the
+  assembly agent's planning horizon, and the transcript-as-document editing model
+  are all far easier — and far better — bounded to a few minutes than to an hour.
+- **It sharpens every feature.** Captions, auto-reframe, hook-first pacing,
+  length variants (a 60s cut and a 15s teaser), and platform fan-out are all
+  short-form concerns. We optimize for them instead of compromising for the
+  long tail.
+
+Long-form *sources* are still first-class inputs — a 90-minute podcast or webinar
+goes in, but what comes out is short clips. The output is always ≤3 minutes.
+
 This is the thing creators currently assemble from five tools — a scriptwriter, a
 voice generator, a stock/b-roll library, a captioner, and a timeline editor.
 Studio collapses them into one surface where the **script is the timeline** and
@@ -140,21 +160,22 @@ because one person does all of them in one tool.
 
 ### 1. The faceless explainer channel
 
-**Who.** Solo creators running educational / niche YouTube and TikTok channels
-without showing their face — finance, history, science, "how X works," top-10
-lists. Often a side hustle scaling toward full-time. No editing skills, no on-
-camera presence, publishing 2–5 videos a week.
+**Who.** Solo creators running educational / niche short-form channels without
+showing their face — finance, history, science, "how X works," top-10 lists on
+TikTok, Reels, and Shorts. Often a side hustle scaling toward full-time. No
+editing skills, no on-camera presence, publishing daily.
 
-**Pain today.** A single 6-minute explainer is a day of work: write the script in
-one tool, generate voiceover in ElevenLabs, hunt stock b-roll, drag everything
-into a timeline, hand-time captions, render, then redo the whole thing as a
-vertical Short. The tool stack alone runs past €50/month and the workflow doesn't
-scale past a couple videos a week.
+**Pain today.** A single 60–90 second explainer Short is still hours of work:
+write the script in one tool, generate voiceover in ElevenLabs, hunt stock b-roll,
+drag everything into a timeline, hand-time captions, render, then redo the framing
+for each platform. The tool stack alone runs past €50/month and the workflow
+doesn't scale to a daily posting habit.
 
 **In Studio.** Type the topic. The assembly agent researches, writes, voices,
-fills b-roll per beat, and captions — out comes a bound sequence. They read the
-transcript, cut two weak sentences, reword the hook, reroll one b-roll shot, and
-export. Then one click for the 9:16 Short. A day becomes twenty minutes.
+fills b-roll per beat, and captions a tight ≤90s Short — out comes a bound
+sequence. They read the transcript, cut two weak sentences, reword the hook,
+reroll one b-roll shot, and export. Hours become minutes — fast enough to post
+every day.
 
 **Why they pay.** Studio is the difference between one video a week and one a day —
 it directly grows the channel that pays their rent.
@@ -201,15 +222,17 @@ hour the feature ships.
 2am the night before launch. The alternative costs ten times that and can't keep
 up.
 
-### 4. The course creator / educator
+### 4. The micro-lesson creator / educator
 
 **Who.** Online instructors, corporate L&D teams, bootcamps, and teachers building
-structured video lessons — module after module, in a consistent format.
+**bite-sized lessons** — a course delivered as a series of short, single-concept
+videos, plus the short "tip of the day" content they post to social to fill the
+top of their funnel.
 
-**Pain today.** Lesson video is repetitive production work: same intro, same lower-
-thirds, same caption style, every module. Updating a course when content changes
-means re-recording and re-editing. Keeping 40 lessons visually consistent by hand
-is error-prone and slow.
+**Pain today.** Short lesson video is repetitive production work: same intro, same
+lower-thirds, same caption style, every clip. Updating a course when content
+changes means re-recording and re-editing. Keeping 40 micro-lessons visually
+consistent by hand is error-prone and slow.
 
 **In Studio.** Each lesson is a transcript — write or paste it, Studio voices and
 illustrates it against a saved course template so every module matches. When the
