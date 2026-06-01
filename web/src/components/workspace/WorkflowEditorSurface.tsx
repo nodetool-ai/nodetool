@@ -1,10 +1,14 @@
 /** @jsxImportSource @emotion/react */
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 
 import NodeEditor from "../node_editor/NodeEditor";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import {
+  tabId,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import KeyboardProvider from "../KeyboardProvider";
@@ -30,16 +34,35 @@ const WorkflowEditorSurface = ({
   workflowId,
   active
 }: WorkflowEditorSurfaceProps) => {
-  const nodeStore = useWorkflowManager((state) => state.nodeStores[workflowId]);
+  const nodeStore = useWorkflowManager((state) => state.getNodeStore(workflowId));
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
+  const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
+  const [missing, setMissing] = useState(false);
 
   useEffect(() => {
-    if (!nodeStore) {
-      void fetchWorkflow(workflowId);
+    if (nodeStore) {
+      setMissing(false);
+      return;
     }
-  }, [nodeStore, fetchWorkflow, workflowId]);
+
+    let cancelled = false;
+    void fetchWorkflow(workflowId).then((loadedWorkflow) => {
+      if (cancelled || loadedWorkflow) {
+        return;
+      }
+      closeTab(tabId("workflow", workflowId));
+      setMissing(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [nodeStore, fetchWorkflow, workflowId, closeTab]);
 
   if (!nodeStore) {
+    if (missing) {
+      return null;
+    }
     return (
       <FlexColumn
         fullWidth

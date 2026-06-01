@@ -26,6 +26,12 @@ export interface NodeInputsProps {
   ) => void;
   onDeleteProperty?: (propertyName: string) => void;
   editableDynamicInputs?: boolean;
+  /**
+   * Render the node's dynamic-property inputs. Defaults to `true`. Set
+   * `false` when a body renders dynamic inputs in a separate block (e.g.
+   * `ContentCardBody`) and only wants the static `properties` here.
+   */
+  showDynamicInputs?: boolean;
 }
 
 interface NodeInputProps {
@@ -95,7 +101,8 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   showHandle = true,
   showFields = true,
   layout,
-  editableDynamicInputs = true
+  editableDynamicInputs = true,
+  showDynamicInputs = true
 }) => {
   const rootStyles = useMemo(
     () =>
@@ -255,7 +262,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   return (
     <div className={`node-inputs node-drag-handle node-${id}`} css={rootStyles}>
       {allInputs}
-      {dynamicInputElements}
+      {showDynamicInputs && dynamicInputElements}
     </div>
   );
 };
