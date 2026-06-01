@@ -1,111 +1,132 @@
-# NodeTool Studio — Product Requirements (v1)
+# NodeTool Studio — Product Vision
 
-> Status: Draft · Branch `claude/nodetool-video-creation-scope-Q7LQf` · Owner: matti
+> Status: Vision · Branch `claude/nodetool-video-creation-scope-Q7LQf` · Owner: matti
 
-## 1. Thesis
+## The pitch
 
-**Transcript-driven video editing, automated.** You write or generate a script;
-the script *is* the timeline. Editing the words edits the video. Think Descript's
-text-first editing model, but with AI clip generation wired in so beats can be
-filled (voiceover, b-roll, captions) instead of only cut.
+**You describe the video. Studio makes it.** Type a topic, paste a script, drop a
+raw recording, or hand it a URL — Studio writes, voices, illustrates, captions,
+cuts, and reframes a finished video you can publish. Then you edit it like a
+document: change the words, and the video changes with them.
 
-v1 proves the **editing model** — text ⇄ clips + word-level captions. The
-**auto-assembly agent** (script/topic → fully populated sequence) is explicitly
-v2; v1 builds the exact data model the agent will later emit, so v2 is "agent
-emits beats," not "agent invents a format."
+This is the thing creators currently assemble from five tools — a scriptwriter, a
+voice generator, a stock/b-roll library, a captioner, and a timeline editor.
+Studio collapses them into one surface where the **script is the timeline** and
+**AI fills every beat**. That bundle is what justifies a €50/month creator
+subscription: it replaces a stack that costs more than that and takes a day of
+work per video.
 
-## 2. Where it lives
+## Who pays €50/month
 
-A **transcript panel docked inside the existing `TimelineEditor`**
-(`web/src/components/timeline/`), alongside `Inspector` / `Tracks`. No new route,
-no new surface, no new export path. It rides the `TimelineSequence` engine that
-already ships in `main`:
+The solo creator, marketer, educator, and agency operator who ships short-form
+video *on a schedule* — weekly YouTube explainers, daily TikTok/Reels, course
+modules, product clips, ad variants. They don't want a node graph. They want to
+go from idea to publish-ready MP4 in minutes, then tweak by editing text. They'll
+pay because Studio is faster than hiring an editor and cheaper than the tool stack
+they're juggling today.
 
-- the sequence document (persisted, autosaved),
-- AI clip generation (`text-to-audio`, `text-to-video`),
-- clip version + staleness tracking (`dependencyHash`, `ClipVersion`),
-- the WebGPU compositor (`sceneModel.computeActiveLayers`),
-- browser WebCodecs MP4 export.
+## What makes it worth it
 
-v1 adds **one data type, one store, one panel, and a caption layer** — inside a
-component that already exists.
+The moat is that NodeTool already has the hard parts in `main` — a real sequence
+engine, AI clip generation, version/staleness tracking, a WebGPU compositor, and
+in-browser MP4 export. Studio is the **opinionated creator surface** on top of
+that engine. Competitors are either text-editors that bolt on AI (Descript) or AI
+generators with no real editor (the clip-farm tools). Studio is both: generative
+*and* editable, with the timeline as the substrate.
 
-## 3. Concepts
+---
 
-- **Beat** (`transcriptLine`): one line of script. Has text, a start time, and
-  the clip(s) bound to it. The beat is the unit the user edits.
-- **Binding**: a beat owns clips by id. A beat's clips are existing kinds —
-  `text-to-audio` (voiceover), `text-to-video` (b-roll), plus the new caption clip.
-- **Captions**: word-level timing on the existing `subtitle` track, rendered
-  identically in live preview and export.
+## The product
 
-## 4. v1 Scope
+### 1. Idea → finished video
 
-### 4.1 Transcript ⇄ clip binding (core IP)
+Every entry point lands on the same artifact — a transcript-bound sequence:
 
-- **Type** — add to `packages/protocol/src/api-schemas/timeline.ts`:
-  ```ts
-  transcriptLine {
-    id: string;
-    text: string;
-    beatStartMs: number;
-    clipIds: string[];          // clips bound to this beat
-  }
-  ```
-  Persisted inside the existing `timelineDocument`, so autosave and MP4 export
-  inherit it for free.
+- **Topic.** "5-minute explainer on how RAG works." Studio researches, writes a
+  script, picks a voice, generates voiceover, fills b-roll, captions it, and cuts
+  to the beat.
+- **Script.** Paste your own words; Studio voices and illustrates them.
+- **Raw footage / long video.** Upload a recording or talk; Studio transcribes,
+  finds the highlights, and assembles short clips — the "clip machine."
+- **URL / doc.** Turn a blog post, PDF, or product page into a video.
 
-- **Store** — `web/src/stores/timeline/TimelineTranscriptStore.ts`, beside
-  `TimelineStore` / `TimelineGenerationStore`. Holds line↔clipId bindings and the
-  edit ops. Every op is expressed as existing `TimelineStore` mutations:
-  - **Delete line** → remove bound clips, re-flow `startMs`.
-  - **Reorder lines** → recompute `startMs` across bound clips.
-  - **Reword line** → mark bound generated clips `stale` (existing
-    `dependencyHash` machinery) → offer regenerate (existing
-    `TimelineGenerationStore` path).
+The **assembly agent** is the headline. It doesn't just generate — it produces a
+fully bound sequence: beats → voiceover clips, b-roll clips, captions, music bed,
+transitions. Everything it emits is editable by hand afterward.
 
-### 4.2 Word-level captions (visible payoff)
+### 2. Edit like a document
 
-- **Content model** on the existing `subtitle` track: line →
-  `{ word, startMs, endMs }[]`, sourced from the transcription nodes already in
-  the repo.
-- **Render** — wire a caption layer into
-  `web/src/components/timeline/preview/sceneModel.ts`. `computeActiveLayers` is
-  the single source of truth for "what's on screen at *t*," so live preview and
-  the WebCodecs export render captions identically — no extra export work.
-- **Style knobs**: font, size, position, active-word highlight.
+The transcript panel *is* the editor. The script is a list of **beats**; each beat
+owns the clips that realize it.
 
-### 4.3 Transcript panel UI
+- **Delete a line** → its clips disappear and the timeline re-flows.
+- **Reorder lines** → the video reorders.
+- **Reword a line** → the bound voiceover/b-roll goes stale and regenerates.
+- **Click a line** → jumps the playhead and selects its clips.
+- **Reroll a beat** → new voice take, new b-roll, new phrasing — version history
+  keeps the old ones.
 
-- `web/src/components/timeline/TranscriptPanel.tsx`, docked like `Inspector`.
-- Click a line → selects its clips and moves the playhead.
-- Edit text inline.
-- Per-line **regenerate / reroll** (reuses `ClipVersion` history).
-- UI uses `ui_primitives` only (no raw MUI) per repo policy.
+No scrubbing, no razor tool, no keyframe hunting for the 90% case. Power users can
+still drop to the full timeline tracks when they want frame control.
 
-## 5. Out of scope (v2+)
+### 3. Voice, look, and brand
 
-- **Auto-assembly agent** — script/topic → fully populated sequence. v1's binding
-  model is its output target.
-- **STT → transcript ingestion** — the long-video "clip machine."
-- **Auto-reframe 16:9 → 9:16** — sequence `width/height` already support any
-  ratio; only subject-tracking is new.
+A video should sound and look like *you*:
 
-## 6. Milestone checklist
+- **Voices** — pick or clone a voice; consistent narrator across a series.
+- **Captions** — word-level, animated, on-brand. Styles are presets (font, size,
+  position, highlight, color) saved per brand.
+- **B-roll** — generated, stock, or your own library; auto-matched to each beat.
+- **Brand kit** — logo, fonts, colors, intro/outro, lower-thirds applied across
+  every project.
+- **Music & SFX** — auto-selected bed that ducks under voiceover.
 
-- [ ] `transcriptLine` type added to `timeline.ts` schema + persisted in document
-- [ ] `TimelineTranscriptStore` with binding state + delete/reorder/reword ops
-- [ ] Reword → stale → regenerate wired through `TimelineGenerationStore`
-- [ ] Caption content model on `subtitle` track (word-level timing)
-- [ ] Caption layer in `computeActiveLayers` (preview + export parity)
-- [ ] Caption style knobs (font/size/position/highlight)
-- [ ] `TranscriptPanel` docked in `TimelineEditor`, line→clip selection
-- [ ] Inline text edit + per-line regenerate/reroll
-- [ ] `npm run check` green (typecheck + lint + test)
+### 4. Multi-format, multi-platform
 
-## 7. Why this is low-risk
+One source, many outputs — this is where the subscription earns its keep for
+people publishing everywhere:
 
-Every hard part is already in `main`. The product bet — transcript-driven
-editing — gets validated before any agent or generation-quality risk is taken on.
-The agent (the headline feature) lands in v2 on top of a proven, persisted data
-model.
+- **Auto-reframe** 16:9 ↔ 9:16 ↔ 1:1 with subject tracking, so one edit ships to
+  YouTube, TikTok, Reels, and Shorts.
+- **Length variants** — a 60s cut and a 15s teaser from the same sequence.
+- **Localization** — translate the transcript, regenerate voice and captions in
+  another language; the timing re-flows automatically.
+- **Ad variants** — swap the hook line, get N versions for testing.
+
+### 5. Publish & iterate
+
+- Export publish-ready MP4 in any aspect ratio, in-browser.
+- Direct publish / scheduling to platforms.
+- Thumbnail generation from the best frame.
+- Reuse: save a finished video as a **template** — same structure, new script.
+
+---
+
+## How it sits on the engine
+
+Studio is a creator surface over NodeTool's existing infrastructure. The mapping:
+
+| Studio capability        | Engine it rides                                            |
+| ------------------------ | --------------------------------------------------------- |
+| Transcript-bound editing | `TimelineSequence` document (persisted, autosaved)        |
+| Voiceover & b-roll       | AI clip generation (`text-to-audio`, `text-to-video`)     |
+| Reword → regenerate      | `dependencyHash` staleness + `ClipVersion` history        |
+| Captions & overlays      | `sceneModel.computeActiveLayers` (preview/export parity)  |
+| Auto-reframe & variants  | sequence `width/height` (any ratio) + subject tracking    |
+| Export                   | in-browser WebCodecs MP4                                   |
+| Assembly agent           | NodeTool agent system (planner → steps → tools)           |
+
+The agent's output target is the transcript-bound sequence the manual editor
+produces — generation and hand-editing share one data model, so anything the
+agent makes, you can refine, and anything you build, the agent can extend.
+
+---
+
+## What "done" feels like
+
+A creator opens Studio, types *"weekly update on our launch, punchy, 45 seconds,
+vertical."* Ninety seconds later there's a captioned, voiced, b-rolled vertical
+video on screen. They delete one sentence, reword the hook, swap the voice to
+their clone, hit a brand preset, and export — then generate the 16:9 cut for
+YouTube from the same project. Start to publish: under five minutes. That's the
+€50/month.
