@@ -18,6 +18,7 @@ import {
 } from "../ui_primitives";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import SaveIcon from "@mui/icons-material/Save";
 
 import { TopBarPrompt } from "./TopBarPrompt";
 
@@ -58,6 +59,10 @@ export interface TopBarProps {
   onExportVideo?: () => void;
   /** True while an export render is in progress. */
   isExporting?: boolean;
+  /** Called when the user clicks Save (force-persists the current document) */
+  onSave?: () => void;
+  /** True while a manual save is in flight. */
+  isSaving?: boolean;
   /** Optional slot for an activity indicator (NOD-311) */
   activitySlot?: React.ReactNode;
 }
@@ -69,6 +74,8 @@ export const TopBar: React.FC<TopBarProps> = memo(
     onProjectNameClick,
     onExportVideo,
     isExporting = false,
+    onSave,
+    isSaving = false,
     activitySlot
   }) => {
     const theme = useTheme();
@@ -114,6 +121,18 @@ export const TopBar: React.FC<TopBarProps> = memo(
         <FlexRow gap={1} align="center">
           {/* Activity indicator slot — filled by NOD-311 */}
           {activitySlot}
+
+          {onSave && (
+            <EditorButton
+              variant="outlined"
+              onClick={onSave}
+              disabled={isSaving}
+              startIcon={<SaveIcon />}
+              size="small"
+            >
+              {isSaving ? "Saving…" : "Save"}
+            </EditorButton>
+          )}
 
           {onExportVideo && (
             <EditorButton
