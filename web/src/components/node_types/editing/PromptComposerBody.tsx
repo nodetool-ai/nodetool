@@ -206,6 +206,10 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
     () => new Set(variableNames),
     [variableNames]
   );
+  const promptComposerContextValue = useMemo(
+    () => ({ knownVariables }),
+    [knownVariables]
+  );
 
   const { handleAddProperty, handleDeleteProperty, handleUpdatePropertyName } =
     useDynamicProperty(id, dynamicProperties);
@@ -284,7 +288,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   const promptProperties = useMemo<Property[]>(() => [], []);
 
   return (
-    <PromptComposerContext.Provider value={{ knownVariables }}>
+    <PromptComposerContext.Provider value={promptComposerContextValue}>
       <div css={cssStyles} className="prompt-composer-body node-drag-handle">
         <LexicalComposer initialConfig={initialConfig}>
           <div className="composer-area nodrag nowheel">

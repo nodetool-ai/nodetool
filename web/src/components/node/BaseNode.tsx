@@ -75,6 +75,7 @@ const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
 /** Shared floor for initial layout and user resizing. */
 const MIN_NODE_HEIGHT = 150;
+const SPECIAL_NAMESPACES = ["nodetool.constant", "nodetool.input", "nodetool.output"];
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
@@ -411,17 +412,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       : hexToRgba("#ccc", GROUP_COLOR_OPACITY)
     : null;
 
-  const specialNamespaces = useMemo(
-    () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
-    []
-  );
-
   const meta = useMemo(() => {
     return {
       nodeNamespace: metadata.namespace || "",
-      showFooter: !specialNamespaces.includes(metadata.namespace || "")
+      showFooter: !SPECIAL_NAMESPACES.includes(metadata.namespace || "")
     };
-  }, [metadata.namespace, specialNamespaces]);
+  }, [metadata.namespace]);
 
   const displayTitle = useMemo(
     () => resolveCodeNodeTitle(type, data.title, metadata.title),
