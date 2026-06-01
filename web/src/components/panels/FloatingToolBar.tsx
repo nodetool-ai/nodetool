@@ -24,7 +24,6 @@ import { useShallow } from "zustand/react/shallow";
 
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useComfyUIStore } from "../../stores/ComfyUIStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -262,27 +261,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const isMiniMapVisible = useMiniMapStore((state) => state.visible);
 
   const workflow = useNodes((state) => state.workflow);
-  const isComfyWorkflow = useNodes((state) => state.isComfyWorkflow());
-  const { comfyIsConnected, comfyIsConnecting, comfyConnectionError } =
-    useComfyUIStore(
-      useShallow((state) => ({
-        comfyIsConnected: state.isConnected,
-        comfyIsConnecting: state.isConnecting,
-        comfyConnectionError: state.connectionError
-      }))
-    );
-
-  // Auto-connect to ComfyUI when a comfy workflow is loaded (once per workflow).
-  useEffect(() => {
-    if (
-      isComfyWorkflow &&
-      !comfyIsConnected &&
-      !comfyIsConnecting &&
-      !comfyConnectionError
-    ) {
-      useComfyUIStore.getState().connect().catch(() => {});
-    }
-  }, [isComfyWorkflow, comfyIsConnected, comfyIsConnecting, comfyConnectionError]);
 
   const isRunningish = isWorkflowRunning || isPaused || isSuspended;
 
@@ -475,7 +453,6 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       <Box
         css={containerStyles(theme)}
         className="floating-toolbar"
-        data-comfy-workflow={isComfyWorkflow ? "true" : "false"}
         style={toolbarPosition}
       >
         {conversationOpen && (

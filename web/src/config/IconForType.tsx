@@ -41,8 +41,6 @@ import np_array from "../icons/data_types/nodetool/np_array.svg?react";
 import datetime from "../icons/data_types/nodetool/datetime.svg?react";
 import date from "../icons/data_types/nodetool/date.svg?react";
 
-import { comfyIconMap } from "./comfy_data_types";
-
 // Mapping of icon names to their respective imports
 const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   any,
@@ -94,8 +92,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   np_array,
   json: dict,
   document: documentIcon,
-  model_3d,
-  ...comfyIconMap
+  model_3d
 };
 
 type IconProps = React.SVGProps<SVGSVGElement> & {

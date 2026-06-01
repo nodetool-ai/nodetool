@@ -135,13 +135,6 @@ s(
   "Maximum number of workflow runs a single client can execute at once (default: 4). Additional runs are queued and start automatically as running ones finish, preventing provider/API overload."
 );
 
-// ComfyUI
-s(
-  "COMFYUI_ADDR",
-  "ComfyUI",
-  "ComfyUI server address for API/WebSocket access (e.g., 127.0.0.1:8188)."
-);
-
 // Provider endpoints
 s(
   "VLLM_BASE_URL",

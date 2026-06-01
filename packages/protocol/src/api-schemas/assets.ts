@@ -19,7 +19,8 @@ export const assetResponse = z.object({
   thumb_url: z.string().nullable(),
   duration: z.number().nullable(),
   node_id: z.string().nullable(),
-  job_id: z.string().nullable()
+  job_id: z.string().nullable(),
+  timeline_id: z.string().nullable().optional()
 });
 export type AssetResponse = z.infer<typeof assetResponse>;
 
@@ -32,6 +33,7 @@ export const listInput = z.object({
   workflow_id: z.string().optional(),
   node_id: z.string().optional(),
   job_id: z.string().optional(),
+  timeline_id: z.string().optional(),
   page_size: z.number().int().min(1).max(10000).default(10000)
 });
 export type ListInput = z.infer<typeof listInput>;
@@ -58,6 +60,7 @@ export const createInput = z.object({
   workflow_id: z.string().nullable().optional(),
   node_id: z.string().nullable().optional(),
   job_id: z.string().nullable().optional(),
+  timeline_id: z.string().nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   sketch_document_id: z.string().nullable().optional(),
   size: z.number().nullable().optional()

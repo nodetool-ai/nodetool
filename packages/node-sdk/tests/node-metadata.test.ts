@@ -643,7 +643,6 @@ describe("getNodeMetadata – decorator-based properties", () => {
       ],
       supports_dynamic_inputs: true,
       is_streaming_output: true,
-      expose_as_tool: true,
       supports_dynamic_outputs: true,
       recommended_models: [{ id: "model-1" }],
       model_packs: [{ id: "pack-1" }]

@@ -26,6 +26,7 @@ export class Asset extends DBModel {
   declare workflow_id: string | null;
   declare node_id: string | null;
   declare job_id: string | null;
+  declare timeline_id: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -44,6 +45,7 @@ export class Asset extends DBModel {
     this.workflow_id ??= null;
     this.node_id ??= null;
     this.job_id ??= null;
+    this.timeline_id ??= null;
     this.created_at ??= now;
     this.updated_at ??= now;
   }
@@ -86,6 +88,7 @@ export class Asset extends DBModel {
       workflowId?: string;
       nodeId?: string;
       jobId?: string;
+      timelineId?: string;
       limit?: number;
     } = {}
   ): Promise<[Asset[], string]> {
@@ -95,6 +98,7 @@ export class Asset extends DBModel {
       workflowId,
       nodeId,
       jobId,
+      timelineId,
       limit = 50
     } = opts;
     const db = getDb();
@@ -118,6 +122,9 @@ export class Asset extends DBModel {
     }
     if (jobId) {
       conditions.push(eq(assets.job_id, jobId));
+    }
+    if (timelineId) {
+      conditions.push(eq(assets.timeline_id, timelineId));
     }
 
     const rows = await db

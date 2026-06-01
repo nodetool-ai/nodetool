@@ -157,6 +157,7 @@ export const trpcClient = {
   },
   // Timeline namespace
   timeline: {
+    create: { mutate: jest.fn(async () => ({ id: "mock-seq", name: "mock" })) },
     update: { mutate: jest.fn(async () => ({ ok: true })) },
     clips: {
       create: { mutate: mockTimelineClipsCreate }

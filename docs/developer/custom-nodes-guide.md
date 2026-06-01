@@ -254,7 +254,6 @@ export class AddOffsetNode extends BaseNode {
 | `isStreamingOutput`    | `boolean`                         | Marks the node as producing a stream — see [§11](#11-streaming-nodes-genprocess). |
 | `isStreamingInput`     | `boolean`                         | Marks the node as consuming a stream via the `run(...)` hook. |
 | `isDynamic`            | `boolean`                         | Allows users to add/remove handles in the UI; pair with `setDynamic` / `getDynamic`. |
-| `exposeAsTool`         | `boolean`                         | Surface the node to agents as a callable tool. |
 | `outputCorrelation`    | `{ [output]: OutputCorrelation }` | Controls per-iteration / per-chunk fan-out semantics. |
 
 ### The `process` method

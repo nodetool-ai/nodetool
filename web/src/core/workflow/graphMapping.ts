@@ -254,8 +254,8 @@ export const sanitizeGraph = (
         return false;
       }
 
-      // Keep edges when metadata is missing (e.g. ComfyUI not running) —
-      // the nodes are still on the canvas as placeholders.
+      // Keep edges when metadata is missing — the nodes are still on the
+      // canvas as placeholders.
       if (!sourceMetadata || !targetMetadata) {
         return true;
       }

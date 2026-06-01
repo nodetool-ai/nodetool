@@ -26,7 +26,6 @@ import mistralColorIcon from "@lobehub/icons-static-svg/icons/mistral-color.svg"
 import groqIcon from "@lobehub/icons-static-svg/icons/groq.svg";
 import deepseekColorIcon from "@lobehub/icons-static-svg/icons/deepseek-color.svg";
 import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
-import comfyuiColorIcon from "@lobehub/icons-static-svg/icons/comfyui-color.svg";
 
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
@@ -56,8 +55,6 @@ const NAMESPACE_ICONS: Record<string, IconEntry> = {
   search: { kind: "mui", Component: SearchIcon },
   transformers: { kind: "mui", Component: AutoAwesomeIcon },
   vector: { kind: "mui", Component: ScatterPlotIcon },
-  comfy: { kind: "svg", src: comfyuiColorIcon, preserveInDark: true },
-  comfyui: { kind: "svg", src: comfyuiColorIcon, preserveInDark: true },
 
   // Providers
   anthropic: { kind: "svg", src: anthropicIcon },

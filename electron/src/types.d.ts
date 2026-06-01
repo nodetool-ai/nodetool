@@ -346,7 +346,6 @@ export interface PackageNode {
   recommended_models?: unknown[];
   basic_fields?: string[];
   is_dynamic?: boolean;
-  expose_as_tool?: boolean;
   supports_dynamic_outputs?: boolean;
   // Augmented fields when fetched from registry
   package?: string; // repo_id like "owner/project"

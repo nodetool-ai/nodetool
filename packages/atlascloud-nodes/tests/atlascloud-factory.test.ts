@@ -151,14 +151,12 @@ describe("createAtlasNodeClass.process", () => {
       title: string;
       requiredSettings: string[];
       autoSaveAsset: boolean;
-      exposeAsTool: boolean;
       metadataOutputTypes: Record<string, string>;
     };
     expect(Cls.nodeType).toBe("atlascloud.image.TestNode");
     expect(Cls.title).toBe("Test");
     expect(Cls.requiredSettings).toEqual(["ATLASCLOUD_API_KEY"]);
     expect(Cls.autoSaveAsset).toBe(true);
-    expect(Cls.exposeAsTool).toBe(true);
     expect(Cls.metadataOutputTypes).toEqual({ output: "image" });
   });
 

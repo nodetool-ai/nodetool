@@ -223,10 +223,6 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
       configurable: true
     });
   }
-  Object.defineProperty(TopazNodeClass, "exposeAsTool", {
-    value: true,
-    configurable: true
-  });
   Object.defineProperty(TopazNodeClass, "autoSaveAsset", {
     value: true,
     configurable: true

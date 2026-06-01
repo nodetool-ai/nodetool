@@ -55,7 +55,6 @@ export class PptxExtractTextLibNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pptx"];
   static readonly metadataOutputTypes = { output: "str" };
-  static readonly exposeAsTool = true;
 
   @prop(PPTX_INPUT)
   declare pptx: any;
@@ -83,7 +82,6 @@ export class PptxExtractSlidesLibNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pptx"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(PPTX_INPUT)
   declare pptx: any;

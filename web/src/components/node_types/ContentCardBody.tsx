@@ -569,6 +569,8 @@ const PreviewArea: React.FC<{
   }
 };
 
+const MEDIA_VARIANTS: ContentCardVariant[] = ["image", "image_mask", "video", "audio", "model_3d"];
+
 const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   id,
   nodeType,
@@ -611,7 +613,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     return assetsToPreviewValue(lastJobAssets);
   }, [result, liveResolvedResult, lastJobAssets]);
 
-  const MEDIA_VARIANTS = ["image", "image_mask", "video", "audio", "model_3d"];
   const isMediaVariant = MEDIA_VARIANTS.includes(variant);
 
   const isDynamic = !!nodeMetadata.supports_dynamic_inputs;
@@ -675,6 +676,11 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     });
   }, [data.dynamic_properties, id, updateNodeData]);
 
+  const renderSingle = useCallback(
+    (value: unknown) => <PreviewArea variant={variant} value={value} />,
+    [variant]
+  );
+
   return (
     <div
       css={cssStyles}
@@ -687,9 +693,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             workflowId={workflowId}
             nodeId={id}
             liveResult={liveResolvedResult}
-            renderSingle={(value) => (
-              <PreviewArea variant={variant} value={value} />
-            )}
+            renderSingle={renderSingle}
           />
         ) : (
           <PreviewArea variant={variant} value={fallbackPreviewValue} />

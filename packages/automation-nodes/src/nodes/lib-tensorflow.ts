@@ -189,7 +189,6 @@ export class TensorflowMobileNetClassifyNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "list" };
-  static readonly exposeAsTool = true;
 
   @prop(IMAGE_INPUT)
   declare image: any;
@@ -243,7 +242,6 @@ export class TensorflowMobileNetEmbeddingNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "list" };
-  static readonly exposeAsTool = true;
 
   @prop(IMAGE_INPUT)
   declare image: any;
@@ -294,7 +292,6 @@ export class TensorflowCocoSsdDetectNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "list" };
-  static readonly exposeAsTool = true;
 
   @prop(IMAGE_INPUT)
   declare image: any;
@@ -371,7 +368,6 @@ export class TensorflowQnaNode extends BaseNode {
   static readonly inlineFields = ["question", "passage"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = { output: "list" };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",

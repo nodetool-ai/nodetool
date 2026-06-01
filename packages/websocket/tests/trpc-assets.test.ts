@@ -144,6 +144,17 @@ describe("assets router", () => {
       );
     });
 
+    it("filters by timeline_id without forcing the home folder", async () => {
+      (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[], ""]);
+
+      const caller = createCaller(makeCtx());
+      await caller.assets.list({ timeline_id: "seq-1" });
+      expect(Asset.paginate).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({ parentId: undefined, timelineId: "seq-1" })
+      );
+    });
+
     it("maps assets through toAssetResponse with get_url + thumb_url", async () => {
       const a = makeAsset({
         id: "img-1",
@@ -242,6 +253,7 @@ describe("assets router", () => {
         workflow_id: null,
         node_id: null,
         job_id: null,
+        timeline_id: null,
         metadata: null,
         sketch_document_id: null,
         size: null
@@ -272,6 +284,7 @@ describe("assets router", () => {
         workflow_id: "wf-1",
         node_id: "node-1",
         job_id: "job-1",
+        timeline_id: null,
         metadata: { a: 1 },
         sketch_document_id: null,
         size: 42

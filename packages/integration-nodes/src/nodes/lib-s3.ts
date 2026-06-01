@@ -43,7 +43,6 @@ export class S3ListBucketsLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY"
@@ -86,7 +85,6 @@ export class S3ListObjectsLibNode extends BaseNode {
     object: "dict",
     objects: "list"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY"
@@ -205,7 +203,6 @@ export class S3GetObjectLibNode extends BaseNode {
     content_type: "str",
     size: "int"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY"
@@ -272,7 +269,6 @@ export class S3PutObjectLibNode extends BaseNode {
     output: "bool",
     etag: "str"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY"
@@ -359,7 +355,6 @@ export class S3DeleteObjectLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY"
@@ -420,7 +415,6 @@ export class S3CopyObjectLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY"
@@ -505,7 +499,6 @@ export class S3GetPresignedUrlLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY"

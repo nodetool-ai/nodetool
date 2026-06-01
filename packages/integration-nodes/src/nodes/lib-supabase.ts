@@ -86,7 +86,6 @@ export class SelectLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -194,7 +193,6 @@ export class InsertLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -258,7 +256,6 @@ export class UpdateLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -331,7 +328,6 @@ export class DeleteLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -383,7 +379,6 @@ export class UpsertLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -448,7 +443,6 @@ export class RPCLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "any"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",

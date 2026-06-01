@@ -1700,7 +1700,6 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly metadataOutputTypes = {
     text: "str"
   };
-  static readonly exposeAsTool = true;
   static readonly inputFields: string[] = ["audio"];
 
 
@@ -1790,7 +1789,6 @@ export class EmbeddingTextNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields  = ["input"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "embedding_model",

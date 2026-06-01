@@ -58,20 +58,6 @@ export const getEffectiveExposedPlacement = (
   return getDefaultExposedPlacement(metadata, propertyName);
 };
 
-/** @deprecated Use getEffectiveExposedPlacement with metadata. */
-export const getExposedInputPlacement = (
-  data: NodeData,
-  propertyName: string
-): ExposedInputPlacement | null => {
-  if ((data.exposedInputs ?? []).includes(propertyName)) {
-    return "handle";
-  }
-  if ((data.exposedInputsLabeled ?? []).includes(propertyName)) {
-    return "labeled";
-  }
-  return null;
-};
-
 const addToList = (
   current: string[] | undefined,
   propertyName: string
@@ -152,11 +138,6 @@ export const addExposedInput = (
   current: string[] | undefined,
   propertyName: string
 ): string[] => addToList(current, propertyName);
-
-export const removeExposedInput = (
-  current: string[] | undefined,
-  propertyName: string
-): string[] => removeFromList(current, propertyName);
 
 type ExposedInputListsPatch = {
   exposedInputs?: string[];

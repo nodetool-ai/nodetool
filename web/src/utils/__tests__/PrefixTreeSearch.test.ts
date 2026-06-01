@@ -30,7 +30,6 @@ describe("PrefixTreeSearch", () => {
     layout: "default",
     recommended_models: [],
     supports_dynamic_inputs: false,
-    expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
     required_settings: []

@@ -72,7 +72,6 @@ export type NodeClass = {
   supportsDynamicInputs: boolean;
   isControlled: boolean;
   isJoinNode: boolean;
-  exposeAsTool?: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
   modelPacks?: unknown[];
@@ -189,7 +188,6 @@ export abstract class BaseNode {
    * docs/correlation-design.md §7.
    */
   static readonly isJoinNode: boolean = false;
-  static readonly exposeAsTool: boolean | undefined = undefined;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
   static readonly modelPacks: unknown[] | undefined = undefined;

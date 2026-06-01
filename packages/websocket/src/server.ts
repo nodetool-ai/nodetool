@@ -741,7 +741,6 @@ await app.register(websocketPlugin, {
         // the protocol's `supports_dynamic_inputs`.
         supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
         is_streaming_output: nodeMeta.is_streaming_output ?? false,
-        expose_as_tool: false,
         supports_dynamic_outputs: false
       });
     }
@@ -1006,7 +1005,6 @@ if (pythonBridge.hasPython()) {
           // the protocol's `supports_dynamic_inputs`.
           supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
           is_streaming_output: nodeMeta.is_streaming_output ?? false,
-          expose_as_tool: false,
           supports_dynamic_outputs: false
         });
       }

@@ -17,7 +17,7 @@ export type SearchResultGroup = {
   nodes: NodeMetadata[];
 };
 
-export interface ComputedSearchResults {
+interface ComputedSearchResults {
   sortedResults: NodeMetadata[];
   groupedResults: SearchResultGroup[];
   allMatches: NodeMetadata[];
