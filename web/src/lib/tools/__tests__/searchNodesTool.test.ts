@@ -10,7 +10,6 @@ describe("ui_search_nodes tool", () => {
       title: "String",
       namespace: "nodetool.constant",
       description: "Long description that should not be included.",
-      expose_as_tool: false,
       properties: [
         {
           name: "value",

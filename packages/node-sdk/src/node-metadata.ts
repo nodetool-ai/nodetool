@@ -275,7 +275,6 @@ export function getNodeMetadata(
     is_controlled: nodeClass.isControlled || false,
     is_join_node: nodeClass.isJoinNode || undefined,
     supports_dynamic_inputs: nodeClass.supportsDynamicInputs || false,
-    expose_as_tool: nodeClass.exposeAsTool,
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,
     model_packs: nodeClass.modelPacks,

@@ -14,7 +14,6 @@ export class SentimentAnalysisLibNode extends BaseNode {
     positive_words: "list",
     negative_words: "list"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -87,7 +86,6 @@ export class TokenizeLibNode extends BaseNode {
     output: "list",
     count: "int"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -139,7 +137,6 @@ export class StemLibNode extends BaseNode {
     output: "str",
     tokens: "list"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -192,7 +189,6 @@ export class TfIdfLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "list",
@@ -244,7 +240,6 @@ export class ClassifyTextLibNode extends BaseNode {
     output: "str",
     classifications: "list"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -314,7 +309,6 @@ export class ExtractEntitiesLibNode extends BaseNode {
     nouns: "list",
     verbs: "list"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -370,7 +364,6 @@ export class PhoneticMatchLibNode extends BaseNode {
     output: "str",
     tokens: "list"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",

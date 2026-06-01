@@ -115,7 +115,6 @@ export class PdfExtractTextNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "str" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -168,7 +167,6 @@ export class PdfExtractMarkdownNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "str" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -372,7 +370,6 @@ export class PdfExtractTablesNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -538,7 +535,6 @@ export class PdfExtractTextBlocksNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -641,7 +637,6 @@ export class PdfExtractStyledTextNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -1027,7 +1022,6 @@ export class PdfSearchTextNode extends BaseNode {
   static readonly inlineFields = ["phrase"];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -1126,7 +1120,6 @@ export class PdfExtractOcrNode extends BaseNode {
   static readonly inlineFields = ["ocr_language"];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "str" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;

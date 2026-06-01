@@ -98,7 +98,6 @@ export interface NodeMetadata {
   is_controlled?: boolean;
   /** §7 — Zip/Cross nodes opt out of the incomparable-scope check. */
   is_join_node?: boolean;
-  expose_as_tool?: boolean;
   supports_dynamic_outputs?: boolean;
   auto_save_asset?: boolean;
   model_packs?: unknown[];

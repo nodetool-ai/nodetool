@@ -240,10 +240,6 @@ describe("PdfExtractMarkdown regression", () => {
     expect(PdfExtractMarkdownNode.nodeType).toBe("lib.pdf.ExtractMarkdown");
   });
 
-  it("is exposed as a tool", () => {
-    expect(PdfExtractMarkdownNode.exposeAsTool).toBe(true);
-  });
-
   it("description mentions headings and structure", () => {
     expect(PdfExtractMarkdownNode.description).toMatch(/headings|markdown|structure/i);
   });

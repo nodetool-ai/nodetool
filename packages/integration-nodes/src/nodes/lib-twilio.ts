@@ -25,7 +25,6 @@ export class TwilioSendSMSLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "TWILIO_ACCOUNT_SID",
     "TWILIO_AUTH_TOKEN"
@@ -143,7 +142,6 @@ export class TwilioSendWhatsAppLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "TWILIO_ACCOUNT_SID",
     "TWILIO_AUTH_TOKEN"
@@ -271,7 +269,6 @@ export class TwilioGetMessagesLibNode extends BaseNode {
     message: "dict",
     messages: "list"
   };
-  static readonly exposeAsTool = true;
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     message: { kind: "iteration", source: "__execution__", group: "items" },
@@ -432,7 +429,6 @@ export class TwilioLookupLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict"
   };
-  static readonly exposeAsTool = true;
   static readonly requiredSettings = [
     "TWILIO_ACCOUNT_SID",
     "TWILIO_AUTH_TOKEN"

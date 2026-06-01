@@ -54,7 +54,6 @@ export class ChatComplete extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt", "system_prompt"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "enum",
@@ -153,7 +152,6 @@ export class CodeComplete extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields: string[] = ["prompt"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -243,7 +241,6 @@ export class Embedding extends BaseNode {
   static readonly inlineFields = ["input"];
   static readonly inputFields: string[] = [];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -326,7 +323,6 @@ export class ImageToText extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "image",
@@ -431,7 +427,6 @@ export class OCR extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["image"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "image",

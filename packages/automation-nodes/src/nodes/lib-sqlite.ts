@@ -69,7 +69,6 @@ export class CreateTableLibNode extends BaseNode {
     table_name: "str",
     columns: "record_type"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -182,7 +181,6 @@ export class InsertLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -249,7 +247,6 @@ export class QueryLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -360,7 +357,6 @@ export class UpdateLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -440,7 +436,6 @@ export class DeleteLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -507,7 +502,6 @@ export class ExecuteSQLLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -582,7 +576,6 @@ export class GetDatabasePathLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",

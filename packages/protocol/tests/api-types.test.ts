@@ -510,7 +510,6 @@ describe("NodeMetadata", () => {
       required_settings: [],
       supports_dynamic_inputs: false,
       is_streaming_output: false,
-      expose_as_tool: false,
       supports_dynamic_outputs: false
     };
     expect(meta.node_type).toBe("math.Add");

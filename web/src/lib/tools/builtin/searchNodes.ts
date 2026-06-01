@@ -80,7 +80,6 @@ FrontendToolRegistry.register({
         node_type: node.node_type,
         title: node.title,
         namespace: node.namespace,
-        expose_as_tool: node.expose_as_tool ?? false,
       };
 
       if (includeProperties) {
