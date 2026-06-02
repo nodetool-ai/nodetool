@@ -202,6 +202,7 @@ export const TranscriptPanel: React.FC = memo(() => {
 
   return (
     <Panel
+      data-testid="transcript-panel"
       title="Transcript"
       subtitle="Write a script — each line becomes a voiced, captioned beat."
       headerAction={

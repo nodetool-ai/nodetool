@@ -169,6 +169,49 @@ describe("timeline router", () => {
       expect(TS.update).toHaveBeenCalled();
     });
 
+    it("persists the transcript in the merged document", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      const transcript = [
+        { id: "l1", text: "Hello world.", beatStartMs: 0, clipIds: ["vo-1"] }
+      ];
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [], transcript }
+      });
+      const savedDocument = JSON.parse(
+        TS.update.mock.calls[0][1].document as string
+      );
+      expect(savedDocument.transcript).toEqual(transcript);
+    });
+
+    it("preserves an existing transcript when the patch omits it", async () => {
+      const transcript = [
+        { id: "l1", text: "Kept.", beatStartMs: 0, clipIds: [] }
+      ];
+      TS.findById.mockResolvedValue(
+        makeSeq({
+          document: JSON.stringify({
+            tracks: [],
+            clips: [],
+            markers: [],
+            transcript
+          })
+        })
+      );
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [] }
+      });
+      const savedDocument = JSON.parse(
+        TS.update.mock.calls[0][1].document as string
+      );
+      expect(savedDocument.transcript).toEqual(transcript);
+    });
+
     it("rejects stale baseUpdatedAt", async () => {
       TS.findById.mockResolvedValue(
         makeSeq({ updated_at: "2026-01-02T00:00:00Z" })
