@@ -296,7 +296,10 @@ export const timelineClip = z
     transform: clipTransform.optional(),
     borderRadius: z.number().optional(),
     effects: z.array(clipEffect).optional(),
-    transitionIn: clipTransition.optional()
+    transitionIn: clipTransition.optional(),
+    /** Word-level caption data; present only on caption clips. Without this
+     * field Zod strips it on every PATCH, so autosave erases captions. */
+    caption: clipCaption.optional()
   });
 export type TimelineClip = z.infer<typeof timelineClip>;
 

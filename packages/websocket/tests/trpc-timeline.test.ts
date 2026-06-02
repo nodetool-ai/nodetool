@@ -212,6 +212,44 @@ describe("timeline router", () => {
       expect(savedDocument.transcript).toEqual(transcript);
     });
 
+    it("persists a clip's word-level caption through the round-trip", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      const caption = {
+        words: [
+          { word: "Hello", startMs: 0, endMs: 400 },
+          { word: "world", startMs: 400, endMs: 900 }
+        ]
+      };
+      await caller.timeline.update({
+        id: "seq-1",
+        document: {
+          tracks: [],
+          clips: [
+            {
+              id: "cap-1",
+              trackId: "subs",
+              name: "Caption",
+              startMs: 0,
+              durationMs: 900,
+              mediaType: "video",
+              sourceType: "generated",
+              status: "generated",
+              locked: false,
+              versions: [],
+              caption
+            }
+          ],
+          markers: []
+        }
+      });
+      const savedDocument = JSON.parse(
+        TS.update.mock.calls[0][1].document as string
+      );
+      expect(savedDocument.clips[0].caption).toEqual(caption);
+    });
+
     it("rejects stale baseUpdatedAt", async () => {
       TS.findById.mockResolvedValue(
         makeSeq({ updated_at: "2026-01-02T00:00:00Z" })
