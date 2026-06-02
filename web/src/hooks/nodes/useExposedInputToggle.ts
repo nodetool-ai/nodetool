@@ -9,7 +9,18 @@ import {
   type ExposedInputPlacement
 } from "../../utils/exposedInputs";
 
-export function useExposedInputToggle() {
+export interface UseExposedInputToggleResult {
+  canToggleExposed: (nodeId: string, propertyName: string) => boolean;
+  getPlacement: (nodeId: string, propertyName: string) => ExposedInputPlacement | null;
+  isPropertyExposed: (nodeId: string, propertyName: string) => boolean;
+  isPropertyExposedLabeled: (nodeId: string, propertyName: string) => boolean;
+  setExposedInputPlacement: (nodeIds: string | readonly string[], propertyName: string, placement: ExposedInputPlacement | null) => void;
+  cycleExposedInputPlacement: (nodeIds: string | readonly string[], propertyName: string) => void;
+  toggleExposedInput: (nodeIds: string | readonly string[], propertyName: string) => void;
+  toggleExposedInputLabeled: (nodeIds: string | readonly string[], propertyName: string) => void;
+}
+
+export function useExposedInputToggle(): UseExposedInputToggleResult {
   const findNode = useNodes((state) => state.findNode);
   const edges = useNodes((state) => state.edges);
   const deleteEdges = useNodes((state) => state.deleteEdges);

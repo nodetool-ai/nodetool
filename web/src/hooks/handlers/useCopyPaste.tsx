@@ -22,7 +22,13 @@ const isValidNode = (node: unknown): node is Node<NodeData> =>
 const isValidEdge = (edge: unknown): edge is Edge =>
   !!edge && typeof edge === "object" && "source" in edge && "target" in edge && typeof (edge as Edge).source === "string" && typeof (edge as Edge).target === "string";
 
-export const useCopyPaste = () => {
+export interface UseCopyPasteResult {
+  handleCopy: (nodeId?: string) => Promise<{ nodesToCopy: Node<NodeData>[]; connectedEdges: Edge[] }>;
+  handleCut: (nodeId?: string) => Promise<void>;
+  handlePaste: () => Promise<void>;
+}
+
+export const useCopyPaste = (): UseCopyPasteResult => {
   const reactFlow = useReactFlow();
   // Use the live store ref so all callbacks always read the latest state,
   // avoiding stale-closure bugs when the user acts faster than React's
