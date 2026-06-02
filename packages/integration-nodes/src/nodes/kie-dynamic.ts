@@ -600,8 +600,8 @@ function fieldNameForParam(param: KieParamInfo): string {
 function mapParamType(param: KieParamInfo): TypeMetadata {
   if (param.isVideoClipList) {
     return {
-      type: "video_clip_list",
-      type_args: [],
+      type: "list",
+      type_args: [{ type: "video", type_args: [] }],
       ...(param.minVal !== undefined ? { min: param.minVal } : {}),
       ...(param.maxVal !== undefined ? { max: param.maxVal } : {})
     };

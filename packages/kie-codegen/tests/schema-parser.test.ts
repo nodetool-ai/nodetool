@@ -372,7 +372,7 @@ describe("KieSchemaParser", () => {
       fields: expect.arrayContaining([
         expect.objectContaining({ name: "audio_ids", type: "list[str]" }),
         expect.objectContaining({ name: "character_ids", type: "list[str]" }),
-        expect.objectContaining({ name: "video_list", type: "video_clip_list" })
+        expect.objectContaining({ name: "video_list", type: "list[video]" })
       ]),
       uploads: expect.arrayContaining([
         expect.objectContaining({

@@ -16,8 +16,7 @@ export interface FieldDef {
     | "list[str]"
     | "list[image]"
     | "list[video]"
-    | "list[audio]"
-    | "video_clip_list";
+    | "list[audio]";
   default?: unknown;
   title?: string;
   description?: string;
