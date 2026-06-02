@@ -3,7 +3,7 @@ import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 
-export const useRemoveFromGroup = () => {
+export const useRemoveFromGroup = (): ((nodesToRemove?: Node<NodeData>[]) => void) => {
   const { updateNode, findNode } = useNodes((state) => ({
     updateNode: state.updateNode,
     findNode: state.findNode
