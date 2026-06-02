@@ -37,8 +37,46 @@ export interface TimelineSequence {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  /**
+   * Studio transcript lines. Optional so sequences written before Studio
+   * existed load with no transcript. Persisted inside the document blob so
+   * autosave and export inherit it for free.
+   */
+  transcript?: TranscriptLine[];
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * One word of a caption, timed relative to the *clip start* (beat-local) so
+ * re-flowing a beat never requires rewriting word timings.
+ */
+export interface CaptionWord {
+  word: string;
+  startMs: number;
+  endMs: number;
+}
+
+/**
+ * Word-level caption data carried by a caption clip, sourced from the
+ * transcription of the beat's voiceover. A single fixed render style is used
+ * for the MVP, so no style fields are persisted yet.
+ */
+export interface ClipCaption {
+  words: CaptionWord[];
+}
+
+/**
+ * One line of the Studio transcript. Each line owns the clips generated from
+ * it (`clipIds` — typically a voiceover audio clip and a caption clip).
+ * `beatStartMs` is the line's position on the timeline, recomputed whenever
+ * beats are added, removed, reordered, or re-flowed.
+ */
+export interface TranscriptLine {
+  id: string;
+  text: string;
+  beatStartMs: number;
+  clipIds: string[];
 }
 
 export interface TimelineTrack {
@@ -288,6 +326,12 @@ export interface TimelineClip {
   fadeInMs?: number;
   /** Duration of the fade-out effect in milliseconds. */
   fadeOutMs?: number;
+  /**
+   * Word-level caption data. Present only on caption clips (which live on a
+   * `subtitle` track). When set, the clip renders as a caption layer in both
+   * the live preview and the export instead of drawing a media asset.
+   */
+  caption?: ClipCaption;
   /** 2D placement on the preview canvas. Default: identity (centered, contain-fit). */
   transform?: ClipTransform;
   /** Rounded-corner radius in source pixels. 0 = sharp corners. */

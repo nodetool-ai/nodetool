@@ -99,9 +99,43 @@ export function clipSourceTimeSec(
   return Math.max(0, intoClipTimelineSec * rate + (clip.inPointMs ?? 0) / 1000);
 }
 
+/** One word of a caption resolved at a point in time. */
+export interface ResolvedCaptionWord {
+  text: string;
+  /** True while the playhead is inside this word's spoken interval. */
+  active: boolean;
+}
+
+/** A caption's full per-frame state: every word of the line plus which one is
+ * currently spoken. Rasterised identically by the live preview and the export
+ * (see `captionRender`). */
+export interface ResolvedCaption {
+  words: ResolvedCaptionWord[];
+}
+
+/**
+ * Resolve a caption clip to its on-screen word state at `currentTimeMs`.
+ * Returns `undefined` for clips that carry no caption. Word timings are
+ * clip-local (relative to `clip.startMs`), so re-flowing a beat needs no
+ * rewrite of the words.
+ */
+export function resolveCaptionAtTime(
+  clip: TimelineClip,
+  currentTimeMs: number
+): ResolvedCaption | undefined {
+  if (!clip.caption) return undefined;
+  const local = currentTimeMs - clip.startMs;
+  return {
+    words: clip.caption.words.map((w) => ({
+      text: w.word,
+      active: local >= w.startMs && local < w.endMs
+    }))
+  };
+}
+
 /** A visual layer active at a point in time, in bottom-to-top composite order. */
 export interface ActiveLayer {
-  kind: "video" | "image";
+  kind: "video" | "image" | "caption";
   clip: TimelineClip;
   clipId: string;
   trackIndex: number;
@@ -114,6 +148,8 @@ export interface ActiveLayer {
   borderRadius?: number;
   effects?: ClipEffect[];
   trackEffects?: TrackEffect[];
+  /** Present only when `kind === "caption"`: the words to draw this frame. */
+  caption?: ResolvedCaption;
 }
 
 export interface ComputeActiveLayersOptions {
@@ -124,7 +160,9 @@ export interface ComputeActiveLayersOptions {
 /**
  * Resolve every visual layer active at `currentTimeMs`, in the order the
  * compositor should blend them (bottom track first, top track last). Audio
- * clips and subtitle tracks are excluded — they are not GPU layers.
+ * clips are excluded — they are not GPU layers. Subtitle tracks contribute
+ * caption layers (drawn on top), so captions render identically in the live
+ * preview and the export.
  *
  * Video layers are capped to keep parity with the live preview's video pool;
  * the cap is applied in composite order (top tracks win, matching the preview
@@ -151,17 +189,38 @@ export function computeActiveLayers(
 
   for (const track of sortedTracks) {
     if (!track.visible) continue;
-    if (track.type !== "video" && track.type !== "overlay") continue;
+    const isVisual = track.type === "video" || track.type === "overlay";
+    const isSubtitle = track.type === "subtitle";
+    if (!isVisual && !isSubtitle) continue;
 
     const activeClips = (clipsByTrackId.get(track.id) ?? [])
       .filter((c) => isClipActive(c, currentTimeMs))
       .sort((a, b) => a.startMs - b.startMs);
 
     for (const clip of activeClips) {
-      if (clip.mediaType === "audio") continue;
-
       const baseOpacity = clip.opacity ?? 1;
       const opacity = baseOpacity * transitionOpacity(clip, currentTimeMs);
+
+      // Caption clips render as text regardless of track type.
+      const caption = resolveCaptionAtTime(clip, currentTimeMs);
+      if (caption) {
+        layers.push({
+          kind: "caption",
+          clip,
+          clipId: clip.id,
+          trackIndex: track.index,
+          blendMode: resolveBlendMode(clip.blendMode),
+          opacity,
+          assetId: undefined,
+          transform: clip.transform,
+          caption
+        });
+        continue;
+      }
+
+      if (!isVisual) continue;
+      if (clip.mediaType === "audio") continue;
+
       const common = {
         clip,
         clipId: clip.id,

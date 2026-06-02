@@ -28,6 +28,7 @@ import {
   computeActiveLayers,
   trackZ
 } from "../preview/sceneModel";
+import { CaptionRasterizer } from "../preview/captionRender";
 import { OffscreenVideoPool } from "./OffscreenVideoPool";
 import { renderTimelineAudio } from "./renderAudio";
 
@@ -165,6 +166,7 @@ export async function renderTimeline(
 
   const compositor = new WebGPUCompositor();
   const videoPool = new OffscreenVideoPool();
+  const captionRasterizer = new CaptionRasterizer();
   const loadImage = makeImageLoader();
 
   try {
@@ -221,6 +223,24 @@ export async function renderTimeline(
       const composite: CompositeLayer[] = [];
 
       for (const layer of layers) {
+        if (layer.kind === "caption" && layer.caption) {
+          const bitmap = captionRasterizer.rasterize(
+            layer.caption,
+            width,
+            height
+          );
+          if (!bitmap) continue;
+          composite.push({
+            id: `c:${layer.clipId}`,
+            source: bitmap,
+            opacity: layer.opacity,
+            blendMode: layer.blendMode,
+            zIndex: trackZ(layer.trackIndex),
+            transform: layer.transform
+          });
+          continue;
+        }
+
         if (!layer.assetId) continue;
         const url = await resolveCached(layer.assetId);
         if (!url) continue;
@@ -286,5 +306,6 @@ export async function renderTimeline(
   } finally {
     compositor.dispose();
     videoPool.dispose();
+    captionRasterizer.dispose();
   }
 }

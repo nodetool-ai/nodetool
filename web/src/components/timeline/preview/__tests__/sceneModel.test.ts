@@ -6,6 +6,7 @@ import {
   computeActiveLayers,
   effectiveAssetId,
   isClipActive,
+  resolveCaptionAtTime,
   trackZ,
   transitionOpacity,
   LAYER_Z_BASE
@@ -168,5 +169,70 @@ describe("computeActiveLayers", () => {
     ];
     const layers = computeActiveLayers(tracks, clips, 100);
     expect(layers[0].assetId).toBeUndefined();
+  });
+
+  it("emits a caption layer for a caption clip on a subtitle track", () => {
+    const tracks = [
+      track({ id: "v", index: 1, type: "video" }),
+      track({ id: "sub", index: 0, type: "subtitle" })
+    ];
+    const clips = [
+      clip({ id: "vid", trackId: "v", startMs: 0, durationMs: 1000 }),
+      clip({
+        id: "cap",
+        trackId: "sub",
+        startMs: 0,
+        durationMs: 1000,
+        caption: {
+          words: [
+            { word: "hello", startMs: 0, endMs: 300 },
+            { word: "world", startMs: 300, endMs: 600 }
+          ]
+        }
+      })
+    ];
+    const layers = computeActiveLayers(tracks, clips, 100);
+    const captionLayer = layers.find((l) => l.kind === "caption");
+    expect(captionLayer).toBeDefined();
+    expect(captionLayer!.clipId).toBe("cap");
+    expect(captionLayer!.assetId).toBeUndefined();
+    // Subtitle track is at index 0 → composites on top of the video at index 1.
+    const videoLayer = layers.find((l) => l.kind === "video")!;
+    expect(trackZ(captionLayer!.trackIndex)).toBeGreaterThan(
+      trackZ(videoLayer.trackIndex)
+    );
+    // At 100ms the first word is active, the second is not.
+    expect(captionLayer!.caption!.words).toEqual([
+      { text: "hello", active: true },
+      { text: "world", active: false }
+    ]);
+  });
+});
+
+describe("resolveCaptionAtTime", () => {
+  it("returns undefined for clips without a caption", () => {
+    expect(resolveCaptionAtTime(clip({ startMs: 0 }), 0)).toBeUndefined();
+  });
+
+  it("marks the spoken word active using clip-local time", () => {
+    const c = clip({
+      startMs: 1000,
+      caption: {
+        words: [
+          { word: "a", startMs: 0, endMs: 200 },
+          { word: "b", startMs: 200, endMs: 400 }
+        ]
+      }
+    });
+    // Playhead at 1100ms → 100ms into the clip → first word active.
+    expect(resolveCaptionAtTime(c, 1100)!.words).toEqual([
+      { text: "a", active: true },
+      { text: "b", active: false }
+    ]);
+    // Playhead at 1300ms → 300ms in → second word active.
+    expect(resolveCaptionAtTime(c, 1300)!.words).toEqual([
+      { text: "a", active: false },
+      { text: "b", active: true }
+    ]);
   });
 });

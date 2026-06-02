@@ -40,7 +40,8 @@ import type {
   TimelineClip,
   TimelineMarker,
   TrackEffect,
-  ClipBindingKind
+  ClipBindingKind,
+  TranscriptLine
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
@@ -67,6 +68,8 @@ export interface TimelineStoreState {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  /** Studio transcript lines (document state, persisted + undo-able). */
+  transcript: TranscriptLine[];
 
   // ── Initialisation ───────────────────────────────────────────────────────
 
@@ -321,13 +324,25 @@ export interface TimelineStoreState {
    * split and you want a fresh roll without losing the existing render.
    */
   regenerateAsCopy: (clipId: string, deltaMs?: number) => string;
+
+  /**
+   * Atomically replace any of the transcript / clips / duration document
+   * slices in a single store update (one undo entry). Studio transcript ops
+   * compute the next document with pure helpers and commit it here so a
+   * delete-line + clip-removal + re-flow lands as one coherent edit.
+   */
+  setTranscriptAndClips: (patch: {
+    transcript?: TranscriptLine[];
+    clips?: TimelineClip[];
+    durationMs?: number;
+  }) => void;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
 
 type PartializedState = Pick<
   TimelineStoreState,
-  "tracks" | "clips" | "markers" | "durationMs"
+  "tracks" | "clips" | "markers" | "durationMs" | "transcript"
 >;
 
 // ── Empty defaults ─────────────────────────────────────────────────────────
@@ -341,7 +356,8 @@ const emptyState = {
   durationMs: 0,
   tracks: [] as TimelineTrack[],
   clips: [] as TimelineClip[],
-  markers: [] as TimelineMarker[]
+  markers: [] as TimelineMarker[],
+  transcript: [] as TranscriptLine[]
 };
 
 // ── Factory ────────────────────────────────────────────────────────────────
@@ -369,7 +385,8 @@ export const createTimelineStore = (
             durationMs: seq.durationMs,
             tracks: seq.tracks,
             clips: seq.clips,
-            markers: seq.markers
+            markers: seq.markers,
+            transcript: seq.transcript ?? []
           }),
 
         reset: () => set({ ...emptyState }),
@@ -976,7 +993,14 @@ export const createTimelineStore = (
             throw new Error(`Clip ${clipId} not found`);
           }
           return newId;
-        }
+        },
+
+        setTranscriptAndClips: (patch) =>
+          set((state) => ({
+            transcript: patch.transcript ?? state.transcript,
+            clips: patch.clips ?? state.clips,
+            durationMs: patch.durationMs ?? state.durationMs
+          }))
       }),
       {
         limit: 100,
@@ -984,7 +1008,8 @@ export const createTimelineStore = (
           tracks: state.tracks,
           clips: state.clips,
           markers: state.markers,
-          durationMs: state.durationMs
+          durationMs: state.durationMs,
+          transcript: state.transcript
         })
       }
     )

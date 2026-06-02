@@ -4539,6 +4539,65 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Transcribe a stored audio asset to word-level caption timing. Mirrors the
+   * provider path used by the ASR node but skips the workflow machinery — the
+   * caller (Studio transcript beats) wants `{ word, startMs, endMs }[]` back in
+   * one shot. Timestamps are returned in milliseconds relative to the start of
+   * the audio.
+   */
+  private async runDirectTranscription(req: {
+    provider: string;
+    model: string;
+    assetId: string;
+    language?: string;
+  }): Promise<{
+    text: string;
+    words: Array<{ word: string; startMs: number; endMs: number }>;
+  }> {
+    if (!this.resolveProvider) {
+      throw new Error("No provider resolver configured");
+    }
+    if (!req.model) {
+      throw new Error("model is required");
+    }
+    if (!req.assetId) {
+      throw new Error("asset_id is required");
+    }
+
+    const userId = this.userId ?? "1";
+    const asset = await Asset.find(userId, req.assetId);
+    if (!asset) {
+      throw new Error(`Audio asset not found: ${req.assetId}`);
+    }
+    const ext = (asset.content_type ?? "audio/wav").split("/")[1] ?? "wav";
+    const adapter = getAssetAdapter();
+    const bytes = await adapter.retrieve(
+      adapter.uriForKey(`${req.assetId}.${ext}`)
+    );
+    if (!bytes) {
+      throw new Error(`Audio asset bytes not found: ${req.assetId}`);
+    }
+
+    const provider = await this.resolveProvider(req.provider, userId);
+    const result = await provider.automaticSpeechRecognition({
+      audio: bytes,
+      model: req.model,
+      language: req.language,
+      word_timestamps: true
+    });
+
+    const words = (result.chunks ?? [])
+      .map((chunk) => ({
+        word: chunk.text.trim(),
+        startMs: Math.round(chunk.timestamp[0] * 1000),
+        endMs: Math.round(chunk.timestamp[1] * 1000)
+      }))
+      .filter((w) => w.word.length > 0);
+
+    return { text: result.text, words };
+  }
+
+  /**
    * Build a tRPC caller bound to this connection's `userId`. Used to dispatch
    * the read-only RPC commands (list_workflows, get_workflow, list_assets,
    * get_asset, list_nodes, get_node) onto the existing tRPC routers — single
@@ -4864,6 +4923,19 @@ export class UnifiedWebSocketRunner {
             speed,
             audioFormat
           })
+        );
+      }
+      case "transcribe_audio": {
+        const provider = String(data.provider ?? this.defaultProvider);
+        const model = String(data.model ?? this.defaultModel);
+        const assetId =
+          typeof data.asset_id === "string" ? (data.asset_id as string) : "";
+        const language =
+          typeof data.language === "string"
+            ? (data.language as string)
+            : undefined;
+        return this.runRpc(command, () =>
+          this.runDirectTranscription({ provider, model, assetId, language })
         );
       }
       default:

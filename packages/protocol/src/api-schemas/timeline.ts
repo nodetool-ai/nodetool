@@ -29,6 +29,46 @@ export const timelineMarker = z.object({
 });
 export type TimelineMarker = z.infer<typeof timelineMarker>;
 
+// ── Captions ─────────────────────────────────────────────────────────────────
+
+/**
+ * One word of a caption with its timing relative to the *clip start* (beat
+ * local), not absolute timeline time. Keeping it clip-local means re-flowing a
+ * beat (changing `clip.startMs`) never requires rewriting word timings.
+ */
+export const captionWord = z.object({
+  word: z.string(),
+  startMs: z.number(),
+  endMs: z.number()
+});
+export type CaptionWord = z.infer<typeof captionWord>;
+
+/**
+ * Word-level caption data carried by a caption clip. Sourced from the
+ * transcription of the beat's voiceover. A single fixed render style is used
+ * for the MVP, so no style fields are persisted yet.
+ */
+export const clipCaption = z.object({
+  words: z.array(captionWord)
+});
+export type ClipCaption = z.infer<typeof clipCaption>;
+
+// ── Transcript (Studio) ────────────────────────────────────────────────────
+
+/**
+ * One line of the Studio transcript. Each line owns the clips generated from
+ * it (`clipIds` — typically a voiceover audio clip and a caption clip).
+ * `beatStartMs` is the line's position on the timeline, recomputed whenever
+ * beats are added, removed, reordered, or re-flowed.
+ */
+export const transcriptLine = z.object({
+  id: z.string(),
+  text: z.string(),
+  beatStartMs: z.number(),
+  clipIds: z.array(z.string())
+});
+export type TranscriptLine = z.infer<typeof transcriptLine>;
+
 // ── Track DSP effects ────────────────────────────────────────────────────────
 
 export const trackGainEffect = z.object({
@@ -263,7 +303,8 @@ export type TimelineClip = z.infer<typeof timelineClip>;
 export const timelineDocument = z.object({
   tracks: z.array(timelineTrack),
   clips: z.array(timelineClip),
-  markers: z.array(timelineMarker)
+  markers: z.array(timelineMarker),
+  transcript: z.array(transcriptLine).optional()
 });
 export type TimelineDocument = z.infer<typeof timelineDocument>;
 
@@ -281,6 +322,7 @@ export const timelineSequenceResponse = z.object({
   tracks: z.array(timelineTrack),
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
+  transcript: z.array(transcriptLine).optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });
