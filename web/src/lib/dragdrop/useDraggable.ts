@@ -24,7 +24,7 @@
  * };
  */
 
-import { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { useDragDropStore } from "./store";
 import type {
   DragData,
@@ -34,10 +34,17 @@ import type {
 } from "./types";
 import { serializeDragData, createDragCountBadge } from "./serialization";
 
+export interface DraggableProps {
+  draggable: boolean;
+  onDragStart: (event: React.DragEvent) => void;
+  onDragEnd: (event: React.DragEvent) => void;
+  "data-drag-type": DragDataType;
+}
+
 export function useDraggable<T extends DragDataType>(
   data: DragData<T>,
   options?: DraggableOptions
-) {
+): DraggableProps {
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
   const dragImageRef = useRef<HTMLElement | null>(null);
