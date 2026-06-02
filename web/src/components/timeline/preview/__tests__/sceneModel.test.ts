@@ -171,10 +171,10 @@ describe("computeActiveLayers", () => {
     expect(layers[0].assetId).toBeUndefined();
   });
 
-  it("emits a caption layer for a caption clip on a subtitle track", () => {
+  it("emits a caption layer for a caption-only overlay clip and keeps it on top", () => {
     const tracks = [
-      track({ id: "v", index: 1, type: "video" }),
-      track({ id: "sub", index: 0, type: "subtitle" })
+      track({ id: "v", index: 0, type: "video" }),
+      track({ id: "sub", index: 1, type: "subtitle" })
     ];
     const clips = [
       clip({ id: "vid", trackId: "v", startMs: 0, durationMs: 1000 }),
@@ -183,6 +183,8 @@ describe("computeActiveLayers", () => {
         trackId: "sub",
         startMs: 0,
         durationMs: 1000,
+        mediaType: "overlay",
+        currentAssetId: undefined,
         caption: {
           words: [
             { word: "hello", startMs: 0, endMs: 300 },
@@ -196,16 +198,66 @@ describe("computeActiveLayers", () => {
     expect(captionLayer).toBeDefined();
     expect(captionLayer!.clipId).toBe("cap");
     expect(captionLayer!.assetId).toBeUndefined();
-    // Subtitle track is at index 0 → composites on top of the video at index 1.
+    // A caption-only clip draws no media layer (no phantom video).
+    expect(layers.filter((l) => l.clipId === "cap")).toHaveLength(1);
+    // Captions always composite above the picture, even though the video track
+    // here sits at index 0 (which would otherwise be top-most).
     const videoLayer = layers.find((l) => l.kind === "video")!;
     expect(trackZ(captionLayer!.trackIndex)).toBeGreaterThan(
       trackZ(videoLayer.trackIndex)
     );
+    // Caption layers are appended last so array order also puts them on top.
+    expect(layers[layers.length - 1].kind).toBe("caption");
     // At 100ms the first word is active, the second is not.
     expect(captionLayer!.caption!.words).toEqual([
       { text: "hello", active: true },
       { text: "world", active: false }
     ]);
+  });
+
+  it("sources captions from an audio voiceover clip and keeps them on top", () => {
+    const tracks = [
+      track({ id: "v", index: 0, type: "video" }),
+      track({ id: "a", index: 1, type: "audio" })
+    ];
+    const clips = [
+      clip({ id: "vid", trackId: "v", startMs: 0, durationMs: 1000 }),
+      clip({
+        id: "vo",
+        trackId: "a",
+        startMs: 0,
+        durationMs: 1000,
+        mediaType: "audio",
+        caption: { words: [{ word: "hi", startMs: 0, endMs: 300 }] }
+      })
+    ];
+    const layers = computeActiveLayers(tracks, clips, 100);
+    // The audio clip yields a caption layer but no media layer.
+    expect(layers.filter((l) => l.clipId === "vo")).toHaveLength(1);
+    const captionLayer = layers.find((l) => l.clipId === "vo")!;
+    expect(captionLayer.kind).toBe("caption");
+    const videoLayer = layers.find((l) => l.kind === "video")!;
+    expect(trackZ(captionLayer.trackIndex)).toBeGreaterThan(
+      trackZ(videoLayer.trackIndex)
+    );
+  });
+
+  it("a captioned video draws both its picture and its caption", () => {
+    const tracks = [track({ id: "v", index: 0, type: "video" })];
+    const clips = [
+      clip({
+        id: "talk",
+        trackId: "v",
+        startMs: 0,
+        durationMs: 1000,
+        mediaType: "video",
+        currentAssetId: "asset-1",
+        caption: { words: [{ word: "hey", startMs: 0, endMs: 300 }] }
+      })
+    ];
+    const layers = computeActiveLayers(tracks, clips, 100);
+    expect(layers.map((l) => l.kind)).toEqual(["video", "caption"]);
+    expect(layers.every((l) => l.clipId === "talk")).toBe(true);
   });
 });
 

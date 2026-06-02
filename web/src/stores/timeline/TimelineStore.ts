@@ -31,6 +31,7 @@ import {
   snap,
   makeTrack,
   makeClip,
+  makeMarker,
   makeTrackEffect,
   createTimeOrderedUuid
 } from "@nodetool-ai/timeline";
@@ -46,6 +47,7 @@ import type {
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 import { trpcClient } from "../../trpc/client";
+import { migrateTranscriptToClips, reflowGenerated } from "./transcriptOps";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
 
@@ -336,6 +338,9 @@ export interface TimelineStoreState {
     clips?: TimelineClip[];
     durationMs?: number;
   }) => void;
+
+  /** Append a timeline marker (e.g. a scene boundary) at the given time. */
+  addMarker: (timeMs: number, label?: string) => void;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
@@ -375,7 +380,45 @@ export const createTimelineStore = (
 
         // ── Init ────────────────────────────────────────────────────────────
 
-        loadSequence: (seq) =>
+        loadSequence: (seq) => {
+          const transcript = seq.transcript ?? [];
+
+          // Legacy sequences stored the transcript as `TranscriptLine[]` binding
+          // a voiceover clip + a separate caption clip. Fold those words onto
+          // the voiceover clips so clips become the single source of truth; the
+          // transcript field is then cleared (and stays empty going forward).
+          if (transcript.length > 0) {
+            let tracks = seq.tracks;
+            let audioTrack = tracks.find((t) => t.type === "audio");
+            if (!audioTrack) {
+              audioTrack = makeTrack({
+                type: "audio",
+                name: "Voiceover",
+                index: tracks.length
+              });
+              tracks = [...tracks, audioTrack];
+            }
+            const migrated = migrateTranscriptToClips(
+              transcript,
+              seq.clips,
+              audioTrack.id
+            );
+            const { clips, durationMs } = reflowGenerated(migrated);
+            set({
+              sequenceId: seq.id,
+              baseUpdatedAt: seq.updatedAt,
+              fps: seq.fps,
+              width: seq.width,
+              height: seq.height,
+              durationMs: Math.max(seq.durationMs, durationMs),
+              tracks,
+              clips,
+              markers: seq.markers,
+              transcript: []
+            });
+            return;
+          }
+
           set({
             sequenceId: seq.id,
             baseUpdatedAt: seq.updatedAt,
@@ -386,8 +429,9 @@ export const createTimelineStore = (
             tracks: seq.tracks,
             clips: seq.clips,
             markers: seq.markers,
-            transcript: seq.transcript ?? []
-          }),
+            transcript: []
+          });
+        },
 
         reset: () => set({ ...emptyState }),
 
@@ -1000,6 +1044,17 @@ export const createTimelineStore = (
             transcript: patch.transcript ?? state.transcript,
             clips: patch.clips ?? state.clips,
             durationMs: patch.durationMs ?? state.durationMs
+          })),
+
+        addMarker: (timeMs, label) =>
+          set((state) => ({
+            markers: [
+              ...state.markers,
+              makeMarker({
+                timeMs: Math.max(0, Math.round(timeMs)),
+                label: label ?? ""
+              })
+            ]
           }))
       }),
       {

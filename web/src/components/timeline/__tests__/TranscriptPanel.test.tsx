@@ -1,0 +1,158 @@
+/**
+ * TranscriptPanel integration tests.
+ *
+ * Verifies the panel + Lexical editor pipeline that jsdom can exercise: the
+ * transcript projects from the clips into editable word spans (each bound to
+ * its clip via data-attrs), fillers are marked, and the toolbar reflects the
+ * model. The freeform editing math (relabel / ripple-cut / reconcile) is
+ * unit-tested in `transcriptOps.test.ts`; caret-seek and native-delete are
+ * Lexical-internal and verified live.
+ */
+
+import React from "react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import { makeClip } from "@nodetool-ai/timeline";
+import type { CaptionWord, TimelineClip } from "@nodetool-ai/timeline";
+
+import mockTheme from "../../../__mocks__/themeMock";
+import { TranscriptPanel } from "../TranscriptPanel";
+import { TimelineProvider } from "../../../stores/timeline/TimelineInstance";
+import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+
+jest.mock("../../properties/TTSModelSelect", () => ({
+  __esModule: true,
+  default: () =>
+    React.createElement("div", { "data-testid": "tts-model-select" }, "TTS")
+}));
+
+const voicedBeat = (words: CaptionWord[]): TimelineClip =>
+  makeClip({
+    id: "c1",
+    paragraphId: "c1",
+    trackId: "audio",
+    mediaType: "audio",
+    bindingKind: "text-to-audio",
+    sourceType: "generated",
+    status: "generated",
+    startMs: 0,
+    durationMs: 900,
+    currentAssetId: "asset-1",
+    caption: { words }
+  });
+
+const renderPanel = () =>
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <TimelineProvider>
+        <TranscriptPanel />
+      </TimelineProvider>
+    </ThemeProvider>
+  );
+
+const seed = (clips: TimelineClip[], durationMs: number) =>
+  act(() => {
+    useTimelineStore.getState().setTranscriptAndClips({ clips, durationMs });
+    useTimelinePlaybackStore.getState().seek(0);
+  });
+
+describe("TranscriptPanel", () => {
+  it("renders the voice engine and generate action", () => {
+    renderPanel();
+    expect(screen.getByText("TRANSCRIPT")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Generate all/i })
+    ).toBeInTheDocument();
+  });
+
+  it("projects a clip's words into editable, clip-bound word spans", () => {
+    renderPanel();
+    seed(
+      [voicedBeat([
+        { word: "hello", startMs: 0, endMs: 300 },
+        { word: "world", startMs: 300, endMs: 900 }
+      ])],
+      900
+    );
+
+    const hello = screen.getByText("hello");
+    expect(hello).toHaveClass("transcript-word");
+    expect(hello.getAttribute("data-clip")).toBe("c1");
+    expect(hello.getAttribute("data-start")).toBe("0");
+    const world = screen.getByText("world");
+    expect(world.getAttribute("data-word")).toBe("1");
+    expect(world.getAttribute("data-start")).toBe("300");
+  });
+
+  it("seeks the playhead and highlights the word when a word is clicked", () => {
+    renderPanel();
+    seed(
+      [voicedBeat([
+        { word: "hello", startMs: 0, endMs: 300 },
+        { word: "world", startMs: 300, endMs: 900 }
+      ])],
+      900
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByText("world"));
+    });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(300);
+    expect(screen.getByText("world")).toHaveClass("is-active");
+  });
+
+  it("selects the whole clip (and highlights its words) when one word is clicked", () => {
+    renderPanel();
+    seed(
+      [voicedBeat([
+        { word: "hello", startMs: 0, endMs: 300 },
+        { word: "world", startMs: 300, endMs: 900 }
+      ])],
+      900
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByText("hello"));
+    });
+    expect(useTimelineUIStore.getState().selectedClipIds.has("c1")).toBe(true);
+    expect(screen.getByText("hello")).toHaveClass("is-selected");
+    expect(screen.getByText("world")).toHaveClass("is-selected");
+  });
+
+  it("drops a scene marker on '/' and toggles playback on Space (Script mode)", () => {
+    renderPanel();
+    seed([voicedBeat([{ word: "hi", startMs: 0, endMs: 300 }])], 300);
+    const surface = screen.getByTestId("transcript-surface");
+
+    act(() => {
+      fireEvent.keyDown(surface, { key: "/" });
+    });
+    expect(useTimelineStore.getState().markers).toHaveLength(1);
+    expect(useTimelineStore.getState().markers[0].label).toBe("Scene 1");
+
+    expect(useTimelinePlaybackStore.getState().isPlaying).toBe(false);
+    act(() => {
+      fireEvent.keyDown(surface, { key: " " });
+    });
+    expect(useTimelinePlaybackStore.getState().isPlaying).toBe(true);
+  });
+
+  it("marks filler words and surfaces a Remove fillers action", () => {
+    renderPanel();
+    seed(
+      [voicedBeat([
+        { word: "um", startMs: 0, endMs: 200 },
+        { word: "hi", startMs: 200, endMs: 500 }
+      ])],
+      500
+    );
+
+    expect(screen.getByText("um")).toHaveClass("transcript-word--filler");
+    expect(screen.getByText("hi")).not.toHaveClass("transcript-word--filler");
+    expect(
+      screen.getByRole("button", { name: /Remove fillers/i })
+    ).toBeInTheDocument();
+  });
+});

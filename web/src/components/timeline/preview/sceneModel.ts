@@ -29,6 +29,15 @@ export const LAYER_Z_BASE = 1000;
 export const trackZ = (uiIndex: number): number => LAYER_Z_BASE - uiIndex;
 
 /**
+ * Synthetic track index assigned to caption layers so they always composite on
+ * top of every real track. Words live on their media clip (an audio voiceover
+ * or an imported audio/video clip), which can sit on any track — but the
+ * caption must stay legible above the picture, so `trackZ(-1)` puts it one
+ * step above `LAYER_Z_BASE`.
+ */
+export const CAPTION_TRACK_INDEX = -1;
+
+/**
  * Max simultaneous video layers. The live preview is bounded by its hot
  * HTMLVideoElement pool; the renderer applies the same cap so the exported
  * frame matches what the preview showed when many video clips overlap.
@@ -114,10 +123,10 @@ export interface ResolvedCaption {
 }
 
 /**
- * Resolve a caption clip to its on-screen word state at `currentTimeMs`.
+ * Resolve a clip's caption to its on-screen word state at `currentTimeMs`.
  * Returns `undefined` for clips that carry no caption. Word timings are
- * clip-local (relative to `clip.startMs`), so re-flowing a beat needs no
- * rewrite of the words.
+ * clip-local (relative to `clip.startMs`), so moving or splitting the clip
+ * needs no rewrite of the words.
  */
 export function resolveCaptionAtTime(
   clip: TimelineClip,
@@ -158,11 +167,17 @@ export interface ComputeActiveLayersOptions {
 }
 
 /**
- * Resolve every visual layer active at `currentTimeMs`, in the order the
- * compositor should blend them (bottom track first, top track last). Audio
- * clips are excluded — they are not GPU layers. Subtitle tracks contribute
- * caption layers (drawn on top), so captions render identically in the live
- * preview and the export.
+ * Resolve every layer active at `currentTimeMs`, in the order the compositor
+ * should blend them: media layers first (bottom track first, top track last),
+ * then caption layers appended on top.
+ *
+ * Captions are sourced from any active clip that carries word-level
+ * `caption.words` — the voiceover audio clip or an imported audio/video clip —
+ * regardless of its track type, and are given {@link CAPTION_TRACK_INDEX} so
+ * they always composite above the picture. A clip that carries a caption but
+ * has no drawable asset (a caption-only overlay) contributes only the caption;
+ * a captioned video contributes both its picture and its caption. Audio clips
+ * never contribute a media layer.
  *
  * Video layers are capped to keep parity with the live preview's video pool;
  * the cap is applied in composite order (top tracks win, matching the preview
@@ -184,14 +199,13 @@ export function computeActiveLayers(
     else clipsByTrackId.set(c.trackId, [c]);
   }
 
-  const layers: ActiveLayer[] = [];
+  const mediaLayers: ActiveLayer[] = [];
+  const captionLayers: ActiveLayer[] = [];
   let videoCount = 0;
 
   for (const track of sortedTracks) {
     if (!track.visible) continue;
     const isVisual = track.type === "video" || track.type === "overlay";
-    const isSubtitle = track.type === "subtitle";
-    if (!isVisual && !isSubtitle) continue;
 
     const activeClips = (clipsByTrackId.get(track.id) ?? [])
       .filter((c) => isClipActive(c, currentTimeMs))
@@ -201,25 +215,29 @@ export function computeActiveLayers(
       const baseOpacity = clip.opacity ?? 1;
       const opacity = baseOpacity * transitionOpacity(clip, currentTimeMs);
 
-      // Caption clips render as text regardless of track type.
+      // Captions ride on their media clip and always render on top.
       const caption = resolveCaptionAtTime(clip, currentTimeMs);
       if (caption) {
-        layers.push({
+        captionLayers.push({
           kind: "caption",
           clip,
           clipId: clip.id,
-          trackIndex: track.index,
+          trackIndex: CAPTION_TRACK_INDEX,
           blendMode: resolveBlendMode(clip.blendMode),
           opacity,
           assetId: undefined,
           transform: clip.transform,
           caption
         });
-        continue;
       }
 
+      // Only visual tracks draw picture; audio clips never do.
       if (!isVisual) continue;
       if (clip.mediaType === "audio") continue;
+
+      const assetId = effectiveAssetId(clip);
+      // A caption-only clip (no drawable asset) contributes just its caption.
+      if (caption && assetId === undefined) continue;
 
       const common = {
         clip,
@@ -227,7 +245,7 @@ export function computeActiveLayers(
         trackIndex: track.index,
         blendMode: resolveBlendMode(clip.blendMode),
         opacity,
-        assetId: effectiveAssetId(clip),
+        assetId,
         transform: clip.transform,
         borderRadius: clip.borderRadius,
         effects: clip.effects,
@@ -235,17 +253,17 @@ export function computeActiveLayers(
       } satisfies Omit<ActiveLayer, "kind">;
 
       if (clip.mediaType === "image") {
-        layers.push({ kind: "image", ...common });
+        mediaLayers.push({ kind: "image", ...common });
       } else {
         // video | overlay
         if (common.assetId) {
           if (videoCount >= maxVideoLayers) continue;
           videoCount += 1;
         }
-        layers.push({ kind: "video", ...common });
+        mediaLayers.push({ kind: "video", ...common });
       }
     }
   }
 
-  return layers;
+  return [...mediaLayers, ...captionLayers];
 }

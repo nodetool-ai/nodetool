@@ -48,19 +48,34 @@ export interface TimelineSequence {
 }
 
 /**
- * One word of a caption, timed relative to the *clip start* (beat-local) so
- * re-flowing a beat never requires rewriting word timings.
+ * Classification of a caption token. Normal spoken words are `"word"` (the
+ * default when absent); `"filler"` marks disfluencies ("um", "uh", "like", …)
+ * that filler-word removal can ripple-cut in bulk; `"pause"` marks a silence
+ * gap surfaced as an editable token.
+ */
+export type CaptionWordKind = "word" | "filler" | "pause";
+
+/**
+ * One word of a caption, timed relative to the *clip start* (clip-local) so
+ * splitting or moving a clip never requires rewriting word timings — the
+ * timings travel with the clip and stay valid against its new `startMs`.
  */
 export interface CaptionWord {
   word: string;
   startMs: number;
   endMs: number;
+  /** Token classification. Absent means a normal spoken word. */
+  kind?: CaptionWordKind;
+  /** ASR confidence in [0, 1] when the provider reports one. */
+  confidence?: number;
 }
 
 /**
- * Word-level caption data carried by a caption clip, sourced from the
- * transcription of the beat's voiceover. A single fixed render style is used
- * for the MVP, so no style fields are persisted yet.
+ * Word-level caption data carried directly by the media clip it transcribes
+ * (the voiceover audio clip, or an imported audio/video clip). The transcript
+ * document is projected from these words, and every text edit maps back to the
+ * clip span the words index. A single fixed render style is used for the MVP,
+ * so no style fields are persisted yet.
  */
 export interface ClipCaption {
   words: CaptionWord[];
@@ -296,6 +311,18 @@ export interface TimelineClip {
   model?: string;
   /** TTS voice id for `text-to-audio` direct-gen clips. */
   voice?: string;
+  /**
+   * Speaker label for transcript-bearing clips, from ASR diarization or set
+   * manually. Drives per-paragraph speaker headers in the transcript editor.
+   */
+  speaker?: string;
+  /**
+   * Groups transcript clips that should read as a single paragraph. Set to the
+   * clip's own id when a beat or import is created; `splitClip` copies it, so
+   * the two halves of an interior word-deletion (or filler removal) keep
+   * reading as one paragraph while distinct authored beats stay separate.
+   */
+  paragraphId?: string;
   /** Source clip for image-to-image. Reads the source clip's currentAssetId at submit time. */
   sourceClipId?: string | null;
   width?: number;
@@ -327,9 +354,11 @@ export interface TimelineClip {
   /** Duration of the fade-out effect in milliseconds. */
   fadeOutMs?: number;
   /**
-   * Word-level caption data. Present only on caption clips (which live on a
-   * `subtitle` track). When set, the clip renders as a caption layer in both
-   * the live preview and the export instead of drawing a media asset.
+   * Word-level caption data carried by the media clip it transcribes — the
+   * voiceover audio clip, or an imported audio/video clip. When set, the clip
+   * contributes a caption layer (drawn on top) in both the live preview and
+   * the export, in addition to any visual media it draws. The transcript
+   * editor projects its document from these words.
    */
   caption?: ClipCaption;
   /** 2D placement on the preview canvas. Default: identity (centered, contain-fit). */
