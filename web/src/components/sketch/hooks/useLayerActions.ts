@@ -407,11 +407,14 @@ export function useLayerActions({
         return;
       }
     }
-    const sorted = [...toRemove].sort(
-      (a, b) =>
-        document.layers.findIndex((l) => l.id === b) -
-        document.layers.findIndex((l) => l.id === a)
-    );
+    const toRemoveSet = new Set(toRemove);
+    const sorted: string[] = [];
+    for (let i = document.layers.length - 1; i >= 0; i--) {
+      const l = document.layers[i];
+      if (toRemoveSet.has(l.id)) {
+        sorted.push(l.id);
+      }
+    }
     for (const id of sorted) {
       removeLayer(id);
     }
