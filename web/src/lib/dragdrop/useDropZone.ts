@@ -30,7 +30,7 @@
  * };
  */
 
-import { useCallback, useMemo, useState, useRef } from "react";
+import React, { useCallback, useMemo, useState, useRef } from "react";
 import { useDragDropStore } from "./store";
 import type { DragData, DragDataType, DropZoneConfig } from "./types";
 import {
@@ -39,9 +39,20 @@ import {
   extractFiles
 } from "./serialization";
 
+export interface DropZoneProps {
+  onDragEnter: (event: React.DragEvent) => void;
+  onDragOver: (event: React.DragEvent) => Promise<void>;
+  onDragLeave: (event: React.DragEvent) => void;
+  onDrop: (event: React.DragEvent) => Promise<void>;
+  isOver: boolean;
+  canDrop: boolean;
+  className: string | undefined;
+  "data-dropzone": true;
+}
+
 export function useDropZone<T extends DragDataType = DragDataType>(
   config: DropZoneConfig<T>
-) {
+): DropZoneProps {
   const [isOver, setIsOver] = useState(false);
   const [canDrop, setCanDrop] = useState(false);
   const activeDrag = useDragDropStore((s) => s.activeDrag);
