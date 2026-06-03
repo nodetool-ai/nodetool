@@ -344,10 +344,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     return this.wsManager?.isConnected() ?? false;
   }
 
-  getWebSocket(): WebSocket | null {
-    return this.wsManager?.getWebSocket() ?? null;
-  }
-
   subscribeEvent<K extends GlobalWebSocketEvent>(
     event: K,
     listener: GlobalWebSocketEvents[K]
