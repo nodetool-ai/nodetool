@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 import { Text } from "../ui_primitives";
 import FavoriteButton from "../ui_primitives/FavoriteButton";
@@ -56,6 +56,8 @@ const rowStyles = (theme: Theme) =>
     }
   });
 
+const NODE_ROW_SVG_PROPS = { width: 12, height: 12, style: { opacity: 0.4 } } as const;
+
 interface NodeLibraryRowProps {
   node: NodeMetadata;
   onDragStart: (
@@ -103,6 +105,26 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
       ? `1px solid color-mix(in srgb, ${typeColor} 14%, transparent)`
       : `1px solid ${theme.vars.palette.divider}`;
 
+    const containerStyle = useMemo(
+      () => ({
+        color: tileColor,
+        flexShrink: 0 as const,
+        width: "22px",
+        height: "22px",
+        margin: "0 2px"
+      }),
+      [tileColor]
+    );
+
+    const bgStyleMemo = useMemo(
+      () => ({
+        background: tileBg,
+        border: tileBorder,
+        borderRadius: "var(--rounded-md)"
+      }),
+      [tileBg, tileBorder]
+    );
+
     return (
       <div
         css={rowStyles(theme)}
@@ -126,19 +148,9 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
         <IconForType
           iconName={outputType}
           showTooltip={false}
-          containerStyle={{
-            color: tileColor,
-            flexShrink: 0,
-            width: "22px",
-            height: "22px",
-            margin: "0 2px"
-          }}
-          bgStyle={{
-            background: tileBg,
-            border: tileBorder,
-            borderRadius: "var(--rounded-md)"
-          }}
-          svgProps={{ width: 12, height: 12, style: { opacity: 0.4 } }}
+          containerStyle={containerStyle}
+          bgStyle={bgStyleMemo}
+          svgProps={NODE_ROW_SVG_PROPS}
         />
         <Text className="nl-row-title" component="div">
           {node.title}
