@@ -10,3 +10,6 @@
 ## 2026-05-25 - O(N*M) Layer Grouping Optimization
 **Learning:** In `web/src/components/sketch/state/slices/documentSlice.ts`, the `groupLayers` function suffered from O(N*M) performance degradation due to nested operations: `.find()`, `.indexOf()`, and `.some()` inside `.map()` array iterations over layers.
 **Action:** Replace nested array lookups with a single-pass loop over the source array using a `Set` for subset lookups. This allows building the filtered selection and their corresponding indices in O(N) time and simplifies later `.some()` mapping iterations to O(N) using `.has()`.
+## 2026-05-25 - O(N*M) Node Selection Filter Optimization
+**Learning:** Found an $O(N \times M)$ bottleneck in `web/src/stores/NodeStore.ts` inside `onNodesChange` where `currentNodes.find(...)` was nested within `changes.filter(...)` for validating selections against group node status. This scales poorly when thousands of nodes and hundreds of changes are processed at once (e.g. multi-selection).
+**Action:** Always create a Map for the searched entities before filtering (e.g., `new Map(nodes.map(n => [n.id, n]))`), allowing $O(1)$ lookups within the loop and reducing complexity to $O(N + M)$.
