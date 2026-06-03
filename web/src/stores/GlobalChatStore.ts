@@ -123,9 +123,6 @@ export interface GlobalChatState extends ChatPiSlice {
   workflowThreadId: Record<string, string>;
   /** Bind the chat to a workflow's thread, creating one if needed. */
   openWorkflowThread: (workflowId: string) => Promise<string>;
-  /** Set the active workflow context (so ui_* tools target it). */
-  setWorkflowContext: (workflowId: string | null) => void;
-
   // Tool call runtime UI state
   currentRunningToolCallId: string | null;
   currentToolMessage: string | null;
@@ -184,18 +181,13 @@ export interface GlobalChatState extends ChatPiSlice {
 
   // Task updates
   currentTaskUpdate: TaskUpdate | null;
-  setTaskUpdate: (update: TaskUpdate | null) => void;
   currentTaskUpdateThreadId: string | null;
   lastTaskUpdatesByThread: Record<string, TaskUpdate | null>;
 
   // Log updates
   currentLogUpdate: LogUpdate | null;
-  setLogUpdate: (update: LogUpdate | null) => void;
-
   // Per-thread todo lists (TodoWrite-style checklist)
   todosByThread: Record<string, TodoItem[]>;
-  setTodosForThread: (threadId: string, todos: TodoItem[]) => void;
-  clearTodosForThread: (threadId: string) => void;
 
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
@@ -217,7 +209,6 @@ export interface GlobalChatState extends ChatPiSlice {
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
-  setLastUsedThreadId: (threadId: string | null) => void;
   getCurrentMessages: () => Message[];
   getCurrentMessagesSync: () => Message[];
   loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
@@ -288,8 +279,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Per-workflow thread binding (editor side panel)
       workflowThreadId: {},
-      setWorkflowContext: (workflowId: string | null) =>
-        set({ workflowId }),
       openWorkflowThread: async (workflowId: string) => {
         set({ workflowId });
         const existing = get().workflowThreadId[workflowId];
@@ -380,29 +369,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       // Task updates
       currentTaskUpdate: null,
-      setTaskUpdate: (update: TaskUpdate | null) =>
-        set({ currentTaskUpdate: update }),
       currentTaskUpdateThreadId: null,
       lastTaskUpdatesByThread: {},
 
       // Log updates
       currentLogUpdate: null,
-      setLogUpdate: (update: LogUpdate | null) =>
-        set({ currentLogUpdate: update }),
 
       // Per-thread todo lists
       todosByThread: {},
-      setTodosForThread: (threadId: string, todos: TodoItem[]) =>
-        set((state) => ({
-          todosByThread: { ...state.todosByThread, [threadId]: todos }
-        })),
-      clearTodosForThread: (threadId: string) =>
-        set((state) => {
-          if (!(threadId in state.todosByThread)) return state;
-          const next = { ...state.todosByThread };
-          delete next[threadId];
-          return { todosByThread: next };
-        }),
 
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,
@@ -986,9 +960,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
           throw error;
         }
       },
-
-      setLastUsedThreadId: (threadId: string | null) =>
-        set({ lastUsedThreadId: threadId }),
 
       getCurrentMessages: () => {
         const { currentThreadId, messageCache } = get();

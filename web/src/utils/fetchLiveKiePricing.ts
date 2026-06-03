@@ -1,4 +1,4 @@
-import type { KieUnitPricing, NodeMetadata } from "../stores/ApiTypes";
+import type { NodeMetadata } from "../stores/ApiTypes";
 
 interface LiveKiePricingResponse {
   byModelId: Record<

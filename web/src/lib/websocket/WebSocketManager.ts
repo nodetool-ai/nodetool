@@ -130,10 +130,6 @@ export class WebSocketManager extends EventEmitter {
     return this.state === "connected" && this.ws?.readyState === WebSocket.OPEN;
   }
 
-  public getWebSocket(): WebSocket | null {
-    return this.ws;
-  }
-
   public async connect(): Promise<void> {
     if (this.connectionPromise) {
       return this.connectionPromise;
@@ -185,20 +181,6 @@ export class WebSocketManager extends EventEmitter {
       this.emit("messageSent", message);
     } catch (error) {
       console.error("Failed to send message:", error);
-      this.emit("error", error);
-      throw error;
-    }
-  }
-
-  public sendRaw(data: string | ArrayBuffer | Blob): void {
-    if (!this.isConnected()) {
-      throw new Error(`Cannot send data in state: ${this.state}`);
-    }
-
-    try {
-      this.ws!.send(data);
-    } catch (error) {
-      console.error("Failed to send raw data:", error);
       this.emit("error", error);
       throw error;
     }
