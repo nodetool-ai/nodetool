@@ -51,8 +51,9 @@ const extractMediaBlocks = (
     return [];
   }
   return content.filter(
-    (c) => c.type === "image_url" || c.type === "video" || c.type === "audio"
-  ) as unknown as MediaContentBlock[];
+    (c): c is MediaContentBlock =>
+      c.type === "image_url" || c.type === "video" || c.type === "audio"
+  );
 };
 
 const blockToConstant = (
