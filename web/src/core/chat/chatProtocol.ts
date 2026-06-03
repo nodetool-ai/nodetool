@@ -328,10 +328,14 @@ const applyNodeUpdate = (
     // If running, we might want to clear previous error or result?
     // For now, allow multiple updates.
 
-    // Sync status
-    useStatusStore
-      .getState()
-      .setStatus(effectiveWorkflowId, update.node_id, update.status);
+    // Sync status, scoped by the producing run's job_id so concurrent
+    // same-workflow runs stay isolated. Skip the write if job_id is absent.
+    const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+    if (jobId) {
+      useStatusStore
+        .getState()
+        .setStatus(effectiveWorkflowId, jobId, update.node_id, update.status);
+    }
 
     if (update.result) {
       useResultsStore

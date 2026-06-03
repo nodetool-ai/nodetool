@@ -269,7 +269,9 @@ describe("useGenerateLayer", () => {
     expect(
       useSketchGenerationStore.getState().layerJobs["layer-1"]?.status
     ).toBe("failed");
-    expect(useErrorStore.getState().getError("wf-1", "output-1")).toBe("boom");
+    expect(useErrorStore.getState().getError("wf-1", "job-3", "output-1")).toBe(
+      "boom"
+    );
     expect(onFailed).toHaveBeenCalledWith("boom");
     expect(result.current.isFailed).toBe(true);
     expect(result.current.errorMessage).toBe("boom");

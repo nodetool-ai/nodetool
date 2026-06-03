@@ -21,6 +21,12 @@ interface ProcessedEdgesOptions {
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
   /** Optional workflow ID for status tracking */
   workflowId?: string;
+  /**
+   * Focused run for the workflow. Node-status keys are
+   * `${workflowId}:${focusedJobId}:${edge.source}`; when undefined, node
+   * statuses are treated as empty (no focused run to display).
+   */
+  focusedJobId?: string;
   /** Optional edge status map for execution visualization */
   edgeStatuses?: Record<string, { status: string; counter?: number }>;
   /** Optional node status map - used to animate edges when source node is running */
@@ -345,6 +351,7 @@ export function useProcessedEdges({
   dataTypes,
   getMetadata,
   workflowId,
+  focusedJobId,
   edgeStatuses,
   nodeStatuses,
   isSelecting
@@ -380,8 +387,13 @@ export function useProcessedEdges({
       const status = statusObj?.status;
       const counter = statusObj?.counter;
 
-      // Check if source node is running - animate edges from running nodes
-      const sourceNodeStatusKey = workflowId ? `${workflowId}:${edge.source}` : undefined;
+      // Check if source node is running - animate edges from running nodes.
+      // Node statuses are keyed by the focused run; without one there's no
+      // run to visualize.
+      const sourceNodeStatusKey =
+        workflowId && focusedJobId
+          ? `${workflowId}:${focusedJobId}:${edge.source}`
+          : undefined;
       const sourceNodeStatus = sourceNodeStatusKey ? nodeStatuses?.[sourceNodeStatusKey] : undefined;
       const isSourceRunning = sourceNodeStatus === "running" || sourceNodeStatus === "starting" || sourceNodeStatus === "booting";
       
@@ -415,5 +427,5 @@ export function useProcessedEdges({
     });
 
     return { processedEdges, activeGradientKeys };
-  }, [structuralResult, workflowId, edgeStatuses, nodeStatuses]);
+  }, [structuralResult, workflowId, focusedJobId, edgeStatuses, nodeStatuses]);
 }

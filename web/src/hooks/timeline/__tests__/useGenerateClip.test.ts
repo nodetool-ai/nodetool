@@ -177,7 +177,9 @@ describe("useGenerateClip", () => {
     expect(useTimelineGenerationStore.getState().clipJobs[clip.id]?.status).toBe(
       "failed"
     );
-    expect(useErrorStore.getState().getError("wf-1", "output-1")).toBe("boom");
+    expect(useErrorStore.getState().getError("wf-1", "job-1", "output-1")).toBe(
+      "boom"
+    );
 
     fetchQuerySpy.mockRestore();
   });

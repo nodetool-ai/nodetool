@@ -601,7 +601,11 @@ export const handleUpdate = (
       timestamp: Date.now()
     });
     if (data.status === "booting") {
-      setStatus(workflow.id, data.node_id, "booting");
+      const predictionJobId =
+        (data as { job_id?: string | null }).job_id ?? undefined;
+      if (predictionJobId) {
+        setStatus(workflow.id, predictionJobId, data.node_id, "booting");
+      }
     }
   }
 
@@ -626,6 +630,12 @@ export const handleUpdate = (
       return;
     }
 
+    // Per-node status/error/timing are scoped by the run that produced them so
+    // concurrent same-workflow runs stay isolated. The backend stamps job_id on
+    // every data message; if it's somehow absent, skip the per-job writes rather
+    // than writing a malformed key.
+    const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+
     const normalizedNodeError = normalizeNodeError(update.error);
     if (normalizedNodeError) {
       console.error("WorkflowRunner update error", normalizedNodeError);
@@ -635,9 +645,11 @@ export const handleUpdate = (
         content: String(normalizedNodeError)
       });
       runnerStore.setState({ state: "error" });
-      endExecution(workflow.id, update.node_id);
-      setStatus(workflow.id, update.node_id, update.status);
-      setError(workflow.id, update.node_id, normalizedNodeError);
+      if (jobId) {
+        endExecution(workflow.id, jobId, update.node_id);
+        setStatus(workflow.id, jobId, update.node_id, update.status);
+        setError(workflow.id, jobId, update.node_id, normalizedNodeError);
+      }
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
@@ -652,27 +664,29 @@ export const handleUpdate = (
         statusMessage: `${update.node_name} ${update.status}`
       });
 
-      // Track execution timing
-      const previousStatus = getStatus(workflow.id, update.node_id);
-      const isStarting =
-        update.status === "running" ||
-        update.status === "starting" ||
-        update.status === "booting";
-      const isFinishing =
-        update.status === "completed" || update.status === "error";
+      // Track execution timing (per job)
+      if (jobId) {
+        const previousStatus = getStatus(workflow.id, jobId, update.node_id);
+        const isStarting =
+          update.status === "running" ||
+          update.status === "starting" ||
+          update.status === "booting";
+        const isFinishing =
+          update.status === "completed" || update.status === "error";
 
-      if (
-        isStarting &&
-        previousStatus !== "running" &&
-        previousStatus !== "starting" &&
-        previousStatus !== "booting"
-      ) {
-        startExecution(workflow.id, update.node_id);
-      } else if (isFinishing) {
-        endExecution(workflow.id, update.node_id);
+        if (
+          isStarting &&
+          previousStatus !== "running" &&
+          previousStatus !== "starting" &&
+          previousStatus !== "booting"
+        ) {
+          startExecution(workflow.id, jobId, update.node_id);
+        } else if (isFinishing) {
+          endExecution(workflow.id, jobId, update.node_id);
+        }
+
+        setStatus(workflow.id, jobId, update.node_id, update.status);
       }
-
-      setStatus(workflow.id, update.node_id, update.status);
 
       if (update.provider_cost) {
         setProviderCost(workflow.id, update.node_id, update.provider_cost);

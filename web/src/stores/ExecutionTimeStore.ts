@@ -30,21 +30,29 @@ interface ExecutionTiming {
 
 interface ExecutionTimeStore {
   timings: Record<string, ExecutionTiming>;
-  startExecution: (workflowId: string, nodeId: string) => void;
-  endExecution: (workflowId: string, nodeId: string) => void;
-  getTiming: (workflowId: string, nodeId: string) => ExecutionTiming | undefined;
-  getDuration: (workflowId: string, nodeId: string) => number | undefined;
+  startExecution: (workflowId: string, jobId: string, nodeId: string) => void;
+  endExecution: (workflowId: string, jobId: string, nodeId: string) => void;
+  getTiming: (
+    workflowId: string,
+    jobId: string,
+    nodeId: string
+  ) => ExecutionTiming | undefined;
+  getDuration: (
+    workflowId: string,
+    jobId: string,
+    nodeId: string
+  ) => number | undefined;
   clearTimings: (workflowId: string) => void;
 }
 
-const hashKey = (workflowId: string, nodeId: string) =>
-  `${workflowId}:${nodeId}`;
+const hashKey = (workflowId: string, jobId: string, nodeId: string) =>
+  `${workflowId}:${jobId}:${nodeId}`;
 
 const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
   timings: {},
 
-  startExecution: (workflowId: string, nodeId: string) => {
-    const key = hashKey(workflowId, nodeId);
+  startExecution: (workflowId: string, jobId: string, nodeId: string) => {
+    const key = hashKey(workflowId, jobId, nodeId);
     set((state) => ({
       timings: {
         ...state.timings,
@@ -53,8 +61,8 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
     }));
   },
 
-  endExecution: (workflowId: string, nodeId: string) => {
-    const key = hashKey(workflowId, nodeId);
+  endExecution: (workflowId: string, jobId: string, nodeId: string) => {
+    const key = hashKey(workflowId, jobId, nodeId);
     set((state) => {
       const existing = state.timings[key];
       if (existing) {
@@ -69,13 +77,13 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
     });
   },
 
-  getTiming: (workflowId: string, nodeId: string) => {
-    const key = hashKey(workflowId, nodeId);
+  getTiming: (workflowId: string, jobId: string, nodeId: string) => {
+    const key = hashKey(workflowId, jobId, nodeId);
     return get().timings[key];
   },
 
-  getDuration: (workflowId: string, nodeId: string) => {
-    const key = hashKey(workflowId, nodeId);
+  getDuration: (workflowId: string, jobId: string, nodeId: string) => {
+    const key = hashKey(workflowId, jobId, nodeId);
     const timing = get().timings[key];
     if (!timing || !timing.endTime) {
       return undefined;

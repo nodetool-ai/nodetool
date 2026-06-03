@@ -30,6 +30,7 @@ import {
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineGenerationStore } from "../../../stores/timeline/TimelineGenerationStore";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
@@ -434,14 +435,19 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     return { status: rawJobState.status as ClipGenerationState["status"] };
   }, [rawJobState]);
 
-  // Node-level errors from ErrorStore, keyed by the clip's workflowId.
+  // Node-level errors from ErrorStore. Error keys are now scoped per run
+  // (`${wf}:${jobId}:${node}`), so restrict the scan to the workflow's focused
+  // run; with no focused run there's no error to surface.
   const workflowId = clip?.workflowId;
   const errorEntries = useErrorStore((s) => s.errors);
+  const focusedJobId = useWorkflowRunsStore((s) =>
+    workflowId ? s.focusedJob[workflowId] : undefined
+  );
   const errorState: ClipErrorState | null = useMemo(() => {
-    if (!workflowId) {
+    if (!workflowId || !focusedJobId) {
       return null;
     }
-    const prefix = `${workflowId}:`;
+    const prefix = `${workflowId}:${focusedJobId}:`;
     for (const key of Object.keys(errorEntries)) {
       if (key.startsWith(prefix) && hasNodeError(errorEntries[key])) {
         return {
@@ -451,7 +457,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       }
     }
     return null;
-  }, [workflowId, errorEntries]);
+  }, [workflowId, focusedJobId, errorEntries]);
 
   // Derive the displayed status badge.
   // For the "missing" check we trust clip.currentAssetId: if it's set,

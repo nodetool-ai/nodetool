@@ -6,6 +6,7 @@
 import { renderHook, act } from "@testing-library/react";
 import useStatusStore from "../../../stores/StatusStore";
 import useResultsStore from "../../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import {
   useNodeStatus,
   useNodeProgress,
@@ -13,6 +14,7 @@ import {
 } from "../useNodeExecState";
 
 const WF = "wf-test";
+const JOB = "job-1";
 const NODE = "node-1";
 const EDGE = "edge-1";
 
@@ -20,6 +22,14 @@ beforeEach(() => {
   // Reset relevant slices of each store to a clean state
   useStatusStore.setState({ statuses: {} });
   useResultsStore.setState({ progress: {}, edges: {} });
+  useWorkflowRunsStore.setState({ runs: {}, focusedJob: {}, pinned: {} });
+  // Most status reads resolve against the workflow's focused run.
+  useWorkflowRunsStore.getState().recordRun({
+    jobId: JOB,
+    workflowId: WF,
+    state: "running",
+    startedAt: 1
+  });
 });
 
 describe("useNodeStatus", () => {
@@ -30,7 +40,7 @@ describe("useNodeStatus", () => {
 
   it("returns the status value that was set in the store", () => {
     act(() => {
-      useStatusStore.getState().setStatus(WF, NODE, "running");
+      useStatusStore.getState().setStatus(WF, JOB, NODE, "running");
     });
     const { result } = renderHook(() => useNodeStatus(WF, NODE));
     expect(result.current).toBe("running");
@@ -41,20 +51,20 @@ describe("useNodeStatus", () => {
     expect(result.current).toBeUndefined();
 
     act(() => {
-      useStatusStore.getState().setStatus(WF, NODE, "running");
+      useStatusStore.getState().setStatus(WF, JOB, NODE, "running");
     });
     expect(result.current).toBe("running");
 
     act(() => {
-      useStatusStore.getState().setStatus(WF, NODE, "completed");
+      useStatusStore.getState().setStatus(WF, JOB, NODE, "completed");
     });
     expect(result.current).toBe("completed");
   });
 
   it("is keyed by workflowId+nodeId — changes to another node don't affect this hook", () => {
     act(() => {
-      useStatusStore.getState().setStatus(WF, NODE, "running");
-      useStatusStore.getState().setStatus(WF, "node-2", "completed");
+      useStatusStore.getState().setStatus(WF, JOB, NODE, "running");
+      useStatusStore.getState().setStatus(WF, JOB, "node-2", "completed");
     });
     const { result } = renderHook(() => useNodeStatus(WF, NODE));
     expect(result.current).toBe("running");

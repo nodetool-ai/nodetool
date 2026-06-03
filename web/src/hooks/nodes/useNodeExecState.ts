@@ -6,10 +6,12 @@
  * a future "focused-run" lens can be resolved in exactly one place — the bodies
  * of these hooks — rather than scattered across every consuming component.
  *
- * TODAY (behavior-neutral): each hook simply delegates to the underlying store
- * getter, keyed by (workflowId, nodeId).  In a later task the hook bodies will
- * be changed to resolve the *focused job* for concurrent same-workflow runs;
- * consumers will not need to change.
+ * Status, error, and execution-duration are scoped per run: these hooks
+ * resolve the workflow's *focused job* (WorkflowRunsStore) and key the
+ * underlying store by `(workflowId, focusedJobId, nodeId)`.  For a single run
+ * the focused job is that run, so behavior is unchanged.  When there is no
+ * focused job they return `undefined`/`false`.  Progress / results / edges /
+ * cost still read ResultsStore by `(workflowId, nodeId)` (flipped separately).
  */
 
 import { useShallow } from "zustand/react/shallow";
@@ -17,6 +19,7 @@ import useStatusStore from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import type { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../../stores/ApiTypes";
 
 // ── Type re-exports (keep consumers from reaching into individual stores) ────
@@ -34,38 +37,48 @@ type NodeError = Error | string | null | ErrorObject;
 // ── Status ───────────────────────────────────────────────────────────────────
 
 /**
- * Reactive hook that returns the current status for the given workflow+node.
- * Equivalent to `useStatusStore(s => s.getStatus(workflowId, nodeId))`.
+ * Reactive hook that returns the current status for the given workflow+node,
+ * resolved against the workflow's focused run. Re-renders on focus change AND
+ * on status change (both stores are subscribed).
  */
 export function useNodeStatus(
   workflowId: string,
   nodeId: string
 ): StatusValue | undefined {
-  return useStatusStore((s) => s.getStatus(workflowId, nodeId));
+  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  return useStatusStore((s) =>
+    jobId ? s.getStatus(workflowId, jobId, nodeId) : undefined
+  );
 }
 
 // ── Errors ───────────────────────────────────────────────────────────────────
 
 /**
- * Reactive hook that returns the current error for the given workflow+node.
- * Equivalent to `useErrorStore(s => s.getError(workflowId, nodeId))`.
+ * Reactive hook that returns the current error for the given workflow+node,
+ * resolved against the workflow's focused run.
  */
 export function useNodeError(
   workflowId: string,
   nodeId: string
-): NodeError {
-  return useErrorStore((s) => s.getError(workflowId, nodeId));
+): NodeError | undefined {
+  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  return useErrorStore((s) =>
+    jobId ? s.getError(workflowId, jobId, nodeId) : undefined
+  );
 }
 
 /**
- * Reactive hook that returns `true` if the node currently has an error.
- * Equivalent to `useErrorStore(s => hasNodeError(s.getError(workflowId, nodeId)))`.
+ * Reactive hook that returns `true` if the node currently has an error in the
+ * workflow's focused run.
  */
 export function useNodeHasError(
   workflowId: string,
   nodeId: string
 ): boolean {
-  return useErrorStore((s) => hasNodeError(s.getError(workflowId, nodeId)));
+  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  return useErrorStore((s) =>
+    jobId ? hasNodeError(s.getError(workflowId, jobId, nodeId)) : false
+  );
 }
 
 // ── Progress ─────────────────────────────────────────────────────────────────
@@ -85,14 +98,17 @@ export function useNodeProgress(
 
 /**
  * Reactive hook that returns the execution duration (ms) for the given
- * workflow+node, or `undefined` if execution has not completed.
- * Equivalent to `useExecutionTimeStore(s => s.getDuration(workflowId, nodeId))`.
+ * workflow+node in the workflow's focused run, or `undefined` if execution has
+ * not completed (or there is no focused run).
  */
 export function useNodeExecutionDuration(
   workflowId: string,
   nodeId: string
 ): number | undefined {
-  return useExecutionTimeStore((s) => s.getDuration(workflowId, nodeId));
+  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  return useExecutionTimeStore((s) =>
+    jobId ? s.getDuration(workflowId, jobId, nodeId) : undefined
+  );
 }
 
 // ── Edge status ──────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { Caption, Tooltip, Box } from "../../ui_primitives";
 import useStatusStore, { hashKey } from "../../../stores/StatusStore";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { Workflow } from "../../../stores/ApiTypes";
 
 interface MiniWorkflowGraphProps {
@@ -152,6 +153,10 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
   isRunning: _isRunning = false
 }) => {
   const statuses = useStatusStore((state) => state.statuses);
+  // Node statuses are keyed per run; display the workflow's focused run.
+  const focusedJobId = useWorkflowRunsStore(
+    (state) => state.focusedJob[workflow.id]
+  );
 
   const containerWidth = CONTAINER_WIDTH;
   const containerHeight = CONTAINER_HEIGHT;
@@ -310,7 +315,9 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
               return null;
             }
 
-            const sourceStatus = statuses[hashKey(workflow.id, edge.source)];
+            const sourceStatus = focusedJobId
+              ? statuses[hashKey(workflow.id, focusedJobId, edge.source)]
+              : undefined;
             const isActive = sourceStatus === "completed" || sourceStatus === "running";
             const edgeKey = `${edge.source}-${edge.target}`;
 
@@ -333,7 +340,9 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
 
         {/* Nodes */}
         {layoutNodes.map((node) => {
-          const status = statuses[hashKey(workflow.id, node.id)];
+          const status = focusedJobId
+            ? statuses[hashKey(workflow.id, focusedJobId, node.id)]
+            : undefined;
           const statusClass = status || "";
 
           return (

@@ -85,18 +85,20 @@ describe("handleUpdate", () => {
   });
 
   it("stores error on node_update with error", () => {
-    const update: NodeUpdate = {
+    const update = {
       type: "node_update",
       node_id: "n1",
       node_name: "Node 1",
       node_type: "test.Node",
       status: "error",
-      error: "something failed"
-    };
+      error: "something failed",
+      // Per-node error is keyed by the producing run's job_id.
+      job_id: "job-1"
+    } as unknown as NodeUpdate;
 
     handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
 
-    const error = useErrorStore.getState().getError("workflow-1", "n1");
+    const error = useErrorStore.getState().getError("workflow-1", "job-1", "n1");
     expect(error).toBe("something failed");
     expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: "error" });
   });

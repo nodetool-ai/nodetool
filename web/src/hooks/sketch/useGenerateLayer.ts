@@ -155,9 +155,16 @@ const forwardWorkflowMessage = (
   workflowId: string,
   message: WebSocketMessage
 ): void => {
+  // Per-node status/error are scoped by the producing run's job_id so
+  // concurrent same-workflow runs stay isolated. Skip the write if absent.
+  const jobId =
+    typeof message.job_id === "string" ? message.job_id : undefined;
+
   if (message.type === "prediction" && typeof message.node_id === "string") {
-    if (message.status === "booting") {
-      useStatusStore.getState().setStatus(workflowId, message.node_id, "booting");
+    if (message.status === "booting" && jobId) {
+      useStatusStore
+        .getState()
+        .setStatus(workflowId, jobId, message.node_id, "booting");
     }
     return;
   }
@@ -188,20 +195,25 @@ const forwardWorkflowMessage = (
   }
 
   if (message.type === "node_update" && typeof message.node_id === "string") {
+    if (!jobId) {
+      return;
+    }
     const nodeStatus =
       typeof message.status === "string"
         ? message.status
         : typeof message.status === "object" && message.status !== null
           ? (message.status as Record<string, unknown>)
           : undefined;
-    useStatusStore.getState().setStatus(workflowId, message.node_id, nodeStatus);
+    useStatusStore
+      .getState()
+      .setStatus(workflowId, jobId, message.node_id, nodeStatus);
     const nodeError =
       typeof message.error === "string" && message.error.trim().length > 0
         ? message.error
         : null;
     useErrorStore
       .getState()
-      .setError(workflowId, message.node_id, nodeError);
+      .setError(workflowId, jobId, message.node_id, nodeError);
     return;
   }
 
@@ -340,6 +352,7 @@ export const handleJobMessage = async (
           .getState()
           .setError(
             context.workflowId,
+            jobId,
             context.selectedOutputNodeId ?? "__job__",
             errorMessage
           );
@@ -362,7 +375,9 @@ export const handleJobMessage = async (
         : `Job ${status}`;
 
     const nodeId = context.selectedOutputNodeId ?? "__job__";
-    useErrorStore.getState().setError(context.workflowId, nodeId, errorMessage);
+    useErrorStore
+      .getState()
+      .setError(context.workflowId, jobId, nodeId, errorMessage);
     generationStore.updateJobStatus(jobId, "failed", { errorMessage });
     context.onFailed?.(errorMessage);
     unsubscribeJob(jobId);
