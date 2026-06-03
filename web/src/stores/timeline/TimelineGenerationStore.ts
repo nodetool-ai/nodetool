@@ -21,6 +21,7 @@ import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { useTimelineStore } from "./TimelineStore";
 import useResultsStore from "../ResultsStore";
+import { extractAssetId } from "../outputAssetId";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -251,30 +252,12 @@ export const useTimelineGenerationStore =
 
       getClipJobState: (clipId) => get().clipJobs[clipId],
 
-      resolveOutputAssetId: (workflowId, selectedOutputNodeId) => {
-        const result = useResultsStore
-          .getState()
-          .getOutputResult(workflowId, selectedOutputNodeId);
-
-        // The result may be an AssetRef ({ uri, asset_id }) or a plain string ID.
-        if (!result) {
-          return undefined;
-        }
-        if (typeof result === "string") {
-          return result;
-        }
-        if (typeof result === "object" && result !== null) {
-          const r = result as Record<string, unknown>;
-          if (typeof r.asset_id === "string") {
-            return r.asset_id;
-          }
-          // Some result types carry the ID under different keys.
-          if (typeof r.id === "string") {
-            return r.id;
-          }
-        }
-        return undefined;
-      }
+      resolveOutputAssetId: (workflowId, selectedOutputNodeId) =>
+        extractAssetId(
+          useResultsStore
+            .getState()
+            .getOutputResult(workflowId, selectedOutputNodeId)
+        )
     };
   });
 

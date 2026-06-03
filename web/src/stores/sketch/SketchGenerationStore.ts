@@ -17,6 +17,7 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import useResultsStore from "../ResultsStore";
+import { extractAssetId } from "../outputAssetId";
 
 export type LayerGenerationStatus =
   | "queued"
@@ -207,28 +208,12 @@ export const useSketchGenerationStore = create<SketchGenerationStoreState>(
 
       getLayerJobState: (layerId) => get().layerJobs[layerId],
 
-      resolveOutputAssetId: (workflowId, selectedOutputNodeId) => {
-        const result = useResultsStore
-          .getState()
-          .getOutputResult(workflowId, selectedOutputNodeId);
-
-        if (!result) {
-          return undefined;
-        }
-        if (typeof result === "string") {
-          return result;
-        }
-        if (typeof result === "object" && result !== null) {
-          const r = result as Record<string, unknown>;
-          if (typeof r.asset_id === "string") {
-            return r.asset_id;
-          }
-          if (typeof r.id === "string") {
-            return r.id;
-          }
-        }
-        return undefined;
-      }
+      resolveOutputAssetId: (workflowId, selectedOutputNodeId) =>
+        extractAssetId(
+          useResultsStore
+            .getState()
+            .getOutputResult(workflowId, selectedOutputNodeId)
+        )
     };
   }
 );
