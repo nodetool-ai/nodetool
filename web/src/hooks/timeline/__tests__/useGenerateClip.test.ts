@@ -107,6 +107,7 @@ describe("useGenerateClip", () => {
       job_id: null as string | null,
       run: jest.fn(async () => {
         runnerState.job_id = "job-1";
+        return "job-1";
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({

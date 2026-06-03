@@ -105,6 +105,7 @@ describe("useGenerateLayer", () => {
       job_id: null as string | null,
       run: jest.fn(async () => {
         runnerState.job_id = "job-1";
+        return "job-1";
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
@@ -162,6 +163,7 @@ describe("useGenerateLayer", () => {
       job_id: null as string | null,
       run: jest.fn(async () => {
         runnerState.job_id = "job-2";
+        return "job-2";
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
@@ -238,6 +240,7 @@ describe("useGenerateLayer", () => {
       job_id: null as string | null,
       run: jest.fn(async () => {
         runnerState.job_id = "job-3";
+        return "job-3";
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
