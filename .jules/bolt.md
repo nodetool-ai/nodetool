@@ -10,3 +10,6 @@
 ## 2026-05-25 - O(N*M) Layer Grouping Optimization
 **Learning:** In `web/src/components/sketch/state/slices/documentSlice.ts`, the `groupLayers` function suffered from O(N*M) performance degradation due to nested operations: `.find()`, `.indexOf()`, and `.some()` inside `.map()` array iterations over layers.
 **Action:** Replace nested array lookups with a single-pass loop over the source array using a `Set` for subset lookups. This allows building the filtered selection and their corresponding indices in O(N) time and simplifies later `.some()` mapping iterations to O(N) using `.has()`.
+## 2026-05-25 - O(M*N) Sorting Optimization in Layer Deletion
+**Learning:** Found an $O(N \log N \times M)$ performance bottleneck in `web/src/components/sketch/hooks/useLayerActions.ts` where `document.layers.findIndex(...)` was called inside `toRemove.sort(...)` when deleting selected layers. Since we needed to iterate backwards over the array to preserve correct visual overlap/order when deleting layers, a `.sort` with `findIndex` caused redundant full-array scans.
+**Action:** Replace `toRemove.sort((a,b) => findIndex(b) - findIndex(a))` with an O(N) backward scan: create a Set of subset IDs, then iterate the main `layers` array backwards once, pushing IDs where the Set has the layer's ID. This automatically produces a correctly sorted array of IDs to remove.
