@@ -12,6 +12,7 @@ import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useErrorStore from "../../stores/ErrorStore";
 import { normalizeOutputUpdateValue } from "../../stores/outputUpdateValue";
+import { extractAssetId } from "../../stores/outputAssetId";
 import type { OutputUpdate } from "../../stores/ApiTypes";
 import {
   globalWebSocketManager,
@@ -41,6 +42,7 @@ interface TimelineClipLike {
 
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
+const jobOutputs = new Map<string, unknown>();
 
 const isActiveStatus = (status: string): boolean =>
   status === "queued" || status === "running";
@@ -76,6 +78,7 @@ const unsubscribeJob = (jobId: string): void => {
     jobSubscriptions.delete(jobId);
   }
   jobContexts.delete(jobId);
+  jobOutputs.delete(jobId);
 };
 
 export const __resetGenerateClipSubscriptionsForTests = (): void => {
@@ -84,6 +87,14 @@ export const __resetGenerateClipSubscriptionsForTests = (): void => {
   }
   jobSubscriptions.clear();
   jobContexts.clear();
+  jobOutputs.clear();
+};
+
+export const __setJobContextForTests = (
+  jobId: string,
+  context: JobSubscriptionContext
+): void => {
+  jobContexts.set(jobId, context);
 };
 
 const forwardWorkflowMessage = (
@@ -152,13 +163,20 @@ const forwardWorkflowMessage = (
   }
 };
 
-const handleJobMessage = (jobId: string, message: WebSocketMessage): void => {
+export const handleJobMessage = async (jobId: string, message: WebSocketMessage): Promise<void> => {
   const context = jobContexts.get(jobId);
   if (!context) {
     return;
   }
 
   forwardWorkflowMessage(context.workflowId, message);
+
+  if (
+    message.type === "output_update" &&
+    message.node_id === context.selectedOutputNodeId
+  ) {
+    jobOutputs.set(jobId, normalizeOutputUpdateValue(message as unknown as OutputUpdate));
+  }
 
   if (message.type !== "job_update") {
     return;
@@ -178,10 +196,7 @@ const handleJobMessage = (jobId: string, message: WebSocketMessage): void => {
 
   if (status === "completed") {
     const assetId = context.selectedOutputNodeId
-      ? generationStore.resolveOutputAssetId(
-          context.workflowId,
-          context.selectedOutputNodeId
-        )
+      ? extractAssetId(jobOutputs.get(jobId))
       : undefined;
 
     generationStore.updateJobStatus(jobId, "completed", { assetId });
@@ -239,7 +254,7 @@ const subscribeJob = async (
   await globalWebSocketManager.ensureConnection();
   jobContexts.set(jobId, context);
   const unsubscribe = globalWebSocketManager.subscribe(jobId, (message) =>
-    handleJobMessage(jobId, message)
+    void handleJobMessage(jobId, message)
   );
   jobSubscriptions.set(jobId, unsubscribe);
 
@@ -372,7 +387,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     // clip to the wrong job and strand its updates.
     const jobId = await runnerStore
       .getState()
-      .run(clip.paramOverrides ?? {}, workflow, nodes, edges);
+      .run(clip.paramOverrides ?? {}, workflow, nodes, edges, undefined, undefined, true);
 
     if (!jobId) {
       throw new Error("Workflow runner did not return a job id");
