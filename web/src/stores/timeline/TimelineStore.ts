@@ -341,6 +341,29 @@ export interface TimelineStoreState {
 
   /** Append a timeline marker (e.g. a scene boundary) at the given time. */
   addMarker: (timeMs: number, label?: string) => void;
+
+  /** Remove the marker with the given id. */
+  removeMarker: (id: string) => void;
+
+  /**
+   * Merge clip halves that were split at `timeMs` back into single clips — the
+   * inverse of {@link splitClipAtTime}. Per track, a left clip ending at `timeMs`
+   * and a right clip starting at `timeMs` that are contiguous in the same source
+   * (`right.inPointMs === left.outPointMs`, same asset) collapse into one.
+   */
+  mergeClipsAt: (timeMs: number) => void;
+
+  /**
+   * Drop a scene boundary at `timeMs`: add a marker AND split every clip there,
+   * as a SINGLE undo step. Inverse of {@link removeScene}.
+   */
+  addScene: (timeMs: number, label?: string) => void;
+
+  /**
+   * Remove a scene's marker AND merge back the clip it split, as a SINGLE undo
+   * step. A no-op merge is harmless for non-scene markers.
+   */
+  removeScene: (markerId: string) => void;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
@@ -349,6 +372,70 @@ type PartializedState = Pick<
   TimelineStoreState,
   "tracks" | "clips" | "markers" | "durationMs" | "transcript"
 >;
+
+// ── Scene split/merge helpers (pure) ───────────────────────────────────────
+
+/** Split every clip that strictly contains `timeMs` into two halves. */
+function splitAllClipsAt(
+  clips: TimelineClip[],
+  timeMs: number
+): TimelineClip[] {
+  let next = [...clips];
+  const toSplit = next.filter(
+    (c) => timeMs > c.startMs && timeMs < c.startMs + c.durationMs
+  );
+  for (const clip of toSplit) {
+    try {
+      const [left, right] = splitClip(clip, timeMs);
+      next = next.filter((c) => c.id !== clip.id).concat([left, right]);
+    } catch {
+      // Skip clips where the split is invalid (e.g. boundary mismatch).
+    }
+  }
+  return next;
+}
+
+/**
+ * Merge clip halves split at `timeMs` back into single clips — inverse of
+ * `splitClip`. Returns the same array reference when nothing merges.
+ */
+function mergeClipsAtTime(
+  clips: TimelineClip[],
+  timeMs: number
+): TimelineClip[] {
+  const EPS = 1;
+  const removed = new Set<string>();
+  const replaced = new Map<string, TimelineClip>();
+  for (const right of clips) {
+    if (removed.has(right.id)) continue;
+    if (Math.abs(right.startMs - timeMs) > EPS) continue;
+    const left = clips.find(
+      (c) =>
+        c.id !== right.id &&
+        !removed.has(c.id) &&
+        c.trackId === right.trackId &&
+        c.currentAssetId === right.currentAssetId &&
+        Math.abs(c.startMs + c.durationMs - timeMs) <= EPS &&
+        Math.abs(
+          (c.inPointMs ?? 0) + c.durationMs - (right.inPointMs ?? 0)
+        ) <= EPS
+    );
+    if (!left) continue;
+    const base = replaced.get(left.id) ?? left;
+    replaced.set(left.id, {
+      ...base,
+      durationMs: base.durationMs + right.durationMs,
+      outPointMs:
+        right.outPointMs ??
+        (base.inPointMs ?? 0) + base.durationMs + right.durationMs
+    });
+    removed.add(right.id);
+  }
+  if (removed.size === 0) return clips;
+  return clips
+    .filter((c) => !removed.has(c.id))
+    .map((c) => replaced.get(c.id) ?? c);
+}
 
 // ── Empty defaults ─────────────────────────────────────────────────────────
 
@@ -1055,7 +1142,42 @@ export const createTimelineStore = (
                 label: label ?? ""
               })
             ]
-          }))
+          })),
+
+        removeMarker: (id) =>
+          set((state) => ({
+            markers: state.markers.filter((m) => m.id !== id)
+          })),
+
+        mergeClipsAt: (timeMs) =>
+          set((state) => {
+            const next = mergeClipsAtTime(state.clips, timeMs);
+            return next === state.clips ? {} : { clips: next };
+          }),
+
+        addScene: (timeMs, label) =>
+          set((state) => ({
+            markers: [
+              ...state.markers,
+              makeMarker({
+                timeMs: Math.max(0, Math.round(timeMs)),
+                label: label ?? ""
+              })
+            ],
+            clips: splitAllClipsAt(state.clips, Math.round(timeMs))
+          })),
+
+        removeScene: (markerId) =>
+          set((state) => {
+            const marker = state.markers.find((m) => m.id === markerId);
+            const markers = state.markers.filter((m) => m.id !== markerId);
+            return {
+              markers,
+              clips: marker
+                ? mergeClipsAtTime(state.clips, marker.timeMs)
+                : state.clips
+            };
+          })
       }),
       {
         limit: 100,

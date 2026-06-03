@@ -21,11 +21,13 @@ import type { Theme } from "@mui/material/styles";
 
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 
 interface RulerColors {
   bg: string;
   text: string;
   tick: string;
+  marker: string;
 }
 
 /**
@@ -43,7 +45,9 @@ function pickRulerColors(theme: Theme, mode: "light" | "dark"): RulerColors {
       palette?.text?.secondary ?? (mode === "dark" ? "#a0a0a0" : "#5a5550"),
     tick:
       palette?.divider ??
-      (mode === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)")
+      (mode === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)"),
+    marker:
+      palette?.primary?.main ?? (mode === "dark" ? "#5b9bd5" : "#1976d2")
   };
 }
 
@@ -63,6 +67,52 @@ const rulerStyles = (theme: Theme) =>
     userSelect: "none",
     backgroundColor: theme.vars.palette.background.paper,
     borderBottom: `1px solid ${theme.vars.palette.divider}`
+  });
+
+/** Overlay layer holding the interactive marker flags above the canvas. */
+const markerLayerStyles = css({
+  position: "absolute",
+  top: 0,
+  bottom: 0,
+  right: 0,
+  pointerEvents: "none"
+});
+
+const markerFlagStyles = (theme: Theme) =>
+  css({
+    position: "absolute",
+    top: 0,
+    transform: "translateX(-1px)",
+    display: "flex",
+    alignItems: "center",
+    gap: 2,
+    height: 14,
+    maxWidth: 140,
+    padding: "0 3px",
+    borderRadius: "0 3px 3px 0",
+    fontSize: 9,
+    lineHeight: "14px",
+    whiteSpace: "nowrap",
+    color: theme.vars.palette.primary.contrastText,
+    backgroundColor: theme.vars.palette.primary.main,
+    cursor: "pointer",
+    pointerEvents: "auto",
+    "& .marker-label": {
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    },
+    "& .marker-delete": {
+      display: "none",
+      border: "none",
+      background: "transparent",
+      color: "inherit",
+      cursor: "pointer",
+      padding: 0,
+      margin: 0,
+      fontSize: 11,
+      lineHeight: 1
+    },
+    "&:hover .marker-delete": { display: "inline" }
   });
 
 const canvasStyles = css({
@@ -130,6 +180,8 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
     const seek = useTimelinePlaybackStore((s) => s.seek);
     const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+    const markers = useTimelineStore((s) => s.markers);
+    const removeScene = useTimelineStore((s) => s.removeScene);
 
     // ── Draw ────────────────────────────────────────────────────────────────
 
@@ -206,7 +258,22 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           ctx.fillText(formatTimecode(tMs), px + 3, 3);
         }
       }
-    }, [msPerPx, scrollLeftPx, totalWidthPx, theme, headerWidthPx, activeMode]);
+
+      // Scene markers — a full-height guide line on the canvas; the interactive
+      // flag (label + delete) is a DOM overlay layered on top (see below).
+      for (const m of markers) {
+        const px = m.timeMs / msPerPx - scrollLeftPx;
+        if (px < 0 || px > w) {
+          continue;
+        }
+        ctx.strokeStyle = m.color || colors.marker;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px + 0.5, 0);
+        ctx.lineTo(px + 0.5, h);
+        ctx.stroke();
+      }
+    }, [msPerPx, scrollLeftPx, totalWidthPx, theme, headerWidthPx, activeMode, markers]);
 
     // ── Pointer interaction ─────────────────────────────────────────────────
 
@@ -258,6 +325,43 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           aria-valuemin={0}
           aria-valuenow={Math.round(currentTimeMs)}
         />
+        <div css={markerLayerStyles} style={{ left: headerWidthPx }}>
+          {markers.map((m) => {
+            const px = m.timeMs / msPerPx - scrollLeftPx;
+            if (px < 0 || px > totalWidthPx) {
+              return null;
+            }
+            return (
+              <div
+                key={m.id}
+                css={markerFlagStyles(theme)}
+                style={{ left: px, backgroundColor: m.color || undefined }}
+                title={`${m.label || "Marker"} — click to seek`}
+                data-testid="timeline-marker"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  seek(m.timeMs);
+                }}
+              >
+                <span className="marker-label">{m.label || "Marker"}</span>
+                <button
+                  type="button"
+                  className="marker-delete"
+                  data-testid="marker-delete"
+                  aria-label={`Delete marker ${m.label || ""}`.trim()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeScene(m.id);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }

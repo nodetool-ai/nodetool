@@ -7,7 +7,10 @@
  */
 import { useEffect } from "react";
 
-import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
+import {
+  useTimelineStoreApi,
+  timelineTemporalOf
+} from "../../stores/timeline/TimelineStore";
 
 import type { TimelineSequence } from "@nodetool-ai/timeline";
 
@@ -21,6 +24,9 @@ export function useLoadTimelineIntoStore(
       return;
     }
     store.getState().loadSequence(sequence);
+    // The load is a tracked `set`; clear history so the first Ctrl+Z can't
+    // undo "past" the loaded sequence into the empty default state.
+    timelineTemporalOf(store).clear();
   }, [sequence, store]);
 
   useEffect(() => {

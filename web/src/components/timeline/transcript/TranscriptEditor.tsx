@@ -44,12 +44,21 @@ import {
   $isRangeSelection,
   $isTextNode,
   $getSelection,
+  $nodesOfType,
   SELECTION_CHANGE_COMMAND,
   COMMAND_PRIORITY_LOW
 } from "lexical";
 
 import { WordNode, $createWordNode, $isWordNode } from "./WordNode";
 import { DraftNode, $createDraftNode, $isDraftNode } from "./DraftNode";
+import {
+  SlashCommandNode,
+  $createSlashCommandNode
+} from "./SlashCommandNode";
+import {
+  SceneBreakNode,
+  $createSceneBreakNode
+} from "./SceneBreakNode";
 import {
   applyEditorEdits,
   buildTranscriptDoc,
@@ -58,8 +67,12 @@ import {
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import {
+  useTimelineUIStoreApi,
+  useTimelinePlaybackStoreApi
+} from "../../../stores/timeline/TimelineInstance";
 import { EditorButton, FlexRow, Caption, SPACING } from "../../ui_primitives";
-import type { TimelineClip } from "@nodetool-ai/timeline";
+import type { TimelineClip, TimelineMarker } from "@nodetool-ai/timeline";
 
 type EditorMode = "script" | "write";
 
@@ -75,16 +88,44 @@ function transcriptSignature(clips: TimelineClip[]): string {
     .join("|");
 }
 
-/** Rebuild the editor tree from the projected transcript. */
-function $seedFromClips(clips: TimelineClip[]): void {
+/** Stable signature of the scene markers, to detect external add/remove. */
+function markerSignature(markers: TimelineMarker[]): string {
+  return [...markers]
+    .sort((a, b) => a.timeMs - b.timeMs)
+    .map((m) => `${m.id}@${m.timeMs}`)
+    .join("|");
+}
+
+/**
+ * Rebuild the editor tree from the projected transcript, interleaving scene
+ * breaks projected from the markers (block dividers placed by time). Markers are
+ * the source of truth, so the breaks survive a reseed; removing a break removes
+ * its marker (see {@link SceneBreakNode}).
+ */
+function $seedFromClips(clips: TimelineClip[], markers: TimelineMarker[]): void {
   const root = $getRoot();
   root.clear();
   const doc = buildTranscriptDoc(clips);
+
+  const ordered = [...markers].sort((a, b) => a.timeMs - b.timeMs);
+  let mi = 0;
+  const placeMarkersUpTo = (timeMs: number): void => {
+    while (mi < ordered.length && ordered[mi].timeMs <= timeMs) {
+      const marker = ordered[mi];
+      root.append(
+        $createSceneBreakNode(marker.id, marker.label || `Scene ${mi + 1}`)
+      );
+      mi++;
+    }
+  };
+
   if (doc.segments.length === 0) {
-    root.append($createParagraphNode());
+    placeMarkersUpTo(Infinity);
+    if (root.getChildrenSize() === 0) root.append($createParagraphNode());
     return;
   }
   for (const segment of doc.segments) {
+    placeMarkersUpTo(segment.startMs);
     const paragraph = $createParagraphNode();
     if (segment.isDraft) {
       if (segment.draftText) {
@@ -106,6 +147,7 @@ function $seedFromClips(clips: TimelineClip[]): void {
     }
     root.append(paragraph);
   }
+  placeMarkersUpTo(Infinity);
 }
 
 /**
@@ -164,33 +206,40 @@ function $extractEdits(): EditorEdits {
 const SyncPlugin: React.FC = () => {
   const [editor] = useLexicalComposerContext();
   const clips = useTimelineStore((s) => s.clips);
+  const markers = useTimelineStore((s) => s.markers);
   const setTranscriptAndClips = useTimelineStore((s) => s.setTranscriptAndClips);
 
   const focusedRef = useRef(false);
   const seededClipsRef = useRef<TimelineClip[]>(clips);
   const seededSigRef = useRef<string>("");
+  const seededMarkerSigRef = useRef<string>("");
 
   const reseed = useCallback(
-    (next: TimelineClip[]) => {
+    (nextClips: TimelineClip[], nextMarkers: TimelineMarker[]) => {
       editor.update(
-        () => $seedFromClips(next),
+        () => $seedFromClips(nextClips, nextMarkers),
         { discrete: true }
       );
-      seededClipsRef.current = next;
-      seededSigRef.current = transcriptSignature(next);
+      seededClipsRef.current = nextClips;
+      seededSigRef.current = transcriptSignature(nextClips);
+      seededMarkerSigRef.current = markerSignature(nextMarkers);
     },
     [editor]
   );
 
-  // Re-seed when the model's word content changes from outside the editor
-  // (generate / import / load / undo) while it is unfocused. The initial seed
-  // is done by `initialConfig.editorState`; this also fires on mount to capture
+  // Re-seed when the model changes from outside the editor while it is unfocused
+  // — word content (generate / import / load / undo) or scene markers (a "/ New
+  // scene" command, or a removed break). The initial seed is done by
+  // `initialConfig.editorState`; this also fires on mount to capture
   // `seededClipsRef` for the blur reconcile.
   useEffect(() => {
     if (focusedRef.current) return;
     const sig = transcriptSignature(clips);
-    if (sig !== seededSigRef.current) reseed(clips);
-  }, [clips, reseed]);
+    const msig = markerSignature(markers);
+    if (sig !== seededSigRef.current || msig !== seededMarkerSigRef.current) {
+      reseed(clips, markers);
+    }
+  }, [clips, markers, reseed]);
 
   // Reconcile the edit on blur.
   useEffect(() => {
@@ -354,7 +403,8 @@ const EditorSurface = styled("div")(({ theme }) => ({
     fontStyle: "italic"
   },
   "& .transcript-word.is-selected": {
-    backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.26)`
+    backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.34)`,
+    boxShadow: `0 0 0 1px rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`
   },
   "& .transcript-word.is-active": {
     backgroundColor: theme.vars.palette.primary.main,
@@ -379,89 +429,133 @@ const EditorBody: React.FC<{
   setMode: (mode: EditorMode) => void;
 }> = ({ mode, setMode }) => {
   const [editor] = useLexicalComposerContext();
-  const surfaceRef = useRef<HTMLDivElement>(null);
   const writing = mode === "write";
 
-  // Editability + focus follow the mode. Leaving Write blurs the editor, which
-  // triggers the SyncPlugin reconcile.
+  // Imperative handles to *this* instance's stores. We deliberately avoid the
+  // `useTimelineStore.getState()` statics: those route to whichever timeline is
+  // "active" on the activation stack, which is a *different* instance whenever a
+  // player/preview is also mounted. Binding seek / select / markers to the
+  // surrounding instance keeps them acting on the timeline the user is looking
+  // at, so click → highlight and the command keys actually land.
+  const playbackApi = useTimelinePlaybackStoreApi();
+  const uiApi = useTimelineUIStoreApi();
+
+  // Editability follows the mode. Leaving Write blurs the editor, which triggers
+  // the SyncPlugin reconcile.
   useEffect(() => {
     editor.setEditable(writing);
     const root = editor.getRootElement();
     if (writing) root?.focus();
-    else {
-      root?.blur();
-      surfaceRef.current?.focus();
-    }
+    else root?.blur();
   }, [editor, writing]);
 
   const togglePlay = useCallback(() => {
-    const pb = useTimelinePlaybackStore.getState();
+    const pb = playbackApi.getState();
     if (pb.isPlaying) pb.pause();
     else pb.play();
-  }, []);
+  }, [playbackApi]);
 
-  const dropSceneMarker = useCallback(() => {
-    const { currentTimeMs } = useTimelinePlaybackStore.getState();
-    const store = useTimelineStore.getState();
-    store.addMarker(currentTimeMs, `Scene ${store.markers.length + 1}`);
-  }, []);
-
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (writing) {
-        if ((e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S")) {
-          e.preventDefault();
-          togglePlay();
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          setMode("script");
-        }
+  // Insert the inline "/" command affordance (chip + query + menu). Works in
+  // both modes: in Script mode there's no caret, so it appends to the last
+  // paragraph; in Write mode it lands at the caret. Guarded so only one is open.
+  const openSlashCommand = useCallback(() => {
+    editor.update(() => {
+      if ($nodesOfType(SlashCommandNode).length > 0) return;
+      const node = $createSlashCommandNode();
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        selection.insertNodes([node]);
         return;
       }
+      const root = $getRoot();
+      let last = root.getLastChild();
+      if (!last || !$isElementNode(last)) {
+        last = $createParagraphNode();
+        root.append(last);
+      }
+      if ($isElementNode(last)) last.append(node);
+    });
+  }, [editor]);
+
+  // Script-mode commands are bound at the window — like the timeline's other
+  // shortcuts (see TracksRegion) — because clicking a word doesn't move focus to
+  // any one element, so a focus-scoped handler silently never fires. We bow out
+  // while typing (Write mode, inputs, contentEditable — including the slash
+  // command's own input) and while a control is focused, so Space still
+  // activates buttons.
+  useEffect(() => {
+    if (writing) return;
+    const isTypingTarget = (t: EventTarget | null): boolean =>
+      t instanceof HTMLInputElement ||
+      t instanceof HTMLTextAreaElement ||
+      t instanceof HTMLSelectElement ||
+      (t instanceof HTMLElement &&
+        (t.isContentEditable ||
+          t.closest('button, [role="button"], a') !== null));
+
+    const onWindowKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingTarget(e.target)) return;
       if (e.key === " ") {
         e.preventDefault();
         togglePlay();
       } else if (e.key === "/") {
         e.preventDefault();
-        dropSceneMarker();
+        openSlashCommand();
+      }
+    };
+
+    window.addEventListener("keydown", onWindowKeyDown);
+    return () => window.removeEventListener("keydown", onWindowKeyDown);
+  }, [writing, togglePlay, openSlashCommand]);
+
+  // Write-mode keys ride the editor (it holds focus): ⌘S plays, Esc finishes,
+  // and "/" at the start of a block opens the command menu (mid-text "/" stays
+  // a literal slash so words like "and/or" type normally).
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!writing) return;
+      if ((e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setMode("script");
+      } else if (e.key === "/") {
+        let atBlockStart = false;
+        editor.getEditorState().read(() => {
+          const selection = $getSelection();
+          if ($isRangeSelection(selection) && selection.isCollapsed()) {
+            atBlockStart = selection.anchor.offset === 0;
+          }
+        });
+        if (atBlockStart) {
+          e.preventDefault();
+          openSlashCommand();
+        }
       }
     },
-    [writing, setMode, togglePlay, dropSceneMarker]
+    [writing, setMode, togglePlay, editor, openSlashCommand]
   );
 
-  // Focus the surface on press (before the click) so single-letter commands are
-  // captured in Script mode; skip when pressing a control like the Write button.
-  const onMouseDown = useCallback(
+  const onClick = useCallback(
     (e: React.MouseEvent) => {
-      if (writing) return;
-      if ((e.target as HTMLElement).closest("button")) return;
-      surfaceRef.current?.focus();
+      const word = (e.target as HTMLElement).closest?.(
+        ".transcript-word"
+      ) as HTMLElement | null;
+      if (!word) return;
+      const start = Number(word.dataset.start);
+      if (Number.isFinite(start)) playbackApi.getState().seek(start);
+      // Selecting the clip highlights it here and on the timeline (bidirectional).
+      if (word.dataset.clip) uiApi.getState().setSelection([word.dataset.clip]);
     },
-    [writing]
+    [playbackApi, uiApi]
   );
-
-  const onClick = useCallback((e: React.MouseEvent) => {
-    const word = (e.target as HTMLElement).closest?.(
-      ".transcript-word"
-    ) as HTMLElement | null;
-    if (!word) return;
-    const start = Number(word.dataset.start);
-    if (Number.isFinite(start)) {
-      useTimelinePlaybackStore.getState().seek(start);
-    }
-    // Selecting the clip highlights it here and on the timeline (bidirectional).
-    if (word.dataset.clip) {
-      useTimelineUIStore.getState().setSelection([word.dataset.clip]);
-    }
-  }, []);
 
   return (
     <EditorSurface
-      ref={surfaceRef}
-      tabIndex={0}
       className={writing ? "is-writing" : undefined}
       onKeyDown={onKeyDown}
-      onMouseDown={onMouseDown}
       onClick={onClick}
       data-testid="transcript-surface"
     >
@@ -469,7 +563,7 @@ const EditorBody: React.FC<{
         <Caption sx={{ color: "text.disabled" }}>
           {writing
             ? "Writing — ⌘S plays · Esc to finish"
-            : "Click a word to jump · Space plays · / marks a scene"}
+            : "Click a word to jump · Space plays · / for commands"}
         </Caption>
         <EditorButton
           size="small"
@@ -523,9 +617,12 @@ export const TranscriptEditor: React.FC = () => {
   const initialConfig = useMemo<InitialConfigType>(
     () => ({
       namespace: "TranscriptEditor",
-      nodes: [WordNode, DraftNode],
+      nodes: [WordNode, DraftNode, SlashCommandNode, SceneBreakNode],
       editable: false,
-      editorState: () => $seedFromClips(useTimelineStore.getState().clips),
+      editorState: () => {
+        const state = useTimelineStore.getState();
+        $seedFromClips(state.clips, state.markers);
+      },
       onError: (error: Error) => {
         console.error(error);
       }

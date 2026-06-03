@@ -10,7 +10,7 @@
  */
 
 import React from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { makeClip } from "@nodetool-ai/timeline";
 import type { CaptionWord, TimelineClip } from "@nodetool-ai/timeline";
@@ -121,22 +121,71 @@ describe("TranscriptPanel", () => {
     expect(screen.getByText("world")).toHaveClass("is-selected");
   });
 
-  it("drops a scene marker on '/' and toggles playback on Space (Script mode)", () => {
+  it("opens the slash command on '/' regardless of focus; 'New scene' adds a marker", async () => {
     renderPanel();
     seed([voicedBeat([{ word: "hi", startMs: 0, endMs: 300 }])], 300);
-    const surface = screen.getByTestId("transcript-surface");
 
+    // Fire from the document body: clicking a word doesn't move focus onto the
+    // editor, so the command key must work at the window level, not via a
+    // focus-scoped handler. (This is the bug the previous focus hack missed.)
     act(() => {
-      fireEvent.keyDown(surface, { key: "/" });
+      fireEvent.keyDown(document.body, { key: "/" });
+    });
+    await screen.findByTestId("slash-command");
+
+    // Running "New scene" drops the marker (and would cut clips at the playhead).
+    act(() => {
+      fireEvent.mouseDown(screen.getByTestId("slash-item-scene"));
     });
     expect(useTimelineStore.getState().markers).toHaveLength(1);
     expect(useTimelineStore.getState().markers[0].label).toBe("Scene 1");
+    await waitFor(() =>
+      expect(screen.queryByTestId("slash-command")).not.toBeInTheDocument()
+    );
+  });
+
+  it("projects a scene break from a marker and removes the marker on ×", async () => {
+    renderPanel();
+    seed([voicedBeat([{ word: "hi", startMs: 0, endMs: 300 }])], 300);
+
+    act(() => {
+      useTimelineStore.getState().addMarker(0, "Scene 1");
+    });
+    const br = await screen.findByTestId("scene-break");
+    expect(br).toHaveTextContent("Scene 1");
+    expect(useTimelineStore.getState().markers).toHaveLength(1);
+
+    // Removing the break removes the linked marker (and merges any split clip).
+    act(() => {
+      fireEvent.click(screen.getByTestId("scene-break-delete"));
+    });
+    expect(useTimelineStore.getState().markers).toHaveLength(0);
+    await waitFor(() =>
+      expect(screen.queryByTestId("scene-break")).not.toBeInTheDocument()
+    );
+  });
+
+  it("toggles playback on Space regardless of focus", () => {
+    renderPanel();
+    seed([voicedBeat([{ word: "hi", startMs: 0, endMs: 300 }])], 300);
 
     expect(useTimelinePlaybackStore.getState().isPlaying).toBe(false);
     act(() => {
-      fireEvent.keyDown(surface, { key: " " });
+      fireEvent.keyDown(document.body, { key: " " });
     });
     expect(useTimelinePlaybackStore.getState().isPlaying).toBe(true);
+  });
+
+  it("does not hijack Space when a control is focused", () => {
+    renderPanel();
+    seed([voicedBeat([{ word: "hi", startMs: 0, endMs: 300 }])], 300);
+
+    // Space on a focused button must still activate the button, not play.
+    const generate = screen.getByRole("button", { name: /Generate all/i });
+    act(() => {
+      fireEvent.keyDown(generate, { key: " " });
+    });
+    expect(useTimelinePlaybackStore.getState().isPlaying).toBe(false);
   });
 
   it("marks filler words and surfaces a Remove fillers action", () => {
