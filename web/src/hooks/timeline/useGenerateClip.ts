@@ -366,11 +366,14 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     const edges = graphEdges.map(graphEdgeToReactFlowEdge);
 
     const runnerStore = getWorkflowRunnerStore(workflowId);
-    await runnerStore
+    // Use the id run() returns, not runnerStore.job_id: when the runner is
+    // already busy the run is queued under a fresh id while the store keeps
+    // pointing at the active run, so reading it back would subscribe this
+    // clip to the wrong job and strand its updates.
+    const jobId = await runnerStore
       .getState()
       .run(clip.paramOverrides ?? {}, workflow, nodes, edges);
 
-    const jobId = runnerStore.getState().job_id;
     if (!jobId) {
       throw new Error("Workflow runner did not return a job id");
     }

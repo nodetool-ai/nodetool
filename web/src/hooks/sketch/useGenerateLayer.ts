@@ -443,11 +443,14 @@ export const useGenerateLayer = (
     const edges = graphEdges.map(graphEdgeToReactFlowEdge);
 
     const runnerStore = getWorkflowRunnerStore(binding.workflowId);
-    await runnerStore
+    // Use the id run() returns, not runnerStore.job_id: when the runner is
+    // already busy the run is queued under a fresh id while the store keeps
+    // pointing at the active run, so reading it back would subscribe this
+    // layer to the wrong job and strand its updates.
+    const jobId = await runnerStore
       .getState()
       .run(binding.paramOverrides ?? {}, workflow, nodes, edges);
 
-    const jobId = runnerStore.getState().job_id;
     if (!jobId) {
       throw new Error("Workflow runner did not return a job id");
     }

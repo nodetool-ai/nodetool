@@ -155,11 +155,13 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
           const edges = graphEdges.map(graphEdgeToReactFlowEdge);
 
           const runnerStore = getWorkflowRunnerStore(workflowId);
-          await runnerStore
+          // Use the id run() returns, not runnerStore.job_id: a queued run gets
+          // a fresh id while the store still points at the active run, so
+          // reading it back would track the wrong job.
+          const jobId = await runnerStore
             .getState()
             .run(binding.paramOverrides ?? {}, workflow, nodes, edges);
 
-          const jobId = runnerStore.getState().job_id;
           if (!jobId) {
             failed++;
             continue;

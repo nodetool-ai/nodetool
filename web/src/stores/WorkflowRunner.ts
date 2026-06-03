@@ -153,6 +153,13 @@ export type WorkflowRunner = {
   cancel: () => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
+  /**
+   * Start (or queue) a run and resolve with the `job_id` of the run that was
+   * initiated. Callers must use this id — when the runner is already busy the
+   * run is queued under a fresh id while `runnerStore.job_id` keeps pointing at
+   * the active run, so reading the store after `run()` returns the wrong job.
+   * Rejects if the run could not be submitted to the backend.
+   */
   run: (
     params: Record<string, unknown>,
     workflow: WorkflowAttributes,
@@ -160,7 +167,7 @@ export type WorkflowRunner = {
     edges: Edge[],
     resource_limits?: Record<string, unknown>,
     subgraphNodeIds?: Set<string>
-  ) => Promise<void>;
+  ) => Promise<string>;
   reconnect: (jobId: string) => Promise<void>;
   reconnectWithWorkflow: (
     jobId: string,
@@ -403,8 +410,11 @@ export const createWorkflowRunnerStore = (
             `WorkflowRunner[${workflowId}]: Failed to submit queued run`,
             error
           );
+          // Surface the failure: the caller must not subscribe to / track a
+          // job that never reached the backend's queue.
+          throw error instanceof Error ? error : new Error(String(error));
         }
-        return;
+        return jobId;
       }
       if (stuck) {
         console.warn(
@@ -477,6 +487,8 @@ export const createWorkflowRunnerStore = (
         });
         throw error;
       }
+
+      return jobId;
     },
 
     /**
@@ -656,7 +668,7 @@ const defaultWorkflowRunner: WorkflowRunner = {
   cancel: async () => {},
   pause: async () => {},
   resume: async () => {},
-  run: async () => {},
+  run: async () => "",
   reconnect: async () => {},
   reconnectWithWorkflow: async () => {},
   ensureConnection: async () => {},

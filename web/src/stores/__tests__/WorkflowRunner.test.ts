@@ -1,6 +1,7 @@
 import { createWorkflowRunnerStore, deriveJobTitle } from "../WorkflowRunner";
 import useMetadataStore from "../MetadataStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import { uuidv4 } from "../uuidv4";
 import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
@@ -359,6 +360,40 @@ describe("WorkflowRunner", () => {
 
       await store.getState().run({}, testWorkflow, [], []);
       expect(globalWebSocketManager.send).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("run() return value", () => {
+    it("returns the job_id it created for a fresh run", async () => {
+      (uuidv4 as jest.Mock).mockReturnValueOnce("job-fresh");
+
+      const jobId = await store.getState().run({}, testWorkflow, [], []);
+
+      expect(jobId).toBe("job-fresh");
+      expect(store.getState().job_id).toBe("job-fresh");
+    });
+
+    it("returns the queued run's id (not the active one) when busy", async () => {
+      // A run is already in flight. Callers (sketch/timeline layer generation)
+      // need run() to hand back the NEW queued job's id so they subscribe to
+      // the right job. Before the fix run() returned void and callers fell
+      // back to runnerStore.job_id — the *previous* run's id — which stranded
+      // the queued job's updates and left its layer stuck "running".
+      store.setState({ state: "running", job_id: "job-active" });
+      (uuidv4 as jest.Mock).mockReturnValueOnce("job-queued");
+
+      const jobId = await store.getState().run({}, testWorkflow, [], []);
+
+      expect(jobId).toBe("job-queued");
+      // The queued run reached the backend under that same id.
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "run_job",
+          data: expect.objectContaining({ job_id: "job-queued" })
+        })
+      );
+      // The active run's tracked job_id is left untouched.
+      expect(store.getState().job_id).toBe("job-active");
     });
   });
 });
