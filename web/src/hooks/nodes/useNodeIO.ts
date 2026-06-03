@@ -16,6 +16,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useResultsStore from "../../stores/ResultsStore";
+import { useNodeResultValue } from "./useNodeExecState";
 import { unwrapOutput } from "../../utils/imageRef";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import type { NodeStoreState } from "../../stores/NodeStore";
@@ -37,9 +38,8 @@ export const useNodeOutput = (
   workflowId: string,
   nodeId: string
 ): unknown => {
-  return useResultsStore(
-    useShallow((state) => unwrapOutput(readAnyStoreValue(state, workflowId, nodeId)))
-  );
+  const raw = useNodeResultValue(workflowId, nodeId);
+  return unwrapOutput(raw);
 };
 
 /**
@@ -69,19 +69,13 @@ export const useUpstreamValue = (
     shallow
   );
 
-  return useResultsStore(useShallow((state) => {
-    if (!upstreamEdge) {
-      return constantFallback;
-    }
+  // Single-node read for the upstream source — migrated to accessor hook.
+  const upstreamRaw = useNodeResultValue(workflowId, upstreamEdge?.source ?? "");
 
-    const storeValue = unwrapOutput(
-      readAnyStoreValue(state, workflowId, upstreamEdge.source),
-      upstreamEdge.sourceHandle
-    );
-    if (storeValue !== undefined) {
-      return storeValue;
-    }
-
+  // resolveExternalEdgeValue is a multi-source fallback; keep it inside the
+  // store selector so it reads atomically from the store snapshot.
+  const fallbackValue = useResultsStore(useShallow((state) => {
+    if (!upstreamEdge) return undefined;
     const resolved = resolveExternalEdgeValue(
       upstreamEdge,
       workflowId,
@@ -90,6 +84,15 @@ export const useUpstreamValue = (
     );
     return resolved.hasValue ? resolved.value : undefined;
   }));
+
+  if (!upstreamEdge) {
+    return constantFallback;
+  }
+  const storeValue = unwrapOutput(upstreamRaw, upstreamEdge.sourceHandle);
+  if (storeValue !== undefined) {
+    return storeValue;
+  }
+  return fallbackValue;
 };
 
 /**
