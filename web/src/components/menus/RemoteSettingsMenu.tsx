@@ -195,10 +195,7 @@ const RemoteSettings = () => {
       return (await response.json()) as HfTokenResponse;
     },
     refetchInterval: (query) => {
-      // Handle both v4 (data) and v5 (Query object)
-      const queryState = (query as unknown as { state?: { data?: unknown } }).state;
-      const data = (queryState?.data ?? query) as HfTokenResponse | undefined;
-      // Poll if we are loading and don't have a token yet
+      const data = query.state.data as HfTokenResponse | undefined;
       if (hfOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
         return 2000;
       }

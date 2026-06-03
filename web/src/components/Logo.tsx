@@ -48,14 +48,7 @@ const logoStyles = (
       fontSize: fontSize,
       lineHeight: "1em",
       padding: "0px",
-      color: (() => {
-        // Type-safe theme color access with fallback
-        const themeRecord = theme as unknown as Record<string, unknown>;
-        const vars = themeRecord.vars as Record<string, unknown> | undefined;
-        const palette = vars?.palette as Record<string, unknown> | undefined;
-        const grey = palette?.grey as Record<string, string> | undefined;
-        return grey?.[0] ?? grey?.["50"] ?? "#000000";
-      })(),
+      color: theme.vars?.palette?.grey?.[50] ?? "#000000",
       borderRadius: ".1em",
       cursor: "pointer",
       boxSizing: "border-box",
