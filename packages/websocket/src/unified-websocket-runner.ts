@@ -604,6 +604,8 @@ export interface WebSocketConnection {
 export interface RunJobRequest {
   job_id?: string;
   workflow_id?: string;
+  /** Allow this run to start even if its workflow already has a run in flight. */
+  concurrent?: boolean;
   user_id?: string;
   auth_token?: string;
   /** Human-readable run title; persisted as the job name. */
@@ -1240,7 +1242,7 @@ export class UnifiedWebSocketRunner {
     // both observe a free slot before either registers.
     if (
       this.inFlightJobCount >= max ||
-      this.hasActiveJobForWorkflow(req.workflow_id)
+      (!req.concurrent && this.hasActiveJobForWorkflow(req.workflow_id))
     ) {
       await this.enqueueJob(req);
       return;
@@ -1299,7 +1301,7 @@ export class UnifiedWebSocketRunner {
       while (this.inFlightJobCount < max) {
         const candidate = this.jobQueue
           .positions()
-          .find((p) => !this.hasActiveJobForWorkflow(p.workflowId));
+          .find((p) => p.concurrent || !this.hasActiveJobForWorkflow(p.workflowId));
         if (!candidate) {
           break;
         }
