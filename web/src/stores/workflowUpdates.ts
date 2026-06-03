@@ -15,6 +15,7 @@ import {
   Message,
   Chunk
 } from "./ApiTypes";
+import useWorkflowRunsStore, { RunState } from "./WorkflowRunsStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
@@ -32,6 +33,30 @@ import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
 
 export type { NodeStore };
+
+/**
+ * Map a JobUpdate status string to the RunState enum used by WorkflowRunsStore.
+ * Returns undefined for statuses that have no meaningful RunState equivalent.
+ */
+const mapJobStatusToRunState = (status: string): RunState | undefined => {
+  switch (status) {
+    case "queued":
+      return "queued";
+    case "running":
+    case "suspended":
+    case "paused":
+      return "running";
+    case "completed":
+      return "completed";
+    case "failed":
+    case "timed_out":
+      return "error";
+    case "cancelled":
+      return "cancelled";
+    default:
+      return undefined;
+  }
+};
 
 type WorkflowSubscription = {
   workflowId: string;
@@ -390,6 +415,28 @@ export const handleUpdate = (
       newState = "cancelled";
     } else if (job.status === "failed" || job.status === "timed_out") {
       newState = "error";
+    }
+
+    // Populate the WorkflowRunsStore registry so concurrent runs can be tracked.
+    if (job.job_id) {
+      const runState = mapJobStatusToRunState(job.status);
+      if (runState) {
+        const runsStore = useWorkflowRunsStore.getState();
+        const known = runsStore
+          .getRuns(workflow.id)
+          .some((r) => r.jobId === job.job_id);
+        if (!known) {
+          runsStore.recordRun({
+            jobId: job.job_id,
+            workflowId: workflow.id,
+            state: runState,
+            startedAt: Date.now(),
+            label: job.job_id
+          });
+        } else {
+          runsStore.updateRunState(workflow.id, job.job_id, runState);
+        }
+      }
     }
 
     if (isRunnerJob) {
