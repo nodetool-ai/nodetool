@@ -2,7 +2,8 @@
 import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { Caption, Tooltip, Box } from "../../ui_primitives";
-import useStatusStore, { hashKey } from "../../../stores/StatusStore";
+import useStatusStore from "../../../stores/StatusStore";
+import { nodeKey } from "../../../stores/nodeKey";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { Workflow } from "../../../stores/ApiTypes";
 
@@ -316,7 +317,7 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
             }
 
             const sourceStatus = focusedJobId
-              ? statuses[hashKey(workflow.id, focusedJobId, edge.source)]
+              ? statuses[nodeKey(workflow.id, focusedJobId, edge.source)]
               : undefined;
             const isActive = sourceStatus === "completed" || sourceStatus === "running";
             const edgeKey = `${edge.source}-${edge.target}`;
@@ -341,7 +342,7 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
         {/* Nodes */}
         {layoutNodes.map((node) => {
           const status = focusedJobId
-            ? statuses[hashKey(workflow.id, focusedJobId, node.id)]
+            ? statuses[nodeKey(workflow.id, focusedJobId, node.id)]
             : undefined;
           const statusClass = status || "";
 

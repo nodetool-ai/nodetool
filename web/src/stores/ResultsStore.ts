@@ -10,18 +10,19 @@
 
 import { create } from "zustand";
 import { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "./ApiTypes";
+import { nodeKey, edgeKey, type NodeKey, type EdgeKey } from "./nodeKey";
 
 type ResultsStore = {
-  results: Record<string, unknown>;
-  outputResults: Record<string, unknown>;
-  providerCosts: Record<string, ProviderCost>;
+  results: Record<NodeKey, unknown>;
+  outputResults: Record<NodeKey, unknown>;
+  providerCosts: Record<NodeKey, ProviderCost>;
   resultsVersion: number;
-  progress: Record<string, { progress: number; total: number; chunk?: string }>;
-  edges: Record<string, { status: string; counter?: number }>;
-  chunks: Record<string, string>;
-  tasks: Record<string, Task>;
-  toolCalls: Record<string, ToolCallUpdate>;
-  planningUpdates: Record<string, PlanningUpdate>;
+  progress: Record<NodeKey, { progress: number; total: number; chunk?: string }>;
+  edges: Record<EdgeKey, { status: string; counter?: number }>;
+  chunks: Record<NodeKey, string>;
+  tasks: Record<NodeKey, Task>;
+  toolCalls: Record<NodeKey, ToolCallUpdate>;
+  planningUpdates: Record<NodeKey, PlanningUpdate>;
   deleteResult: (workflowId: string, jobId: string, nodeId: string) => void;
   clearResults: (workflowId: string, nodeIds?: Set<string>) => void;
   clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => void;
@@ -133,11 +134,8 @@ type ResultsStore = {
   ) => void;
 };
 
-export const hashKey = (
-  workflowId: string,
-  jobId: string,
-  nodeId: string
-): string => `${workflowId}:${jobId}:${nodeId}`;
+/** @deprecated kept as a re-export of `nodeKey` for backwards compatibility. */
+export const hashKey = nodeKey;
 
 /**
  * Filter a record by removing entries matching the given workflow.
@@ -150,11 +148,11 @@ export const hashKey = (
  *   `:${id}` for one of the ids (i.e. that node/edge across all of the
  *   workflow's jobs).
  */
-const filterRecord = <T>(
-  record: Record<string, T>,
+const filterRecord = <K extends string, T>(
+  record: Record<K, T>,
   workflowId: string,
   specificIds?: Set<string>
-): Record<string, T> => {
+): Record<K, T> => {
   const prefix = `${workflowId}:`;
   if (specificIds) {
     const suffixes = Array.from(specificIds).map((id) => `:${id}`);
@@ -171,7 +169,7 @@ const filterRecord = <T>(
   }
   // Optimization: Use for...in loop to avoid intermediate array allocation.
   // Match on the colon boundary so workflow IDs that share a prefix don't collide.
-  const newRecord: Record<string, T> = {};
+  const newRecord = {} as Record<K, T>;
   for (const key in record) {
     if (!key.startsWith(prefix)) {
       newRecord[key] = record[key];
@@ -209,7 +207,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     set((state) => ({
       planningUpdates: {
         ...state.planningUpdates,
-        [hashKey(workflowId, jobId, nodeId)]: planningUpdate
+        [nodeKey(workflowId, jobId, nodeId)]: planningUpdate
       }
     }));
   },
@@ -218,7 +216,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * The planning update is stored in the planningUpdates map.
    */
   getPlanningUpdate: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().planningUpdates[hashKey(workflowId, jobId, nodeId)];
+    return get().planningUpdates[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
    * Set the status for an edge.
@@ -231,7 +229,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     status: string,
     counter?: number
   ) => {
-    const key = hashKey(workflowId, jobId, edgeId);
+    const key = edgeKey(workflowId, jobId, edgeId);
     const existing = get().edges[key];
     const newCounter = counter !== undefined ? counter : existing?.counter;
     if (existing && existing.status === status && existing.counter === newCounter) return;
@@ -247,7 +245,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * The edge is stored in the edges map.
    */
   getEdge: (workflowId: string, jobId: string, edgeId: string) => {
-    return get().edges[hashKey(workflowId, jobId, edgeId)];
+    return get().edges[edgeKey(workflowId, jobId, edgeId)];
   },
   /**
    * Set the tool call for a node.
@@ -262,7 +260,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     set((state) => ({
       toolCalls: {
         ...state.toolCalls,
-        [hashKey(workflowId, jobId, nodeId)]: toolCall
+        [nodeKey(workflowId, jobId, nodeId)]: toolCall
       }
     }));
   },
@@ -271,7 +269,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * The tool call is stored in the toolCalls map.
    */
   getToolCall: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().toolCalls[hashKey(workflowId, jobId, nodeId)];
+    return get().toolCalls[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
    * Set the task for a node.
@@ -279,7 +277,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    */
   setTask: (workflowId: string, jobId: string, nodeId: string, task: Task) => {
     set((state) => ({
-      tasks: { ...state.tasks, [hashKey(workflowId, jobId, nodeId)]: task }
+      tasks: { ...state.tasks, [nodeKey(workflowId, jobId, nodeId)]: task }
     }));
   },
   /**
@@ -287,7 +285,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * The task is stored in the tasks map.
    */
   getTask: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().tasks[hashKey(workflowId, jobId, nodeId)];
+    return get().tasks[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
    * Delete the result for a node.
@@ -298,7 +296,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    * @param nodeId The id of the node.
    */
   deleteResult: (workflowId: string, jobId: string, nodeId: string) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     set((state) => {
       const { [key]: removed, ...remainingResults } = state.results;
       return { results: remainingResults };
@@ -374,7 +372,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     result: unknown,
     append?: boolean
   ) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     set((state) => {
       const currentResult = state.results[key];
       const nextVersion = state.resultsVersion + 1;
@@ -412,7 +410,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    */
   getResult: (workflowId: string, jobId: string, nodeId: string) => {
     const results = get().results;
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     return results[key];
   },
 
@@ -425,13 +423,13 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     set((state) => ({
       providerCosts: {
         ...state.providerCosts,
-        [hashKey(workflowId, jobId, nodeId)]: cost
+        [nodeKey(workflowId, jobId, nodeId)]: cost
       }
     }));
   },
 
   getProviderCost: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().providerCosts[hashKey(workflowId, jobId, nodeId)];
+    return get().providerCosts[nodeKey(workflowId, jobId, nodeId)];
   },
 
   /**
@@ -444,7 +442,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    */
   getOutputResult: (workflowId: string, jobId: string, nodeId: string) => {
     const outputResults = get().outputResults;
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     const result = outputResults[key];
     return result;
   },
@@ -466,7 +464,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     result: unknown,
     append?: boolean
   ) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     set((state) => {
       const currentResult = state.outputResults[key];
       const nextVersion = state.resultsVersion + 1;
@@ -516,7 +514,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     total: number,
     chunk?: string
   ) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     set((state) => {
       const currentChunk = state.progress[key]?.chunk || "";
       return {
@@ -539,7 +537,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    */
   getProgress: (workflowId: string, jobId: string, nodeId: string) => {
     const progress = get().progress;
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     return progress[key];
   },
   addChunk: (
@@ -548,14 +546,14 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     nodeId: string,
     chunk: string
   ) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     set((state) => {
       const currentChunk = state.chunks[key] || "";
       return { chunks: { ...state.chunks, [key]: currentChunk + chunk } };
     });
   },
   getChunk: (workflowId: string, jobId: string, nodeId: string) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     return get().chunks[key];
   }
 }));

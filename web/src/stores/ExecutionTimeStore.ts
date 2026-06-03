@@ -22,6 +22,7 @@
  * ```
  */
 import { create } from "zustand";
+import { nodeKey, type NodeKey } from "./nodeKey";
 
 interface ExecutionTiming {
   startTime: number;
@@ -29,7 +30,7 @@ interface ExecutionTiming {
 }
 
 interface ExecutionTimeStore {
-  timings: Record<string, ExecutionTiming>;
+  timings: Record<NodeKey, ExecutionTiming>;
   startExecution: (workflowId: string, jobId: string, nodeId: string) => void;
   endExecution: (workflowId: string, jobId: string, nodeId: string) => void;
   getTiming: (
@@ -45,14 +46,11 @@ interface ExecutionTimeStore {
   clearTimings: (workflowId: string) => void;
 }
 
-const hashKey = (workflowId: string, jobId: string, nodeId: string) =>
-  `${workflowId}:${jobId}:${nodeId}`;
-
 const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
   timings: {},
 
   startExecution: (workflowId: string, jobId: string, nodeId: string) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     set((state) => ({
       timings: {
         ...state.timings,
@@ -62,7 +60,7 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
   },
 
   endExecution: (workflowId: string, jobId: string, nodeId: string) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     set((state) => {
       const existing = state.timings[key];
       if (existing) {
@@ -78,12 +76,12 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
   },
 
   getTiming: (workflowId: string, jobId: string, nodeId: string) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     return get().timings[key];
   },
 
   getDuration: (workflowId: string, jobId: string, nodeId: string) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     const timing = get().timings[key];
     if (!timing || !timing.endTime) {
       return undefined;
@@ -94,10 +92,10 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
   clearTimings: (workflowId: string) => {
     set((state) => {
       const prefix = `${workflowId}:`;
-      const newTimings: Record<string, ExecutionTiming> = {};
+      const newTimings: Record<NodeKey, ExecutionTiming> = {};
       for (const key in state.timings) {
         if (!key.startsWith(prefix)) {
-          newTimings[key] = state.timings[key];
+          newTimings[key as NodeKey] = state.timings[key as NodeKey];
         }
       }
       return { timings: newTimings };

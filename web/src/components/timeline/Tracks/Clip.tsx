@@ -34,6 +34,7 @@ import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
+import { type NodeKey } from "../../../stores/nodeKey";
 import { StatusIndicator } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
@@ -448,7 +449,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       return null;
     }
     const prefix = `${workflowId}:${focusedJobId}:`;
-    for (const key of Object.keys(errorEntries)) {
+    for (const key of Object.keys(errorEntries) as NodeKey[]) {
       if (key.startsWith(prefix) && hasNodeError(errorEntries[key])) {
         return {
           hasError: true,

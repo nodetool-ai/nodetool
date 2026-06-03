@@ -20,6 +20,7 @@ import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import { nodeKey } from "../../stores/nodeKey";
 import type { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../../stores/ApiTypes";
 
 // ── Type re-exports (keep consumers from reaching into individual stores) ────
@@ -209,7 +210,7 @@ export function useNodeArtifacts(
           planningUpdate: undefined
         };
       }
-      const key = `${workflowId}:${jobId}:${nodeId}`;
+      const key = nodeKey(workflowId, jobId, nodeId);
       return {
         result: s.outputResults[key] ?? s.results[key],
         output: s.outputResults[key],

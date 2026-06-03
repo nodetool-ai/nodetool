@@ -5,6 +5,7 @@ import { NodeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { NodeData } from "../stores/NodeData";
 import { REROUTE_NODE_TYPE } from "../constants/nodeTypes";
+import { nodeKey, edgeKey } from "../stores/nodeKey";
 
 /**
  * Options for processing edges in the workflow graph.
@@ -385,7 +386,7 @@ export function useProcessedEdges({
       // to visualize.
       const statusKey =
         workflowId && focusedJobId && edge.id
-          ? `${workflowId}:${focusedJobId}:${edge.id}`
+          ? edgeKey(workflowId, focusedJobId, edge.id)
           : undefined;
       const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
       const status = statusObj?.status;
@@ -396,7 +397,7 @@ export function useProcessedEdges({
       // run to visualize.
       const sourceNodeStatusKey =
         workflowId && focusedJobId
-          ? `${workflowId}:${focusedJobId}:${edge.source}`
+          ? nodeKey(workflowId, focusedJobId, edge.source)
           : undefined;
       const sourceNodeStatus = sourceNodeStatusKey ? nodeStatuses?.[sourceNodeStatusKey] : undefined;
       const isSourceRunning = sourceNodeStatus === "running" || sourceNodeStatus === "starting" || sourceNodeStatus === "booting";

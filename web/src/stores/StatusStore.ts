@@ -15,11 +15,12 @@
  */
 
 import { create } from "zustand";
+import { nodeKey, type NodeKey } from "./nodeKey";
 
 type StatusValue = string | Record<string, unknown> | null | undefined;
 
 type StatusStore = {
-  statuses: Record<string, StatusValue>;
+  statuses: Record<NodeKey, StatusValue>;
   setStatus: (
     workflowId: string,
     jobId: string,
@@ -34,11 +35,8 @@ type StatusStore = {
   clearStatuses: (workflowId: string, nodeIds?: Set<string>) => void;
 };
 
-export const hashKey = (
-  workflowId: string,
-  jobId: string,
-  nodeId: string
-): string => `${workflowId}:${jobId}:${nodeId}`;
+/** @deprecated kept as a re-export of `nodeKey` for backwards compatibility. */
+export const hashKey = nodeKey;
 
 const useStatusStore = create<StatusStore>((set, get) => ({
   statuses: {},
@@ -64,14 +62,14 @@ const useStatusStore = create<StatusStore>((set, get) => ({
           key.startsWith(prefix) &&
           suffixes.some((suffix) => key.endsWith(suffix))
         ) {
-          delete newStatuses[key];
+          delete newStatuses[key as NodeKey];
           changed = true;
         }
       }
     } else {
       for (const key in newStatuses) {
         if (key.startsWith(prefix)) {
-          delete newStatuses[key];
+          delete newStatuses[key as NodeKey];
           changed = true;
         }
       }
@@ -96,7 +94,7 @@ const useStatusStore = create<StatusStore>((set, get) => ({
     nodeId: string,
     status: StatusValue
   ) => {
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     if (get().statuses[key] === status) return;
     set({ statuses: { ...get().statuses, [key]: status } });
   },
@@ -115,7 +113,7 @@ const useStatusStore = create<StatusStore>((set, get) => ({
     nodeId: string
   ): StatusValue | undefined => {
     const statuses = get().statuses;
-    const key = hashKey(workflowId, jobId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     return statuses[key];
   }
 }));
