@@ -32,15 +32,14 @@ import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge"
 import type { Node as WorkflowGraphNode } from "../../stores/ApiTypes";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
-import useErrorStore, {
-  nodeErrorToDisplayString
-} from "../../stores/ErrorStore";
+import useErrorStore from "../../stores/ErrorStore";
 import { normalizeOutputUpdateValue } from "../../stores/outputUpdateValue";
 import type { OutputUpdate } from "../../stores/ApiTypes";
 import {
   globalWebSocketManager,
   WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
+import { extractAssetId } from "../../stores/outputAssetId";
 
 /**
  * Snapshot of the binding fields needed to generate a layer. Supplied by
@@ -81,6 +80,8 @@ interface JobSubscriptionContext {
 
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
+const jobOutputs = new Map<string, unknown>();
+const jobNodeErrors = new Map<string, string>();
 
 const loadImageAsDataUrl = (url: string): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -129,6 +130,8 @@ const unsubscribeJob = (jobId: string): void => {
     jobSubscriptions.delete(jobId);
   }
   jobContexts.delete(jobId);
+  jobOutputs.delete(jobId);
+  jobNodeErrors.delete(jobId);
 };
 
 export const __resetGenerateLayerSubscriptionsForTests = (): void => {
@@ -137,6 +140,15 @@ export const __resetGenerateLayerSubscriptionsForTests = (): void => {
   }
   jobSubscriptions.clear();
   jobContexts.clear();
+  jobOutputs.clear();
+  jobNodeErrors.clear();
+};
+
+export const __setJobContextForTests = (
+  jobId: string,
+  context: JobSubscriptionContext
+): void => {
+  jobContexts.set(jobId, context);
 };
 
 const forwardWorkflowMessage = (
@@ -205,7 +217,7 @@ const forwardWorkflowMessage = (
   }
 };
 
-const handleJobMessage = async (
+export const handleJobMessage = async (
   jobId: string,
   message: WebSocketMessage
 ): Promise<void> => {
@@ -215,6 +227,20 @@ const handleJobMessage = async (
   }
 
   forwardWorkflowMessage(context.workflowId, message);
+
+  if (
+    message.type === "output_update" &&
+    message.node_id === context.selectedOutputNodeId
+  ) {
+    jobOutputs.set(jobId, normalizeOutputUpdateValue(message as unknown as OutputUpdate));
+  }
+  if (
+    message.type === "node_update" &&
+    typeof message.error === "string" &&
+    message.error.trim().length > 0
+  ) {
+    jobNodeErrors.set(jobId, message.error);
+  }
 
   if (message.type !== "job_update") {
     return;
@@ -226,16 +252,22 @@ const handleJobMessage = async (
   // Sync the per-workflow runner state so a stale "running" doesn't block
   // subsequent runs. The runner only auto-subscribes when the workflow is
   // open in the editor; layer-template workflows usually aren't.
+  // Gate on job_id match so a sibling job's completion doesn't reset a
+  // different running job under concurrent same-workflow execution.
   if (
     status === "completed" ||
     status === "cancelled" ||
     status === "failed" ||
     status === "timed_out"
   ) {
-    getWorkflowRunnerStore(context.workflowId).setState({
-      state: status === "completed" || status === "cancelled" ? "idle" : "error",
-      job_id: null
-    });
+    const runner = getWorkflowRunnerStore(context.workflowId);
+    if (runner.getState().job_id === jobId) {
+      runner.setState({
+        state:
+          status === "completed" || status === "cancelled" ? "idle" : "error",
+        job_id: null
+      });
+    }
   }
 
   if (status === "queued") {
@@ -250,10 +282,7 @@ const handleJobMessage = async (
 
   if (status === "completed") {
     const assetId = context.selectedOutputNodeId
-      ? generationStore.resolveOutputAssetId(
-          context.workflowId,
-          context.selectedOutputNodeId
-        )
+      ? extractAssetId(jobOutputs.get(jobId))
       : undefined;
 
     // A workflow can finish with status "completed" even if a node errored
@@ -262,21 +291,8 @@ const handleJobMessage = async (
     // asset and any per-node error, then surface it as a job-level failure
     // instead of silently clearing the job.
     if (!assetId) {
-      const errorsState = useErrorStore.getState().errors;
-      const prefix = `${context.workflowId}:`;
-      let nodeErrorMessage: string | undefined;
-      for (const [key, err] of Object.entries(errorsState)) {
-        if (!key.startsWith(prefix)) {
-          continue;
-        }
-        const display = nodeErrorToDisplayString(err);
-        if (display) {
-          nodeErrorMessage = display;
-          break;
-        }
-      }
       const errorMessage =
-        nodeErrorMessage ??
+        jobNodeErrors.get(jobId) ??
         "Workflow finished without producing an output asset.";
       generationStore.updateJobStatus(jobId, "failed", { errorMessage });
       context.onFailed?.(errorMessage);
@@ -449,7 +465,7 @@ export const useGenerateLayer = (
     // layer to the wrong job and strand its updates.
     const jobId = await runnerStore
       .getState()
-      .run(binding.paramOverrides ?? {}, workflow, nodes, edges);
+      .run(binding.paramOverrides ?? {}, workflow, nodes, edges, undefined, undefined, true);
 
     if (!jobId) {
       throw new Error("Workflow runner did not return a job id");
