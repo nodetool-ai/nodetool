@@ -25,7 +25,7 @@ import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useFitView } from "../../hooks/useFitView";
 import { useReactFlow } from "@xyflow/react";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
-import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+import { useFindInWorkflowStore } from "../../stores/FindInWorkflowStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
@@ -310,7 +310,7 @@ const EditCommands = memo(function EditCommands({
   );
   const surroundWithGroup = useSurroundWithGroup();
   const selectionActions = useSelectionActions();
-  const { openFind } = useFindInWorkflow();
+  const openFind = useFindInWorkflowStore((state) => state.openFind);
 
   const handleGroup = useCallback(() => {
     if (selectedNodes.length) {
