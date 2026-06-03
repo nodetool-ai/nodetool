@@ -102,7 +102,8 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
       [nodeWithOverrides],
       [],
       undefined,
-      new Set([nodeId])
+      new Set([nodeId]),
+      true
     );
 
     addNotification({

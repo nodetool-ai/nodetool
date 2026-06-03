@@ -160,7 +160,15 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
           // reading it back would track the wrong job.
           const jobId = await runnerStore
             .getState()
-            .run(binding.paramOverrides ?? {}, workflow, nodes, edges);
+            .run(
+              binding.paramOverrides ?? {},
+              workflow,
+              nodes,
+              edges,
+              undefined,
+              undefined,
+              true
+            );
 
           if (!jobId) {
             failed++;

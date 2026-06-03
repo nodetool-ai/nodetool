@@ -151,7 +151,7 @@ describe("handleUpdate", () => {
     expect(stored).toBe("result");
   });
 
-  it("updates runner state and clears progress on job_update completed", () => {
+  it("updates runner state and keeps the run's per-job progress on job_update completed", () => {
     useResultsStore.getState().setProgress("workflow-1", "job-1", "n1", 5, 10);
 
     const jobUpdate: JobUpdate = {
@@ -163,9 +163,11 @@ describe("handleUpdate", () => {
     handleUpdate(mockWorkflow, jobUpdate, mockRunnerStore as never, () => undefined);
 
     expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: "idle" });
-    // clearProgress(workflow.id) clears all jobs for the workflow.
+    // Completion no longer clears per-job state: those clears spanned the whole
+    // workflow and would wipe a concurrently running sibling. The finished
+    // run's slice persists so it can still be focused.
     expect(
       useResultsStore.getState().getProgress("workflow-1", "job-1", "n1")
-    ).toBeUndefined();
+    ).toMatchObject({ progress: 5, total: 10 });
   });
 });

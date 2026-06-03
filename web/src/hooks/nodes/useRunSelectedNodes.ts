@@ -211,7 +211,8 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
             nodesWithCachedValues,
             selectedEdges,
             undefined,
-            selectedNodeIds
+            selectedNodeIds,
+            true
           );
 
           if (i < totalRuns) {

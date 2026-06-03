@@ -14,7 +14,6 @@ import { create, StoreApi, UseBoundStore } from "zustand";
 import { isLocalhost } from "../lib/env";
 import { NodeData } from "./NodeData";
 import { BASE_URL } from "./BASE_URL";
-import useResultsStore from "./ResultsStore";
 import { Edge, Node } from "@xyflow/react";
 import {
   RunJobRequest,
@@ -22,8 +21,6 @@ import {
 } from "./ApiTypes";
 import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
-import useStatusStore from "./StatusStore";
-import useErrorStore from "./ErrorStore";
 import useMetadataStore from "./MetadataStore";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -339,8 +336,10 @@ export const createWorkflowRunnerStore = (
 
     /**
      * Run the current workflow.
-     * If subgraphNodeIds is provided, only clears results/previews/outputs for those specific nodes,
-     * preserving state for nodes outside the subgraph.
+     * `subgraphNodeIds` is used to derive the job title for single-node runs;
+     * it no longer clears per-node state (each run gets its own job-keyed slice).
+     * Pass `concurrent: true` to let this run execute alongside other runs of
+     * the same workflow instead of queueing behind them.
      */
     run: async (
       params: Record<string, unknown>,
@@ -435,38 +434,13 @@ export const createWorkflowRunnerStore = (
 
       set({ workflow, nodes, edges, job_id: jobId, queuePosition: null });
 
-      const clearStatuses = useStatusStore.getState().clearStatuses;
-      const clearErrors = useErrorStore.getState().clearErrors;
-      const clearEdges = useResultsStore.getState().clearEdges;
-      const clearResults = useResultsStore.getState().clearResults;
-      const clearProgress = useResultsStore.getState().clearProgress;
-      const clearToolCalls = useResultsStore.getState().clearToolCalls;
-      const clearTasks = useResultsStore.getState().clearTasks;
-      const clearChunks = useResultsStore.getState().clearChunks;
-      const clearPlanningUpdates =
-        useResultsStore.getState().clearPlanningUpdates;
-      const clearOutputResults = useResultsStore.getState().clearOutputResults;
-
+      // Per-run state is keyed by jobId, so a fresh run starts on an empty
+      // slice that auto-focus surfaces. Don't clear prior runs' node state here:
+      // with per-job keys those clears would erase a concurrently running
+      // sibling of this workflow.
       set({
         statusMessage: "Workflow starting..."
       });
-
-      // When running a subgraph, only clear state for the subgraph nodes.
-      // Derive edge IDs from edges that belong to the subgraph.
-      const subgraphEdgeIds = subgraphNodeIds
-        ? new Set(edges.map((e) => e.id))
-        : undefined;
-
-      clearStatuses(workflow.id, subgraphNodeIds);
-      clearEdges(workflow.id, subgraphEdgeIds);
-      clearErrors(workflow.id, subgraphNodeIds);
-      clearResults(workflow.id, subgraphNodeIds);
-      clearOutputResults(workflow.id, subgraphNodeIds);
-      clearProgress(workflow.id, subgraphNodeIds);
-      clearToolCalls(workflow.id, subgraphNodeIds);
-      clearTasks(workflow.id, subgraphNodeIds);
-      clearPlanningUpdates(workflow.id, subgraphNodeIds);
-      clearChunks(workflow.id, subgraphNodeIds);
 
       set({
         state: "running",
@@ -517,25 +491,17 @@ export const createWorkflowRunnerStore = (
      * Cancel the current workflow run.
      */
     cancel: async () => {
-      const { job_id, workflow, state } = get();
+      const { job_id, state } = get();
       console.info(`WorkflowRunner[${workflowId}]: Cancelling job`, { job_id });
 
       if (state === "cancelled" || state === "idle" || state === "error") {
         return;
       }
 
-      // Immediately stop all animations and clear state.
+      // Mark this run cancelled. Don't clear per-node state for the whole
+      // workflow: with per-job keys that would wipe a concurrently running
+      // sibling. The cancelled run's own slice persists so it can be focused.
       set({ state: "cancelled", queuePosition: null });
-
-      const clearStatuses = useStatusStore.getState().clearStatuses;
-      const clearEdges = useResultsStore.getState().clearEdges;
-      const clearProgress = useResultsStore.getState().clearProgress;
-
-      if (workflow) {
-        clearStatuses(workflow.id);
-        clearEdges(workflow.id);
-        clearProgress(workflow.id);
-      }
 
       if (!job_id) {
         return;

@@ -91,7 +91,7 @@ FrontendToolRegistry.register({
     const { nodes, edges } = nodeStore;
     await getWorkflowRunnerStore(workflow_id)
       .getState()
-      .run(params ?? {}, workflow, nodes, edges);
+      .run(params ?? {}, workflow, nodes, edges, undefined, undefined, true);
 
     return { ok: true, workflow_id };
   }

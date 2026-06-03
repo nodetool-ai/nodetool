@@ -239,24 +239,19 @@ export const handleUpdate = (
   const setResult = useResultsStore.getState().setResult;
   const setProviderCost = useResultsStore.getState().setProviderCost;
   const setOutputResult = useResultsStore.getState().setOutputResult;
-  const clearOutputResults = useResultsStore.getState().clearOutputResults;
   const setStatus = useStatusStore.getState().setStatus;
   const getStatus = useStatusStore.getState().getStatus;
-  const clearStatuses = useStatusStore.getState().clearStatuses;
   const appendLog = useLogsStore.getState().appendLog;
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
-  const clearProgress = useResultsStore.getState().clearProgress;
   const addChunk = useResultsStore.getState().addChunk;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
   const setEdge = useResultsStore.getState().setEdge;
-  const clearEdges = useResultsStore.getState().clearEdges;
   const addNotification = useNotificationStore.getState().addNotification;
   const startExecution = useExecutionTimeStore.getState().startExecution;
   const endExecution = useExecutionTimeStore.getState().endExecution;
-  const clearTimings = useExecutionTimeStore.getState().clearTimings;
 
 
   if (data.type === "log_update") {
@@ -504,10 +499,10 @@ export const handleUpdate = (
     switch (job.status) {
       case "completed": {
         // No toast — completion is reflected in the Queue panel/overlay.
-        // Don't clear edges on completion; keep the stream item counts visible.
-        // Edges are cleared when a new run starts (in WorkflowRunner.ts).
-        clearProgress(workflow.id);
-        clearTimings(workflow.id);
+        // Don't clear this run's per-job state (progress/timings/edges): with
+        // per-job keys those clears span the whole workflow and would wipe a
+        // concurrently running sibling. The finished run's slice persists so it
+        // can be focused; a new run auto-focuses its own empty slice.
         break;
       }
       case "cancelled":
@@ -516,11 +511,8 @@ export const handleUpdate = (
           alert: true,
           content: "Job cancelled"
         });
-        clearStatuses(workflow.id);
-        clearEdges(workflow.id);
-        clearProgress(workflow.id);
-        clearOutputResults(workflow.id);
-        clearTimings(workflow.id);
+        // Keep this run's per-job slice (see "completed"): broad clears here
+        // would erase a concurrent sibling.
         break;
       case "failed":
       case "timed_out": {
@@ -572,11 +564,8 @@ export const handleUpdate = (
             timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
           });
         }
-        clearStatuses(workflow.id);
-        clearEdges(workflow.id);
-        clearProgress(workflow.id);
-        clearOutputResults(workflow.id);
-        clearTimings(workflow.id);
+        // Keep this run's per-job slice (see "completed"): broad clears here
+        // would erase a concurrent sibling.
         break;
       }
       case "queued":
