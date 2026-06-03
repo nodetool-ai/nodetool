@@ -395,5 +395,16 @@ describe("WorkflowRunner", () => {
       // The active run's tracked job_id is left untouched.
       expect(store.getState().job_id).toBe("job-active");
     });
+
+    it("passes the concurrent flag into the run_job payload when requested", async () => {
+      (uuidv4 as jest.Mock).mockReturnValueOnce("job-c");
+      await store.getState().run({}, testWorkflow, [], [], undefined, undefined, true);
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "run_job",
+          data: expect.objectContaining({ concurrent: true })
+        })
+      );
+    });
   });
 });

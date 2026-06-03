@@ -85,7 +85,8 @@ const buildRunJobData = (opts: {
   resource_limits?: Record<string, unknown>;
   authToken: string;
   userId: string;
-}): RunJobRequest & { settings?: Record<string, unknown>; job_id: string } => {
+  concurrent?: boolean;
+}): RunJobRequest & { settings?: Record<string, unknown>; job_id: string; concurrent?: boolean } => {
   const activeNodes: Node<NodeData>[] = [];
   const bypassedNodeIds = new Set<string>();
   for (const node of opts.nodes) {
@@ -116,7 +117,8 @@ const buildRunJobData = (opts: {
     },
     resource_limits: opts.resource_limits,
     settings: { ...(opts.workflow.settings ?? {}) },
-    job_id: opts.jobId
+    job_id: opts.jobId,
+    concurrent: opts.concurrent
   };
 };
 
@@ -166,7 +168,8 @@ export type WorkflowRunner = {
     nodes: Node<NodeData>[],
     edges: Edge[],
     resource_limits?: Record<string, unknown>,
-    subgraphNodeIds?: Set<string>
+    subgraphNodeIds?: Set<string>,
+    concurrent?: boolean
   ) => Promise<string>;
   reconnect: (jobId: string) => Promise<void>;
   reconnectWithWorkflow: (
@@ -345,7 +348,8 @@ export const createWorkflowRunnerStore = (
       nodes: Node<NodeData>[],
       edges: Edge[],
       resource_limits?: Record<string, unknown>,
-      subgraphNodeIds?: Set<string>
+      subgraphNodeIds?: Set<string>,
+      concurrent?: boolean
     ) => {
       const currentState = get().state;
       const currentJobId = get().job_id;
@@ -386,7 +390,8 @@ export const createWorkflowRunnerStore = (
         edges,
         resource_limits,
         authToken: auth_token,
-        userId: user
+        userId: user,
+        concurrent
       });
 
       if (busy && !stuck) {
