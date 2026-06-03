@@ -442,7 +442,10 @@ export const useGenerateLayer = (
     }
 
     // Clear stale node errors from a previous run on this workflow so a
-    // retry doesn't immediately show the prior failure in the panel.
+    // retry doesn't immediately show the prior failure in the panel. This is
+    // workflow-scoped (shared editor-panel view); per-job failure surfacing for
+    // concurrent same-workflow runs is handled separately via `jobNodeErrors`,
+    // so don't reintroduce a shared-store read in the completion path.
     useErrorStore.getState().clearErrors(binding.workflowId);
 
     const workflow = await queryClient.fetchQuery({
