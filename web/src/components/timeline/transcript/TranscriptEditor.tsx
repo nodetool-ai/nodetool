@@ -568,18 +568,23 @@ const EditorBody: React.FC<{
   // activates buttons.
   useEffect(() => {
     if (writing) return;
-    const isTypingTarget = (t: EventTarget | null): boolean =>
+    // Real typing targets swallow ALL command keys (so we never hijack input).
+    const isTextInput = (t: EventTarget | null): boolean =>
       t instanceof HTMLInputElement ||
       t instanceof HTMLTextAreaElement ||
       t instanceof HTMLSelectElement ||
-      (t instanceof HTMLElement &&
-        (t.isContentEditable ||
-          t.closest('button, [role="button"], a') !== null));
+      (t instanceof HTMLElement && t.isContentEditable);
+    // A focused button/link only blocks Space (so Space activates it) — "/" and
+    // arrows must still fire, otherwise clicking any chip/button kills them.
+    const isFocusedControl = (t: EventTarget | null): boolean =>
+      t instanceof HTMLElement &&
+      t.closest('button, [role="button"], a') !== null;
 
     const onWindowKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (isTypingTarget(e.target)) return;
+      if (isTextInput(e.target)) return;
       if (e.key === " ") {
+        if (isFocusedControl(e.target)) return;
         e.preventDefault();
         togglePlay();
       } else if (e.key === "/") {

@@ -202,6 +202,19 @@ describe("TranscriptPanel", () => {
     expect(useTimelinePlaybackStore.getState().isPlaying).toBe(true);
   });
 
+  it("opens the slash command even when a control (button) is focused", async () => {
+    renderPanel();
+    seed([voicedBeat([{ word: "hi", startMs: 0, endMs: 300 }])], 300);
+
+    // After clicking any chip/button focus lands on it; "/" must still fire
+    // (only Space defers to a focused control).
+    const btn = screen.getByRole("button", { name: /Generate all/i });
+    act(() => {
+      fireEvent.keyDown(btn, { key: "/" });
+    });
+    await screen.findByTestId("slash-command");
+  });
+
   it("does not hijack Space when a control is focused", () => {
     renderPanel();
     seed([voicedBeat([{ word: "hi", startMs: 0, endMs: 300 }])], 300);
