@@ -343,6 +343,73 @@ const ActiveWordPlugin: React.FC = () => {
 };
 
 /**
+ * A caret shown in Script mode (where the read-only editor has no native one).
+ * It sweeps across the active word as the playhead advances, sits at the next
+ * word boundary when paused between words, and lands wherever a click/arrow seek
+ * moves the playhead — so there's always a cursor moving across the words. Word
+ * offsets are relative to `.transcript-editor-area` (its `position: relative`
+ * makes it the words' offsetParent), so the caret positions in the same space.
+ */
+const ScriptCaretPlugin: React.FC<{ visible: boolean }> = ({ visible }) => {
+  const [editor] = useLexicalComposerContext();
+  const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+  // Re-run when the projected words change (load / generate / reseed), not just
+  // when the playhead moves — otherwise the caret wouldn't appear until a seek.
+  const clips = useTimelineStore((s) => s.clips);
+  const caretRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const caret = caretRef.current;
+    if (!caret) return;
+    const root = editor.getRootElement();
+    if (!visible || !root) {
+      caret.style.display = "none";
+      return;
+    }
+
+    const words = [
+      ...root.querySelectorAll<HTMLElement>(".transcript-word")
+    ];
+    if (words.length === 0) {
+      caret.style.display = "none";
+      return;
+    }
+
+    let target: HTMLElement | null = null;
+    let fraction = 0;
+    for (const el of words) {
+      const start = Number(el.dataset.start);
+      const end = Number(el.dataset.end);
+      if (currentTimeMs >= start && currentTimeMs < end) {
+        target = el;
+        fraction = end > start ? (currentTimeMs - start) / (end - start) : 0;
+        break;
+      }
+    }
+    // Between words / paused: sit at the next word's start, else after the last.
+    if (!target) {
+      target =
+        words.find((el) => Number(el.dataset.start) >= currentTimeMs) ?? null;
+      if (!target) {
+        const last = words[words.length - 1];
+        caret.style.display = "block";
+        caret.style.left = `${last.offsetLeft + last.offsetWidth}px`;
+        caret.style.top = `${last.offsetTop}px`;
+        caret.style.height = `${last.offsetHeight}px`;
+        return;
+      }
+    }
+
+    caret.style.display = "block";
+    caret.style.left = `${target.offsetLeft + fraction * target.offsetWidth}px`;
+    caret.style.top = `${target.offsetTop}px`;
+    caret.style.height = `${target.offsetHeight}px`;
+  }, [editor, currentTimeMs, visible, clips]);
+
+  return <div ref={caretRef} className="script-caret" aria-hidden="true" />;
+};
+
+/**
  * Mirrors the timeline's clip selection into the transcript: every word of a
  * selected clip gets `.is-selected`, so clicking a word (which selects its
  * clip) highlights here, and selecting a clip on the timeline highlights its
@@ -387,6 +454,22 @@ const EditorSurface = styled("div")(({ theme }) => ({
     outline: "none",
     minHeight: 48,
     whiteSpace: "pre-wrap"
+  },
+  // Playback/navigation caret shown in Script mode (the editor has no real
+  // caret there). Sweeps across the active word with the playhead.
+  "& .script-caret": {
+    position: "absolute",
+    width: 2,
+    marginLeft: -1,
+    background: theme.vars.palette.primary.main,
+    borderRadius: 1,
+    pointerEvents: "none",
+    zIndex: 1,
+    animation: "transcript-caret-blink 1.1s step-end infinite"
+  },
+  "@keyframes transcript-caret-blink": {
+    "0%, 100%": { opacity: 1 },
+    "50%": { opacity: 0 }
   },
   "& p": { margin: "0 0 8px" },
   "& p:last-child": { marginBottom: 0 },
@@ -502,12 +585,29 @@ const EditorBody: React.FC<{
       } else if (e.key === "/") {
         e.preventDefault();
         openSlashCommand();
+      } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        // Step the cursor word-by-word (the playhead follows, so the Script
+        // caret moves across words).
+        const root = editor.getRootElement();
+        if (!root) return;
+        const starts = [...root.querySelectorAll<HTMLElement>(".transcript-word")]
+          .map((el) => Number(el.dataset.start))
+          .filter((n) => Number.isFinite(n))
+          .sort((a, b) => a - b);
+        if (starts.length === 0) return;
+        e.preventDefault();
+        const t = playbackApi.getState().currentTimeMs;
+        const target =
+          e.key === "ArrowRight"
+            ? starts.find((s) => s > t + 1) ?? starts[starts.length - 1]
+            : [...starts].reverse().find((s) => s < t - 1) ?? starts[0];
+        playbackApi.getState().seek(target);
       }
     };
 
     window.addEventListener("keydown", onWindowKeyDown);
     return () => window.removeEventListener("keydown", onWindowKeyDown);
-  }, [writing, togglePlay, openSlashCommand]);
+  }, [writing, togglePlay, openSlashCommand, editor, playbackApi]);
 
   // Write-mode keys ride the editor (it holds focus): ⌘S plays, Esc finishes,
   // and "/" at the start of a block opens the command menu (mid-text "/" stays
@@ -605,6 +705,7 @@ const EditorBody: React.FC<{
         <SyncPlugin />
         <CaretSeekPlugin />
         <ActiveWordPlugin />
+        <ScriptCaretPlugin visible={!writing} />
         <SelectionHighlightPlugin />
       </div>
     </EditorSurface>

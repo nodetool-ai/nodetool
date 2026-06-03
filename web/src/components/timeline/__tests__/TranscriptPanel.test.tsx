@@ -165,6 +165,32 @@ describe("TranscriptPanel", () => {
     );
   });
 
+  it("shows a Script-mode caret and steps across words with arrow keys", () => {
+    renderPanel();
+    seed(
+      [voicedBeat([
+        { word: "hello", startMs: 0, endMs: 300 },
+        { word: "world", startMs: 300, endMs: 900 }
+      ])],
+      900
+    );
+
+    // The read-only Script editor has no native caret, so we render one.
+    const caret = document.querySelector(".script-caret") as HTMLElement;
+    expect(caret).toBeTruthy();
+    expect(caret.style.display).toBe("block");
+
+    // Arrows step the playhead word-to-word (the caret follows).
+    act(() => {
+      fireEvent.keyDown(document.body, { key: "ArrowRight" });
+    });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(300);
+    act(() => {
+      fireEvent.keyDown(document.body, { key: "ArrowLeft" });
+    });
+    expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(0);
+  });
+
   it("toggles playback on Space regardless of focus", () => {
     renderPanel();
     seed([voicedBeat([{ word: "hi", startMs: 0, endMs: 300 }])], 300);
