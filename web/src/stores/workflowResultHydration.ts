@@ -6,9 +6,10 @@ import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 /**
  * Synthetic job id for results hydrated from persisted assets on workflow open.
  * Results are keyed `${wf}:${jobId}:${node}`; hydration has no live run, so it
- * records this id as a completed run and focuses it (unless the user has pinned
- * another run), letting the canvas display persisted outputs. A subsequent real
- * run auto-focuses its own job, superseding this.
+ * writes outputs under this id and focuses it ONLY when no real run exists,
+ * letting the canvas display persisted outputs on a fresh open. A real run
+ * (already present, or started later — which auto-focuses itself) always owns
+ * the canvas, so hydration never freezes a live run's animations.
  */
 export const HYDRATED_JOB_ID = "hydrated";
 
@@ -180,22 +181,32 @@ export const hydrateWorkflowResultsFromAssets = async (
     }
 
     const setOutputResult = useResultsStore.getState().setOutputResult;
+    const runsStore = useWorkflowRunsStore.getState();
 
-    // Register the hydrated bucket as a completed run so the focused-run readers
-    // resolve to it. recordRun auto-focuses unless the user has pinned another
-    // run, so this never steals focus from a live/selected run.
-    useWorkflowRunsStore.getState().recordRun({
-      jobId: HYDRATED_JOB_ID,
-      workflowId,
-      state: "completed",
-      startedAt: Date.now()
-    });
-
+    // Write the persisted outputs under the synthetic "hydrated" run so the
+    // focused-run readers can display them on open.
     for (const nodeId in grouped) {
       if (!Object.prototype.hasOwnProperty.call(grouped, nodeId)) {continue;}
       const nodeResults = grouped[nodeId];
       const value = nodeResults.length === 1 ? nodeResults[0] : nodeResults;
       setOutputResult(workflowId, HYDRATED_JOB_ID, nodeId, value);
+    }
+
+    // Only focus the hydrated bucket when there is no real run to show. This
+    // hydration is async and can resolve AFTER the user has started or selected
+    // a run; recording it would auto-focus it (latest-run-wins) and steal the
+    // canvas away from a live run, freezing the animations. A real run started
+    // later auto-focuses itself, superseding this on its own.
+    const hasRealRun = runsStore
+      .getRuns(workflowId)
+      .some((run) => run.jobId !== HYDRATED_JOB_ID);
+    if (!hasRealRun) {
+      runsStore.recordRun({
+        jobId: HYDRATED_JOB_ID,
+        workflowId,
+        state: "completed",
+        startedAt: Date.now()
+      });
     }
   } catch (error) {
     console.warn(
