@@ -10,7 +10,7 @@ import NodeResizeHandle from "../NodeResizeHandle";
 import NodeToolButtons from "../NodeToolButtons";
 import NodeExecutionTime from "../NodeExecutionTime";
 import useMetadataStore from "../../../stores/MetadataStore";
-import useStatusStore from "../../../stores/StatusStore";
+import { useNodeStatus } from "../../../hooks/nodes/useNodeExecState";
 import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
@@ -61,10 +61,10 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const hasParent = Boolean(parentId);
 
   const metadata = useMetadataStore((state) => state.getMetadata(type));
-  const status = useStatusStore((state) => state.getStatus(workflow_id, id));
+  const statusRaw = useNodeStatus(workflow_id, id);
   const statusValue =
-    status && status !== null && typeof status !== "object"
-      ? status
+    statusRaw && statusRaw !== null && typeof statusRaw !== "object"
+      ? statusRaw
       : undefined;
 
   const headerTitle = useMemo(() => {

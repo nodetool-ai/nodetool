@@ -24,11 +24,7 @@ import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import NodeDependencyWarning from "./NodeDependencyWarning";
-import useStatusStore from "../../stores/StatusStore";
-import useResultsStore, { hashKey } from "../../stores/ResultsStore";
-import { useShallow } from "zustand/react/shallow";
-import { hasNodeError } from "../../stores/ErrorStore";
-import useErrorStore from "../../stores/ErrorStore";
+import { useNodeStatus, useNodeHasError, useNodeArtifacts } from "../../hooks/nodes/useNodeExecState";
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
@@ -388,9 +384,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [type]
   );
   // Status
-  const statusValue = useStatusStore((state) =>
-    state.getStatus(workflow_id, id)
-  );
+  const statusValue = useNodeStatus(workflow_id, id);
   const status =
     statusValue && statusValue !== null && typeof statusValue !== "object"
       ? statusValue
@@ -441,16 +435,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
-  const resultsKey = hashKey(workflow_id, id);
-  const { result, chunk, toolCall, planningUpdate, task } = useResultsStore(
-    useShallow((state) => ({
-      result: state.outputResults[resultsKey] ?? state.results[resultsKey],
-      chunk: state.chunks[resultsKey] as string | undefined,
-      toolCall: state.toolCalls[resultsKey],
-      planningUpdate: state.planningUpdates[resultsKey],
-      task: state.tasks[resultsKey]
-    }))
-  );
+  const { result, chunk, toolCall, planningUpdate, task } = useNodeArtifacts(workflow_id, id);
 
   // Optimize: Use memoized selectors that only perform O(E) filter operations when the
   // state.edges array reference actually changes (e.g. adding/removing edges), rather than
@@ -658,11 +643,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Track error state for node dimension management
-  const hasError = useErrorStore((state) =>
-    workflow_id !== undefined
-      ? hasNodeError(state.getError(workflow_id, id))
-      : false
-  );
+  const hasError = useNodeHasError(workflow_id, id);
 
   // Hover-reveal of all handle tooltips. The user can hover the node body
   // to see every input/output port's name without hovering each handle one
