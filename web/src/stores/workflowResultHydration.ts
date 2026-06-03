@@ -1,6 +1,16 @@
 import { Asset } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
+import useWorkflowRunsStore from "./WorkflowRunsStore";
 import { useWorkflowAssetStore } from "./WorkflowAssetStore";
+
+/**
+ * Synthetic job id for results hydrated from persisted assets on workflow open.
+ * Results are keyed `${wf}:${jobId}:${node}`; hydration has no live run, so it
+ * records this id as a completed run and focuses it (unless the user has pinned
+ * another run), letting the canvas display persisted outputs. A subsequent real
+ * run auto-focuses its own job, superseding this.
+ */
+export const HYDRATED_JOB_ID = "hydrated";
 
 interface AssetResultBase {
   uri: string;
@@ -165,13 +175,27 @@ export const hydrateWorkflowResultsFromAssets = async (
       .getState()
       .loadWorkflowAssets(workflowId);
     const grouped = groupWorkflowAssetsByNodeResult(assets);
+    if (Object.keys(grouped).length === 0) {
+      return;
+    }
+
     const setOutputResult = useResultsStore.getState().setOutputResult;
+
+    // Register the hydrated bucket as a completed run so the focused-run readers
+    // resolve to it. recordRun auto-focuses unless the user has pinned another
+    // run, so this never steals focus from a live/selected run.
+    useWorkflowRunsStore.getState().recordRun({
+      jobId: HYDRATED_JOB_ID,
+      workflowId,
+      state: "completed",
+      startedAt: Date.now()
+    });
 
     for (const nodeId in grouped) {
       if (!Object.prototype.hasOwnProperty.call(grouped, nodeId)) {continue;}
       const nodeResults = grouped[nodeId];
       const value = nodeResults.length === 1 ? nodeResults[0] : nodeResults;
-      setOutputResult(workflowId, nodeId, value);
+      setOutputResult(workflowId, HYDRATED_JOB_ID, nodeId, value);
     }
   } catch (error) {
     console.warn(

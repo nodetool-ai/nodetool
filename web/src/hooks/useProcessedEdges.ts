@@ -22,9 +22,9 @@ interface ProcessedEdgesOptions {
   /** Optional workflow ID for status tracking */
   workflowId?: string;
   /**
-   * Focused run for the workflow. Node-status keys are
-   * `${workflowId}:${focusedJobId}:${edge.source}`; when undefined, node
-   * statuses are treated as empty (no focused run to display).
+   * Focused run for the workflow. Edge-status and node-status keys are
+   * `${workflowId}:${focusedJobId}:${id}` (id = edge.id or edge.source); when
+   * undefined, both are treated as empty (no focused run to display).
    */
   focusedJobId?: string;
   /** Optional edge status map for execution visualization */
@@ -381,8 +381,12 @@ export function useProcessedEdges({
         return edge;
       }
 
+      // Edge statuses are keyed by the focused run; without one there's no run
+      // to visualize.
       const statusKey =
-        workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
+        workflowId && focusedJobId && edge.id
+          ? `${workflowId}:${focusedJobId}:${edge.id}`
+          : undefined;
       const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
       const status = statusObj?.status;
       const counter = statusObj?.counter;

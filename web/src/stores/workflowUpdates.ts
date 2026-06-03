@@ -278,11 +278,23 @@ export const handleUpdate = (
     });
   }
 
+  // Per-node results/progress/edges are scoped by the run (job) that produced
+  // them so concurrent same-workflow runs stay isolated. The backend stamps
+  // job_id on every data message; if it's absent, skip the per-job write rather
+  // than writing a malformed key.
+  const messageJobId =
+    (data as { job_id?: string | null }).job_id ?? undefined;
+
   if (data.type === "edge_update") {
     const currentState = runnerStore.getState().state;
-    if (currentState !== "cancelled" && currentState !== "error") {
+    if (
+      currentState !== "cancelled" &&
+      currentState !== "error" &&
+      messageJobId
+    ) {
       setEdge(
         workflow.id,
+        messageJobId,
         data.edge_id,
         data.status,
         data.counter ?? undefined
@@ -291,28 +303,28 @@ export const handleUpdate = (
   }
 
   if (data.type === "planning_update") {
-    if (data.node_id) {
-      setPlanningUpdate(workflow.id, data.node_id, data);
-    } else {
+    if (data.node_id && messageJobId) {
+      setPlanningUpdate(workflow.id, messageJobId, data.node_id, data);
+    } else if (!data.node_id) {
       console.error("PlanningUpdate has no node_id");
     }
   }
   if (data.type === "tool_call_update") {
-    if (data.node_id) {
-      setToolCall(workflow.id, data.node_id, data);
+    if (data.node_id && messageJobId) {
+      setToolCall(workflow.id, messageJobId, data.node_id, data);
     }
   }
 
   if (data.type === "tool_result_update") {
-    if (data.node_id) {
-      setOutputResult(workflow.id, data.node_id, data.result, true);
+    if (data.node_id && messageJobId) {
+      setOutputResult(workflow.id, messageJobId, data.node_id, data.result, true);
     }
   }
 
   if (data.type === "task_update") {
-    if (data.node_id) {
-      setTask(workflow.id, data.node_id, data.task);
-    } else {
+    if (data.node_id && messageJobId) {
+      setTask(workflow.id, messageJobId, data.node_id, data.task);
+    } else if (!data.node_id) {
       console.error("TaskUpdate has no node_id");
     }
   }
@@ -334,15 +346,19 @@ export const handleUpdate = (
             : typeof normalizedValue
       }
     );
-    setOutputResult(workflow.id, data.node_id, normalizedValue, true);
+    if (messageJobId) {
+      setOutputResult(workflow.id, messageJobId, data.node_id, normalizedValue, true);
+    }
     // eslint-disable-next-line no-console
     console.log(
       "[debug:gen] outputResults after append",
       {
         nodeId: data.node_id,
-        accumulated: useResultsStore
-          .getState()
-          .getOutputResult(workflow.id, data.node_id)
+        accumulated: messageJobId
+          ? useResultsStore
+              .getState()
+              .getOutputResult(workflow.id, messageJobId, data.node_id)
+          : undefined
       }
     );
 
@@ -361,8 +377,8 @@ export const handleUpdate = (
   }
 
   if (data.type === "chunk") {
-    if (data.node_id && data.content) {
-      addChunk(workflow.id, data.node_id, data.content);
+    if (data.node_id && data.content && messageJobId) {
+      addChunk(workflow.id, messageJobId, data.node_id, data.content);
     }
   }
   if (data.type === "job_update") {
@@ -611,9 +627,10 @@ export const handleUpdate = (
 
   if (data.type === "node_progress") {
     const currentState = runnerStore.getState().state;
-    if (currentState !== "cancelled") {
+    if (currentState !== "cancelled" && messageJobId) {
       setProgress(
         workflow.id,
+        messageJobId,
         data.node_id,
         data.progress,
         data.total
@@ -688,13 +705,18 @@ export const handleUpdate = (
         setStatus(workflow.id, jobId, update.node_id, update.status);
       }
 
-      if (update.provider_cost) {
-        setProviderCost(workflow.id, update.node_id, update.provider_cost);
+      if (update.provider_cost && jobId) {
+        setProviderCost(
+          workflow.id,
+          jobId,
+          update.node_id,
+          update.provider_cost
+        );
       }
 
       // Store result if present
-      if (update.result) {
-        setResult(workflow.id, update.node_id, update.result);
+      if (update.result && jobId) {
+        setResult(workflow.id, jobId, update.node_id, update.result);
       }
     }
 

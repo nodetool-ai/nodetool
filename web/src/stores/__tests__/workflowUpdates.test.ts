@@ -84,13 +84,15 @@ describe("normalizeOutputUpdateValue", () => {
 
 describe("handleUpdate", () => {
   it("stores workflow chunk updates by node id", () => {
-    const chunk: Chunk = {
+    const chunk = {
       type: "chunk",
       node_id: "node-1",
       workflow_id: "workflow-1",
       content_type: "text",
-      content: "hello"
-    };
+      content: "hello",
+      // Per-node chunks are keyed by the producing run's job_id.
+      job_id: "job-1"
+    } as unknown as Chunk;
 
     handleUpdate(
       mockWorkflow,
@@ -99,19 +101,20 @@ describe("handleUpdate", () => {
       () => undefined
     );
 
-    expect(useResultsStore.getState().getChunk("workflow-1", "node-1")).toBe(
-      "hello"
-    );
+    expect(
+      useResultsStore.getState().getChunk("workflow-1", "job-1", "node-1")
+    ).toBe("hello");
   });
 
   it("ignores workflow chunk updates without node id", () => {
-    const chunk: Chunk = {
+    const chunk = {
       type: "chunk",
       workflow_id: "workflow-1",
       content_type: "text",
       content: "done",
-      done: true
-    };
+      done: true,
+      job_id: "job-1"
+    } as unknown as Chunk;
 
     handleUpdate(
       mockWorkflow,
@@ -120,7 +123,9 @@ describe("handleUpdate", () => {
       () => undefined
     );
 
-    expect(useResultsStore.getState().getChunk("workflow-1", "node-1")).toBeUndefined();
+    expect(
+      useResultsStore.getState().getChunk("workflow-1", "job-1", "node-1")
+    ).toBeUndefined();
   });
 });
 

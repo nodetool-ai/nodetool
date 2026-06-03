@@ -81,6 +81,7 @@ interface TimelineGenerationStoreState {
    */
   resolveOutputAssetId: (
     workflowId: string,
+    jobId: string,
     selectedOutputNodeId: string
   ) => string | undefined;
 }
@@ -252,11 +253,11 @@ export const useTimelineGenerationStore =
 
       getClipJobState: (clipId) => get().clipJobs[clipId],
 
-      resolveOutputAssetId: (workflowId, selectedOutputNodeId) =>
+      resolveOutputAssetId: (workflowId, jobId, selectedOutputNodeId) =>
         extractAssetId(
           useResultsStore
             .getState()
-            .getOutputResult(workflowId, selectedOutputNodeId)
+            .getOutputResult(workflowId, jobId, selectedOutputNodeId)
         )
     };
   });

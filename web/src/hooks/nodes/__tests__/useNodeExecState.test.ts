@@ -79,7 +79,7 @@ describe("useNodeProgress", () => {
 
   it("returns the progress object that was set in the store", () => {
     act(() => {
-      useResultsStore.getState().setProgress(WF, NODE, 3, 10);
+      useResultsStore.getState().setProgress(WF, JOB, NODE, 3, 10);
     });
     const { result } = renderHook(() => useNodeProgress(WF, NODE));
     expect(result.current).toEqual({ progress: 3, total: 10, chunk: "" });
@@ -90,13 +90,13 @@ describe("useNodeProgress", () => {
     expect(result.current).toBeUndefined();
 
     act(() => {
-      useResultsStore.getState().setProgress(WF, NODE, 5, 20);
+      useResultsStore.getState().setProgress(WF, JOB, NODE, 5, 20);
     });
     expect(result.current?.progress).toBe(5);
     expect(result.current?.total).toBe(20);
 
     act(() => {
-      useResultsStore.getState().setProgress(WF, NODE, 20, 20);
+      useResultsStore.getState().setProgress(WF, JOB, NODE, 20, 20);
     });
     expect(result.current?.progress).toBe(20);
   });
@@ -110,7 +110,7 @@ describe("useEdgeStatus", () => {
 
   it("returns the edge status object that was set in the store", () => {
     act(() => {
-      useResultsStore.getState().setEdge(WF, EDGE, "active", 1);
+      useResultsStore.getState().setEdge(WF, JOB, EDGE, "active", 1);
     });
     const { result } = renderHook(() => useEdgeStatus(WF, EDGE));
     expect(result.current).toEqual({ status: "active", counter: 1 });
@@ -121,12 +121,12 @@ describe("useEdgeStatus", () => {
     expect(result.current).toBeUndefined();
 
     act(() => {
-      useResultsStore.getState().setEdge(WF, EDGE, "idle");
+      useResultsStore.getState().setEdge(WF, JOB, EDGE, "idle");
     });
     expect(result.current?.status).toBe("idle");
 
     act(() => {
-      useResultsStore.getState().setEdge(WF, EDGE, "active", 2);
+      useResultsStore.getState().setEdge(WF, JOB, EDGE, "active", 2);
     });
     expect(result.current?.status).toBe("active");
     expect(result.current?.counter).toBe(2);

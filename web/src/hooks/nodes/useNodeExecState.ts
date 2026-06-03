@@ -6,12 +6,12 @@
  * a future "focused-run" lens can be resolved in exactly one place — the bodies
  * of these hooks — rather than scattered across every consuming component.
  *
- * Status, error, and execution-duration are scoped per run: these hooks
- * resolve the workflow's *focused job* (WorkflowRunsStore) and key the
- * underlying store by `(workflowId, focusedJobId, nodeId)`.  For a single run
- * the focused job is that run, so behavior is unchanged.  When there is no
- * focused job they return `undefined`/`false`.  Progress / results / edges /
- * cost still read ResultsStore by `(workflowId, nodeId)` (flipped separately).
+ * Status, error, execution-duration, progress, results, edges, and provider
+ * cost are all scoped per run: these hooks resolve the workflow's *focused job*
+ * (WorkflowRunsStore) and key the underlying store by
+ * `(workflowId, focusedJobId, nodeId)`.  For a single run the focused job is
+ * that run, so behavior is unchanged.  When there is no focused job they return
+ * `undefined`/`false`/empty.
  */
 
 import { useShallow } from "zustand/react/shallow";
@@ -84,14 +84,17 @@ export function useNodeHasError(
 // ── Progress ─────────────────────────────────────────────────────────────────
 
 /**
- * Reactive hook that returns the current progress for the given workflow+node.
- * Equivalent to `useResultsStore(s => s.getProgress(workflowId, nodeId))`.
+ * Reactive hook that returns the current progress for the given workflow+node,
+ * resolved against the workflow's focused run.
  */
 export function useNodeProgress(
   workflowId: string,
   nodeId: string
 ): { progress: number; total: number; chunk?: string } | undefined {
-  return useResultsStore((s) => s.getProgress(workflowId, nodeId));
+  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  return useResultsStore((s) =>
+    jobId ? s.getProgress(workflowId, jobId, nodeId) : undefined
+  );
 }
 
 // ── Execution duration ───────────────────────────────────────────────────────
@@ -114,46 +117,54 @@ export function useNodeExecutionDuration(
 // ── Edge status ──────────────────────────────────────────────────────────────
 
 /**
- * Reactive hook that returns the status of a workflow edge.
- * Note: the second parameter is `edgeId`, not `nodeId`.
- * Equivalent to `useResultsStore(s => s.getEdge(workflowId, edgeId))`.
+ * Reactive hook that returns the status of a workflow edge in the workflow's
+ * focused run. Note: the second parameter is `edgeId`, not `nodeId`.
  */
 export function useEdgeStatus(
   workflowId: string,
   edgeId: string
 ): { status: string; counter?: number } | undefined {
-  return useResultsStore((s) => s.getEdge(workflowId, edgeId));
+  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  return useResultsStore((s) =>
+    jobId ? s.getEdge(workflowId, jobId, edgeId) : undefined
+  );
 }
 
 // ── Provider cost ────────────────────────────────────────────────────────────
 
 /**
- * Reactive hook that returns the LLM provider cost accrued by this node.
- * Equivalent to `useResultsStore(s => s.getProviderCost(workflowId, nodeId))`.
+ * Reactive hook that returns the LLM provider cost accrued by this node in the
+ * workflow's focused run.
  */
 export function useNodeProviderCost(
   workflowId: string,
   nodeId: string
 ): ProviderCost | undefined {
-  return useResultsStore((s) => s.getProviderCost(workflowId, nodeId));
+  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  return useResultsStore((s) =>
+    jobId ? s.getProviderCost(workflowId, jobId, nodeId) : undefined
+  );
 }
 
 // ── Result value ─────────────────────────────────────────────────────────────
 
 /**
  * Reactive hook that returns the node result, preferring the output result
- * (from OutputUpdate messages) and falling back to the generic result.
+ * (from OutputUpdate messages) and falling back to the generic result, resolved
+ * against the workflow's focused run.
  * This mirrors the `outputResults[key] ?? results[key]` pattern used in
  * BaseNode.tsx.
- * Equivalent to:
- *   `useResultsStore(s => s.getOutputResult(workflowId, nodeId) ?? s.getResult(workflowId, nodeId))`
  */
 export function useNodeResultValue(
   workflowId: string,
   nodeId: string
 ): unknown {
-  return useResultsStore(
-    (s) => s.getOutputResult(workflowId, nodeId) ?? s.getResult(workflowId, nodeId)
+  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  return useResultsStore((s) =>
+    jobId
+      ? s.getOutputResult(workflowId, jobId, nodeId) ??
+        s.getResult(workflowId, jobId, nodeId)
+      : undefined
   );
 }
 
@@ -161,10 +172,10 @@ export function useNodeResultValue(
 
 /**
  * Reactive hook that returns all streaming / agent artifacts for a node in a
- * single stable object.  Uses `useShallow` so that the returned object
- * reference only changes when one of the individual values changes — mirroring
- * exactly the `useShallow` selector that BaseNode.tsx uses to subscribe to
- * these six maps in one subscription.
+ * single stable object, resolved against the workflow's focused run.  Uses
+ * `useShallow` so that the returned object reference only changes when one of
+ * the individual values changes — mirroring exactly the `useShallow` selector
+ * that BaseNode.tsx uses to subscribe to these six maps in one subscription.
  *
  * Fields:
  *  - `result`         — `outputResults[key] ?? results[key]` (same as `useNodeResultValue`)
@@ -185,9 +196,20 @@ export function useNodeArtifacts(
   toolCall: ToolCallUpdate | undefined;
   planningUpdate: PlanningUpdate | undefined;
 } {
+  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
   return useResultsStore(
     useShallow((s) => {
-      const key = `${workflowId}:${nodeId}`;
+      if (!jobId) {
+        return {
+          result: undefined,
+          output: undefined,
+          chunk: undefined,
+          task: undefined,
+          toolCall: undefined,
+          planningUpdate: undefined
+        };
+      }
+      const key = `${workflowId}:${jobId}:${nodeId}`;
       return {
         result: s.outputResults[key] ?? s.results[key],
         output: s.outputResults[key],

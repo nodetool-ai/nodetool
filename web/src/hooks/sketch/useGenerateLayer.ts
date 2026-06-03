@@ -175,15 +175,18 @@ const forwardWorkflowMessage = (
     typeof message.progress === "number" &&
     typeof message.total === "number"
   ) {
-    useResultsStore
-      .getState()
-      .setProgress(
-        workflowId,
-        message.node_id,
-        message.progress,
-        message.total,
-        typeof message.chunk === "string" ? message.chunk : undefined
-      );
+    if (jobId) {
+      useResultsStore
+        .getState()
+        .setProgress(
+          workflowId,
+          jobId,
+          message.node_id,
+          message.progress,
+          message.total,
+          typeof message.chunk === "string" ? message.chunk : undefined
+        );
+    }
     const progressPercent =
       message.total > 0 ? (message.progress / message.total) * 100 : 0;
     if (typeof message.job_id === "string") {
@@ -217,11 +220,16 @@ const forwardWorkflowMessage = (
     return;
   }
 
-  if (message.type === "output_update" && typeof message.node_id === "string") {
+  if (
+    message.type === "output_update" &&
+    typeof message.node_id === "string" &&
+    jobId
+  ) {
     useResultsStore
       .getState()
       .setOutputResult(
         workflowId,
+        jobId,
         message.node_id,
         normalizeOutputUpdateValue(message as unknown as OutputUpdate),
         true

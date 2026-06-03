@@ -54,6 +54,7 @@ interface SketchGenerationStoreState {
   getLayerJobState: (layerId: string) => LayerJobState | undefined;
   resolveOutputAssetId: (
     workflowId: string,
+    jobId: string,
     selectedOutputNodeId: string
   ) => string | undefined;
 }
@@ -208,11 +209,11 @@ export const useSketchGenerationStore = create<SketchGenerationStoreState>(
 
       getLayerJobState: (layerId) => get().layerJobs[layerId],
 
-      resolveOutputAssetId: (workflowId, selectedOutputNodeId) =>
+      resolveOutputAssetId: (workflowId, jobId, selectedOutputNodeId) =>
         extractAssetId(
           useResultsStore
             .getState()
-            .getOutputResult(workflowId, selectedOutputNodeId)
+            .getOutputResult(workflowId, jobId, selectedOutputNodeId)
         )
     };
   }

@@ -4,6 +4,7 @@ import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useResultsStore from "../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
@@ -46,6 +47,15 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
       return;
     }
 
+    // Seed inputs from the workflow's focused run; if nothing has run there's
+    // no focused job and the store read yields undefined (literal-source
+    // fallback still applies).
+    const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
+      workflow.id
+    );
+    const getResultForFocusedJob = (wf: string, src: string): unknown =>
+      focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
+
     const inboundEdges = edges.filter((e: Edge) => e.target === nodeId);
 
     const overrides: Record<string, unknown> = {};
@@ -56,7 +66,7 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
       const { value, hasValue } = resolveExternalEdgeValue(
         edge,
         workflow.id,
-        getResult,
+        getResultForFocusedJob,
         findNode
       );
       if (hasValue) {

@@ -186,6 +186,7 @@ export function useRegenerateStaleLayers(): UseRegenerateStaleLayersResult {
           if (binding.dependencyHash) {
             const result = generationStore.resolveOutputAssetId(
               workflowId,
+              jobId,
               binding.selectedOutputNodeId ?? ""
             );
             if (result) {

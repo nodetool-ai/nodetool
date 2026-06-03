@@ -83,6 +83,7 @@ describe("SketchGenerationStore", () => {
       .getState()
       .setOutputResult(
         "wf-1",
+        "job-1",
         "output-1",
         { asset_id: "asset-from-result" } as never,
         true
@@ -90,20 +91,22 @@ describe("SketchGenerationStore", () => {
 
     const assetId = useSketchGenerationStore
       .getState()
-      .resolveOutputAssetId("wf-1", "output-1");
+      .resolveOutputAssetId("wf-1", "job-1", "output-1");
     expect(assetId).toBe("asset-from-result");
 
     useResultsStore
       .getState()
-      .setOutputResult("wf-1", "output-2", "raw-asset" as never, true);
+      .setOutputResult("wf-1", "job-1", "output-2", "raw-asset" as never, true);
     expect(
-      useSketchGenerationStore.getState().resolveOutputAssetId("wf-1", "output-2")
+      useSketchGenerationStore
+        .getState()
+        .resolveOutputAssetId("wf-1", "job-1", "output-2")
     ).toBe("raw-asset");
 
     expect(
       useSketchGenerationStore
         .getState()
-        .resolveOutputAssetId("wf-1", "missing")
+        .resolveOutputAssetId("wf-1", "job-1", "missing")
     ).toBeUndefined();
   });
 
