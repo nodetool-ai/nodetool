@@ -1,0 +1,124 @@
+/**
+ * Tests for useNodeExecState accessor hooks.
+ * These hooks centralize node exec-state reads so the focused-run lens
+ * can be resolved in one place in a later task.
+ */
+import { renderHook, act } from "@testing-library/react";
+import useStatusStore from "../../../stores/StatusStore";
+import useResultsStore from "../../../stores/ResultsStore";
+import {
+  useNodeStatus,
+  useNodeProgress,
+  useEdgeStatus
+} from "../useNodeExecState";
+
+const WF = "wf-test";
+const NODE = "node-1";
+const EDGE = "edge-1";
+
+beforeEach(() => {
+  // Reset relevant slices of each store to a clean state
+  useStatusStore.setState({ statuses: {} });
+  useResultsStore.setState({ progress: {}, edges: {} });
+});
+
+describe("useNodeStatus", () => {
+  it("returns undefined when no status has been set", () => {
+    const { result } = renderHook(() => useNodeStatus(WF, NODE));
+    expect(result.current).toBeUndefined();
+  });
+
+  it("returns the status value that was set in the store", () => {
+    act(() => {
+      useStatusStore.getState().setStatus(WF, NODE, "running");
+    });
+    const { result } = renderHook(() => useNodeStatus(WF, NODE));
+    expect(result.current).toBe("running");
+  });
+
+  it("re-renders when the store value changes", () => {
+    const { result } = renderHook(() => useNodeStatus(WF, NODE));
+    expect(result.current).toBeUndefined();
+
+    act(() => {
+      useStatusStore.getState().setStatus(WF, NODE, "running");
+    });
+    expect(result.current).toBe("running");
+
+    act(() => {
+      useStatusStore.getState().setStatus(WF, NODE, "completed");
+    });
+    expect(result.current).toBe("completed");
+  });
+
+  it("is keyed by workflowId+nodeId — changes to another node don't affect this hook", () => {
+    act(() => {
+      useStatusStore.getState().setStatus(WF, NODE, "running");
+      useStatusStore.getState().setStatus(WF, "node-2", "completed");
+    });
+    const { result } = renderHook(() => useNodeStatus(WF, NODE));
+    expect(result.current).toBe("running");
+  });
+});
+
+describe("useNodeProgress", () => {
+  it("returns undefined when no progress has been set", () => {
+    const { result } = renderHook(() => useNodeProgress(WF, NODE));
+    expect(result.current).toBeUndefined();
+  });
+
+  it("returns the progress object that was set in the store", () => {
+    act(() => {
+      useResultsStore.getState().setProgress(WF, NODE, 3, 10);
+    });
+    const { result } = renderHook(() => useNodeProgress(WF, NODE));
+    expect(result.current).toEqual({ progress: 3, total: 10, chunk: "" });
+  });
+
+  it("re-renders when progress updates", () => {
+    const { result } = renderHook(() => useNodeProgress(WF, NODE));
+    expect(result.current).toBeUndefined();
+
+    act(() => {
+      useResultsStore.getState().setProgress(WF, NODE, 5, 20);
+    });
+    expect(result.current?.progress).toBe(5);
+    expect(result.current?.total).toBe(20);
+
+    act(() => {
+      useResultsStore.getState().setProgress(WF, NODE, 20, 20);
+    });
+    expect(result.current?.progress).toBe(20);
+  });
+});
+
+describe("useEdgeStatus", () => {
+  it("returns undefined when no edge status has been set", () => {
+    const { result } = renderHook(() => useEdgeStatus(WF, EDGE));
+    expect(result.current).toBeUndefined();
+  });
+
+  it("returns the edge status object that was set in the store", () => {
+    act(() => {
+      useResultsStore.getState().setEdge(WF, EDGE, "active", 1);
+    });
+    const { result } = renderHook(() => useEdgeStatus(WF, EDGE));
+    expect(result.current).toEqual({ status: "active", counter: 1 });
+  });
+
+  it("re-renders when the edge status changes", () => {
+    const { result } = renderHook(() => useEdgeStatus(WF, EDGE));
+    expect(result.current).toBeUndefined();
+
+    act(() => {
+      useResultsStore.getState().setEdge(WF, EDGE, "idle");
+    });
+    expect(result.current?.status).toBe("idle");
+
+    act(() => {
+      useResultsStore.getState().setEdge(WF, EDGE, "active", 2);
+    });
+    expect(result.current?.status).toBe("active");
+    expect(result.current?.counter).toBe(2);
+  });
+});
