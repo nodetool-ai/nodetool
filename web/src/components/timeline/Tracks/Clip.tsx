@@ -33,6 +33,8 @@ import { useTimelineGenerationStore } from "../../../stores/timeline/TimelineGen
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
+import { useStoreWithEqualityFn } from "zustand/traditional";
+import isEqual from "fast-deep-equal";
 import { StatusIndicator } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
@@ -435,23 +437,29 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   }, [rawJobState]);
 
   // Node-level errors from ErrorStore, keyed by the clip's workflowId.
+  // Use a scoped selector with deep equality so this clip only re-renders
+  // when errors for its own workflow actually change, not on every global
+  // error update.
   const workflowId = clip?.workflowId;
-  const errorEntries = useErrorStore((s) => s.errors);
-  const errorState: ClipErrorState | null = useMemo(() => {
-    if (!workflowId) {
-      return null;
-    }
-    const prefix = `${workflowId}:`;
-    for (const key of Object.keys(errorEntries)) {
-      if (key.startsWith(prefix) && hasNodeError(errorEntries[key])) {
-        return {
-          hasError: true,
-          message: nodeErrorToDisplayString(errorEntries[key])
-        };
+  const errorState: ClipErrorState | null = useStoreWithEqualityFn(
+    useErrorStore,
+    (s) => {
+      if (!workflowId) {
+        return null;
       }
-    }
-    return null;
-  }, [workflowId, errorEntries]);
+      const prefix = `${workflowId}:`;
+      for (const key of Object.keys(s.errors)) {
+        if (key.startsWith(prefix) && hasNodeError(s.errors[key])) {
+          return {
+            hasError: true,
+            message: nodeErrorToDisplayString(s.errors[key])
+          };
+        }
+      }
+      return null;
+    },
+    isEqual
+  );
 
   // Derive the displayed status badge.
   // For the "missing" check we trust clip.currentAssetId: if it's set,
