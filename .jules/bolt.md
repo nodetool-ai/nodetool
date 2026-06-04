@@ -13,3 +13,6 @@
 ## 2026-05-25 - O(M*N) Sorting Optimization in Layer Deletion
 **Learning:** Found an $O(N \log N \times M)$ performance bottleneck in `web/src/components/sketch/hooks/useLayerActions.ts` where `document.layers.findIndex(...)` was called inside `toRemove.sort(...)` when deleting selected layers. Since we needed to iterate backwards over the array to preserve correct visual overlap/order when deleting layers, a `.sort` with `findIndex` caused redundant full-array scans.
 **Action:** Replace `toRemove.sort((a,b) => findIndex(b) - findIndex(a))` with an O(N) backward scan: create a Set of subset IDs, then iterate the main `layers` array backwards once, pushing IDs where the Set has the layer's ID. This automatically produces a correctly sorted array of IDs to remove.
+## 2026-05-25 - O(N*M) lookup optimization in Asset Drag and Drop
+**Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/components/chat/hooks/useDragAndDrop.ts` where `selectedIds.includes(...)` was called inside `potentialAssets.filter(...)`. Since this triggers for multiple assets, dragging many assets creates noticeable UI thread stalling due to the O(N^2) complexity.
+**Action:** Replaced `.includes(id)` with a pre-initialized `Set.has(id)` lookup. Converting the selected IDs array to a Set reduces time complexity to O(N+M) and avoids UI freezes.
