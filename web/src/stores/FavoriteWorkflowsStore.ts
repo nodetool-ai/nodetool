@@ -61,7 +61,7 @@ export const useFavoriteWorkflowsStore = create<FavoriteWorkflowsState>()(
         const state = persistedState as Record<string, unknown>;
         return {
           favoriteWorkflowIds: Array.isArray(state.favoriteWorkflowIds)
-            ? (state.favoriteWorkflowIds as string[])
+            ? state.favoriteWorkflowIds.filter((x): x is string => typeof x === "string")
             : []
         };
       }

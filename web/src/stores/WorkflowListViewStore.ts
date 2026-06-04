@@ -21,7 +21,7 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
   persist(
     (set) => ({
       showGraphPreview: true,
-      sortBy: "date" as SortBy,
+      sortBy: "date" satisfies SortBy,
       selectedTags: [],
       actions: {
         toggleGraphPreview: () => {
@@ -72,7 +72,7 @@ export const useWorkflowListViewStore = create<WorkflowListViewState>()(
               : currentState.sortBy,
           selectedTags:
             Array.isArray(p.selectedTags)
-              ? (p.selectedTags as string[])
+              ? p.selectedTags.filter((x): x is string => typeof x === "string")
               : currentState.selectedTags,
         };
       },

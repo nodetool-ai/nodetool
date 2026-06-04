@@ -44,13 +44,6 @@ interface UseNodeAutoRunReturn {
 }
 
 /**
- * Checks if a node type is an input node (nodetool.input.*)
- */
-export const isAutoRunInputNode = (nodeType: string): boolean => {
-  return nodeType.startsWith("nodetool.input.");
-};
-
-/**
  * Checks if auto-run should be enabled for a node based on settings and node type.
  * - If instantUpdate is enabled: returns true for ALL nodes
  * - If instantUpdate is disabled: returns false (no auto-run)

@@ -149,7 +149,6 @@ export interface AssetStore {
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string) => Promise<FolderTree>;
   loadCurrentFolder: (cursor?: string) => Promise<AssetList>;
-  loadFolderById: (id: string) => Promise<AssetList>;
   search: (query: AssetSearchQuery) => Promise<AssetSearchResult>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
@@ -321,16 +320,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       }
     }
     return get().load({ parent_id: requestedFolderId, cursor: cursor || "" });
-  },
-
-  /**
-   * Load a specific folder by its ID.
-   *
-   * @param id The ID of the folder to load.
-   * @returns A promise that resolves to the loaded folder's assets.
-   */
-  loadFolderById: async (id: string) => {
-    return get().load({ parent_id: id });
   },
 
   /**

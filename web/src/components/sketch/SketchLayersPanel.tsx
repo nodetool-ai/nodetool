@@ -658,7 +658,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   );
 
   const handleVisibilityButtonMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>, layerId: string) => {
+    (e: React.PointerEvent<HTMLButtonElement>, layerId: string) => {
       if (e.button !== 0) {
         return;
       }
@@ -679,7 +679,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   );
 
   const handleVisibilityButtonMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>, layerId: string) => {
+    (e: React.PointerEvent<HTMLButtonElement>, layerId: string) => {
       const dragState = visibilityDragStateRef.current;
       if (!dragState || (e.buttons & 1) !== 1) {
         return;

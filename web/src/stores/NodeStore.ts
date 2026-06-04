@@ -3,7 +3,7 @@
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
 import { create, StoreApi, UseBoundStore } from "zustand";
-import { NodeMetadata, RepoPath, UnifiedModel, Workflow } from "./ApiTypes";
+import { NodeMetadata, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import {
   Connection,
@@ -52,15 +52,6 @@ import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
-
-function isUnifiedModel(value: unknown): value is UnifiedModel {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "type" in value &&
-    "repo_id" in value
-  );
-}
 
 const syncReactFlowNodeChromeClass = (node: Node<NodeData>): Node<NodeData> => ({
   ...node,
@@ -133,8 +124,6 @@ type NodeSelection = {
 const undo_limit = 1000;
 
 export interface NodeStoreState {
-  shouldAutoLayout: boolean;
-  setShouldAutoLayout: (value: boolean) => void;
   workflow: WorkflowAttributes;
   nodes: Node<NodeData>[];
   viewport: Viewport | null;
@@ -143,8 +132,6 @@ export interface NodeStoreState {
   setHoveredNodes: (ids: string[]) => void;
   edges: Edge[];
   edgeUpdateSuccessful: boolean;
-  missingModelFiles: RepoPath[];
-  missingModelRepos: string[];
   generateNodeId: () => string;
   generateNodeIds: (count: number) => string[];
   generateEdgeId: () => string;
@@ -184,7 +171,6 @@ export interface NodeStoreState {
     oldHandle: string,
     newHandle: string
   ) => void;
-  getModels: () => UnifiedModel[];
   setNodes: (
     nodesOrCallback:
       | Node<NodeData>[]
@@ -193,7 +179,6 @@ export interface NodeStoreState {
   setEdges: (edges: Edge[]) => void;
   getWorkflow: () => Workflow;
   setWorkflowDirty: (dirty: boolean) => void;
-  updateWorkflowSetting: (key: string, value: string | number | boolean | null) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -206,8 +191,6 @@ export interface NodeStoreState {
     properties?: Record<string, unknown>
   ) => Node<NodeData>;
   autoLayout: () => Promise<void>;
-  clearMissingModels: () => void;
-  clearMissingRepos: () => void;
   workflowIsDirty: boolean;
   shouldFitToScreen: boolean;
   fitViewTargetNodeIds: string[] | null;
@@ -299,9 +282,6 @@ export const createNodeStore = (
         let lastSelection: NodeSelection = { nodes: [], edges: [] };
 
         return {
-          shouldAutoLayout: state?.shouldAutoLayout || false,
-          missingModelFiles: [],
-          missingModelRepos: [],
           viewport: null,
           workflow: workflow
             ? workflow
@@ -949,26 +929,6 @@ export const createNodeStore = (
             });
             get().setWorkflowDirty(true);
           },
-          getModels: (): UnifiedModel[] => {
-            const nodes = get().nodes;
-            const models: UnifiedModel[] = [];
-            for (const node of nodes) {
-              for (const key in node.data.properties) {
-                if (
-                  Object.prototype.hasOwnProperty.call(
-                    node.data.properties,
-                    key
-                  )
-                ) {
-                  const property = node.data.properties[key];
-                  if (isUnifiedModel(property)) {
-                    models.push(property);
-                  }
-                }
-              }
-            }
-            return models;
-          },
           getWorkflow: (): Workflow => {
             const workflow = get().workflow;
             const edges = get().edges;
@@ -1017,14 +977,6 @@ export const createNodeStore = (
           },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
-          },
-          updateWorkflowSetting: (key: string, value: string | number | boolean | null): void => {
-            const current = get().workflow;
-            const settings = {
-              ...(current.settings ?? {}),
-              [key]: value
-            };
-            set({ workflow: { ...current, settings } });
           },
           autoLayout: async (): Promise<void> => {
             const allNodes = get().nodes;
@@ -1098,15 +1050,6 @@ export const createNodeStore = (
 
             get().setNodes(updatedNodes);
             set({ shouldFitToScreen: true });
-          },
-          setShouldAutoLayout: (value: boolean): void => {
-            set({ shouldAutoLayout: value });
-          },
-          clearMissingModels: (): void => {
-            set({ missingModelFiles: [] });
-          },
-          clearMissingRepos: (): void => {
-            set({ missingModelRepos: [] });
           },
           setShouldFitToScreen: (
             value: boolean,

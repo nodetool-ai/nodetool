@@ -332,16 +332,26 @@ type PartializedState = Pick<
 
 // ── Empty defaults ─────────────────────────────────────────────────────────
 
-const emptyState = {
-  sequenceId: null as string | null,
-  baseUpdatedAt: null as string | null,
+const emptyState: {
+  sequenceId: string | null;
+  baseUpdatedAt: string | null;
+  fps: number;
+  width: number;
+  height: number;
+  durationMs: number;
+  tracks: TimelineTrack[];
+  clips: TimelineClip[];
+  markers: TimelineMarker[];
+} = {
+  sequenceId: null,
+  baseUpdatedAt: null,
   fps: 30,
   width: 1920,
   height: 1080,
   durationMs: 0,
-  tracks: [] as TimelineTrack[],
-  clips: [] as TimelineClip[],
-  markers: [] as TimelineMarker[]
+  tracks: [],
+  clips: [],
+  markers: []
 };
 
 // ── Factory ────────────────────────────────────────────────────────────────
