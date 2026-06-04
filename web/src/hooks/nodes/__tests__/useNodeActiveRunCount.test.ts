@@ -47,7 +47,7 @@ describe("useNodeActiveRunCount", () => {
     expect(result.current).toBe(2);
   });
 
-  it("excludes non-running runs and nodes that are not active", () => {
+  it("excludes terminal runs and nodes that are not active", () => {
     act(() => {
       useWorkflowRunsStore
         .getState()
@@ -58,14 +58,33 @@ describe("useNodeActiveRunCount", () => {
       useWorkflowRunsStore
         .getState()
         .recordRun({ jobId: "focus", workflowId: WF, state: "running", startedAt: 3 });
-      // A: node "active" but the run itself is completed → excluded.
+      // A: node "active" but the run itself is terminal (completed) → excluded.
       useStatusStore.getState().setStatus(WF, "A", NODE, "running");
-      // B: run is running but the node already finished → excluded.
+      // B: run is live but the node already finished → excluded.
       useStatusStore.getState().setStatus(WF, "B", NODE, "completed");
     });
 
     const { result } = renderHook(() => useNodeActiveRunCount(WF, NODE));
     expect(result.current).toBe(0);
+  });
+
+  it("counts a non-terminal run whose run-state lags (e.g. still queued) when the node is active", () => {
+    act(() => {
+      // "lagging" reports its node as running while its run-level state has not
+      // yet advanced past "queued" — the live race the robust gate must handle.
+      useWorkflowRunsStore
+        .getState()
+        .recordRun({ jobId: "lagging", workflowId: WF, state: "queued", startedAt: 1 });
+      useWorkflowRunsStore
+        .getState()
+        .recordRun({ jobId: "focus", workflowId: WF, state: "running", startedAt: 2 });
+      useStatusStore.getState().setStatus(WF, "lagging", NODE, "running");
+    });
+
+    expect(useWorkflowRunsStore.getState().getFocusedJob(WF)).toBe("focus");
+
+    const { result } = renderHook(() => useNodeActiveRunCount(WF, NODE));
+    expect(result.current).toBe(1);
   });
 
   it("re-renders when another run's node becomes active and inactive", () => {

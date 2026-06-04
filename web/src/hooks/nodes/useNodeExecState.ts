@@ -19,7 +19,9 @@ import useStatusStore from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
-import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import useWorkflowRunsStore, {
+  type RunState
+} from "../../stores/WorkflowRunsStore";
 import { nodeKey } from "../../stores/nodeKey";
 import type { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../../stores/ApiTypes";
 
@@ -179,6 +181,20 @@ const ACTIVE_NODE_STATUSES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Run-level states that are finished. We skip these purely as a perf bound so
+ * we don't scan historical runs; the per-node status check below is the real
+ * "is this run executing this node right now" signal. We deliberately do NOT
+ * require state === "running": the run-level state can lag behind the per-node
+ * updates (a run can be executing nodes while its RunState is still "queued"),
+ * and gating on "running" would silently hide the ambient signal.
+ */
+const TERMINAL_RUN_STATES: ReadonlySet<RunState> = new Set([
+  "completed",
+  "error",
+  "cancelled"
+]);
+
+/**
  * Reactive hook that returns how many *other* runs (i.e. not the focused run)
  * are currently executing this node. The focused run is already represented by
  * the node's primary running animation, so it is excluded here.
@@ -203,7 +219,7 @@ export function useNodeActiveRunCount(
       if (jobId === focusedJob) {
         continue;
       }
-      if (runs[jobId].state !== "running") {
+      if (TERMINAL_RUN_STATES.has(runs[jobId].state)) {
         continue;
       }
       const status = s.getStatus(workflowId, jobId, nodeId);
