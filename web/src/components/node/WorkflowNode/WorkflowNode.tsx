@@ -61,7 +61,7 @@ const WorkflowNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const metadata = useMetadataStore((state) => state.getMetadata(type));
   const statusRaw = useNodeStatus(workflow_id, id);
   const statusValue =
-    statusRaw && statusRaw !== null && typeof statusRaw !== "object"
+    statusRaw && typeof statusRaw !== "object"
       ? statusRaw
       : undefined;
 

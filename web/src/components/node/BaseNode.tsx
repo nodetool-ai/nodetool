@@ -437,7 +437,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Status
   const statusValue = useNodeStatus(workflow_id, id);
   const status =
-    statusValue && statusValue !== null && typeof statusValue !== "object"
+    statusValue && typeof statusValue !== "object"
       ? statusValue
       : undefined;
   const isLoading = useMemo(
