@@ -1,7 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import {
-  useInputNodeAutoRun,
-  isAutoRunInputNode
+  useInputNodeAutoRun
 } from "../useInputNodeAutoRun";
 
 // Mock the dependencies
@@ -40,23 +39,6 @@ const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockSubgraph = subgraph as jest.Mock;
 const mockUseSettingsStore = useSettingsStore as unknown as jest.Mock;
-
-describe("isAutoRunInputNode", () => {
-  it("returns true for input node types", () => {
-    expect(isAutoRunInputNode("nodetool.input.StringInput")).toBe(true);
-    expect(isAutoRunInputNode("nodetool.input.IntegerInput")).toBe(true);
-    expect(isAutoRunInputNode("nodetool.input.FloatInput")).toBe(true);
-    expect(isAutoRunInputNode("nodetool.input.BooleanInput")).toBe(true);
-    expect(isAutoRunInputNode("nodetool.input.ImageInput")).toBe(true);
-  });
-
-  it("returns false for non-input node types", () => {
-    expect(isAutoRunInputNode("nodetool.constant.String")).toBe(false);
-    expect(isAutoRunInputNode("nodetool.output.ImageOutput")).toBe(false);
-    expect(isAutoRunInputNode("lib.image.LoadImage")).toBe(false);
-    expect(isAutoRunInputNode("")).toBe(false);
-  });
-});
 
 describe("useInputNodeAutoRun", () => {
   const mockRun = jest.fn();
