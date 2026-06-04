@@ -6,6 +6,7 @@ import {
   computeActiveLayers,
   effectiveAssetId,
   isClipActive,
+  resolveCaptionAtTime,
   trackZ,
   transitionOpacity,
   LAYER_Z_BASE
@@ -168,5 +169,122 @@ describe("computeActiveLayers", () => {
     ];
     const layers = computeActiveLayers(tracks, clips, 100);
     expect(layers[0].assetId).toBeUndefined();
+  });
+
+  it("emits a caption layer for a caption-only overlay clip and keeps it on top", () => {
+    const tracks = [
+      track({ id: "v", index: 0, type: "video" }),
+      track({ id: "sub", index: 1, type: "subtitle" })
+    ];
+    const clips = [
+      clip({ id: "vid", trackId: "v", startMs: 0, durationMs: 1000 }),
+      clip({
+        id: "cap",
+        trackId: "sub",
+        startMs: 0,
+        durationMs: 1000,
+        mediaType: "overlay",
+        currentAssetId: undefined,
+        caption: {
+          words: [
+            { word: "hello", startMs: 0, endMs: 300 },
+            { word: "world", startMs: 300, endMs: 600 }
+          ]
+        }
+      })
+    ];
+    const layers = computeActiveLayers(tracks, clips, 100);
+    const captionLayer = layers.find((l) => l.kind === "caption");
+    expect(captionLayer).toBeDefined();
+    expect(captionLayer!.clipId).toBe("cap");
+    expect(captionLayer!.assetId).toBeUndefined();
+    // A caption-only clip draws no media layer (no phantom video).
+    expect(layers.filter((l) => l.clipId === "cap")).toHaveLength(1);
+    // Captions always composite above the picture, even though the video track
+    // here sits at index 0 (which would otherwise be top-most).
+    const videoLayer = layers.find((l) => l.kind === "video")!;
+    expect(trackZ(captionLayer!.trackIndex)).toBeGreaterThan(
+      trackZ(videoLayer.trackIndex)
+    );
+    // Caption layers are appended last so array order also puts them on top.
+    expect(layers[layers.length - 1].kind).toBe("caption");
+    // At 100ms the first word is active, the second is not.
+    expect(captionLayer!.caption!.words).toEqual([
+      { text: "hello", active: true },
+      { text: "world", active: false }
+    ]);
+  });
+
+  it("sources captions from an audio voiceover clip and keeps them on top", () => {
+    const tracks = [
+      track({ id: "v", index: 0, type: "video" }),
+      track({ id: "a", index: 1, type: "audio" })
+    ];
+    const clips = [
+      clip({ id: "vid", trackId: "v", startMs: 0, durationMs: 1000 }),
+      clip({
+        id: "vo",
+        trackId: "a",
+        startMs: 0,
+        durationMs: 1000,
+        mediaType: "audio",
+        caption: { words: [{ word: "hi", startMs: 0, endMs: 300 }] }
+      })
+    ];
+    const layers = computeActiveLayers(tracks, clips, 100);
+    // The audio clip yields a caption layer but no media layer.
+    expect(layers.filter((l) => l.clipId === "vo")).toHaveLength(1);
+    const captionLayer = layers.find((l) => l.clipId === "vo")!;
+    expect(captionLayer.kind).toBe("caption");
+    const videoLayer = layers.find((l) => l.kind === "video")!;
+    expect(trackZ(captionLayer.trackIndex)).toBeGreaterThan(
+      trackZ(videoLayer.trackIndex)
+    );
+  });
+
+  it("a captioned video draws both its picture and its caption", () => {
+    const tracks = [track({ id: "v", index: 0, type: "video" })];
+    const clips = [
+      clip({
+        id: "talk",
+        trackId: "v",
+        startMs: 0,
+        durationMs: 1000,
+        mediaType: "video",
+        currentAssetId: "asset-1",
+        caption: { words: [{ word: "hey", startMs: 0, endMs: 300 }] }
+      })
+    ];
+    const layers = computeActiveLayers(tracks, clips, 100);
+    expect(layers.map((l) => l.kind)).toEqual(["video", "caption"]);
+    expect(layers.every((l) => l.clipId === "talk")).toBe(true);
+  });
+});
+
+describe("resolveCaptionAtTime", () => {
+  it("returns undefined for clips without a caption", () => {
+    expect(resolveCaptionAtTime(clip({ startMs: 0 }), 0)).toBeUndefined();
+  });
+
+  it("marks the spoken word active using clip-local time", () => {
+    const c = clip({
+      startMs: 1000,
+      caption: {
+        words: [
+          { word: "a", startMs: 0, endMs: 200 },
+          { word: "b", startMs: 200, endMs: 400 }
+        ]
+      }
+    });
+    // Playhead at 1100ms → 100ms into the clip → first word active.
+    expect(resolveCaptionAtTime(c, 1100)!.words).toEqual([
+      { text: "a", active: true },
+      { text: "b", active: false }
+    ]);
+    // Playhead at 1300ms → 300ms in → second word active.
+    expect(resolveCaptionAtTime(c, 1300)!.words).toEqual([
+      { text: "a", active: false },
+      { text: "b", active: true }
+    ]);
   });
 });
