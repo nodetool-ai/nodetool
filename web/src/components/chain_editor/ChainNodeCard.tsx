@@ -22,9 +22,11 @@ import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";
 import OutputRenderer from "../node/OutputRenderer";
-import useResultsStore, { hashKey } from "../../stores/ResultsStore";
-import useStatusStore from "../../stores/StatusStore";
-import { useShallow } from "zustand/react/shallow";
+import {
+  useNodeStatus,
+  useNodeProgress,
+  useNodeResultValue
+} from "../../hooks/nodes/useNodeExecState";
 import type { ChainNode, InputSource } from "./chainTypes";
 
 interface ChainNodeCardProps {
@@ -84,20 +86,10 @@ const errorCardStyles = (theme: Theme) =>
 type NodeStatus = "idle" | "running" | "booting" | "starting" | "completed" | "error";
 
 function useNodeExecState(workflowId: string | null, nodeId: string) {
-  const status = useStatusStore(
-    (s) => (workflowId ? s.getStatus(workflowId, nodeId) : undefined)
-  ) as NodeStatus | undefined;
-
-  const { progress, result } = useResultsStore(
-    useShallow((s) => {
-      if (!workflowId) return { progress: undefined, result: undefined };
-      const key = hashKey(workflowId, nodeId);
-      return {
-        progress: s.progress[key],
-        result: s.outputResults[key] ?? s.results[key]
-      };
-    })
-  );
+  const wf = workflowId ?? "";
+  const status = useNodeStatus(wf, nodeId) as NodeStatus | undefined;
+  const progress = useNodeProgress(wf, nodeId);
+  const result = useNodeResultValue(wf, nodeId);
 
   const isRunning = status === "running" || status === "booting" || status === "starting";
   const isCompleted = status === "completed";

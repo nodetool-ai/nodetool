@@ -54,9 +54,18 @@ jest.mock("../../../stores/ResultsStore", () => ({
   __esModule: true,
   default: (selector: (state: unknown) => unknown) =>
     selector({
-      getOutputResult: (_w: string, n: string) => mockStores.outputResults[n],
-      getResult: (_w: string, n: string) => mockStores.results[n]
+      getOutputResult: (_w: string, _j: string, n: string) =>
+        mockStores.outputResults[n],
+      getResult: (_w: string, _j: string, n: string) => mockStores.results[n]
     })
+}));
+
+// Reads resolve the workflow's focused run; provide a stable focused job so the
+// hooks read the (mocked) result maps instead of short-circuiting to undefined.
+jest.mock("../../../stores/WorkflowRunsStore", () => ({
+  __esModule: true,
+  default: (selector: (state: unknown) => unknown) =>
+    selector({ focusedJob: { wf: "job-1" } })
 }));
 
 // ---------------------------------------------------------------------------

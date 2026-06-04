@@ -18,6 +18,8 @@
 export interface QueueableJob {
   job_id?: string | null;
   workflow_id?: string | null;
+  /** When true, the run may start even if its workflow already has a run in flight. */
+  concurrent?: boolean;
 }
 
 export interface QueuedPosition {
@@ -25,6 +27,7 @@ export interface QueuedPosition {
   workflowId: string | null;
   /** 1-based position in the pending queue (1 = starts next). */
   position: number;
+  concurrent: boolean;
 }
 
 export class JobConcurrencyQueue<T extends QueueableJob = QueueableJob> {
@@ -62,7 +65,8 @@ export class JobConcurrencyQueue<T extends QueueableJob = QueueableJob> {
     return this.pending.map((req, index) => ({
       jobId: req.job_id ?? "",
       workflowId: req.workflow_id ?? null,
-      position: index + 1
+      position: index + 1,
+      concurrent: req.concurrent ?? false
     }));
   }
 }
