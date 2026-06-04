@@ -144,8 +144,8 @@ describe("RemoteSettingsMenu", () => {
       render(<RemoteSettingsMenuComponent />, { wrapper });
 
       await waitFor(() => {
-        // Non-secret setting should be visible
-        expect(screen.getByText("TIMEOUT")).toBeInTheDocument();
+        // Non-secret setting should be visible (label is title-cased)
+        expect(screen.getByText("Timeout")).toBeInTheDocument();
         expect(screen.getByText("Request timeout in seconds")).toBeInTheDocument();
 
         // Secret setting should NOT be visible
@@ -185,7 +185,7 @@ describe("RemoteSettingsMenu", () => {
       render(<RemoteSettingsMenuComponent />, { wrapper });
 
       await waitFor(() => {
-        expect(screen.getByText("TIMEOUT")).toBeInTheDocument();
+        expect(screen.getByDisplayValue("30")).toBeInTheDocument();
       });
 
       // Update the non-secret setting

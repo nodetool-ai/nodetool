@@ -8,6 +8,7 @@ import {
   Stack
 } from "@mui/material";
 import { FlexRow, Box, Chip } from "../ui_primitives";
+import { formatSettingLabel } from "./settingsLabel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import { TextInput, Text } from "../ui_primitives";
@@ -115,16 +116,14 @@ const SearchProviderSection = memo(function SearchProviderSection({
 
   return (
     <div className="settings-section">
-      <Text size="bigger" id="search-provider">
+      <Text size="big" id="search-provider" className="settings-heading">
         Search Provider
       </Text>
 
       {/* Provider Selector */}
       <div className="settings-item large">
         <FormControl variant="standard" fullWidth sx={{ marginBottom: "1.5em" }}>
-          <InputLabel id="provider-select-label">
-            Search Provider
-          </InputLabel>
+          <InputLabel id="provider-select-label">Provider</InputLabel>
           <Select
             labelId="provider-select-label"
             id="provider-select"
@@ -206,7 +205,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
                     type="password"
                     autoComplete="off"
                     id={`${field.toLowerCase()}-input`}
-                    label={field.replace(/_/g, " ")}
+                    label={formatSettingLabel(field)}
                     value={value}
                     onChange={(e: unknown) => {
                       const target = e as { target: { value: string } };
