@@ -31,6 +31,8 @@ const TYPE_CATEGORIES = [
   { value: "float", label: "Number", icon: "float" }
 ];
 
+const TYPE_CHIP_ICON_CONTAINER_STYLE = { width: 16, height: 16 } as const;
+
 type TypeOption = {
   value: string;
   label: string;
@@ -364,7 +366,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   icon={
                     <IconForType
                       iconName={type.icon}
-                      containerStyle={{ width: 16, height: 16 }}
+                      containerStyle={TYPE_CHIP_ICON_CONTAINER_STYLE}
                     />
                   }
                   label={type.label}

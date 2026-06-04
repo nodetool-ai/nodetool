@@ -510,7 +510,7 @@ const applyOutputUpdate = (
       );
   }
 
-  if (update.output_type === "string") {
+  if (update.output_type === "string" && typeof update.value === "string") {
     const messages = state.messageCache[threadId] || [];
     const lastMessage = messages[messages.length - 1];
 
@@ -520,7 +520,7 @@ const applyOutputUpdate = (
       }
       const updatedMessage: Message = {
         ...lastMessage,
-        content: lastMessage.content + (update.value as string)
+        content: lastMessage.content + update.value
       };
       return {
         update: {
@@ -538,7 +538,7 @@ const applyOutputUpdate = (
     const message: Message = {
       role: "assistant",
       type: "message",
-      content: update.value as string
+      content: update.value
     };
     return {
       update: {

@@ -37,18 +37,6 @@ export const buildSceneTree = (
   }));
 };
 
-export const flattenTree = (nodes: SceneTreeNode[]): SceneTreeNode[] => {
-  const result: SceneTreeNode[] = [];
-  const walk = (list: SceneTreeNode[]) => {
-    for (const node of list) {
-      result.push(node);
-      walk(node.children);
-    }
-  };
-  walk(nodes);
-  return result;
-};
-
 /** Recursively dispose geometries and materials owned by an object subtree. */
 export const disposeObject = (object: THREE.Object3D): void => {
   object.traverse((child) => {

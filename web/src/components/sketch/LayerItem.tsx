@@ -71,11 +71,11 @@ export interface LayerItemProps {
   onLayerRowPointerDown: (e: React.PointerEvent, layerId: string) => void;
   onLayerRowClick: (e: React.MouseEvent, layerId: string) => void;
   onVisibilityButtonMouseDown: (
-    e: React.MouseEvent<HTMLButtonElement>,
+    e: React.PointerEvent<HTMLButtonElement>,
     layerId: string
   ) => void;
   onVisibilityButtonMouseEnter: (
-    e: React.MouseEvent<HTMLButtonElement>,
+    e: React.PointerEvent<HTMLButtonElement>,
     layerId: string
   ) => void;
   onVisibilityButtonClick: (
@@ -463,16 +463,10 @@ const LayerItem: React.FC<LayerItemProps> = ({
             disableRipple
             aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
             onPointerDown={(e) =>
-              onVisibilityButtonMouseDown(
-                e as unknown as React.MouseEvent<HTMLButtonElement>,
-                layer.id
-              )
+              onVisibilityButtonMouseDown(e, layer.id)
             }
             onPointerEnter={(e) =>
-              onVisibilityButtonMouseEnter(
-                e as unknown as React.MouseEvent<HTMLButtonElement>,
-                layer.id
-              )
+              onVisibilityButtonMouseEnter(e, layer.id)
             }
             onPointerUp={(e) => {
               if (

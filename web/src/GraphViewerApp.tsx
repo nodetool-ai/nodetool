@@ -28,7 +28,7 @@ import { NodeData } from "./stores/NodeData";
 import { graphNodeToReactFlowNode } from "./stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "./stores/graphEdgeToReactFlowEdge";
 import { autoLayout } from "./core/graph";
-import type { Workflow, NodeMetadata, Property, OutputSlot, Node as GraphNode, Edge as GraphEdge } from "./stores/ApiTypes";
+import type { Workflow, NodeMetadata, Property, PropertyTypeMetadata, OutputSlot, Node as GraphNode, Edge as GraphEdge } from "./stores/ApiTypes";
 
 // Real node components — imported so they are registered
 import BaseNode from "./components/node/BaseNode";
@@ -57,7 +57,7 @@ const queryClient = new QueryClient({
 
 // ─── Metadata helpers ────────────────────────────────────────────
 
-function makeType(type: string) {
+function makeType(type: string): PropertyTypeMetadata {
   return { type, optional: false, type_args: [] };
 }
 
@@ -72,11 +72,11 @@ function makeProp(name: string, type: string, defaultVal?: unknown): Property {
     max: null,
     json_schema_extra: null,
     required: false
-  } as Property;
+  };
 }
 
 function makeOutput(name: string, type: string): OutputSlot {
-  return { name, type: makeType(type), stream: false } as OutputSlot;
+  return { name, type: makeType(type), stream: false };
 }
 
 const KNOWN_METADATA: Record<string, Partial<NodeMetadata>> = {};
@@ -122,7 +122,7 @@ function inferMetadata(
     supports_dynamic_inputs: false,
     is_streaming_output: false,
     supports_dynamic_outputs: false
-  } as NodeMetadata;
+  };
 }
 
 // ─── Workflow parser ─────────────────────────────────────────────

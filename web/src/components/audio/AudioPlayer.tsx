@@ -245,9 +245,9 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           setDisplayTime(currentTime);
         }, 100);
 
-        const handleSeekingProcess = throttle(() => {
-          const currentTime = waveSurferRef.current?.getCurrentTime() || 0;
-          currentTimeRef.current = currentTime;
+        const handleSeekingProcess = throttle((_currentTime: number) => {
+          const time = waveSurferRef.current?.getCurrentTime() || 0;
+          currentTimeRef.current = time;
         }, 100);
 
         const waveSurfer = WaveSurfer.create({
@@ -277,7 +277,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
           console.info("Decode: ", duration + "s");
         });
         waveSurfer.on("audioprocess", handleAudioProcess);
-        waveSurfer.on("seeking", handleSeekingProcess as unknown as (...args: unknown[]) => void);
+        waveSurfer.on("seeking", handleSeekingProcess);
         waveSurfer.on("zoom", checkWaveformFit);
         waveSurfer.on("finish", () => {
           if (loopRef.current) {
