@@ -468,9 +468,17 @@ export const createNodeStore = (
             // Filter out selection changes for group nodes that have selectable: false
             // This prevents groups from being selected during drag selection when they shouldn't be
             const currentNodes = get().nodes;
+
+            // Optimization: Lazily initialize Map only if we encounter selection changes
+            // to avoid O(N) allocation on hot paths like dragging.
+            let lazyNodeMap: Map<string, Node<NodeData>> | null = null;
+
             const filteredChanges = changes.filter((change) => {
               if (change.type === "select" && change.selected) {
-                const node = currentNodes.find((n) => n.id === change.id);
+                if (!lazyNodeMap) {
+                  lazyNodeMap = new Map(currentNodes.map((n) => [n.id, n]));
+                }
+                const node = lazyNodeMap.get(change.id);
                 // If node is a group and has selectable: false, don't allow selection
                 if (
                   node &&
