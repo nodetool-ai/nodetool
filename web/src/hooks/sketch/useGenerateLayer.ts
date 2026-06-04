@@ -464,12 +464,10 @@ export const useGenerateLayer = (
       throw new Error("Layer is not bound to a workflow");
     }
 
-    // Clear stale node errors from a previous run on this workflow so a
-    // retry doesn't immediately show the prior failure in the panel. This is
-    // workflow-scoped (shared editor-panel view); per-job failure surfacing for
-    // concurrent same-workflow runs is handled separately via `jobNodeErrors`,
-    // so don't reintroduce a shared-store read in the completion path.
-    useErrorStore.getState().clearErrors(binding.workflowId);
+    // No pre-run error clear: each run uses a fresh job id, so its per-job error
+    // slice (keyed by workflowId, jobId, nodeId) starts empty and a stale
+    // failure can't carry over. A workflow-wide clear here would wipe other
+    // concurrent runs' errors, breaking run isolation.
 
     const workflow = await queryClient.fetchQuery({
       queryKey: workflowQueryKey(binding.workflowId),

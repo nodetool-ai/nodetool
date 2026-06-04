@@ -1236,8 +1236,9 @@ export class UnifiedWebSocketRunner {
    */
   async runJob(req: RunJobRequest): Promise<void> {
     const max = await this.getMaxConcurrentJobs();
-    // Queue the run when over the global cap, or when this workflow already has
-    // a run in flight (one run per workflow at a time). Reserve the slot
+    // Queue the run when over the global cap, or — unless this run opts into
+    // concurrency (req.concurrent) — when this workflow already has a run in
+    // flight (default: one run per workflow at a time). Reserve the slot
     // synchronously (after the only await above) so two run_job commands can't
     // both observe a free slot before either registers.
     if (

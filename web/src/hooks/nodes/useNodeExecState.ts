@@ -199,10 +199,10 @@ const TERMINAL_RUN_STATES: ReadonlySet<RunState> = new Set([
  * are currently executing this node. The focused run is already represented by
  * the node's primary running animation, so it is excluded here.
  *
- * Only runs whose RunState is `running` are considered, and within those only
- * the ones where this node's status is active (running/starting/booting). Drives
- * the ambient-liveness ring + badge so the canvas signals work happening in runs
- * the user is not currently focused on.
+ * Any non-terminal run is considered — the run-level state can lag behind the
+ * per-node updates — and within those only the ones where this node's status is
+ * active (running/starting/booting). Drives the ambient-liveness ring + badge so
+ * the canvas signals work happening in runs the user is not currently focused on.
  */
 export function useNodeActiveRunCount(
   workflowId: string,

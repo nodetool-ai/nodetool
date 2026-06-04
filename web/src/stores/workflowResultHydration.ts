@@ -186,7 +186,9 @@ export const hydrateWorkflowResultsFromAssets = async (
     // Write the persisted outputs under the synthetic "hydrated" run so the
     // focused-run readers can display them on open.
     for (const nodeId in grouped) {
-      if (!Object.prototype.hasOwnProperty.call(grouped, nodeId)) {continue;}
+      if (!Object.prototype.hasOwnProperty.call(grouped, nodeId)) {
+        continue;
+      }
       const nodeResults = grouped[nodeId];
       const value = nodeResults.length === 1 ? nodeResults[0] : nodeResults;
       setOutputResult(workflowId, HYDRATED_JOB_ID, nodeId, value);

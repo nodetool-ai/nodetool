@@ -47,8 +47,8 @@ type WorkflowRunsState = {
 
 type WorkflowRunsActions = {
   /**
-   * Upsert a run. Auto-focuses unless pinned or the current focused run is
-   * still active (non-terminal).
+   * Upsert a run. Auto-focuses the newest run (latest-run-wins) unless the user
+   * has explicitly pinned a focus via setFocusedJob.
    */
   recordRun: (meta: RunMeta) => void;
   /** Update the RunState for an existing run. Focus is unchanged. */
