@@ -169,6 +169,52 @@ export function useNodeResultValue(
   );
 }
 
+// ── Ambient liveness (other concurrent runs) ─────────────────────────────────
+
+/** Node-level statuses that mean the node is actively executing. */
+const ACTIVE_NODE_STATUSES: ReadonlySet<string> = new Set([
+  "running",
+  "starting",
+  "booting"
+]);
+
+/**
+ * Reactive hook that returns how many *other* runs (i.e. not the focused run)
+ * are currently executing this node. The focused run is already represented by
+ * the node's primary running animation, so it is excluded here.
+ *
+ * Only runs whose RunState is `running` are considered, and within those only
+ * the ones where this node's status is active (running/starting/booting). Drives
+ * the ambient-liveness ring + badge so the canvas signals work happening in runs
+ * the user is not currently focused on.
+ */
+export function useNodeActiveRunCount(
+  workflowId: string,
+  nodeId: string
+): number {
+  const focusedJob = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  const runs = useWorkflowRunsStore((s) => s.runs[workflowId]);
+  return useStatusStore((s) => {
+    if (!runs) {
+      return 0;
+    }
+    let count = 0;
+    for (const jobId in runs) {
+      if (jobId === focusedJob) {
+        continue;
+      }
+      if (runs[jobId].state !== "running") {
+        continue;
+      }
+      const status = s.getStatus(workflowId, jobId, nodeId);
+      if (typeof status === "string" && ACTIVE_NODE_STATUSES.has(status)) {
+        count++;
+      }
+    }
+    return count;
+  });
+}
+
 // ── Node artifacts (multi-value shallow selector) ────────────────────────────
 
 /**

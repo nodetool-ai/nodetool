@@ -24,7 +24,12 @@ import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import NodeDependencyWarning from "./NodeDependencyWarning";
-import { useNodeStatus, useNodeHasError, useNodeArtifacts } from "../../hooks/nodes/useNodeExecState";
+import {
+  useNodeStatus,
+  useNodeHasError,
+  useNodeArtifacts,
+  useNodeActiveRunCount
+} from "../../hooks/nodes/useNodeExecState";
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
@@ -161,6 +166,52 @@ const gradientAnimationKeyframes = keyframes`
     --gradient-angle: 450deg;
   }
 `;
+
+// Ambient-liveness ring: a breathing halo shown when a node is executing in one
+// or more runs the user is NOT currently focused on. Visually distinct from the
+// primary running ring (a tight, rotating type-color conic gradient): this one
+// is a single-hue halo that pulses opacity/scale, so "running in my focused run"
+// and "also running elsewhere" read as different signals.
+const ambientPulseKeyframes = keyframes`
+  0% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.015); }
+  100% { opacity: 0.9; transform: scale(1); }
+`;
+
+const getAmbientRingCss = (color: string) =>
+  css({
+    position: "absolute",
+    inset: 0,
+    borderRadius: "var(--rounded-node)",
+    pointerEvents: "none",
+    // Pure box-shadow halo (no fill), so it only paints outside the node body
+    // regardless of stacking order — robust to whether the container is a
+    // positioned ancestor.
+    zIndex: 0,
+    boxShadow: `0 0 0 2px ${color}, 0 0 16px 2px color-mix(in srgb, ${color} 55%, transparent)`,
+    animation: `${ambientPulseKeyframes} 1.6s ease-in-out infinite`
+  });
+
+const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
+  position: "absolute",
+  top: -8,
+  right: -8,
+  minWidth: 16,
+  height: 16,
+  boxSizing: "border-box",
+  padding: "0 4px",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: 8,
+  backgroundColor: theme.vars.palette.secondary.main,
+  color: theme.vars.palette.secondary.contrastText,
+  border: `1px solid ${theme.vars.palette.c_node_bg}`,
+  fontSize: "10px",
+  fontWeight: 700,
+  lineHeight: 1,
+  zIndex: 20,
+  pointerEvents: "none"
+});
 
 const getNodeStyles = (colors: string[]) =>
   css({
@@ -393,6 +444,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => status === "running" || status === "starting" || status === "booting",
     [status]
   );
+
+  // Ambient liveness: how many *other* (non-focused) runs are executing this
+  // node right now. Drives a secondary ring + count badge so the canvas signals
+  // work happening in runs the user is not currently focused on.
+  const otherActiveRunCount = useNodeActiveRunCount(workflow_id, id);
+  const showAmbientLiveness = otherActiveRunCount > 0;
+  const ambientRingCss = useMemo(
+    () => getAmbientRingCss(theme.vars.palette.secondary.main),
+    [theme.vars.palette.secondary.main]
+  );
+  const ambientBadgeStyle = useMemo(() => getAmbientBadgeStyle(theme), [theme]);
 
   // Metadata
   const metadata = useMetadataStore((state) => state.getMetadata(type));
@@ -799,6 +861,20 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <div style={focusedIndicatorStyle}>
           FOCUSED
         </div>
+      )}
+
+      {showAmbientLiveness && (
+        <>
+          <div css={ambientRingCss} aria-hidden="true" />
+          <div
+            style={ambientBadgeStyle}
+            title={`Running in ${otherActiveRunCount} other run${
+              otherActiveRunCount === 1 ? "" : "s"
+            }`}
+          >
+            {otherActiveRunCount}
+          </div>
+        </>
       )}
 
       {title && type !== CODE_NODE_TYPE && (
