@@ -449,7 +449,15 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // node right now. Drives a secondary ring + count badge so the canvas signals
   // work happening in runs the user is not currently focused on.
   const otherActiveRunCount = useNodeActiveRunCount(workflow_id, id);
-  const showAmbientLiveness = otherActiveRunCount > 0;
+  // Total runs executing this node right now: the non-focused active runs plus
+  // the focused run when it's the one driving the primary animation.
+  const concurrentRunCount = otherActiveRunCount + (isLoading ? 1 : 0);
+  // Badge shows the concurrency count, but only once ≥2 runs hit this node — a
+  // lone run needs no number (the ring/animation already says "running").
+  const showConcurrencyBadge = concurrentRunCount >= 2;
+  // Ambient ring marks a node active in a non-focused run when the primary
+  // (focused-run) ring isn't already drawn, so two rings never stack.
+  const showAmbientRing = otherActiveRunCount > 0 && !isLoading;
   const ambientRingCss = useMemo(
     () => getAmbientRingCss(theme.vars.palette.secondary.main),
     [theme.vars.palette.secondary.main]
@@ -674,6 +682,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         selected,
         isFocused,
         isLoading,
+        hasAmbientRing: showAmbientRing,
         hasParent,
         hasToggleableResult: Boolean(hasToggleableResult),
         baseColor,
@@ -686,6 +695,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       selected,
       isFocused,
       isLoading,
+      showAmbientRing,
       hasParent,
       hasToggleableResult,
       baseColor,
@@ -863,18 +873,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </div>
       )}
 
-      {showAmbientLiveness && (
-        <>
-          <div css={ambientRingCss} aria-hidden="true" />
-          <div
-            style={ambientBadgeStyle}
-            title={`Running in ${otherActiveRunCount} other run${
-              otherActiveRunCount === 1 ? "" : "s"
-            }`}
-          >
-            {otherActiveRunCount}
-          </div>
-        </>
+      {showAmbientRing && <div css={ambientRingCss} aria-hidden="true" />}
+      {showConcurrencyBadge && (
+        <div
+          style={ambientBadgeStyle}
+          title={`Running in ${concurrentRunCount} runs at once`}
+        >
+          {concurrentRunCount}
+        </div>
       )}
 
       {title && type !== CODE_NODE_TYPE && (
