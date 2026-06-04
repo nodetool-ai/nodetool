@@ -38,7 +38,7 @@
     "react-native": "0.85.3",
     "react-native-get-random-values": "~1.11.0",
     "react-native-markdown-display": "^7.0.2",
-    "react-native-safe-area-context": "~5.7.0",
+    "react-native-safe-area-context": "~5.8.0",
     "react-native-screens": "4.25.2",
     "react-native-syntax-highlighter": "^2.1.0",
     "react-native-url-polyfill": "^2.0.0",
