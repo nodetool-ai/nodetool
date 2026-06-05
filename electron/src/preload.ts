@@ -14,17 +14,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 import {
-  InstallLocationData,
   IpcChannels,
   IpcEvents,
   LocalhostProxyWsCloseRequest,
   LocalhostProxyWsOpenRequest,
   LocalhostProxyWsSendRequest,
   MenuEventData,
-  PackageUpdateInfo,
   PythonPackages,
-  UpdateProgressData,
-  UpdateInfo,
   Workflow,
   ModelDirectory,
   SystemDirectory,
