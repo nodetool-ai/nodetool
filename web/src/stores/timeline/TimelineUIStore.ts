@@ -16,6 +16,18 @@ import { create, type StoreApi, type UseBoundStore } from "zustand";
 
 export type TimelineTool = "select" | "cut";
 
+/** A reference to one transcript word: its clip and the word index within it. */
+export interface WordRef {
+  clipId: string;
+  wordIndex: number;
+}
+
+/** A transcript word selection — an inclusive range between two endpoints. */
+export interface WordSelection {
+  anchor: WordRef;
+  focus: WordRef;
+}
+
 export interface TimelineUIState {
   /** Set of selected clip IDs. */
   selectedClipIds: Set<string>;
@@ -56,6 +68,17 @@ export interface TimelineUIState {
   clearSelection: () => void;
   /** Replace the selection with a new set of IDs (rubber-band). */
   setSelection: (ids: string[]) => void;
+
+  // ── Transcript word selection ──────────────────────────────────────────────
+
+  /** Selected transcript word range, or null when nothing is selected. */
+  wordSelection: WordSelection | null;
+  /** Start a word selection collapsed at `ref` (anchor === focus). */
+  beginWordSelection: (ref: WordRef) => void;
+  /** Move the selection's focus to `ref` (drag / shift-click). */
+  extendWordSelection: (ref: WordRef) => void;
+  /** Clear the word selection. */
+  clearWordSelection: () => void;
 
   // ── Hover ────────────────────────────────────────────────────────────────
 
@@ -127,6 +150,20 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   clearSelection: () => set({ selectedClipIds: new Set() }),
 
   setSelection: (ids) => set({ selectedClipIds: new Set(ids) }),
+
+  wordSelection: null,
+
+  beginWordSelection: (ref) => set({ wordSelection: { anchor: ref, focus: ref } }),
+
+  extendWordSelection: (ref) =>
+    set((state) => ({
+      wordSelection: {
+        anchor: state.wordSelection?.anchor ?? ref,
+        focus: ref
+      }
+    })),
+
+  clearWordSelection: () => set({ wordSelection: null }),
 
   setHoveredClipId: (id) => set({ hoveredClipId: id }),
 

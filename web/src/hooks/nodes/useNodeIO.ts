@@ -16,6 +16,8 @@ import { useShallow } from "zustand/react/shallow";
 import { useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import useResultsStore from "../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import { useNodeResultValue } from "./useNodeExecState";
 import { unwrapOutput } from "../../utils/imageRef";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import type { NodeStoreState } from "../../stores/NodeStore";
@@ -24,10 +26,11 @@ import type { Edge } from "@xyflow/react";
 const readAnyStoreValue = (
   state: ReturnType<typeof useResultsStore.getState>,
   workflowId: string,
+  jobId: string,
   nodeId: string
 ): unknown =>
-  state.getOutputResult(workflowId, nodeId) ??
-  state.getResult(workflowId, nodeId);
+  state.getOutputResult(workflowId, jobId, nodeId) ??
+  state.getResult(workflowId, jobId, nodeId);
 
 /**
  * Resolve a node's own latest output value, bare (envelope unwrapped).
@@ -37,9 +40,8 @@ export const useNodeOutput = (
   workflowId: string,
   nodeId: string
 ): unknown => {
-  return useResultsStore(
-    useShallow((state) => unwrapOutput(readAnyStoreValue(state, workflowId, nodeId)))
-  );
+  const raw = useNodeResultValue(workflowId, nodeId);
+  return unwrapOutput(raw);
 };
 
 /**
@@ -69,27 +71,35 @@ export const useUpstreamValue = (
     shallow
   );
 
-  return useResultsStore(useShallow((state) => {
-    if (!upstreamEdge) {
-      return constantFallback;
-    }
+  // Single-node read for the upstream source — migrated to accessor hook.
+  const upstreamRaw = useNodeResultValue(workflowId, upstreamEdge?.source ?? "");
 
-    const storeValue = unwrapOutput(
-      readAnyStoreValue(state, workflowId, upstreamEdge.source),
-      upstreamEdge.sourceHandle
-    );
-    if (storeValue !== undefined) {
-      return storeValue;
-    }
+  // Reads are scoped to the workflow's focused run. Subscribe so the fallback
+  // re-resolves when focus switches between concurrent runs.
+  const focusedJobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
 
+  // resolveExternalEdgeValue is a multi-source fallback; keep it inside the
+  // store selector so it reads atomically from the store snapshot.
+  const fallbackValue = useResultsStore(useShallow((state) => {
+    if (!upstreamEdge) return undefined;
     const resolved = resolveExternalEdgeValue(
       upstreamEdge,
       workflowId,
-      (wf, src) => readAnyStoreValue(state, wf, src),
+      (wf, src) =>
+        focusedJobId ? readAnyStoreValue(state, wf, focusedJobId, src) : undefined,
       findNode
     );
     return resolved.hasValue ? resolved.value : undefined;
   }));
+
+  if (!upstreamEdge) {
+    return constantFallback;
+  }
+  const storeValue = unwrapOutput(upstreamRaw, upstreamEdge.sourceHandle);
+  if (storeValue !== undefined) {
+    return storeValue;
+  }
+  return fallbackValue;
 };
 
 /**
@@ -122,6 +132,10 @@ export const useUpstreamValues = (
     return map;
   }, [edges]);
 
+  // Reads are scoped to the workflow's focused run. Subscribe so values
+  // re-resolve when focus switches between concurrent runs.
+  const focusedJobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+
   return useResultsStore(useShallow((state) => {
     const out: Record<string, unknown> = {};
     for (const name of inputNames) {
@@ -130,10 +144,12 @@ export const useUpstreamValues = (
         out[name] = constants?.[name];
         continue;
       }
-      const storeValue = unwrapOutput(
-        readAnyStoreValue(state, workflowId, edge.source),
-        edge.sourceHandle
-      );
+      const storeValue = focusedJobId
+        ? unwrapOutput(
+            readAnyStoreValue(state, workflowId, focusedJobId, edge.source),
+            edge.sourceHandle
+          )
+        : undefined;
       if (storeValue !== undefined) {
         out[name] = storeValue;
         continue;
@@ -141,7 +157,8 @@ export const useUpstreamValues = (
       const resolved = resolveExternalEdgeValue(
         edge,
         workflowId,
-        (wf, src) => readAnyStoreValue(state, wf, src),
+        (wf, src) =>
+          focusedJobId ? readAnyStoreValue(state, wf, focusedJobId, src) : undefined,
         findNode
       );
       out[name] = resolved.hasValue ? resolved.value : undefined;

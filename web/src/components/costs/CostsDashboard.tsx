@@ -119,6 +119,7 @@ const CostsDashboard: React.FC = () => {
   const [workflowSel, setWorkflowSel] = useState<Set<string> | null>(null);
 
   const { view, isLoading, isError } = useCostsDashboard(range);
+  const segmentedStyles = useMemo(() => segmentedSx(theme), [theme]);
 
   const allExecs = useMemo(() => view?.executions ?? [], [view]);
   const providerUniverse = useMemo(
@@ -169,6 +170,21 @@ const CostsDashboard: React.FC = () => {
       totalCount: groupExecutions(scopedExecs, groupBy).length
     };
   }, [tableExecs, scopedExecs, groupBy]);
+
+  const providerOptions = useMemo(
+    () =>
+      (view?.providers ?? []).map((p) => ({
+        key: p.id,
+        label: p.label,
+        color: p.color
+      })),
+    [view]
+  );
+
+  const workflowOptions = useMemo(
+    () => workflowUniverse.map((w) => ({ key: w, label: w })),
+    [workflowUniverse]
+  );
 
   const handleExport = useCallback(() => {
     const csv = executionsToCsv(tableExecs);
@@ -261,7 +277,7 @@ const CostsDashboard: React.FC = () => {
               exclusive
               value={range}
               onChange={(_, v) => v && setRange(v as DateRange)}
-              sx={segmentedSx(theme)}
+              sx={segmentedStyles}
             >
               {RANGE_OPTIONS.map((r) => (
                 <ToggleOption key={r} value={r}>
@@ -280,11 +296,7 @@ const CostsDashboard: React.FC = () => {
                       ? String(providerUniverse.length)
                       : `${providerSel.size}/${providerUniverse.length}`
                   }
-                  options={view.providers.map((p) => ({
-                    key: p.id,
-                    label: p.label,
-                    color: p.color
-                  }))}
+                  options={providerOptions}
                   selected={providerSel ?? new Set(providerUniverse)}
                   onToggle={(key) =>
                     setProviderSel((prev) => {
@@ -309,7 +321,7 @@ const CostsDashboard: React.FC = () => {
                       ? undefined
                       : `${workflowSel.size}/${workflowUniverse.length}`
                   }
-                  options={workflowUniverse.map((w) => ({ key: w, label: w }))}
+                  options={workflowOptions}
                   selected={workflowSel ?? new Set(workflowUniverse)}
                   onToggle={(key) =>
                     setWorkflowSel((prev) => {
@@ -419,6 +431,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   totalCount
 }) => {
   const theme = useTheme();
+  const segmentedStyles = useMemo(() => segmentedSx(theme), [theme]);
   const stats = view.stats;
   const total = splitMoney(stats.totalSpend);
   const driver = stats.topDriver;
@@ -524,7 +537,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
             exclusive
             value={groupBy}
             onChange={(_, v) => v && setGroupBy(v as GroupByKey)}
-            sx={segmentedSx(theme)}
+            sx={segmentedStyles}
           >
             {GROUP_OPTIONS.map((o) => (
               <ToggleOption key={o.value} value={o.value}>

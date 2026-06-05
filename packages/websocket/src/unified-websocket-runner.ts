@@ -604,6 +604,8 @@ export interface WebSocketConnection {
 export interface RunJobRequest {
   job_id?: string;
   workflow_id?: string;
+  /** Allow this run to start even if its workflow already has a run in flight. */
+  concurrent?: boolean;
   user_id?: string;
   auth_token?: string;
   /** Human-readable run title; persisted as the job name. */
@@ -1166,9 +1168,12 @@ export class UnifiedWebSocketRunner {
 
   /** Default cap when `MAX_CONCURRENT_JOBS` is unset/invalid. */
   private static readonly DEFAULT_MAX_CONCURRENT_JOBS = 4;
-  /** How long a resolved MAX_CONCURRENT_JOBS value is reused before re-reading. */
+  /** Default per-workflow cap when `MAX_CONCURRENT_RUNS_PER_WORKFLOW` is unset/invalid. */
+  private static readonly DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW = 4;
+  /** How long a resolved concurrency-setting value is reused before re-reading. */
   private static readonly MAX_CONCURRENT_JOBS_TTL_MS = 5000;
   private maxConcurrentJobsCache: { value: number; at: number } | null = null;
+  private maxRunsPerWorkflowCache: { value: number; at: number } | null = null;
 
   /**
    * Resolve the per-client concurrency cap from settings (>= 1), cached for a
@@ -1176,29 +1181,56 @@ export class UnifiedWebSocketRunner {
    * store every time. The setting changes rarely, so a short TTL is fine.
    */
   private async getMaxConcurrentJobs(): Promise<number> {
-    const now = Date.now();
     const cached = this.maxConcurrentJobsCache;
-    if (
-      cached &&
-      now - cached.at < UnifiedWebSocketRunner.MAX_CONCURRENT_JOBS_TTL_MS
-    ) {
-      return cached.value;
+    const value = await this.resolvePositiveIntSetting(
+      "MAX_CONCURRENT_JOBS",
+      UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS,
+      cached
+    );
+    this.maxConcurrentJobsCache = value;
+    return value.value;
+  }
+
+  /**
+   * Resolve the per-workflow concurrency cap (>= 1) for runs that opt into
+   * concurrency. When this many runs of the same workflow are already in
+   * flight, further opted-in runs queue. Cached like {@link getMaxConcurrentJobs}.
+   */
+  private async getMaxConcurrentRunsPerWorkflow(): Promise<number> {
+    const cached = this.maxRunsPerWorkflowCache;
+    const value = await this.resolvePositiveIntSetting(
+      "MAX_CONCURRENT_RUNS_PER_WORKFLOW",
+      UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW,
+      cached
+    );
+    this.maxRunsPerWorkflowCache = value;
+    return value.value;
+  }
+
+  /**
+   * Read a positive-integer setting, reusing the cached value while it's still
+   * within the TTL. Falls back to `fallback` when the setting is unset/invalid
+   * or the settings store is unavailable (e.g. DB not initialized) rather than
+   * blocking the run, matching the runner's other best-effort DB access.
+   */
+  private async resolvePositiveIntSetting(
+    key: string,
+    fallback: number,
+    cached: { value: number; at: number } | null
+  ): Promise<{ value: number; at: number }> {
+    const now = Date.now();
+    if (cached && now - cached.at < UnifiedWebSocketRunner.MAX_CONCURRENT_JOBS_TTL_MS) {
+      return cached;
     }
     let raw: string | null = null;
     try {
-      raw = await getSetting("MAX_CONCURRENT_JOBS");
+      raw = await getSetting(key);
     } catch {
-      // Settings store unavailable (e.g. DB not initialized) — fall back to the
-      // default rather than blocking the run, matching the runner's other
-      // best-effort DB access.
+      // Settings store unavailable — fall back to the default.
     }
     const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-    const value =
-      Number.isFinite(parsed) && parsed > 0
-        ? parsed
-        : UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS;
-    this.maxConcurrentJobsCache = { value, at: now };
-    return value;
+    const value = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    return { value, at: now };
   }
 
   /** Jobs occupying a concurrency slot: live + reserved-but-not-yet-registered. */
@@ -1207,24 +1239,37 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Whether a run for this workflow is already executing. Used to keep
-   * same-workflow runs sequential (the next one stays queued until the current
-   * finishes) so their live node updates don't clobber each other in the
+   * Number of live (unfinished) runs currently executing for a workflow. Used
+   * to enforce the per-workflow concurrency limit so non-concurrent runs stay
+   * sequential and their live node updates don't clobber each other in the
    * editor. Safe to check against `activeJobs` alone: commands are processed
    * one-at-a-time and `startJobInner` registers the job before returning.
    */
-  private hasActiveJobForWorkflow(
+  private countActiveJobsForWorkflow(
     workflowId: string | null | undefined
-  ): boolean {
+  ): number {
     if (!workflowId) {
-      return false;
+      return 0;
     }
+    let count = 0;
     for (const job of this.activeJobs.values()) {
       if (job.workflowId === workflowId && !job.finished) {
-        return true;
+        count++;
       }
     }
-    return false;
+    return count;
+  }
+
+  /**
+   * The per-workflow concurrency limit a given run is subject to: concurrency
+   * opt-in runs share the configurable {@link getMaxConcurrentRunsPerWorkflow}
+   * cap; everything else stays strictly sequential (one run per workflow) so
+   * live node updates don't clobber the editor.
+   */
+  private perWorkflowLimitFor(req: { concurrent?: boolean }): Promise<number> {
+    return req.concurrent
+      ? this.getMaxConcurrentRunsPerWorkflow()
+      : Promise.resolve(1);
   }
 
   /**
@@ -1234,13 +1279,15 @@ export class UnifiedWebSocketRunner {
    */
   async runJob(req: RunJobRequest): Promise<void> {
     const max = await this.getMaxConcurrentJobs();
+    const perWorkflowMax = await this.perWorkflowLimitFor(req);
     // Queue the run when over the global cap, or when this workflow already has
-    // a run in flight (one run per workflow at a time). Reserve the slot
-    // synchronously (after the only await above) so two run_job commands can't
-    // both observe a free slot before either registers.
+    // its per-workflow limit of runs in flight — 1 for normal runs, or the
+    // configurable MAX_CONCURRENT_RUNS_PER_WORKFLOW for runs that opt into
+    // concurrency. Reserve the slot synchronously (after the awaits above) so
+    // two run_job commands can't both observe a free slot before either registers.
     if (
       this.inFlightJobCount >= max ||
-      this.hasActiveJobForWorkflow(req.workflow_id)
+      this.countActiveJobsForWorkflow(req.workflow_id) >= perWorkflowMax
     ) {
       await this.enqueueJob(req);
       return;
@@ -1293,13 +1340,21 @@ export class UnifiedWebSocketRunner {
       const max = await this.getMaxConcurrentJobs().catch(
         () => UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS
       );
-      // Fill free slots with the first queued run whose workflow isn't already
-      // running (one run per workflow). startJob registers the job before it
-      // returns, so the next iteration sees it as in-flight.
+      const perWorkflowMax = await this.getMaxConcurrentRunsPerWorkflow().catch(
+        () => UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW
+      );
+      // Fill free slots with the first queued run whose workflow is still under
+      // its per-workflow limit (1 for normal runs, perWorkflowMax for opted-in
+      // concurrent runs). startJob registers the job before it returns, so the
+      // next iteration sees it as in-flight.
       while (this.inFlightJobCount < max) {
         const candidate = this.jobQueue
           .positions()
-          .find((p) => !this.hasActiveJobForWorkflow(p.workflowId));
+          .find(
+            (p) =>
+              this.countActiveJobsForWorkflow(p.workflowId) <
+              (p.concurrent ? perWorkflowMax : 1)
+          );
         if (!candidate) {
           break;
         }
@@ -4539,6 +4594,65 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Transcribe a stored audio asset to word-level caption timing. Mirrors the
+   * provider path used by the ASR node but skips the workflow machinery — the
+   * caller (Studio transcript beats) wants `{ word, startMs, endMs }[]` back in
+   * one shot. Timestamps are returned in milliseconds relative to the start of
+   * the audio.
+   */
+  private async runDirectTranscription(req: {
+    provider: string;
+    model: string;
+    assetId: string;
+    language?: string;
+  }): Promise<{
+    text: string;
+    words: Array<{ word: string; startMs: number; endMs: number }>;
+  }> {
+    if (!this.resolveProvider) {
+      throw new Error("No provider resolver configured");
+    }
+    if (!req.model) {
+      throw new Error("model is required");
+    }
+    if (!req.assetId) {
+      throw new Error("asset_id is required");
+    }
+
+    const userId = this.userId ?? "1";
+    const asset = await Asset.find(userId, req.assetId);
+    if (!asset) {
+      throw new Error(`Audio asset not found: ${req.assetId}`);
+    }
+    const ext = (asset.content_type ?? "audio/wav").split("/")[1] ?? "wav";
+    const adapter = getAssetAdapter();
+    const bytes = await adapter.retrieve(
+      adapter.uriForKey(`${req.assetId}.${ext}`)
+    );
+    if (!bytes) {
+      throw new Error(`Audio asset bytes not found: ${req.assetId}`);
+    }
+
+    const provider = await this.resolveProvider(req.provider, userId);
+    const result = await provider.automaticSpeechRecognition({
+      audio: bytes,
+      model: req.model,
+      language: req.language,
+      word_timestamps: true
+    });
+
+    const words = (result.chunks ?? [])
+      .map((chunk) => ({
+        word: chunk.text.trim(),
+        startMs: Math.round(chunk.timestamp[0] * 1000),
+        endMs: Math.round(chunk.timestamp[1] * 1000)
+      }))
+      .filter((w) => w.word.length > 0);
+
+    return { text: result.text, words };
+  }
+
+  /**
    * Build a tRPC caller bound to this connection's `userId`. Used to dispatch
    * the read-only RPC commands (list_workflows, get_workflow, list_assets,
    * get_asset, list_nodes, get_node) onto the existing tRPC routers — single
@@ -4864,6 +4978,19 @@ export class UnifiedWebSocketRunner {
             speed,
             audioFormat
           })
+        );
+      }
+      case "transcribe_audio": {
+        const provider = String(data.provider ?? this.defaultProvider);
+        const model = String(data.model ?? this.defaultModel);
+        const assetId =
+          typeof data.asset_id === "string" ? (data.asset_id as string) : "";
+        const language =
+          typeof data.language === "string"
+            ? (data.language as string)
+            : undefined;
+        return this.runRpc(command, () =>
+          this.runDirectTranscription({ provider, model, assetId, language })
         );
       }
       default:

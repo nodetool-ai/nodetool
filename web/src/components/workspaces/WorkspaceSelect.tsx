@@ -145,7 +145,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
       (event: { target: { value: string } }) => {
         const newValue = event.target.value;
         if (newValue === CREATE_NEW_VALUE) {
-          navigate("/settings?tab=4");
+          navigate("/settings?tab=5");
           return;
         }
         onChange(newValue === "" ? undefined : newValue);

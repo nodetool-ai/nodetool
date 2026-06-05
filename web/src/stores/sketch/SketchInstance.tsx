@@ -185,6 +185,3 @@ export const useSketchCanvasRefStore =
     () => currentInstance().canvasRef
   );
 
-/** Raw canvas-ref store for the surrounding instance. */
-export const useSketchCanvasRefStoreApi = (): SketchCanvasRefStoreApi =>
-  useSketchInstance().canvasRef;

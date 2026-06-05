@@ -6,7 +6,6 @@ import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
   installRequiredPythonPackages,
-  runCommand,
 } from "./python";
 import { getCondaEnvPath } from "./config";
 
@@ -756,39 +755,6 @@ async function provisionCondaEnvironment(
  * 3. `provisionCondaEnvironment()` (legacy) creates env with backend packages
  */
 
-/**
- * Install the Python environment
- */
-async function installCondaEnvironment(): Promise<void> {
-  try {
-    logMessage("Prompting for install location");
-    const persistedPreferences = readInstallationPreferences();
-    const { location, modelBackend, installLlamaCpp } =
-      await promptForInstallLocation(persistedPreferences);
-    await provisionCondaEnvironment(location, modelBackend, {
-      installLlamaCpp,
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logMessage(
-      `Failed to install Python environment: ${errorMessage}`,
-      "error"
-    );
-    // Provide a consolidated, user-friendly message when installation fails early
-    if (errorMessage.includes("install-to-location")) {
-      dialog.showErrorBox(
-        "Installer Error",
-        "The installer encountered an internal conflict while waiting for your selection. Please close any duplicate windows and try again."
-      );
-    } else if (errorMessage.toLowerCase().includes("micromamba")) {
-      dialog.showErrorBox(
-        "Micromamba Required",
-        "Nodetool now provisions its runtime with micromamba. We attempted to download micromamba automatically but failed. Please install micromamba manually or set the MICROMAMBA_EXE environment variable, then retry the installation."
-      );
-    }
-    throw error;
-  }
-}
 createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {
   const defaultLocation = getDefaultInstallLocation();
   const { filePaths, canceled } = await dialog.showOpenDialog({

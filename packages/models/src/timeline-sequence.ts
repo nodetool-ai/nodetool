@@ -3,7 +3,8 @@ import type {
   TimelineSequence as TimelineSequenceDoc,
   TimelineTrack,
   TimelineClip,
-  TimelineMarker
+  TimelineMarker,
+  TranscriptLine
 } from "@nodetool-ai/timeline";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
@@ -13,6 +14,8 @@ export interface TimelineDocument {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  /** Studio transcript lines. Optional for documents written before Studio. */
+  transcript?: TranscriptLine[];
 }
 
 export class TimelineSequence extends DBModel {
@@ -81,6 +84,7 @@ export class TimelineSequence extends DBModel {
       tracks: doc.tracks,
       clips: doc.clips,
       markers: doc.markers,
+      transcript: doc.transcript ?? [],
       createdAt: this.created_at,
       updatedAt: this.updated_at
     };
@@ -93,7 +97,8 @@ export class TimelineSequence extends DBModel {
     const doc: TimelineDocument = {
       tracks: seq.tracks,
       clips: seq.clips,
-      markers: seq.markers
+      markers: seq.markers,
+      transcript: seq.transcript ?? []
     };
     return new TimelineSequence({
       id: seq.id,

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useRef } from "react";
-import useResultsStore from "../../stores/ResultsStore";
 import isEqual from "fast-deep-equal";
+import { useNodeProgress } from "../../hooks/nodes/useNodeExecState";
 import { ProgressBar } from "../ui_primitives/ProgressBar";
 
 const PROGRESS_STYLE: React.CSSProperties = { margin: "0.75em 0 0.5em 0" };
@@ -13,9 +13,7 @@ const NodeProgress = ({
   id: string;
   workflowId: string;
 }) => {
-  const progress = useResultsStore((state) =>
-    state.getProgress(workflowId, id)
-  );
+  const progress = useNodeProgress(workflowId, id);
   const startTimeRef = useRef<number | null>(null);
 
   if (progress && startTimeRef.current === null) {
