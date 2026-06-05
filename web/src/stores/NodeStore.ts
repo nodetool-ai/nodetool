@@ -645,7 +645,7 @@ export const createNodeStore = (
               return;
             }
 
-            const newEdge = {
+            const newEdge: Edge = {
               ...connection,
               id: get().generateEdgeId(),
               sourceHandle: connection.sourceHandle || null,
@@ -653,7 +653,7 @@ export const createNodeStore = (
               ...(isControlEdge
                 ? { type: "control", data: { edge_type: "control" } }
                 : {})
-            } as Edge;
+            };
 
             // Normalize handles to null if undefined for consistency
             // This is necessary because edge comparison and serialization expect null, not undefined
