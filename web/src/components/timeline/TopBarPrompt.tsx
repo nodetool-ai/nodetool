@@ -2,16 +2,15 @@
 /**
  * TopBarPrompt
  *
- * Always-visible quick prompt input embedded in the timeline TopBar. Type
- * a prompt, press Enter, and a direct-gen clip is dropped onto the first
- * unlocked overlay/video track at the current playhead — and generation
- * starts immediately.
+ * Always-visible quick prompt input embedded in the timeline TopBar. Type a
+ * prompt, press Enter, and a text-to-video direct-gen clip is dropped onto the
+ * first unlocked video track at the current playhead — and generation starts
+ * immediately. If the sequence has no video track yet (e.g. a Studio sequence
+ * with only voiceover + caption tracks), one is created first.
  *
- * The model picker flavour follows the target track: overlay tracks get the
- * image model selector + text-to-image; video tracks get the video model
- * selector + text-to-video. Selection is remembered across submissions for
- * the lifetime of the session by reading the most recent direct-gen clip
- * in the sequence (mirrors `AddClipMenu`).
+ * The video model selection is remembered across submissions for the lifetime
+ * of the session by reading the most recent direct-gen clip in the sequence
+ * (mirrors `AddClipMenu`).
  */
 
 import React, { memo, useCallback, useEffect, useState } from "react";
@@ -26,10 +25,7 @@ import { useTimelinePlaybackStore } from "../../stores/timeline/TimelinePlayback
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
 import { FlexRow, TextInput, Toast } from "../ui_primitives";
-import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
-import TTSModelSelect from "../properties/TTSModelSelect";
-import type { ImageModelValue, TTSModelValue } from "../../stores/ApiTypes";
 
 interface VideoModelChange {
   type: "video_model";
@@ -40,9 +36,18 @@ interface VideoModelChange {
 
 const promptInputStyles = (theme: Theme) =>
   css({
-    width: 360,
+    width: 480,
     [theme.breakpoints.down("md")]: {
-      width: 240
+      width: 300
+    }
+  });
+
+const modelSelectStyles = (theme: Theme) =>
+  css({
+    width: 150,
+    flexShrink: 0,
+    [theme.breakpoints.down("md")]: {
+      width: 120
     }
   });
 
@@ -54,42 +59,22 @@ const accentIconStyles = (theme: Theme) =>
   });
 
 /**
- * Find the best target track for a fresh direct-gen clip. Overlay tracks win
- * over video tracks (the top bar is meant for quick "drop a still on top"
- * generation); video tracks come next; audio tracks are the final fallback.
+ * Resolve the video track to drop the clip onto: the first unlocked video
+ * track, creating one if the sequence has none yet. Returns `undefined` only
+ * if a video track exists but is locked.
  */
-type TargetKind = "image" | "video" | "audio";
-function pickTarget(): {
-  trackId: string | undefined;
-  kind: TargetKind | undefined;
-} {
-  const { tracks } = useTimelineStore.getState();
-  const overlay = tracks.find((t) => t.type === "overlay" && !t.locked);
-  if (overlay) {
-    return { trackId: overlay.id, kind: "image" };
-  }
-  const video = tracks.find((t) => t.type === "video" && !t.locked);
-  if (video) {
-    return { trackId: video.id, kind: "video" };
-  }
-  const audio = tracks.find((t) => t.type === "audio" && !t.locked);
-  if (audio) {
-    return { trackId: audio.id, kind: "audio" };
-  }
-  return { trackId: undefined, kind: undefined };
-}
+function pickOrCreateVideoTrack(): string | undefined {
+  const findVideo = () =>
+    useTimelineStore.getState().tracks.find((t) => t.type === "video");
 
-const useTopBarTargetKind = (): TargetKind => {
-  return useTimelineStore((state) => {
-    const overlay = state.tracks.find((t) => t.type === "overlay" && !t.locked);
-    if (overlay) return "image";
-    const video = state.tracks.find((t) => t.type === "video" && !t.locked);
-    if (video) return "video";
-    const audio = state.tracks.find((t) => t.type === "audio" && !t.locked);
-    if (audio) return "audio";
-    return "image";
-  });
-};
+  let video = findVideo();
+  if (!video) {
+    useTimelineStore.getState().addTrack("video", "Video");
+    video = findVideo();
+  }
+  if (!video || video.locked) return undefined;
+  return video.id;
+}
 
 export const TopBarPrompt: React.FC = memo(() => {
   const theme = useTheme();
@@ -102,27 +87,16 @@ export const TopBarPrompt: React.FC = memo(() => {
   const [userPicked, setUserPicked] = useState(false);
   const [provider, setProvider] = useState<string | undefined>(undefined);
   const [model, setModel] = useState<string | undefined>(undefined);
-  const [voice, setVoice] = useState<string | undefined>(undefined);
-  const targetKind = useTopBarTargetKind();
-  const lastModel = useLastDirectGenModel(targetKind);
+  const lastModel = useLastDirectGenModel("video");
 
-  // Switching from overlay-target to video-target (or vice versa) needs a
-  // fresh model — the user's last image model can't satisfy a text-to-video
-  // request and would silently fail.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    setUserPicked(false);
-  }, [targetKind]);
-
-  // Sync provider/model from the most recent direct-gen clip until the
-  // user picks something themselves. This keeps "type → generate" fluid
-  // across sequence loads without forcing a re-pick.
+  // Sync provider/model from the most recent direct-gen clip until the user
+  // picks something themselves. This keeps "type → generate" fluid across
+  // sequence loads without forcing a re-pick.
   useEffect(() => {
     if (userPicked) return;
     setProvider(lastModel.provider);
     setModel(lastModel.model);
-    setVoice(lastModel.voice);
-  }, [lastModel.provider, lastModel.model, lastModel.voice, userPicked]);
+  }, [lastModel.provider, lastModel.model, userPicked]);
 
   const addDirectGenClip = useTimelineStore((s) => s.addDirectGenClip);
   const selectClip = useTimelineUIStore((s) => s.selectClip);
@@ -135,35 +109,22 @@ export const TopBarPrompt: React.FC = memo(() => {
     // Clear any prior failure toast before we attempt again — otherwise a
     // successful retry leaves the previous error visible.
     setError(null);
-    const target = pickTarget();
-    if (!target.trackId || !target.kind) {
-      setError("Add a video, overlay, or audio track first.");
+    const trackId = pickOrCreateVideoTrack();
+    if (!trackId) {
+      setError("Unlock the video track first.");
       return;
     }
     const startMs = useTimelinePlaybackStore.getState().currentTimeMs;
     setBusy(true);
     try {
-      const mediaType =
-        target.kind === "video"
-          ? "video"
-          : target.kind === "audio"
-            ? "audio"
-            : "overlay";
-      const bindingKind =
-        target.kind === "video"
-          ? "text-to-video"
-          : target.kind === "audio"
-            ? "text-to-audio"
-            : "text-to-image";
       const clipId = addDirectGenClip({
-        trackId: target.trackId,
+        trackId,
         startMs,
-        mediaType,
-        bindingKind,
+        mediaType: "video",
+        bindingKind: "text-to-video",
         prompt: prompt.trim(),
         provider,
-        model,
-        voice: target.kind === "audio" ? voice : undefined
+        model
       });
       selectClip(clipId);
       await directGen.start(clipId);
@@ -179,7 +140,6 @@ export const TopBarPrompt: React.FC = memo(() => {
     prompt,
     provider,
     model,
-    voice,
     selectClip,
     directGen
   ]);
@@ -194,23 +154,10 @@ export const TopBarPrompt: React.FC = memo(() => {
     [handleSubmit]
   );
 
-  const handleModelChange = useCallback((v: ImageModelValue) => {
-    setUserPicked(true);
-    setProvider(v.provider);
-    setModel(v.id);
-  }, []);
-
   const handleVideoModelChange = useCallback((v: VideoModelChange) => {
     setUserPicked(true);
     setProvider(v.provider);
     setModel(v.id);
-  }, []);
-
-  const handleTTSModelChange = useCallback((v: TTSModelValue) => {
-    setUserPicked(true);
-    setProvider(v.provider);
-    setModel(v.id);
-    setVoice(v.selected_voice || v.voices?.[0] || undefined);
   }, []);
 
   return (
@@ -222,51 +169,23 @@ export const TopBarPrompt: React.FC = memo(() => {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={
-              targetKind === "video"
-                ? "Generate a video at the playhead…"
-                : targetKind === "audio"
-                  ? "Speak text at the playhead…"
-                  : "Generate an image at the playhead…"
-            }
+            placeholder="Generate a video at the playhead…"
             compact
             fullWidth
             disabled={busy}
             inputProps={{
-              "aria-label": "Quick generation prompt",
+              "aria-label": "Quick text-to-video prompt",
               "data-testid": "topbar-prompt-input"
             }}
           />
         </div>
-        {targetKind === "video" ? (
+        <div css={modelSelectStyles(theme)}>
           <VideoModelSelect
             value={model ?? ""}
             task="text_to_video"
             onChange={handleVideoModelChange}
           />
-        ) : targetKind === "audio" ? (
-          <TTSModelSelect
-            value={
-              model
-                ? ({
-                    type: "tts_model",
-                    id: model,
-                    provider: provider ?? "",
-                    name: model,
-                    voices: voice ? [voice] : [],
-                    selected_voice: voice ?? ""
-                  } as TTSModelValue)
-                : ""
-            }
-            onChange={handleTTSModelChange}
-          />
-        ) : (
-          <ImageModelSelect
-            value={model ?? ""}
-            task="text_to_image"
-            onChange={handleModelChange}
-          />
-        )}
+        </div>
       </FlexRow>
       <Toast
         open={error !== null}

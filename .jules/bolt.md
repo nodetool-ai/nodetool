@@ -10,6 +10,12 @@
 ## 2026-05-25 - O(N*M) Layer Grouping Optimization
 **Learning:** In `web/src/components/sketch/state/slices/documentSlice.ts`, the `groupLayers` function suffered from O(N*M) performance degradation due to nested operations: `.find()`, `.indexOf()`, and `.some()` inside `.map()` array iterations over layers.
 **Action:** Replace nested array lookups with a single-pass loop over the source array using a `Set` for subset lookups. This allows building the filtered selection and their corresponding indices in O(N) time and simplifies later `.some()` mapping iterations to O(N) using `.has()`.
+## 2026-05-25 - O(N*M) Node Selection Filter Optimization
+**Learning:** Found an $O(N \times M)$ bottleneck in `web/src/stores/NodeStore.ts` inside `onNodesChange` where `currentNodes.find(...)` was nested within `changes.filter(...)` for validating selections against group node status. This scales poorly when thousands of nodes and hundreds of changes are processed at once (e.g. multi-selection).
+**Action:** Always create a Map for the searched entities before filtering (e.g., `new Map(nodes.map(n => [n.id, n]))`), allowing $O(1)$ lookups within the loop and reducing complexity to $O(N + M)$.
 ## 2026-05-25 - O(M*N) Sorting Optimization in Layer Deletion
 **Learning:** Found an $O(N \log N \times M)$ performance bottleneck in `web/src/components/sketch/hooks/useLayerActions.ts` where `document.layers.findIndex(...)` was called inside `toRemove.sort(...)` when deleting selected layers. Since we needed to iterate backwards over the array to preserve correct visual overlap/order when deleting layers, a `.sort` with `findIndex` caused redundant full-array scans.
 **Action:** Replace `toRemove.sort((a,b) => findIndex(b) - findIndex(a))` with an O(N) backward scan: create a Set of subset IDs, then iterate the main `layers` array backwards once, pushing IDs where the Set has the layer's ID. This automatically produces a correctly sorted array of IDs to remove.
+## 2026-05-25 - O(N*M) lookup optimization in Asset Drag and Drop
+**Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/components/chat/hooks/useDragAndDrop.ts` where `selectedIds.includes(...)` was called inside `potentialAssets.filter(...)`. Since this triggers for multiple assets, dragging many assets creates noticeable UI thread stalling due to the O(N^2) complexity.
+**Action:** Replaced `.includes(id)` with a pre-initialized `Set.has(id)` lookup. Converting the selected IDs array to a Set reduces time complexity to O(N+M) and avoids UI freezes.

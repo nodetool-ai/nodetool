@@ -12,6 +12,7 @@ import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import useErrorStore from "../../stores/ErrorStore";
 import { normalizeOutputUpdateValue } from "../../stores/outputUpdateValue";
+import { extractAssetId } from "../../stores/outputAssetId";
 import type { OutputUpdate } from "../../stores/ApiTypes";
 import {
   globalWebSocketManager,
@@ -41,6 +42,7 @@ interface TimelineClipLike {
 
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
+const jobOutputs = new Map<string, unknown>();
 
 const isActiveStatus = (status: string): boolean =>
   status === "queued" || status === "running";
@@ -76,6 +78,7 @@ const unsubscribeJob = (jobId: string): void => {
     jobSubscriptions.delete(jobId);
   }
   jobContexts.delete(jobId);
+  jobOutputs.delete(jobId);
 };
 
 export const __resetGenerateClipSubscriptionsForTests = (): void => {
@@ -84,15 +87,30 @@ export const __resetGenerateClipSubscriptionsForTests = (): void => {
   }
   jobSubscriptions.clear();
   jobContexts.clear();
+  jobOutputs.clear();
+};
+
+export const __setJobContextForTests = (
+  jobId: string,
+  context: JobSubscriptionContext
+): void => {
+  jobContexts.set(jobId, context);
 };
 
 const forwardWorkflowMessage = (
   workflowId: string,
   message: WebSocketMessage
 ): void => {
+  // Per-node status/error are scoped by the producing run's job_id so
+  // concurrent same-workflow runs stay isolated. Skip the write if absent.
+  const jobId =
+    typeof message.job_id === "string" ? message.job_id : undefined;
+
   if (message.type === "prediction" && typeof message.node_id === "string") {
-    if (message.status === "booting") {
-      useStatusStore.getState().setStatus(workflowId, message.node_id, "booting");
+    if (message.status === "booting" && jobId) {
+      useStatusStore
+        .getState()
+        .setStatus(workflowId, jobId, message.node_id, "booting");
     }
     return;
   }
@@ -103,13 +121,16 @@ const forwardWorkflowMessage = (
     typeof message.progress === "number" &&
     typeof message.total === "number"
   ) {
-    useResultsStore.getState().setProgress(
-      workflowId,
-      message.node_id,
-      message.progress,
-      message.total,
-      typeof message.chunk === "string" ? message.chunk : undefined
-    );
+    if (jobId) {
+      useResultsStore.getState().setProgress(
+        workflowId,
+        jobId,
+        message.node_id,
+        message.progress,
+        message.total,
+        typeof message.chunk === "string" ? message.chunk : undefined
+      );
+    }
     const progressPercent =
       message.total > 0 ? (message.progress / message.total) * 100 : 0;
     if (typeof message.job_id === "string") {
@@ -121,30 +142,38 @@ const forwardWorkflowMessage = (
   }
 
   if (message.type === "node_update" && typeof message.node_id === "string") {
+    if (!jobId) {
+      return;
+    }
     const nodeStatus =
       typeof message.status === "string"
         ? message.status
         : typeof message.status === "object" && message.status !== null
           ? (message.status as Record<string, unknown>)
         : undefined;
-    useStatusStore.getState().setStatus(workflowId, message.node_id, nodeStatus);
+    useStatusStore
+      .getState()
+      .setStatus(workflowId, jobId, message.node_id, nodeStatus);
     const nodeError =
       typeof message.error === "string" && message.error.trim().length > 0
         ? message.error
         : null;
-    if (nodeError) {
-      useErrorStore.getState().setError(workflowId, message.node_id, nodeError);
-    } else {
-      useErrorStore.getState().setError(workflowId, message.node_id, null);
-    }
+    useErrorStore
+      .getState()
+      .setError(workflowId, jobId, message.node_id, nodeError);
     return;
   }
 
-  if (message.type === "output_update" && typeof message.node_id === "string") {
+  if (
+    message.type === "output_update" &&
+    typeof message.node_id === "string" &&
+    jobId
+  ) {
     useResultsStore
       .getState()
       .setOutputResult(
         workflowId,
+        jobId,
         message.node_id,
         normalizeOutputUpdateValue(message as unknown as OutputUpdate),
         true
@@ -152,13 +181,20 @@ const forwardWorkflowMessage = (
   }
 };
 
-const handleJobMessage = (jobId: string, message: WebSocketMessage): void => {
+export const handleJobMessage = async (jobId: string, message: WebSocketMessage): Promise<void> => {
   const context = jobContexts.get(jobId);
   if (!context) {
     return;
   }
 
   forwardWorkflowMessage(context.workflowId, message);
+
+  if (
+    message.type === "output_update" &&
+    message.node_id === context.selectedOutputNodeId
+  ) {
+    jobOutputs.set(jobId, normalizeOutputUpdateValue(message as unknown as OutputUpdate));
+  }
 
   if (message.type !== "job_update") {
     return;
@@ -178,10 +214,7 @@ const handleJobMessage = (jobId: string, message: WebSocketMessage): void => {
 
   if (status === "completed") {
     const assetId = context.selectedOutputNodeId
-      ? generationStore.resolveOutputAssetId(
-          context.workflowId,
-          context.selectedOutputNodeId
-        )
+      ? extractAssetId(jobOutputs.get(jobId))
       : undefined;
 
     generationStore.updateJobStatus(jobId, "completed", { assetId });
@@ -206,7 +239,9 @@ const handleJobMessage = (jobId: string, message: WebSocketMessage): void => {
         : `Job ${status}`;
 
     const nodeId = context.selectedOutputNodeId ?? "__job__";
-    useErrorStore.getState().setError(context.workflowId, nodeId, errorMessage);
+    useErrorStore
+      .getState()
+      .setError(context.workflowId, jobId, nodeId, errorMessage);
     generationStore.updateJobStatus(jobId, "failed", { errorMessage });
     unsubscribeJob(jobId);
     return;
@@ -239,7 +274,7 @@ const subscribeJob = async (
   await globalWebSocketManager.ensureConnection();
   jobContexts.set(jobId, context);
   const unsubscribe = globalWebSocketManager.subscribe(jobId, (message) =>
-    handleJobMessage(jobId, message)
+    void handleJobMessage(jobId, message)
   );
   jobSubscriptions.set(jobId, unsubscribe);
 
@@ -366,11 +401,14 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     const edges = graphEdges.map(graphEdgeToReactFlowEdge);
 
     const runnerStore = getWorkflowRunnerStore(workflowId);
-    await runnerStore
+    // Use the id run() returns, not runnerStore.job_id: when the runner is
+    // already busy the run is queued under a fresh id while the store keeps
+    // pointing at the active run, so reading it back would subscribe this
+    // clip to the wrong job and strand its updates.
+    const jobId = await runnerStore
       .getState()
-      .run(clip.paramOverrides ?? {}, workflow, nodes, edges);
+      .run(clip.paramOverrides ?? {}, workflow, nodes, edges, undefined, undefined, true);
 
-    const jobId = runnerStore.getState().job_id;
     if (!jobId) {
       throw new Error("Workflow runner did not return a job id");
     }

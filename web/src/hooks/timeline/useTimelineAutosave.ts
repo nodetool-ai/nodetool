@@ -33,6 +33,7 @@ interface DocumentSnapshot {
   tracks: TimelineStoreState["tracks"];
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];
+  transcript: TimelineStoreState["transcript"];
   durationMs: number;
 }
 
@@ -42,6 +43,7 @@ const pickSnapshot = (state: TimelineStoreState): DocumentSnapshot => ({
   tracks: state.tracks,
   clips: state.clips,
   markers: state.markers,
+  transcript: state.transcript,
   durationMs: state.durationMs
 });
 
@@ -77,7 +79,8 @@ export function useTimelineAutosave(
           document: {
             tracks: snapshot.tracks,
             clips: snapshot.clips,
-            markers: snapshot.markers
+            markers: snapshot.markers,
+            transcript: snapshot.transcript
           }
         });
         const updatedAt = (response as { updatedAt?: unknown } | undefined)
@@ -135,6 +138,7 @@ export function useTimelineAutosave(
     let lastTracks: TimelineStoreState["tracks"] | null = null;
     let lastClips: TimelineStoreState["clips"] | null = null;
     let lastMarkers: TimelineStoreState["markers"] | null = null;
+    let lastTranscript: TimelineStoreState["transcript"] | null = null;
     let lastDurationMs: number | null = null;
 
     const unsubscribe = store.subscribe((state) => {
@@ -144,12 +148,14 @@ export function useTimelineAutosave(
         state.tracks === lastTracks &&
         state.clips === lastClips &&
         state.markers === lastMarkers &&
+        state.transcript === lastTranscript &&
         state.durationMs === lastDurationMs;
       if (docUnchanged) return;
       lastSequenceId = state.sequenceId;
       lastTracks = state.tracks;
       lastClips = state.clips;
       lastMarkers = state.markers;
+      lastTranscript = state.transcript;
       lastDurationMs = state.durationMs;
       pendingRef.current = pickSnapshot(state);
       schedule();

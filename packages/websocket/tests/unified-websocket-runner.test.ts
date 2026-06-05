@@ -607,6 +607,86 @@ describe("UnifiedWebSocketRunner", () => {
     await outputRunner.disconnect();
   });
 
+  it("queues a second same-workflow run when not opted into concurrency", async () => {
+    await initTestDb();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const r = new UnifiedWebSocketRunner({
+      resolveExecutor: () => ({ async process() { await gate; return {}; } })
+    });
+    await r.connect(ws);
+    const graph = { nodes: [{ id: "n1", type: "nodetool.constant.String", name: "nodetool.constant.String", properties: { value: "x" } }], edges: [] };
+
+    await r.runJob({ job_id: "A", workflow_id: "wf", graph });
+    await r.runJob({ job_id: "B", workflow_id: "wf", graph });
+    await new Promise((res) => setTimeout(res, 20));
+
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+    expect(sent.some((m) => m.type === "job_update" && m.job_id === "B" && m.status === "queued")).toBe(true);
+    expect(sent.some((m) => m.type === "job_update" && m.job_id === "B" && m.status === "running")).toBe(false);
+    release();
+    await new Promise((res) => setTimeout(res, 20));
+    await r.disconnect();
+  });
+
+  it("runs a second same-workflow run concurrently when opted in", async () => {
+    await initTestDb();
+    let release!: () => void;
+    const gate = new Promise<void>((r2) => { release = r2; });
+    const r = new UnifiedWebSocketRunner({
+      resolveExecutor: () => ({ async process() { await gate; return {}; } })
+    });
+    await r.connect(ws);
+    const graph = { nodes: [{ id: "n1", type: "nodetool.constant.String", name: "nodetool.constant.String", properties: { value: "x" } }], edges: [] };
+
+    await r.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
+    await r.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
+    await new Promise((res) => setTimeout(res, 20));
+
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+    expect(sent.some((m) => m.type === "job_update" && m.job_id === "B" && m.status === "running")).toBe(true);
+    expect(sent.some((m) => m.type === "job_update" && m.job_id === "B" && m.status === "queued")).toBe(false);
+    release();
+    await new Promise((res) => setTimeout(res, 20));
+    await r.disconnect();
+  });
+
+  it("queues opted-in runs past MAX_CONCURRENT_RUNS_PER_WORKFLOW", async () => {
+    await initTestDb();
+    const prev = process.env.MAX_CONCURRENT_RUNS_PER_WORKFLOW;
+    process.env.MAX_CONCURRENT_RUNS_PER_WORKFLOW = "2";
+    try {
+      let release!: () => void;
+      const gate = new Promise<void>((r2) => { release = r2; });
+      const r = new UnifiedWebSocketRunner({
+        resolveExecutor: () => ({ async process() { await gate; return {}; } })
+      });
+      await r.connect(ws);
+      const graph = { nodes: [{ id: "n1", type: "nodetool.constant.String", name: "nodetool.constant.String", properties: { value: "x" } }], edges: [] };
+
+      await r.runJob({ job_id: "A", workflow_id: "wf", graph, concurrent: true });
+      await r.runJob({ job_id: "B", workflow_id: "wf", graph, concurrent: true });
+      await r.runJob({ job_id: "C", workflow_id: "wf", graph, concurrent: true });
+      await new Promise((res) => setTimeout(res, 20));
+
+      const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+      // A and B fill the per-workflow cap of 2; C must queue.
+      expect(sent.some((m) => m.type === "job_update" && m.job_id === "B" && m.status === "running")).toBe(true);
+      expect(sent.some((m) => m.type === "job_update" && m.job_id === "C" && m.status === "queued")).toBe(true);
+      expect(sent.some((m) => m.type === "job_update" && m.job_id === "C" && m.status === "running")).toBe(false);
+
+      // As A/B finish, C drains and starts.
+      release();
+      await new Promise((res) => setTimeout(res, 20));
+      const after = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+      expect(after.some((m) => m.type === "job_update" && m.job_id === "C" && m.status === "running")).toBe(true);
+      await r.disconnect();
+    } finally {
+      if (prev === undefined) delete process.env.MAX_CONCURRENT_RUNS_PER_WORKFLOW;
+      else process.env.MAX_CONCURRENT_RUNS_PER_WORKFLOW = prev;
+    }
+  });
+
   it("does not resurrect a job cancelled while it was queued", async () => {
     // A run can be cancelled via the DB-only cancel path (tRPC `jobs.cancel`)
     // while it is still sitting in the in-memory queue. drainQueue can then

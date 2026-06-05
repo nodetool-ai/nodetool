@@ -14,9 +14,9 @@ describe("JobConcurrencyQueue", () => {
     expect(q.enqueue(req("c"))).toBe(3);
     expect(q.size).toBe(3);
     expect(q.positions()).toEqual([
-      { jobId: "a", workflowId: "wf", position: 1 },
-      { jobId: "b", workflowId: "wf", position: 2 },
-      { jobId: "c", workflowId: "wf", position: 3 }
+      { jobId: "a", workflowId: "wf", position: 1, concurrent: false },
+      { jobId: "b", workflowId: "wf", position: 2, concurrent: false },
+      { jobId: "c", workflowId: "wf", position: 3, concurrent: false }
     ]);
   });
 
@@ -38,8 +38,8 @@ describe("JobConcurrencyQueue", () => {
     const removed = q.remove("b");
     expect(removed?.job_id).toBe("b");
     expect(q.positions()).toEqual([
-      { jobId: "a", workflowId: "wf", position: 1 },
-      { jobId: "c", workflowId: "wf", position: 2 }
+      { jobId: "a", workflowId: "wf", position: 1, concurrent: false },
+      { jobId: "c", workflowId: "wf", position: 2, concurrent: false }
     ]);
   });
 
@@ -54,7 +54,18 @@ describe("JobConcurrencyQueue", () => {
     const q = new JobConcurrencyQueue();
     q.enqueue(req("a", null));
     expect(q.positions()).toEqual([
-      { jobId: "a", workflowId: null, position: 1 }
+      { jobId: "a", workflowId: null, position: 1, concurrent: false }
     ]);
+  });
+});
+
+describe("JobConcurrencyQueue concurrent flag", () => {
+  it("surfaces the concurrent flag in positions()", () => {
+    const q = new JobConcurrencyQueue();
+    q.enqueue({ job_id: "a", workflow_id: "wf", concurrent: true });
+    q.enqueue({ job_id: "b", workflow_id: "wf" });
+    const pos = q.positions();
+    expect(pos.find((p) => p.jobId === "a")?.concurrent).toBe(true);
+    expect(pos.find((p) => p.jobId === "b")?.concurrent).toBe(false);
   });
 });

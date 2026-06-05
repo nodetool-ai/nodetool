@@ -20,6 +20,14 @@ jest.mock("../../../../stores/ResultsStore", () => ({
   default: jest.fn()
 }));
 
+// Node-output reads resolve the workflow's focused run; provide a stable one so
+// the (mocked) result getters are consulted instead of short-circuiting.
+jest.mock("../../../../stores/WorkflowRunsStore", () => ({
+  __esModule: true,
+  default: (selector: (state: unknown) => unknown) =>
+    selector({ focusedJob: { "wf-1": "job-1" } })
+}));
+
 jest.mock("../../../node/HandleColumn", () => ({
   __esModule: true,
   default: ({ id }: { id: string }) => (

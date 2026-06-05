@@ -155,7 +155,7 @@ const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
       const { nodes, edges } = nodeStore;
       await getWorkflowRunnerStore(workflowId)
         .getState()
-        .run(params, workflow, nodes, edges);
+        .run(params, workflow, nodes, edges, undefined, undefined, true);
     },
     [fetchWorkflow, getNodeStore, getWorkflow]
   );

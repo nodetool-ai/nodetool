@@ -806,6 +806,147 @@ const TIMELINE_DOCUMENT = {
   markers: [{ id: "tl-marker-reveal", timeMs: 4000, label: "Reveal" }]
 };
 
+// ── Studio transcript sequence ───────────────────────────────────────────────
+// A vertical (9:16) short-form edit driven by a script. Each transcript line
+// owns a voiceover (audio) clip and a caption clip with word-level timing, so
+// the Studio TranscriptPanel renders populated beats and the preview shows
+// captions. Backs /timeline/tl-studio-demo.
+
+const STUDIO_SEQUENCE_ID = "tl-studio-demo";
+const STUDIO_BG_TRACK_ID = "st-track-bg";
+const STUDIO_VOICE_TRACK_ID = "st-track-voice";
+const STUDIO_CAPTION_TRACK_ID = "st-track-caption";
+
+interface StudioBeatSpec {
+  id: string;
+  text: string;
+  startMs: number;
+  durationMs: number;
+  /** Caption words, timed relative to the beat (clip-local). */
+  words: Array<{ word: string; startMs: number; endMs: number }>;
+}
+
+const STUDIO_BEATS: StudioBeatSpec[] = [
+  {
+    id: "b1",
+    text: "Meet the all-new Aurora headphones.",
+    startMs: 0,
+    durationMs: 2600,
+    words: [
+      { word: "Meet", startMs: 0, endMs: 360 },
+      { word: "the", startMs: 360, endMs: 560 },
+      { word: "all-new", startMs: 560, endMs: 1100 },
+      { word: "Aurora", startMs: 1100, endMs: 1800 },
+      { word: "headphones.", startMs: 1800, endMs: 2600 }
+    ]
+  },
+  {
+    id: "b2",
+    text: "Studio sound, anywhere you go.",
+    startMs: 2600,
+    durationMs: 2300,
+    words: [
+      { word: "Studio", startMs: 0, endMs: 700 },
+      { word: "sound,", startMs: 700, endMs: 1300 },
+      { word: "anywhere", startMs: 1300, endMs: 1850 },
+      { word: "you", startMs: 1850, endMs: 2050 },
+      { word: "go.", startMs: 2050, endMs: 2300 }
+    ]
+  },
+  {
+    id: "b3",
+    text: "Pre-order today and save twenty percent.",
+    startMs: 4900,
+    durationMs: 3000,
+    words: [
+      { word: "Pre-order", startMs: 0, endMs: 700 },
+      { word: "today", startMs: 700, endMs: 1200 },
+      { word: "and", startMs: 1200, endMs: 1450 },
+      { word: "save", startMs: 1450, endMs: 1850 },
+      { word: "twenty", startMs: 1850, endMs: 2400 },
+      { word: "percent.", startMs: 2400, endMs: 3000 }
+    ]
+  }
+];
+
+const STUDIO_DURATION_MS = STUDIO_BEATS.reduce(
+  (max, b) => Math.max(max, b.startMs + b.durationMs),
+  0
+);
+
+const STUDIO_DOCUMENT = {
+  tracks: [
+    {
+      id: STUDIO_CAPTION_TRACK_ID,
+      name: "Captions",
+      type: "subtitle",
+      index: 0,
+      visible: true,
+      locked: false
+    },
+    {
+      id: STUDIO_BG_TRACK_ID,
+      name: "B-roll",
+      type: "video",
+      index: 1,
+      visible: true,
+      locked: false
+    },
+    {
+      id: STUDIO_VOICE_TRACK_ID,
+      name: "Voiceover",
+      type: "audio",
+      index: 2,
+      visible: true,
+      locked: false
+    }
+  ],
+  clips: [
+    makeTimelineClip(
+      "st-bg",
+      "B-roll",
+      STUDIO_BG_TRACK_ID,
+      0,
+      STUDIO_DURATION_MS,
+      "video",
+      { status: "draft" }
+    ),
+    ...STUDIO_BEATS.flatMap((beat) => [
+      makeTimelineClip(
+        `st-vo-${beat.id}`,
+        `Beat ${beat.id}: voiceover`,
+        STUDIO_VOICE_TRACK_ID,
+        beat.startMs,
+        beat.durationMs,
+        "audio",
+        {
+          bindingKind: "text-to-audio",
+          prompt: beat.text,
+          provider: "openai",
+          model: "tts-1",
+          voice: "alloy"
+        }
+      ),
+      makeTimelineClip(
+        `st-cap-${beat.id}`,
+        "Caption",
+        STUDIO_CAPTION_TRACK_ID,
+        beat.startMs,
+        beat.durationMs,
+        "overlay",
+        { caption: { words: beat.words } }
+      )
+    ])
+  ],
+  markers: [],
+  transcript: STUDIO_BEATS.map((beat) => ({
+    id: beat.id,
+    text: beat.text,
+    beatStartMs: beat.startMs,
+    clipIds: [`st-vo-${beat.id}`, `st-cap-${beat.id}`]
+  }))
+};
+
 // ── Seed database ─────────────────────────────────────────────────────────────
 
 async function seedDatabase(): Promise<void> {
@@ -859,6 +1000,22 @@ async function seedDatabase(): Promise<void> {
     updated_at: "2024-12-16T15:45:00Z"
   });
   await timelineSeq.save();
+
+  // Studio transcript sequence (vertical 9:16) — backs /timeline/tl-studio-demo
+  const studioSeq = new TimelineSequence({
+    id: STUDIO_SEQUENCE_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Aurora Promo (Studio)",
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    duration_ms: STUDIO_DURATION_MS,
+    document: JSON.stringify(STUDIO_DOCUMENT),
+    created_at: "2024-12-10T09:00:00Z",
+    updated_at: "2024-12-16T16:00:00Z"
+  });
+  await studioSeq.save();
 
   // Secrets — stored encrypted so the settings API shows them as configured.
   // Cover the providers the UI checks for "configured" status so the dashboard

@@ -9,7 +9,7 @@ import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeArtifacts } from "../../../hooks/nodes/useNodeExecState";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
@@ -307,9 +307,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const nodeMetadata = getMetadata(props.type);
 
   // Use getOutputResult instead of getPreview - this gets accumulated streaming outputs
-  const result = useResultsStore((state) =>
-    state.getOutputResult(props.data.workflow_id, props.id)
-  );
+  const result = useNodeArtifacts(props.data.workflow_id, props.id).output;
 
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
 

@@ -303,11 +303,15 @@ const applyEdgeUpdate = (
 ): ReducerResult => {
   const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
-  if (effectiveWorkflowId) {
+  // Edges are scoped by the producing run's job_id so concurrent same-workflow
+  // runs stay isolated. Skip the write if job_id is absent.
+  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+  if (effectiveWorkflowId && jobId) {
     useResultsStore
       .getState()
       .setEdge(
         effectiveWorkflowId,
+        jobId,
         update.edge_id,
         update.status,
         update.counter ?? undefined
@@ -328,15 +332,19 @@ const applyNodeUpdate = (
     // If running, we might want to clear previous error or result?
     // For now, allow multiple updates.
 
-    // Sync status
-    useStatusStore
-      .getState()
-      .setStatus(effectiveWorkflowId, update.node_id, update.status);
+    // Sync status, scoped by the producing run's job_id so concurrent
+    // same-workflow runs stay isolated. Skip the write if job_id is absent.
+    const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+    if (jobId) {
+      useStatusStore
+        .getState()
+        .setStatus(effectiveWorkflowId, jobId, update.node_id, update.status);
+    }
 
-    if (update.result) {
+    if (update.result && jobId) {
       useResultsStore
         .getState()
-        .setResult(effectiveWorkflowId, update.node_id, update.result);
+        .setResult(effectiveWorkflowId, jobId, update.node_id, update.result);
     }
   }
 
@@ -499,18 +507,22 @@ const applyOutputUpdate = (
 
   const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[threadId];
-  if (effectiveWorkflowId) {
+  // Output results are scoped by the producing run's job_id so concurrent
+  // same-workflow runs stay isolated. Skip the write if job_id is absent.
+  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+  if (effectiveWorkflowId && jobId) {
     useResultsStore
       .getState()
       .setOutputResult(
         effectiveWorkflowId,
+        jobId,
         update.node_id,
         update.value,
         true // append
       );
   }
 
-  if (update.output_type === "string") {
+  if (update.output_type === "string" && typeof update.value === "string") {
     const messages = state.messageCache[threadId] || [];
     const lastMessage = messages[messages.length - 1];
 
@@ -520,7 +532,7 @@ const applyOutputUpdate = (
       }
       const updatedMessage: Message = {
         ...lastMessage,
-        content: lastMessage.content + (update.value as string)
+        content: lastMessage.content + update.value
       };
       return {
         update: {
@@ -538,7 +550,7 @@ const applyOutputUpdate = (
     const message: Message = {
       role: "assistant",
       type: "message",
-      content: update.value as string
+      content: update.value
     };
     return {
       update: {
@@ -961,11 +973,15 @@ const applyNodeProgress = (
 ): ReducerResult => {
   const workflowId = progress.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
-  if (effectiveWorkflowId) {
+  // Progress is scoped by the producing run's job_id so concurrent same-workflow
+  // runs stay isolated. Skip the write if job_id is absent.
+  const jobId = (progress as { job_id?: string | null }).job_id ?? undefined;
+  if (effectiveWorkflowId && jobId) {
     useResultsStore
       .getState()
       .setProgress(
         effectiveWorkflowId,
+        jobId,
         progress.node_id,
         progress.progress,
         progress.total

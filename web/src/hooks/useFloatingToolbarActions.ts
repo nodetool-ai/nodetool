@@ -118,7 +118,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
 
       // Access current state directly to avoid re-renders on every node drag
       const { nodes, edges } = nodeStore.getState();
-      run({}, workflow, nodes, edges, undefined);
+      run({}, workflow, nodes, edges, undefined, undefined, true);
     };
 
     // Clicking Run while a run is in progress queues another run rather than

@@ -81,6 +81,7 @@ import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import { useReactFlowEvents } from "../../hooks/handlers/useReactFlowEvents";
 import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
@@ -579,12 +580,19 @@ const ReactFlowWrapper = ({
 
   const edgeStatuses = useResultsStore((state) => state.edges);
   const nodeStatuses = useStatusStore((state) => state.statuses);
+  // Node statuses are keyed per run; the canvas animates edges for the
+  // workflow's focused run. Subscribing here re-runs edge processing when the
+  // focus switches between concurrent runs.
+  const focusedJobId = useWorkflowRunsStore(
+    (state) => state.focusedJob[workflowId]
+  );
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
     dataTypes: DATA_TYPES,
     getMetadata,
     workflowId,
+    focusedJobId,
     edgeStatuses,
     nodeStatuses,
     isSelecting
