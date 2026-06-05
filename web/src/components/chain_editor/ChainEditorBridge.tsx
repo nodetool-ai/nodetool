@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from "react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainEditor } from "./ChainEditor";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
@@ -16,14 +16,14 @@ interface ChainEditorBridgeProps {
 
 const ChainEditorBridge: React.FC<ChainEditorBridgeProps> = ({ isActive }) => {
   const workflow = useNodes((s) => s.workflow);
-  const nodes = useNodes((s) => s.nodes);
-  const edges = useNodes((s) => s.edges);
+  const store = useNodeStoreRef();
   const loadWorkflow = useChainEditorStore((s) => s.loadWorkflow);
   const currentChainWorkflowId = useChainEditorStore((s) => s.workflowId);
 
   useEffect(() => {
     if (!isActive || !workflow || currentChainWorkflowId === workflow.id) return;
 
+    const { nodes, edges } = store.getState();
     const graphNodes = nodes.map(reactFlowNodeToGraphNode);
     const graphEdges: GraphEdge[] = edges.map((e) => ({
       source: e.source,
@@ -39,7 +39,7 @@ const ChainEditorBridge: React.FC<ChainEditorBridgeProps> = ({ isActive }) => {
     } as Workflow;
 
     loadWorkflow(fullWorkflow);
-  }, [isActive, workflow, nodes, edges, loadWorkflow, currentChainWorkflowId]);
+  }, [isActive, workflow, store, loadWorkflow, currentChainWorkflowId]);
 
   return <ChainEditor />;
 };
