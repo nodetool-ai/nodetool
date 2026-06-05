@@ -116,6 +116,29 @@ function matchesAnyPattern(
   return patterns.some((p) => globToRegex(p).test(filepath));
 }
 
+/**
+ * Weight/export formats the Python torch + diffusers runtime never loads. They
+ * only ever duplicate the safetensors/bin weights already in the repo, so we
+ * always skip them to avoid wasteful double-downloads (TF `.h5`, Flax
+ * `.msgpack`, ONNX, TFLite, Rust `.ot`, …).
+ */
+const ALWAYS_IGNORE_PATTERNS: string[] = [
+  "*.onnx",
+  "*.onnx_data",
+  "*.h5",
+  "*.msgpack",
+  "*.tflite",
+  "*.pb",
+  "*.ot",
+  "**/*.onnx",
+  "**/*.onnx_data",
+  "**/*.h5",
+  "**/*.msgpack",
+  "**/*.tflite",
+  "**/*.pb",
+  "**/*.ot"
+];
+
 function filterFiles(
   files: HfTreeEntry[],
   allowPatterns?: string[] | null,
@@ -128,6 +151,20 @@ function filterFiles(
   }
   if (ignorePatterns && ignorePatterns.length > 0) {
     result = result.filter((f) => !matchesAnyPattern(f.path, ignorePatterns));
+  }
+
+  // Always drop redundant framework exports (ONNX/TF/Flax/…) — never loaded by
+  // the runtime and only duplicating the torch weights.
+  result = result.filter(
+    (f) => !matchesAnyPattern(f.path, ALWAYS_IGNORE_PATTERNS)
+  );
+
+  // Prefer safetensors over the legacy PyTorch `.bin` format: when the selected
+  // files already include any `*.safetensors` weights, the `*.bin` copies are
+  // redundant. Repos that ship only `.bin` keep them untouched.
+  const hasSafetensors = result.some((f) => f.path.endsWith(".safetensors"));
+  if (hasSafetensors) {
+    result = result.filter((f) => !f.path.endsWith(".bin"));
   }
 
   return result;
