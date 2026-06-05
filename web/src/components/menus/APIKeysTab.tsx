@@ -123,6 +123,13 @@ const PROVIDER_META: ProviderMeta[] = [
     icon: deepseekColorIcon
   },
   {
+    key: "EVOLINK_API_KEY",
+    name: "Evolink",
+    description: "GPT, Claude, Gemini, DeepSeek and more through one gateway.",
+    category: "other",
+    docsUrl: "https://docs.evolink.ai"
+  },
+  {
     key: "GROQ_API_KEY",
     name: "Groq",
     description: "Ultra-fast LLM inference on LPU hardware.",
