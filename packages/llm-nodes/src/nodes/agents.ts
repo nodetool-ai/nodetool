@@ -1895,9 +1895,9 @@ export class AgentNode extends BaseNode {
     },
     {
       id: "deepseek-r1:8b",
-      type: "mistral_model",
+      type: "llama_model",
       name: "Deepseek R1 - 8B",
-      repo_id: "deepseek-r1:8",
+      repo_id: "deepseek-r1:8b",
       description:
         "DeepSeek R1 8B balances reasoning with precise function calls for iterative agents.",
       size_on_disk: 5583457484
@@ -2845,6 +2845,7 @@ export class AgentNode extends BaseNode {
       dynamicVars
     );
     const rawTools: ToolLike[] = await this.buildTools(context);
+    const structuredSchema = getStructuredOutputSchema(this);
 
     // Build control tools
     const controlContext = this.getDynamic<Record<string, unknown>>("_control_context");
@@ -2866,7 +2867,7 @@ export class AgentNode extends BaseNode {
       tools: agentTools,
       systemPrompt: system,
       maxTokenLimit: Number(this.max_tokens ?? 8192),
-      outputSchema: getStructuredOutputSchema(this) ?? undefined,
+      outputSchema: structuredSchema ?? undefined,
       planningModel: modelId,
       maxSteps: 10,
       maxStepIterations: 5
@@ -2971,22 +2972,29 @@ export class AgentNode extends BaseNode {
       }
     }
 
+    const finalResults = agent.getResults();
     const resultText =
       lastText ||
-      (agent.getResults() != null
-        ? typeof agent.getResults() === "string"
-          ? (agent.getResults() as string)
-          : JSON.stringify(agent.getResults())
+      (finalResults != null
+        ? typeof finalResults === "string"
+          ? finalResults
+          : JSON.stringify(finalResults)
         : "");
 
     yield { chunk: null, thinking: null, text: resultText, audio: null };
-    return {
-      text: resultText,
-      output: resultText,
-      chunk: null,
-      thinking: null,
-      audio: null
-    };
+
+    // When the node declares dynamic outputs, surface the agent's structured
+    // result as a bare object so process()/the kernel route it to those output
+    // handles — mirroring loop mode's `yield structuredResult`. Without this,
+    // plan mode only ever emits `text` and dynamic outputs stay empty.
+    if (
+      structuredSchema &&
+      finalResults &&
+      typeof finalResults === "object" &&
+      !Array.isArray(finalResults)
+    ) {
+      yield finalResults as Record<string, unknown>;
+    }
   }
 }
 
