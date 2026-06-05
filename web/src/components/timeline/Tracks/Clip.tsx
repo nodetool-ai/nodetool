@@ -60,7 +60,6 @@ function isClipCompatibleWithTrack(
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const TRIM_HANDLE_WIDTH_PX = 8;
-const SNAP_THRESHOLD_PX = 8;
 const MIN_CLIP_WIDTH_PX = 4;
 const CLIP_RADIUS_PX = 6;
 /** Width below which we suppress secondary chrome (duration label). */

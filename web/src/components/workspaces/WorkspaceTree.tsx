@@ -520,7 +520,7 @@ const WorkspaceTree: React.FC = () => {
   }, [refetchFiles]);
 
   const handleManageWorkspace = useCallback(() => {
-    navigate("/settings?tab=4");
+    navigate("/settings?tab=5");
   }, [navigate]);
 
   // Handle double-click on tree container to find the specific tree item

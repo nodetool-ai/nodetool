@@ -23,13 +23,11 @@ import { assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
 import {
   IpcChannels,
-  IpcEvents,
   IpcResponse,
   RuntimePackageId,
   WindowCloseAction,
 } from "./types.d";
 import {
-  readSettings,
   readSettingsAsync,
   updateSetting,
   getModelServiceStartupSettings,
