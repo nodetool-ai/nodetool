@@ -16,7 +16,7 @@ import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { assetToClip } from "../components/timeline/dnd/assetToClipAdapter";
 
-export const useEditVideoAsset = () => {
+export const useEditVideoAsset = (): ((asset: Asset) => Promise<void>) => {
   const navigate = useNavigate();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const addNotification = useNotificationStore((state) => state.addNotification);
