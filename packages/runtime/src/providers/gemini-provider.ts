@@ -297,30 +297,38 @@ export class GeminiProvider extends BaseProvider {
       }
 
       if (msg.role === "tool") {
-        // Tool result → model role with functionResponse part
+        // Tool result → user role with functionResponse part. The name must
+        // match the originating functionCall's name, resolved from the call id.
         const responseText =
           typeof msg.content === "string"
             ? msg.content
             : JSON.stringify(msg.content);
 
         const functionName =
-          (msg.toolCallId
-            ? toolCallNames.get(msg.toolCallId)
-            : undefined) ??
+          (msg.toolCallId ? toolCallNames.get(msg.toolCallId) : undefined) ??
           msg.toolCallId ??
           "unknown";
 
-        contents.push({
-          role: "user",
-          parts: [
-            {
-              functionResponse: {
-                name: functionName,
-                response: { result: responseText }
-              }
-            }
-          ]
-        });
+        const responsePart: GeminiPart = {
+          functionResponse: {
+            name: functionName,
+            response: { result: responseText }
+          }
+        };
+
+        // Merge parallel tool results into a single user turn so the request
+        // keeps alternating user/model roles.
+        const prev = contents[contents.length - 1];
+        if (
+          prev &&
+          prev.role === "user" &&
+          prev.parts.length > 0 &&
+          prev.parts.every((p) => p.functionResponse !== undefined)
+        ) {
+          prev.parts.push(responsePart);
+        } else {
+          contents.push({ role: "user", parts: [responsePart] });
+        }
         continue;
       }
 
