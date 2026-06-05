@@ -7,6 +7,11 @@ import type { PythonStdioBridge } from "@nodetool-ai/runtime";
 import { PythonNodeExecutor, getProvider } from "@nodetool-ai/runtime";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "../http-api.js";
+import {
+  extensionBridge,
+  type ExtensionSocket
+} from "../extension-cdp-bridge.js";
+import { setExtensionChannelProvider } from "@nodetool-ai/automation-nodes/lib/extension-channel-provider";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -212,6 +217,37 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
         "Runner crashed",
         error instanceof Error ? error : new Error(String(error))
       );
+    });
+  });
+
+  // Chrome-extension CDP side channel.
+  //
+  // JSON text frames (NOT MsgPack — the main /ws stays MsgPack). The extension
+  // connects here after the user clicks "Attach to this tab" in the popup; the
+  // in-process action loop rides the channel via `extensionBridge.getChannel()`.
+  // Auth/localhost-bypass is handled by the global onRequest hook in server.ts
+  // (the /ws prefix is exempt from static-asset bypass and subject to the same
+  // localhost rule as /ws).
+  //
+  // v1 is single-connection: a new socket replaces any existing one.
+  //
+  // Register the in-process channel factory so the browser action loop running
+  // in this server rides the bridge instead of opening its own client WS. The
+  // dependency points websocket → automation-nodes (no cycle).
+  setExtensionChannelProvider(() => extensionBridge.getChannel());
+
+  app.get("/ws/extension", { websocket: true }, (socket, _req) => {
+    // The @fastify/websocket socket satisfies the ExtensionSocket surface
+    // (send(string) / close() / on("message"|"close"|"error")).
+    const extSocket = socket as unknown as ExtensionSocket;
+    socket.on("error", (error: Error) => {
+      log.error("Extension WebSocket error", error);
+    });
+    log.info("Extension WebSocket client connected");
+    extensionBridge.registerSocket(extSocket);
+    socket.on("close", () => {
+      extensionBridge.clear(extSocket);
+      log.info("Extension WebSocket client disconnected");
     });
   });
 

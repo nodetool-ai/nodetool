@@ -29,6 +29,8 @@ import {
   BrowserScrollInput,
   BrowserConsoleExecInput,
   BrowserConsoleViewInput,
+  BrowserCaptureMediaInput,
+  BrowserUploadAssetRaw,
   ScreenCaptureInput,
   ScreenFindInput,
   MouseMoveInput,
@@ -68,7 +70,9 @@ import {
   browserSelectOption,
   browserScroll,
   browserConsoleExec,
-  browserConsoleView
+  browserConsoleView,
+  browserCaptureMedia,
+  browserUploadAsset
 } from "./tools/browser.js";
 import {
   screenCapture,
@@ -136,6 +140,8 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   route(app, "/browser/scroll", BrowserScrollInput, browserScroll);
   route(app, "/browser/console-exec", BrowserConsoleExecInput, browserConsoleExec);
   route(app, "/browser/console-view", BrowserConsoleViewInput, browserConsoleView);
+  route(app, "/browser/capture-media", BrowserCaptureMediaInput, browserCaptureMedia);
+  route(app, "/browser/upload-asset", BrowserUploadAssetRaw, browserUploadAsset);
 
   // --- Desktop tools -----------------------------------------------------
   route(app, "/desktop/capture", ScreenCaptureInput, screenCapture);

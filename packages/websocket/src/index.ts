@@ -30,3 +30,9 @@ export {
   handleMcpHttpRequest,
   type McpServerOptions
 } from "./mcp-server.js";
+export {
+  extensionBridge,
+  ExtensionBridge,
+  type ExtensionChannel,
+  type ExtensionSocket
+} from "./extension-cdp-bridge.js";
