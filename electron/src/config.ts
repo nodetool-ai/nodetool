@@ -13,6 +13,12 @@ const webPath: string = app.isPackaged
   ? path.join(process.resourcesPath, "web")
   : path.join(__dirname, "..", "..", "web", "dist");
 
+// Built Chrome extension, surfaced to the server so the install-helper UI can
+// reveal/zip it. Bundled as an app resource in packaged builds.
+const extensionDistPath: string = app.isPackaged
+  ? path.join(process.resourcesPath, "chrome-extension")
+  : path.join(__dirname, "..", "..", "chrome-extension", "dist");
+
 // PID file configuration for server process management
 // Note: E2E tests in tests/e2e/ must use the same paths for proper cleanup
 const PID_DIRECTORY: string = path.join(app.getPath("temp"), "nodetool-electron");
@@ -288,6 +294,7 @@ const getProcessEnv = (): ProcessEnv => {
     UV_CACHE_DIR: uvCacheDir,
     XDG_CACHE_HOME: xdgCacheHome,
     NODETOOL_OPTIONAL_NODE_MODULES: getOptionalNodeModulesPath(),
+    NODETOOL_EXTENSION_DIST: extensionDistPath,
     PATH:
       process.platform === "win32"
         ? pathSegmentsWin.filter(Boolean).join(path.delimiter)

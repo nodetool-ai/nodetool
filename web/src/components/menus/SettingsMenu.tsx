@@ -48,6 +48,7 @@ import WorkspacesManager from "../workspaces/WorkspacesManager";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
+import BrowserExtensionSettingsMenu from "./BrowserExtensionSettingsMenu";
 import PackagesMenu from "./PackagesMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -548,7 +549,10 @@ function SettingsPage() {
         ? [
             {
               category: "Servers",
-              items: [{ id: "mcp-integration", label: "MCP Servers" }]
+              items: [
+                { id: "mcp-integration", label: "MCP Servers" },
+                { id: "browser-extension", label: "Browser Extension" }
+              ]
             }
           ]
         : []),
@@ -1175,6 +1179,15 @@ function SettingsPage() {
                         MCP Integration
                       </Text>
                       <MCPSettingsMenu />
+
+                      <Text
+                        size="big"
+                        id="browser-extension"
+                        className="settings-heading"
+                      >
+                        Browser Extension
+                      </Text>
+                      <BrowserExtensionSettingsMenu />
                     </>
                   )}
 
