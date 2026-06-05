@@ -4,7 +4,7 @@ import type { MenuEventData } from "../window.d";
 
 type MenuEventHandler = (data: MenuEventData) => void;
 
-export const useMenuHandler = (handler: MenuEventHandler) => {
+export const useMenuHandler = (handler: MenuEventHandler): void => {
   const context = useContext(MenuContext);
 
   useEffect(() => {

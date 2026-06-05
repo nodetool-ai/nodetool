@@ -224,7 +224,10 @@ export const timelineRouter = router({
             current.clips,
           markers:
             (input.document.markers as TimelineDocument["markers"]) ??
-            current.markers
+            current.markers,
+          transcript:
+            (input.document.transcript as TimelineDocument["transcript"]) ??
+            current.transcript
         };
         fields.document = JSON.stringify(merged);
       }

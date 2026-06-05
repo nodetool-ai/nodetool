@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { nodeKey, type NodeKey } from "./nodeKey";
 
 interface ErrorObject {
   message?: string;
@@ -8,15 +9,17 @@ interface ErrorObject {
 type NodeError = Error | string | null | ErrorObject;
 
 type ErrorStore = {
-  errors: Record<string, NodeError>;
+  errors: Record<NodeKey, NodeError>;
   clearErrors: (workflowId: string, nodeIds?: Set<string>) => void;
   clearNodeErrors: (workflowId: string, nodeId: string) => void;
-  setError: (workflowId: string, nodeId: string, error: NodeError) => void;
-  getError: (workflowId: string, nodeId: string) => NodeError;
+  setError: (
+    workflowId: string,
+    jobId: string,
+    nodeId: string,
+    error: NodeError
+  ) => void;
+  getError: (workflowId: string, jobId: string, nodeId: string) => NodeError;
 };
-
-const hashKey = (workflowId: string, nodeId: string) =>
-  `${workflowId}:${nodeId}`;
 
 export const normalizeNodeError = (
   error: NodeError | undefined
@@ -85,15 +88,21 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
    */
   clearErrors: (workflowId: string, nodeIds?: Set<string>) => {
     if (nodeIds) {
-      const keysToRemove = new Set(
-        Array.from(nodeIds).map((id) => hashKey(workflowId, id))
-      );
+      const prefix = `${workflowId}:`;
+      const suffixes = Array.from(nodeIds).map((id) => `:${id}`);
       set((state) => {
-        // Optimization: Clone and delete specific keys when specificIds is provided
+        // Keys are `${wf}:${job}:${node}`; the node is the final segment, so
+        // match on the wf prefix AND the `:${node}` suffix to clear that node
+        // across all of the workflow's jobs.
         const newErrors = { ...state.errors };
-        keysToRemove.forEach((key) => {
-          delete newErrors[key];
-        });
+        for (const key in newErrors) {
+          if (
+            key.startsWith(prefix) &&
+            suffixes.some((suffix) => key.endsWith(suffix))
+          ) {
+            delete newErrors[key as NodeKey];
+          }
+        }
         return { errors: newErrors };
       });
     } else {
@@ -102,10 +111,10 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
         // Match on the colon boundary to avoid clearing entries for workflows
         // whose IDs happen to share a prefix.
         const prefix = `${workflowId}:`;
-        const newErrors: Record<string, NodeError> = {};
+        const newErrors: Record<NodeKey, NodeError> = {};
         for (const key in state.errors) {
           if (!key.startsWith(prefix)) {
-            newErrors[key] = state.errors[key];
+            newErrors[key as NodeKey] = state.errors[key as NodeKey];
           }
         }
         return { errors: newErrors };
@@ -113,25 +122,39 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
     }
   },
   /**
-   * Clear the errors for a specific node.
+   * Clear the errors for a specific node across all of the workflow's jobs.
    */
   clearNodeErrors: (workflowId: string, nodeId: string) => {
-    const key = hashKey(workflowId, nodeId);
+    const prefix = `${workflowId}:`;
+    const suffix = `:${nodeId}`;
     set((state) => {
-      const { [key]: removed, ...remainingErrors } = state.errors;
-      return { errors: remainingErrors };
+      const newErrors = { ...state.errors };
+      let changed = false;
+      for (const key in newErrors) {
+        if (key.startsWith(prefix) && key.endsWith(suffix)) {
+          delete newErrors[key as NodeKey];
+          changed = true;
+        }
+      }
+      return changed ? { errors: newErrors } : state;
     });
   },
   /**
-   * Set the error for a node.
+   * Set the error for a node within a specific job.
    * The error is stored in the errors map.
    *
    * @param workflowId The id of the workflow.
+   * @param jobId The id of the run/job.
    * @param nodeId The id of the node.
    * @param error The error to set.
    */
-  setError: (workflowId: string, nodeId: string, error: NodeError) => {
-    const key = hashKey(workflowId, nodeId);
+  setError: (
+    workflowId: string,
+    jobId: string,
+    nodeId: string,
+    error: NodeError
+  ) => {
+    const key = nodeKey(workflowId, jobId, nodeId);
     const normalized = normalizeNodeError(error);
     set((state) => {
       if (normalized === undefined) {
@@ -146,15 +169,16 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
   },
 
   /**
-   * Get the error for a node.
+   * Get the error for a node within a specific job.
    *
    * @param workflowId The id of the workflow.
+   * @param jobId The id of the run/job.
    * @param nodeId The id of the node.
    * @returns The error for the node.
    */
-  getError: (workflowId: string, nodeId: string) => {
+  getError: (workflowId: string, jobId: string, nodeId: string) => {
     const errors = get().errors;
-    const key = hashKey(workflowId, nodeId);
+    const key = nodeKey(workflowId, jobId, nodeId);
     return errors[key];
   }
 }));

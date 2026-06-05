@@ -317,9 +317,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
 
   updateDownload: (id: string, update: Partial<Download>) =>
     set((state) => {
-      const currentDownload =
-        state.downloads[id] ||
-        ({
+      const currentDownload: Download =
+        state.downloads[id] || {
           status: "pending",
           downloadedBytes: 0,
           totalBytes: 0,
@@ -329,7 +328,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
           speed: null,
           speedHistory: [],
           currentFiles: []
-        } as Download);
+        };
 
       const nextDownloadedBytes =
         update.downloadedBytes ?? currentDownload.downloadedBytes;

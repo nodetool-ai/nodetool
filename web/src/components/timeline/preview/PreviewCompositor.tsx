@@ -32,6 +32,8 @@ import {
   trackZ,
   MAX_VIDEO_LAYERS
 } from "./sceneModel";
+import type { ResolvedCaption } from "./sceneModel";
+import { CaptionRasterizer } from "./captionRender";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -134,6 +136,15 @@ interface ActiveImageLayer {
   trackEffects?: TrackEffect[];
 }
 
+interface ActiveCaptionLayer {
+  clipId: string;
+  trackIndex: number;
+  blendMode: CompositorBlendMode;
+  opacity: number;
+  transform?: TimelineClip["transform"];
+  caption: ResolvedCaption;
+}
+
 function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
   return (
     clip.startMs > currentTimeMs &&
@@ -212,6 +223,7 @@ export const PreviewCompositor: React.FC = memo(() => {
   const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const compositorRef = useRef<WebGPUCompositor | null>(null);
+  const captionRasterizerRef = useRef<CaptionRasterizer>(new CaptionRasterizer());
   const [gpuReady, setGpuReady] = useState(false);
   const [gpuFailed, setGpuFailed] = useState(false);
 
@@ -283,10 +295,12 @@ export const PreviewCompositor: React.FC = memo(() => {
         compositor.dispose();
       });
 
+    const rasterizer = captionRasterizerRef.current;
     return () => {
       cancelled = true;
       compositorRef.current?.dispose();
       compositorRef.current = null;
+      rasterizer.dispose();
       setGpuReady(false);
     };
   }, []);
@@ -341,9 +355,15 @@ export const PreviewCompositor: React.FC = memo(() => {
     [clips]
   );
 
-  const { activeVideoSlots, activeImageLayers, placeholderLayers } = useMemo(() => {
+  const {
+    activeVideoSlots,
+    activeImageLayers,
+    activeCaptionLayers,
+    placeholderLayers
+  } = useMemo(() => {
     const videoSlots: ActiveVideoSlot[] = [];
     const imageLayers: ActiveImageLayer[] = [];
+    const captionLayers: ActiveCaptionLayer[] = [];
     const placeholders: PlaceholderLayer[] = [];
 
     // Same scene description the offline renderer consumes — so the preview
@@ -353,6 +373,18 @@ export const PreviewCompositor: React.FC = memo(() => {
     });
 
     for (const layer of layers) {
+      if (layer.kind === "caption" && layer.caption) {
+        captionLayers.push({
+          clipId: layer.clipId,
+          trackIndex: layer.trackIndex,
+          blendMode: layer.blendMode,
+          opacity: layer.opacity,
+          transform: layer.transform,
+          caption: layer.caption
+        });
+        continue;
+      }
+
       const url = resolveUrl(layer.assetId);
       const placeholder: PlaceholderLayer = {
         clipId: layer.clipId,
@@ -395,6 +427,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     return {
       activeVideoSlots: videoSlots,
       activeImageLayers: imageLayers,
+      activeCaptionLayers: captionLayers,
       placeholderLayers: placeholders
     };
   }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion]);
@@ -647,8 +680,32 @@ export const PreviewCompositor: React.FC = memo(() => {
       });
     }
 
+    for (const layer of activeCaptionLayers) {
+      const bitmap = captionRasterizerRef.current.rasterize(
+        layer.caption,
+        sequenceWidth,
+        sequenceHeight
+      );
+      if (!bitmap) continue;
+      out.push({
+        id: `c:${layer.clipId}`,
+        source: bitmap,
+        opacity: layer.opacity,
+        blendMode: layer.blendMode,
+        zIndex: trackZ(layer.trackIndex),
+        transform: layer.transform
+      });
+    }
+
     return out;
-  }, [activeVideoSlots, activeImageLayers, ensureImageElement]);
+  }, [
+    activeVideoSlots,
+    activeImageLayers,
+    activeCaptionLayers,
+    ensureImageElement,
+    sequenceWidth,
+    sequenceHeight
+  ]);
 
   const renderFrame = useCallback(() => {
     if (!gpuReady) return;

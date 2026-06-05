@@ -107,6 +107,7 @@ describe("useGenerateClip", () => {
       job_id: null as string | null,
       run: jest.fn(async () => {
         runnerState.job_id = "job-1";
+        return "job-1";
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
@@ -176,7 +177,9 @@ describe("useGenerateClip", () => {
     expect(useTimelineGenerationStore.getState().clipJobs[clip.id]?.status).toBe(
       "failed"
     );
-    expect(useErrorStore.getState().getError("wf-1", "output-1")).toBe("boom");
+    expect(useErrorStore.getState().getError("wf-1", "job-1", "output-1")).toBe(
+      "boom"
+    );
 
     fetchQuerySpy.mockRestore();
   });

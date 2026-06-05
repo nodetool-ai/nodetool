@@ -215,6 +215,9 @@ export async function runInlineGraphJob(
         api_url: BASE_URL,
         params,
         explicit_types: false,
+        // Explicit single-node / run-from-here runs are concurrent like the
+        // other canvas run paths, so they don't serialize behind one another.
+        concurrent: true,
         graph
       }
     });

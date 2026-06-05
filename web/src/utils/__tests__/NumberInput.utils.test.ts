@@ -3,7 +3,6 @@ import {
   calculateStep,
   calculateDecimalPlaces,
   calculateSpeedFactor,
-  getEffectiveSliderWidth,
   applyValueConstraints
 } from "../../components/inputs/NumberInput.utils";
 
@@ -75,24 +74,6 @@ describe("NumberInput.utils", () => {
       const speedWithShift = calculateSpeedFactor(distance, true);
       const speedWithoutShift = calculateSpeedFactor(distance, false);
       expect(speedWithShift).toBeLessThan(speedWithoutShift);
-    });
-  });
-
-  describe("getEffectiveSliderWidth", () => {
-    it("returns actual width when zoom is disabled", () => {
-      expect(getEffectiveSliderWidth(false, 1, 100)).toBe(100);
-    });
-
-    it("returns actual width when zoom is 1", () => {
-      expect(getEffectiveSliderWidth(true, 1, 100)).toBe(100);
-    });
-
-    it("applies zoom multiplier when enabled", () => {
-      expect(getEffectiveSliderWidth(true, 2, 100)).toBe(200);
-    });
-
-    it("returns actual width for zero zoom", () => {
-      expect(getEffectiveSliderWidth(true, 0, 100)).toBe(100);
     });
   });
 

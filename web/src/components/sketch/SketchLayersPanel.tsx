@@ -463,6 +463,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     () => new Map(layers.map((layer) => [layer.id, layer])),
     [layers]
   );
+  const layerRows = useMemo(
+    () => buildLayersPanelRows(layers),
+    [layers]
+  );
   const [dropTarget, setDropTarget] = useState<{
     realIdx: number;
     position: DropPosition;
@@ -860,14 +864,21 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
   const handleLayerCtxClose = useCallback(() => setLayerCtxMenu(null), []);
 
-  const activeLayer = layers.find((l) => l.id === activeLayerId);
+  const activeLayer = useMemo(
+    () => layers.find((l) => l.id === activeLayerId),
+    [layers, activeLayerId]
+  );
   const activeLayerFlatIndex = activeLayer ? layers.indexOf(activeLayer) : -1;
 
   const hasMultiLayerSelection = selectedLayerIds.length >= 2;
-  const layerIdsInDoc = new Set(layers.map((l) => l.id));
-  const selectedLayersPresentCount = selectedLayerIds.filter((id) =>
-    layerIdsInDoc.has(id)
-  ).length;
+  const layerIdsInDoc = useMemo(
+    () => new Set(layers.map((l) => l.id)),
+    [layers]
+  );
+  const selectedLayersPresentCount = useMemo(
+    () => selectedLayerIds.filter((id) => layerIdsInDoc.has(id)).length,
+    [selectedLayerIds, layerIdsInDoc]
+  );
   const canDeleteToolbarLayer = hasMultiLayerSelection
     ? selectedLayersPresentCount > 0
     : layers.length > 1;
@@ -1106,7 +1117,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           overflowY: "auto"
         }}
       >
-        {buildLayersPanelRows(layers).map(({ layer, depth }) => {
+        {layerRows.map(({ layer, depth }) => {
           const realIdx = layers.indexOf(layer);
           const isPaintTarget = layer.id === activeLayerId;
           const isRowSelected =

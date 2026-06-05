@@ -2,7 +2,6 @@ import {
   calculateStep,
   calculateDecimalPlaces,
   calculateSpeedFactor,
-  getEffectiveSliderWidth,
   formatFloat,
   applyValueConstraints
 } from "../NumberInput.utils";
@@ -131,21 +130,6 @@ describe("NumberInput.utils", () => {
     it("clamps to SHIFT_MIN_SPEED_FACTOR with shift key at max distance", () => {
       const shifted = calculateSpeedFactor(DRAG_SLOWDOWN_RAMP_PX, true);
       expect(shifted).toBeCloseTo(SHIFT_MIN_SPEED_FACTOR, 5);
-    });
-  });
-
-  describe("getEffectiveSliderWidth", () => {
-    it("multiplies width by zoom when zoom enabled", () => {
-      expect(getEffectiveSliderWidth(true, 2, 100)).toBe(200);
-      expect(getEffectiveSliderWidth(true, 0.5, 100)).toBe(50);
-    });
-
-    it("returns raw width when zoom disabled", () => {
-      expect(getEffectiveSliderWidth(false, 2, 100)).toBe(100);
-    });
-
-    it("returns raw width when zoom is 0", () => {
-      expect(getEffectiveSliderWidth(true, 0, 100)).toBe(100);
     });
   });
 

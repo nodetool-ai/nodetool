@@ -8,7 +8,6 @@ import {
   PID_FILE_PATH,
   PID_DIRECTORY,
   webPath,
-  getCondaEnvPath,
 } from "./config";
 
 /**

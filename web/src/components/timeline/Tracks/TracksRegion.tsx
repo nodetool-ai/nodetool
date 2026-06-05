@@ -41,6 +41,11 @@ import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
+import {
+  ScriptLane,
+  ScriptLaneHeader,
+  SCRIPT_LANE_HEIGHT_PX
+} from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
 import { FlexColumn, FlexRow } from "../../ui_primitives";
@@ -355,13 +360,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
-    const totalTracksHeight = tracks.reduce(
-      (sum, t) =>
-        sum +
-        (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
-        (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
-      0
-    );
+    const totalTracksHeight =
+      tracks.reduce(
+        (sum, t) =>
+          sum +
+          (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
+          (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
+        0
+      ) + SCRIPT_LANE_HEIGHT_PX;
+
+    // The script lane sits just above the first audio track (between video and
+    // audio, Descript-style); if there's no audio track it goes last.
+    const scriptBeforeTrackId =
+      tracks.find((t) => t.type === "audio")?.id ?? null;
 
     // The FX panel sticks to the left of the scroll viewport so it stays
     // visible while clips scroll horizontally. Its width matches the
@@ -428,6 +439,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <div css={headerColumnStyles(theme)}>
             {tracks.map((track) => (
               <React.Fragment key={track.id}>
+                {track.id === scriptBeforeTrackId && <ScriptLaneHeader />}
                 <TrackHeader track={track} typedIndex={typedIndexMap.get(track.id) ?? 1} />
                 {expandedFxTrackId === track.id && (
                   <div
@@ -437,6 +449,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 )}
               </React.Fragment>
             ))}
+            {scriptBeforeTrackId === null && <ScriptLaneHeader />}
           </div>
 
           {/* Scrollable lanes */}
@@ -452,6 +465,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             >
               {tracks.map((track) => (
                 <React.Fragment key={track.id}>
+                  {track.id === scriptBeforeTrackId && (
+                    <ScriptLane totalWidthPx={totalWidthPx} />
+                  )}
                   <TrackLane track={track} />
                   {expandedFxTrackId === track.id && (
                     <div
@@ -468,6 +484,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                   )}
                 </React.Fragment>
               ))}
+              {scriptBeforeTrackId === null && (
+                <ScriptLane totalWidthPx={totalWidthPx} />
+              )}
             </div>
           </div>
         </FlexRow>

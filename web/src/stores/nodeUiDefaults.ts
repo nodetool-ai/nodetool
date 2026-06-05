@@ -24,13 +24,13 @@ export const DEFAULT_NODE_WIDTH = 280;
  * object check. Returns a default-positioned object when the input is
  * not a valid object (null, undefined, primitives, arrays).
  */
-function isNonArrayObject(value: unknown): value is Record<string, unknown> {
+function isNodeUIPropertiesLike(value: unknown): value is NodeUIProperties {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function parseNodeUIProperties(raw: unknown): NodeUIProperties {
-  if (isNonArrayObject(raw)) {
-    return raw as NodeUIProperties;
+  if (isNodeUIPropertiesLike(raw)) {
+    return raw;
   }
   return { position: { x: 0, y: 0 } };
 }

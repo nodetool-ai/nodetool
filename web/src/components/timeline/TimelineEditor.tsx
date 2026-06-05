@@ -45,6 +45,7 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
+import { TranscriptPanel } from "./TranscriptPanel";
 import { ActivityIndicator } from "./ActivityIndicator";
 import {
   useGeneratingCount,
@@ -230,6 +231,20 @@ const InspectorRegion: React.FC = () => {
       sx={{ flex: "0 1 45%", minWidth: 0, minHeight: 0, width: 0 }}
     >
       <TimelineInspector />
+    </FlexColumn>
+  );
+};
+
+const TranscriptRegion: React.FC = () => {
+  const theme = useTheme();
+
+  return (
+    <FlexColumn
+      css={inspectorRegionStyles(theme)}
+      fullHeight
+      sx={{ flex: "0 0 320px", minWidth: 0, minHeight: 0 }}
+    >
+      <TranscriptPanel />
     </FlexColumn>
   );
 };
@@ -447,6 +462,7 @@ const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo((
         css={middleAreaStyles(theme)}
         sx={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden" }}
       >
+        <TranscriptRegion />
         <PreviewRegion
           isLoading={isLoading}
           sequence={sequence}

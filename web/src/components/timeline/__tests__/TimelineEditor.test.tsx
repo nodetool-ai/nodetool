@@ -67,6 +67,14 @@ jest.mock("../TopBarPrompt", () => ({
     React.createElement("div", { "data-testid": "topbar-prompt" }, "Prompt")
 }));
 
+// TranscriptPanel's VoiceCard embeds TTSModelSelect, which queries the TTS
+// model list via TanStack Query. Same no-QueryClient constraint as above.
+jest.mock("../../properties/TTSModelSelect", () => ({
+  __esModule: true,
+  default: () =>
+    React.createElement("div", { "data-testid": "tts-model-select" }, "TTS")
+}));
+
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   useTimeline,

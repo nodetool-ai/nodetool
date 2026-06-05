@@ -3,6 +3,7 @@ import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useResultsStore from "../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodes } from "../../contexts/NodeContext";
@@ -55,6 +56,15 @@ export function useRunFromHere(
       return;
     }
 
+    // Seed inputs from the workflow's focused run; if nothing has run there's
+    // no focused job and the store read yields undefined (literal-source
+    // fallback still applies).
+    const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
+      workflow.id
+    );
+    const getResultForFocusedJob = (wf: string, src: string): unknown =>
+      focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
+
     const inbound = edges.filter((edge: Edge) => edge.target === node.id);
     const overrides: Record<string, unknown> = {};
     for (const edge of inbound) {
@@ -64,7 +74,7 @@ export function useRunFromHere(
       const { value, hasValue } = resolveExternalEdgeValue(
         edge,
         workflow.id,
-        getResult,
+        getResultForFocusedJob,
         findNode
       );
       if (hasValue) {

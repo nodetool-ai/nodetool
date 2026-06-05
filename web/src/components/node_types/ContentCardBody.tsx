@@ -49,7 +49,7 @@ import AudioPlayer from "../audio/AudioPlayer";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
-import useResultsStore from "../../stores/ResultsStore";
+import { useNodeResultValue } from "../../hooks/nodes/useNodeExecState";
 import {
   assetsToPreviewValue,
   useNodeResultHistory
@@ -592,9 +592,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [primaryOutput]
   );
 
-  const result = useResultsStore((state) =>
-    state.getOutputResult(workflowId, id) ?? state.getResult(workflowId, id)
-  );
+  const result = useNodeResultValue(workflowId, id);
   const { lastJobAssets } = useNodeResultHistory(workflowId, id);
 
   // Resolved live (in-memory) result for the primary output. NodeHistoryViewer

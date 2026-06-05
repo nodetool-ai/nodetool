@@ -356,7 +356,7 @@ const initKeyListeners = () => {
     lastPointerDownWasCanvas = !targetIsEditable && isWorkflowEditorElement(target);
 
     if (lastPointerDownWasCanvas && isEditableElement(document.activeElement)) {
-      (document.activeElement as HTMLElement).blur();
+      document.activeElement.blur();
     }
   };
 
