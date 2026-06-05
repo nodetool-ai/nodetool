@@ -17,7 +17,6 @@ import {
 } from "./server";
 import { fetchWorkflows } from "./api";
 import {
-  readSettings,
   readSettingsAsync,
   updateSetting,
   getModelServiceStartupSettings,
