@@ -593,6 +593,111 @@ export class BrowserAgentNode extends ToolAgentNode {
 }
 
 // ---------------------------------------------------------------------------
+// LiveBrowserAgent — drives the user's real logged-in Chrome via the extension
+// ---------------------------------------------------------------------------
+
+/**
+ * The 13 CDP browser tools (registered into the builtin agent-tool registry by
+ * `sandbox.ts`). Passed as name-stubs; `runAgentLoop` hydrates them from the
+ * registry. The local `browser_*` tools route through `browser-tools-local`,
+ * which selects the extension transport via `NODETOOL_BROWSER_TRANSPORT`.
+ */
+const LIVE_BROWSER_TOOL_NAMES: readonly string[] = [
+  "browser_view",
+  "browser_navigate",
+  "browser_restart",
+  "browser_click",
+  "browser_input_text",
+  "browser_move_mouse",
+  "browser_press_key",
+  "browser_select_option",
+  "browser_scroll",
+  "browser_console_exec",
+  "browser_console_view",
+  "browser_capture_media",
+  "browser_upload_asset"
+];
+
+export class LiveBrowserAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.LiveBrowserAgent";
+  static readonly title = "Live Browser Agent";
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["prompt"];
+  static readonly description =
+    "Drives your real, logged-in Chrome via the Nodetool browser extension.\n    Automates media-generation UIs, saves generated images/videos as assets, and uploads assets into sites.\n    skills, browser, live, automation, extension, media";
+  static readonly metadataOutputTypes = {
+    text: "str"
+  };
+  static readonly _systemPrompt =
+    "You drive the user's REAL, logged-in Chrome through the Nodetool extension (CDP). " +
+    "The user must have clicked 'Attach to this tab' in the extension first. " +
+    "Use `browser_view` to see the page: it returns a screenshot plus interactive elements indexed by `index`. " +
+    "Act with `browser_navigate`, `browser_click` (by `index` or coordinates), `browser_input_text`, " +
+    "`browser_select_option`, `browser_scroll`, and `browser_press_key`. " +
+    "To save a generated image/video/audio as a Nodetool asset, call `browser_capture_media` " +
+    "(by element `index` or `url`); it returns an asset reference. " +
+    "To put an existing Nodetool asset into a site's file input, call `browser_upload_asset` with the input's `index` and the `asset_id`. " +
+    "This is a live browser the user can see — make minimal, deliberate actions, re-`browser_view` after navigation, " +
+    "and never log in or change account settings on the user's behalf.";
+
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used to plan and drive the live browser session."
+  })
+  declare model: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "What to do in the live browser (natural language)."
+  })
+  declare prompt: any;
+
+  @prop({
+    type: "int",
+    default: 300,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for the agent session.",
+    min: 1,
+    max: 3600
+  })
+  declare timeout_seconds: any;
+
+  /** Only the CDP browser tools — no execute_bash for a live-browser session. */
+  override getTools(_workspaceDir: string): ToolLike[] {
+    return LIVE_BROWSER_TOOL_NAMES.map((name) => ({ name }));
+  }
+
+  override async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    // Select the extension transport for the host-process browser singleton.
+    // v1 is single-session: one extension connection, one active tab.
+    const prev = process.env.NODETOOL_BROWSER_TRANSPORT;
+    process.env.NODETOOL_BROWSER_TRANSPORT = "extension";
+    try {
+      return await super.process(context);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.NODETOOL_BROWSER_TRANSPORT;
+      } else {
+        process.env.NODETOOL_BROWSER_TRANSPORT = prev;
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // SQLiteSkill
 // ---------------------------------------------------------------------------
 
@@ -1988,6 +2093,7 @@ export class YtDlpDownloaderAgentNode extends ToolAgentNode {
 export const TOOL_AGENT_NODES: readonly NodeClass[] = [
   ShellAgentNode,
   BrowserAgentNode,
+  LiveBrowserAgentNode,
   SQLiteAgentNode,
   SupabaseAgentNode,
   DocumentAgentNode,
