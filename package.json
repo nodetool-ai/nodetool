@@ -19,6 +19,7 @@
     "packages/replicate-codegen",
     "packages/replicate-nodes",
     "packages/elevenlabs-nodes",
+    "packages/minimax-nodes",
     "packages/transformers-js-nodes",
     "packages/transformers-js-provider",
     "packages/websocket",

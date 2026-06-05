@@ -31,6 +31,7 @@ COPY packages/fal-nodes/package.json packages/fal-nodes/
 COPY packages/replicate-codegen/package.json packages/replicate-codegen/
 COPY packages/replicate-nodes/package.json packages/replicate-nodes/
 COPY packages/elevenlabs-nodes/package.json packages/elevenlabs-nodes/
+COPY packages/minimax-nodes/package.json packages/minimax-nodes/
 COPY packages/kie-codegen/package.json packages/kie-codegen/
 COPY packages/kie-nodes/package.json packages/kie-nodes/
 COPY packages/agents/package.json packages/agents/

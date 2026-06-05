@@ -373,6 +373,12 @@ export async function run(
     // Some environments do not have the ElevenLabs node package in a runnable state.
   }
   try {
+    const { registerMinimaxNodes } = await import("@nodetool-ai/minimax-nodes");
+    registerMinimaxNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the MiniMax node package in a runnable state.
+  }
+  try {
     const { registerTransformersJsNodes } = await import(
       "@nodetool-ai/transformers-js-nodes"
     );

@@ -279,6 +279,7 @@ export class NodeRegistry {
 // base-nodes / fal-nodes / replicate-nodes / elevenlabs-nodes / transformers-js-nodes
 export const registerBaseNodes = (_reg?: unknown) => {};
 export const registerElevenLabsNodes = (_reg?: unknown) => {};
+export const registerMinimaxNodes = (_reg?: unknown) => {};
 export const registerTransformersJsNodes = (_reg?: unknown) => {};
 export const registerFalNodes = (_reg?: unknown) => {};
 export const registerReplicateNodes = (_reg?: unknown) => {};
