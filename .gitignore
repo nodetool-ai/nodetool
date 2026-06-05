@@ -85,3 +85,6 @@ __plans__
 
 # Superpowers visual brainstorm sessions
 .superpowers/
+
+# Chrome for Testing downloaded by @puppeteer/browsers for extension integration tests
+/chrome/

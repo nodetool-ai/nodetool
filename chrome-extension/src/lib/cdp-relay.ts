@@ -78,6 +78,7 @@ export class CdpRelay {
   private reconnectDelay = RECONNECT_MIN_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private manualClose = false;
+  private started = false;
   private readonly statusListeners = new Set<StatusListener>();
 
   /**
@@ -112,12 +113,20 @@ export class CdpRelay {
     this.emitStatus();
   };
 
-  /** Load the persisted server URL and open the socket. */
+  /**
+   * Load the persisted server URL and open the socket. Idempotent: safe to call
+   * from the service worker's top-level boot, `onInstalled`, and `onStartup`.
+   * The one-time listener/alarm setup runs once; subsequent calls only ensure
+   * the socket is (re)connecting.
+   */
   async start(): Promise<void> {
-    this.serverUrl = await loadServerUrl();
-    chrome.debugger.onEvent.addListener(this.onDebuggerEvent);
-    chrome.debugger.onDetach.addListener(this.onDebuggerDetach);
-    this.ensureKeepalive();
+    if (!this.started) {
+      this.started = true;
+      this.serverUrl = await loadServerUrl();
+      chrome.debugger.onEvent.addListener(this.onDebuggerEvent);
+      chrome.debugger.onDetach.addListener(this.onDebuggerDetach);
+      this.ensureKeepalive();
+    }
     this.connect();
   }
 

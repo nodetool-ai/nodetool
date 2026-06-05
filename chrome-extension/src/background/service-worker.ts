@@ -33,6 +33,19 @@ const relay = new CdpRelay();
 
 void relay.start();
 
+// MV3 service workers are event-driven: with no pending event, Chrome never
+// boots the worker, so the top-level `relay.start()` above may not run on a
+// fresh load. Waking on install and browser startup guarantees the relay
+// connects (and reconnects after the worker is evicted). `start()` is
+// idempotent, so these are safe alongside the top-level call.
+chrome.runtime.onInstalled.addListener(() => {
+  void relay.start();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  void relay.start();
+});
+
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === KEEPALIVE_ALARM_NAME) {
     relay.handleKeepalive();

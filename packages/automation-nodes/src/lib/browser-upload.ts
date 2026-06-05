@@ -24,11 +24,36 @@ import type {
   BrowserUploadAssetOutput
 } from "@nodetool-ai/sandbox/schemas";
 import { Buffer } from "node:buffer";
-import { promises as fs } from "node:fs";
+import { promises as fs, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { CdpPage } from "./cdp-page.js";
+
+/**
+ * Temp dirs holding files handed to `DOM.setFileInputFiles`. Chrome reads the
+ * file lazily (on form submit / `File` byte access), so we must NOT delete it
+ * right after the command — that would zero the upload. We keep each file for
+ * the process lifetime and sweep them on exit.
+ */
+const pendingUploadDirs = new Set<string>();
+let uploadExitHookInstalled = false;
+
+function trackUploadDir(dir: string): void {
+  pendingUploadDirs.add(dir);
+  if (!uploadExitHookInstalled) {
+    uploadExitHookInstalled = true;
+    process.once("exit", () => {
+      for (const d of pendingUploadDirs) {
+        try {
+          rmSync(d, { recursive: true, force: true });
+        } catch {
+          /* best-effort */
+        }
+      }
+    });
+  }
+}
 
 /** Temp-tag attribute used to address a coordinate-located input for native upload. */
 const UPLOAD_TAG_ATTR = "data-nt-upload";
@@ -86,11 +111,10 @@ async function uploadNative(
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nt-upload-"));
   const filePath = path.join(dir, input.file_name);
   await fs.writeFile(filePath, bytes);
-  try {
-    await page.setFileInputFiles(selector, [filePath]);
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true }).catch(() => undefined);
-  }
+  // Keep the file until process exit: Chrome reads it lazily when the page
+  // submits the form, well after this call returns.
+  trackUploadDir(dir);
+  await page.setFileInputFiles(selector, [filePath]);
 }
 
 /**
