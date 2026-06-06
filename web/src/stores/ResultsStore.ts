@@ -329,7 +329,9 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    */
   clearResults: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      providerCosts: filterRecord(state.providerCosts, workflowId, nodeIds)
+      providerCosts: filterRecord(state.providerCosts, workflowId, nodeIds),
+      liveGenerations: filterRecord(state.liveGenerations, workflowId, nodeIds),
+      toolResults: filterRecord(state.toolResults, workflowId, nodeIds)
     }));
   },
   clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => {

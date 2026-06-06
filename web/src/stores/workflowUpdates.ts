@@ -701,9 +701,16 @@ export const handleUpdate = (
             status: "running"
           });
         } else if (update.status === "completed") {
+          const raw = update.result;
+          const outputs: Record<string, unknown> =
+            typeof raw === "object" && raw !== null && !Array.isArray(raw)
+              ? (raw as Record<string, unknown>)
+              : raw !== undefined && raw !== null
+                ? { output: raw }
+                : {};
           upsertLiveGeneration(workflow.id, update.node_id, jobId, {
             status: "completed",
-            outputs: (update.result as Record<string, unknown>) ?? {},
+            outputs,
             cost: update.provider_cost ?? undefined
           });
         }

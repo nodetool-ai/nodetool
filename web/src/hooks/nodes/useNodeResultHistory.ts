@@ -19,6 +19,7 @@ import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
 import type { Asset } from "../../stores/ApiTypes";
 import { normalizeAssetList } from "../../utils/normalizeAsset";
+export { assetToOutputValue } from "../../utils/nodeGenerations";
 
 const EMPTY_ASSETS: Asset[] = [];
 
@@ -29,22 +30,6 @@ const fetchNodeAssets = async (nodeId: string): Promise<Asset[]> => {
 
 export const nodeAssetsQueryKey = (nodeId: string | null) =>
   ["assets", { node_id: nodeId }] as const;
-
-/**
- * Convert a saved asset into the value shape the preview components expect
- * (mirrors the `{ type, uri }` records carried over `output_update`).
- */
-export const assetToOutputValue = (asset: Asset): Record<string, unknown> => {
-  const ct = asset.content_type ?? "";
-  const uri = asset.get_url ?? asset.thumb_url ?? "";
-  if (ct.startsWith("image/")) return { type: "image", uri };
-  if (ct.startsWith("video/")) return { type: "video", uri };
-  if (ct.startsWith("audio/")) return { type: "audio", uri };
-  if (ct.includes("model") || asset.name?.toLowerCase().endsWith(".glb")) {
-    return { type: "model_3d", uri, name: asset.name ?? undefined };
-  }
-  return { uri, type: "asset", name: asset.name ?? undefined };
-};
 
 /**
  * Reduce a list of last-job assets to a single preview value (single asset)

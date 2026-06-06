@@ -1,5 +1,20 @@
 import type { Asset, ProviderCost } from "../stores/ApiTypes";
-import { assetToOutputValue } from "../hooks/nodes/useNodeResultHistory";
+
+/**
+ * Convert a saved asset into the value shape the preview components expect
+ * (mirrors the `{ type, uri }` records carried over `output_update`).
+ */
+export const assetToOutputValue = (asset: Asset): Record<string, unknown> => {
+  const ct = asset.content_type ?? "";
+  const uri = asset.get_url ?? asset.thumb_url ?? "";
+  if (ct.startsWith("image/")) return { type: "image", uri };
+  if (ct.startsWith("video/")) return { type: "video", uri };
+  if (ct.startsWith("audio/")) return { type: "audio", uri };
+  if (ct.includes("model") || asset.name?.toLowerCase().endsWith(".glb")) {
+    return { type: "model_3d", uri, name: asset.name ?? undefined };
+  }
+  return { uri, type: "asset", name: asset.name ?? undefined };
+};
 
 export interface Generation {
   id: string;

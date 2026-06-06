@@ -88,6 +88,13 @@ export const buildRunSubgraph = ({
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const findNode = (id: string): Node<NodeData> | undefined => nodeById.get(id);
 
+  const edgesByTarget = new Map<string, Edge[]>();
+  for (const e of edges) {
+    const list = edgesByTarget.get(e.target);
+    if (list) list.push(e);
+    else edgesByTarget.set(e.target, [e]);
+  }
+
   const included = new Set<string>([targetId]);
   const overrides = new Map<string, Record<string, unknown>>();
   const blocked: BlockedUpstream[] = [];
@@ -102,7 +109,7 @@ export const buildRunSubgraph = ({
   const stack: string[] = [targetId];
   while (stack.length) {
     const currentId = stack.pop()!;
-    const inbound = edges.filter((e) => e.target === currentId);
+    const inbound = edgesByTarget.get(currentId) ?? [];
     for (const edge of inbound) {
       if (!edge.targetHandle) {
         continue;
