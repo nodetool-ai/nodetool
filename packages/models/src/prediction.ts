@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.prediction`.
  */
 
-import { eq, and, desc, gte, lt, inArray } from "drizzle-orm";
+import { eq, and, desc, gte, lt, lte, inArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { predictions } from "./schema/predictions.js";
@@ -369,7 +369,7 @@ export class Prediction extends DBModel {
           and(
             eq(predictions.user_id, userId),
             gte(predictions.created_at, startIso),
-            lt(predictions.created_at, endIso)
+            lte(predictions.created_at, endIso)
           )
         )
         .orderBy(desc(predictions.created_at))
