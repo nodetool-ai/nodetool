@@ -9,7 +9,8 @@ import { runInlineGraphJob } from "../../lib/workflow/runInlineGraphJob";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { buildRunSubgraph } from "../../utils/runSubgraph";
-import { makeUpstreamResultGetter } from "../../utils/upstreamResult";
+import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import { getCurrentGeneration } from "../../utils/nodeGenerations";
 
 interface UseRunFromHereReturn {
   /** Run just this node as its own job (the "Run Node" action). */
@@ -62,14 +63,24 @@ export function useRunFromHere(
       return;
     }
 
+    const findNode = (id: string): Node<NodeData> | undefined =>
+      nodes.find((n) => n.id === id);
+
     const subgraph = buildRunSubgraph({
       targetId: node.id,
       nodes,
       edges,
       workflowId: workflow.id,
-      // Seed inputs from the workflow's runs (focused first, then newest, then
-      // the hydrated baseline), checking the output bucket before the envelope.
-      getResult: makeUpstreamResultGetter(workflow.id),
+      // Seed inputs from each upstream's selected generation (durable assets
+      // merged with the live buffer); resolveExternalEdgeValue unwraps the
+      // returned outputs record by source handle.
+      getResult: (wf, sourceId) => {
+        const current = getCurrentGeneration(
+          getNodeGenerations(wf, sourceId),
+          findNode(sourceId)?.data?.selected_generation
+        );
+        return current?.outputs;
+      },
       getMetadata: useMetadataStore.getState().getMetadata
     });
 

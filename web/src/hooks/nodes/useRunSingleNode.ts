@@ -4,7 +4,8 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { buildRunSubgraph } from "../../utils/runSubgraph";
-import { makeUpstreamResultGetter } from "../../utils/upstreamResult";
+import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 
 interface UseRunSingleNodeReturn {
@@ -51,9 +52,16 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
       nodes,
       edges,
       workflowId: workflow.id,
-      // Seed inputs from the workflow's runs (focused first, then newest, then
-      // the hydrated baseline), checking the output bucket before the envelope.
-      getResult: makeUpstreamResultGetter(workflow.id),
+      // Seed inputs from each upstream's selected generation (durable assets
+      // merged with the live buffer); resolveExternalEdgeValue unwraps the
+      // returned outputs record by source handle.
+      getResult: (wf, sourceId) => {
+        const current = getCurrentGeneration(
+          getNodeGenerations(wf, sourceId),
+          findNode(sourceId)?.data?.selected_generation
+        );
+        return current?.outputs;
+      },
       getMetadata: useMetadataStore.getState().getMetadata
     });
 

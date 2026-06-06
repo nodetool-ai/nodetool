@@ -7,7 +7,8 @@ import {
   useWebsocketRunner
 } from "../../stores/WorkflowRunner";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
-import { makeUpstreamResultGetter } from "../../utils/upstreamResult";
+import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 
 export const MIN_RUNS = 1;
@@ -76,10 +77,19 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           selectedNodeIds.has(edge.target) && !selectedNodeIds.has(edge.source)
       );
 
-      // Seed external inputs from the workflow's focused run, checking the
-      // output bucket (streaming / hydrated assets) before the node_complete
-      // envelope — the same precedence the node bodies use to display results.
-      const getResultForFocusedJob = makeUpstreamResultGetter(workflow.id);
+      // Seed external inputs from each upstream's selected generation (durable
+      // assets merged with the live buffer); resolveExternalEdgeValue unwraps
+      // the returned outputs record by source handle.
+      const getResultForFocusedJob = (
+        wf: string,
+        sourceId: string
+      ): unknown => {
+        const current = getCurrentGeneration(
+          getNodeGenerations(wf, sourceId),
+          findNode(sourceId)?.data?.selected_generation
+        );
+        return current?.outputs;
+      };
 
       const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
 

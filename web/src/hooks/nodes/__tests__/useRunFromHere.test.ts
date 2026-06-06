@@ -2,17 +2,15 @@ import { renderHook, act } from "@testing-library/react";
 import { useRunFromHere } from "../useRunFromHere";
 
 jest.mock("../../../contexts/NodeContext", () => ({ useNodes: jest.fn() }));
+// The run getter now resolves each upstream's selected generation from the
+// live-generation buffer (ResultsStore) merged with persisted workflow assets
+// (WorkflowAssetStore); seed those instead of a focused-job result getter.
 jest.mock("../../../stores/ResultsStore", () => ({
   __esModule: true,
   default: { getState: jest.fn() }
 }));
-// The hook seeds inputs from the workflow's focused run; provide a stable one
-// so the result getter is consulted (otherwise the read short-circuits).
-jest.mock("../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: {
-    getState: () => ({ getFocusedJob: () => "job-1", getRuns: () => [] })
-  }
+jest.mock("../../../stores/WorkflowAssetStore", () => ({
+  useWorkflowAssetStore: { getState: jest.fn() }
 }));
 jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: jest.fn()
@@ -27,13 +25,18 @@ jest.mock("../../../lib/workflow/runInlineGraphJob", () => ({
 
 import { useNodes } from "../../../contexts/NodeContext";
 import useResultsStore from "../../../stores/ResultsStore";
+import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { runInlineGraphJob } from "../../../lib/workflow/runInlineGraphJob";
+import type { Generation } from "../../../utils/nodeGenerations";
 
 const mockUseNodes = useNodes as jest.Mock;
 const mockResultsGetState = (useResultsStore as unknown as { getState: jest.Mock })
   .getState;
+const mockAssetsGetState = (
+  useWorkflowAssetStore as unknown as { getState: jest.Mock }
+).getState;
 const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
 const mockUseMetadataStore = useMetadataStore as unknown as jest.Mock;
 const mockMetadataGetState = (
@@ -44,8 +47,27 @@ const mockRunInline = runInlineGraphJob as unknown as jest.Mock;
 const graphArg = (call = 0) => mockRunInline.mock.calls[call][0].graph;
 
 describe("useRunFromHere (Run Node)", () => {
-  const mockGetResult = jest.fn();
-  const mockGetOutputResult = jest.fn();
+  // Live generations keyed by `${workflowId}:${nodeId}`, the same key
+  // getNodeGenerations reads from ResultsStore.
+  const liveGenerations: Record<string, Generation[]> = {};
+  const mockGetLiveGenerations = jest.fn(
+    (workflowId: string, nodeId: string): Generation[] =>
+      liveGenerations[`${workflowId}:${nodeId}`] ?? []
+  );
+  const seedGeneration = (
+    nodeId: string,
+    outputs: Record<string, unknown>
+  ): void => {
+    liveGenerations[`workflow-1:${nodeId}`] = [
+      {
+        id: nodeId,
+        jobId: "job-1",
+        createdAt: 1,
+        outputs,
+        status: "completed"
+      }
+    ];
+  };
   const mockAddNotification = jest.fn();
   // Source-node classification; default non-generative.
   const mockGetMetadata = jest.fn(() => ({ title: "Chat" }) as unknown);
@@ -73,8 +95,9 @@ describe("useRunFromHere (Run Node)", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetResult.mockReturnValue(undefined);
-    mockGetOutputResult.mockReturnValue(undefined);
+    for (const key of Object.keys(liveGenerations)) {
+      delete liveGenerations[key];
+    }
     mockGetMetadata.mockReturnValue({ title: "Chat" });
 
     mockRunInline.mockImplementation(() =>
@@ -84,8 +107,12 @@ describe("useRunFromHere (Run Node)", () => {
       selector({ edges, nodes: [nodeA, nodeB], workflow })
     );
     mockResultsGetState.mockReturnValue({
-      getOutputResult: mockGetOutputResult,
-      getResult: mockGetResult
+      getLiveGenerations: mockGetLiveGenerations
+    });
+    // No persisted workflow assets in these tests; the run getter merges this
+    // empty list with the seeded live generations.
+    mockAssetsGetState.mockReturnValue({
+      getWorkflowAssets: () => []
     });
     mockUseNotificationStore.mockImplementation((selector) =>
       selector({ addNotification: mockAddNotification })
@@ -125,8 +152,8 @@ describe("useRunFromHere (Run Node)", () => {
     expect(mockRunInline).not.toHaveBeenCalled();
   });
 
-  it("inlines a cached upstream result and sends only the clicked node", () => {
-    mockGetResult.mockReturnValue({ output: "cached" });
+  it("inlines the upstream's current generation output and sends only the clicked node", () => {
+    seedGeneration("node-a", { output: "cached" });
     const { result } = renderHook(() => useRunFromHere(nodeB as never));
 
     act(() => {
@@ -138,31 +165,15 @@ describe("useRunFromHere (Run Node)", () => {
       "node-b"
     ]);
     expect(graphArg().edges).toEqual([]);
-    // The cached upstream result is injected into the node's properties so it
-    // runs with realistic inputs: resolveExternalEdgeValue extracts the
-    // "output" handle from { output: "cached" } and writes it to the inbound
-    // edge's "value" target handle.
+    // The upstream's current generation output is injected into the node's
+    // properties so it runs with realistic inputs: the run getter returns the
+    // generation's outputs record and resolveExternalEdgeValue extracts the
+    // "output" handle, writing it to the inbound edge's "value" target handle.
     expect(graphArg().nodes[0].data).toEqual({ value: "cached" });
   });
 
-  it("reads the hydrated output bucket before the node_complete envelope", () => {
-    // Reopened-workflow case: the upstream result lives only in outputResults.
-    mockGetOutputResult.mockReturnValue({ output: "hydrated" });
-    mockGetResult.mockReturnValue(undefined);
-    const { result } = renderHook(() => useRunFromHere(nodeB as never));
-
-    act(() => {
-      result.current.runFromHere();
-    });
-
-    expect(mockRunInline).toHaveBeenCalledTimes(1);
-    expect(graphArg().nodes[0].data).toEqual({ value: "hydrated" });
-  });
-
   it("blocks and warns when an uncached generative upstream feeds the node", () => {
-    // node-a has no cached result and is flagged as a generative node.
-    mockGetResult.mockReturnValue(undefined);
-    mockGetOutputResult.mockReturnValue(undefined);
+    // node-a has no generation yet and is flagged as a generative node.
     mockGetMetadata.mockReturnValue({
       auto_save_asset: true,
       title: "Image Gen"
