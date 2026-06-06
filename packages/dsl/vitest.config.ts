@@ -17,6 +17,10 @@ export default defineConfig({
         __dirname,
         "../elevenlabs-nodes/src/index.ts"
       ),
+      "@nodetool-ai/minimax-nodes": resolve(
+        __dirname,
+        "../minimax-nodes/src/index.ts"
+      ),
       "@nodetool-ai/transformers-js-nodes": resolve(
         __dirname,
         "../transformers-js-nodes/src/index.ts"

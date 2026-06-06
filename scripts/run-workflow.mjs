@@ -288,6 +288,7 @@ async function main() {
   let NodeRegistry;
   let registerBaseNodes;
   let registerElevenLabsNodes;
+  let registerMinimaxNodes;
   let registerFalNodes;
   let registerHuggingFaceNodes;
   let ProcessingContext;
@@ -306,6 +307,7 @@ async function main() {
     const nodeSdkPath = path.resolve(tsRoot, "packages/node-sdk/dist/index.js");
     const baseNodesPath = path.resolve(tsRoot, "packages/base-nodes/dist/index.js");
     const elevenLabsNodesPath = path.resolve(tsRoot, "packages/elevenlabs-nodes/dist/index.js");
+    const minimaxNodesPath = path.resolve(tsRoot, "packages/minimax-nodes/dist/index.js");
     const runtimePath = path.resolve(tsRoot, "packages/runtime/dist/index.js");
     const falNodesPath = path.resolve(tsRoot, "packages/fal-nodes/dist/index.js");
     const huggingfaceNodesPath = path.resolve(tsRoot, "packages/huggingface-nodes/dist/index.js");
@@ -315,6 +317,11 @@ async function main() {
     ({ NodeRegistry } = await import(pathToFileURL(nodeSdkPath).href));
     ({ registerBaseNodes } = await import(pathToFileURL(baseNodesPath).href));
     ({ registerElevenLabsNodes } = await import(pathToFileURL(elevenLabsNodesPath).href));
+    try {
+      ({ registerMinimaxNodes } = await import(pathToFileURL(minimaxNodesPath).href));
+    } catch {
+      // MiniMax nodes package not built — skip
+    }
     ({
       ProcessingContext,
       OpenAIProvider,
@@ -356,6 +363,7 @@ async function main() {
   const registry = new NodeRegistry();
   registerBaseNodes(registry);
   registerElevenLabsNodes(registry);
+  if (registerMinimaxNodes) registerMinimaxNodes(registry);
   if (registerFalNodes) registerFalNodes(registry);
   if (registerHuggingFaceNodes) registerHuggingFaceNodes(registry);
 

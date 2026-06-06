@@ -20,6 +20,7 @@
     "packages/replicate-nodes",
     "packages/huggingface-nodes",
     "packages/elevenlabs-nodes",
+    "packages/minimax-nodes",
     "packages/transformers-js-nodes",
     "packages/transformers-js-provider",
     "packages/websocket",

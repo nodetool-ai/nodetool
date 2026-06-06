@@ -16,6 +16,7 @@ import {
 import { setPackSnapshot } from "./pack-snapshot.js";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
+import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
 import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
 import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerKieNodes } from "@nodetool-ai/kie-nodes";
@@ -55,6 +56,7 @@ function isProduction(): boolean {
 export function registerBuiltInNodes(registry: NodeRegistry): void {
   registerBaseNodes(registry);
   registerElevenLabsNodes(registry);
+  registerMinimaxNodes(registry);
   if (!isProduction()) {
     registerTransformersJsNodes(registry);
   }
