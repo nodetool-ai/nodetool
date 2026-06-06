@@ -916,6 +916,66 @@
         "serp",
         "agent"
       ]
+    },
+    {
+      "id": "cinematic-color-grade",
+      "name": "Cinematic Color Grade",
+      "description": "Apply a filmic color grade to any photo with deterministic GPU color tools: exposure & contrast, teal/orange split toning, and a cinematic vignette. No AI generation.",
+      "tags": [
+        "image",
+        "color",
+        "grading",
+        "start",
+        "example"
+      ]
+    },
+    {
+      "id": "resize-web-thumbnails",
+      "name": "Resize for Web & Thumbnails",
+      "description": "Export a single image at three web-ready sizes (1920 / 1024 / 400px wide) in one run, preserving aspect ratio. Pure deterministic resizing, no AI generation.",
+      "tags": [
+        "image",
+        "resize",
+        "utility",
+        "start",
+        "example"
+      ]
+    },
+    {
+      "id": "video-cleanup-grade",
+      "name": "Footage Cleanup & Grade",
+      "description": "Fix shaky, noisy video with deterministic FFmpeg filters: stabilization, noise reduction, and a saturation boost. No AI generation.",
+      "tags": [
+        "video",
+        "cleanup",
+        "grading",
+        "start",
+        "example"
+      ]
+    },
+    {
+      "id": "crossfade-montage",
+      "name": "Crossfade Montage",
+      "description": "Stitch two video clips with a crossfade transition and lay a music track over the result. Deterministic FFmpeg editing, no AI generation.",
+      "tags": [
+        "video",
+        "editing",
+        "transition",
+        "start",
+        "example"
+      ]
+    },
+    {
+      "id": "green-screen-compositor",
+      "name": "Green-Screen Compositor",
+      "description": "Key out a green screen and composite a subject over any background video using deterministic chroma key and overlay. No AI generation.",
+      "tags": [
+        "video",
+        "compositing",
+        "chroma-key",
+        "start",
+        "example"
+      ]
     }
   ]
 }

@@ -1,0 +1,279 @@
+{
+  "id": "crossfade-montage",
+  "access": "public",
+  "created_at": "2026-06-06T12:00:00.000000",
+  "updated_at": "2026-06-06T12:00:00.000000",
+  "name": "Crossfade Montage",
+  "tool_name": null,
+  "description": "Stitch two video clips with a crossfade transition and lay a music track over the result. Deterministic FFmpeg editing, no AI generation.",
+  "tags": [
+    "video",
+    "editing",
+    "transition",
+    "start",
+    "example"
+  ],
+  "thumbnail": "",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🎞️ Crossfade Montage\n\nStitch two clips with a crossfade and lay a music bed over the top — a complete edit, no AI.\n\n**Pipeline:** Clip A + Clip B → transition (fade) → add music → output.\n\n**Try this:** swap `transition_type` (wipeleft, circleopen, dissolve…), tune `duration`, and set `mix` on Add Audio to keep the original clip sound under the music."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": -250
+          },
+          "zIndex": 0,
+          "width": 620,
+          "height": 220,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "clip_a",
+        "parent_id": null,
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "clip_a",
+          "value": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1️⃣ Clip A"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "clip_b",
+        "parent_id": null,
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "clip_b",
+          "value": {
+            "type": "video",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null,
+            "duration": null,
+            "format": null
+          },
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": 260
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2️⃣ Clip B"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "transition",
+        "parent_id": null,
+        "type": "nodetool.video.Transition",
+        "data": {
+          "transition_type": "fade",
+          "duration": 1.0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 150
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3️⃣ Transition — crossfade A→B"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "music",
+        "parent_id": null,
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "music",
+          "value": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 360
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "🎵 Music bed"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "addaudio",
+        "parent_id": null,
+        "type": "nodetool.video.AddAudio",
+        "data": {
+          "volume": 0.8,
+          "mix": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 760,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4️⃣ Add music"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "output",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "montage",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1100,
+            "y": 140
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "✨ Final montage"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "preview",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "preview"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1100,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "👁️ Preview",
+          "height": 188
+        },
+        "dynamic_properties": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "clip_a",
+        "sourceHandle": "output",
+        "target": "transition",
+        "targetHandle": "video_a",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "e2",
+        "source": "clip_b",
+        "sourceHandle": "output",
+        "target": "transition",
+        "targetHandle": "video_b",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "e3",
+        "source": "transition",
+        "sourceHandle": "output",
+        "target": "addaudio",
+        "targetHandle": "video",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "e4",
+        "source": "music",
+        "sourceHandle": "output",
+        "target": "addaudio",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        }
+      },
+      {
+        "id": "e5",
+        "source": "addaudio",
+        "sourceHandle": "output",
+        "target": "output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "video"
+        }
+      },
+      {
+        "id": "e6",
+        "source": "addaudio",
+        "sourceHandle": "output",
+        "target": "preview",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "video"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null
+}
