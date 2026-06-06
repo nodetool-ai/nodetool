@@ -36,14 +36,25 @@ describe("generateEmbedding", () => {
     expect(out[1]).toEqual([4, 5, 6]);
   });
 
-  it("ignores the dimensions argument (no truncation supported)", async () => {
+  it("truncates and re-normalizes to the requested dimensions", async () => {
     embedPipelineFn.mockResolvedValue({ tolist: () => [[1, 2, 3, 4]] });
     const out = await generateEmbedding({
       text: "x",
       model: "fake",
       dimensions: 2
     });
-    // Length is unchanged because we do not honor `dimensions`.
-    expect(out[0]).toHaveLength(4);
+    expect(out[0]).toHaveLength(2);
+    // Truncated vector is re-normalized to unit length.
+    expect(Math.hypot(...out[0])).toBeCloseTo(1, 5);
+  });
+
+  it("leaves vectors untouched when dimensions >= hidden size", async () => {
+    embedPipelineFn.mockResolvedValue({ tolist: () => [[1, 2, 3, 4]] });
+    const out = await generateEmbedding({
+      text: "x",
+      model: "fake",
+      dimensions: 8
+    });
+    expect(out[0]).toEqual([1, 2, 3, 4]);
   });
 });

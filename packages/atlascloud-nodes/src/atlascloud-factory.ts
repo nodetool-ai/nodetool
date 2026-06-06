@@ -23,6 +23,7 @@ import type {
   PromptAssetTextField
 } from "@nodetool-ai/runtime";
 import {
+  atlasDownload,
   atlasPoll,
   atlasSubmit,
   getApiKey,
@@ -87,7 +88,12 @@ const LIST_ASSET_RE = /^list\[(image|video|audio)\]$/;
 type AssetRef = {
   uri?: string;
   data?: string | Uint8Array;
+  // Native NodeTool refs use snake_case `mime_type`; the refs that
+  // `mapPromptAssetsToInputs` injects for @-mentioned assets (InjectedAssetRef)
+  // use camelCase `mimeType`. Accept both so a mentioned asset whose URI has no
+  // usable extension isn't silently mislabeled with the type default.
   mime_type?: string;
+  mimeType?: string;
   metadata?: { mime_type?: string };
 };
 
@@ -120,7 +126,10 @@ function looksLikePublicUrl(s: unknown): s is string {
  * bypassed by a public DNS name that resolves to a private IP (DNS rebinding).
  * That's a known limitation — fixing it properly requires resolving DNS in
  * the same socket dance as the eventual fetch(). The string check is what
- * the canonical fal/replicate/topaz providers use today.
+ * the canonical fal/replicate/topaz providers use today, hardened here against
+ * the inet_aton-style numeric encodings (decimal/hex/octal, short-form) and
+ * IPv4-mapped IPv6 that the OS resolver still accepts but a naive dotted-quad
+ * regex misses.
  */
 function isSafeHttpUrl(uri: string): boolean {
   let u: URL;
@@ -133,29 +142,91 @@ function isSafeHttpUrl(uri: string): boolean {
   return !isPrivateOrLocalHost(u.hostname);
 }
 
+/** Parse a single inet_aton component: decimal, 0x-hex, or 0-prefixed octal. */
+function parseIpComponent(part: string): number | null {
+  if (/^0x[0-9a-f]+$/i.test(part)) return parseInt(part.slice(2), 16);
+  if (/^0[0-7]+$/.test(part)) return parseInt(part, 8);
+  if (/^[0-9]+$/.test(part)) return parseInt(part, 10);
+  return null;
+}
+
+/**
+ * Parse `host` as IPv4 using inet_aton semantics, which `getaddrinfo` (and thus
+ * `fetch`) honors: `a.b.c.d`, the short forms `a.b.c` / `a.b` / `a`, and each
+ * component in decimal, hex (`0x7f`), or octal (`0177`). Returns the four
+ * octets, or null when the host isn't a numeric IPv4 in any of these forms.
+ */
+function ipv4ToOctets(host: string): [number, number, number, number] | null {
+  const parts = host.split(".");
+  if (parts.length === 0 || parts.length > 4) return null;
+  const nums: number[] = [];
+  for (const part of parts) {
+    const n = parseIpComponent(part);
+    if (n === null || n < 0) return null;
+    nums.push(n);
+  }
+  // Every component but the last must fit in one octet; the final component
+  // absorbs all remaining low-order octets (e.g. "127.1" → 127.0.0.1).
+  const n = nums.length;
+  for (let i = 0; i < n - 1; i++) {
+    if (nums[i] > 0xff) return null;
+  }
+  const tailOctets = 4 - (n - 1);
+  const tail = nums[n - 1];
+  if (tail < 0 || tail > 0xffffffff || tail >= 2 ** (tailOctets * 8)) return null;
+  let value = tail;
+  for (let i = 0; i < n - 1; i++) {
+    value += nums[i] * 256 ** (3 - i);
+  }
+  return [
+    (value >>> 24) & 0xff,
+    (value >>> 16) & 0xff,
+    (value >>> 8) & 0xff,
+    value & 0xff
+  ];
+}
+
+/** Extract the embedded IPv4 from an IPv4-mapped / -compatible IPv6 address. */
+function mappedIpv4ToOctets(
+  host: string
+): [number, number, number, number] | null {
+  // Dotted tail: ::ffff:127.0.0.1 or the deprecated compat form ::127.0.0.1
+  const dotted = /^::(?:ffff:)?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i.exec(host);
+  if (dotted) return ipv4ToOctets(dotted[1]);
+  // Hex tail: ::ffff:7f00:1
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(host);
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+    return [(hi >> 8) & 0xff, hi & 0xff, (lo >> 8) & 0xff, lo & 0xff];
+  }
+  return null;
+}
+
+function isPrivateV4(octets: [number, number, number, number]): boolean {
+  const [o1, o2] = octets;
+  if (o1 === 0) return true; // 0.0.0.0/8 — "this network"
+  if (o1 === 10) return true; // RFC1918
+  if (o1 === 127) return true; // loopback
+  if (o1 === 169 && o2 === 254) return true; // link-local incl. cloud metadata
+  if (o1 === 172 && o2 >= 16 && o2 <= 31) return true; // RFC1918
+  if (o1 === 192 && o2 === 168) return true; // RFC1918
+  if (o1 === 100 && o2 >= 64 && o2 <= 127) return true; // CGNAT
+  return false;
+}
+
 function isPrivateOrLocalHost(hostname: string): boolean {
   // URL.hostname returns IPv6 wrapped in brackets ("[::1]") on Node — strip
   // before pattern matching so the v6 cases below work on the bare form.
   let h = hostname.toLowerCase();
   if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
-  if (h === "" || h === "localhost") return true;
+  if (h === "" || h === "localhost" || h.endsWith(".localhost")) return true;
 
-  // IPv4 dotted quad
-  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
-  if (v4) {
-    const o1 = Number(v4[1]);
-    const o2 = Number(v4[2]);
-    if (o1 === 0) return true; // 0.0.0.0/8 — "this network"
-    if (o1 === 10) return true; // RFC1918
-    if (o1 === 127) return true; // loopback
-    if (o1 === 169 && o2 === 254) return true; // link-local incl. cloud metadata
-    if (o1 === 172 && o2 >= 16 && o2 <= 31) return true; // RFC1918
-    if (o1 === 192 && o2 === 168) return true; // RFC1918
-    if (o1 === 100 && o2 >= 64 && o2 <= 127) return true; // CGNAT
-    return false;
-  }
+  // IPv4 in any inet_aton-accepted spelling, or embedded in a mapped IPv6.
+  const octets = ipv4ToOctets(h) ?? mappedIpv4ToOctets(h);
+  if (octets) return isPrivateV4(octets);
 
-  // IPv6 — URL.hostname returns bracket-stripped form (e.g. "::1", "fe80::1")
+  // Pure IPv6 — URL.hostname returns bracket-stripped form ("::1", "fe80::1").
   if (h === "::1" || h === "::") return true;
   if (h.startsWith("fe80:") || h.startsWith("fe80::")) return true; // link-local
   // ULA range fc00::/7 — first nibble is f, second is c or d
@@ -169,6 +240,7 @@ function bytesToDataUri(bytes: Uint8Array, mime: string): string {
 
 function guessMime(ref: AssetRef | undefined, fallback: string): string {
   if (ref?.mime_type) return ref.mime_type;
+  if (ref?.mimeType) return ref.mimeType;
   if (ref?.metadata?.mime_type) return ref.metadata.mime_type;
   const uri = ref?.uri ?? "";
   if (/\.jpe?g(?:[?#]|$)/i.test(uri)) return "image/jpeg";
@@ -434,13 +506,9 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
       });
       const url = pickOutputUrl(result);
 
-      const dl = await fetch(url);
-      if (!dl.ok) {
-        throw new Error(
-          `AtlasCloud download failed: HTTP ${dl.status} fetching ${url}`
-        );
-      }
-      const bytes = new Uint8Array(await dl.arrayBuffer());
+      // Retries 429/5xx — the job is already generated and billed by now, so a
+      // transient CDN blip must not throw the paid-for result away.
+      const bytes = await atlasDownload(url);
 
       // Preferred path: hand bytes to NodeTool storage so the result becomes a
       // proper local asset. Falls back to base64 embed if storage is missing

@@ -24,7 +24,10 @@
   "dependencies": {
     "@nodetool-ai/base-nodes": "*",
     "@nodetool-ai/elevenlabs-nodes": "*",
+    "@nodetool-ai/minimax-nodes": "*",
     "@nodetool-ai/transformers-js-nodes": "*",
+    "@nodetool-ai/huggingface-nodes": "*",
+    "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/node-sdk": "*",

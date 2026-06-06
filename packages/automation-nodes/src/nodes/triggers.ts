@@ -71,19 +71,15 @@ export class WaitNode extends BaseNode {
   static readonly nodeType = "nodetool.triggers.Wait";
   static readonly title = "Wait";
   static readonly description =
-    "Node that suspends workflow execution until externally resumed.\n\n" +
-    "    This node pauses the workflow at this point and waits for an external\n" +
-    "    signal (via API call) to continue. When resumed, it outputs the input\n" +
-    "    data merged with any data provided during the resume call.\n\n" +
+    "Pause workflow execution for a fixed amount of time, then pass the input\n" +
+    "    through to the output.\n\n" +
     "    Use cases:\n" +
-    "    - Human-in-the-loop workflows requiring approval\n" +
-    "    - Waiting for external processes to complete\n" +
-    "    - Pausing workflows for manual data entry\n" +
-    "    - Synchronization points in multi-step processes\n" +
-    "    - Interactive chatbot-style workflows\n\n" +
-    "    The workflow is suspended (not running) while waiting, so it doesn't\n" +
-    "    consume resources. State is persisted and the workflow can be resumed\n" +
-    "    even after server restarts.";
+    "    - Rate-limiting or throttling between steps\n" +
+    "    - Waiting a fixed delay before continuing\n" +
+    "    - Spacing out polling or retry attempts\n\n" +
+    "    The input data is forwarded unchanged once the wait completes, along\n" +
+    "    with the resume timestamp and the actual number of seconds waited. A\n" +
+    "    timeout of 0 means no wait — the input passes through immediately.";
   static readonly inlineFields = [];
   static readonly inputFields = ["input"];
   static readonly metadataOutputTypes = {
@@ -96,7 +92,7 @@ export class WaitNode extends BaseNode {
     type: "int",
     default: 0,
     title: "Timeout Seconds",
-    description: "Optional timeout in seconds (0 = wait indefinitely)",
+    description: "Seconds to wait before continuing (0 = no wait)",
     min: 0
   })
   declare timeout_seconds: any;
@@ -105,7 +101,7 @@ export class WaitNode extends BaseNode {
     type: "any",
     default: "",
     title: "Input",
-    description: "Input data to pass through to the output when resumed"
+    description: "Input data to pass through to the output after waiting"
   })
   declare input: any;
 
@@ -194,14 +190,35 @@ export class ManualTriggerNode extends BaseNode {
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
     const maxEvents = Number(this.max_events ?? 0);
     const triggerName = String(this.name ?? "manual_trigger");
+    const timeoutSeconds = Number(this.timeout_seconds ?? 0) || 0;
+    const timeoutMs = timeoutSeconds > 0 ? timeoutSeconds * 1000 : 0;
     let eventsProcessed = 0;
 
-    for await (const [handle, item] of inputs.any()) {
+    const iterator = inputs.any()[Symbol.asyncIterator]();
+    // `unique symbol` so the `=== TIMEOUT` check below narrows the race result.
+    const TIMEOUT: unique symbol = Symbol("timeout");
+    while (true) {
+      let result: IteratorResult<[string, unknown]>;
+      if (timeoutMs > 0) {
+        // Stop waiting if no event arrives within the configured timeout.
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeoutPromise = new Promise<typeof TIMEOUT>((resolve) => {
+          timer = setTimeout(() => resolve(TIMEOUT), timeoutMs);
+        });
+        const next = await Promise.race([iterator.next(), timeoutPromise]);
+        clearTimeout(timer);
+        if (next === TIMEOUT) break;
+        result = next;
+      } else {
+        result = await iterator.next();
+      }
+      if (result.done) break;
+
+      const [handle, item] = result.value;
       if (handle === "__control__") continue;
 
-      const data = item;
       const event = {
-        data,
+        data: item,
         timestamp: new Date().toISOString(),
         source: triggerName,
         event_type: "manual"
@@ -319,11 +336,18 @@ export class IntervalTriggerNode extends BaseNode {
       if (maxEvents > 0 && tickCount >= maxEvents) return;
     }
 
-    // Main loop
+    // Main loop. When `emit_on_start` fired, the on-start emission already
+    // consumed the first slot (tickCount === 1) so `tickCount` whole intervals
+    // should have elapsed by the next scheduled tick. When it did not, the next
+    // tick is the very first one and must still land a full interval after the
+    // initial delay — hence the +1 offset. Without it, drift compensation makes
+    // the first tick fire immediately, defeating `emit_on_start = false`.
+    const driftOffset = emitOnStart ? 0 : 1;
     while (true) {
       if (driftCompensation) {
         // Calculate next tick time based on start time
-        const nextTickMs = tickCount * intervalMs + initialDelayMs;
+        const intervalsElapsed = tickCount + driftOffset;
+        const nextTickMs = intervalsElapsed * intervalMs + initialDelayMs;
         const elapsed = Date.now() - startTime;
         const waitMs = Math.max(MIN_WAIT_SECONDS * 1000, nextTickMs - elapsed);
         await new Promise((r) => setTimeout(r, waitMs));
@@ -720,6 +744,7 @@ export class FileWatchTriggerNode extends BaseNode {
 
     // Use fs.watch for filesystem monitoring
     const watchers: fs.FSWatcher[] = [];
+    let watchError: unknown = null;
 
     const watchDir = (dir: string) => {
       try {
@@ -745,12 +770,23 @@ export class FileWatchTriggerNode extends BaseNode {
           }
         );
         watchers.push(watcher);
-      } catch (_err) {
-        // Some paths may not be watchable
+      } catch (err) {
+        // Record the failure so it can be surfaced if no watcher starts at all
+        // (e.g. recursive watch unsupported on this platform). Swallowing it
+        // silently would leave the generator blocked on queue.get() forever
+        // with no diagnostic.
+        watchError = err;
       }
     };
 
     watchDir(watchPath);
+
+    if (watchers.length === 0) {
+      throw new Error(
+        `Failed to watch path: ${watchPath}` +
+          (watchError instanceof Error ? ` (${watchError.message})` : "")
+      );
+    }
 
     let eventsProcessed = 0;
     try {

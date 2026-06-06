@@ -634,7 +634,8 @@ export const workflowsRouter = router({
             Object.fromEntries(
               (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
             ),
-            meta?.required_settings ?? []
+            meta?.required_settings ?? [],
+            node.id
           );
         }
         return registry.resolve(node as Parameters<typeof registry.resolve>[0]);

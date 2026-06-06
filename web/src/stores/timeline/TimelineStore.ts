@@ -416,8 +416,12 @@ function mergeClipsAtTime(
         c.trackId === right.trackId &&
         c.currentAssetId === right.currentAssetId &&
         Math.abs(c.startMs + c.durationMs - timeMs) <= EPS &&
+        // Source contiguity: the left half's source out-point must meet the
+        // right half's source in-point. Use outPointMs (set on every split half)
+        // rather than inPointMs + durationMs, which only holds at 1× speed.
         Math.abs(
-          (c.inPointMs ?? 0) + c.durationMs - (right.inPointMs ?? 0)
+          (c.outPointMs ?? (c.inPointMs ?? 0) + c.durationMs) -
+            (right.inPointMs ?? 0)
         ) <= EPS
     );
     if (!left) continue;
