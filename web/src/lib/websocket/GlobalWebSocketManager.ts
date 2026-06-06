@@ -270,6 +270,21 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 
   /**
+   * Inject a locally-produced protocol message into the same routing as
+   * server-streamed messages.
+   *
+   * The in-browser workflow runner (for pure-browser sub-graphs) emits the
+   * exact same `ProcessingMessage` shapes the unified WebSocket server sends.
+   * Routing them through here means every subscriber — the canvas, the
+   * results/status/log stores — handles a client-side run identically to a
+   * server run, with no special-casing. This is the seam that lets browser
+   * execution "hook into the same WebSocket protocol stream".
+   */
+  deliverLocal(message: WebSocketMessage): void {
+    this.routeMessage(message);
+  }
+
+  /**
    * Register a message handler for a workflow or job
    */
   subscribe(key: string, handler: MessageHandler): () => void {

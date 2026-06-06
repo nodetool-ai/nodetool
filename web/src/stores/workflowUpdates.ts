@@ -27,6 +27,7 @@ import { useNotificationStore } from "./NotificationStore";
 import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
+import { preloadBrowserRunner } from "../lib/workflow/browserWorkflowRunner";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
@@ -135,6 +136,11 @@ export const subscribeToWorkflowUpdates = (
   if (existing) {
     existing.unsubscribe();
   }
+
+  // Warm the in-browser workflow runner so pure-browser sub-graphs execute
+  // client-side from the first run instead of falling back to the server while
+  // the chunk loads. No-op until a browser sub-graph is actually run.
+  preloadBrowserRunner();
 
   const unsubscribeWorkflow = globalWebSocketManager.subscribe(
     workflowId,
