@@ -84,6 +84,7 @@ const styles = (theme: Theme) =>
  */
 const WorkspaceShell = () => {
   const theme = useTheme();
+  const shellStyles = useMemo(() => styles(theme), [theme]);
   const tabs = useWorkspaceTabsStore((state) => state.tabs);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
@@ -118,7 +119,7 @@ const WorkspaceShell = () => {
     activeTab?.type === "workflow" && activeTab.mode === "edit";
 
   return (
-    <div css={styles(theme)} className="workspace-shell">
+    <div css={shellStyles} className="workspace-shell">
       <WorkspaceTabBar />
       <div className="workspace-main">
         <Suspense fallback={null}>
