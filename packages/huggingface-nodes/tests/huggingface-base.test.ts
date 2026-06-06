@@ -71,21 +71,27 @@ describe("media ref helpers", () => {
 });
 
 describe("output ref builders", () => {
-  it("imageRefFromBytes builds a data URI", () => {
+  it("imageRefFromBytes emits raw base64 with content_type (no data: prefix)", () => {
     const ref = imageRefFromBytes(new Uint8Array([1, 2, 3]), "image/jpeg");
     expect(ref.type).toBe("image");
-    expect(String(ref.data)).toMatch(/^data:image\/jpeg;base64,/);
+    expect(ref.content_type).toBe("image/jpeg");
+    expect(String(ref.data)).not.toMatch(/^data:/);
+    expect(ref.data).toBe(Buffer.from([1, 2, 3]).toString("base64"));
   });
 
-  it("videoRefFromBytes sets a format", () => {
+  it("videoRefFromBytes emits raw base64 with content_type and format", () => {
     const ref = videoRefFromBytes(new Uint8Array([1]), "video/webm");
     expect(ref.type).toBe("video");
+    expect(ref.content_type).toBe("video/webm");
     expect(ref.format).toBe("webm");
+    expect(String(ref.data)).not.toMatch(/^data:/);
+    expect(ref.data).toBe(Buffer.from([1]).toString("base64"));
   });
 
-  it("imageRefFromBase64 strips an existing data prefix", () => {
+  it("imageRefFromBase64 strips an existing data prefix and stores raw base64", () => {
     const ref = imageRefFromBase64("data:image/png;base64,QUJD");
-    expect(ref.data).toBe("data:image/png;base64,QUJD");
+    expect(ref.data).toBe("QUJD");
+    expect(ref.content_type).toBe("image/png");
   });
 });
 

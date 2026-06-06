@@ -54,3 +54,18 @@ All nodes correctly use `metadataOutputTypes` set from `spec.outputType`.
 - Suno music nodes use separate `kieExecuteSunoTask()` API path
 - Validation rules (not_empty) checked before API calls
 - Conditional fields (gte_zero, truthy, not_default) for optional parameters
+
+## Bug-Prevention Notes
+
+- **Conditional-field inclusion must mirror the codegen reference
+  (`packages/kie-codegen/.../node-generator.ts`) exactly.** Structure
+  `buildParams()` as `if (condition === "gte_zero") … else if (condition === "truthy") … else (include unconditionally)`.
+  A `not_default`/unknown condition is included unconditionally — it must have a
+  reachable `else` branch. The old `else if (!conditional)` nested inside
+  `if (conditional)` was dead code and silently dropped those fields. Add a test
+  per condition type.
+- **Poll loops must accept every spelling of a terminal state.** `pollCustom`
+  treated only `state === "fail"` as failure and missed `"failed"`, so a
+  Veo/Runway task reporting `"failed"` polled to timeout. Accept `fail`/`failed`
+  (and `complete`/`completed`/`done`/`succeeded`) — keep all loops
+  (`pollStatus`/`pollUntilDone`/`pollCustom`) consistent.

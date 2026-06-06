@@ -149,10 +149,11 @@ describe("TextToImageNode", () => {
     );
     const node = withSecrets(new TextToImageNode({ prompt: "a cat" }));
     const out = await node.process();
-    expect((out.output as Record<string, unknown>).type).toBe("image");
-    expect(String((out.output as Record<string, unknown>).data)).toMatch(
-      /^data:image\/png;base64,/
-    );
+    const ref = out.output as Record<string, unknown>;
+    expect(ref.type).toBe("image");
+    expect(ref.content_type).toBe("image/png");
+    expect(String(ref.data)).not.toMatch(/^data:/);
+    expect(ref.data).toBe(Buffer.from(png).toString("base64"));
   });
 
   it("throws on empty prompt", async () => {
