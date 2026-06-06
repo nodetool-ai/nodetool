@@ -729,11 +729,15 @@ function isControlTool(tool: ToolLike): tool is ControlToolLike {
   );
 }
 
-/** Opening tag and closers models may emit (legacy `</think>` was a typo). */
+/**
+ * Opening tag plus the close tags models may emit. The canonical close is
+ * `</redacted_thinking>`; `</think>` is the legacy/typo variant. Both must be
+ * recognized so the streaming splitter matches what `extractThinkTags` does.
+ */
 const REDACTED_THINKING_OPEN = "<think>";
 const REDACTED_THINKING_CLOSES = [
-  "</think>",
-  "</" + "think>"
+  "</redacted_thinking>",
+  "</think>"
 ] as const;
 
 function findEarliestThinkClose(buf: string): { idx: number; len: number } | null {
@@ -1616,6 +1620,16 @@ export class ExtractorNode extends BaseNode {
   })
   declare audio: AudioRef;
 
+  @prop({
+    type: "int",
+    default: 1024,
+    title: "Max Tokens",
+    description: "The maximum number of tokens to generate.",
+    min: 1,
+    max: 100000
+  })
+  declare max_tokens: number;
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const text = asText(this.text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
@@ -1787,6 +1801,16 @@ export class ClassifierNode extends BaseNode {
       "List of possible categories. If empty, LLM will determine categories."
   })
   declare categories: string[];
+
+  @prop({
+    type: "int",
+    default: 256,
+    title: "Max Tokens",
+    description: "The maximum number of tokens to generate.",
+    min: 1,
+    max: 100000
+  })
+  declare max_tokens: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const text = asText(this.text ?? "");
