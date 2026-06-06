@@ -380,6 +380,14 @@ export async function run(
   } catch {
     // Some environments do not have the Transformers.js node package in a runnable state.
   }
+  try {
+    const { registerHuggingFaceNodes } = await import(
+      "@nodetool-ai/huggingface-nodes"
+    );
+    registerHuggingFaceNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the Hugging Face node package in a runnable state.
+  }
 
   const resolveExecutor = (node: { id: string; type: string }) => {
     if (opts?.registry?.has(node.type)) {

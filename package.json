@@ -18,6 +18,7 @@
     "packages/fal-nodes",
     "packages/replicate-codegen",
     "packages/replicate-nodes",
+    "packages/huggingface-nodes",
     "packages/elevenlabs-nodes",
     "packages/transformers-js-nodes",
     "packages/transformers-js-provider",
