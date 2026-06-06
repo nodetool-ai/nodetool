@@ -70,14 +70,14 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   // and sample the source there.
   let centered = uv - vec2f(0.5);
   let r = length(centered) * 2.0;
-  if (r > 1.0) {
-    return vec4f(0.0);
-  }
   var angle = atan2(centered.y, centered.x);
   if (angle < 0.0) {
     angle = angle + 2.0 * pi;
   }
-  return textureSample(layout.$.source, layout.$.samp, vec2f(angle / (2.0 * pi), r));
+  // Sample unconditionally (textureSample must run in uniform control flow);
+  // select transparent black outside the inscribed disc.
+  let col = textureSample(layout.$.source, layout.$.samp, vec2f(angle / (2.0 * pi), r));
+  return select(col, vec4f(0.0), r > 1.0);
 }
 `,
   io: {

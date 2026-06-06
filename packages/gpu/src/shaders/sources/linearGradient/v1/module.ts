@@ -55,7 +55,12 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   } else {
     t = 0.5 + ((t01 - mid) / (1.0 - mid)) * 0.5;
   }
-  return mix(p.colorA, p.colorB, t);
+  // The colour params are straight RGBA; the output contract is premultiplied.
+  // Interpolate in premultiplied space so the result satisfies rgb <= a for any
+  // translucent colour (returning the straight mix directly violated it).
+  let ca = vec4f(p.colorA.rgb * p.colorA.a, p.colorA.a);
+  let cb = vec4f(p.colorB.rgb * p.colorB.a, p.colorB.a);
+  return mix(ca, cb, t);
 }
 `,
   io: {

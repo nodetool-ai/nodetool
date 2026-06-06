@@ -54,13 +54,20 @@ export const transformDisplaceV1 = defineModule({
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let p = layout.$.params;
-  let disp = textureSample(layout.$.displacement, layout.$.samp, uv);
+  // The displacement map is premultiplied like everything in the pool, but its
+  // R/G are a straight signed control signal (0.5 = no offset). Un-premultiply
+  // to recover the true control values — otherwise a translucent displacement
+  // texel biases the offset (a transparent texel would read (0,0) → full
+  // negative offset instead of zero).
+  let dispP = textureSample(layout.$.displacement, layout.$.samp, uv);
+  let disp = dispP.rgb / max(dispP.a, 1.0 / 255.0);
   let offset = vec2f((disp.r - 0.5) * 2.0 * p.amountX, (disp.g - 0.5) * 2.0 * p.amountY);
   let s = uv + offset;
-  if (s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0) {
-    return vec4f(0.0);
-  }
-  return textureSample(layout.$.source, layout.$.samp, s);
+  // Sample unconditionally (textureSample must run in uniform control flow);
+  // select transparent black where the offset pushes UV outside the source.
+  let oob = s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0;
+  let col = textureSample(layout.$.source, layout.$.samp, s);
+  return select(col, vec4f(0.0), oob);
 }
 `,
   io: {
