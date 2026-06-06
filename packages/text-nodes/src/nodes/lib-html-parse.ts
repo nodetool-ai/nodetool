@@ -75,7 +75,7 @@ export class ExtractLinksLibNode extends BaseNode {
       const href = $(el).attr("href") ?? "";
       const text = $(el).text().trim();
       const linkType =
-        href.startsWith(baseUrl) || href.startsWith("/")
+        (baseUrl && href.startsWith(baseUrl)) || href.startsWith("/")
           ? "internal"
           : "external";
       results.push({ href, text, type: linkType });
@@ -407,7 +407,7 @@ export class WebsiteContentExtractorLibNode extends BaseNode {
 
     // Fallback: strip tags manually like the Python version
     const $ = cheerio.load(htmlContent);
-    $("script, style, nav, sidebar, footer, header").remove();
+    $("script, style, nav, aside, footer, header").remove();
 
     const main =
       $("article").first().text() ||

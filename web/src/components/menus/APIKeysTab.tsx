@@ -216,6 +216,13 @@ const PROVIDER_META: ProviderMeta[] = [
     icon: atlascloudIcon
   },
   {
+    key: "REVE_API_KEY",
+    name: "Reve",
+    description: "Image creation, editing, and remix with strong prompt adherence.",
+    category: "other",
+    docsUrl: "https://api.reve.com/"
+  },
+  {
     key: "KIMI_API_KEY",
     name: "Kimi",
     description: "Moonshot AI models via Kimi API.",

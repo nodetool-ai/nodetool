@@ -392,50 +392,6 @@ export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 }
 
 /**
- * Load an external image URL into a layer data string (base64 data URL).
- */
-export function loadImageToLayerData(
-  imageUrl: string,
-  canvasWidth: number,
-  canvasHeight: number
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("Failed to get canvas context"));
-        return;
-      }
-      // Scale image to fit canvas while maintaining aspect ratio
-      const scale = Math.min(
-        canvasWidth / img.width,
-        canvasHeight / img.height
-      );
-      const scaledWidth = img.width * scale;
-      const scaledHeight = img.height * scale;
-      const x = (canvasWidth - scaledWidth) / 2;
-      const y = (canvasHeight - scaledHeight) / 2;
-      ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-      resolve(
-        serializeLayerData(canvas.toDataURL("image/png"), {
-          x: 0,
-          y: 0,
-          width: canvasWidth,
-          height: canvasHeight
-        })
-      );
-    };
-    img.onerror = () => reject(new Error("Failed to load image"));
-    img.src = imageUrl;
-  });
-}
-
-/**
  * Result type for loadImageWithDimensions.
  */
 export interface ImageLoadResult {

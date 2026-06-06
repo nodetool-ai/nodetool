@@ -89,13 +89,6 @@
         "type": "bool",
         "default": false,
         "title": "Watermark"
-      },
-      {
-        "name": "return_last_frame",
-        "type": "bool",
-        "default": false,
-        "title": "Return Last Frame",
-        "description": "Also return the last frame as a separate image."
       }
     ]
   },
@@ -204,13 +197,6 @@
         "type": "bool",
         "default": false,
         "title": "Watermark"
-      },
-      {
-        "name": "return_last_frame",
-        "type": "bool",
-        "default": false,
-        "title": "Return Last Frame",
-        "description": "Also return the last frame as a separate image."
       }
     ]
   },
@@ -303,13 +289,6 @@
         "type": "bool",
         "default": false,
         "title": "Watermark"
-      },
-      {
-        "name": "return_last_frame",
-        "type": "bool",
-        "default": false,
-        "title": "Return Last Frame",
-        "description": "Also return the last frame as a separate image."
       }
     ]
   },
@@ -417,13 +396,6 @@
         "type": "bool",
         "default": false,
         "title": "Watermark"
-      },
-      {
-        "name": "return_last_frame",
-        "type": "bool",
-        "default": false,
-        "title": "Return Last Frame",
-        "description": "Also return the last frame as a separate image."
       }
     ]
   },
@@ -516,11 +488,10 @@
       },
       {
         "name": "images",
-        "type": "image",
-        "array": true,
+        "type": "list[image]",
         "default": null,
-        "title": "Image",
-        "description": "Image to edit. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
         "required": true
       },
       {
@@ -690,11 +661,10 @@
       },
       {
         "name": "images",
-        "type": "image",
-        "array": true,
+        "type": "list[image]",
         "default": null,
-        "title": "Image",
-        "description": "Image to edit. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
         "required": true
       },
       {
@@ -880,12 +850,6 @@
         "type": "bool",
         "default": false,
         "title": "Watermark"
-      },
-      {
-        "name": "return_last_frame",
-        "type": "bool",
-        "default": false,
-        "title": "Return Last Frame"
       }
     ]
   },
@@ -990,12 +954,6 @@
         "type": "bool",
         "default": false,
         "title": "Watermark"
-      },
-      {
-        "name": "return_last_frame",
-        "type": "bool",
-        "default": false,
-        "title": "Return Last Frame"
       }
     ]
   },
@@ -1097,11 +1055,10 @@
       },
       {
         "name": "images",
-        "type": "image",
-        "array": true,
+        "type": "list[image]",
         "default": null,
-        "title": "Image",
-        "description": "Image to edit. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
         "required": true
       },
       {
@@ -1242,11 +1199,10 @@
       },
       {
         "name": "images",
-        "type": "image",
-        "array": true,
+        "type": "list[image]",
         "default": null,
-        "title": "Image",
-        "description": "Image to edit. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
         "required": true
       },
       {

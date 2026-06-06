@@ -25,6 +25,7 @@ import falColorIcon from "@lobehub/icons-static-svg/icons/fal-color.svg";
 import mistralColorIcon from "@lobehub/icons-static-svg/icons/mistral-color.svg";
 import groqIcon from "@lobehub/icons-static-svg/icons/groq.svg";
 import deepseekColorIcon from "@lobehub/icons-static-svg/icons/deepseek-color.svg";
+import xaiIcon from "@lobehub/icons-static-svg/icons/xai.svg";
 import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
 
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
@@ -71,7 +72,8 @@ const NAMESPACE_ICONS: Record<string, IconEntry> = {
   ollama: { kind: "svg", src: ollamaIcon },
   replicate: { kind: "svg", src: replicateIcon },
   groq: { kind: "svg", src: groqIcon },
-  deepseek: { kind: "svg", src: deepseekColorIcon, preserveInDark: true }
+  deepseek: { kind: "svg", src: deepseekColorIcon, preserveInDark: true },
+  xai: { kind: "svg", src: xaiIcon }
 };
 
 const FALLBACK_ENTRY: MuiEntry = { kind: "mui", Component: ApiIcon };

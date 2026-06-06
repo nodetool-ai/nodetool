@@ -26,6 +26,10 @@ export function resolveSnap(
 
   let closest = timeMs;
   let closestDistance = Number.POSITIVE_INFINITY;
+  // Tracks whether any candidate fell within the threshold and was adopted —
+  // distinct from `closest !== timeMs`, which would miss the case where the
+  // closest snap target lies exactly on `timeMs`.
+  let snapped = false;
 
   for (const candidate of candidates) {
     const distance = Math.abs(candidate - timeMs);
@@ -36,6 +40,7 @@ export function resolveSnap(
     if (distance < closestDistance) {
       closest = candidate;
       closestDistance = distance;
+      snapped = true;
       continue;
     }
 
@@ -44,7 +49,6 @@ export function resolveSnap(
     }
   }
 
-  const snapped = closest !== timeMs;
   const distanceMs = Math.abs(closest - timeMs);
 
   return {

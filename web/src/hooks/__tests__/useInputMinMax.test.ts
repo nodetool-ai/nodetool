@@ -1,16 +1,17 @@
 import { renderHook } from "@testing-library/react";
 import { useInputMinMax } from "../useInputMinMax";
 
-// Mock the zustand traditional import to return empty nodes by default
-jest.mock("zustand/traditional", () => ({
-  useStoreWithEqualityFn: jest.fn((_store, selector, _eq) => {
-    return selector({ nodes: [] });
-  })
-}));
+jest.mock("../../contexts/NodeContext");
 
-jest.mock("zustand/shallow", () => ({
-  shallow: jest.fn()
-}));
+import { useNodes } from "../../contexts/NodeContext";
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  (useNodes as jest.Mock).mockImplementation((selector) => {
+    const state = { nodes: [] };
+    return selector(state);
+  });
+});
 
 describe("useInputMinMax", () => {
   describe("without NodeContext", () => {
@@ -164,6 +165,37 @@ describe("useInputMinMax", () => {
 
       expect(result.current.min).toBe(1);
       expect(result.current.max).toBe(10);
+    });
+  });
+
+  describe("node bounds lookup", () => {
+    it("uses node min/max when available for FloatInput", () => {
+      (useNodes as jest.Mock).mockImplementation((selector) => {
+        const state = {
+          nodes: [
+            {
+              id: "node-1",
+              type: "nodetool.input.FloatInput",
+              data: { properties: { min: 5, max: 50 } },
+              position: { x: 0, y: 0 }
+            }
+          ]
+        };
+        return selector(state);
+      });
+
+      const { result } = renderHook(() =>
+        useInputMinMax({
+          nodeType: "nodetool.input.FloatInput",
+          nodeId: "node-1",
+          propertyName: "value",
+          propertyMin: 0,
+          propertyMax: 100
+        })
+      );
+
+      expect(result.current.min).toBe(5);
+      expect(result.current.max).toBe(50);
     });
   });
 

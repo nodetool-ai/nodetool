@@ -9,7 +9,7 @@
  * live on the binding itself.
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Layer } from "../types";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
@@ -31,6 +31,8 @@ import type { ImageModelValue } from "../../../stores/ApiTypes";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
+
+const SIZE_PRESETS = [512, 1024, 1536, 2048] as const;
 
 export interface DirectGenLayerPanelProps {
   layer: Layer;
@@ -57,16 +59,16 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   const isRunning =
     binding.status === "queued" || binding.status === "generating";
 
-  // Output size — width/height are sent through to generate_media (honored by
-  // the text-to-image and image-to-image paths). Only the square presets are
-  // surfaced here; an unset size falls back to the model default.
-  const SIZE_PRESETS = [512, 1024, 1536, 2048] as const;
   const currentSize =
     binding.width && binding.width === binding.height ? binding.width : null;
 
-  const sourceLayerOptions = layers
-    .filter((l) => l.id !== layer.id && l.type === "raster" && l.data !== null)
-    .map((l) => ({ value: l.id, label: l.name }));
+  const sourceLayerOptions = useMemo(
+    () =>
+      layers
+        .filter((l) => l.id !== layer.id && l.type === "raster" && l.data !== null)
+        .map((l) => ({ value: l.id, label: l.name })),
+    [layers, layer.id]
+  );
 
   const canGenerate =
     !!binding.provider &&

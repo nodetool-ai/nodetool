@@ -17,7 +17,6 @@ import {
 } from "./server";
 import { fetchWorkflows } from "./api";
 import {
-  readSettings,
   readSettingsAsync,
   updateSetting,
   getModelServiceStartupSettings,
@@ -532,4 +531,4 @@ async function updateTrayMenu(): Promise<void> {
   trayInstance.setToolTip("NodeTool Desktop");
 }
 
-export { createTray, updateTrayMenu, fetchWorkflows };
+export { createTray, updateTrayMenu };
