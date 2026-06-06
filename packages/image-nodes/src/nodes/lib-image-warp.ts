@@ -193,13 +193,14 @@ class AffineNode extends BaseNode {
     const props = this.serialize() as Record<string, unknown>;
     const w = num(props.target_width, 0);
     const h = num(props.target_height, 0);
+    // Resolve each dimension independently so a single specified target
+    // (e.g. width only) is honored and combined with the source's other
+    // dimension, instead of being dropped unless BOTH are set.
     const src = w > 0 && h > 0 ? null : await imageDims(props.image, context);
+    const outputWidth = w > 0 ? w : src?.width;
+    const outputHeight = h > 0 ? h : src?.height;
     const opts: RunShaderOptions =
-      w > 0 && h > 0
-        ? { outputWidth: w, outputHeight: h }
-        : src
-        ? { outputWidth: src.width, outputHeight: src.height }
-        : {};
+      outputWidth && outputHeight ? { outputWidth, outputHeight } : {};
     const output = await runShaderNode(
       transformAffineV1,
       {

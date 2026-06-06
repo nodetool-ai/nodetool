@@ -110,4 +110,59 @@ describe("generateMessages", () => {
     expect(chunks).toEqual(["Hello ", "world"]);
     expect(doneSeen).toBe(true);
   });
+
+  it("passes stopping_criteria and interrupts generation on abort", async () => {
+    let releaseGeneration: () => void = () => {};
+    const generationDone = new Promise<void>((resolve) => {
+      releaseGeneration = resolve;
+    });
+    const interrupt = vi.fn(() => releaseGeneration());
+
+    // Expose an InterruptableStoppingCriteria for this run only.
+    loadTransformers.mockImplementationOnce(async () => ({
+      TextStreamer: class {
+        cb?: (t: string) => void;
+        constructor(
+          _tokenizer: unknown,
+          opts: { callback_function?: (t: string) => void }
+        ) {
+          this.cb = opts.callback_function;
+        }
+      },
+      InterruptableStoppingCriteria: class {
+        interrupt = interrupt;
+      }
+    }));
+
+    fakePipeline.mockImplementation(
+      async (
+        _msgs: unknown,
+        opts: {
+          streamer?: { cb?: (t: string) => void };
+          stopping_criteria?: { interrupt(): void };
+        }
+      ) => {
+        expect(opts.stopping_criteria).toBeDefined();
+        opts.streamer?.cb?.("tok");
+        // Long-running generation that only ends once interrupted.
+        await generationDone;
+        return [{ generated_text: [{ role: "assistant", content: "tok" }] }];
+      }
+    );
+    Object.assign(fakePipeline, { tokenizer: {} });
+
+    const controller = new AbortController();
+    const gen = generateMessages({
+      messages: [{ role: "user", content: "hi" }],
+      model: "fake-model",
+      signal: controller.signal
+    });
+
+    const first = await gen.next();
+    expect(first.value).toMatchObject({ content: "tok", done: false });
+
+    controller.abort();
+    await expect(gen.next()).rejects.toThrow(/abort/i);
+    expect(interrupt).toHaveBeenCalledTimes(1);
+  });
 });

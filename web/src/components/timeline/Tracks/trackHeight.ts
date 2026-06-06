@@ -9,16 +9,3 @@
 export const DEFAULT_TRACK_HEIGHT_PX = 64;
 export const FX_PANEL_HEIGHT_PX = 280;
 
-/**
- * Effective rendered height of a track row, including the inline FX panel
- * when expanded.
- */
-function trackEffectiveHeight(
-  trackHeightPx: number | undefined,
-  fxExpanded: boolean
-): number {
-  return (
-    (trackHeightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
-    (fxExpanded ? FX_PANEL_HEIGHT_PX : 0)
-  );
-}

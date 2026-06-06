@@ -74,7 +74,9 @@ function formatTimestampedName(name: string): string {
 
 function wildcardToRegExp(pattern: string): RegExp {
   const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^${escaped.replaceAll("*", ".*")}$`);
+  // `*` matches any run of characters, `?` matches exactly one. `?` is not in
+  // the escaped set above, so it survives as a literal until rewritten here.
+  return new RegExp(`^${escaped.replaceAll("*", ".*").replaceAll("?", ".")}$`);
 }
 
 async function walk(dir: string, recursive: boolean): Promise<string[]> {
@@ -800,6 +802,7 @@ export class SaveImageFileNode extends BaseNode {
     await fs.writeFile(full, bytes);
     return {
       output: {
+        type: "image",
         uri: fileUri(full),
         data: Buffer.from(bytes).toString("base64")
       }
@@ -898,6 +901,7 @@ export class SaveVideoFileNode extends BaseNode {
     await fs.writeFile(full, bytes);
     return {
       output: {
+        type: "video",
         uri: fileUri(full),
         data: Buffer.from(bytes).toString("base64")
       }

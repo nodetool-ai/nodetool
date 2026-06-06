@@ -7,7 +7,6 @@ import { readSettings, updateSetting } from "./settings";
 import { getSystemDataPath } from "./systemPaths";
 
 // Base paths
-const resourcesPath: string = process.resourcesPath;
 const srcPath: string = __dirname;
 
 const webPath: string = app.isPackaged

@@ -12,7 +12,7 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
  * it here — where the shell is always mounted — closes the active tab for every
  * surface (image, video/timeline, 3D, …), mirroring the tab bar's × button.
  */
-export function useWorkspaceMenuShortcuts() {
+export function useWorkspaceMenuShortcuts(): void {
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
 

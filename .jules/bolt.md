@@ -19,3 +19,6 @@
 ## 2026-05-25 - O(N*M) Optimization in `.filter()` using `.includes()`
 **Learning:** Found multiple $O(N \times M)$ performance bottlenecks in array `.filter()` callbacks calling `.includes()` on arrays of IDs or tags (e.g., in `useFitView.ts`, `useDragAndDrop.ts`, `WorkflowList.tsx`). This pattern scales poorly when dealing with large lists (like 10,000+ graph nodes or workflow assets) and numerous target IDs.
 **Action:** Always create a `Set` for the array used in `.includes()` outside the filter loop or inside outer scopes to allow $O(1)$ lookups via `Set.has()`, reducing overall complexity to $O(N + M)$ and significantly improving filter performance.
+## 2026-05-25 - O(N*M) lookup optimization in Asset Drag and Drop
+**Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/components/chat/hooks/useDragAndDrop.ts` where `selectedIds.includes(...)` was called inside `potentialAssets.filter(...)`. Since this triggers for multiple assets, dragging many assets creates noticeable UI thread stalling due to the O(N^2) complexity.
+**Action:** Replaced `.includes(id)` with a pre-initialized `Set.has(id)` lookup. Converting the selected IDs array to a Set reduces time complexity to O(N+M) and avoids UI freezes.

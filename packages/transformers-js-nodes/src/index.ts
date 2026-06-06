@@ -36,6 +36,7 @@ export { TextToSpeechNode } from "./nodes/text-to-speech.js";
 
 export {
   clearPipelineCache,
+  decodeAudioBytesToSamples,
   extractRepoId,
   getPipeline,
   getTransformersJsCacheDir,

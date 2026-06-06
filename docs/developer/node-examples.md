@@ -245,3 +245,96 @@ class If(BaseNode):
 
 - Control flow nodes often use `gen_process` to conditionally yield results.
 - By yielding `None` for a specific output, you effectively stop execution on that branch (downstream nodes won't trigger).
+
+---
+
+## 7. Model Nodes (HuggingFace / model-backed)
+
+Nodes that load a machine-learning model (HuggingFace, diffusers, …) extend
+`HuggingFacePipelineNode` — a `BaseNode` subclass with extra hooks for loading,
+device placement, and surfacing downloadable checkpoints. This is the pattern the
+`nodetool-huggingface` package uses for every node.
+
+### Example: A text-to-audio model node
+
+```python
+class MyAudioGen(HuggingFacePipelineNode):
+    """
+    One-line description shown in the UI.
+    audio, generation, text-to-audio
+    """
+
+    model: HFTextToAudio = Field(
+        default=HFTextToAudio(repo_id="org/my-model"),
+        description="The model to use.",
+    )
+    prompt: str = Field(default="", description="Text prompt.")
+    seed: int = Field(default=-1, ge=-1)
+
+    _pipeline: Any = None
+
+    @classmethod
+    def get_title(cls) -> str:
+        return "My Audio Gen"
+
+    @classmethod
+    def get_basic_fields(cls) -> list[str]:
+        # Fields rendered on the node body; the rest live in the expanded view.
+        return ["model", "prompt"]
+
+    @classmethod
+    def get_recommended_models(cls) -> list[HuggingFaceModel]:
+        # Checkpoints offered for one-click download in the Model Manager.
+        return [
+            HFTextToAudio(
+                repo_id="org/my-model",
+                allow_patterns=["**/*.safetensors", "**/*.json", "**/*.txt"],
+            ),
+        ]
+
+    def get_model_id(self) -> str:
+        return self.model.repo_id
+
+    async def preload_model(self, context: ProcessingContext):
+        # Called once before process(); load the model here.
+        from diffusers import MyPipeline
+
+        self._pipeline = await self.load_model(
+            context=context,
+            model_class=MyPipeline,
+            model_id=self.get_model_id(),
+            torch_dtype=available_torch_dtype(),
+            device="cpu",  # the runner moves it to the GPU/MPS via move_to_device
+        )
+
+    async def move_to_device(self, device: str):
+        if self._pipeline is not None:
+            self._pipeline.to(device)
+
+    async def process(self, context: ProcessingContext) -> AudioRef:
+        # run_pipeline_in_thread keeps the asyncio event loop responsive.
+        output = await self.run_pipeline_in_thread(prompt=self.prompt)
+        return await context.audio_from_numpy(output.audios[0], 24000)
+```
+
+**Key Takeaways:**
+
+- Extend `HuggingFacePipelineNode` and declare a `model:` field of the matching
+  HF type (`HFTextToImage`, `HFTextToVideo`, `HFTextToAudio`, `HFTextGeneration`, …).
+- `get_recommended_models()` lists checkpoints the Model Manager can download;
+  `get_basic_fields()` selects which fields show on the node body; `get_title()`
+  sets the display name.
+- `preload_model()` loads the model, `move_to_device()` places it on the
+  accelerator, and `process()` (or `gen_process()`) runs inference. Use
+  `run_pipeline_in_thread()` so long-running inference doesn't block the event loop.
+- **After adding or changing a node, regenerate the package metadata** so the app
+  can discover it:
+
+  ```bash
+  nodetool package scan
+  ```
+
+- To make a model usable outside the node graph (e.g. via an agent or the
+  generation API), implement the matching method on the package's
+  [local provider](../providers.md#provider-capabilities) — e.g. `text_to_audio()`
+  for the `TEXT_TO_AUDIO` capability.

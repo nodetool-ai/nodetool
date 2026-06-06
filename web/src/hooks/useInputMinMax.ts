@@ -1,10 +1,6 @@
-import { useContext } from "react";
-import { NodeContext } from "../contexts/NodeContext";
-import { useStoreWithEqualityFn } from "zustand/traditional";
-import { shallow } from "zustand/shallow";
-import { Node } from "@xyflow/react";
-import { NodeData } from "../stores/NodeData";
-import type { NodeStore, NodeStoreState } from "../stores/NodeStore";
+import { useMemo } from "react";
+import { useNodes } from "../contexts/NodeContext";
+import type { NodeStoreState } from "../stores/NodeStore";
 
 interface UseInputMinMaxOptions {
   nodeType?: string;
@@ -14,17 +10,6 @@ interface UseInputMinMaxOptions {
   propertyMax?: number | null;
 }
 
-/**
- * Hook for determining min/max bounds for numeric input fields.
- * 
- * @example
- * const { min, max } = useInputMinMax({
- *   nodeId: "node-123",
- *   propertyName: "value",
- *   propertyMin: 0,
- *   propertyMax: 100
- * });
- */
 export const useInputMinMax = ({
   nodeType,
   nodeId,
@@ -38,37 +23,46 @@ export const useInputMinMax = ({
       nodeType === "nodetool.input.IntegerInput") &&
     propertyName === "value";
 
-  const context = useContext(NodeContext);
-
-  const nodes: Node<NodeData>[] = useStoreWithEqualityFn(
-    context ?? { subscribe: () => () => {}, getState: () => ({ nodes: [] }) } as unknown as NodeStore,
-    (state: NodeStoreState) => state?.nodes ?? [],
-    shallow
-  );
-
-  let nodeMin: number | undefined;
-  let nodeMax: number | undefined;
-
-  if (shouldLookupBounds && context && nodes.length > 0) {
-    const node = nodes.find((n) => n.id === nodeId);
-    const props = node?.data?.properties;
-    nodeMin = typeof props?.min === "number" ? props.min : undefined;
-    nodeMax = typeof props?.max === "number" ? props.max : undefined;
-
-    if (process.env.NODE_ENV === "development") {
-      console.info("useInputMinMax node data:", { nodeId, min: nodeMin, max: nodeMax, properties: node?.data?.properties });
+  const selector = useMemo(() => {
+    if (!shouldLookupBounds) {
+      return () => undefined;
     }
-  }
+    let lastNodes: NodeStoreState["nodes"] | null = null;
+    let lastResult: { min?: number; max?: number } | undefined;
+    return (state: NodeStoreState) => {
+      if (state.nodes === lastNodes) {
+        return lastResult;
+      }
+      lastNodes = state.nodes;
+      const node = state.nodes.find((n) => n.id === nodeId);
+      const props = node?.data?.properties;
+      const nodeMin = typeof props?.min === "number" ? props.min : undefined;
+      const nodeMax = typeof props?.max === "number" ? props.max : undefined;
+      const next = nodeMin !== undefined || nodeMax !== undefined
+        ? { min: nodeMin, max: nodeMax }
+        : undefined;
+      if (
+        lastResult?.min === next?.min &&
+        lastResult?.max === next?.max
+      ) {
+        return lastResult;
+      }
+      lastResult = next;
+      return next;
+    };
+  }, [shouldLookupBounds, nodeId]);
+
+  const nodeBounds = useNodes(selector);
 
   const min =
-    typeof nodeMin === "number"
-      ? nodeMin
+    typeof nodeBounds?.min === "number"
+      ? nodeBounds.min
       : typeof propertyMin === "number"
         ? propertyMin
         : 0;
   const max =
-    typeof nodeMax === "number"
-      ? nodeMax
+    typeof nodeBounds?.max === "number"
+      ? nodeBounds.max
       : typeof propertyMax === "number"
         ? propertyMax
         : 99999;
