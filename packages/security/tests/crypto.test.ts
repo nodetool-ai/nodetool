@@ -271,12 +271,17 @@ describe("crypto", () => {
       expect(decryptFernet(masterKey, userId, token2)).toBe(plaintext);
     });
 
-    it("should produce base64url-encoded tokens (no + / = chars)", () => {
+    it("should produce padded base64url tokens (no + / chars, decodable by Python Fernet)", () => {
       const masterKey = generateMasterKey();
       const userId = "user-fernet";
       const token = encryptFernet(masterKey, userId, "test");
 
-      expect(token).not.toMatch(/[+/=]/);
+      // base64url alphabet only (no standard "+" / "/")
+      expect(token).not.toMatch(/[+/]/);
+      // Padding must be preserved: Python's base64.urlsafe_b64decode (used by
+      // cryptography.Fernet) rejects unpadded input, so the encoded length must
+      // be a multiple of 4.
+      expect(token.length % 4).toBe(0);
     });
 
     it("should fail to decrypt with wrong master key (HMAC mismatch)", () => {
@@ -446,6 +451,27 @@ describe("master-key", () => {
       const key1 = await initMasterKey();
       const key2 = await initMasterKey();
       expect(key1).toBe(key2);
+    });
+
+    it("de-duplicates concurrent first-run inits (single-flight)", async () => {
+      const setPassword = vi.fn(async () => undefined);
+      setKeytarLoader({
+        getPassword: vi.fn(async () => null),
+        setPassword,
+        deletePassword: vi.fn(async () => true)
+      });
+
+      const [key1, key2, key3] = await Promise.all([
+        initMasterKey(),
+        initMasterKey(),
+        initMasterKey()
+      ]);
+
+      // All concurrent callers resolve to the same key...
+      expect(key1).toBe(key2);
+      expect(key2).toBe(key3);
+      // ...and only one key was generated and persisted, not one per caller.
+      expect(setPassword).toHaveBeenCalledTimes(1);
     });
   });
 

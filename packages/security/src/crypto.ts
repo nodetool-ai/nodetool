@@ -247,12 +247,11 @@ export function encryptFernet(
   const hmac = createHmac("sha256", hmacKey).update(body).digest();
 
   const token = Buffer.concat([body, hmac]);
-  // Encode as base64url (no padding)
-  return token
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
+  // Encode as base64url *with* padding. Python's cryptography.Fernet decodes
+  // tokens with base64.urlsafe_b64decode, which rejects unpadded input
+  // ("Incorrect padding" -> InvalidToken), so the "=" padding must be kept for
+  // cross-runtime compatibility.
+  return token.toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
 /**
