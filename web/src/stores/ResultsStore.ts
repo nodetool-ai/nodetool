@@ -11,10 +11,12 @@
 import { create } from "zustand";
 import { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "./ApiTypes";
 import { nodeKey, edgeKey, type NodeKey, type EdgeKey } from "./nodeKey";
+import type { Generation } from "../utils/nodeGenerations";
 
 type ResultsStore = {
   results: Record<NodeKey, unknown>;
   outputResults: Record<NodeKey, unknown>;
+  liveGenerations: Record<string, Generation[]>;
   providerCosts: Record<NodeKey, ProviderCost>;
   resultsVersion: number;
   progress: Record<NodeKey, { progress: number; total: number; chunk?: string }>;
@@ -52,6 +54,13 @@ type ResultsStore = {
     append?: boolean
   ) => void;
   getResult: (workflowId: string, jobId: string, nodeId: string) => unknown;
+  upsertLiveGeneration: (
+    workflowId: string,
+    nodeId: string,
+    jobId: string,
+    patch: Partial<Generation>
+  ) => void;
+  getLiveGenerations: (workflowId: string, nodeId: string) => Generation[];
   getProviderCost: (
     workflowId: string,
     jobId: string,
@@ -181,6 +190,7 @@ const filterRecord = <K extends string, T>(
 const useResultsStore = create<ResultsStore>((set, get) => ({
   results: {},
   outputResults: {},
+  liveGenerations: {},
   providerCosts: {},
   resultsVersion: 0,
   progress: {},
@@ -413,6 +423,48 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = nodeKey(workflowId, jobId, nodeId);
     return results[key];
   },
+
+  /**
+   * Upsert a live generation for a node, keyed by `${workflowId}:${nodeId}`.
+   * A generation is identified within the node by its `jobId`: the first patch
+   * for a job creates a running generation, later patches merge into it.
+   */
+  upsertLiveGeneration: (
+    workflowId: string,
+    nodeId: string,
+    jobId: string,
+    patch: Partial<Generation>
+  ) => {
+    const key = `${workflowId}:${nodeId}`;
+    set((state) => {
+      const list = state.liveGenerations[key] ?? [];
+      const idx = list.findIndex((g) => g.jobId === jobId);
+      const base: Generation =
+        idx >= 0
+          ? list[idx]
+          : {
+              id: jobId,
+              jobId,
+              createdAt: patch.createdAt ?? 0,
+              outputs: {},
+              status: "running"
+            };
+      const next: Generation = { ...base, ...patch, id: base.id, jobId };
+      const updated =
+        idx >= 0
+          ? list.map((g, i) => (i === idx ? next : g))
+          : [...list, next];
+      return {
+        liveGenerations: { ...state.liveGenerations, [key]: updated }
+      };
+    });
+  },
+
+  /**
+   * Get the live generations for a node, keyed by `${workflowId}:${nodeId}`.
+   */
+  getLiveGenerations: (workflowId: string, nodeId: string) =>
+    get().liveGenerations[`${workflowId}:${nodeId}`] ?? [],
 
   setProviderCost: (
     workflowId: string,
