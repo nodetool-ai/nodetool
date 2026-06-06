@@ -64,11 +64,17 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     }
   }
   let blurAvg = sum / 9.0;
-  let diff = center.rgb - blurAvg.rgb; // premul: ok TODO(invariant-fixes): see review §BUGS — diff on premul rgb skews per-alpha pixels
+  // Un-premultiply before differencing: the unsharp diff and overshoot must be
+  // computed on straight colour, otherwise the result is scaled by alpha and a
+  // sharpened highlight can exceed the (preserved) centre alpha — rgb > a. The
+  // sharpened straight colour is re-premultiplied by the centre alpha at the end.
+  let centerStraight = center.rgb / max(center.a, 1.0 / 255.0);
+  let blurStraight = blurAvg.rgb / max(blurAvg.a, 1.0 / 255.0);
+  let diff = centerStraight - blurStraight;
   let lum = abs(dot(diff, vec3<f32>(0.299, 0.587, 0.114)));
   let mask = step(sharpen.threshold, lum);
-  let sharpened = clamp(center.rgb + diff * sharpen.amount * mask, vec3<f32>(0.0), vec3<f32>(1.0)); // premul: ok TODO(invariant-fixes): see review §BUGS
-  textureStore(layout.$.outputTexture, coords, vec4<f32>(sharpened, center.a));
+  let sharpened = clamp(centerStraight + diff * sharpen.amount * mask, vec3<f32>(0.0), vec3<f32>(1.0));
+  textureStore(layout.$.outputTexture, coords, vec4<f32>(sharpened * center.a, center.a));
 }
 `,
   io: {

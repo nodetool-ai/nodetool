@@ -231,6 +231,12 @@ export function createExecutor(): Executor {
       const scratch = ctx.scratch.acquire({
         width: bound.width,
         height: bound.height,
+        // Exact size, not bucketed: the convert pass only writes the logical
+        // dimensions (it bounds-checks against the source), and the converted
+        // texture is then sampled in normalized space by the main dispatch. A
+        // bucketed allocation would leave the margin unwritten, which the
+        // normalized sample reads as garbage.
+        exact: true,
         format: "rgba8unorm",
         usage:
           GPUTextureUsage.TEXTURE_BINDING |

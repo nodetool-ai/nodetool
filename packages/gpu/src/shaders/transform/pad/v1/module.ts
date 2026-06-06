@@ -68,14 +68,16 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let uMax = (p.left + 1.0) / totalW;
   let vMin = p.top / totalH;
   let vMax = (p.top + 1.0) / totalH;
-  if (uv.x < uMin || uv.x > uMax || uv.y < vMin || uv.y > vMax) {
-    return p.color;
-  }
+  let inPad = uv.x < uMin || uv.x > uMax || uv.y < vMin || uv.y > vMax;
   let sampleUv = vec2f(
     (uv.x - uMin) / (uMax - uMin),
     (uv.y - vMin) / (vMax - vMin)
   );
-  return textureSample(layout.$.source, layout.$.samp, sampleUv);
+  // Sample unconditionally (textureSample must run in uniform control flow);
+  // select the fill colour for the padded border. uMax-uMin = 1/totalW > 0 so
+  // the normalization never divides by zero.
+  let col = textureSample(layout.$.source, layout.$.samp, sampleUv);
+  return select(col, p.color, inPad);
 }
 `,
   io: {

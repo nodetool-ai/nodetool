@@ -59,20 +59,24 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let amount = layout.$.params.amount;
   let centered = (uv - vec2f(0.5)) * 2.0;
   let r2 = dot(centered, centered);
-  if (r2 >= 1.0) {
-    return textureSample(layout.$.source, layout.$.samp, uv);
-  }
-  let factor = 1.0 + amount * (1.0 - r2);
-  let warped = centered * factor;
-  let s = warped * 0.5 + vec2f(0.5);
-  // Positive amount magnifies (factor > 1) and can push s outside [0,1].
-  // Return transparent black rather than smearing the edge — matches the
-  // out-of-bounds convention in transform.affine / transform.cornerPin /
-  // transform.crop.
-  if (s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0) {
-    return vec4f(0.0);
-  }
-  return textureSample(layout.$.source, layout.$.samp, s);
+  // Inverse map: an output pixel at radius r samples the source at r*factor.
+  // To bulge (magnify) the centre, the source radius must be pulled inward
+  // (factor < 1 near the centre), so positive amount subtracts. Using
+  // 1.0 + amount * (...) inverted this and pinched on positive amount, the
+  // opposite of the documented behaviour.
+  let factor = 1.0 - amount * (1.0 - r2);
+  let warpedUv = centered * factor * 0.5 + vec2f(0.5);
+  // Outside the unit circle: passthrough (sample the original uv). Inside:
+  // sample the warped uv. textureSample must run in uniform control flow, so
+  // pick the source uv up front and sample once.
+  let inside = r2 < 1.0;
+  let s = select(uv, warpedUv, inside);
+  let col = textureSample(layout.$.source, layout.$.samp, s);
+  // A strong pinch (amount < 0) can push the warped uv outside [0,1]; those
+  // taps become transparent black rather than smearing the edge, matching the
+  // out-of-bounds convention in transform.affine / transform.cornerPin.
+  let oob = inside && (warpedUv.x < 0.0 || warpedUv.x > 1.0 || warpedUv.y < 0.0 || warpedUv.y > 1.0);
+  return select(col, vec4f(0.0), oob);
 }
 `,
   io: {
