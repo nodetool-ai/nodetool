@@ -117,8 +117,6 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           iconType={metadata?.outputs?.[0]?.type?.type}
           iconBaseColor={REPLICATE_HEADER_COLOR}
           workflowId={workflow_id}
-          showResultButton={false}
-          showInputsButton={false}
         />
         <Box sx={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)" }}>
           <ReplicateSchemaLoader nodeId={id} data={data} />
@@ -148,7 +146,6 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           data={data}
           status={statusValue}
           workflowId={workflow_id}
-          showResultOverlay={false}
           result={result}
         />
       </FlexColumn>
