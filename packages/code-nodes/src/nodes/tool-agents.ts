@@ -11,6 +11,7 @@ import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ToolLike } from "@nodetool-ai/llm-nodes";
 import { runAgentLoop } from "@nodetool-ai/llm-nodes";
+import { createLogger } from "@nodetool-ai/config";
 import { exec } from "node:child_process";
 import { access, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
@@ -618,6 +619,8 @@ const LIVE_BROWSER_TOOL_NAMES: readonly string[] = [
   "browser_upload_asset"
 ];
 
+const liveBrowserLog = createLogger("nodetool.agents.live-browser");
+
 export class LiveBrowserAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.LiveBrowserAgent";
   static readonly title = "Live Browser Agent";
@@ -685,8 +688,35 @@ export class LiveBrowserAgentNode extends ToolAgentNode {
     // v1 is single-session: one extension connection, one active tab.
     const prev = process.env.NODETOOL_BROWSER_TRANSPORT;
     process.env.NODETOOL_BROWSER_TRANSPORT = "extension";
+
+    const model = ((this as { model?: { id?: string; provider?: string } })
+      .model) ?? {};
+    const promptText = String(
+      (this as { prompt?: unknown }).prompt ?? ""
+    ).trim();
+    liveBrowserLog.info("LiveBrowserAgent starting", {
+      transport: "extension",
+      provider: model.provider,
+      model: model.id,
+      promptChars: promptText.length,
+      wsUrl: process.env.NODETOOL_EXTENSION_WS_URL ?? "(in-process bridge)",
+      tools: LIVE_BROWSER_TOOL_NAMES.length
+    });
+
+    const startedAt = Date.now();
     try {
-      return await super.process(context);
+      const result = await super.process(context);
+      liveBrowserLog.info("LiveBrowserAgent finished", {
+        elapsedMs: Date.now() - startedAt,
+        textChars: typeof result.text === "string" ? result.text.length : 0
+      });
+      return result;
+    } catch (err) {
+      liveBrowserLog.error(
+        `LiveBrowserAgent failed after ${Date.now() - startedAt}ms`,
+        err instanceof Error ? err : new Error(String(err))
+      );
+      throw err;
     } finally {
       if (prev === undefined) {
         delete process.env.NODETOOL_BROWSER_TRANSPORT;

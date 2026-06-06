@@ -24,6 +24,9 @@ import type {
   ExtensionHostToExtFrame
 } from "./extension-protocol.js";
 import { parseExtensionFrame } from "./extension-protocol.js";
+import { createLogger } from "@nodetool-ai/config";
+
+const log = createLogger("nodetool.automation.extension-cdp");
 
 /** Default `/ws/extension` endpoint used when only a URL transport is needed. */
 const DEFAULT_WS_URL = "ws://localhost:7777/ws/extension";
@@ -146,6 +149,10 @@ export class ExtensionCdpClient {
       const timer = setTimeout(() => {
         this.attachResolve = null;
         this.attachReject = null;
+        log.warn(
+          `Attach timed out after ${timeoutMs}ms — no 'attached' frame from ` +
+            "the extension (is it installed and attached to a tab?)"
+        );
         reject(new Error(`Timed out after ${timeoutMs}ms attaching to extension`));
       }, timeoutMs);
       this.attachResolve = () => {
@@ -156,6 +163,7 @@ export class ExtensionCdpClient {
         clearTimeout(timer);
         reject(err);
       };
+      log.debug("Sending attach frame", { sessionId: this.sessionId });
       this.channel.send({ kind: "attach", sessionId: this.sessionId });
     });
   }
@@ -279,6 +287,7 @@ export class ExtensionCdpClient {
         this.handleEvent(frame);
         break;
       case "attached":
+        log.info("Extension attached", { tabId: frame.tabId });
         this.attachResolve?.();
         this.attachResolve = null;
         this.attachReject = null;
@@ -292,6 +301,9 @@ export class ExtensionCdpClient {
             ? `Extension detached: ${frame.reason}`
             : "Extension detached"
         );
+        log.warn(`Extension detached: ${frame.reason ?? "(no reason)"}`, {
+          pending: this.pending.size
+        });
         this.attachReject?.(err);
         this.attachReject = null;
         this.attachResolve = null;
@@ -300,6 +312,9 @@ export class ExtensionCdpClient {
       }
       case "error": {
         const err = new Error(frame.message);
+        log.error(`Extension reported a fatal error: ${frame.message}`, {
+          pending: this.pending.size
+        });
         this.attachReject?.(err);
         this.attachReject = null;
         this.attachResolve = null;
@@ -318,6 +333,7 @@ export class ExtensionCdpClient {
     if (!pending) return;
     this.pending.delete(frame.id);
     if (frame.error) {
+      log.debug(`CDP command #${frame.id} failed: ${frame.error.message}`);
       pending.reject(new Error(frame.error.message));
     } else {
       pending.resolve(frame.result ?? {});
@@ -345,6 +361,9 @@ export class ExtensionCdpClient {
       if (this.closed) return;
       if (this.awaitingPong) {
         // No pong since the last tick: the channel is dead.
+        log.warn("Heartbeat timed out — no pong; treating channel as dead", {
+          pending: this.pending.size
+        });
         const err = new Error("Extension CDP heartbeat timed out");
         this.stopHeartbeat();
         this.rejectAll(err);

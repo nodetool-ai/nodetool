@@ -42,9 +42,12 @@ import type {
   BrowserConsoleMessage
 } from "@nodetool-ai/sandbox/schemas";
 import { Buffer } from "node:buffer";
+import { createLogger } from "@nodetool-ai/config";
 import type { CdpPage } from "./cdp-page.js";
 import { captureMediaInPage } from "./browser-capture.js";
 import { uploadAssetToInput } from "./browser-upload.js";
+
+const log = createLogger("nodetool.automation.browser-extension");
 
 const CONSOLE_BUFFER_MAX = 500;
 
@@ -187,9 +190,36 @@ async function ensureState(): Promise<BrowserState> {
     // In-server: ride the ExtensionBridge channel. Out-of-server (e.g. CLI):
     // fall back to the WS-URL client (NODETOOL_EXTENSION_WS_URL / default).
     const channel = getInProcessExtensionChannel();
-    const handle = await createExtensionPage(channel ?? undefined, {
-      viewport: { width: 1280, height: 900 }
+    // The in-process bridge channel exposes `connected` (whether an extension
+    // socket is currently registered) — the single most useful signal when the
+    // extension "fails": if false here, no extension is attached to the server.
+    const connected = (channel as { connected?: boolean } | null)?.connected;
+    log.info("Extension transport selected", {
+      channel: channel ? "in-process bridge" : "ws-url fallback",
+      extensionConnected: connected ?? "unknown",
+      wsUrl:
+        process.env.NODETOOL_EXTENSION_WS_URL ??
+        "ws://localhost:7777/ws/extension"
     });
+    if (channel && connected === false) {
+      log.warn(
+        "No browser extension is connected to /ws/extension — attach will " +
+          "time out. Install the extension and click 'Attach to this tab'."
+      );
+    }
+    let handle: Awaited<ReturnType<typeof createExtensionPage>>;
+    try {
+      handle = await createExtensionPage(channel ?? undefined, {
+        viewport: { width: 1280, height: 900 }
+      });
+      log.info("Extension attached; CDP page ready");
+    } catch (err) {
+      log.error(
+        "Failed to attach to browser extension",
+        err instanceof Error ? err : new Error(String(err))
+      );
+      throw err;
+    }
     attachConsoleBuffer(handle.page, consoleMessages);
     const captureClient = handle.client as unknown as CaptureCdpClient;
     state = {
