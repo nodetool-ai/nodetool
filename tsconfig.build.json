@@ -28,6 +28,7 @@
     { "path": "packages/kie-nodes" },
     { "path": "packages/topaz-nodes" },
     { "path": "packages/atlascloud-nodes" },
+    { "path": "packages/together-nodes" },
     { "path": "packages/agents" },
     { "path": "packages/base-nodes" },
     { "path": "packages/dsl" },

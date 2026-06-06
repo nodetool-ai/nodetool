@@ -38,8 +38,16 @@ interface ManifestNode {
   className?: string;
   /** "image" | "video" | "audio" | ... */
   outputType?: string;
+  /** Explicit task set declared by manifests that know model capabilities. */
+  supportedTasks?: string[];
   /** FAL ships per-endpoint input schemas; used to derive option constraints. */
   inputFields?: ManifestInputField[];
+}
+
+function explicitTasks(n: ManifestNode): string[] | undefined {
+  return Array.isArray(n.supportedTasks) && n.supportedTasks.length > 0
+    ? n.supportedTasks
+    : undefined;
 }
 
 /** Enum values declared for a manifest input field, by canonical API name. */
@@ -183,7 +191,7 @@ export function loadVideoModels(
     const id = nodeId(n);
     if (!id) continue;
     const name = nodeName(n);
-    const tasks = inferVideoTasks(name, id);
+    const tasks = explicitTasks(n) ?? inferVideoTasks(name, id);
 
     const existing = seen.get(id);
     if (existing) {
@@ -221,7 +229,7 @@ export function loadImageModels(
     const id = nodeId(n);
     if (!id || seen.has(id)) continue;
     const name = nodeName(n);
-    const tasks = inferImageTasks(name, id);
+    const tasks = explicitTasks(n) ?? inferImageTasks(name, id);
     // Image-typed entries always qualify. `dict`-typed entries (FAL endpoints
     // whose response schema is an object, e.g. clarity-upscaler) are salvaged
     // only when they're recognizable image transforms, so the picker can offer

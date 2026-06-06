@@ -39,6 +39,7 @@
     "@nodetool-ai/topaz-nodes": "*",
     "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/atlascloud-nodes": "*",
+    "@nodetool-ai/together-nodes": "*",
     "@nodetool-ai/huggingface": "*",
     "@nodetool-ai/huggingface-nodes": "*",
     "@nodetool-ai/kernel": "*",
