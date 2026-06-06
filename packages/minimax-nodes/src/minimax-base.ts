@@ -81,15 +81,22 @@ export const AUDIO_FORMAT_MIME: Record<string, string> = {
   pcm: "audio/pcm"
 };
 
-/** Build an inline AudioRef from raw bytes for the given format. */
+/**
+ * Build an inline AudioRef from raw bytes for the given format.
+ *
+ * `data` is RAW base64 (no `data:` prefix); the MIME type goes in
+ * `content_type`. Asset-saving (`decodeAssetBytes`) and provider forwarding
+ * (`asUint8Array`) decode `data` directly with `Buffer.from(data, "base64")`,
+ * so a `data:` prefix would corrupt the bytes.
+ */
 export function audioRefFromBytes(
   bytes: Uint8Array,
   format: string
-): { type: "audio"; data: string } {
-  const mime = AUDIO_FORMAT_MIME[format] ?? "audio/mpeg";
+): { type: "audio"; data: string; content_type: string } {
   return {
     type: "audio",
-    data: `data:${mime};base64,${bytesToBase64(bytes)}`
+    data: bytesToBase64(bytes),
+    content_type: AUDIO_FORMAT_MIME[format] ?? "audio/mpeg"
   };
 }
 
