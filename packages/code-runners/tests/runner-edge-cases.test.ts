@@ -402,6 +402,52 @@ describe("luaLiteral – additional edge cases", () => {
 });
 
 // ============================================================================
+// Image defaults — explicit `undefined` must not clobber the language default
+// ============================================================================
+
+describe("runner image defaults", () => {
+  it("PythonDockerRunner falls back to its default when image is undefined", () => {
+    expect(new PythonDockerRunner({ image: undefined }).image).toBe(
+      "python:3.11-slim"
+    );
+  });
+
+  it("JavaScriptDockerRunner falls back when image is undefined", () => {
+    expect(new JavaScriptDockerRunner({ image: undefined }).image).toBe(
+      "node:22-alpine"
+    );
+  });
+
+  it("BashDockerRunner falls back when image is undefined", () => {
+    expect(new BashDockerRunner({ image: undefined }).image).toBe("bash:5.2");
+  });
+
+  it("RubyDockerRunner falls back when image is undefined", () => {
+    expect(new RubyDockerRunner({ image: undefined }).image).toBe(
+      "ruby:3.3-alpine"
+    );
+  });
+
+  it("LuaRunner falls back when image is undefined", () => {
+    expect(new LuaRunner({ image: undefined }).image).toBe(
+      "nickblah/lua:5.2.4-luarocks-ubuntu"
+    );
+  });
+
+  it("still respects an explicitly provided image", () => {
+    expect(new PythonDockerRunner({ image: "py:custom" }).image).toBe(
+      "py:custom"
+    );
+  });
+
+  it("LuaSubprocessRunner stays subprocess even with explicit mode: undefined", () => {
+    expect(new LuaSubprocessRunner({ mode: undefined }).mode).toBe(
+      "subprocess"
+    );
+  });
+});
+
+// ============================================================================
 // ContainerFailureError
 // ============================================================================
 

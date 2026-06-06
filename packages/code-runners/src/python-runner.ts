@@ -11,7 +11,7 @@ import {
  */
 export class PythonDockerRunner extends StreamRunnerBase {
   constructor(options?: { image?: string } & StreamRunnerOptions) {
-    super({ image: options?.image ?? "python:3.11-slim", ...options });
+    super({ ...options, image: options?.image ?? "python:3.11-slim" });
   }
 
   override buildContainerCommand(

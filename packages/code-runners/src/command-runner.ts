@@ -11,7 +11,7 @@ import {
  */
 export class CommandDockerRunner extends StreamRunnerBase {
   constructor(options?: { image?: string } & StreamRunnerOptions) {
-    super({ image: options?.image ?? "bash:5.2", ...options });
+    super({ ...options, image: options?.image ?? "bash:5.2" });
   }
 
   override buildContainerCommand(

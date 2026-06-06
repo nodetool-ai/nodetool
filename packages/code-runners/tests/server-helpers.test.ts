@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { _parseMemLimit } from "../src/server-docker-runner.js";
-import { _shellSplit } from "../src/server-subprocess-runner.js";
+import {
+  _shellSplit,
+  _binaryCacheName
+} from "../src/server-subprocess-runner.js";
 
 // ---------------------------------------------------------------------------
 // parseMemLimit
@@ -102,5 +105,36 @@ describe("shellSplit", () => {
 
   it("handles adjacent quoted segments", () => {
     expect(_shellSplit("'hello'\"world\"")).toEqual(["helloworld"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// binaryCacheName — per-URL cache keys must not collide
+// ---------------------------------------------------------------------------
+describe("binaryCacheName", () => {
+  it("is stable for the same url", () => {
+    expect(_binaryCacheName("https://example.com/a.bin", "server")).toBe(
+      _binaryCacheName("https://example.com/a.bin", "server")
+    );
+  });
+
+  it("differs for different urls", () => {
+    expect(_binaryCacheName("https://example.com/a.bin", "server")).not.toBe(
+      _binaryCacheName("https://example.com/b.bin", "server")
+    );
+  });
+
+  it("keeps the human-readable name as a prefix", () => {
+    expect(
+      _binaryCacheName("https://example.com/a.bin", "server").startsWith(
+        "server-"
+      )
+    ).toBe(true);
+  });
+
+  it("differs by name even for the same url", () => {
+    expect(_binaryCacheName("https://example.com/a.bin", "server")).not.toBe(
+      _binaryCacheName("https://example.com/a.bin", "worker")
+    );
   });
 });
