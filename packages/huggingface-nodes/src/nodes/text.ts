@@ -581,7 +581,7 @@ export class FeatureExtractionNode extends BaseNode {
       String(this.model ?? "sentence-transformers/all-MiniLM-L6-v2"),
       {
         inputs: text,
-        ...(Boolean(this.normalize ?? false) ? { normalize: true } : {})
+        ...(this.normalize ? { normalize: true } : {})
       }
     );
 
