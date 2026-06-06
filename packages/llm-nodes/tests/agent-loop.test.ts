@@ -203,4 +203,64 @@ describe("runAgentLoop", () => {
     expect(userMsg.content).toHaveLength(2);
     expect(userMsg.content[1].type).toBe("image");
   });
+
+  it("streams text deltas via onText", async () => {
+    const provider = makeMockProvider([
+      [
+        { type: "chunk", content: "Navi", done: false },
+        { type: "chunk", content: "gating", done: true }
+      ]
+    ]);
+    const deltas: string[] = [];
+    const result = await runAgentLoop({
+      context: createMockContext(provider),
+      providerId: "mock",
+      modelId: "test-model",
+      systemPrompt: "sys",
+      prompt: "go",
+      tools: [],
+      onText: (d) => deltas.push(d)
+    });
+    expect(deltas).toEqual(["Navi", "gating"]);
+    expect(result.text).toBe("Navigating");
+  });
+
+  it("emits a tool_call chunk via onToolCall before the tool runs", async () => {
+    const order: string[] = [];
+    const toolFn = vi.fn().mockImplementation(async () => {
+      order.push("tool-ran");
+      return { ok: true };
+    });
+    const tools: any[] = [
+      { name: "browser_navigate", process: toolFn, inputSchema: {} }
+    ];
+    const provider = makeMockProvider([
+      [{ id: "tc1", name: "browser_navigate", args: { url: "https://x.test" } }],
+      [{ type: "chunk", content: "done", done: true }]
+    ]);
+
+    const toolCallChunks: any[] = [];
+    await runAgentLoop({
+      context: createMockContext(provider),
+      providerId: "mock",
+      modelId: "test-model",
+      systemPrompt: "sys",
+      prompt: "navigate",
+      tools,
+      onToolCall: (chunk) => {
+        order.push("chunk");
+        toolCallChunks.push(chunk);
+      }
+    });
+
+    expect(toolCallChunks).toHaveLength(1);
+    expect(toolCallChunks[0]).toMatchObject({
+      type: "chunk",
+      content_type: "tool_call",
+      content_metadata: { tool_name: "browser_navigate" }
+    });
+    expect(toolCallChunks[0].content).toContain("browser_navigate");
+    // Fired before the tool executed.
+    expect(order).toEqual(["chunk", "tool-ran"]);
+  });
 });

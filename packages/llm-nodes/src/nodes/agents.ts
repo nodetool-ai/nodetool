@@ -1013,6 +1013,12 @@ export interface AgentLoopOptions {
    * changing the loop's accumulate-and-return contract.
    */
   onText?: (delta: string) => void;
+  /**
+   * Optional sink for each tool call the model makes, formatted as a
+   * `tool_call` {@link Chunk} (same shape the Agent node emits). Fired just
+   * before the tool runs.
+   */
+  onToolCall?: (chunk: Chunk) => void;
 }
 
 export interface AgentLoopResult {
@@ -1103,6 +1109,7 @@ export async function runAgentLoop(
     }
 
     for (const toolCall of assistantToolCalls) {
+      options.onToolCall?.(toolCallChunk(toolCall));
       const tool = tools.find((t) => t.name === toolCall.name);
       if (!tool || typeof tool.process !== "function") {
         messages.push({

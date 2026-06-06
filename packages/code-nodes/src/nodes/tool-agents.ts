@@ -11,7 +11,7 @@ import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ToolLike } from "@nodetool-ai/llm-nodes";
-import { runAgentLoop } from "@nodetool-ai/llm-nodes";
+import { runAgentLoop, resolveBuiltinAgentTool } from "@nodetool-ai/llm-nodes";
 import { createLogger } from "@nodetool-ai/config";
 import { exec } from "node:child_process";
 import { access, mkdir, readFile } from "node:fs/promises";
@@ -685,9 +685,25 @@ export class LiveBrowserAgentNode extends ToolAgentNode {
   })
   declare timeout_seconds: any;
 
-  /** Only the CDP browser tools — no execute_bash for a live-browser session. */
+  /**
+   * Only the CDP browser tools — no execute_bash for a live-browser session.
+   * Hydrate the names into real Tool instances: runAgentLoop does NOT resolve
+   * bare name-stubs, so unhydrated tools would have no schema and never run.
+   */
   override getTools(_workspaceDir: string): ToolLike[] {
-    return LIVE_BROWSER_TOOL_NAMES.map((name) => ({ name }));
+    const tools: ToolLike[] = [];
+    for (const name of LIVE_BROWSER_TOOL_NAMES) {
+      const tool = resolveBuiltinAgentTool(name);
+      if (tool) {
+        tools.push(tool as ToolLike);
+      } else {
+        liveBrowserLog.warn(
+          `Browser tool '${name}' is not registered — the agent will not be ` +
+            "able to call it (is automation-nodes/sandbox loaded?)"
+        );
+      }
+    }
+    return tools;
   }
 
   override async process(
@@ -773,9 +789,10 @@ export class LiveBrowserAgentNode extends ToolAgentNode {
         throw new Error("Processing context with provider access is required");
       }
 
-      // Bridge runAgentLoop's onText callback into this generator via a queue:
-      // the loop pushes deltas, the generator drains and yields them as chunks.
-      const queue: string[] = [];
+      // Bridge runAgentLoop's stream callbacks into this generator via a queue
+      // of yield-ready records: the loop pushes text deltas and tool-call
+      // chunks, the generator drains and yields them.
+      const queue: Array<Record<string, unknown>> = [];
       let notify: (() => void) | null = null;
       const wake = (): void => {
         const n = notify;
@@ -798,7 +815,19 @@ export class LiveBrowserAgentNode extends ToolAgentNode {
         maxTokens: 4096,
         maxIterations: 10,
         onText: (delta) => {
-          queue.push(delta);
+          queue.push({
+            chunk: {
+              type: "chunk",
+              content: delta,
+              content_type: "text",
+              done: false
+            },
+            text: null
+          });
+          wake();
+        },
+        onToolCall: (chunk) => {
+          queue.push({ chunk, text: null });
           wake();
         }
       })
@@ -815,11 +844,7 @@ export class LiveBrowserAgentNode extends ToolAgentNode {
 
       while (true) {
         while (queue.length > 0) {
-          const content = queue.shift() as string;
-          yield {
-            chunk: { type: "chunk", content, content_type: "text", done: false },
-            text: null
-          };
+          yield queue.shift() as Record<string, unknown>;
         }
         if (finished) break;
         await new Promise<void>((resolve) => {
