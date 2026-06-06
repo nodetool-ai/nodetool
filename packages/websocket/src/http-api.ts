@@ -35,9 +35,10 @@ import {
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
-  PythonStdioBridge,
+  createPythonBridge,
   logPythonWorkerStderr,
-  type NodeExecutor
+  type NodeExecutor,
+  type PythonBridge
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
@@ -108,7 +109,7 @@ function getStorageHandler(
 
 type WorkflowRuntimeEnvironment = {
   registry: NodeRegistry;
-  pythonBridge: PythonStdioBridge;
+  pythonBridge: PythonBridge;
   ensurePythonBridge: () => Promise<void>;
   resolveExecutor: (node: {
     id: string;
@@ -132,7 +133,7 @@ async function getWorkflowRuntimeEnvironment(
           log
         }));
 
-      const pythonBridge = new PythonStdioBridge({
+      const pythonBridge = createPythonBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
           ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
           : []
