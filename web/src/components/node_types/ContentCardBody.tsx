@@ -747,6 +747,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             data={data}
             editableDynamicInputs={true}
             showFields={true}
+            defaultDynamicInputType={primaryOutput?.type}
           />
         </div>
       )}

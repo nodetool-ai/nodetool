@@ -86,12 +86,14 @@ jest.mock("../../node/NodeInputs", () => {
       properties?: unknown[];
       showDynamicInputs?: boolean;
       editableDynamicInputs?: boolean;
+      defaultDynamicInputType?: { type?: string };
     }) =>
       React.createElement("div", {
         "data-testid": "node-inputs",
         "data-properties-count": String((props.properties ?? []).length),
         "data-show-dynamic": String(props.showDynamicInputs !== false),
-        "data-editable-dynamic": String(!!props.editableDynamicInputs)
+        "data-editable-dynamic": String(!!props.editableDynamicInputs),
+        "data-default-type": props.defaultDynamicInputType?.type ?? ""
       }),
     default: () => null
   };
@@ -307,6 +309,9 @@ describe("ContentCardBody dynamic inputs", () => {
     // user can rename/delete them.
     expect(nodeInputs).toHaveAttribute("data-show-dynamic", "true");
     expect(nodeInputs).toHaveAttribute("data-editable-dynamic", "true");
+    // Unconnected inputs fall back to the node's primary-output type (str
+    // here) so they get a real editor instead of the uneditable `any`.
+    expect(nodeInputs).toHaveAttribute("data-default-type", "str");
   });
 
   it("omits the dynamic input block when nothing has been added", () => {
