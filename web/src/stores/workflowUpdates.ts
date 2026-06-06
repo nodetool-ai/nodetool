@@ -248,6 +248,7 @@ export const handleUpdate = (
   const addChunk = useResultsStore.getState().addChunk;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
+  const appendToolResult = useResultsStore.getState().appendToolResult;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
   const setEdge = useResultsStore.getState().setEdge;
   const addNotification = useNotificationStore.getState().addNotification;
@@ -312,8 +313,11 @@ export const handleUpdate = (
   }
 
   if (data.type === "tool_result_update") {
+    // A tool result is an artifact of an agent's run, not its output value.
+    // It accumulates in the toolResults channel (read by the agent tool log),
+    // never in the output/value paths.
     if (data.node_id && messageJobId) {
-      setOutputResult(workflow.id, messageJobId, data.node_id, data.result, true);
+      appendToolResult(workflow.id, messageJobId, data.node_id, data.result);
     }
   }
 

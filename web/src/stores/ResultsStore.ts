@@ -24,6 +24,7 @@ type ResultsStore = {
   chunks: Record<NodeKey, string>;
   tasks: Record<NodeKey, Task>;
   toolCalls: Record<NodeKey, ToolCallUpdate>;
+  toolResults: Record<NodeKey, unknown[]>;
   planningUpdates: Record<NodeKey, PlanningUpdate>;
   deleteResult: (workflowId: string, jobId: string, nodeId: string) => void;
   clearResults: (workflowId: string, nodeIds?: Set<string>) => void;
@@ -117,6 +118,17 @@ type ResultsStore = {
     jobId: string,
     nodeId: string
   ) => ToolCallUpdate | undefined;
+  appendToolResult: (
+    workflowId: string,
+    jobId: string,
+    nodeId: string,
+    result: unknown
+  ) => void;
+  getToolResults: (
+    workflowId: string,
+    jobId: string,
+    nodeId: string
+  ) => unknown[];
   setProgress: (
     workflowId: string,
     jobId: string,
@@ -197,6 +209,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   chunks: {},
   tasks: {},
   toolCalls: {},
+  toolResults: {},
   edges: {},
   planningUpdates: {},
   clearEdges: (workflowId: string, edgeIds?: Set<string>) => {
@@ -280,6 +293,31 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
    */
   getToolCall: (workflowId: string, jobId: string, nodeId: string) => {
     return get().toolCalls[nodeKey(workflowId, jobId, nodeId)];
+  },
+  /**
+   * Append a tool result for a node.
+   * Tool results are artifacts of an agent's run (not its output value), so
+   * they accumulate in the toolResults map keyed per (workflow, job, node).
+   */
+  appendToolResult: (
+    workflowId: string,
+    jobId: string,
+    nodeId: string,
+    result: unknown
+  ) => {
+    const key = nodeKey(workflowId, jobId, nodeId);
+    set((state) => ({
+      toolResults: {
+        ...state.toolResults,
+        [key]: [...(state.toolResults[key] ?? []), result]
+      }
+    }));
+  },
+  /**
+   * Get the accumulated tool results for a node.
+   */
+  getToolResults: (workflowId: string, jobId: string, nodeId: string) => {
+    return get().toolResults[nodeKey(workflowId, jobId, nodeId)] ?? [];
   },
   /**
    * Set the task for a node.
