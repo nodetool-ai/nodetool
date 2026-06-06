@@ -24,22 +24,7 @@ const EMPTY_ASSETS: Asset[] = [];
 
 const fetchNodeAssets = async (nodeId: string): Promise<Asset[]> => {
   const data = await trpcClient.assets.list.query({ node_id: nodeId });
-  const assets = normalizeAssetList((data.assets as Asset[]) ?? []);
-  // eslint-disable-next-line no-console
-  console.log("[debug:gen] fetchNodeAssets", {
-    nodeId,
-    returned: assets.length,
-    jobIds: assets.map((a) => a.job_id),
-    sample: assets[0]
-      ? {
-          id: assets[0].id,
-          job_id: assets[0].job_id,
-          node_id: assets[0].node_id,
-          created_at: assets[0].created_at
-        }
-      : null
-  });
-  return assets;
+  return normalizeAssetList((data.assets as Asset[]) ?? []);
 };
 
 export const nodeAssetsQueryKey = (nodeId: string | null) =>
@@ -103,25 +88,10 @@ export const useNodeResultHistory = (
   const lastJobAssets = useMemo<Asset[]>(() => {
     if (sortedAssets.length === 0) return EMPTY_ASSETS;
     const jobbed = sortedAssets.filter((a) => a.job_id);
-    if (jobbed.length === 0) {
-      // eslint-disable-next-line no-console
-      console.log("[debug:gen] lastJobAssets: no jobbed assets, returning all", {
-        nodeId,
-        total: sortedAssets.length
-      });
-      return sortedAssets;
-    }
+    if (jobbed.length === 0) return sortedAssets;
     const latestJobId = jobbed[0].job_id;
-    const filtered = sortedAssets.filter((a) => a.job_id === latestJobId);
-    // eslint-disable-next-line no-console
-    console.log("[debug:gen] lastJobAssets: grouped by job_id", {
-      nodeId,
-      total: sortedAssets.length,
-      latestJobId,
-      kept: filtered.length
-    });
-    return filtered;
-  }, [sortedAssets, nodeId]);
+    return sortedAssets.filter((a) => a.job_id === latestJobId);
+  }, [sortedAssets]);
 
   const lastJobId = lastJobAssets[0]?.job_id ?? null;
 
