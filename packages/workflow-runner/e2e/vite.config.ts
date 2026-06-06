@@ -21,7 +21,7 @@ const NODE_PROTOCOL_STUBS: Record<string, string> = {
   "node:crypto": `${STUBS}/crypto-stub.js`,
   "node:os": `${STUBS}/os-stub.js`,
   "node:events": `${STUBS}/events-stub.js`,
-  "node:child_process": `${STUBS}/empty.js`,
+  "node:child_process": `${STUBS}/child-process-stub.js`,
   "node:worker_threads": `${STUBS}/empty.js`,
   "node:cluster": `${STUBS}/empty.js`,
   "node:dgram": `${STUBS}/empty.js`,
@@ -80,7 +80,7 @@ export default defineConfig({
       { find: "node:crypto", replacement: `${STUBS}/crypto-stub.js` },
       { find: "node:os", replacement: `${STUBS}/os-stub.js` },
       { find: "node:events", replacement: `${STUBS}/events-stub.js` },
-      { find: "node:child_process", replacement: `${STUBS}/empty.js` },
+      { find: "node:child_process", replacement: `${STUBS}/child-process-stub.js` },
       { find: "node:worker_threads", replacement: `${STUBS}/empty.js` },
       { find: "node:cluster", replacement: `${STUBS}/empty.js` },
       { find: "node:dgram", replacement: `${STUBS}/empty.js` },
@@ -111,6 +111,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: [
       "@nodetool-ai/base-nodes",
+      "@nodetool-ai/core-nodes",
       "@nodetool-ai/workflow-runner",
       "@nodetool-ai/node-sdk",
       "@nodetool-ai/runtime",
