@@ -327,36 +327,12 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const normalizedValue = normalizeOutputUpdateValue(data);
-    // eslint-disable-next-line no-console
-    console.log(
-      "[debug:gen] output_update",
-      {
-        nodeId: data.node_id,
-        outputName: data.output_name,
-        outputType: data.output_type,
-        valueIsArray: Array.isArray(data.value),
-        normalizedIsArray: Array.isArray(normalizedValue),
-        normalizedPreview:
-          typeof normalizedValue === "object" && normalizedValue !== null
-            ? Object.keys(normalizedValue as Record<string, unknown>)
-            : typeof normalizedValue
-      }
-    );
+    // output_update feeds the output-node stream buffer only. It does NOT
+    // create or modify a live generation — generations are driven solely by
+    // node_update (see the live-generations branch below).
     if (messageJobId) {
       setOutputResult(workflow.id, messageJobId, data.node_id, normalizedValue, true);
     }
-    // eslint-disable-next-line no-console
-    console.log(
-      "[debug:gen] outputResults after append",
-      {
-        nodeId: data.node_id,
-        accumulated: messageJobId
-          ? useResultsStore
-              .getState()
-              .getOutputResult(workflow.id, messageJobId, data.node_id)
-          : undefined
-      }
-    );
 
     appendLog({
       workflowId: workflow.id,
