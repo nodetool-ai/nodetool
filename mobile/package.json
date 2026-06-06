@@ -34,7 +34,7 @@
     "expo-document-picker": "~56.0.4",
     "expo-image-picker": "~56.0.15",
     "expo-status-bar": "~56.0.4",
-    "react": "19.2.7",
+    "react": "19.2.3",
     "react-native": "0.85.3",
     "react-native-get-random-values": "~1.11.0",
     "react-native-markdown-display": "^7.0.2",
@@ -71,6 +71,6 @@
     "minimatch": ">=3.1.4",
     "flatted": ">=3.4.2",
     "ajv": ">=6.14.0",
-    "react-test-renderer": "19.2.7"
+    "react-test-renderer": "19.2.3"
   }
 }
