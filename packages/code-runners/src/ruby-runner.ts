@@ -11,7 +11,7 @@ import {
  */
 export class RubyDockerRunner extends StreamRunnerBase {
   constructor(options?: { image?: string } & StreamRunnerOptions) {
-    super({ image: options?.image ?? "ruby:3.3-alpine", ...options });
+    super({ ...options, image: options?.image ?? "ruby:3.3-alpine" });
   }
 
   override buildContainerCommand(
