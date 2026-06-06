@@ -791,6 +791,16 @@ export class OpenAIProvider extends BaseProvider {
           }
           deltaToolCalls.clear();
         }
+
+        // Always emit a terminal `done: true` chunk when the completion
+        // finishes, regardless of reason. "stop" already emits one above; for
+        // every other terminal reason (tool_calls, length, content_filter)
+        // emit one here so consumers get a consistent end-of-stream marker
+        // (matching the Anthropic and Gemini providers).
+        if (choice.finish_reason && choice.finish_reason !== "stop") {
+          const doneChunk: Chunk = { type: "chunk", content: "", done: true };
+          yield doneChunk;
+        }
       }
     } finally {
       if (typeof stream.close === "function") {

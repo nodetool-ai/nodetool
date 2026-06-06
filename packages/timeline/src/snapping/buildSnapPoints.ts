@@ -23,7 +23,12 @@ export function buildSnapPoints(source: SnapPointSource): number[] {
 
   if (source.tickIntervalMs && source.tickIntervalMs > 0) {
     const max = source.maxTimeMs ?? 0;
-    for (let t = 0; t <= max; t += source.tickIntervalMs) {
+    // Compute each tick as `i * interval` rather than accumulating `t += interval`
+    // so fractional intervals (e.g. 1000/30 ms frame ticks) don't drift over many
+    // steps and stay dedupable against integer clip/marker boundaries.
+    for (let i = 0; ; i++) {
+      const t = i * source.tickIntervalMs;
+      if (t > max) break;
       set.add(t);
     }
   }

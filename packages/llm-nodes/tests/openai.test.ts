@@ -251,7 +251,9 @@ describe("CreateImageNode", () => {
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/images/generations");
     const output = result.output as Record<string, unknown>;
-    expect(output.data).toContain("data:image/png;base64,imgbase64data");
+    // Media refs carry RAW base64 in `data` (no `data:` prefix).
+    expect(output.data).toBe("imgbase64data");
+    expect(output.content_type).toBe("image/png");
   });
 
   it("returns url when no b64_json", async () => {
@@ -333,8 +335,11 @@ describe("EditImageNode", () => {
     const [url, opts] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/images/edits");
     expect(opts.body).toBeInstanceOf(FormData);
+    // gpt-image-1 rejects `response_format`, so it must not be sent.
+    expect((opts.body as FormData).has("response_format")).toBe(false);
     const output = result.output as Record<string, unknown>;
-    expect(output.data).toContain("editedimg");
+    expect(output.data).toBe("editedimg");
+    expect((output.data as string).startsWith("data:")).toBe(false);
   });
 });
 
@@ -373,9 +378,10 @@ describe("TextToSpeechNode", () => {
     const [url] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.openai.com/v1/audio/speech");
     const output = result.output as Record<string, unknown>;
-    expect((output.data as string).startsWith("data:audio/mp3;base64,")).toBe(
-      true
-    );
+    // RAW base64 (no `data:` prefix), with an explicit mime type.
+    expect(output.data).toBe(Buffer.from([1, 2, 3, 4]).toString("base64"));
+    expect((output.data as string).startsWith("data:")).toBe(false);
+    expect(output.content_type).toBe("audio/mpeg");
   });
 });
 
@@ -536,14 +542,15 @@ describe("RealtimeTranscriptionNode", () => {
 // OPENAI_NODES export
 // ---------------------------------------------------------------------------
 describe("OPENAI_NODES", () => {
-  it("exports all 10 nodes", () => {
-    expect(OPENAI_NODES).toHaveLength(10);
+  it("exports all 11 nodes", () => {
+    expect(OPENAI_NODES).toHaveLength(11);
     const types = OPENAI_NODES.map((n) => n.nodeType);
     expect(types).toContain("openai.text.Embedding");
     expect(types).toContain("openai.text.WebSearch");
     expect(types).toContain("openai.text.Moderation");
     expect(types).toContain("openai.image.CreateImage");
     expect(types).toContain("openai.image.EditImage");
+    expect(types).toContain("openai.image.ImageVariation");
     expect(types).toContain("openai.audio.TextToSpeech");
     expect(types).toContain("openai.audio.Translate");
     expect(types).toContain("openai.audio.Transcribe");

@@ -140,6 +140,12 @@ export class CreateTableLibNode extends BaseNode {
         };
       }
 
+      if (columns.length === 0) {
+        throw new Error(
+          "Cannot create a table with no columns — define at least one column"
+        );
+      }
+
       const columnDefs: string[] = [];
       for (let i = 0; i < columns.length; i++) {
         const col = columns[i];
@@ -179,7 +185,9 @@ export class InsertLibNode extends BaseNode {
   static readonly description =
     "Insert a record into a SQLite table.\n    sqlite, database, insert, add, record\n\n    Use cases:\n    - Add new flashcards to database\n    - Store agent observations\n    - Persist workflow results";
   static readonly metadataOutputTypes = {
-    output: "dict[str, any]"
+    row_id: "int",
+    rows_affected: "int",
+    message: "str"
   };
 
   @prop({
@@ -218,6 +226,11 @@ export class InsertLibNode extends BaseNode {
 
     try {
       const keys = Object.keys(data);
+      if (keys.length === 0) {
+        throw new Error(
+          "Insert data cannot be empty — provide at least one column/value pair"
+        );
+      }
       const columnsPart = keys.map((k) => quoteIdentifier(k)).join(", ");
       const placeholders = keys.map(() => "?").join(", ");
       const quotedTableName = quoteIdentifier(tableName);
@@ -355,7 +368,8 @@ export class UpdateLibNode extends BaseNode {
   static readonly description =
     "Update records in a SQLite table.\n    sqlite, database, update, modify, change\n\n    Use cases:\n    - Update flashcard content\n    - Modify stored records\n    - Change agent memory";
   static readonly metadataOutputTypes = {
-    output: "dict[str, any]"
+    rows_affected: "int",
+    message: "str"
   };
 
   @prop({
@@ -434,7 +448,8 @@ export class DeleteLibNode extends BaseNode {
   static readonly description =
     "Delete records from a SQLite table.\n    sqlite, database, delete, remove, drop\n\n    Use cases:\n    - Remove flashcards\n    - Delete agent memory\n    - Clean up old data";
   static readonly metadataOutputTypes = {
-    output: "dict[str, any]"
+    rows_affected: "int",
+    message: "str"
   };
 
   @prop({
@@ -499,8 +514,15 @@ export class ExecuteSQLLibNode extends BaseNode {
   static readonly inputFields = ["parameters"];
   static readonly description =
     "Execute arbitrary SQL statements for advanced operations.\n    sqlite, database, sql, execute, custom\n\n    Use cases:\n    - Complex queries with joins\n    - Aggregate functions (COUNT, SUM, AVG)\n    - Custom SQL operations";
+  // Modifying statements emit rows_affected/last_row_id/message; queries emit
+  // rows/count/message. Both shapes are declared so either set of handles can
+  // be wired downstream — unused slots are simply not emitted.
   static readonly metadataOutputTypes = {
-    output: "dict[str, any]"
+    rows_affected: "int",
+    last_row_id: "int",
+    message: "str",
+    rows: "list[dict[str, any]]",
+    count: "int"
   };
 
   @prop({

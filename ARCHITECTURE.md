@@ -111,7 +111,8 @@ nodetool/
 │   ├── replicate-codegen/  #   Code generator for Replicate nodes
 │   ├── fal-nodes/          #   FAL AI integration nodes
 │   ├── fal-codegen/        #   Code generator for FAL nodes
-│   └── elevenlabs-nodes/   #   ElevenLabs voice synthesis nodes
+│   ├── elevenlabs-nodes/   #   ElevenLabs voice synthesis nodes
+│   └── minimax-nodes/      #   MiniMax TTS, music, image, and video nodes
 ├── web/                    # React web application (Vite + MUI)
 ├── electron/               # Electron desktop shell
 ├── mobile/                 # React Native mobile app (Expo)
@@ -156,6 +157,7 @@ Feature Layer
   ├── dsl ───────────────────────────────── Workflow DSL
   ├── replicate-nodes, fal-nodes ────────── Provider integrations
   ├── elevenlabs-nodes ──────────────────── Voice synthesis
+  ├── minimax-nodes ─────────────────────── Speech, music, image, video
   ├── huggingface ───────────────────────── Model discovery
   └── chat ──────────────────────────────── Chat protocol
 
@@ -236,7 +238,7 @@ Node implementations and provider integrations.
 
 **`chat`** — Chat protocol and runtime integration for conversational AI interactions.
 
-**`replicate-nodes`**, **`fal-nodes`**, **`elevenlabs-nodes`** — Provider-specific node packs for Replicate AI, FAL AI, and ElevenLabs voice synthesis. Each extends `BaseNode` from node-sdk.
+**`replicate-nodes`**, **`fal-nodes`**, **`elevenlabs-nodes`**, **`minimax-nodes`** — Provider-specific node packs for Replicate AI, FAL AI, ElevenLabs voice synthesis, and MiniMax (speech, music, image, video). Each extends `BaseNode` from node-sdk.
 
 **`huggingface`** — HuggingFace model discovery, cache scanning, and artifact inspection for local model management.
 
@@ -792,7 +794,7 @@ Packages must be built in dependency order. The root `build:packages` script han
 protocol → config → security → storage → auth → code-runners
     → runtime → vectorstore → models → kernel → node-sdk
     → agents → base-nodes → dsl → chat → huggingface
-    → replicate-nodes → fal-nodes → elevenlabs-nodes
+    → replicate-nodes → fal-nodes → elevenlabs-nodes → minimax-nodes
     → websocket → cli → deploy
 ```
 

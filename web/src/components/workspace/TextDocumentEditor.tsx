@@ -87,6 +87,7 @@ const styles = (theme: Theme) =>
  */
 const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
   const theme = useTheme();
+  const editorStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
   const update = useAssetStore((state) => state.update);
   const addNotification = useNotificationStore(
@@ -301,7 +302,7 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
   };
 
   return (
-    <div css={styles(theme)}>
+    <div css={editorStyles}>
       {!isCsv && (
         <FlexRow
           className="editor-toolbar-row"

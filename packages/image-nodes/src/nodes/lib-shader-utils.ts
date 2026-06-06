@@ -148,25 +148,29 @@ async function readbackStraightAlpha(
     size: rowStride * height,
     usage: 0x09 /* COPY_DST | MAP_READ */
   });
-  const encoder = device.createCommandEncoder({ label: "shader-readback" });
-  encoder.copyTextureToBuffer(
-    { texture: texture.texture },
-    { buffer, bytesPerRow: rowStride, rowsPerImage: height },
-    { width, height }
-  );
-  device.queue.submit([encoder.finish()]);
-  await buffer.mapAsync(GPUMapMode.READ);
-  const mapped = new Uint8Array(buffer.getMappedRange());
-  const out = new Uint8Array(width * height * 4);
-  for (let row = 0; row < height; row++) {
-    out.set(
-      mapped.subarray(row * rowStride, row * rowStride + width * 4),
-      row * width * 4
+  try {
+    const encoder = device.createCommandEncoder({ label: "shader-readback" });
+    encoder.copyTextureToBuffer(
+      { texture: texture.texture },
+      { buffer, bytesPerRow: rowStride, rowsPerImage: height },
+      { width, height }
     );
+    device.queue.submit([encoder.finish()]);
+    await buffer.mapAsync(GPUMapMode.READ);
+    const mapped = new Uint8Array(buffer.getMappedRange());
+    const out = new Uint8Array(width * height * 4);
+    for (let row = 0; row < height; row++) {
+      out.set(
+        mapped.subarray(row * rowStride, row * rowStride + width * 4),
+        row * width * 4
+      );
+    }
+    buffer.unmap();
+    return unpremultiplyInPlace(out);
+  } finally {
+    // Destroy even if mapAsync rejects (device lost / validation error).
+    buffer.destroy();
   }
-  buffer.unmap();
-  buffer.destroy();
-  return unpremultiplyInPlace(out);
 }
 
 /** Options shared by both single-pass and recipe runners. */
@@ -254,51 +258,55 @@ export async function runShaderNode(
     }
   }
 
-  const dims = resolveOutputDims(module, source, opts);
-  const output = createLabeledTexture(device, {
-    label: `${module.id}-output`,
-    width: dims.width,
-    height: dims.height,
-    format: "rgba8unorm",
-    usage: module.kind === "compute" ? COMPUTE_OUTPUT_USAGE : OUTPUT_USAGE
-  });
+  let output: LabeledTexture | undefined;
+  try {
+    const dims = resolveOutputDims(module, source, opts);
+    output = createLabeledTexture(device, {
+      label: `${module.id}-output`,
+      width: dims.width,
+      height: dims.height,
+      format: "rgba8unorm",
+      usage: module.kind === "compute" ? COMPUTE_OUTPUT_USAGE : OUTPUT_USAGE
+    });
 
-  const encoder = device.createCommandEncoder({ label: `${module.id}-encode` });
-  if (module.kind === "compute") {
-    const [wx, wy] = module.workgroupSize;
-    cachedExecutor.encode({
-      ctx,
-      module,
-      encoder,
-      inputs,
-      output,
-      params: params as never,
-      dispatch: {
-        kind: "compute",
-        x: Math.ceil(dims.width / wx),
-        y: Math.ceil(dims.height / wy),
-        z: 1
-      }
-    });
-  } else {
-    cachedExecutor.encode({
-      ctx,
-      module,
-      encoder,
-      inputs,
-      output,
-      params: params as never,
-      dispatch: { kind: "fragment" }
-    });
+    const encoder = device.createCommandEncoder({ label: `${module.id}-encode` });
+    if (module.kind === "compute") {
+      const [wx, wy] = module.workgroupSize;
+      cachedExecutor.encode({
+        ctx,
+        module,
+        encoder,
+        inputs,
+        output,
+        params: params as never,
+        dispatch: {
+          kind: "compute",
+          x: Math.ceil(dims.width / wx),
+          y: Math.ceil(dims.height / wy),
+          z: 1
+        }
+      });
+    } else {
+      cachedExecutor.encode({
+        ctx,
+        module,
+        encoder,
+        inputs,
+        output,
+        params: params as never,
+        dispatch: { kind: "fragment" }
+      });
+    }
+    device.queue.submit([encoder.finish()]);
+
+    const rgba = await readbackStraightAlpha(device, output);
+    return rawRgbaImageRef(rgba, dims.width, dims.height);
+  } finally {
+    // Always release GPU textures, even if encode/submit/readback throws.
+    source?.texture.destroy();
+    for (const t of acquiredExtras) t.destroy();
+    output?.destroy();
   }
-  device.queue.submit([encoder.finish()]);
-
-  const rgba = await readbackStraightAlpha(device, output);
-  source?.texture.destroy();
-  for (const t of acquiredExtras) t.destroy();
-  output.destroy();
-
-  return rawRgbaImageRef(rgba, dims.width, dims.height);
 }
 
 /** Run a multi-pass {@link RecipeModule} (e.g. `filters.glow`, `mixer.dropShadow`). */
@@ -343,33 +351,37 @@ export async function runRecipeNode(
     }
   }
 
-  const dims = resolveOutputDims(recipe, source, opts);
-  const output = createLabeledTexture(device, {
-    label: `${recipe.id}-output`,
-    width: dims.width,
-    height: dims.height,
-    format: "rgba8unorm",
-    usage: OUTPUT_USAGE
-  });
+  let output: LabeledTexture | undefined;
+  try {
+    const dims = resolveOutputDims(recipe, source, opts);
+    output = createLabeledTexture(device, {
+      label: `${recipe.id}-output`,
+      width: dims.width,
+      height: dims.height,
+      format: "rgba8unorm",
+      usage: OUTPUT_USAGE
+    });
 
-  const encoder = device.createCommandEncoder({ label: `${recipe.id}-encode` });
-  cachedRecipeRunner.encode({
-    ctx,
-    module: recipe,
-    encoder,
-    inputs,
-    output,
-    params: params as never,
-    registry
-  });
-  device.queue.submit([encoder.finish()]);
+    const encoder = device.createCommandEncoder({ label: `${recipe.id}-encode` });
+    cachedRecipeRunner.encode({
+      ctx,
+      module: recipe,
+      encoder,
+      inputs,
+      output,
+      params: params as never,
+      registry
+    });
+    device.queue.submit([encoder.finish()]);
 
-  const rgba = await readbackStraightAlpha(device, output);
-  source.texture.destroy();
-  for (const t of acquiredExtras) t.destroy();
-  output.destroy();
-
-  return rawRgbaImageRef(rgba, dims.width, dims.height);
+    const rgba = await readbackStraightAlpha(device, output);
+    return rawRgbaImageRef(rgba, dims.width, dims.height);
+  } finally {
+    // Always release GPU textures, even if encode/submit/readback throws.
+    source.texture.destroy();
+    for (const t of acquiredExtras) t.destroy();
+    output?.destroy();
+  }
 }
 
 /**
@@ -545,7 +557,7 @@ export function colorValueToVec4(
       typeof r === "number" ? r : fallback[0],
       typeof g === "number" ? g : fallback[1],
       typeof b === "number" ? b : fallback[2],
-      typeof a === "number" ? a : 1
+      typeof a === "number" ? a : fallback[3]
     ];
     return out.some((v) => !Number.isFinite(v)) ? fallback : out;
   }
@@ -557,7 +569,14 @@ export function colorValueToVec4(
     if (typeof maybe === "string") value = maybe;
   }
   if (typeof value !== "string") return fallback;
-  const hex = value.startsWith("#") ? value.slice(1) : value;
+  let hex = value.startsWith("#") ? value.slice(1) : value;
+  // Expand 3-/4-digit shorthand (#fff, #fff8) by doubling each nibble.
+  if (hex.length === 3 || hex.length === 4) {
+    hex = hex
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
   const parseByte = (s: string): number => parseInt(s, 16) / 255;
   let parsed: [number, number, number, number] | null = null;
   if (hex.length === 6) {

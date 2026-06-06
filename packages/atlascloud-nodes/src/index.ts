@@ -20,6 +20,7 @@ export type {
 export {
   ATLAS_BASE,
   SUBMIT_PATH,
+  atlasDownload,
   atlasPoll,
   atlasSubmit,
   getApiKey,
