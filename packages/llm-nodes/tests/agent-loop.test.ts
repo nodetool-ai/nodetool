@@ -298,4 +298,34 @@ describe("runAgentLoop", () => {
     expect(ran).toHaveBeenCalledWith(expect.anything(), { a: 1 });
     expect(result.text).toBe("ok");
   });
+
+  it("keeps tool_call chunks out of the text output and onText stream", async () => {
+    const provider = makeMockProvider([
+      [
+        { type: "chunk", content: "The result is ", content_type: "text", done: false },
+        // A provider that streams the tool call as a tool_call chunk — must NOT
+        // land in `text` or the onText stream.
+        {
+          type: "chunk",
+          content: 'browser_navigate({"url":"https://x"})',
+          content_type: "tool_call",
+          done: false
+        },
+        { type: "chunk", content: "ready.", content_type: "text", done: true }
+      ]
+    ]);
+    const deltas: string[] = [];
+    const result = await runAgentLoop({
+      context: createMockContext(provider),
+      providerId: "mock",
+      modelId: "test-model",
+      systemPrompt: "sys",
+      prompt: "go",
+      tools: [],
+      onText: (d) => deltas.push(d)
+    });
+    expect(result.text).toBe("The result is ready.");
+    expect(result.text).not.toContain("browser_navigate");
+    expect(deltas).toEqual(["The result is ", "ready."]);
+  });
 });

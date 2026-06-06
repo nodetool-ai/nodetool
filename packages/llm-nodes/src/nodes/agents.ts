@@ -1116,7 +1116,11 @@ export async function runAgentLoop(
       threadId: options.threadId
     })) {
       if (isChunkItem(item)) {
-        if (!item.thinking) {
+        // Only genuine text accumulates into the returned text / onText stream.
+        // Providers may stream tool calls as `tool_call` chunks (and audio,
+        // agent_status, etc.) — those must not leak into the text output.
+        // (Tool execution uses the structured ToolCall items below.)
+        if (!item.thinking && item.content_type === "text") {
           const delta = item.content ?? "";
           assistantText += delta;
           if (delta) options.onText?.(delta);
