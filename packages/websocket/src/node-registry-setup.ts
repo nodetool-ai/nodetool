@@ -16,12 +16,14 @@ import {
 import { setPackSnapshot } from "./pack-snapshot.js";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
+import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
 import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
 import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerKieNodes } from "@nodetool-ai/kie-nodes";
 import { registerTopazNodes } from "@nodetool-ai/topaz-nodes";
 import { registerAtlasCloudNodes } from "@nodetool-ai/atlascloud-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 
 /** Node-type prefixes that require on-demand npm packages; dropped in production. */
 const PRODUCTION_SKIPPED_PREFIXES = [
@@ -54,6 +56,7 @@ function isProduction(): boolean {
 export function registerBuiltInNodes(registry: NodeRegistry): void {
   registerBaseNodes(registry);
   registerElevenLabsNodes(registry);
+  registerMinimaxNodes(registry);
   if (!isProduction()) {
     registerTransformersJsNodes(registry);
   }
@@ -62,6 +65,7 @@ export function registerBuiltInNodes(registry: NodeRegistry): void {
   registerTopazNodes(registry);
   registerAtlasCloudNodes(registry);
   registerReplicateNodes(registry);
+  registerHuggingFaceNodes(registry);
 }
 
 /** Drop optional node types that aren't available in cloud/production builds. */

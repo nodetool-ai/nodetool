@@ -373,12 +373,26 @@ export async function run(
     // Some environments do not have the ElevenLabs node package in a runnable state.
   }
   try {
+    const { registerMinimaxNodes } = await import("@nodetool-ai/minimax-nodes");
+    registerMinimaxNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the MiniMax node package in a runnable state.
+  }
+  try {
     const { registerTransformersJsNodes } = await import(
       "@nodetool-ai/transformers-js-nodes"
     );
     registerTransformersJsNodes(builtinRegistry);
   } catch {
     // Some environments do not have the Transformers.js node package in a runnable state.
+  }
+  try {
+    const { registerHuggingFaceNodes } = await import(
+      "@nodetool-ai/huggingface-nodes"
+    );
+    registerHuggingFaceNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the Hugging Face node package in a runnable state.
   }
 
   const resolveExecutor = (node: { id: string; type: string }) => {

@@ -680,6 +680,7 @@ export {
 export { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
 export { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 export { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
+export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 export { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 export { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 export {
@@ -760,6 +761,7 @@ import { COMFY_NODES } from "@nodetool-ai/integration-nodes/nodes/comfy";
 import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
 import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
+import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 import { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 import { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 import { SANDBOX_NODES } from "@nodetool-ai/code-nodes/nodes/sandbox";
@@ -841,6 +843,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...MESSAGING_NODES,
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
+  ...XAI_NODES,
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
   ...SANDBOX_NODES,

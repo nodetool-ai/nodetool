@@ -1,20 +1,20 @@
 import type { FastifyRequest } from "fastify";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 import type { HttpApiOptions } from "../http-api.js";
 
 export interface Context {
   userId: string | null;
   registry: NodeRegistry;
   apiOptions: HttpApiOptions;
-  pythonBridge: PythonStdioBridge;
+  pythonBridge: PythonBridge;
   getPythonBridgeReady: () => boolean;
 }
 
 export interface ContextFactoryInput {
   registry: NodeRegistry;
   apiOptions: HttpApiOptions;
-  pythonBridge: PythonStdioBridge;
+  pythonBridge: PythonBridge;
   getPythonBridgeReady: () => boolean;
 }
 

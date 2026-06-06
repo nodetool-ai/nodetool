@@ -60,6 +60,10 @@ vi.mock("@nodetool-ai/elevenlabs-nodes", () => ({
   registerElevenLabsNodes: vi.fn()
 }));
 
+vi.mock("@nodetool-ai/minimax-nodes", () => ({
+  registerMinimaxNodes: vi.fn()
+}));
+
 vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
   registerTransformersJsNodes: vi.fn()
 }));
@@ -70,6 +74,10 @@ vi.mock("@nodetool-ai/fal-nodes", () => ({
 
 vi.mock("@nodetool-ai/replicate-nodes", () => ({
   registerReplicateNodes: vi.fn()
+}));
+
+vi.mock("@nodetool-ai/huggingface-nodes", () => ({
+  registerHuggingFaceNodes: vi.fn()
 }));
 
 vi.mock("@nodetool-ai/runtime", () => ({
