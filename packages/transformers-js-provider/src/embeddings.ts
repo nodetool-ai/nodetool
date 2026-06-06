@@ -52,6 +52,28 @@ function tensorToVectors(t: EmbeddingTensor): number[][] {
   throw new Error("Unrecognized embedding tensor shape");
 }
 
+/**
+ * Truncate each embedding to `dimensions` and re-normalize, mirroring the
+ * OpenAI `dimensions` parameter (Matryoshka-style). Re-normalizing keeps the
+ * vectors unit-length — the pipeline is invoked with `normalize: true`, and
+ * cosine similarity assumes that property. A no-op when `dimensions` is unset
+ * or already >= the model's hidden size.
+ */
+function truncateDimensions(
+  vectors: number[][],
+  dimensions?: number
+): number[][] {
+  if (!dimensions || dimensions <= 0) return vectors;
+  return vectors.map((v) => {
+    if (v.length <= dimensions) return v;
+    const sliced = v.slice(0, dimensions);
+    let norm = 0;
+    for (const x of sliced) norm += x * x;
+    norm = Math.sqrt(norm);
+    return norm > 0 ? sliced.map((x) => x / norm) : sliced;
+  });
+}
+
 export async function generateEmbedding(
   args: EmbedArgs
 ): Promise<number[][]> {
@@ -65,5 +87,5 @@ export async function generateEmbedding(
     normalize: true
   });
 
-  return tensorToVectors(result);
+  return truncateDimensions(tensorToVectors(result), args.dimensions);
 }
