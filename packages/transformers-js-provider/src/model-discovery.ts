@@ -4,8 +4,7 @@ import {
   isKokoroRepo,
   recommendedFor,
   scanTransformersJsCache,
-  type CachedTjsModel,
-  type TjsModelRef
+  type CachedTjsModel
 } from "@nodetool-ai/transformers-js-nodes";
 import type {
   ASRModel,
@@ -47,28 +46,18 @@ async function unionRecommendedAndCache(
     // Cache scan failures are non-fatal; we still surface recommended models.
   }
 
+  // We can only annotate recommended repos with their cached status: a cached
+  // repo that is not on any recommended list carries no task metadata on disk,
+  // so we cannot know which modality (text-gen vs ASR vs …) it belongs to and
+  // must not surface it under an arbitrary task.
   for (const c of cached) {
     const existing = recommended.get(c.repo_id);
     if (existing) {
       existing.cached = true;
-    } else if (matchesAny(c.repo_id, taskTypes)) {
-      // Off-list cached repos that happen to be recommended under one of the
-      // requested task types only — i.e. the same repo appears under another
-      // recommended task. Skip the rest; they belong to other modalities.
-      recommended.set(c.repo_id, { repo_id: c.repo_id, cached: true });
     }
   }
 
   return Array.from(recommended.values());
-}
-
-function matchesAny(repoId: string, taskTypes: string[]): boolean {
-  for (const t of taskTypes) {
-    if (recommendedFor(t).some((r: TjsModelRef) => r.repo_id === repoId)) {
-      return true;
-    }
-  }
-  return false;
 }
 
 export async function discoverLanguageModels(): Promise<LanguageModel[]> {
