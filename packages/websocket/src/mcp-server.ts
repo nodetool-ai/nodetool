@@ -25,9 +25,10 @@ import {
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
-  PythonStdioBridge,
+  createPythonBridge,
   logPythonWorkerStderr,
-  type NodeExecutor
+  type NodeExecutor,
+  type PythonBridge
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import type { AgentTransport } from "./agent/transport.js";
@@ -61,7 +62,7 @@ async function getUnifiedNodeMetadata(
 
 type RuntimeEnvironment = {
   registry: NodeRegistry;
-  pythonBridge: PythonStdioBridge;
+  pythonBridge: PythonBridge;
   ensurePythonBridge: () => Promise<void>;
   resolveExecutor: (node: {
     id: string;
@@ -83,7 +84,7 @@ function getRuntimeEnvironment(
         log
       });
 
-      const pythonBridge = new PythonStdioBridge({
+      const pythonBridge = createPythonBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
           ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
           : []
