@@ -354,16 +354,16 @@ function createColorGradingNode(desc: Desc): NodeClass {
       // SplitToning
       if (t.endsWith(".SplitToning")) {
         const shadowHue = Number(
-          (this as any).shadow_hue ?? self.shadow_hue ?? 30
+          (this as any).shadow_hue ?? self.shadow_hue ?? 200
         );
         const shadowSat = Number(
-          (this as any).shadow_saturation ?? self.shadow_saturation ?? 0.5
+          (this as any).shadow_saturation ?? self.shadow_saturation ?? 0.3
         );
         const highlightHue = Number(
-          (this as any).highlight_hue ?? self.highlight_hue ?? 200
+          (this as any).highlight_hue ?? self.highlight_hue ?? 40
         );
         const highlightSat = Number(
-          (this as any).highlight_saturation ?? self.highlight_saturation ?? 0.5
+          (this as any).highlight_saturation ?? self.highlight_saturation ?? 0.3
         );
         const balance = Number((this as any).balance ?? self.balance ?? 0);
         const { data, width, height, alpha } = await toFloatRGB(baseBytes);
