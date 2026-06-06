@@ -347,11 +347,14 @@ export class ImageGenerationNode extends BaseNode {
       throw new Error("No image bytes returned in response");
     }
 
-    // Imagen models use the generateImages endpoint.
+    // Imagen models use the generateImages (predict) endpoint with the
+    // instances/parameters envelope — the same shape the runtime Gemini
+    // provider uses. The earlier `{ prompt, config }` body is the JS-SDK
+    // shape and is rejected by the REST API.
     const url = `${GEMINI_API_BASE}/models/${model}:generateImages?key=${apiKey}`;
     const body = {
-      prompt,
-      config: { numberOfImages: 1 }
+      instances: [{ prompt }],
+      parameters: { sampleCount: 1 }
     };
 
     const res = await fetch(url, {
@@ -366,6 +369,16 @@ export class ImageGenerationNode extends BaseNode {
     }
 
     const data = (await res.json()) as Record<string, unknown>;
+
+    // Prefer the Vertex-style `predictions[].bytesBase64Encoded`, falling back
+    // to the SDK-style `generatedImages[].image.imageBytes`.
+    const predictionBytes = (
+      data.predictions as Array<{ bytesBase64Encoded?: string }> | undefined
+    )?.[0]?.bytesBase64Encoded;
+    if (predictionBytes) {
+      return { output: { type: "image", data: predictionBytes } };
+    }
+
     const generatedImages = data.generatedImages as
       | Array<Record<string, unknown>>
       | undefined;
@@ -444,16 +457,17 @@ export class TextToVideoGeminiNode extends BaseNode {
 
     if (!prompt) throw new Error("Video generation prompt is required");
 
-    // Start the long-running video generation operation
+    // Start the long-running video generation operation. Veo uses the
+    // instances/parameters envelope (matching the runtime Gemini provider).
     const url = `${GEMINI_API_BASE}/models/${model}:generateVideos?key=${apiKey}`;
-    const config: Record<string, unknown> = {};
-    if (aspectRatio) config.aspectRatio = aspectRatio;
-    if (negativePrompt) config.negativePrompt = negativePrompt;
+    const parameters: Record<string, unknown> = {};
+    if (aspectRatio) parameters.aspectRatio = aspectRatio;
+    if (negativePrompt) parameters.negativePrompt = negativePrompt;
 
     const body: Record<string, unknown> = {
-      prompt
+      instances: [{ prompt }]
     };
-    if (Object.keys(config).length > 0) body.config = config;
+    if (Object.keys(parameters).length > 0) body.parameters = parameters;
 
     const res = await fetch(url, {
       method: "POST",
@@ -547,19 +561,23 @@ export class ImageToVideoGeminiNode extends BaseNode {
     const imageBytes = getImageBytes(image);
     if (!imageBytes) throw new Error("Image data is required");
 
-    const config: Record<string, unknown> = {};
-    if (aspectRatio) config.aspectRatio = aspectRatio;
-    if (negativePrompt) config.negativePrompt = negativePrompt;
+    const parameters: Record<string, unknown> = {};
+    if (aspectRatio) parameters.aspectRatio = aspectRatio;
+    if (negativePrompt) parameters.negativePrompt = negativePrompt;
 
     const url = `${GEMINI_API_BASE}/models/${model}:generateVideos?key=${apiKey}`;
     const body: Record<string, unknown> = {
-      prompt: prompt || "Animate this image",
-      image: {
-        imageBytes: Buffer.from(imageBytes).toString("base64"),
-        mimeType: "image/png"
-      }
+      instances: [
+        {
+          prompt: prompt || "Animate this image",
+          image: {
+            bytesBase64Encoded: Buffer.from(imageBytes).toString("base64"),
+            mimeType: "image/png"
+          }
+        }
+      ]
     };
-    if (Object.keys(config).length > 0) body.config = config;
+    if (Object.keys(parameters).length > 0) body.parameters = parameters;
 
     const res = await fetch(url, {
       method: "POST",
@@ -584,7 +602,7 @@ async function pollVideoOperation(
 ): Promise<string> {
   // If the operation already has the result, return it
   if (operation.done) {
-    return extractVideoFromResponse(operation);
+    return extractVideoFromResponse(apiKey, operation);
   }
 
   // Otherwise poll the operation
@@ -604,14 +622,17 @@ async function pollVideoOperation(
 
     const pollData = (await pollRes.json()) as Record<string, unknown>;
     if (pollData.done) {
-      return extractVideoFromResponse(pollData);
+      return extractVideoFromResponse(apiKey, pollData);
     }
   }
 
   throw new Error("Video generation timed out");
 }
 
-function extractVideoFromResponse(data: Record<string, unknown>): string {
+async function extractVideoFromResponse(
+  apiKey: string,
+  data: Record<string, unknown>
+): Promise<string> {
   const response = (data.response ?? data) as Record<string, unknown>;
   const generatedVideos = response.generatedVideos as
     | Array<Record<string, unknown>>
@@ -623,10 +644,22 @@ function extractVideoFromResponse(data: Record<string, unknown>): string {
   const video = generatedVideos[0].video as Record<string, unknown> | undefined;
   if (!video) throw new Error("No video in response");
 
+  // Veo may return inline base64 bytes or a download URI. Prefer inline bytes;
+  // otherwise download the file (the URI needs the API key appended).
   const videoBytes = video.videoBytes as string | undefined;
-  if (!videoBytes) throw new Error("No video bytes in response");
+  if (videoBytes) return videoBytes;
 
-  return videoBytes;
+  const videoUri = video.uri as string | undefined;
+  if (videoUri) {
+    const sep = videoUri.includes("?") ? "&" : "?";
+    const dlRes = await fetch(`${videoUri}${sep}key=${apiKey}`);
+    if (!dlRes.ok) {
+      throw new Error(`Gemini video download failed ${dlRes.status}`);
+    }
+    return Buffer.from(await dlRes.arrayBuffer()).toString("base64");
+  }
+
+  throw new Error("No video bytes in response");
 }
 
 // ── Audio nodes ─────────────────────────────────────────────────────────────
@@ -789,6 +822,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
         const wavBytes = encodeWav(pcmBytes, 24000, 1, 16);
         return {
           output: {
+            type: "audio",
             uri: "",
             data: Buffer.from(wavBytes).toString("base64")
           }
