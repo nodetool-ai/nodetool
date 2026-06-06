@@ -80,16 +80,15 @@ describe("removeNulls", () => {
     expect("b" in obj).toBe(false);
   });
 
-  it("removes null values from nested objects", () => {
+  it("does not recurse into nested objects (preserves pass-through dicts)", () => {
     const obj: Record<string, unknown> = {
       a: 1,
-      nested: { x: "keep", y: null, z: undefined }
+      nested: { x: "keep", y: null, z: "" }
     };
     removeNulls(obj);
     expect(obj.a).toBe(1);
-    expect((obj.nested as Record<string, unknown>).x).toBe("keep");
-    expect("y" in (obj.nested as Record<string, unknown>)).toBe(false);
-    expect("z" in (obj.nested as Record<string, unknown>)).toBe(false);
+    // Nested values are left untouched — dict[...] inputs must keep their shape.
+    expect(obj.nested).toEqual({ x: "keep", y: null, z: "" });
   });
 
   it("keeps zero and false values", () => {
@@ -208,6 +207,27 @@ describe("outputToImageRef", () => {
       type: "image",
       uri: "https://replicate.com/img.png"
     });
+  });
+
+  it("extracts URL from object with a named asset field", () => {
+    expect(
+      outputToImageRef({ image: "https://replicate.com/img.png" })
+    ).toEqual({ type: "image", uri: "https://replicate.com/img.png" });
+  });
+
+  it("extracts URL from a nested FileOutput-like object", () => {
+    expect(
+      outputToImageRef({ output: { url: "https://replicate.com/img.png" } })
+    ).toEqual({ type: "image", uri: "https://replicate.com/img.png" });
+  });
+
+  it("ignores non-URL string fields when scanning objects", () => {
+    expect(
+      outputToImageRef({
+        status: "succeeded",
+        image: "https://replicate.com/img.png"
+      })
+    ).toEqual({ type: "image", uri: "https://replicate.com/img.png" });
   });
 });
 
