@@ -36,6 +36,7 @@
     "@nodetool-ai/fal-nodes": "*",
     "@nodetool-ai/kie-nodes": "*",
     "@nodetool-ai/topaz-nodes": "*",
+    "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/atlascloud-nodes": "*",
     "@nodetool-ai/together-nodes": "*",
     "@nodetool-ai/huggingface": "*",

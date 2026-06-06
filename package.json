@@ -38,6 +38,7 @@
     "packages/kie-codegen",
     "packages/kie-nodes",
     "packages/topaz-nodes",
+    "packages/reve-nodes",
     "packages/atlascloud-nodes",
     "packages/together-nodes",
     "packages/sandbox",

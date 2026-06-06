@@ -394,6 +394,12 @@ export async function run(
   } catch {
     // Some environments do not have the Hugging Face node package in a runnable state.
   }
+  try {
+    const { registerReveNodes } = await import("@nodetool-ai/reve-nodes");
+    registerReveNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the Reve node package in a runnable state.
+  }
 
   const resolveExecutor = (node: { id: string; type: string }) => {
     if (opts?.registry?.has(node.type)) {
