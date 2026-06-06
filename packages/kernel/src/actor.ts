@@ -24,7 +24,9 @@ import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.actor");
 import type { ProcessingContext, NodeExecutor } from "@nodetool-ai/runtime";
-import { withNodeSpan } from "@nodetool-ai/runtime";
+// Span helpers via the narrow `/tracing` subpath — keeps the runtime
+// provider / python-bridge barrel out of thin (browser) bundles.
+import { withNodeSpan } from "@nodetool-ai/runtime/tracing";
 import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";

@@ -41,6 +41,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./context": {
+      "nodetool-dev": "./src/context.ts",
+      "types": "./dist/context.d.ts",
+      "import": "./dist/context.js",
+      "default": "./dist/context.js"
+    },
+    "./tracing": {
+      "nodetool-dev": "./src/tracing-helpers.ts",
+      "types": "./dist/tracing-helpers.d.ts",
+      "import": "./dist/tracing-helpers.js",
+      "default": "./dist/tracing-helpers.js"
     }
   },
   "license": "MIT",
