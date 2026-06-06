@@ -31,6 +31,7 @@
     "@nodetool-ai/dsl": "*",
     "@nodetool-ai/fal-nodes": "*",
     "@nodetool-ai/replicate-nodes": "*",
+    "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/huggingface-nodes": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/models": "*",

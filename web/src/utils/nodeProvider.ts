@@ -22,6 +22,7 @@ const namespaceToSecretKey: Record<string, string> = {
   calendly: "CALENDLY_API_TOKEN",
   kie: "KIE_API_KEY",
   topaz: "TOPAZ_API_KEY",
+  reve: "REVE_API_KEY",
   fal: "FAL_API_KEY",
   elevenlabs: "ELEVENLABS_API_KEY",
   search: "SERPAPI_API_KEY"
@@ -53,6 +54,7 @@ const secretKeyToDisplayName: Record<string, string> = {
   HF_TOKEN: "HuggingFace Token",
   KIE_API_KEY: "Kie API Key",
   TOPAZ_API_KEY: "Topaz API Key",
+  REVE_API_KEY: "Reve API Key",
   FAL_API_KEY: "FAL API Key",
   ELEVENLABS_API_KEY: "ElevenLabs API Key",
   SERPAPI_API_KEY: "SerpAPI Key"
