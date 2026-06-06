@@ -531,4 +531,4 @@ async function updateTrayMenu(): Promise<void> {
   trayInstance.setToolTip("NodeTool Desktop");
 }
 
-export { createTray, updateTrayMenu, fetchWorkflows };
+export { createTray, updateTrayMenu };

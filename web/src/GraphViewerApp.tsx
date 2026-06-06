@@ -329,7 +329,7 @@ export default function App() {
           return;
         }
 
-        const json = JSON.parse(atob(dataParam));
+        const json: unknown = JSON.parse(atob(dataParam));
         const workflow = parseWorkflow(json);
 
         // 1. Build metadata for all node types

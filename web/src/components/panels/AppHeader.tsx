@@ -19,18 +19,6 @@ import { isProduction } from "../../lib/env";
 
 const workspacesEnabled = !isProduction;
 
-/** Human-readable mode name for the current route, shown in the brand label. */
-function modeLabelForPath(path: string): string {
-  if (path.startsWith("/editor")) return "Editor";
-  if (path.startsWith("/chat")) return "Chat";
-  if (path.startsWith("/apps")) return "App";
-  if (path.startsWith("/timeline")) return "Timeline";
-  if (path.startsWith("/sketch")) return "Image";
-  if (path.startsWith("/templates")) return "Templates";
-  if (path.startsWith("/dashboard")) return "Dashboard";
-  return "";
-}
-
 const styles = (theme: Theme) =>
   css({
     "&": {

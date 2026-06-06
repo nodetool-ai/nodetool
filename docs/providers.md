@@ -28,12 +28,16 @@ The capability system uses introspection to automatically detect which features 
 | ------------------------------ | ---------------------------- | -------------------------------- |
 | `GENERATE_MESSAGE`             | Single message generation    | `generate_message()`             |
 | `GENERATE_MESSAGES`            | Streaming message generation | `generate_messages()`            |
+| `GENERATE_EMBEDDING`           | Text → embedding vectors     | `generate_embedding()`           |
 | `TEXT_TO_IMAGE`                | Generate images from text    | `text_to_image()`                |
 | `IMAGE_TO_IMAGE`               | Transform images with text   | `image_to_image()`               |
 | `TEXT_TO_VIDEO`                | Generate videos from text    | `text_to_video()`                |
 | `IMAGE_TO_VIDEO`               | Animate images into videos   | `image_to_video()`               |
 | `TEXT_TO_SPEECH`               | Convert text to speech       | `text_to_speech()`               |
+| `TEXT_TO_AUDIO`                | Generate music/audio         | `text_to_audio()`                |
 | `AUTOMATIC_SPEECH_RECOGNITION` | Transcribe audio to text     | `automatic_speech_recognition()` |
+| `TEXT_TO_3D`                   | Generate 3D models from text | `text_to_3d()`                   |
+| `IMAGE_TO_3D`                  | Generate 3D models from image| `image_to_3d()`                  |
 
 ## Available Providers
 

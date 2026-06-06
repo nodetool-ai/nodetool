@@ -152,7 +152,7 @@ describe("LoadImageFolderNode — include_subdirectories", () => {
     const allYields = await collectGen(node.genProcess());
     const results = allYields.filter((item) => "image" in item);
 
-    const names = results.map((r) => r.name);
+    const names = results.map((r) => path.basename(String(r.path)));
     expect(names).toContain("top.png");
     expect(names).toContain("nested.png");
     expect(results.length).toBe(2);
@@ -171,7 +171,7 @@ describe("LoadImageFolderNode — include_subdirectories", () => {
     const allYields = await collectGen(node.genProcess());
     const results = allYields.filter((item) => "image" in item);
 
-    const names = results.map((r) => r.name);
+    const names = results.map((r) => path.basename(String(r.path)));
     expect(names).toContain("top.png");
     expect(names).not.toContain("nested.png");
     expect(results.length).toBe(1);
@@ -195,7 +195,7 @@ describe("LoadImageFolderNode — extensions filter", () => {
     const allYields = await collectGen(node.genProcess());
     const results = allYields.filter((item) => "image" in item);
 
-    const names = results.map((r) => r.name);
+    const names = results.map((r) => path.basename(String(r.path)));
     expect(names).toContain("photo.png");
     expect(names).not.toContain("photo.bmp");
     expect(results.length).toBe(1);
@@ -212,7 +212,7 @@ describe("LoadImageFolderNode — extensions filter", () => {
     const allYields = await collectGen(node.genProcess());
     const results = allYields.filter((item) => "image" in item);
 
-    const names = results.map((r) => r.name);
+    const names = results.map((r) => path.basename(String(r.path)));
     expect(names).toContain("photo.png");
     expect(names).not.toContain("notes.txt");
   });
@@ -234,7 +234,7 @@ describe("LoadImageFolderNode — pattern matching", () => {
     const allYields = await collectGen(node.genProcess());
     const results = allYields.filter((item) => "image" in item);
 
-    const names = results.map((r) => r.name);
+    const names = results.map((r) => path.basename(String(r.path)));
     expect(names).toContain("cat.png");
     expect(names).not.toContain("dog.png");
     expect(results.length).toBe(1);

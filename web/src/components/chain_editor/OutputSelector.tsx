@@ -20,7 +20,7 @@ function formatType(type: { type: string; type_args: Array<{ type: string }> }):
   return type.type;
 }
 
-export const OutputSelector: React.FC<OutputSelectorProps> = ({ outputs, selectedOutput, onSelect }) => {
+export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function OutputSelector({ outputs, selectedOutput, onSelect }) {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const selected = outputs.find((o) => o.name === selectedOutput);
@@ -81,4 +81,4 @@ export const OutputSelector: React.FC<OutputSelectorProps> = ({ outputs, selecte
       </Menu>
     </>
   );
-};
+});

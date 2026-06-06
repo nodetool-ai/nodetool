@@ -295,7 +295,15 @@ export class CreateDirectoryLibNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const p = expandUser(String(this.path ?? ""));
     if (!p) throw new Error("'path' field cannot be empty");
-    await fs.mkdir(p, { recursive: Boolean(this.exist_ok ?? true) });
+    const existOk = Boolean(this.exist_ok ?? true);
+    // `recursive` in fs.mkdir controls BOTH parent creation and
+    // suppress-error-on-exists. Parent directories should always be created;
+    // `exist_ok` should only govern whether an existing leaf is an error, so
+    // handle that check separately rather than tying it to `recursive`.
+    if (!existOk && existsSync(p)) {
+      throw new Error(`Directory already exists: ${p}`);
+    }
+    await fs.mkdir(p, { recursive: true });
     return {};
   }
 }
@@ -800,7 +808,8 @@ export class SplitPathLibNode extends BaseNode {
   static readonly description =
     "Split a path into directory and file components.\n    files, path, split\n\n    Use cases:\n    - Separate directory from filename\n    - Process path components separately\n    - Extract path parts";
   static readonly metadataOutputTypes = {
-    output: "dict"
+    dirname: "str",
+    basename: "str"
   };
 
   @prop({
@@ -823,7 +832,8 @@ export class SplitExtensionLibNode extends BaseNode {
   static readonly description =
     "Split a path into root and extension components.\n    files, path, extension, split\n\n    Use cases:\n    - Extract file extension\n    - Process filename without extension\n    - Handle file types";
   static readonly metadataOutputTypes = {
-    output: "dict"
+    root: "str",
+    extension: "str"
   };
 
   @prop({

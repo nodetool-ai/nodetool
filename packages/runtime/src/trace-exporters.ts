@@ -262,7 +262,9 @@ function colorize(s: string, color: keyof typeof COLOR): string {
 }
 
 function formatPretty(r: TraceRecord): string {
-  const dur = `${r.duration_ms.toFixed(1)}ms`;
+  // duration_ms is already integer-rounded by hrTimeToMs, so toFixed(1) only
+  // ever appended a meaningless ".0".
+  const dur = `${r.duration_ms}ms`;
   const statusColor: keyof typeof COLOR =
     r.status.code === "ERROR"
       ? "red"
