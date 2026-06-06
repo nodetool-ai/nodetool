@@ -158,6 +158,25 @@ describe("resolveTrackPlacement", () => {
     expect(result!.overlappingClipIds).toEqual([]);
   });
 
+  it("ignores excluded clips during overlap detection (e.g. the dragged clip)", () => {
+    const clips = [
+      { id: "self", trackId: "t1", startMs: 1000, durationMs: 1000 },
+      { id: "other", trackId: "t1", startMs: 3000, durationMs: 500 },
+    ];
+    // Nudge the dragged clip slightly within its own footprint.
+    const result = resolveTrackPlacement({
+      tracks,
+      trackLayouts,
+      pointerY: 20,
+      desiredStartMs: 1050,
+      durationMs: 1000,
+      clips,
+      excludeClipIds: new Set(["self"]),
+    });
+    expect(result!.wouldOverlap).toBe(false);
+    expect(result!.overlappingClipIds).toEqual([]);
+  });
+
   it("treats undefined mediaType as compatible", () => {
     const result = resolveTrackPlacement({
       tracks,

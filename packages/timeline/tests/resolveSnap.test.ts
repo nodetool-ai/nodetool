@@ -52,6 +52,15 @@ describe("resolveSnap", () => {
     expect(result.distancePx).toBe(0);
   });
 
+  it("reports snapped: true when a candidate sits exactly on the input time", () => {
+    // The closest candidate equals timeMs, so value is unchanged but a snap
+    // target was still found and adopted.
+    const result = resolveSnap(100, [100, 101], 5, 5);
+    expect(result.value).toBe(100);
+    expect(result.snapped).toBe(true);
+    expect(result.distanceMs).toBe(0);
+  });
+
   it("snaps when candidate is exactly at threshold edge", () => {
     // thresholdMs = 5 * 5 = 25. Candidate at 125 is distance 25, which is
     // <= thresholdMs, so it should snap.
