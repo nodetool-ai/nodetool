@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { asRows } from "./data.js";
 
 export class ChartRendererLibNode extends BaseNode {
   static readonly nodeType = "lib.charts.ChartRenderer";
@@ -120,14 +121,17 @@ export class ChartRendererLibNode extends BaseNode {
     const config = (this.chart_config ?? {}) as Record<string, unknown>;
     const width = Number(this.width ?? 640);
     const height = Number(this.height ?? 480);
-    const dataRef = (this.data ?? {}) as Record<string, unknown>;
 
-    const columns = (dataRef.columns ?? []) as Array<Record<string, unknown>>;
-    const rows = (dataRef.data ?? []) as unknown[][];
-
-    if (!rows.length) {
+    // Accept both dataframe shapes: row-records ({ rows }), as produced by the
+    // data nodes, and the canonical column matrix ({ columns, data }). asRows
+    // normalizes either into row records, which we turn into the column matrix
+    // chart.js consumes below.
+    const records = asRows(this.data ?? {});
+    if (!records.length) {
       throw new Error("Data is required for rendering the chart.");
     }
+    const colNames = [...new Set(records.flatMap((r) => Object.keys(r)))];
+    const rows = records.map((r) => colNames.map((name) => r[name] ?? null));
 
     let createCanvas: typeof import("@napi-rs/canvas").createCanvas;
     let napiPath2D: typeof import("@napi-rs/canvas").Path2D;
@@ -157,9 +161,6 @@ export class ChartRendererLibNode extends BaseNode {
 
     const configData = (config.data ?? {}) as Record<string, unknown>;
     const series = (configData.series ?? []) as Array<Record<string, unknown>>;
-
-    // Map column names
-    const colNames = columns.map((c) => String(c.name ?? c));
 
     // Determine chart type from first series (default to bar)
     const plotTypeMap: Record<string, string> = {

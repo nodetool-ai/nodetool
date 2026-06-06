@@ -44,6 +44,35 @@ function parseDateTime(value: string): Record<string, unknown> {
   };
 }
 
+function feedLink(block: string): string {
+  // RSS 2.0: <link>https://example.com/post</link>
+  const textLink = firstTag(block, ["link"]);
+  if (textLink) return textLink;
+  // Atom: <link href="https://example.com/post" rel="alternate" /> — the URL
+  // is in the href attribute, not the element text. Prefer rel="alternate",
+  // then a link with no rel, then the first link.
+  const linkTags = [...block.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]);
+  const preferred =
+    linkTags.find((tag) => /rel=["']alternate["']/i.test(tag)) ??
+    linkTags.find((tag) => !/\brel=/i.test(tag)) ??
+    linkTags[0];
+  if (preferred) {
+    const href = preferred.match(/\bhref=["']([^"']+)["']/i);
+    if (href) return decodeEntities(href[1]);
+  }
+  // Last resort: Atom <id> often holds the canonical URL.
+  return firstTag(block, ["id"]);
+}
+
+function feedAuthor(block: string): string {
+  const raw = firstTag(block, ["author", "dc:creator"]);
+  if (!raw) return "";
+  // Atom wraps the author in <author><name>...</name></author>; firstTag
+  // returns the inner markup, so extract <name> when present.
+  const name = firstTag(raw, ["name"]);
+  return name || raw;
+}
+
 function parseFeedItems(xml: string): Array<Record<string, unknown>> {
   const blocks = [
     ...xml.matchAll(/<(item|entry)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/gi)
@@ -52,10 +81,10 @@ function parseFeedItems(xml: string): Array<Record<string, unknown>> {
     const publishedRaw = firstTag(block, ["published", "pubDate", "updated"]);
     return {
       title: firstTag(block, ["title"]),
-      link: firstTag(block, ["link", "id"]),
+      link: feedLink(block),
       published: parseDateTime(publishedRaw),
       summary: firstTag(block, ["summary", "description", "content"]),
-      author: firstTag(block, ["author", "dc:creator"])
+      author: feedAuthor(block)
     };
   });
 }
