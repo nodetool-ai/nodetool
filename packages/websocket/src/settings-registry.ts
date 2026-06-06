@@ -382,6 +382,11 @@ sec(
   "Topaz Labs API key for image and video enhancement. Get yours at https://developer.topazlabs.com/"
 );
 sec(
+  "REVE_API_KEY",
+  "Reve",
+  "Reve API key for image creation, editing, and remix. Get yours at https://api.reve.com/"
+);
+sec(
   "ATLASCLOUD_API_KEY",
   "AtlasCloud",
   "AtlasCloud.ai API key for hosted image (GPT Image 2, Nano Banana) and video (Seedance 2.0) models. Get yours at https://www.atlascloud.ai/"
