@@ -8,6 +8,11 @@ export interface TrackPlacementInput {
   durationMs?: number;
   mediaType?: TimelineClip["mediaType"];
   clips?: ReadonlyArray<Pick<TimelineClip, "id" | "trackId" | "startMs" | "durationMs">>;
+  /**
+   * Clip ids to ignore during overlap detection — typically the clip(s) being
+   * dragged, which would otherwise report overlapping their own footprint.
+   */
+  excludeClipIds?: ReadonlySet<string>;
 }
 
 export interface TrackPlacementResult {
@@ -53,6 +58,7 @@ export function resolveTrackPlacement(
     durationMs = 0,
     mediaType,
     clips = [],
+    excludeClipIds,
   } = input;
 
   let targetLayout: { trackId: string; top: number; height: number } | undefined;
@@ -82,6 +88,7 @@ export function resolveTrackPlacement(
 
   for (const clip of clips) {
     if (clip.trackId !== targetTrack.id) continue;
+    if (excludeClipIds?.has(clip.id)) continue;
     const clipEnd = clip.startMs + clip.durationMs;
     if (desiredStartMs < clipEnd && endMs > clip.startMs) {
       overlappingClipIds.push(clip.id);
