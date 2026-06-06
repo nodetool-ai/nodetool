@@ -76,6 +76,30 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
     selector({ state: mockRunnerState })
 }));
 
+// NodeInputs renders ReactFlow Handles, which need a ReactFlow context not
+// present in these unit tests. Mock it to a probe that surfaces the props
+// that decide whether dynamic inputs (and thus handles) get rendered.
+jest.mock("../../node/NodeInputs", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    NodeInputs: (props: {
+      properties?: unknown[];
+      showDynamicInputs?: boolean;
+      editableDynamicInputs?: boolean;
+      defaultDynamicInputType?: { type?: string };
+    }) =>
+      React.createElement("div", {
+        "data-testid": "node-inputs",
+        "data-properties-count": String((props.properties ?? []).length),
+        "data-show-dynamic": String(props.showDynamicInputs !== false),
+        "data-editable-dynamic": String(!!props.editableDynamicInputs),
+        "data-default-type": props.defaultDynamicInputType?.type ?? ""
+      }),
+    default: () => null
+  };
+});
+
 const workflowId = "workflow-1";
 const jobId = "job-current";
 const nodeId = "node-1";
@@ -253,5 +277,58 @@ describe("ContentCardBody results", () => {
     const container = screen.getByLabelText("Generated text");
     expect(container).toHaveTextContent("first");
     expect(container).toHaveTextContent("second");
+  });
+});
+
+describe("ContentCardBody dynamic inputs", () => {
+  const dynamicMetadata = (): NodeMetadata =>
+    ({
+      ...metadataForOutput("str"),
+      node_type: "nodetool.text.Concat",
+      title: "Concatenate Text",
+      inline_fields: [],
+      input_fields: [],
+      supports_dynamic_inputs: true
+    }) as unknown as NodeMetadata;
+
+  const renderDynamicCard = (dynamicProperties: Record<string, unknown>) =>
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContentCardBody
+          id={nodeId}
+          nodeType="nodetool.text.Concat"
+          nodeMetadata={dynamicMetadata()}
+          data={
+            {
+              ...nodeData,
+              dynamic_properties: dynamicProperties
+            } as NodeData
+          }
+          workflowId={workflowId}
+          isOutputNode={true}
+        />
+      </ThemeProvider>
+    );
+
+  it("renders a handle-bearing input row for each user-added dynamic input", () => {
+    const { container } = renderDynamicCard({ input_1: "" });
+
+    const dynamicBlock = container.querySelector(".dynamic-inputs");
+    expect(dynamicBlock).not.toBeNull();
+    const nodeInputs = dynamicBlock!.querySelector(
+      '[data-testid="node-inputs"]'
+    );
+    // Dynamic inputs render (so each gets a handle) and are editable so the
+    // user can rename/delete them.
+    expect(nodeInputs).toHaveAttribute("data-show-dynamic", "true");
+    expect(nodeInputs).toHaveAttribute("data-editable-dynamic", "true");
+    // Unconnected inputs fall back to the node's primary-output type (str
+    // here) so they get a real editor instead of the uneditable `any`.
+    expect(nodeInputs).toHaveAttribute("data-default-type", "str");
+  });
+
+  it("omits the dynamic input block when nothing has been added", () => {
+    const { container } = renderDynamicCard({});
+    expect(container.querySelector(".dynamic-inputs")).toBeNull();
   });
 });

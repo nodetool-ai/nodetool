@@ -2361,7 +2361,7 @@ export class ConcatTextNode extends BaseNode {
   static readonly body = "content_card";
   static readonly title = "Concatenate Text";
   static readonly description =
-    "Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button.\n    text, combine, add, concatenate, merge, join, append";
+    "Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button.\n    +, text, combine, add, concatenate, merge, join, append";
   static readonly metadataOutputTypes = {
     output: "str"
   };

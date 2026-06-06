@@ -302,6 +302,7 @@ export {
   PasteNode,
   ScaleNode,
   ResizeNode,
+  CanvasResizeNode,
   CropNode,
   FitNode,
   ChannelsNode,

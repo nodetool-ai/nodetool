@@ -951,6 +951,15 @@ export class SchemaParser {
             tsType: "audio",
             propType: "audio"
           };
+        } else if (lower === "mask_url") {
+          // mask_url → mask (FAL API still expects mask_url)
+          return {
+            ...f,
+            name: "mask",
+            apiParamName: f.name,
+            tsType: "image",
+            propType: "image"
+          };
         }
       }
       return f;

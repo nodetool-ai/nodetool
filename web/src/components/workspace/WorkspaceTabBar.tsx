@@ -1,6 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent
+} from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -9,11 +15,12 @@ import {
   type WorkspaceTab,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import NotificationButton from "../panels/NotificationButton";
 import OpenMenu from "./OpenMenu";
+import WorkspaceTabItem from "./WorkspaceTabItem";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
 const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
@@ -93,7 +100,25 @@ const styles = (theme: Theme) =>
       "&.active": {
         color: theme.vars.palette.text.primary,
         backgroundColor: "var(--c_editor_bg_color)"
+      },
+      "&.drop-target-left": {
+        boxShadow: `inset 2px 0 0 ${theme.vars.palette.primary.main}`
+      },
+      "&.drop-target-right": {
+        boxShadow: `inset -2px 0 0 ${theme.vars.palette.primary.main}`
       }
+    },
+
+    "& .tab-input": {
+      flex: 1,
+      minWidth: 0,
+      background: "transparent",
+      border: "none",
+      color: "inherit",
+      padding: 0,
+      fontSize: "inherit",
+      width: "100%",
+      outline: "none"
     },
 
     "& .glyph": { flexShrink: 0, fontSize: "var(--fontSizeSmall)" },
@@ -104,17 +129,28 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap",
       minWidth: 0
     },
-    "& .close": {
+    "& .dirty-dot": {
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      backgroundColor: theme.vars.palette.warning.main,
+      flexShrink: 0
+    },
+    "& .tab-close": {
       flexShrink: 0,
       width: "16px",
       height: "16px",
-      lineHeight: "16px",
-      textAlign: "center",
-      borderRadius: "3px",
+      minWidth: "16px",
+      padding: 0,
       color: theme.vars.palette.text.disabled,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         backgroundColor: "rgba(255,255,255,0.08)"
+      },
+      "& .MuiSvgIcon-root": {
+        width: "14px",
+        height: "14px",
+        fontSize: "14px"
       }
     },
 
@@ -207,9 +243,15 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
+  const closeOthers = useWorkspaceTabsStore((state) => state.closeOthers);
   const setMode = useWorkspaceTabsStore((state) => state.setMode);
+  const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
 
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
+  const workflowManagerStore = useWorkflowManagerStore();
+  const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
+  const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,
@@ -218,6 +260,109 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
   const newTabButtonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    id: string;
+    position: "left" | "right";
+  } | null>(null);
+
+  const syncWorkflowOrderFromTabs = useCallback(() => {
+    const tabOrder = useWorkspaceTabsStore
+      .getState()
+      .tabs.filter((tab) => tab.type === "workflow")
+      .map((tab) => tab.ref);
+
+    let manager = workflowManagerStore.getState();
+    for (let targetIdx = 0; targetIdx < tabOrder.length; targetIdx++) {
+      const wantId = tabOrder[targetIdx];
+      const currentIdx = manager.openWorkflows.findIndex((wf) => wf.id === wantId);
+      if (currentIdx !== targetIdx && currentIdx !== -1) {
+        manager.reorderWorkflows(currentIdx, targetIdx);
+        manager = workflowManagerStore.getState();
+      }
+    }
+  }, [workflowManagerStore]);
+
+  const handleDragStart = useCallback(
+    (event: DragEvent<HTMLDivElement>, tabId: string) => {
+      event.dataTransfer.setData("text/plain", tabId);
+    },
+    []
+  );
+
+  const handleDragOver = useCallback(
+    (event: DragEvent<HTMLDivElement>, tab: WorkspaceTab) => {
+      event.preventDefault();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const position =
+        event.clientX < rect.left + rect.width / 2 ? "left" : "right";
+      setDropTarget({ id: tab.id, position });
+    },
+    []
+  );
+
+  const handleDragLeave = useCallback(() => {
+    setDropTarget(null);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>, targetTab: WorkspaceTab) => {
+      event.preventDefault();
+      const sourceTabId = event.dataTransfer.getData("text/plain");
+      if (!sourceTabId || sourceTabId === targetTab.id || !dropTarget) {
+        setDropTarget(null);
+        return;
+      }
+
+      const currentTabs = useWorkspaceTabsStore.getState().tabs;
+      const sourceIndex = currentTabs.findIndex((tab) => tab.id === sourceTabId);
+      const targetIndex = currentTabs.findIndex((tab) => tab.id === targetTab.id);
+      if (sourceIndex === -1 || targetIndex === -1) {
+        setDropTarget(null);
+        return;
+      }
+
+      let toIndex =
+        dropTarget.position === "right" ? targetIndex + 1 : targetIndex;
+      if (sourceIndex < toIndex) {
+        toIndex -= 1;
+      }
+
+      moveTab(sourceTabId, toIndex);
+
+      const sourceTab = currentTabs[sourceIndex];
+      if (sourceTab?.type === "workflow") {
+        syncWorkflowOrderFromTabs();
+      }
+
+      setDropTarget(null);
+    },
+    [dropTarget, moveTab, syncWorkflowOrderFromTabs]
+  );
+
+  const commitWorkflowRename = useCallback(
+    async (tab: WorkspaceTab, newName: string) => {
+      const trimmed = newName.trim();
+      setEditingTabId(null);
+      if (tab.type !== "workflow" || trimmed.length === 0) {
+        return;
+      }
+
+      const workflow = getWorkflow(tab.ref);
+      if (!workflow || workflow.name === trimmed) {
+        return;
+      }
+
+      const updatedWorkflow = { ...workflow, name: trimmed };
+      updateWorkflow(updatedWorkflow);
+      try {
+        await saveWorkflow(updatedWorkflow);
+      } catch {
+        updateWorkflow(workflow);
+      }
+    },
+    [getWorkflow, updateWorkflow, saveWorkflow]
+  );
 
   const handleClose = useCallback(
     (tab: WorkspaceTab) => {
@@ -228,6 +373,31 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     },
     [closeTab, removeWorkflow]
   );
+
+  const handleCloseOthers = useCallback(
+    (keepTab: WorkspaceTab) => {
+      const toClose = useWorkspaceTabsStore
+        .getState()
+        .tabs.filter((tab) => tab.id !== keepTab.id);
+      for (const tab of toClose) {
+        if (tab.type === "workflow") {
+          removeWorkflow(tab.ref);
+        }
+      }
+      closeOthers(keepTab.id);
+    },
+    [closeOthers, removeWorkflow]
+  );
+
+  const handleCloseAll = useCallback(() => {
+    const snapshot = [...useWorkspaceTabsStore.getState().tabs];
+    for (const tab of snapshot) {
+      if (tab.type === "workflow") {
+        removeWorkflow(tab.ref);
+      }
+      closeTab(tab.id);
+    }
+  }, [closeTab, removeWorkflow]);
 
   return (
     <div css={tabBarStyles} className="workspace-tabbar">
@@ -250,27 +420,26 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       </button>
       <div className="tabs">
         {tabs.map((tab) => (
-          <div
+          <WorkspaceTabItem
             key={tab.id}
-            className={`tab${tab.id === activeTabId ? " active" : ""}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            <span className="glyph" style={{ color: TYPE_COLOR[tab.type] }}>
-              {TYPE_GLYPH[tab.type]}
-            </span>
-            <span className="tab-name">{tab.title}</span>
-            <span
-              className="close"
-              role="button"
-              aria-label={`Close ${tab.title}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                handleClose(tab);
-              }}
-            >
-              ×
-            </span>
-          </div>
+            tab={tab}
+            isActive={tab.id === activeTabId}
+            isEditing={editingTabId === tab.id}
+            dropTarget={dropTarget}
+            typeColor={TYPE_COLOR[tab.type]}
+            typeGlyph={TYPE_GLYPH[tab.type]}
+            onActivate={setActiveTab}
+            onBeginRename={() => setEditingTabId(tab.id)}
+            onClose={handleClose}
+            onCloseOthers={handleCloseOthers}
+            onCloseAll={handleCloseAll}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onCommitRename={commitWorkflowRename}
+            onCancelRename={() => setEditingTabId(null)}
+          />
         ))}
       </div>
 

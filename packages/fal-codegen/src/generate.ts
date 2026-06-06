@@ -3,9 +3,10 @@
  * CLI for generating FAL node manifest from OpenAPI schemas.
  *
  * Also fetches per-endpoint unit pricing from the FAL pricing API and writes
- * two JSON bundles next to the manifest (under `src/generated/`). When
- * `FAL_API_KEY` is unset or `--no-pricing` is passed the bundles are emitted
- * as empty stubs so consumers always find parseable JSON at the alias paths.
+ * two JSON bundles next to the manifest (under `src/generated/`). Pass
+ * `--no-pricing` to leave existing bundles untouched. When `FAL_API_KEY` is
+ * unset, existing bundles are preserved; empty stubs are written only when
+ * neither file exists yet (fresh checkout).
  *
  * Usage:
  *   npx tsx src/generate.ts
@@ -28,7 +29,7 @@ import type { NodeSpec } from "./types.js";
 import { fetchFalPricing } from "./fal-pricing-fetch.js";
 import {
   buildPricingBundles,
-  writeEmptyPricingBundles,
+  preserveOrWriteEmptyPricingBundles,
   writePricingBundles,
   type SpecWithModule
 } from "./fal-pricing-write.js";
@@ -86,18 +87,24 @@ async function generatePricing(
   const paths = pricingPaths(manifestPath);
 
   if (skip) {
-    console.log("\nSkipping pricing fetch (--no-pricing)");
-    await writeEmptyPricingBundles(paths);
+    console.log("\nSkipping pricing update (--no-pricing)");
     return;
   }
 
   const apiKey = process.env.FAL_API_KEY;
   if (!apiKey) {
-    console.warn(
-      "\nFAL_API_KEY not set — writing empty pricing bundles. " +
-        "Set FAL_API_KEY=... or pass --no-pricing to silence this warning."
-    );
-    await writeEmptyPricingBundles(paths);
+    const outcome = await preserveOrWriteEmptyPricingBundles(paths);
+    if (outcome === "preserved") {
+      console.warn(
+        "\nFAL_API_KEY not set — keeping existing pricing bundles. " +
+          "Set FAL_API_KEY=... to refresh pricing, or pass --no-pricing to silence this."
+      );
+    } else {
+      console.warn(
+        "\nFAL_API_KEY not set — wrote empty pricing stubs (no existing bundles). " +
+          "Set FAL_API_KEY=... to populate pricing."
+      );
+    }
     return;
   }
 

@@ -1,8 +1,13 @@
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildPricingBundles,
   FAL_PRICING_SCHEMA_VERSION,
   nodeTypeFor,
+  preserveOrWriteEmptyPricingBundles,
+  pricingBundleFilesExist,
   type SpecWithModule
 } from "../src/fal-pricing-write.js";
 import type { PricingEntry } from "../src/fal-pricing-fetch.js";
@@ -98,5 +103,55 @@ describe("buildPricingBundles", () => {
     );
     expect(byNodeType.byNodeType).toEqual({});
     expect(catalog.prices).toEqual({});
+  });
+});
+
+describe("preserveOrWriteEmptyPricingBundles", () => {
+  it("preserves existing bundles when files are already present", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "fal-pricing-"));
+    const paths = {
+      byNodeTypePath: join(dir, "fal-node-type-pricing.json"),
+      catalogPath: join(dir, "fal-unit-pricing.json")
+    };
+
+    try {
+      await writeFile(
+        paths.byNodeTypePath,
+        JSON.stringify({ schemaVersion: 1, writtenAt: "keep-me", byNodeType: { a: 1 } })
+      );
+      await writeFile(
+        paths.catalogPath,
+        JSON.stringify({ schemaVersion: 1, writtenAt: "keep-me", prices: { b: 1 } })
+      );
+
+      expect(await pricingBundleFilesExist(paths)).toBe(true);
+      expect(await preserveOrWriteEmptyPricingBundles(paths)).toBe("preserved");
+
+      const byNodeType = JSON.parse(await readFile(paths.byNodeTypePath, "utf8"));
+      expect(byNodeType.writtenAt).toBe("keep-me");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("writes empty stubs only when bundles are missing", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "fal-pricing-"));
+    const paths = {
+      byNodeTypePath: join(dir, "fal-node-type-pricing.json"),
+      catalogPath: join(dir, "fal-unit-pricing.json")
+    };
+
+    try {
+      expect(await pricingBundleFilesExist(paths)).toBe(false);
+      expect(await preserveOrWriteEmptyPricingBundles(paths)).toBe("stubbed");
+
+      const byNodeType = JSON.parse(await readFile(paths.byNodeTypePath, "utf8"));
+      const catalog = JSON.parse(await readFile(paths.catalogPath, "utf8"));
+      expect(byNodeType.byNodeType).toEqual({});
+      expect(catalog.prices).toEqual({});
+      expect(byNodeType.writtenAt).toBe(new Date(0).toISOString());
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

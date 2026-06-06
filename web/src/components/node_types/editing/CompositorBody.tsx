@@ -253,9 +253,10 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
     []
   );
 
+  // Handles render top-to-bottom; highest image_N is the top (frontmost) layer.
   const handleProperties = useMemo<Property[]>(
     () =>
-      imageKeys.map((key) => ({
+      [...imageKeys].reverse().map((key) => ({
         name: key,
         type: imageType,
         required: false

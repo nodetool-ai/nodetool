@@ -26,6 +26,20 @@ export interface NodeInputsProps {
   ) => void;
   onDeleteProperty?: (propertyName: string) => void;
   editableDynamicInputs?: boolean;
+  /**
+   * Render the node's dynamic-property inputs. Defaults to `true`. Set
+   * `false` when a body renders dynamic inputs in a separate block (e.g.
+   * `ContentCardBody`) and only wants the static `properties` here.
+   */
+  showDynamicInputs?: boolean;
+  /**
+   * Fallback type for an unconnected dynamic input that has no declared
+   * `dynamic_inputs` entry. Without it such inputs resolve to `any` (no
+   * editor). Combine-style nodes (Concat, mixers) pass their primary-output
+   * type so a Concatenate-text input becomes an editable `str`, etc. A
+   * connected edge's source type still wins over this.
+   */
+  defaultDynamicInputType?: TypeMetadata;
 }
 
 interface NodeInputProps {
@@ -95,7 +109,9 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   showHandle = true,
   showFields = true,
   layout,
-  editableDynamicInputs = true
+  editableDynamicInputs = true,
+  showDynamicInputs = true,
+  defaultDynamicInputType
 }) => {
   const rootStyles = useMemo(
     () =>
@@ -191,11 +207,20 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
           } as TypeMetadata;
           description = inputMeta.description;
       } else {
-        resolvedType = {
-          type: "any",
-          type_args: [],
-          optional: false
-        } as TypeMetadata;
+        // Unconnected, untyped dynamic input: fall back to the node's
+        // declared default type (so a Concat input is an editable `str`,
+        // not an uneditable `any`). A connected edge's source type wins.
+        resolvedType = defaultDynamicInputType
+          ? ({
+              ...defaultDynamicInputType,
+              type_args: defaultDynamicInputType.type_args ?? [],
+              optional: defaultDynamicInputType.optional ?? false
+            } as TypeMetadata)
+          : ({
+              type: "any",
+              type_args: [],
+              optional: false
+            } as TypeMetadata);
         if (incoming) {
           const sourceNode = findNode(incoming.source);
           if (sourceNode) {
@@ -248,6 +273,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     layout,
     data,
     editableDynamicInputs,
+    defaultDynamicInputType,
     findNode,
     getMetadata
   ]);
@@ -255,7 +281,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   return (
     <div className={`node-inputs node-drag-handle node-${id}`} css={rootStyles}>
       {allInputs}
-      {dynamicInputElements}
+      {showDynamicInputs && dynamicInputElements}
     </div>
   );
 };

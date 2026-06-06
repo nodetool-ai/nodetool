@@ -11,6 +11,8 @@
  *     the generic `PricingBundleSpec` shape before delegating.
  */
 
+import { access } from "node:fs/promises";
+
 import {
   buildPricingBundles as buildPricingBundlesGeneric,
   writePricingBundles as writePricingBundlesGeneric,
@@ -66,3 +68,32 @@ export function buildPricingBundles(
 
 export const writePricingBundles = writePricingBundlesGeneric;
 export const writeEmptyPricingBundles = writeEmptyPricingBundlesGeneric;
+
+/** True when both pricing bundle files already exist on disk. */
+export async function pricingBundleFilesExist(
+  paths: PricingOutputPaths
+): Promise<boolean> {
+  try {
+    await Promise.all([
+      access(paths.byNodeTypePath),
+      access(paths.catalogPath)
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * When codegen runs without a provider API key, keep committed bundles intact
+ * and only emit empty stubs for a fresh checkout that has no pricing files yet.
+ */
+export async function preserveOrWriteEmptyPricingBundles(
+  paths: PricingOutputPaths
+): Promise<"preserved" | "stubbed"> {
+  if (await pricingBundleFilesExist(paths)) {
+    return "preserved";
+  }
+  await writeEmptyPricingBundles(paths);
+  return "stubbed";
+}
