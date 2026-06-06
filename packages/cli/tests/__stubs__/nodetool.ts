@@ -282,6 +282,7 @@ export const registerElevenLabsNodes = (_reg?: unknown) => {};
 export const registerTransformersJsNodes = (_reg?: unknown) => {};
 export const registerFalNodes = (_reg?: unknown) => {};
 export const registerReplicateNodes = (_reg?: unknown) => {};
+export const registerHuggingFaceNodes = (_reg?: unknown) => {};
 
 // dsl
 export const workflowToDsl = (_graph?: unknown, _opts?: unknown) =>

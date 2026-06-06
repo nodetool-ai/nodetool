@@ -289,6 +289,7 @@ async function main() {
   let registerBaseNodes;
   let registerElevenLabsNodes;
   let registerFalNodes;
+  let registerHuggingFaceNodes;
   let ProcessingContext;
   let OpenAIProvider;
   let AnthropicProvider;
@@ -307,6 +308,7 @@ async function main() {
     const elevenLabsNodesPath = path.resolve(tsRoot, "packages/elevenlabs-nodes/dist/index.js");
     const runtimePath = path.resolve(tsRoot, "packages/runtime/dist/index.js");
     const falNodesPath = path.resolve(tsRoot, "packages/fal-nodes/dist/index.js");
+    const huggingfaceNodesPath = path.resolve(tsRoot, "packages/huggingface-nodes/dist/index.js");
     const modelsPath = path.resolve(tsRoot, "packages/models/dist/index.js");
 
     ({ WorkflowRunner } = await import(pathToFileURL(kernelPath).href));
@@ -327,6 +329,11 @@ async function main() {
       ({ registerFalNodes } = await import(pathToFileURL(falNodesPath).href));
     } catch {
       // FAL nodes package not built — skip
+    }
+    try {
+      ({ registerHuggingFaceNodes } = await import(pathToFileURL(huggingfaceNodesPath).href));
+    } catch {
+      // Hugging Face nodes package not built — skip
     }
   } catch (err) {
     throw new Error(
@@ -350,6 +357,7 @@ async function main() {
   registerBaseNodes(registry);
   registerElevenLabsNodes(registry);
   if (registerFalNodes) registerFalNodes(registry);
+  if (registerHuggingFaceNodes) registerHuggingFaceNodes(registry);
 
   // Check if any node in the graph needs Python execution
   const allNodeTypes = new Set(graph.nodes.map((n) => n.type));
