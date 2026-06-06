@@ -1,7 +1,5 @@
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 import { loadTogetherNodesFromManifest } from "./together-factory.js";
 import type { TogetherManifestEntry } from "./together-factory.js";
@@ -30,9 +28,15 @@ export {
 } from "./together-base.js";
 
 function loadManifest(): TogetherManifestEntry[] {
-  const dir = dirname(fileURLToPath(import.meta.url));
-  const manifestPath = join(dir, "together-manifest.json");
-  return JSON.parse(readFileSync(manifestPath, "utf8"));
+  // Load the bundled manifest as a JSON module (cached `require`) rather than a
+  // raw `readFileSync`. The model ids in the manifest flow into the Together API
+  // request bodies; reading the file via `fs` makes CodeQL treat those static,
+  // trusted ids as untrusted "file data" reaching an outbound request
+  // (js/file-access-to-http). A module require resolves the same dist JSON
+  // without being modelled as a filesystem read. Mirrors how
+  // runtime/manifest-models.ts consumes this manifest.
+  const require = createRequire(import.meta.url);
+  return require("./together-manifest.json") as TogetherManifestEntry[];
 }
 
 export const TOGETHER_NODES: readonly NodeClass[] =

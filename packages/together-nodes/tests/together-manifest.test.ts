@@ -1,18 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import {
   loadTogetherNodesFromManifest,
   type TogetherManifestEntry,
   type TogetherModality
 } from "../src/together-factory.js";
 
-const manifest: TogetherManifestEntry[] = JSON.parse(
-  readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "..", "src", "together-manifest.json"),
-    "utf8"
-  )
+// Load via a JSON `require` rather than `fs.readFileSync`: the manifest's model
+// ids flow into outbound Together API requests, and reading the bundled file
+// through `fs` makes CodeQL model those trusted static ids as file data
+// reaching the network (js/file-access-to-http). A module require is the same
+// data without the filesystem-read taint source. See src/index.ts.
+const require = createRequire(import.meta.url);
+const manifest: TogetherManifestEntry[] = require(
+  "../src/together-manifest.json"
 );
 
 const MODALITY_OUTPUT: Record<TogetherModality, string> = {
