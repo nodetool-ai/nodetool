@@ -71,12 +71,13 @@ export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[]
       const padding = options?.padding ?? 0.1;
       const explicitNodeIds = options?.nodeIds ?? [];
 
-      const nodesToFit =
-        explicitNodeIds.length > 0
-          ? nodes.filter((n) => explicitNodeIds.includes(n.id))
-          : selectedNodes.length > 0
-          ? selectedNodes
-          : nodes;
+      const nodesToFit = (() => {
+        if (explicitNodeIds.length > 0) {
+          const explicitIdsSet = new Set(explicitNodeIds);
+          return nodes.filter((n) => explicitIdsSet.has(n.id));
+        }
+        return selectedNodes.length > 0 ? selectedNodes : nodes;
+      })();
 
       if (nodesToFit.length === 0) {
         reactFlowInstance.fitView({ duration: TRANSITION_DURATION, padding });
