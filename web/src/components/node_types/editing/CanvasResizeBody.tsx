@@ -308,24 +308,30 @@ const CanvasResizeBodyInner: React.FC<CanvasResizeBodyProps> = ({
               <NumberInput
                 id={`canvas-width-${id}`}
                 nodeId={id}
-                label="Width"
+                name="width"
+                description="Target canvas width"
                 value={Number(props.width ?? 512)}
                 onChange={(_, v) => setNumberProp("width", Math.max(1, Math.round(v)))}
-                onBlur={() => setPropertyComplete()}
+                onChangeComplete={() => setPropertyComplete()}
                 min={1}
                 max={8192}
+                inputType="int"
+                showSlider={false}
               />
             </div>
             <div className="field">
               <NumberInput
                 id={`canvas-height-${id}`}
                 nodeId={id}
-                label="Height"
+                name="height"
+                description="Target canvas height"
                 value={Number(props.height ?? 512)}
                 onChange={(_, v) => setNumberProp("height", Math.max(1, Math.round(v)))}
-                onBlur={() => setPropertyComplete()}
+                onChangeComplete={() => setPropertyComplete()}
                 min={1}
                 max={8192}
+                inputType="int"
+                showSlider={false}
               />
             </div>
           </FlexRow>
@@ -366,12 +372,15 @@ const CanvasResizeBodyInner: React.FC<CanvasResizeBodyProps> = ({
                   <NumberInput
                     id={`canvas-${edge}-${id}`}
                     nodeId={id}
-                    label={edge.charAt(0).toUpperCase() + edge.slice(1)}
+                    name={edge}
+                    description={`Padding ${edge}`}
                     value={Number(props[edge] ?? 0)}
                     onChange={(_, v) => setNumberProp(edge, Math.max(0, v))}
-                    onBlur={() => setPropertyComplete()}
+                    onChangeComplete={() => setPropertyComplete()}
                     min={0}
                     max={4096}
+                    inputType="float"
+                    showSlider={false}
                   />
                 </div>
               ))}
