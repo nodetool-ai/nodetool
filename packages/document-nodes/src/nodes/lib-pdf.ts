@@ -237,7 +237,14 @@ export class PdfExtractMarkdownNode extends BaseNode {
         const size = item.fontSize ?? item.height ?? 12;
         const isBold = /bold/i.test(item.fontName ?? "");
         if (existing) {
-          existing.text += item.str;
+          // Insert a separating space only at a clear word boundary so we don't
+          // merge adjacent runs ("Hello"+"World"), nor double up when liteparse
+          // already includes the spacing.
+          const needsSpace =
+            existing.text.length > 0 &&
+            !/\s$/.test(existing.text) &&
+            !/^\s/.test(item.str);
+          existing.text += (needsSpace ? " " : "") + item.str;
           existing.maxSize = Math.max(existing.maxSize, size);
           if (isBold) existing.isBold = true;
         } else {
@@ -879,7 +886,7 @@ export class PdfToppmNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[image]" };
-  static readonly requiredRuntimes = ["pdftotext"];
+  static readonly requiredRuntimes = ["pdftoppm"];
 
   @prop(PDF_INPUT)
   declare pdf: any;

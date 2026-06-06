@@ -609,6 +609,7 @@ export class SaveDocumentLibNode extends BaseNode {
 
     const filenameTemplate = String(this.filename ?? "");
     const filename = formatDate(filenameTemplate);
+    if (!filename.trim()) throw new Error("Filename is not set");
     const fullPath = expandUser(path.join(folderPath, filename));
 
     // Build document elements
