@@ -171,7 +171,14 @@ function loadBrowserRunner(): Promise<LoadedBrowserRunner | null> {
           "[browserWorkflowRunner] browser execution unavailable; using server",
           error
         );
-        cachedRunner = null;
+        // A thrown load is potentially transient (chunk/network hiccup). Re-arm
+        // the loader so a later attempt — e.g. the next workflow open — can
+        // retry, rather than disabling in-browser execution until a page
+        // reload. Leaving `cachedRunner` undefined also lets the sync warm path
+        // fire again. (A loader that *returns* null above is intentional and
+        // stays cached.)
+        runnerPromise = null;
+        cachedRunner = undefined;
         return null;
       }
     })();

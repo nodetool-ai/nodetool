@@ -84,6 +84,33 @@ describe("canRunGraphInBrowser", () => {
     );
   });
 
+  it("retries after a transient load failure instead of caching it", async () => {
+    let calls = 0;
+    __setBrowserRunnerLoader(async () => {
+      calls += 1;
+      if (calls === 1) {
+        throw new Error("transient chunk load failure");
+      }
+      return {
+        wf: {
+          createBrowserRegistry: () => fakeRegistry,
+          runBrowserWorkflow: (() => undefined) as never
+        } as never,
+        nodeClasses: []
+      };
+    });
+
+    // First attempt throws → false, but the failure is not cached.
+    expect(await canRunGraphInBrowser(browserGraph("browser.Const"))).toBe(
+      false
+    );
+    // A later attempt retries the load and succeeds.
+    expect(await canRunGraphInBrowser(browserGraph("browser.Const"))).toBe(
+      true
+    );
+    expect(calls).toBe(2);
+  });
+
   it("does not load the heavy runner in a unit-test process by default", async () => {
     __setBrowserRunnerLoader(null);
     expect(await canRunGraphInBrowser(browserGraph("browser.Const"))).toBe(
