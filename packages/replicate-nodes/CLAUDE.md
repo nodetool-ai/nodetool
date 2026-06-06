@@ -47,5 +47,6 @@ All nodes correctly use `metadataOutputTypes` for output type declarations. Dict
 ## Common Pitfalls
 
 - Never default asset inputs to `""` - always use proper AssetRef objects
-- Replicate output can be string, array, FileOutput (with .url() method), or object - `extractUrl()` handles all cases
-- The `removeNulls()` function strips null/empty/zero values - be careful with intentional 0 values
+- Replicate output can be string, array, FileOutput (with .url() method), or object (asset wrapped under a named key) - `extractUrl()` handles all cases
+- The `removeNulls()` function strips only **top-level** `null`/`undefined`/empty-string keys. It does NOT recurse (so pass-through `dict[...]` inputs keep their shape) and does NOT strip `0`/`false`.
+- Numeric enums (e.g. SD `width`/`height`): the manifest stores enum values as strings, so the factory detects all-numeric enums and registers numeric `values`/`default` and coerces the API arg back to a number. A plain `String()` cast would send `"768"` and fail the model's integer schema.

@@ -200,6 +200,92 @@ describe("Replicate factory argument building", () => {
     });
   });
 
+  it("registers numeric enums as numbers and sends a number to the API", async () => {
+    replicateSubmit.mockResolvedValueOnce({ output: "u1" });
+
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/model",
+      className: "NumericEnumModel",
+      moduleName: "image.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      inputFields: [
+        {
+          name: "width",
+          propType: "enum",
+          tsType: "enum",
+          default: 768,
+          description: "",
+          fieldType: "input",
+          required: false,
+          enumValues: ["512", "768", "1024"]
+        }
+      ],
+      outputFields: [],
+      enums: []
+    });
+
+    // Metadata: numeric option list + numeric default so the UI select matches.
+    const prop = NodeClass.getDeclaredProperties().find(
+      (p) => p.name === "width"
+    );
+    expect(prop?.options.values).toEqual([512, 768, 1024]);
+    expect(prop?.options.default).toBe(768);
+
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).width = 1024;
+
+    await instance.process();
+
+    expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
+      width: 1024
+    });
+  });
+
+  it("keeps string enums as strings", async () => {
+    replicateSubmit.mockResolvedValueOnce({ output: "u1" });
+
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/model",
+      className: "StringEnumModel",
+      moduleName: "image.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      inputFields: [
+        {
+          name: "mode",
+          propType: "enum",
+          tsType: "enum",
+          default: "fast",
+          description: "",
+          fieldType: "input",
+          required: false,
+          enumValues: ["fast", "quality"]
+        }
+      ],
+      outputFields: [],
+      enums: []
+    });
+
+    const prop = NodeClass.getDeclaredProperties().find(
+      (p) => p.name === "mode"
+    );
+    expect(prop?.options.values).toEqual(["fast", "quality"]);
+
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).mode = "quality";
+
+    await instance.process();
+
+    expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
+      mode: "quality"
+    });
+  });
+
   it("does not mark text outputs as streaming iterations", () => {
     const NodeClass = createReplicateNodeClass({
       endpointId: "owner/model",
