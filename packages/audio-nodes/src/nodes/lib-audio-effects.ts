@@ -94,7 +94,10 @@ export class BitcrushNode extends BaseNode {
 
     const wav = decodeWav(audio);
     const result = processPerChannel(wav, (ch) => {
-      const levels = Math.pow(2, bitDepth - 1) - 1;
+      // Number of quantization steps for the target bit depth. Guard against
+      // bitDepth === 1 (the prop minimum), which would otherwise yield 0 and
+      // produce NaN samples via division by zero.
+      const levels = Math.max(1, Math.pow(2, bitDepth) - 1);
       const out = new Float32Array(ch.length);
       for (let i = 0; i < ch.length; i++) {
         const idx = Math.floor(i / srrFactor) * srrFactor;
@@ -884,9 +887,12 @@ export class NoiseGateNode extends BaseNode {
         } else {
           envelope = releaseCoeff * envelope + (1 - releaseCoeff) * absVal;
         }
-        // Gate: open when above threshold, close when below
+        // Gate: open when above threshold, close when below. Smooth the gain
+        // toward the target using the attack coefficient while opening and the
+        // release coefficient while closing, so both controls take effect.
         const targetGain = envelope >= thresholdLin ? 1 : 0;
-        gain = releaseCoeff * gain + (1 - releaseCoeff) * targetGain;
+        const coeff = targetGain > gain ? attackCoeff : releaseCoeff;
+        gain = coeff * gain + (1 - coeff) * targetGain;
         out[i] = ch[i] * gain;
       }
       return out;

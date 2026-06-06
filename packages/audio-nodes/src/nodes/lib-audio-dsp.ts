@@ -515,10 +515,22 @@ export class PeakFilterNode extends BaseNode {
   })
   declare q_factor: any;
 
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Gain Db",
+    description:
+      "The gain to apply at the centre frequency, in dB. Positive values boost, negative values cut.",
+    min: -24,
+    max: 24
+  })
+  declare gain_db: any;
+
   async process(): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 1000);
     const q = Number(this.q_factor ?? 1.0);
+    const gainDb = Number(this.gain_db ?? 0);
 
     if (!audio.data) return { output: audio };
 
@@ -529,7 +541,7 @@ export class PeakFilterNode extends BaseNode {
         filter.type = "peaking";
         filter.frequency.value = cutoff;
         filter.Q.value = q;
-        filter.gain.value = 0;
+        filter.gain.value = gainDb;
         source.connect(filter);
         filter.connect(ctx.destination);
       }
