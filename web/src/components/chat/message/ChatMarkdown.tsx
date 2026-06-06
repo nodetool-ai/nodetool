@@ -71,7 +71,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
         if (isAudio && href) {
           return (
             <span css={audioSpanCss}>
-              <audio controls src={href} css={audioCss} />
+              <audio controls src={href} css={audioCss} aria-label="Audio content" />
               <a {...props} target="_blank" rel="noopener noreferrer">
                 {children}
               </a>

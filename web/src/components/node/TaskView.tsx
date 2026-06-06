@@ -16,7 +16,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-sm)"
     },
     ".task-title": {
-      fontWeight: "bold",
+      fontWeight: 600,
       color: theme.vars.palette.grey[200]
     },
     ".task-description": {

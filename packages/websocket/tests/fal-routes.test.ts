@@ -24,6 +24,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
 import { Secret } from "@nodetool-ai/models";
 import falCreditsRoute from "../src/routes/fal-credits.js";
 import falPricingRoute from "../src/routes/fal-pricing.js";
+import falPricingEstimateRoute from "../src/routes/fal-pricing-estimate.js";
 
 type MockSecret = { getDecryptedValue: () => Promise<string> };
 const secretFind = Secret.find as unknown as ReturnType<typeof vi.fn>;
@@ -273,5 +274,93 @@ describe("GET /api/fal/pricing", () => {
     const callUrl = fetchSpy.mock.calls[0]?.[0] as string;
     const matches = callUrl.match(/endpoint_id=/g) ?? [];
     expect(matches.length).toBe(1);
+  });
+});
+
+describe("POST /api/fal/pricing/estimate", () => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    app = Fastify({ logger: false });
+    await app.register(falPricingEstimateRoute);
+    await app.ready();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it("returns 400 when endpoint_id is missing", async () => {
+    mockSecret("fal-key");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/fal/pricing/estimate",
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.detail).toMatch(/endpoint_id/i);
+  });
+
+  it("returns 204 when no FAL_API_KEY is configured", async () => {
+    mockSecret(null);
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/fal/pricing/estimate",
+      payload: { endpoint_id: "fal-ai/flux/dev" },
+    });
+    expect(res.statusCode).toBe(204);
+  });
+
+  it("returns historical per-run estimate for an endpoint", async () => {
+    mockSecret("fal-key-est");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse({
+        estimate_type: "historical_api_price",
+        total_cost: 0.042,
+        currency: "USD",
+      }),
+    );
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/fal/pricing/estimate",
+      payload: {
+        endpoint_id: "fal-ai/flux/dev",
+        estimate_type: "historical_api_price",
+        call_quantity: 1,
+      },
+    });
+
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect((init.method ?? "GET").toUpperCase()).toBe("POST");
+    const sent = JSON.parse(String(init.body)) as {
+      estimate_type: string;
+      endpoints: Record<string, { call_quantity: number }>;
+    };
+    expect(sent.estimate_type).toBe("historical_api_price");
+    expect(sent.endpoints["fal-ai/flux/dev"].call_quantity).toBe(1);
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.total_cost).toBe(0.042);
+    expect(body.currency).toBe("USD");
+    expect(body.endpoint_id).toBe("fal-ai/flux/dev");
+    expect(typeof body.fetched_at).toBe("string");
+  });
+
+  it("returns 502 when fal.ai estimate fails", async () => {
+    mockSecret("fal-key-fail");
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("Bad request", { status: 400 }),
+    );
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/fal/pricing/estimate",
+      payload: { endpoint_id: "fal-ai/unknown-model" },
+    });
+    expect(res.statusCode).toBe(502);
   });
 });

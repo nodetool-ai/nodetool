@@ -105,7 +105,7 @@ const uploadAsset = async (
   }
 };
 
-export type AssetQuery = {
+type AssetQuery = {
   cursor?: string;
   workflow_id?: string | null;
   parent_id?: string | null;
@@ -113,7 +113,7 @@ export type AssetQuery = {
   recursive?: boolean;
 };
 
-export type AssetSearchQuery = {
+type AssetSearchQuery = {
   query: string;
   content_type?: string;
   page_size?: number;
@@ -125,7 +125,8 @@ export type AssetUpdate = {
   name?: string;
   parent_id?: string;
   content_type?: string;
-  metadata?: Record<string, never>;
+  metadata?: Record<string, unknown>;
+  sketch_document_id?: string | null;
   data?: string;
   data_encoding?: "base64";
 };
@@ -148,7 +149,6 @@ export interface AssetStore {
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string) => Promise<FolderTree>;
   loadCurrentFolder: (cursor?: string) => Promise<AssetList>;
-  loadFolderById: (id: string) => Promise<AssetList>;
   search: (query: AssetSearchQuery) => Promise<AssetSearchResult>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
@@ -204,10 +204,6 @@ const buildFolderTree = (
 
   return sortedTree;
 };
-
-interface AssetTreeResponse {
-  assets: AssetTreeNode[];
-}
 
 export interface AssetTreeNode extends Asset {
   updated_at?: string;
@@ -324,16 +320,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       }
     }
     return get().load({ parent_id: requestedFolderId, cursor: cursor || "" });
-  },
-
-  /**
-   * Load a specific folder by its ID.
-   *
-   * @param id The ID of the folder to load.
-   * @returns A promise that resolves to the loaded folder's assets.
-   */
-  loadFolderById: async (id: string) => {
-    return get().load({ parent_id: id });
   },
 
   /**
@@ -565,6 +551,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
           ? req.content_type
           : prev.content_type,
       ...(req.metadata !== undefined ? { metadata: req.metadata } : {}),
+      ...(req.sketch_document_id !== undefined
+        ? { sketch_document_id: req.sketch_document_id }
+        : {}),
       ...(req.data !== undefined ? { data: req.data } : {}),
       ...(req.data_encoding !== undefined
         ? { data_encoding: req.data_encoding }

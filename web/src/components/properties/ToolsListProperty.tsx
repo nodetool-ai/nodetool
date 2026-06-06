@@ -3,10 +3,9 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText,
-  Checkbox
+  ListItemText
 } from "@mui/material";
-import { Tooltip, ToolbarIconButton, FlexRow } from "../ui_primitives";
+import { ToolbarIconButton, FlexRow, Checkbox } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "fast-deep-equal";
@@ -196,7 +195,7 @@ const ToolsListProperty = (props: PropertyProps) => {
                 color: "c_hl1"
               },
               "& svg": {
-                fontSize: "15px"
+                fontSize: "var(--fontSizeNormal)"
               }
             }}
           />
@@ -217,7 +216,7 @@ const ToolsListProperty = (props: PropertyProps) => {
               color: "palette-grey-100"
             },
             "& svg": {
-              fontSize: "15px"
+              fontSize: "var(--fontSizeNormal)"
             }
           }}
         />

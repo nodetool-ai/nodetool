@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -8,7 +7,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
 import { isElectron, isProduction } from "../../lib/env";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip } from "../ui_primitives";
+import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip, Box } from "../ui_primitives";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
 // We use a local copy to avoid type export complexity

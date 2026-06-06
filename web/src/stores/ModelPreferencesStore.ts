@@ -150,7 +150,9 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         if (!state) {
           return;
         }
-        const rawFavorites = (state as { favorites: unknown }).favorites;
+        // After JSON deserialization, favorites is an array, not a Set.
+        // Cast through unknown because the runtime shape differs from the declared type.
+        const rawFavorites = state.favorites as unknown;
         state.favorites = Array.isArray(rawFavorites)
           ? new Set(rawFavorites as FavoriteKey[])
           : new Set<FavoriteKey>();

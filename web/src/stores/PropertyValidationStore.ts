@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { shallow } from "zustand/shallow";
 
 type Key = `${string}:${string}:${string}`;
 
@@ -66,9 +65,8 @@ const usePropertyValidationStore = create<PropertyValidationStore>(
       });
     },
     getError: (workflowId, nodeId, property) =>
-      get().errors[key(workflowId, nodeId, property)]
+      get().errors[key(workflowId, nodeId, property)],
   })
 );
 
-export { shallow };
 export default usePropertyValidationStore;

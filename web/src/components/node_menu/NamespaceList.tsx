@@ -3,13 +3,13 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Box, List } from "@mui/material";
-import { Text, EditorButton, BORDER_RADIUS } from "../ui_primitives";
+import { List } from "@mui/material";
+import { Text, EditorButton, BORDER_RADIUS, Box } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
@@ -130,7 +130,7 @@ const namespaceStyles = (theme: Theme) =>
       overflowY: "scroll",
       fontFamily: theme.fontFamily1,
       color: theme.vars.palette.grey[200],
-      fontWeight: "300",
+      fontWeight: 400,
       margin: "0",
       padding: "0 2em 2em 0"
     },
@@ -138,7 +138,7 @@ const namespaceStyles = (theme: Theme) =>
       color: "var(--palette-primary-main)",
       margin: " 0 0 0.3em",
       padding: "0",
-      fontWeight: "300"
+      fontWeight: 400
     },
     ".explanation ul": {
       listStyleType: "square",
@@ -156,7 +156,7 @@ const namespaceStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeNormal,
-      padding: theme.spacing(0.75, 1.5),
+      padding: theme.spacing(1, 1.5),
       borderRadius: "var(--rounded-md)",
       backgroundColor: theme.vars.palette.action.hover,
       margin: "1em .5em 0 0",
@@ -164,12 +164,12 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".result-info span": {
       color: "var(--palette-primary-main)",
-      fontWeight: "500"
+      fontWeight: 500
     },
     ".result-label": {
       color: `${theme.vars.palette.text.secondary} !important`,
       fontSize: "0.8em",
-      fontWeight: "400",
+      fontWeight: 400,
       marginLeft: "0.5em",
       userSelect: "none"
     },
@@ -219,7 +219,7 @@ const namespaceStyles = (theme: Theme) =>
           backgroundColor: "transparent"
         },
         "& .MuiTypography-root": {
-          fontSize: "0.9rem",
+          fontSize: "var(--fontSizeNormal)",
           fontWeight: 500,
           lineHeight: 1.2,
           color: theme.vars.palette.text.primary
@@ -245,8 +245,8 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".namespace-text": {
       color: "var(--palette-grey-500)",
-      fontWeight: 300,
-      fontSize: "0.8rem",
+      fontWeight: 400,
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.15,
       padding: "0.4em 0 0 0",
       margin: "0.5em 0 0 0",
@@ -413,7 +413,7 @@ const InfoBox = memo(function InfoBox({
 
   return (
     <Box className="info-box">
-      <Text className="result-info" sx={{ fontSize: "0.8rem" }}>
+      <Text className="result-info" sx={{ fontSize: "var(--fontSizeSmall)" }}>
         {buildContextMessage()}
       </Text>
     </Box>
@@ -435,7 +435,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedInputType,
     selectedOutputType,
     selectedProviderType
-  } = useNodeMenuStore((state) => ({
+  } = useNodeMenuStore(useShallow((state) => ({
     searchTerm: state.searchTerm,
     selectedPath: state.selectedPath,
     searchResults: state.searchResults,
@@ -444,7 +444,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedInputType: state.selectedInputType,
     selectedOutputType: state.selectedOutputType,
     selectedProviderType: state.selectedProviderType
-  }), shallow);
+  })));
 
   const allMetadata = useMetadataStore((state) => state.metadata);
 

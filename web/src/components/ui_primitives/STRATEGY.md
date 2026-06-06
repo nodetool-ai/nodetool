@@ -162,6 +162,8 @@ When you touch a file for any reason:
 - **Don't wrap IconButton in Tooltip manually** — use ToolbarIconButton
 - **Don't create one-off loading spinners** — use LoadingSpinner
 - **Don't write `textOverflow: "ellipsis"` CSS** — use TruncatedText
+- **Don't write font sizes/weights outside the 4-combo table** — use `Text`/`Label`/`Caption` or `TYPOGRAPHY.*` (see Typography System)
+- **Don't write off-grid spacing** (`0.25`, `0.75`, `2.5`, `5px`, `10px`, `13px`…) — snap to a `SPACING` step (see Spacing System)
 
 ### How to Create a New Primitive
 
@@ -175,7 +177,72 @@ If no existing primitive fits:
 6. Add tests in `__tests__/`
 7. Update this strategy doc's category listing
 
-## Spacing System
+## Typography System (STRICT)
+
+**RULE: Each font class exposes EXACTLY FOUR size+weight combinations. No fifth
+combination may appear anywhere in the app.** This is enforced through the
+design tokens and the typography primitives — never write a raw `fontSize` /
+`fontWeight` that lands outside the table below.
+
+**Every font size is driven by a theme CSS variable.** The four sizes are
+defined ONCE, in `ThemeNodetool` (`fontSizeBig/Normal/Small/Smaller`), and
+referenced everywhere as `var(--fontSize*)`. Never hardcode a px/rem font size
+in a component, sx block, or CSS file — change the size in the theme and it
+propagates.
+
+- **Allowed sizes** — `var(--fontSizeBig)` 18 · `var(--fontSizeNormal)` 15 ·
+  `var(--fontSizeSmall)` 13 · `var(--fontSizeSmaller)` 11
+- **Allowed weights** — `400` (normal) · `500` (medium) · `600` (semibold).
+  `200`, `300`, `700`, `800`, `bold`, `lighter` are forbidden.
+
+| Class | Role | Var (px) | Weight | Use |
+|---|---|---|---|---|
+| **Sans** (`Inter`) | `title` | `--fontSizeBig` (18) | 600 | headings (h1–h3), dialog/section titles |
+| | `body` | `--fontSizeNormal` (15) | 400 | default body text, paragraphs |
+| | `label` | `--fontSizeSmall` (13) | 500 | form labels, buttons, controls, h4–h6, secondary text |
+| | `caption` | `--fontSizeSmaller` (11) | 400 | hints, metadata, badges |
+| **Mono** (`JetBrains Mono`) | `code` | `--fontSizeSmall` (13) | 400 | code, values, editor text |
+| | `strong` | `--fontSizeSmall` (13) | 600 | emphasized mono |
+| | `label` | `--fontSizeSmall` (13) | 500 | mono keys / labels |
+| | `caption` | `--fontSizeSmaller` (11) | 400 | small mono, mono tooltips |
+
+```tsx
+import { Text, Caption, Label } from "../ui_primitives";
+import { TYPOGRAPHY } from "../ui_primitives";
+
+// Prefer the typography primitives — they default to the correct combo:
+<Text>Body copy</Text>                 // 15px / 400
+<Text size="big">Title</Text>          // 18px / 600
+<Label>Channel name</Label>            // 13px / 500
+<Caption>Updated 2h ago</Caption>      // 11px / 400
+
+// In an sx/css block, spread a sanctioned style instead of raw values:
+<Box sx={{ ...TYPOGRAPHY.sans.label }}>Filters</Box>
+<Box sx={{ ...TYPOGRAPHY.mono.code }}>{value}</Box>
+```
+
+**Forbidden:**
+- Any hardcoded px/rem font size (`"0.85rem"`, `"14px"`, `"20px"`, even `"13px"`)
+  — reference `var(--fontSize*)` instead.
+- `fontWeight: 700`, `fontWeight: "bold"`, `fontWeight: 300` — only `400/500/600`.
+- Mixing a size with a weight that isn't its sanctioned pair (e.g. `15px / 600`).
+
+**Exempt:** icon glyph sizing via relative `em` units (e.g.
+`<DeleteIcon sx={{ fontSize: "1.2em" }} />`) is icon scaling, not text
+typography, and is outside this rule. Use `em` only for icons.
+
+Heading hierarchy is conveyed by **margin, letter-spacing, color, and case** —
+never by introducing extra font sizes. `h1`–`h3` collapse onto `title`; `h4`–`h6`
+collapse onto `label`.
+
+## Spacing System (STRICT)
+
+**RULE: All spacing — padding, margin, and gap, on BOTH axes — must use one of
+the canonical steps below. Vertical spacing uses the same scale and gets the
+same care as horizontal spacing. There are no other allowed values; snap every
+outlier to the nearest step.** Off-grid values like `0.25`, `0.75`, `1.25`,
+`2.5`, `5` (theme units) or `5px`, `10px`, `13px`, `20px` are forbidden — group
+them into a canonical category.
 
 Always use the spacing constants instead of raw numbers:
 
@@ -189,17 +256,25 @@ import { SPACING, GAP, PADDING } from "../ui_primitives";
 <FlexRow gap={SPACING.md}>  // 8px
 ```
 
-| Token | Value | Pixels |
-|---|---|---|
-| `SPACING.xxs` | 0.5 | 2px |
-| `SPACING.xs` | 1 | 4px |
-| `SPACING.sm` | 1.5 | 6px |
-| `SPACING.md` | 2 | 8px |
-| `SPACING.ml` | 2.5 | 10px |
-| `SPACING.lg` | 3 | 12px |
-| `SPACING.xl` | 4 | 16px |
-| `SPACING.xxl` | 5 | 20px |
-| `SPACING.huge` | 6 | 24px |
+| Token | Value | Pixels | Use |
+|---|---|---|---|
+| `SPACING.none` | 0 | 0px | flush |
+| `SPACING.micro` | 0.5 | 2px | icon/label gaps in dense controls |
+| `SPACING.xs` | 1 | 4px | tight stacking |
+| `SPACING.sm` | 1.5 | 6px | compact control padding |
+| `SPACING.md` | 2 | 8px | default gap / padding |
+| `SPACING.lg` | 3 | 12px | grouped sections |
+| `SPACING.xl` | 4 | 16px | panel padding |
+| `SPACING.xxl` | 6 | 24px | large section separation |
+| `SPACING.xxxl` | 8 | 32px | page-level rhythm |
+
+Legacy alias keys (`xxs`, `ml`, `huge`) still resolve, but they now snap onto a
+canonical step. Use `snapSpacing(units)` to migrate a literal you can't
+hand-classify. The canonical px grid for raw CSS is `0 / 2 / 4 / 6 / 8 / 12 /
+16 / 24 / 32`.
+
+> **Not spacing:** ReactFlow `fitView({ padding })`, viewport ratios, opacity,
+> scale, and flex values are not spacing — leave them alone.
 
 ## Design Tokens
 

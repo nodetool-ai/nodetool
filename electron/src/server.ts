@@ -8,7 +8,6 @@ import {
   PID_FILE_PATH,
   PID_DIRECTORY,
   webPath,
-  getCondaEnvPath,
 } from "./config";
 
 /**
@@ -29,6 +28,7 @@ function isDevMode(): boolean {
 }
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
+import type { ServerState } from "./state";
 import { getServerUrl } from "./utils";
 import fs from "fs/promises";
 import net from "net";
@@ -385,7 +385,7 @@ async function startServer(): Promise<void> {
   serverState.initialURL = `http://127.0.0.1:${selectedPort}`;
   logMessage(`Selected port: ${selectedPort}`);
 
-  logMessage(`Starting backend server via utilityProcess.fork: ${backendEntryPoint}`);
+  logMessage(`Starting backend server: ${backendEntryPoint}`);
   logMessage(`Backend directory: ${path.dirname(backendEntryPoint)}`);
   emitBootMessage("Starting backend server...");
 
@@ -439,13 +439,23 @@ async function startServer(): Promise<void> {
     NODE_PATH: backendNodePath,
     NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,
   };
+  // Dev mode: spawn the backend as a SEPARATE Node process (child_process),
+  // not Electron's utilityProcess. Electron's embedded V8 enables the heap
+  // sandbox, which rejects the external ArrayBuffers that dawn.node returns
+  // from GPU buffer readback (`getMappedRange` → "External buffers are not
+  // allowed"). A vanilla, non-sandboxed Node has no such restriction, so the
+  // GPU compositor (and any native addon that maps GPU memory) works. We use
+  // the Node that launched the dev run (npm sets `npm_node_execpath`).
+  const devNodeBinary =
+    process.env.NODETOOL_NODE || process.env.npm_node_execpath || "node";
   const watchdogOpts: import("./watchdog").WatchdogOptions = isDevMode()
     ? {
-        // Dev mode: fork tsx inside Electron's utilityProcess — same ABI as
-        // production, no external node binary required.
         name: "nodetool",
-        modulePath: path.join(__dirname, "..", "dev-server-runner.cjs"),
-        args: [backendEntryPoint],
+        command: devNodeBinary,
+        args: [
+          path.join(__dirname, "..", "dev-server-runner.cjs"),
+          backendEntryPoint,
+        ],
         env: backendEnv,
         cwd: rootDir,
         pidFilePath: PID_FILE_PATH,
@@ -454,9 +464,18 @@ async function startServer(): Promise<void> {
         logOutput: false,
       }
     : {
-        // Production: fork compiled JS via utilityProcess
+        // Production: run the backend on the bundled, non-sandboxed Node
+        // (Resources/backend/runtime/node) via child_process — NOT Electron's
+        // sandboxed utilityProcess. The V8 heap sandbox in Electron's embedded
+        // Node rejects Dawn's external GPU-readback buffers, breaking the GPU
+        // compositor. The bundled Node has no such sandbox.
         name: "nodetool",
-        modulePath: backendEntryPoint,
+        command: path.join(
+          path.dirname(backendEntryPoint),
+          "runtime",
+          process.platform === "win32" ? "node.exe" : "node"
+        ),
+        args: [backendEntryPoint],
         env: backendEnv,
         cwd: path.dirname(backendEntryPoint),
         pidFilePath: PID_FILE_PATH,
@@ -789,22 +808,22 @@ async function stopLlamaCppService(): Promise<void> {
  * Returns the current server state
  * @returns Current server state object
  */
-export function getServerState() {
+export function getServerState(): ServerState {
   return serverState;
 }
 
 /**
  * Opens the log file in the system's default file explorer
  */
-export function openLogFile() {
-  return shell.showItemInFolder(LOG_FILE);
+export function openLogFile(): void {
+  shell.showItemInFolder(LOG_FILE);
 }
 
 /**
  * Opens the log file in the system's default file explorer
  */
-export function showItemInFolder(fullPath: string) {
-  return shell.showItemInFolder(fullPath);
+export function showItemInFolder(fullPath: string): void {
+  shell.showItemInFolder(fullPath);
 }
 
 /**
@@ -821,7 +840,6 @@ export {
   initializeBackendServer,
   stopServer,
   restartLlamaServer,
-  webPath,
   isServerRunning,
   isLlamaServerRunning,
   startLlamaCppService,

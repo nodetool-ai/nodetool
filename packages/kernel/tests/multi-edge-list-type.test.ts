@@ -43,19 +43,17 @@ async function runAndGetDetection(
   const runner = makeRunner(executorMap);
   const result = await runner.run({ job_id: jobId, params }, { nodes, edges });
   // Access the private detection map for verification
-  const detection = (runner as any)._multiEdgeListInputs as Map<
-    string,
-    Set<string>
-  >;
+  const detection = (
+    runner as unknown as {
+      _multiEdgeListInputs: Map<string, Set<string>>;
+    }
+  )._multiEdgeListInputs;
   return { result, detection };
 }
 
 describe("Multi-edge list type validation (T-K-10)", () => {
   it("aggregates multiple upstream values into one list input execution", async () => {
-    const imageA = { type: "image", uri: "https://example.com/a.png" };
-    const imageB = { type: "image", uri: "https://example.com/b.png" };
     const consumerCalls: Array<Record<string, unknown>> = [];
-
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Source", name: "a" },
       { id: "b", type: "test.Source", name: "b" },
@@ -63,96 +61,84 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.ListConsumer",
         name: "consumer",
-        propertyTypes: { images: "list[image]" }
+        propertyTypes: { items: "list[int]" }
       }
     ];
     const edges: Edge[] = [
-      { source: "a", sourceHandle: "out", target: "c", targetHandle: "images" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "images" }
+      { source: "a", sourceHandle: "out", target: "c", targetHandle: "items" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "items" }
     ];
 
-    const runner = new WorkflowRunner("test-job", {
-      resolveExecutor: (node) => {
-        if (node.id === "a") {
-          return simpleExecutor(() => ({ out: imageA }));
-        }
-        if (node.id === "b") {
-          return simpleExecutor(() => ({ out: imageB }));
-        }
-        if (node.id === "c") {
-          return simpleExecutor((inputs) => {
-            consumerCalls.push(inputs);
-            return { result: inputs.images };
-          });
-        }
-        return simpleExecutor(() => ({}));
-      }
+    const runner = makeRunner({
+      a: simpleExecutor(() => ({ out: 1 })),
+      b: simpleExecutor(() => ({ out: 2 })),
+      c: simpleExecutor((inputs) => {
+        consumerCalls.push(inputs);
+        return {};
+      })
     });
 
     const result = await runner.run(
-      { job_id: "j-collect", params: {} },
+      { job_id: "j-agg-1", params: {} },
       { nodes, edges }
     );
 
     expect(result.status).toBe("completed");
-    expect(consumerCalls).toEqual([{ images: [imageA, imageB] }]);
+    expect(consumerCalls).toHaveLength(1);
+    const items = consumerCalls[0].items;
+    expect(Array.isArray(items)).toBe(true);
+    expect([...(items as number[])].sort()).toEqual([1, 2]);
   });
 
-  it("aggregates scalar values before executing on_any list consumers", async () => {
-    const imageA = { type: "image", uri: "https://example.com/a.png" };
-    const imageB = { type: "image", uri: "https://example.com/b.png" };
+  it("aggregates three scalar values into a list[image] handle fed by multiple edges", async () => {
+    // Reproduces the Seedance bug: three image-emitting nodes wired into a
+    // single list[image] handle on a FAL/Kie node must be aggregated, not
+    // truncated to the first arriving envelope.
     const consumerCalls: Array<Record<string, unknown>> = [];
-
     const nodes: NodeDescriptor[] = [
-      { id: "a", type: "test.Source", name: "a" },
-      { id: "b", type: "test.Source", name: "b" },
+      { id: "img1", type: "test.Source", name: "img1" },
+      { id: "img2", type: "test.Source", name: "img2" },
+      { id: "img3", type: "test.Source", name: "img3" },
       {
-        id: "c",
-        type: "test.ListConsumer",
-        name: "consumer",
-        sync_mode: "on_any",
+        id: "seedance",
+        type: "test.Seedance",
+        name: "seedance",
         propertyTypes: { images: "list[image]" }
       }
     ];
     const edges: Edge[] = [
-      { source: "a", sourceHandle: "out", target: "c", targetHandle: "images" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "images" }
+      { source: "img1", sourceHandle: "out", target: "seedance", targetHandle: "images" },
+      { source: "img2", sourceHandle: "out", target: "seedance", targetHandle: "images" },
+      { source: "img3", sourceHandle: "out", target: "seedance", targetHandle: "images" }
     ];
 
-    const runner = new WorkflowRunner("test-job", {
-      resolveExecutor: (node) => {
-        if (node.id === "a") {
-          return simpleExecutor(() => ({ out: imageA }));
-        }
-        if (node.id === "b") {
-          return simpleExecutor(() => ({ out: imageB }));
-        }
-        if (node.id === "c") {
-          return simpleExecutor((inputs) => {
-            consumerCalls.push(inputs);
-            return { result: inputs.images };
-          });
-        }
-        return simpleExecutor(() => ({}));
-      }
+    const runner = makeRunner({
+      img1: simpleExecutor(() => ({ out: { type: "image", uri: "a.png" } })),
+      img2: simpleExecutor(() => ({ out: { type: "image", uri: "b.png" } })),
+      img3: simpleExecutor(() => ({ out: { type: "image", uri: "c.png" } })),
+      seedance: simpleExecutor((inputs) => {
+        consumerCalls.push(inputs);
+        return {};
+      })
     });
 
     const result = await runner.run(
-      { job_id: "j-collect-on-any", params: {} },
+      { job_id: "j-agg-2", params: {} },
       { nodes, edges }
     );
 
     expect(result.status).toBe("completed");
-    expect(consumerCalls).toEqual([{ images: [imageA, imageB] }]);
+    expect(consumerCalls).toHaveLength(1);
+    const images = consumerCalls[0].images;
+    expect(Array.isArray(images)).toBe(true);
+    const uris = (images as Array<{ uri: string }>).map((i) => i.uri).sort();
+    expect(uris).toEqual(["a.png", "b.png", "c.png"]);
   });
 
-  it("executes once per upstream list batch for on_any list consumers", async () => {
-    const imageA = { type: "image", uri: "https://example.com/a.png" };
-    const imageB = { type: "image", uri: "https://example.com/b.png" };
-    const imageC = { type: "image", uri: "https://example.com/c.png" };
-    const imageD = { type: "image", uri: "https://example.com/d.png" };
+  it("aggregates per-edge list batches into one list[...] handle", async () => {
+    // When each upstream emits a list, the aggregated input contains each
+    // list as an entry — the consumer can flatten/concat as needed.
     const consumerCalls: Array<Record<string, unknown>> = [];
-
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Source", name: "a" },
       { id: "b", type: "test.Source", name: "b" },
@@ -160,43 +146,34 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.ListConsumer",
         name: "consumer",
-        sync_mode: "on_any",
-        propertyTypes: { images: "list[image]" }
+        propertyTypes: { batches: "list[list[int]]" }
       }
     ];
     const edges: Edge[] = [
-      { source: "a", sourceHandle: "out", target: "c", targetHandle: "images" },
-      { source: "b", sourceHandle: "out", target: "c", targetHandle: "images" }
+      { source: "a", sourceHandle: "out", target: "c", targetHandle: "batches" },
+      { source: "b", sourceHandle: "out", target: "c", targetHandle: "batches" }
     ];
 
-    const runner = new WorkflowRunner("test-job", {
-      resolveExecutor: (node) => {
-        if (node.id === "a") {
-          return simpleExecutor(() => ({ out: [imageA, imageB] }));
-        }
-        if (node.id === "b") {
-          return simpleExecutor(() => ({ out: [imageC, imageD] }));
-        }
-        if (node.id === "c") {
-          return simpleExecutor((inputs) => {
-            consumerCalls.push(inputs);
-            return { result: inputs.images };
-          });
-        }
-        return simpleExecutor(() => ({}));
-      }
+    const runner = makeRunner({
+      a: simpleExecutor(() => ({ out: [1, 2] })),
+      b: simpleExecutor(() => ({ out: [3, 4] })),
+      c: simpleExecutor((inputs) => {
+        consumerCalls.push(inputs);
+        return {};
+      })
     });
 
     const result = await runner.run(
-      { job_id: "j-collect-on-any-list-batches", params: {} },
+      { job_id: "j-agg-3", params: {} },
       { nodes, edges }
     );
 
     expect(result.status).toBe("completed");
-    expect(consumerCalls).toEqual([
-      { images: [imageA, imageB] },
-      { images: [imageC, imageD] }
-    ]);
+    expect(consumerCalls).toHaveLength(1);
+    const batches = consumerCalls[0].batches;
+    expect(Array.isArray(batches)).toBe(true);
+    const sorted = [...(batches as number[][])].sort((x, y) => x[0] - y[0]);
+    expect(sorted).toEqual([[1, 2], [3, 4]]);
   });
 
   it("marks list-typed handle with multiple edges for aggregation", async () => {
@@ -236,8 +213,11 @@ describe("Multi-edge list type validation (T-K-10)", () => {
     // We verify by checking that the node completed successfully.
   });
 
-  it("does NOT mark non-list handle with multiple edges for aggregation", async () => {
-    // Node C has a "value" handle typed as "int" (not a list)
+  it("rejects multiple edges into a non-list (scalar) handle", async () => {
+    // Node C has a "value" handle typed as "int" (not a list). Under
+    // correlation analysis (docs/correlation-design.md §3/§4) a non-list
+    // handle may receive at most one incoming edge; two edges has no
+    // well-defined merge, so the graph is rejected at load time.
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Source", name: "a" },
       { id: "b", type: "test.Source", name: "b" },
@@ -265,13 +245,17 @@ describe("Multi-edge list type validation (T-K-10)", () => {
       { nodes, edges }
     );
 
-    expect(result.status).toBe("completed");
-    // The "value" handle is int, not list — so no list aggregation.
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain('Handle "value" receives 2 edges');
+    expect(result.error).toContain("not a list type");
   });
 
-  it("skips handles without propertyTypes (backward compat)", async () => {
-    // No propertyTypes on the node — multi-edge still gets aggregated
-    // for backward compatibility when type info is absent.
+  it("rejects multiple edges into a handle with no propertyTypes", async () => {
+    // No propertyTypes on the node — the handle's type is unknown, so it is
+    // not a declared list type. Under correlation analysis a handle that is
+    // not a list type may not receive multiple edges; the graph is rejected.
+    // (The old scheduler aggregated such handles for backward compatibility;
+    // correlation requires explicit list metadata — docs/correlation-design.md §3.)
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Source", name: "a" },
       { id: "b", type: "test.Source", name: "b" },
@@ -279,7 +263,6 @@ describe("Multi-edge list type validation (T-K-10)", () => {
         id: "c",
         type: "test.Consumer",
         name: "consumer"
-        // No propertyTypes — backward compat: aggregation allowed
       }
     ];
     const edges: Edge[] = [
@@ -297,11 +280,14 @@ describe("Multi-edge list type validation (T-K-10)", () => {
       { nodes, edges }
     );
 
-    expect(result.status).toBe("completed");
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain('Handle "items" receives 2 edges');
+    expect(result.error).toContain("not a list type");
   });
 
-  it("handles union types containing list correctly", async () => {
-    // union type is NOT a list type — should not aggregate
+  it("rejects multiple edges into a union-typed (non-list) handle", async () => {
+    // A union type is NOT a list type. Multiple edges into a non-list handle
+    // are rejected by correlation analysis (docs/correlation-design.md §3).
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Source", name: "a" },
       { id: "b", type: "test.Source", name: "b" },
@@ -327,7 +313,9 @@ describe("Multi-edge list type validation (T-K-10)", () => {
       { nodes, edges }
     );
 
-    expect(result.status).toBe("completed");
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain('Handle "value" receives 2 edges');
+    expect(result.error).toContain("not a list type");
   });
 
   it("detects list[str] type for multi-edge aggregation", async () => {
@@ -432,9 +420,11 @@ describe("Multi-edge list type validation (T-K-10)", () => {
     expect(detection.has("c")).toBe(false);
   });
 
-  it("detects only list handle when mixed handles on same node", async () => {
-    // Node C has "values" (list[int], 2 edges) and "tag" (str, 2 edges).
-    // Only "values" should be detected for aggregation.
+  it("allows multi-edge only on the list handle; rejects multi-edge on the scalar handle", async () => {
+    // Node C has "values" (list[int], 2 edges — valid for multi-edge) and
+    // "tag" (str, 2 edges — invalid). Correlation analysis permits multiple
+    // edges only on the list-typed handle; the scalar "tag" handle with two
+    // edges rejects the graph (docs/correlation-design.md §3/§4).
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Source", name: "a" },
       { id: "b", type: "test.Source", name: "b" },
@@ -452,10 +442,10 @@ describe("Multi-edge list type validation (T-K-10)", () => {
       { source: "b", sourceHandle: "label", target: "c", targetHandle: "tag" }
     ];
 
-    const { result, detection } = await runAndGetDetection(
+    const { result } = await runAndGetDetection(
       {
         "test.Source": simpleExecutor(() => ({ out: 10, label: "hi" })),
-        "test.MixedConsumer": simpleExecutor((inputs) => ({ result: "ok" }))
+        "test.MixedConsumer": simpleExecutor(() => ({ result: "ok" }))
       },
       nodes,
       edges,
@@ -463,12 +453,12 @@ describe("Multi-edge list type validation (T-K-10)", () => {
       "j-mixed"
     );
 
-    expect(result.status).toBe("completed");
-    expect(detection.has("c")).toBe(true);
-    // "values" (list[int]) should be detected
-    expect(detection.get("c")!.has("values")).toBe(true);
-    // "tag" (str) should NOT be detected — it's not a list type
-    expect(detection.get("c")!.has("tag")).toBe(false);
+    // The graph is rejected because the non-list "tag" handle has two edges.
+    // (Correlation analysis runs before multi-edge list detection, so the
+    // run fails before any detection map is populated.)
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain('Handle "tag" receives 2 edges');
+    expect(result.error).toContain("not a list type");
   });
 
   it("detects three edges to list-typed handle", async () => {
@@ -507,10 +497,13 @@ describe("Multi-edge list type validation (T-K-10)", () => {
     expect(detection.get("c")!.has("values")).toBe(true);
   });
 
-  it("detects handle when propertyTypes is empty object (backward compat fallback)", async () => {
-    // propertyTypes is set but the handle name is not in it — backward compat
-    // The code path: propertyTypes exists, typeStr is undefined for "items",
-    // so it falls through to marking the handle for aggregation.
+  it("rejects multi-edge when propertyTypes lacks the handle's type", async () => {
+    // propertyTypes is set but the handle "items" is not in it, so its type is
+    // unknown — not a declared list type. Under correlation analysis a handle
+    // that is not a list type may not receive multiple edges, so the graph is
+    // rejected (docs/correlation-design.md §3). The old scheduler treated a
+    // missing type as a backward-compat aggregation fallback; correlation
+    // requires explicit list metadata.
     const nodes: NodeDescriptor[] = [
       { id: "a", type: "test.Source", name: "a" },
       { id: "b", type: "test.Source", name: "b" },
@@ -526,7 +519,7 @@ describe("Multi-edge list type validation (T-K-10)", () => {
       { source: "b", sourceHandle: "out", target: "c", targetHandle: "items" }
     ];
 
-    const { result, detection } = await runAndGetDetection(
+    const { result } = await runAndGetDetection(
       {
         "test.Source": simpleExecutor(() => ({ out: 99 })),
         "test.Consumer": simpleExecutor((inputs) => ({ result: inputs.items }))
@@ -537,10 +530,8 @@ describe("Multi-edge list type validation (T-K-10)", () => {
       "j-empty-pt"
     );
 
-    expect(result.status).toBe("completed");
-    // When propertyTypes is {} and handle "items" is not in it, typeStr is undefined,
-    // the code skips the isListType check → handle is marked for aggregation
-    expect(detection.has("c")).toBe(true);
-    expect(detection.get("c")!.has("items")).toBe(true);
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain('Handle "items" receives 2 edges');
+    expect(result.error).toContain("not a list type");
   });
 });

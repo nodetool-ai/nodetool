@@ -13,8 +13,7 @@ export interface ImageSource {
 
 /**
  * Resolve a URI string to a fetchable URL.
- * - `asset://{id}` → `${BASE_URL}/api/storage/{id}` (same mapping as
- *   `resolveHistoryUri` in `useNodeResultHistory.ts`).
+ * - `asset://{id}` → `${BASE_URL}/api/storage/{id}`.
  * - `/api/...` → prefixed with `BASE_URL`.
  * - Other absolute URIs (`data:`, `blob:`, `http:`, `https:`) returned as-is.
  */
@@ -63,12 +62,10 @@ export const createImageUrl = (
     !Array.isArray(source) &&
     !(source instanceof Uint8Array)
   ) {
-    // It's an ImageSource object
-    uri = (source as ImageSource).uri;
-    data = (source as ImageSource).data;
+    uri = source.uri;
+    data = source.data;
   } else {
-    // It's a raw value (string, Uint8Array, or number[])
-    data = source as ImageData;
+    data = source;
   }
 
   // Case 1: URI is provided

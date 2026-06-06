@@ -18,6 +18,6 @@ export interface ChartRendererOutputs {
   output: ImageRef;
 }
 
-export function chartRenderer(inputs: ChartRendererInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ChartRendererOutputs, "output"> {
-  return createNode("lib.charts.ChartRenderer", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function chartRenderer(inputs: ChartRendererInputs): DslNode<ChartRendererOutputs, "output"> {
+  return createNode("lib.charts.ChartRenderer", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

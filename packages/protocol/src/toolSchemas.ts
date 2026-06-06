@@ -114,16 +114,6 @@ export const uiSetNodeTitleParams = {
   workflow_id: optionalWorkflowIdSchema
 };
 
-export const uiSetNodeSyncModeParams = {
-  node_id: z.string().describe("Id of the node whose sync mode to set."),
-  mode: z
-    .enum(["on_any", "zip_all"])
-    .describe(
-      "`on_any`: process as soon as any input arrives. `zip_all`: wait for all inputs and pair them in arrival order."
-    ),
-  workflow_id: optionalWorkflowIdSchema
-};
-
 export const uiOpenWorkflowParams = {
   workflow_id: z.string().describe("Id of the workflow to open.")
 };
@@ -218,7 +208,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
   },
   ui_update_node_data: {
     description:
-      "Merge a partial overlay into a node's `data` (properties, title, sync_mode, etc.). Required: `node_id`, `data`.",
+      "Merge a partial overlay into a node's `data` (properties, title, etc.). Required: `node_id`, `data`.",
     parameters: uiUpdateNodeDataParams
   },
   ui_delete_node: {
@@ -240,11 +230,6 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
     description:
       "Set a node's display title. Required: `node_id`, `title`.",
     parameters: uiSetNodeTitleParams
-  },
-  ui_set_node_sync_mode: {
-    description:
-      "Set a node's input sync mode. Required: `node_id`, `mode` ('on_any' | 'zip_all').",
-    parameters: uiSetNodeSyncModeParams
   },
   ui_open_workflow: {
     description:

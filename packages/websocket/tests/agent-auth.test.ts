@@ -7,12 +7,12 @@
  *   - sendMessageStreaming / stopExecution / closeSession refuse to operate
  *     on sessions owned by another user, with a uniform "no active agent
  *     session" error so callers can't probe session existence.
- *   - When a session re-keys to its real id (Claude SDK session id, our DB
- *     thread id), the ownership stamp follows.
+ *   - When a session re-keys to its real id (our DB thread id), the
+ *     ownership stamp follows.
  *
- * The harness providers (claude/codex/opencode/pi) instantiate at module
- * load but are never invoked; only the LLM provider path is exercised so
- * we don't need to mock the SDK subprocesses.
+ * The Pi harness provider instantiates at module load but is never invoked;
+ * only the LLM provider path is exercised so we don't need to mock the SDK
+ * subprocesses.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { initTestDb } from "@nodetool-ai/models";
@@ -29,32 +29,9 @@ vi.mock("@nodetool-ai/chat", () => ({
   }),
 }));
 
-// We want the LLM provider's createSession path but not the harness ones.
-// Stub the harness session classes so even if a stray test poked them they
-// wouldn't spawn anything.
-vi.mock("../src/agent/codex-agent.js", () => ({
-  CodexQuerySession: class {
-    async send() {
-      return [];
-    }
-    async interrupt() {}
-    close() {}
-  },
-  listCodexModels: async () => [],
-}));
-vi.mock("../src/agent/opencode-agent.js", () => ({
-  OpenCodeQuerySession: class {
-    async send() {
-      return [];
-    }
-    async interrupt() {}
-    close() {}
-  },
-  listOpenCodeModels: async () => [],
-  listOpenCodeSessions: async () => [],
-  getOpenCodeSessionMessages: async () => [],
-  closeOpenCodeServer: () => {},
-}));
+// We want the LLM provider's createSession path but not the Pi harness one.
+// Stub the Pi session class so even if a stray test poked it it wouldn't
+// spawn anything.
 vi.mock("../src/agent/pi-agent.js", () => ({
   PiQuerySession: class {
     async send() {
@@ -66,17 +43,6 @@ vi.mock("../src/agent/pi-agent.js", () => ({
   listPiModels: async () => [],
   listPiSessions: async () => [],
   getPiSessionMessages: async () => [],
-}));
-vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
-  query: () => ({
-    [Symbol.asyncIterator]() {
-      return { next: async () => ({ done: true, value: undefined }) };
-    },
-    interrupt() {},
-    close() {},
-  }),
-  listSessions: async () => [],
-  getSessionMessages: async () => [],
 }));
 
 // The LLM provider asks @nodetool-ai/runtime to look up the chat provider per

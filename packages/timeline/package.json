@@ -11,6 +11,9 @@
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },
+  "dependencies": {
+    "@nodetool-ai/gpu": "*"
+  },
   "devDependencies": {
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"

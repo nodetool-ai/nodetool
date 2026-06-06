@@ -3,6 +3,7 @@ import React, {
   useRef,
   useState,
   useCallback,
+  useMemo,
   memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
@@ -24,15 +25,10 @@ import { createStyles } from "./ChatComposer.styles";
 interface ChatComposerProps {
   isLoading: boolean;
   isStreaming: boolean;
-  onSendMessage: (
-    content: MessageContent[],
-    prompt: string,
-    agentMode: boolean
-  ) => void;
+  onSendMessage: (content: MessageContent[], prompt: string) => void;
   onStop?: () => void;
   onNewChat?: () => void;
   disabled?: boolean;
-  agentMode?: boolean;
   toolbarNode?: React.ReactNode;
 }
 
@@ -43,7 +39,6 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   onStop,
   onNewChat,
   disabled = false,
-  agentMode = false,
   toolbarNode
 }) => {
   const theme = useTheme();
@@ -94,10 +89,10 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
     const fileContents = getFileContents();
     const fullContent = [...content, ...fileContents];
 
-    sendMessage(fullContent, prompt, agentMode);
+    sendMessage(fullContent, prompt);
     setPrompt("");
     clearFiles();
-  }, [prompt, getFileContents, sendMessage, clearFiles, agentMode]);
+  }, [prompt, getFileContents, sendMessage, clearFiles]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -120,6 +115,11 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   // Input is never disabled - messages are always queued by globalWebSocketManager
   const isInputDisabled = false;
 
+  const removeCallbacks = useMemo(
+    () => new Map(droppedFiles.map((f) => [f.id, () => removeFile(f.id)])),
+    [droppedFiles, removeFile]
+  );
+
   return (
     <div css={createStyles(theme)} className="chat-composer">
       {/* Queued Message Widget */}
@@ -130,7 +130,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
             align="center"
             sx={{
               px: 1.5,
-              py: 0.75,
+              py: 1,
               maxWidth: "400px",
               borderRadius: 2,
               backgroundColor: theme.vars.palette.background.paper,
@@ -144,7 +144,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
                 sx={{
                   display: "block",
                   fontWeight: 500,
-                  mb: 0.25
+                  mb: 0.5
                 }}
               >
                 Message queued
@@ -193,11 +193,11 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
         <>
           {droppedFiles.length > 0 && (
             <div className="file-preview-container">
-              {droppedFiles.map((file, index) => (
+              {droppedFiles.map((file) => (
                 <FilePreview
                   key={file.id}
                   file={file}
-                  onRemove={() => removeFile(index)}
+                  onRemove={removeCallbacks.get(file.id)!}
                 />
               ))}
             </div>

@@ -4,12 +4,11 @@ import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, useRef, memo } from "react";
 import {
-  Box,
   ListItemButton,
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Tooltip, EmptyState } from "../ui_primitives";
+import { FlexRow, Tooltip, EmptyState, Box } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -29,7 +28,21 @@ import { useNavigate } from "react-router-dom";
 
 import type { Theme } from "@mui/material/styles";
 
-const ROW_HEIGHT = 40;
+const ROW_HEIGHT = 50;
+
+const LIST_ITEM_BUTTON_SX = { width: "100%", textAlign: "left" } as const;
+const LIST_ITEM_ICON_SX = { minWidth: 30 } as const;
+const FLEX_ROW_SX = { overflow: "hidden", minWidth: 0 } as const;
+const MODEL_NAME_STYLE: React.CSSProperties = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  minWidth: 0,
+  flex: "1 1 auto"
+};
+const BADGE_PRICE_STYLE: React.CSSProperties = { fontSize: "0.9em", opacity: 0.8 };
+const PRIMARY_TYPOGRAPHY_PROPS = { component: "div" as const, noWrap: true };
+const SECONDARY_TYPOGRAPHY_PROPS = { component: "div" as const };
 
 const listStyles = (theme: Theme) =>
   css({
@@ -130,11 +143,41 @@ function ModelList<TModel extends ModelSelectorModel>({
     navigate("/settings?tab=1");
   }, [navigate]);
 
+  const badgeStyle = useMemo<React.CSSProperties>(() => ({
+    flex: "0 0 auto",
+    padding: "0px 6px",
+    fontSize: "var(--fontSizeSmaller)",
+    lineHeight: 1.4,
+    borderRadius: 4,
+    background: theme.vars.palette.action.hover,
+    color: theme.vars.palette.text.secondary,
+    letterSpacing: 0.2,
+    border: "none"
+  }), [theme.vars.palette.action.hover, theme.vars.palette.text.secondary]);
+
+  const badgeWithIconStyle = useMemo<React.CSSProperties>(() => ({
+    ...badgeStyle,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 2
+  }), [badgeStyle]);
+
+  const secondaryTextStyle = useMemo<React.CSSProperties>(() => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: theme.vars.fontSizeTiny,
+    color: theme.vars.palette.text.secondary,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  }), [theme.vars.fontSizeTiny, theme.vars.palette.text.secondary]);
+
   const virtualizer = useVirtualizer({
     count: models.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT,
-    overscan: 10,
+    overscan: theme.virtualScroll.overscan.large,
     getItemKey: (index) => `${models[index].provider}:${models[index].id}`,
   });
 
@@ -177,33 +220,23 @@ function ModelList<TModel extends ModelSelectorModel>({
               data-index={index}
               data-available={available}
               onClick={handleModelClick}
-              sx={{ width: "100%", textAlign: "left" }}
+              sx={LIST_ITEM_BUTTON_SX}
             >
-              <ListItemIcon sx={{ minWidth: 30 }}>
+              <ListItemIcon sx={LIST_ITEM_ICON_SX}>
                 <FavoriteStar provider={m.provider} id={m.id} size="small" />
               </ListItemIcon>
               <ListItemText
                 primary={
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 0.75,
-                      overflow: "hidden",
-                      minWidth: 0,
-                      width: "100%"
-                    }}
+                  <FlexRow
+                    gap={0.75}
+                    align="center"
+                    justify="space-between"
+                    fullWidth
+                    sx={FLEX_ROW_SX}
                   >
                     <span
                       className="model-name"
-                      style={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        minWidth: 0,
-                        flex: "1 1 auto"
-                      }}
+                      style={MODEL_NAME_STYLE}
                     >
                       <HighlightedModelName
                         name={m.path || m.name}
@@ -218,17 +251,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                       >
                         <span
                           className="badge-local"
-                          style={{
-                            flex: "0 0 auto",
-                            padding: "0px 6px",
-                            fontSize: "10px",
-                            lineHeight: 1.4,
-                            borderRadius: 4,
-                            background: theme.vars.palette.action.hover,
-                            color: theme.vars.palette.text.secondary,
-                            letterSpacing: 0.2,
-                            border: "none"
-                          }}
+                          style={badgeStyle}
                         >
                           Local
                         </span>
@@ -242,23 +265,10 @@ function ModelList<TModel extends ModelSelectorModel>({
                         >
                           <span
                             className="badge-hf-api"
-                            style={{
-                              flex: "0 0 auto",
-                              padding: "0px 6px",
-                              fontSize: "10px",
-                              lineHeight: 1.4,
-                              borderRadius: 4,
-                              background: theme.vars.palette.action.hover,
-                              color: theme.vars.palette.text.secondary,
-                              letterSpacing: 0.2,
-                              border: "none",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 2
-                            }}
+                            style={badgeWithIconStyle}
                           >
                             HF API
-                            <span style={{ fontSize: "0.9em", opacity: 0.8 }}>
+                            <span style={BADGE_PRICE_STYLE}>
                               $
                             </span>
                           </span>
@@ -273,53 +283,24 @@ function ModelList<TModel extends ModelSelectorModel>({
                         >
                           <span
                             className="badge-api"
-                            style={{
-                              flex: "0 0 auto",
-                              padding: "0px 6px",
-                              fontSize: "10px",
-                              lineHeight: 1.4,
-                              borderRadius: 4,
-                              background: theme.vars.palette.action.hover,
-                              color: theme.vars.palette.text.secondary,
-                              letterSpacing: 0.2,
-                              border: "none",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 2
-                            }}
+                            style={badgeWithIconStyle}
                           >
                             API
-                            <span style={{ fontSize: "0.9em", opacity: 0.8 }}>
+                            <span style={BADGE_PRICE_STYLE}>
                               $
                             </span>
                           </span>
                         </Tooltip>
                       )}
-                  </Box>
+                  </FlexRow>
                 }
                 secondary={
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      fontSize: theme.vars.fontSizeTiny,
-                      color: theme.vars.palette.text.secondary,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap"
-                    }}
-                  >
+                  <span style={secondaryTextStyle}>
                     {m.path ? m.name : m.provider ? `Provider: ${m.provider}` : ""}
                   </span>
                 }
-                primaryTypographyProps={{
-                  component: "div",
-                  noWrap: true
-                }}
-                secondaryTypographyProps={{
-                  component: "div"
-                }}
+                primaryTypographyProps={PRIMARY_TYPOGRAPHY_PROPS}
+                secondaryTypographyProps={SECONDARY_TYPOGRAPHY_PROPS}
               />
             </ListItemButton>
           </Tooltip>
@@ -332,12 +313,11 @@ function ModelList<TModel extends ModelSelectorModel>({
       enabledProviders,
       isApiKeySet,
       handleModelClick,
-      theme.vars.fontSizeTiny,
-
-      theme.vars.palette.text.secondary,
+      badgeStyle,
+      badgeWithIconStyle,
+      secondaryTextStyle,
       searchTerm,
-      theme.vars.palette.primary.main,
-      theme.vars.palette.action.hover
+      theme.vars.palette.primary.main
     ]
   );
 

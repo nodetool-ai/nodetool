@@ -64,6 +64,8 @@ vi.mock("@nodetool-ai/runtime", () => {
         void cfg;
       }
     },
+    OLLAMA_DEFAULT_URL: "http://127.0.0.1:11434",
+    LMSTUDIO_DEFAULT_URL: "http://127.0.0.1:1234",
     BaseProvider: FakeProvider
   };
 });

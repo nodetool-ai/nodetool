@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useEffect, useRef } from "react";
+import { useTheme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -25,6 +26,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
   searchNodes,
   compact = false
 }) => {
+  const theme = useTheme();
   // Route click-to-add via PendingNodeCreateStore (safe outside the editor's
   // ReactFlowProvider, e.g. inside the left-panel Search view).
   const requestCreate = usePendingNodeCreateStore((s) => s.requestCreate);
@@ -38,7 +40,7 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
     count: searchNodes.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => (compact ? ROW_HEIGHT_COMPACT : ROW_HEIGHT),
-    overscan: 8,
+    overscan: theme.virtualScroll.overscan.small,
   });
 
   // Scroll to the selected item when selectedIndex changes

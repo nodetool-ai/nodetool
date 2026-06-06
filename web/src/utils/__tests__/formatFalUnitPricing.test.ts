@@ -5,6 +5,7 @@ import {
   isFalVagueBillingSummary,
   formatFalUnitPricingShort,
   formatFalUnitPricingTooltip,
+  formatFalPerRunEstimate,
 } from "../formatFalUnitPricing";
 import type { FalUnitPricing } from "../../stores/ApiTypes";
 
@@ -99,5 +100,14 @@ describe("formatFalUnitPricingTooltip", () => {
   it('shows "date unknown" when checked_at is null', () => {
     const tooltip = formatFalUnitPricingTooltip(base);
     expect(tooltip).toContain("date unknown");
+  });
+});
+
+describe("formatFalPerRunEstimate", () => {
+  it("formats historical per-run estimate", () => {
+    const line = formatFalPerRunEstimate(0.042, "USD");
+    expect(line).toMatch(/0[,.]042/);
+    expect(line).toContain("per run");
+    expect(line).toContain("historical");
   });
 });

@@ -22,7 +22,7 @@ import {
 
 const rowStyles = (theme: Theme) =>
   css({
-    padding: `${theme.spacing(0.75)} ${theme.spacing(1)}`,
+    padding: `${theme.spacing(1)} ${theme.spacing(1)}`,
     borderRadius: theme.rounded.sm,
     cursor: "default",
     "&:hover": {

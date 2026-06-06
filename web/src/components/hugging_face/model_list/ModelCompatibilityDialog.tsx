@@ -84,7 +84,7 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(1)
     },
     "& .node-title": {
-      fontSize: "0.875rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       whiteSpace: "nowrap",
@@ -93,14 +93,14 @@ const styles = (theme: Theme) =>
     },
     "& .node-type": {
       fontFamily: "var(--fontFamilyMono)",
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       gap: theme.spacing(0.5),
       opacity: 0.8
     },
     "& .property-chip": {
       height: 20,
-      fontSize: "0.65rem",
+      fontSize: "var(--fontSizeSmaller)",
       background: theme.vars.palette.action.hover,
       borderColor: theme.vars.palette.divider
     },
@@ -159,8 +159,8 @@ const NodeList: React.FC<{
                     variant="outlined"
                     sx={{
                       height: 16,
-                      fontSize: "0.6rem",
-                      fontWeight: 700,
+                      fontSize: "var(--fontSizeSmaller)",
+                      fontWeight: 600,
                       px: 0.5,
                       background: theme.vars.palette.primary.main + "22",
                       borderColor: theme.vars.palette.primary.main + "44"
@@ -236,7 +236,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
                 color: "text.secondary",
                 background: theme.vars.palette.action.hover,
                 px: 1,
-                py: 0.25,
+                py: 0.5,
                 borderRadius: 1,
                 border: `1px solid ${theme.vars.palette.divider}`
               }}

@@ -6,17 +6,19 @@ import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
 import { generateSnippetMetadata } from "../config/snippetMetadata";
 import { attachBundleFalUnitPricing } from "../utils/attachBundleFalUnitPricing";
+import { attachBundleKieUnitPricing } from "../utils/attachBundleKieUnitPricing";
+import { WORKFLOW_NODE_TYPE, PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 
-export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
+export { WORKFLOW_NODE_TYPE };
 
 const defaultMetadata: Record<string, NodeMetadata> = {
-  "nodetool.workflows.base_node.Preview": {
+  [PREVIEW_NODE_TYPE]: {
     title: "Preview",
     description: "Preview",
     namespace: "default",
-    node_type: "nodetool.workflows.base_node.Preview",
+    node_type: PREVIEW_NODE_TYPE,
     layout: "default",
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     properties: [
       {
         name: "value",
@@ -41,7 +43,6 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     ],
 
     recommended_models: [],
-    expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
     required_settings: []
@@ -53,12 +54,11 @@ const defaultMetadata: Record<string, NodeMetadata> = {
     namespace: "nodetool.workflows",
     node_type: WORKFLOW_NODE_TYPE,
     layout: "default",
-    is_dynamic: true,
+    supports_dynamic_inputs: true,
     properties: [],
     outputs: [],
 
     recommended_models: [],
-    expose_as_tool: false,
     supports_dynamic_outputs: true,
     is_streaming_output: true,
     required_settings: []
@@ -110,6 +110,7 @@ export const loadMetadata = async (): Promise<"success" | "error"> => {
   // store. Backend `NodeMetadata` does not include `fal_unit_pricing` today,
   // so we attach it client-side from the codegen JSON bundle.
   attachBundleFalUnitPricing(metadataByType);
+  attachBundleKieUnitPricing(metadataByType);
 
   useMetadataStore.getState().setMetadata(metadataByType);
   useMetadataStore.getState().setRecommendedModels(uniqueRecommendedModels);

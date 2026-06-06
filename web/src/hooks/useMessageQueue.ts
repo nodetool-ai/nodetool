@@ -4,35 +4,26 @@ import { MessageContent } from "../stores/ApiTypes";
 interface QueuedMessage {
   content: MessageContent[];
   prompt: string;
-  agentMode: boolean;
 }
 
 interface UseMessageQueueOptions {
   isLoading: boolean;
   isStreaming: boolean;
-  onSendMessage: (
-    content: MessageContent[],
-    prompt: string,
-    agentMode: boolean
-  ) => void;
+  onSendMessage: (content: MessageContent[], prompt: string) => void;
   onStop?: () => void;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 interface UseMessageQueueReturn {
   queuedMessage: QueuedMessage | null;
-  sendMessage: (
-    content: MessageContent[],
-    prompt: string,
-    agentMode: boolean
-  ) => void;
+  sendMessage: (content: MessageContent[], prompt: string) => void;
   cancelQueued: () => void;
   sendQueuedNow: () => void;
 }
 
 /**
  * Hook for managing message queuing in chat interfaces.
- * 
+ *
  * @example
  * const { queuedMessage, sendMessage, cancelQueued } = useMessageQueue({
  *   isLoading,
@@ -57,12 +48,8 @@ export function useMessageQueue({
   }, [onSendMessage]);
 
   const sendMessageNow = useCallback(
-    (
-      content: MessageContent[],
-      messagePrompt: string,
-      messageAgentMode: boolean
-    ) => {
-      sendMessageRef.current(content, messagePrompt, messageAgentMode);
+    (content: MessageContent[], messagePrompt: string) => {
+      sendMessageRef.current(content, messagePrompt);
       // Keep focus in the textarea after sending
       if (textareaRef?.current) {
         requestAnimationFrame(() => {
@@ -74,11 +61,7 @@ export function useMessageQueue({
   );
 
   const sendMessage = useCallback(
-    (
-      content: MessageContent[],
-      messagePrompt: string,
-      messageAgentMode: boolean
-    ) => {
+    (content: MessageContent[], messagePrompt: string) => {
       // Don't allow queuing if there's already a queued message
       if (queuedMessage) {
         return;
@@ -86,13 +69,12 @@ export function useMessageQueue({
 
       if (!isLoading && !isStreaming) {
         // Send immediately
-        sendMessageNow(content, messagePrompt, messageAgentMode);
+        sendMessageNow(content, messagePrompt);
       } else {
         // Queue the message
         setQueuedMessage({
           content,
-          prompt: messagePrompt,
-          agentMode: messageAgentMode
+          prompt: messagePrompt
         });
       }
     },
@@ -106,21 +88,13 @@ export function useMessageQueue({
       if (pendingSendRef.current) {
         const messageToSend = pendingSendRef.current;
         pendingSendRef.current = null;
-        sendMessageNow(
-          messageToSend.content,
-          messageToSend.prompt,
-          messageToSend.agentMode
-        );
-      } 
+        sendMessageNow(messageToSend.content, messageToSend.prompt);
+      }
       // Handle normal queued message
       else if (queuedMessage) {
         const messageToSend = queuedMessage;
         setQueuedMessage(null); // Clear first to prevent re-firing
-        sendMessageNow(
-          messageToSend.content,
-          messageToSend.prompt,
-          messageToSend.agentMode
-        );
+        sendMessageNow(messageToSend.content, messageToSend.prompt);
       }
     }
   }, [isLoading, isStreaming, queuedMessage, sendMessageNow]);

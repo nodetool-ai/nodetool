@@ -6,7 +6,7 @@
  * handle_message_impl routing logic.
  *
  * Gaps covered:
- *   1. Routing priority: workflow_target/workflow_id checked BEFORE agent_mode
+ *   1. Routing priority: workflow_target/workflow_id checked first
  *   2. handleWorkflowMessage: runs workflow, streams events, builds response
  *   3. _detect_message_input_names: scans graph for MessageInput/MessageListInput
  *   4. _create_response_message: converts workflow outputs to typed Message content
@@ -136,6 +136,13 @@ function streamingResolver(nodeType: string) {
       outputs: { chunk: "chunk" },
       descriptorDefaults: {
         is_streaming_output: true,
+        output_correlation: {
+          chunk: {
+            kind: "iteration",
+            source: "__execution__",
+            group: "items"
+          }
+        },
         name: "Streamer"
       }
     };
@@ -153,7 +160,7 @@ function streamingResolver(nodeType: string) {
 
 // ── 1. Routing priority ─────────────────────────────────────────────
 
-describe("Routing priority: workflow_id/workflow_target before agent_mode", () => {
+describe("Routing priority: workflow_id/workflow_target", () => {
   let ws: MockWS;
 
   beforeEach(() => {
@@ -161,7 +168,7 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
     ws = new MockWS();
   });
 
-  it("routes to workflow processor when workflow_target='workflow' even if agent_mode=true", async () => {
+  it("routes to workflow processor when workflow_target='workflow'", async () => {
     const workflow = await Workflow.create({
       user_id: "1",
       name: "Test WF",
@@ -191,7 +198,6 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
         content: "do something",
         workflow_id: workflow.id,
         workflow_target: "workflow",
-        agent_mode: true, // should be ignored since workflow_target is set
         provider: "mock",
         model: "m"
       }
@@ -221,7 +227,10 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
     await runner.disconnect();
   });
 
-  it("routes to workflow processor when workflow_id is set (no workflow_target)", async () => {
+  it("falls through to regular chat when workflow_id is set without workflow_target", async () => {
+    // A bare workflow_id is context only (e.g. the editor binds the open
+    // workflow so `ui_*` tools target it). It must NOT route the turn into the
+    // workflow processor — only an explicit workflow_target does that.
     const workflow = await Workflow.create({
       user_id: "1",
       name: "Test WF 2",
@@ -258,15 +267,12 @@ describe("Routing priority: workflow_id/workflow_target before agent_mode", () =
 
     const msgs = sentMsgs(ws);
 
-    // Should NOT be regular chat
+    // Should be a regular chat turn, not a workflow run.
     expect(
       msgs.some(
         (m) => m.type === "chunk" && m.content === "regular chat response"
       )
-    ).toBe(false);
-
-    // Should send done chunk at completion
-    expect(msgs.some((m) => m.type === "chunk" && m.done === true)).toBe(true);
+    ).toBe(true);
 
     await runner.disconnect();
   });
@@ -502,6 +508,7 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
       command: "chat_message",
       data: {
         thread_id: "t-wf-exec",
+        workflow_target: "workflow",
         content: "run it",
         workflow_id: workflow.id,
         provider: "mock",
@@ -539,6 +546,7 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
       command: "chat_message",
       data: {
         thread_id: "t-wf-notfound",
+        workflow_target: "workflow",
         content: "run it",
         workflow_id: "nonexistent-workflow-id",
         provider: "mock",
@@ -581,6 +589,7 @@ describe("handleWorkflowMessage: workflow execution and response", () => {
       command: "chat_message",
       data: {
         thread_id: "t-wf-ids",
+        workflow_target: "workflow",
         content: "run",
         workflow_id: workflow.id,
         provider: "mock",
@@ -664,6 +673,7 @@ describe("detectMessageInputNames: scans graph for input node types", () => {
       command: "chat_message",
       data: {
         thread_id: "t-detect",
+        workflow_target: "workflow",
         content: "test message",
         workflow_id: workflow.id,
         provider: "mock",
@@ -734,6 +744,7 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
       command: "chat_message",
       data: {
         thread_id: "t-text-out",
+        workflow_target: "workflow",
         content: "run",
         workflow_id: workflow.id,
         provider: "mock",
@@ -810,6 +821,7 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
       command: "chat_message",
       data: {
         thread_id: "t-img-out",
+        workflow_target: "workflow",
         content: "make image",
         workflow_id: workflow.id,
         provider: "mock",
@@ -862,6 +874,7 @@ describe("createResponseMessage: converts workflow outputs to typed content", ()
       command: "chat_message",
       data: {
         thread_id: "t-no-out",
+        workflow_target: "workflow",
         content: "run",
         workflow_id: workflow.id,
         provider: "mock",
@@ -934,6 +947,7 @@ describe("handleWorkflowMessage: error handling", () => {
       command: "chat_message",
       data: {
         thread_id: "t-wf-error",
+        workflow_target: "workflow",
         content: "run",
         workflow_id: workflow.id,
         provider: "mock",
@@ -1014,6 +1028,7 @@ describe("Chat workflow routing: run_mode='chat'", () => {
       command: "chat_message",
       data: {
         thread_id: "t-chat-wf",
+        workflow_target: "workflow",
         content: "hello",
         workflow_id: workflow.id,
         provider: "mock",
@@ -1086,6 +1101,7 @@ describe("handleWorkflowMessage: message persistence", () => {
       command: "chat_message",
       data: {
         thread_id: "t-wf-persist",
+        workflow_target: "workflow",
         content: "run workflow",
         workflow_id: workflow.id,
         provider: "mock",

@@ -15,7 +15,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
-import { nodeToolGraphToComfyWorkflow } from "../../utils/comfyWorkflowConverter";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
 import { isDevelopment } from "../../lib/env";
@@ -26,8 +25,9 @@ import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useFitView } from "../../hooks/useFitView";
 import { useReactFlow } from "@xyflow/react";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
-import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+import { useFindInWorkflowStore } from "../../stores/FindInWorkflowStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { usePanelStore } from "../../stores/PanelStore";
 
@@ -110,15 +110,13 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     edges,
     currentWorkflow,
     workflowJSON,
-    autoLayout,
-    getWorkflow
+    autoLayout
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
     currentWorkflow: state.workflow,
     workflowJSON: state.workflowJSON,
-    autoLayout: state.autoLayout,
-    getWorkflow: state.getWorkflow
+    autoLayout: state.autoLayout
   }), shallow);
   const run = useWebsocketRunner((state) => state.run);
   const cancel = useWebsocketRunner((state) => state.cancel);
@@ -158,18 +156,6 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       content: "Copied workflow JSON to Clipboard!"
     });
   }, [writeClipboard, workflowJSON, addNotification]);
-
-  const exportAsComfyWorkflow = useCallback(() => {
-    const workflow = getWorkflow();
-    const comfyWorkflow = nodeToolGraphToComfyWorkflow(workflow.graph ?? { nodes: [], edges: [] });
-    const blob = new Blob([JSON.stringify(comfyWorkflow, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.download = `${currentWorkflow.name}_comfy.json`;
-    link.href = url;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [getWorkflow, currentWorkflow.name]);
 
   const handleSave = useCallback(async () => {
     const workflow = getCurrentWorkflow();
@@ -254,6 +240,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         ref={fileInputRef}
         type="file"
         accept=".json"
+        aria-label="Import workflow file"
         style={{ display: "none" }}
         onChange={handleImportFileChange}
       />
@@ -272,9 +259,6 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(downloadWorkflow)}>
         <FileDownloadRoundedIcon /> Download Workflow as JSON
-      </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(exportAsComfyWorkflow)}>
-        <FileDownloadRoundedIcon /> Export as ComfyUI Workflow
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(handleImportWorkflow)}>
         <FileUploadRoundedIcon /> Import Workflow from JSON
@@ -326,7 +310,7 @@ const EditCommands = memo(function EditCommands({
   );
   const surroundWithGroup = useSurroundWithGroup();
   const selectionActions = useSelectionActions();
-  const { openFind } = useFindInWorkflow();
+  const openFind = useFindInWorkflowStore((state) => state.openFind);
 
   const handleGroup = useCallback(() => {
     if (selectedNodes.length) {
@@ -438,7 +422,7 @@ const ViewCommands = memo(function ViewCommands() {
         {visible ? "Hide Mini Map" : "Show Mini Map"}
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => handleFitView({ padding: 0.4 }))}
+        onSelect={() => executeAndClose(() => handleFitView({ padding: 0.5 }))}
       >
         <FitScreenRoundedIcon /> Fit View
       </Command.Item>
@@ -474,6 +458,7 @@ const ViewCommands = memo(function ViewCommands() {
 const PanelCommands = memo(function PanelCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const rightPanelToggle = useRightPanelStore((state) => state.handleViewChange);
+  const bottomPanelToggle = useBottomPanelStore((state) => state.handleViewChange);
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
 
   return (
@@ -484,14 +469,14 @@ const PanelCommands = memo(function PanelCommands() {
         <InfoRoundedIcon /> Toggle Inspector
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => rightPanelToggle("workflow"))}
+        onSelect={() => executeAndClose(() => leftPanelToggle("settings"))}
       >
         <SettingsRoundedIcon /> Toggle Workflow Settings
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => rightPanelToggle("assistant"))}
+        onSelect={() => executeAndClose(() => leftPanelToggle("agent"))}
       >
-        <ChatRoundedIcon /> Toggle Chat
+        <ChatRoundedIcon /> Toggle Agent
       </Command.Item>
       <Command.Item
         onSelect={() => executeAndClose(() => leftPanelToggle("assets"))}

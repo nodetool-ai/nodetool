@@ -12,6 +12,7 @@ import ImageIcon from "@mui/icons-material/Image";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -54,6 +55,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     const sequenceId = useTimelineStore((s) => s.sequenceId);
 
     const duplicateClip = useTimelineStore((s) => s.duplicateClip);
+    const regenerateAsCopy = useTimelineStore((s) => s.regenerateAsCopy);
     const selectClip = useTimelineUIStore((s) => s.selectClip);
     const setClipLocked = useTimelineStore((s) => s.setClipLocked);
     const replaceClipOutput = useTimelineStore((s) => s.replaceClipOutput);
@@ -85,6 +87,21 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
         setDuplicateBusy(false);
       }
     }, [clipId, duplicateOffsetMs, duplicateClip, selectClip]);
+
+    // ── Regenerate as new clip ─────────────────────────────────────────────
+    // Drops a fresh sibling immediately to the right with the same binding
+    // (workflow + overrides, or prompt + model) but no rendered asset, so
+    // the user can roll a new take without losing the existing one.
+    const handleRegenerateAsCopy = useCallback(() => {
+      try {
+        const newClipId = regenerateAsCopy(clipId, duplicateOffsetMs);
+        selectClip(newClipId);
+      } catch (err) {
+        setDuplicateError(
+          err instanceof Error ? err.message : "Failed to create copy"
+        );
+      }
+    }, [clipId, duplicateOffsetMs, regenerateAsCopy, selectClip]);
 
     // ── Lock ───────────────────────────────────────────────────────────────
 
@@ -184,6 +201,16 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
             aria-label="Duplicate clip"
             data-testid="clip-action-duplicate"
           />
+
+          {clip.sourceType === "generated" && (
+            <ToolbarIconButton
+              icon={<AutoAwesomeMotionIcon fontSize="small" />}
+              tooltip="Regenerate as new clip — drops a fresh copy beside this one so you can roll a new take without losing the existing render"
+              onClick={handleRegenerateAsCopy}
+              aria-label="Regenerate as new clip"
+              data-testid="clip-action-regenerate-as-copy"
+            />
+          )}
 
           <ToolbarIconButton
             icon={

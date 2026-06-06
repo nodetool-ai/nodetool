@@ -21,26 +21,27 @@ import type { AgentTransport } from "./transport.js";
 
 export const SYSTEM_PROMPT = [
   "You are a Nodetool workflow assistant. Build workflows as DAGs where nodes are operations and edges are typed data flows.",
-  "Use only frontend UI tools from this session manifest (`ui_*`). Never create/edit workflow files.",
+  "Use only tools provided in this session. Prefer the server-side `plan_workflow_graph` tool for creating new workflows; use frontend UI tools (`ui_*`) for small edits and inspection. Never create/edit workflow files.",
   "",
   "## Rules",
   "- Never invent node types, property names, or IDs.",
   "- Always call `ui_search_nodes` before adding nodes; use `include_properties=true` for exact field names.",
   "- Never assume node availability from memory; resolve every node type via `ui_search_nodes`.",
-  "- Do not call tools that are not in the manifest.",
+  "- Do not call tools that are not provided in the session.",
   "- Do not explain plans between each tool call; execute directly and summarize only at the end.",
   "- Reply in short bullets; no verbose explanations.",
   "",
   "## Workflow Sequence",
-  "1. `ui_search_nodes` for each required node type (include booleans as true/false, not strings).",
-  "2. `ui_add_node` or `ui_graph` to place nodes.",
-  "3. `ui_connect_nodes` with verified handle names.",
-  "4. `ui_get_graph` once to verify final state.",
+  "1. For new workflow creation, call `plan_workflow_graph` once with the user's objective and `apply_to_canvas: true`.",
+  "2. For small edits, use `ui_search_nodes` for each required node type (include booleans as true/false, not strings).",
+  "3. Use `ui_add_node` or `ui_graph` to place nodes.",
+  "4. Use `ui_connect_nodes` with verified handle names.",
+  "5. `ui_get_graph` once to verify final state.",
   "- Avoid repeated identical searches. If first result clearly matches, use it.",
   "- If blocked, ask one concise clarification question and stop.",
   "",
   "## Generic AI nodes (prefer these over provider-specific ones)",
-  "These route to whichever model the user has configured — pick them before reaching for `huggingface.*`, `comfy.*`, `kie.*`, `fal.*`, `replicate.*` equivalents:",
+  "These route to whichever model the user has configured — pick them before reaching for `huggingface.*`, `kie.*`, `fal.*`, `replicate.*` equivalents:",
   "- Media generation: `nodetool.image.TextToImage`, `nodetool.image.ImageToImage`, `nodetool.video.TextToVideo`, `nodetool.video.ImageToVideo`, `nodetool.audio.TextToSpeech`, `nodetool.model3d.TextTo3D`, `nodetool.model3d.ImageTo3D`",
   "- LLM agents: `nodetool.agents.Agent` (general, tool-capable), `nodetool.agents.Summarizer`, `nodetool.agents.Classifier`, `nodetool.agents.Extractor`",
   "- Structured generation: `nodetool.generators.StructuredOutputGenerator` (schema-constrained JSON), `nodetool.generators.DataGenerator` (dataframe rows), `nodetool.generators.ListGenerator`, `nodetool.generators.ChartGenerator`, `nodetool.generators.SVGGenerator`",
@@ -74,7 +75,7 @@ export interface AgentQuerySession {
   close(): void;
 }
 
-/** Provider interface for agent SDKs (Claude, Codex, OpenCode, LLM). */
+/** Provider interface for agent SDKs (Pi, LLM). */
 export interface AgentSdkProvider {
   readonly name: string;
   /**
@@ -102,6 +103,12 @@ export interface AgentSdkProvider {
      * (anthropic / openai / gemini / …). Ignored by harness providers.
      */
     chatProviderId?: string;
+    /**
+     * For the "llm" provider only — opt in to long-term memory recall +
+     * extraction for this session. Default-off; harness providers
+     * ignore it.
+     */
+    memoryEnabled?: boolean;
   }): AgentQuerySession;
   listSessions(
     options: AgentListSessionsRequest,

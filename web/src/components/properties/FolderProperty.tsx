@@ -3,10 +3,9 @@ import { useTheme } from "@mui/material/styles";
 import {
   Popover,
   DialogTitle,
-  DialogContent,
-  TextField
+  DialogContent
 } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { EditorButton, TextInput } from "../ui_primitives";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { AssetList } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -125,7 +124,7 @@ const FolderProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {isLoading && <p>Loading...</p>}
+      {isLoading && <p>Loading…</p>}
       {error && <p>Error: {error.message}</p>}
       <FlexRow align="center" gap={0.5}>
         <Select
@@ -142,7 +141,7 @@ const FolderProperty = (props: PropertyProps) => {
             margin: "0"
           }}
         >
-          <CreateNewFolderIcon sx={{ fontSize: "1.2rem" }} />
+          <CreateNewFolderIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
         </EditorButton>
       </FlexRow>
       <Popover
@@ -158,7 +157,7 @@ const FolderProperty = (props: PropertyProps) => {
           {"Create Folder"}
         </DialogTitle>
         <DialogContent className="dialog-content">
-          <TextField
+          <TextInput
             className="input-field"
             inputRef={inputRef}
             placeholder="Folder Name"

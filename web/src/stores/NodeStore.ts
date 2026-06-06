@@ -3,7 +3,7 @@
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
 import { create, StoreApi, UseBoundStore } from "zustand";
-import { NodeMetadata, RepoPath, UnifiedModel, Workflow } from "./ApiTypes";
+import { NodeMetadata, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
 import {
   Connection,
@@ -48,19 +48,10 @@ import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
+import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
-import { COMFY_WORKFLOW_FLAG } from "../utils/comfyWorkflowConverter";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
-
-function isUnifiedModel(value: unknown): value is UnifiedModel {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "type" in value &&
-    "repo_id" in value
-  );
-}
 
 const syncReactFlowNodeChromeClass = (node: Node<NodeData>): Node<NodeData> => ({
   ...node,
@@ -124,7 +115,6 @@ const generateUUID = (): string => {
 };
 
 export { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
-export type { NodeUIProperties } from "./nodeUiDefaults";
 
 type NodeSelection = {
   nodes: Node<NodeData>[];
@@ -134,8 +124,6 @@ type NodeSelection = {
 const undo_limit = 1000;
 
 export interface NodeStoreState {
-  shouldAutoLayout: boolean;
-  setShouldAutoLayout: (value: boolean) => void;
   workflow: WorkflowAttributes;
   nodes: Node<NodeData>[];
   viewport: Viewport | null;
@@ -144,8 +132,6 @@ export interface NodeStoreState {
   setHoveredNodes: (ids: string[]) => void;
   edges: Edge[];
   edgeUpdateSuccessful: boolean;
-  missingModelFiles: RepoPath[];
-  missingModelRepos: string[];
   generateNodeId: () => string;
   generateNodeIds: (count: number) => string[];
   generateEdgeId: () => string;
@@ -185,7 +171,6 @@ export interface NodeStoreState {
     oldHandle: string,
     newHandle: string
   ) => void;
-  getModels: () => UnifiedModel[];
   setNodes: (
     nodesOrCallback:
       | Node<NodeData>[]
@@ -193,9 +178,7 @@ export interface NodeStoreState {
   ) => void;
   setEdges: (edges: Edge[]) => void;
   getWorkflow: () => Workflow;
-  isComfyWorkflow: () => boolean;
   setWorkflowDirty: (dirty: boolean) => void;
-  updateWorkflowSetting: (key: string, value: unknown) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -208,8 +191,6 @@ export interface NodeStoreState {
     properties?: Record<string, unknown>
   ) => Node<NodeData>;
   autoLayout: () => Promise<void>;
-  clearMissingModels: () => void;
-  clearMissingRepos: () => void;
   workflowIsDirty: boolean;
   shouldFitToScreen: boolean;
   fitViewTargetNodeIds: string[] | null;
@@ -232,54 +213,6 @@ export type NodeStore = UseBoundStore<
   }
 >;
 
-let comfyMetadataHydrationPromise: Promise<void> | null = null;
-
-const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
-  const comfyNodeTypes = nodeTypes.filter((type) => type.startsWith("comfy."));
-  if (comfyNodeTypes.length === 0) {
-    return;
-  }
-
-  const metadataStore = useMetadataStore.getState();
-  const missingComfyTypes = comfyNodeTypes.filter(
-    (type) => !metadataStore.metadata[type]
-  );
-  if (missingComfyTypes.length === 0) {
-    return;
-  }
-
-  if (!comfyMetadataHydrationPromise) {
-    comfyMetadataHydrationPromise = (async () => {
-      try {
-        // Use ComfyUIStore.connect() which goes through the backend proxy
-        const { useComfyUIStore } = await import("./ComfyUIStore");
-        const comfyStore = useComfyUIStore.getState();
-        if (!comfyStore.isConnected && !comfyStore.isConnecting) {
-          await comfyStore.connect();
-        }
-        // connect() registers metadata in MetadataStore, so we're done
-        console.info("[NodeStore] Hydrated ComfyUI metadata via backend proxy");
-      } catch (error) {
-        console.warn(
-          "[NodeStore] Failed to hydrate missing ComfyUI metadata",
-          error
-        );
-        const { useNotificationStore } = await import("./NotificationStore");
-        useNotificationStore.getState().addNotification({
-          type: "warning",
-          content:
-            "Could not connect to ComfyUI. Configure the host in ComfyUI Settings.",
-          alert: true,
-          timeout: 10000,
-          dedupeKey: "comfyui-not-running"
-        });
-      } finally {
-        comfyMetadataHydrationPromise = null;
-      }
-    })();
-  }
-};
-
 /**
  * Creates a new node store instance with default values
  * Useful for testing or creating isolated stores
@@ -289,7 +222,6 @@ export const createNodeStore = (
   state?: Partial<NodeStoreState>
 ): NodeStore =>
   create<NodeStoreState>()(
-    // @ts-expect-error Types are not fully compatible between zundo v2 and zustand v4
     temporal(
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
@@ -318,12 +250,6 @@ export const createNodeStore = (
             addNodeType(node.type, PlaceholderNode);
           }
         }
-
-        hydrateMissingComfyMetadata(
-          sanitizedNodes
-            .map((node) => node.type || "")
-            .filter((type) => type.length > 0)
-        );
 
         // Store the unsubscribe function for cleanup
         let unsubscribeMetadata: (() => void) | null = null;
@@ -356,9 +282,6 @@ export const createNodeStore = (
         let lastSelection: NodeSelection = { nodes: [], edges: [] };
 
         return {
-          shouldAutoLayout: state?.shouldAutoLayout || false,
-          missingModelFiles: [],
-          missingModelRepos: [],
           viewport: null,
           workflow: workflow
             ? workflow
@@ -545,9 +468,17 @@ export const createNodeStore = (
             // Filter out selection changes for group nodes that have selectable: false
             // This prevents groups from being selected during drag selection when they shouldn't be
             const currentNodes = get().nodes;
+
+            // Optimization: Lazily initialize Map only if we encounter selection changes
+            // to avoid O(N) allocation on hot paths like dragging.
+            let lazyNodeMap: Map<string, Node<NodeData>> | null = null;
+
             const filteredChanges = changes.filter((change) => {
               if (change.type === "select" && change.selected) {
-                const node = currentNodes.find((n) => n.id === change.id);
+                if (!lazyNodeMap) {
+                  lazyNodeMap = new Map(currentNodes.map((n) => [n.id, n]));
+                }
+                const node = lazyNodeMap.get(change.id);
                 // If node is a group and has selectable: false, don't allow selection
                 if (
                   node &&
@@ -714,7 +645,7 @@ export const createNodeStore = (
               return;
             }
 
-            const newEdge = {
+            const newEdge: Edge = {
               ...connection,
               id: get().generateEdgeId(),
               sourceHandle: connection.sourceHandle || null,
@@ -722,7 +653,7 @@ export const createNodeStore = (
               ...(isControlEdge
                 ? { type: "control", data: { edge_type: "control" } }
                 : {})
-            } as Edge;
+            };
 
             // Normalize handles to null if undefined for consistency
             // This is necessary because edge comparison and serialization expect null, not undefined
@@ -896,10 +827,11 @@ export const createNodeStore = (
               return;
             }
 
-            const focusedElement = document.activeElement as HTMLElement;
+            const focusedElement = document.activeElement;
             if (
-              focusedElement.classList.contains("MuiInput-input") ||
-              focusedElement.tagName === "TEXTAREA"
+              focusedElement instanceof HTMLElement &&
+              (focusedElement.classList.contains("MuiInput-input") ||
+                focusedElement.tagName === "TEXTAREA")
             ) {
               return;
             }
@@ -997,26 +929,6 @@ export const createNodeStore = (
             });
             get().setWorkflowDirty(true);
           },
-          getModels: (): UnifiedModel[] => {
-            const nodes = get().nodes;
-            const models: UnifiedModel[] = [];
-            for (const node of nodes) {
-              for (const key in node.data.properties) {
-                if (
-                  Object.prototype.hasOwnProperty.call(
-                    node.data.properties,
-                    key
-                  )
-                ) {
-                  const property = node.data.properties[key];
-                  if (isUnifiedModel(property)) {
-                    models.push(property);
-                  }
-                }
-              }
-            }
-            return models;
-          },
           getWorkflow: (): Workflow => {
             const workflow = get().workflow;
             const edges = get().edges;
@@ -1053,45 +965,18 @@ export const createNodeStore = (
               };
             });
             const settings = workflow.settings || {};
-            const hasComfyNodes = nodes.some(
-              (node) =>
-                typeof node.type === "string" && node.type.startsWith("comfy.")
-            );
 
             return {
               ...workflow,
-              settings: hasComfyNodes
-                ? { ...settings, [COMFY_WORKFLOW_FLAG]: true }
-                : settings,
+              settings,
               graph: {
                 edges: edges.map(reactFlowEdgeToGraphEdge),
                 nodes: nodes.map(reactFlowNodeToGraphNode)
               }
             };
           },
-          isComfyWorkflow: (): boolean => {
-            const settings = get().workflow.settings as
-              | Record<string, unknown>
-              | undefined;
-            if (settings?.[COMFY_WORKFLOW_FLAG] === true) {
-              return true;
-            }
-
-            return get().nodes.some(
-              (node) =>
-                typeof node.type === "string" && node.type.startsWith("comfy.")
-            );
-          },
           setWorkflowDirty: (dirty: boolean): void => {
             set({ workflowIsDirty: dirty });
-          },
-          updateWorkflowSetting: (key: string, value: unknown): void => {
-            const current = get().workflow;
-            const settings = {
-              ...(current.settings ?? {}),
-              [key]: value as string | number | boolean | null
-            };
-            set({ workflow: { ...current, settings } });
           },
           autoLayout: async (): Promise<void> => {
             const allNodes = get().nodes;
@@ -1165,15 +1050,6 @@ export const createNodeStore = (
 
             get().setNodes(updatedNodes);
             set({ shouldFitToScreen: true });
-          },
-          setShouldAutoLayout: (value: boolean): void => {
-            set({ shouldAutoLayout: value });
-          },
-          clearMissingModels: (): void => {
-            set({ missingModelFiles: [] });
-          },
-          clearMissingRepos: (): void => {
-            set({ missingModelRepos: [] });
           },
           setShouldFitToScreen: (
             value: boolean,
@@ -1257,12 +1133,12 @@ export const createNodeStore = (
               );
             }
 
-            const srcMetadata = useMetadataStore
-              .getState()
-              .getMetadata(srcNode.type as string);
-            const targetMetadata = useMetadataStore
-              .getState()
-              .getMetadata(targetNode.type as string);
+            const srcMetadata = srcNode.type
+              ? useMetadataStore.getState().getMetadata(srcNode.type)
+              : undefined;
+            const targetMetadata = targetNode.type
+              ? useMetadataStore.getState().getMetadata(targetNode.type)
+              : undefined;
 
             // If either node doesn't have metadata (placeholder nodes), allow connection
             if (!srcMetadata || !targetMetadata) {
@@ -1363,13 +1239,18 @@ export const createNodeStore = (
 
             // Set default size for nodes that host rich previews so content
             // fills a stable box instead of driving the initial layout.
-            const isPreviewNode =
-              metadata.node_type === "nodetool.workflows.base_node.Preview";
+            const isPreviewNode = metadata.node_type === PREVIEW_NODE_TYPE;
             const isCompareImagesNode =
               metadata.node_type === "nodetool.compare.CompareImages";
             const isModel3DConstantNode =
               metadata.node_type === "nodetool.constant.Model3D";
             const isContentCard = isContentCardNode(metadata);
+            // Agent-style content cards use {{variable}} templating, not
+            // media preview — they should size like regular nodes (auto
+            // height) instead of inheriting the text variant's 320×220.
+            const isAgentStyle =
+              metadata.node_type === "nodetool.agents.Agent" ||
+              metadata.node_type === "openai.agents.RealtimeAgent";
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
@@ -1377,6 +1258,8 @@ export const createNodeStore = (
               defaultStyle = { width: 450, height: 350 };
             } else if (isModel3DConstantNode) {
               defaultStyle = { width: 320, height: 320 };
+            } else if (isAgentStyle) {
+              defaultStyle = { width: DEFAULT_NODE_WIDTH };
             } else if (isContentCard) {
               defaultStyle = getContentCardDefaultSize(metadata);
             } else {

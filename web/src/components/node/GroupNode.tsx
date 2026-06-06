@@ -107,7 +107,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         whiteSpace: "pre",
         pointerEvents: "none",
         fontFamily: theme.fontFamily1,
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 400,
         letterSpacing: "0.02em"
       },
@@ -128,7 +128,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         color: "#ffffff",
         textShadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
         fontFamily: theme.fontFamily1,
-        fontSize: "15px",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 400,
         letterSpacing: "0.02em",
         pointerEvents: "none",
@@ -336,10 +336,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     );
 
     // Filter edges that connect nodes within this group
+    const groupNodeIds = new Set(groupNodes.map((n) => n.id));
     const groupEdges = edges.filter(
       (edge) =>
-        groupNodes.find((node) => node.id === edge.source) &&
-        groupNodes.find((node) => node.id === edge.target)
+        groupNodeIds.has(edge.source) &&
+        groupNodeIds.has(edge.target)
     );
 
     run({}, workflow, groupNodes, groupEdges);
@@ -367,8 +368,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     (props.data.properties.headline as string | undefined) || "Group"
   );
 
-  const [color, setColor] = useState(
-    props.data.properties.group_color || theme.vars.palette.c_bg_group
+  const [color, setColor] = useState<string | null>(
+    (props.data.properties.group_color as string) || theme.vars.palette.c_bg_group || null
   );
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
@@ -541,6 +542,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             spellCheck={false}
             className="nodrag"
             type="text"
+            aria-label="Group headline"
             value={headline}
             onChange={handleHeadlineChange}
             placeholder="Group"

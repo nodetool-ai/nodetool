@@ -13,16 +13,15 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { FlexRow } from "../ui_primitives";
 import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
 import { selectionAntCanvasMarginCssPx } from "./sketchCanvasHooks";
-import { cursorStyleForTool } from "./sketchCursorStyle";
 import { TransformGizmo } from "./transform/gizmo/TransformGizmo";
+import { SelectionActionBar } from "./SelectionActionBar";
 import type { TransformTool } from "./tools/TransformTool";
-
-export { cursorStyleForTool } from "./sketchCursorStyle";
+import { canvasTransformStyle } from "./sketchCanvasPresentation.helpers";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -32,7 +31,12 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     overflow: "visible",
-    backgroundColor: theme.vars.palette.grey[800],
+    // Match the node editor's canvas backdrop: near-black base with a faint
+    // dotted grid. Uses the same theme tokens as ReactFlow's background so it
+    // tracks light/dark identically.
+    backgroundColor: theme.vars.palette.c_editor_bg_color,
+    backgroundImage: `radial-gradient(${theme.vars.palette.c_editor_grid_color} 1px, transparent 1px)`,
+    backgroundSize: "25px 25px",
     touchAction: "none",
     overscrollBehaviorX: "none",
     overscrollBehaviorY: "contain",
@@ -60,16 +64,6 @@ const styles = (theme: Theme) =>
       imageRendering: "auto"
     }
   });
-
-// ─── Canvas transform style helper ──────────────────────────────────────────
-
-export function canvasTransformStyle(pan: Point, zoom: number): React.CSSProperties {
-  return {
-    transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-    transformOrigin: "center center",
-    imageRendering: "pixelated"
-  };
-}
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -100,6 +94,12 @@ export interface SketchCanvasPresentationProps {
 
   // ── Info bar data ──────────────────────────────────────────────────
   cursorDocPos: Point | null;
+  /**
+   * Floating bottom-center info pill (dimensions / zoom / cursor). Defaults to
+   * true; the standalone editor hides it because its full-width status bar
+   * already shows this information.
+   */
+  showInfoBar?: boolean;
 
   // ── Event handlers (from orchestration / SketchCanvas) ─────────────
   onPointerDown: (e: React.PointerEvent) => void;
@@ -144,6 +144,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
       bootstrapPhaseActive,
       backend,
       cursorDocPos,
+      showInfoBar = true,
       onPointerDown,
       onPointerMove,
       onPointerUp,
@@ -225,7 +226,9 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
             left: -selectionAntMarginPx,
             width: `calc(100% + ${2 * selectionAntMarginPx}px)`,
             height: `calc(100% + ${2 * selectionAntMarginPx}px)`,
-            ...(backend === "webgpu" && !bootstrapPhaseActive ? {} : { visibility: "hidden" })
+            ...(backend === "webgpu" && !bootstrapPhaseActive
+              ? {}
+              : { visibility: "hidden" })
           }}
         />
         <canvas
@@ -250,6 +253,8 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
         />
         {/* React/SVG gizmo for the TransformTool (declarative, viewport-aware). */}
         <TransformGizmo containerRef={containerRef} tool={transformTool} />
+        {/* Floating contextual toolbar anchored to the active selection. */}
+        <SelectionActionBar containerRef={containerRef} />
         {/* Canvas resize handles */}
         {onCanvasResize && (
           <SketchCanvasResizeHandles
@@ -261,34 +266,38 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
             onResize={onCanvasResize}
           />
         )}
-        {/* Canvas info bar */}
-        <Box
-          className="sketch-canvas__info-bar"
-          sx={{
-            position: "absolute",
-            bottom: 8,
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: "rgba(0,0,0,0.6)",
-            color: "#ccc",
-            padding: "2px 12px",
-            borderRadius: "4px",
-            fontSize: SKETCH_FONT.md,
-            fontFamily: SKETCH_FONT.familyMono,
-            pointerEvents: "none",
-            zIndex: 5,
-            display: "flex",
-            gap: "12px"
-          }}
-        >
-          <span>{canvasWidth} × {canvasHeight}</span>
-          <span>{Math.round(zoom * 100)}%</span>
-          {cursorDocPos !== null && (
-            <span style={{ fontSize: SKETCH_FONT.sm, minWidth: 65 }}>
-              {cursorDocPos.x}, {cursorDocPos.y}
+        {/* Canvas info bar — hidden in the standalone editor, which uses the
+            full-width status bar instead. */}
+        {showInfoBar && (
+          <FlexRow
+            className="sketch-canvas__info-bar"
+            sx={{
+              position: "absolute",
+              bottom: 8,
+              left: "50%",
+              transform: "translateX(-50%)",
+              backgroundColor: "rgba(0,0,0,0.6)",
+              color: "#ccc",
+              padding: "2px 12px",
+              borderRadius: "4px",
+              fontSize: SKETCH_FONT.md,
+              fontFamily: SKETCH_FONT.familyMono,
+              pointerEvents: "none",
+              zIndex: 5,
+              gap: "12px"
+            }}
+          >
+            <span>
+              {canvasWidth} × {canvasHeight}
             </span>
-          )}
-        </Box>
+            <span>{Math.round(zoom * 100)}%</span>
+            {cursorDocPos !== null && (
+              <span style={{ fontSize: SKETCH_FONT.sm, minWidth: 65 }}>
+                {cursorDocPos.x}, {cursorDocPos.y}
+              </span>
+            )}
+          </FlexRow>
+        )}
       </div>
     );
   }

@@ -3,7 +3,7 @@ import { PartializedNodeStore } from "./NodeStore";
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "./NodeData";
 
-function compareEdge(a: Edge, b: Edge) {
+function compareEdge(a: Edge, b: Edge): boolean {
   return (
     a.id === b.id &&
     a.source === b.source &&
@@ -13,7 +13,7 @@ function compareEdge(a: Edge, b: Edge) {
   );
 }
 
-function compareNode(a: Node<NodeData>, b: Node<NodeData>) {
+function compareNode(a: Node<NodeData>, b: Node<NodeData>): boolean {
   return (
     a.id === b.id &&
     a.type === b.type &&

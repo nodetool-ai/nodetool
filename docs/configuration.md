@@ -36,7 +36,6 @@ The in-app Settings dialog is the easiest way to manage everything. It has a sid
 | **Folders** | Workspace, cache, and asset directories |
 | **Secrets** | Encrypted provider tokens and credentials |
 | **Remote** | Point the app at a remote NodeTool server |
-| **ComfyUI** | Integration settings for the ComfyUI sidecar |
 | **About** | Version and build info |
 
 ![Settings Subviews](assets/screenshots/screenshot-placeholder.svg)
@@ -159,7 +158,7 @@ Security notes:
 | `DB_PATH` / `DATABASE_URL` | Database connection | no | Set only one. `DB_PATH` configures SQLite; `DATABASE_URL` supports PostgreSQL (`postgres://`, `postgresql://`) and SQLite (`file:`, `sqlite:`) |
 | `S3_*` | S3-compatible storage settings | yes | Includes access keys and region |
 | `ASSET_BUCKET` / `ASSET_TEMP_BUCKET` | Asset buckets | no | Use signed URLs for private buckets |
-| `CHROMA_PATH` / `CHROMA_URL` / `CHROMA_TOKEN` | Vector DB config | `CHROMA_TOKEN` | Path defaults to local share |
+| `NODETOOL_VECTOR_PROVIDER` / `VECTORSTORE_DB_PATH` | Vector store config | no | Default backend is local SQLite-vec; switch to `pinecone` or `supabase` for remote. See [Indexing](indexing.md). |
 | `NODE_SUPABASE_URL` / `NODE_SUPABASE_KEY` / `NODE_SUPABASE_SCHEMA` / `NODE_SUPABASE_TABLE_PREFIX` | User/node Supabase config | `NODE_SUPABASE_KEY` | Kept separate from core Supabase credentials and tables |
 | `NODETOOL_ENABLE_TERMINAL_WS` | Opt-in terminal WebSocket | no | Leave unset in production |
 | `LOG_LEVEL` | Logging level | no | Defaults to `INFO` |

@@ -129,7 +129,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         "video/mp4"
       );
       return (
-        <video ref={videoRef} controls style={videoStyle} src={uri} />
+        <video ref={videoRef} controls style={videoStyle} src={uri} aria-label="Video content" />
       );
     }
     case "document":

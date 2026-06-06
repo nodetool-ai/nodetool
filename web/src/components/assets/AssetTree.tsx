@@ -7,14 +7,13 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Collapse,
-  Box
+  Collapse
 } from "@mui/material";
-import { Text, LoadingSpinner } from "../ui_primitives";
+import { Text, LoadingSpinner, Box } from "../ui_primitives";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 

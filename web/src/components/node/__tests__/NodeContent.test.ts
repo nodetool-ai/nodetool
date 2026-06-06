@@ -3,12 +3,11 @@ jest.mock("../NodeInputs", () => ({ NodeInputs: () => null }));
 jest.mock("../NodeOutputs", () => ({ NodeOutputs: () => null }));
 jest.mock("../NodeProgress", () => ({ __esModule: true, default: () => null }));
 jest.mock("../NodePropertyForm", () => ({ __esModule: true, default: () => null }));
-jest.mock("../ResultOverlay", () => ({ __esModule: true, default: () => null }));
 jest.mock("../../../hooks/nodes/useDynamicProperty", () => ({
   useDynamicProperty: () => ({ handleAddProperty: jest.fn() })
 }));
 
-import { arePropsEqual } from "../NodeContent";
+import { arePropsEqual } from "../NodeContent.helpers";
 import { NodeData } from "../../../stores/NodeData";
 
 // Minimal valid NodeContentProps for testing arePropsEqual
@@ -19,7 +18,7 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     nodeMetadata: {
       title: "String",
       layout: "default",
-      is_dynamic: false,
+      supports_dynamic_inputs: false,
       supports_dynamic_outputs: false,
       is_streaming_output: false,
       properties: [{ name: "value", type: { type: "str", type_args: [], optional: false } }],

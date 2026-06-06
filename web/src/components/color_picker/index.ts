@@ -8,6 +8,7 @@ export { default as HarmonyPicker } from "./HarmonyPicker";
 export { default as GradientBuilder } from "./GradientBuilder";
 export { default as SwatchPanel } from "./SwatchPanel";
 export { default as ContrastChecker } from "./ContrastChecker";
-export { default as EyedropperButton, isEyeDropperSupported } from "./EyedropperButton";
+export { default as EyedropperButton } from "./EyedropperButton";
+export { isEyeDropperSupported } from "./EyedropperButton.helpers";
 
 export type { ColorMode } from "./ColorInputs";

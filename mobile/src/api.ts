@@ -4709,11 +4709,6 @@ export interface components {
             dynamic_outputs?: {
                 [key: string]: components["schemas"]["TypeMetadata-Input"];
             };
-            /**
-             * Sync Mode
-             * @default on_any
-             */
-            sync_mode: string;
         };
         /** Node */
         "Node-Output": {
@@ -4738,11 +4733,6 @@ export interface components {
             dynamic_outputs?: {
                 [key: string]: components["schemas"]["TypeMetadata-Output"];
             };
-            /**
-             * Sync Mode
-             * @default on_any
-             */
-            sync_mode: string;
         };
         /**
          * NodeMetadata
@@ -4808,12 +4798,6 @@ export interface components {
              * @default false
              */
             is_streaming_output: boolean;
-            /**
-             * Expose As Tool
-             * @description Whether the node is exposed as a tool
-             * @default false
-             */
-            expose_as_tool: boolean;
             /**
              * Supports Dynamic Outputs
              * @description Whether the node can declare outputs dynamically at runtime (only for dynamic nodes)

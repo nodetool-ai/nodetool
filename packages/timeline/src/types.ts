@@ -19,12 +19,10 @@ export type ClipStatus =
   | "locked"
   | "missing";
 
-export type BlendMode =
-  | "normal"
-  | "screen"
-  | "multiply"
-  | "add"
-  | "overlay";
+// Blend modes are defined once in @nodetool-ai/gpu and shared by the
+// sketch editor, the timeline preview compositor, and the Compositor node.
+import type { BlendMode } from "@nodetool-ai/gpu";
+export type { BlendMode };
 
 export interface TimelineSequence {
   id: string;
@@ -39,8 +37,61 @@ export interface TimelineSequence {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  /**
+   * Studio transcript lines. Optional so sequences written before Studio
+   * existed load with no transcript. Persisted inside the document blob so
+   * autosave and export inherit it for free.
+   */
+  transcript?: TranscriptLine[];
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Classification of a caption token. Normal spoken words are `"word"` (the
+ * default when absent); `"filler"` marks disfluencies ("um", "uh", "like", …)
+ * that filler-word removal can ripple-cut in bulk; `"pause"` marks a silence
+ * gap surfaced as an editable token.
+ */
+export type CaptionWordKind = "word" | "filler" | "pause";
+
+/**
+ * One word of a caption, timed relative to the *clip start* (clip-local) so
+ * splitting or moving a clip never requires rewriting word timings — the
+ * timings travel with the clip and stay valid against its new `startMs`.
+ */
+export interface CaptionWord {
+  word: string;
+  startMs: number;
+  endMs: number;
+  /** Token classification. Absent means a normal spoken word. */
+  kind?: CaptionWordKind;
+  /** ASR confidence in [0, 1] when the provider reports one. */
+  confidence?: number;
+}
+
+/**
+ * Word-level caption data carried directly by the media clip it transcribes
+ * (the voiceover audio clip, or an imported audio/video clip). The transcript
+ * document is projected from these words, and every text edit maps back to the
+ * clip span the words index. A single fixed render style is used for the MVP,
+ * so no style fields are persisted yet.
+ */
+export interface ClipCaption {
+  words: CaptionWord[];
+}
+
+/**
+ * One line of the Studio transcript. Each line owns the clips generated from
+ * it (`clipIds` — typically a voiceover audio clip and a caption clip).
+ * `beatStartMs` is the line's position on the timeline, recomputed whenever
+ * beats are added, removed, reordered, or re-flowed.
+ */
+export interface TranscriptLine {
+  id: string;
+  text: string;
+  beatStartMs: number;
+  clipIds: string[];
 }
 
 export interface TimelineTrack {
@@ -213,6 +264,30 @@ export interface TrackChromaKeyEffect {
   spill: number;
 }
 
+/**
+ * Discriminator for how a generated clip's media is produced.
+ *
+ *   - `"workflow"` (default when absent): runs a NodeTool workflow via
+ *     `WorkflowRunner`. The clip carries `workflowId`, `selectedOutputNodeId`,
+ *     and `paramOverrides`; dependency-hash bookkeeping detects staleness.
+ *   - `"text-to-image"` / `"image-to-image"`: calls the runner's
+ *     `generate_media` RPC directly with a model + prompt. No workflow, no
+ *     param overrides. `sourceClipId` is the input clip for i2i.
+ *   - `"text-to-video"`: calls the runner's `generate_media` RPC with a video
+ *     model + prompt. Returns a single `video/mp4` asset.
+ *   - `"text-to-audio"`: calls the runner's `generate_media` RPC with a TTS
+ *     model + voice + prompt text. Returns a single audio asset (wav/mp3/...).
+ *
+ * Optional in the persisted shape so clips written before this field existed
+ * default to `"workflow"` on load.
+ */
+export type ClipBindingKind =
+  | "workflow"
+  | "text-to-image"
+  | "image-to-image"
+  | "text-to-video"
+  | "text-to-audio";
+
 export interface TimelineClip {
   id: string;
   trackId: string;
@@ -223,10 +298,38 @@ export interface TimelineClip {
   outPointMs?: number;
   mediaType: "image" | "video" | "audio" | "overlay";
   sourceType: "imported" | "generated";
+  /** Defaults to "workflow" when absent on legacy persisted data. */
+  bindingKind?: ClipBindingKind;
   workflowId?: string;
   selectedOutputNodeId?: string;
   /** Heterogeneous per-clip parameter overrides for the associated workflow. */
   paramOverrides?: Record<string, unknown>;
+  // ── Direct-gen fields (text-to-image / image-to-image) ────────────────
+  prompt?: string;
+  negativePrompt?: string;
+  provider?: string;
+  model?: string;
+  /** TTS voice id for `text-to-audio` direct-gen clips. */
+  voice?: string;
+  /**
+   * Speaker label for transcript-bearing clips, from ASR diarization or set
+   * manually. Drives per-paragraph speaker headers in the transcript editor.
+   */
+  speaker?: string;
+  /**
+   * Groups transcript clips that should read as a single paragraph. Set to the
+   * clip's own id when a beat or import is created; `splitClip` copies it, so
+   * the two halves of an interior word-deletion (or filler removal) keep
+   * reading as one paragraph while distinct authored beats stay separate.
+   */
+  paragraphId?: string;
+  /** Source clip for image-to-image. Reads the source clip's currentAssetId at submit time. */
+  sourceClipId?: string | null;
+  width?: number;
+  height?: number;
+  strength?: number;
+  numInferenceSteps?: number;
+  seed?: number;
   dependencyHash?: string;
   lastGeneratedHash?: string;
   currentAssetId?: string;
@@ -250,6 +353,14 @@ export interface TimelineClip {
   fadeInMs?: number;
   /** Duration of the fade-out effect in milliseconds. */
   fadeOutMs?: number;
+  /**
+   * Word-level caption data carried by the media clip it transcribes — the
+   * voiceover audio clip, or an imported audio/video clip. When set, the clip
+   * contributes a caption layer (drawn on top) in both the live preview and
+   * the export, in addition to any visual media it draws. The transcript
+   * editor projects its document from these words.
+   */
+  caption?: ClipCaption;
   /** 2D placement on the preview canvas. Default: identity (centered, contain-fit). */
   transform?: ClipTransform;
   /** Rounded-corner radius in source pixels. 0 = sharp corners. */

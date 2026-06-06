@@ -14,6 +14,7 @@ describe("registerElevenLabsNodes", () => {
     expect(registry.has("elevenlabs.SpeechToText")).toBe(true);
     expect(registry.has("elevenlabs.RealtimeTextToSpeech")).toBe(true);
     expect(registry.has("elevenlabs.RealtimeSpeechToText")).toBe(true);
+    expect(registry.has("elevenlabs.StandardVoice")).toBe(true);
   });
 
   it("declares chunk outputs for realtime nodes", () => {

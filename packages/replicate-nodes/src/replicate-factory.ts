@@ -13,6 +13,11 @@ import {
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type {
+  PromptAssetTextField,
+  PromptAssetInputField
+} from "@nodetool-ai/runtime";
+import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import {
   getReplicateApiKey,
   replicateSubmit,
@@ -141,6 +146,46 @@ function computeFieldClassification(fields: ReplicateFieldDef[]) {
   );
 }
 
+/**
+ * Route `asset://` media mentioned inline in a node's text inputs onto its
+ * empty image/audio/video inputs (and strip the mentions from the text).
+ * Shared with FAL / KIE / image-to-image via `mapPromptAssetsToInputs`.
+ */
+async function promptAssetOverrides(
+  instance: BaseNode,
+  spec: ReplicateManifestEntry,
+  context?: Parameters<BaseNode["process"]>[0]
+): Promise<Record<string, unknown>> {
+  const values = instance as unknown as Record<string, unknown>;
+  const textFields: PromptAssetTextField[] = [];
+  const assetFields: PromptAssetInputField[] = [];
+  for (const field of spec.inputFields) {
+    if (field.parentField) continue;
+    if (EXCLUDED_FIELDS.has(field.name)) continue;
+    const kind = assetKind(field.propType);
+    if (kind === "image" || kind === "audio" || kind === "video") {
+      const list = isListAsset(field.propType);
+      const value = values[field.name];
+      const hasSource = list
+        ? Array.isArray(value) && value.some(isRefSet)
+        : isRefSet(value);
+      assetFields.push({
+        name: field.name,
+        label: field.apiParamName ?? field.name,
+        kind,
+        list,
+        hasSource
+      });
+    } else if (field.propType.toLowerCase() === "str") {
+      textFields.push({
+        name: field.name,
+        value: String(values[field.name] ?? "")
+      });
+    }
+  }
+  return mapPromptAssetsToInputs(textFields, assetFields, context);
+}
+
 async function buildArgs(
   instance: BaseNode,
   spec: ReplicateManifestEntry,
@@ -148,12 +193,24 @@ async function buildArgs(
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
   const args: Record<string, unknown> = {};
+  const overrides = await promptAssetOverrides(instance, spec, context);
 
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
     if (EXCLUDED_FIELDS.has(field.name)) continue;
 
-    const value = (instance as unknown as Record<string, unknown>)[field.name];
+    // Image-gen nodes always produce a single output — force num_outputs to 1
+    // regardless of any saved value, since the field is no longer exposed.
+    if (field.name === "num_outputs") {
+      const apiName = field.apiParamName ?? field.name;
+      args[apiName] = 1;
+      continue;
+    }
+
+    const value =
+      field.name in overrides
+        ? overrides[field.name]
+        : (instance as unknown as Record<string, unknown>)[field.name];
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
 
@@ -226,14 +283,22 @@ export function createReplicateNodeClass(
   );
   const specRef = spec;
 
+  const executePrediction = async (
+    instance: BaseNode,
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<unknown> => {
+    const apiKey = getReplicateApiKey(instance._secrets);
+    const args = await buildArgs(instance, specRef, apiKey, context);
+    const res = await replicateSubmit(apiKey, specRef.endpointId, args);
+    return res.output;
+  };
+
   const ReplicateNodeClass = class extends BaseNode {
     async process(
       context?: Parameters<BaseNode["process"]>[0]
     ): Promise<Record<string, unknown>> {
-      const apiKey = getReplicateApiKey(this._secrets);
-      const args = await buildArgs(this, specRef, apiKey, context);
-      const res = await replicateSubmit(apiKey, specRef.endpointId, args);
-      return mapOutput(specRef, res.output);
+      const output = await executePrediction(this, context);
+      return mapOutput(specRef, output);
     }
   };
 
@@ -262,6 +327,12 @@ export function createReplicateNodeClass(
       value: true,
       configurable: true
     });
+    // Media generators render as a content card. Metadata-driven equivalent of
+    // the frontend's old "replicate.* namespace + media output" heuristic.
+    Object.defineProperty(ReplicateNodeClass, "body", {
+      value: "content_card",
+      configurable: true
+    });
   }
   Object.defineProperty(ReplicateNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType === "dict" ? "any" : spec.outputType },
@@ -279,9 +350,11 @@ export function createReplicateNodeClass(
     configurable: true
   });
 
-  // Register declared properties
+  // Register declared properties. num_outputs is internal-only (pinned to 1)
+  // and not exposed in the UI.
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
+    if (field.name === "num_outputs") continue;
 
     const propOptions: PropOptions = {
       type: field.propType,

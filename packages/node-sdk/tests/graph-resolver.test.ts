@@ -20,7 +20,11 @@ const sampleMetadata: NodeMetadata = {
       type: { type: "list", type_args: [{ type: "string", type_args: [] }] }
     }
   ],
-  is_streaming_output: true
+  is_streaming_output: true,
+  input_mode: "buffered",
+  output_correlation: {
+    output: { kind: "single", source: "__execution__" }
+  }
 };
 
 class LazyNode extends BaseNode {
@@ -36,7 +40,6 @@ class ZipNode extends BaseNode {
   static readonly nodeType = "test.zip.Node";
   static readonly title = "Zip Node";
   static readonly description = "";
-  static readonly syncMode = "zip_all" as const;
 
   async process() {
     return {};
@@ -55,10 +58,14 @@ describe("createGraphNodeTypeResolver", () => {
       nodeType: "test.StrictNode",
       propertyTypes: { value: "int" },
       outputs: { output: "list[string]" },
-      isDynamic: false,
+      supportsDynamicInputs: false,
       descriptorDefaults: {
         name: "Strict Node",
-        is_streaming_output: true
+        is_streaming_output: true,
+        input_mode: "buffered",
+        output_correlation: {
+          output: { kind: "single", source: "__execution__" }
+        }
       }
     });
   });
@@ -104,7 +111,7 @@ describe("createGraphNodeTypeResolver", () => {
     expect(resolved?.nodeType).toBe("test.lazy.Node");
   });
 
-  it("hydrates descriptor sync_mode from the registered node class", async () => {
+  it("hydrates descriptor defaults from the registered node class", async () => {
     const registry = new NodeRegistry();
     registry.register(ZipNode, {
       metadata: {
@@ -119,7 +126,10 @@ describe("createGraphNodeTypeResolver", () => {
     expect(resolved?.descriptorDefaults).toEqual({
       name: "Zip Node",
       is_streaming_output: true,
-      sync_mode: "zip_all"
+      input_mode: "buffered",
+      output_correlation: {
+        output: { kind: "single", source: "__execution__" }
+      }
     });
   });
 });

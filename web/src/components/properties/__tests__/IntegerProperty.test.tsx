@@ -9,6 +9,8 @@ jest.mock("../../../contexts/NodeContext", () => {
   const actual = jest.requireActual("../../../contexts/NodeContext");
   return {
     ...actual,
+    useNodes: (selector: (state: { nodes: never[] }) => unknown) =>
+      selector({ nodes: [] }),
     useTemporalNodes: (selector: (state: { pause: () => void; resume: () => void }) => unknown) =>
       selector({ pause: jest.fn(), resume: jest.fn() })
   };
@@ -149,9 +151,8 @@ describe("IntegerProperty", () => {
               required: false
             }
           ],
-          is_dynamic: false,
+          supports_dynamic_inputs: false,
           supports_dynamic_outputs: false,
-          expose_as_tool: false,
           recommended_models: [],
           is_streaming_output: false,
             required_settings: []

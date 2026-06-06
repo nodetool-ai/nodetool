@@ -9,9 +9,43 @@
  * file or stdout output gets identical fields.
  */
 
-import { createWriteStream, type WriteStream } from "node:fs";
-import { mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { importNodeBuiltin } from "@nodetool-ai/config";
+
+// Trace-exporter file/stream APIs require Node — lazy-load so this
+// module loads on non-Node runtimes (where file exporters are unused).
+const nodeFs = await importNodeBuiltin<typeof import("node:fs")>("node:fs");
+const nodeFsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
+  "node:fs/promises"
+);
+const nodePath = await importNodeBuiltin<typeof import("node:path")>(
+  "node:path"
+);
+
+type WriteStream = ReturnType<typeof import("node:fs").createWriteStream>;
+function createWriteStream(
+  ...args: Parameters<typeof import("node:fs").createWriteStream>
+): WriteStream {
+  if (!nodeFs) {
+    throw new Error(
+      "JsonlFileSpanExporter requires node:fs (Node-only feature)"
+    );
+  }
+  return nodeFs.createWriteStream(...args);
+}
+async function mkdir(
+  ...args: Parameters<typeof import("node:fs/promises").mkdir>
+): Promise<string | undefined> {
+  if (!nodeFsP) {
+    throw new Error("File span exporter requires node:fs/promises");
+  }
+  return nodeFsP.mkdir(...args);
+}
+function dirname(p: string): string {
+  if (!nodePath) {
+    throw new Error("File span exporter requires node:path");
+  }
+  return nodePath.dirname(p);
+}
 import type {
   ReadableSpan,
   SpanExporter
@@ -228,7 +262,9 @@ function colorize(s: string, color: keyof typeof COLOR): string {
 }
 
 function formatPretty(r: TraceRecord): string {
-  const dur = `${r.duration_ms.toFixed(1)}ms`;
+  // duration_ms is already integer-rounded by hrTimeToMs, so toFixed(1) only
+  // ever appended a meaningless ".0".
+  const dur = `${r.duration_ms}ms`;
   const statusColor: keyof typeof COLOR =
     r.status.code === "ERROR"
       ? "red"

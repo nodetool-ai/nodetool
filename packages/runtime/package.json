@@ -23,13 +23,13 @@
     "@opentelemetry/sdk-node": "^0.218.0",
     "@opentelemetry/sdk-trace-base": "^2.6.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@pydantic/genai-prices": "^0.0.62",
     "openai": "^6.35.0",
     "replicate": "^1.4.0",
     "sharp": "^0.34.5",
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.101",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "typescript": "^5.7.2",

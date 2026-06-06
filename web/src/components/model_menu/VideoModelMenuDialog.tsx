@@ -4,13 +4,16 @@ import type { ModelPack, UnifiedModel, VideoModel } from "../../stores/ApiTypes"
 import {
   useVideoModelMenuStore
 } from "../../stores/ModelMenuStore";
-import { useVideoModelsByProvider } from "../../hooks/useModelsByProvider";
+import {
+  useVideoModelsByProvider,
+  type VideoModelTask
+} from "../../hooks/useModelsByProvider";
 
 export interface VideoModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: VideoModel) => void;
-  task?: "text_to_video" | "image_to_video";
+  task?: VideoModelTask;
   anchorEl?: HTMLElement | null;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];

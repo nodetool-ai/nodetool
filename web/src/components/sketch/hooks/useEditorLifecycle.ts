@@ -21,7 +21,7 @@ import {
 } from "react";
 import type { SketchDocument, SketchTool } from "../types";
 import { hydrateSketchStore } from "../state";
-import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
+import { useSketchInstance } from "../../../stores/sketch/SketchInstance";
 import type { useCanvasActions } from "./useCanvasActions";
 import type { useSegmentation } from "./useSegmentation";
 import type { SketchPersistenceSnapshot } from "../../../stores/sketch/persistence";
@@ -93,6 +93,9 @@ export function useEditorLifecycle({
   // ─── Canvas-ready gating ──────────────────────────────────────────
   const [canvasReady, setCanvasReady] = useState(false);
 
+  // Stores for the surrounding editor instance (per tab / modal).
+  const instance = useSketchInstance();
+
   // Snapshot of the document as it was when the editor first loaded
   const initialDocumentRef = useRef(initialDocument);
 
@@ -156,19 +159,23 @@ export function useEditorLifecycle({
   // On revisit of the same document we'd otherwise re-hydrate it from the
   // trpc cache — and that cache lags real edits whenever an autosave is
   // mid-flight on the way out of the page, which would wipe a freshly-added
-  // layer the moment the user comes back. The session store's
-  // `documentId` is the authoritative "currently loaded doc" marker and
-  // persists across unmounts; if it already matches the incoming id we
-  // trust the in-memory store and skip the rehydrate.
+  // layer the moment the user comes back.
+  //
+  // The gate keys on `hydratedDocumentId` — the doc the editor has actually
+  // seeded into the global store — NOT the session `documentId`. The latter
+  // is set the moment a document's metadata loads, which in the standalone
+  // editor happens in the parent before this child mounts; gating on it made
+  // every fresh load look like a same-doc revisit and skip the seed, leaving
+  // the global store on its default blank document.
   useLayoutEffect(() => {
     initialDocumentRef.current = initialDocument;
 
-    const sessionDocId = useSketchSessionStore.getState().documentId;
+    const session = instance.session.getState();
     const isSameDocRevisit =
-      documentId !== undefined && sessionDocId === documentId;
+      documentId !== undefined && session.hydratedDocumentId === documentId;
     if (!isSameDocRevisit) {
       if (initialEditorState) {
-        hydrateSketchStore({
+        hydrateSketchStore(instance.editor, {
           document: initialEditorState.document,
           activeTool: initialEditorState.activeTool,
           zoom: initialEditorState.zoom,
@@ -179,9 +186,12 @@ export function useEditorLifecycle({
       } else if (initialDocument) {
         setDocument(initialDocument);
       }
+      if (documentId !== undefined) {
+        session.markHydrated(documentId);
+      }
     }
     setCanvasReady(true);
-  }, [documentId, initialDocument, initialEditorState, setDocument]);
+  }, [documentId, initialDocument, initialEditorState, setDocument, instance]);
 
   // ─── Autosave on document changes ─────────────────────────────────
   // ## Autosave boundary contract

@@ -29,7 +29,6 @@ This namespace contains 30 node(s).
 - **[Merge](merge.md)** - Merge two dataframes along columns.
 - **[Pivot](pivot.md)** - Pivot dataframe to reshape data.
 - **[Rename](rename.md)** - Rename columns in dataframe.
-- **[Row Iterator](rowiterator.md)** - Iterate over rows of a dataframe.
 - **[Save CSVDataframe File](savecsvdataframefile.md)** - Write a pandas DataFrame to a CSV file.
 - **[Save Dataframe](savedataframe.md)** - Save dataframe in specified folder.
 - **[Schema](schema.md)** - Define a schema for a dataframe.

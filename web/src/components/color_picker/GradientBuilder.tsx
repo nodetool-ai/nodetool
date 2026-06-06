@@ -63,7 +63,7 @@ const styles = (theme: Theme) =>
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900],
       borderRadius: "var(--rounded-sm)",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontFamily: "monospace",
       wordBreak: "break-all",
       color: theme.vars.palette.grey[300]
@@ -283,7 +283,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         size="small"
         sx={{
           "& .MuiToggleButton-root": {
-            fontSize: "11px",
+            fontSize: "var(--fontSizeSmaller)",
             padding: "4px 12px",
             textTransform: "none"
           }
@@ -319,6 +319,8 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           {gradient.stops.map((stop, index) => (
             <div
               key={`${stop.position}-${stop.color}`}
+              role="button"
+              tabIndex={0}
               data-stop-index={index}
               className={`stop-marker ${selectedStopIndex === index ? "selected" : ""}`}
               style={{
@@ -327,6 +329,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
               }}
               onMouseDown={handleStopMarkerMouseDown}
               onClick={handleStopMarkerClick}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedStopIndex(index); } }}
             />
           ))}
         </div>

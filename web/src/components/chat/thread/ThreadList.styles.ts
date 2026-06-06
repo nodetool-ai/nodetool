@@ -14,13 +14,17 @@ export const createStyles = (theme: Theme) =>
       minHeight: "100px",
       flex: 1,
       overflow: "auto",
-      padding: `${theme.spacing(0.75)} ${theme.spacing(0.75)} ${theme.spacing(1.5)}`,
+      padding: `${theme.spacing(1)} ${theme.spacing(1)} ${theme.spacing(1.5)}`,
       margin: 0,
       listStyle: "none",
       ...scrollbarStyles(theme),
     },
 
     ".thread-date-group": {
+      display: "flex",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+      gap: theme.spacing(1),
       padding: "0.4em 0.75em 0.3em",
       marginTop: "1em",
       fontSize: theme.fontSizeTiny,
@@ -30,6 +34,10 @@ export const createStyles = (theme: Theme) =>
       fontWeight: 500,
       "&:first-of-type": {
         marginTop: 0
+      },
+      ".group-date": {
+        color: theme.vars.palette.grey[600],
+        letterSpacing: "0.04em"
       }
     },
 
@@ -49,7 +57,8 @@ export const createStyles = (theme: Theme) =>
 
       "&:hover": {
         backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`,
-        ".delete-button": { opacity: 1 }
+        ".delete-button": { opacity: 1 },
+        ".thread-time": { opacity: 0 }
       },
 
       "&:focus-visible": {
@@ -76,6 +85,8 @@ export const createStyles = (theme: Theme) =>
     },
 
     ".thread-title": {
+      flex: 1,
+      minWidth: 0,
       fontSize: theme.fontSizeSmall,
       fontWeight: 400,
       lineHeight: 1.35,
@@ -85,15 +96,17 @@ export const createStyles = (theme: Theme) =>
       WebkitLineClamp: 1,
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
-      textOverflow: "ellipsis",
-      paddingRight: "28px"
+      textOverflow: "ellipsis"
     },
 
-    ".date": {
+    ".thread-time": {
+      flexShrink: 0,
       fontSize: theme.fontSizeTiny,
       lineHeight: 1.2,
-      color: theme.vars.palette.grey[300],
-      margin: "0.25em 0 0"
+      color: theme.vars.palette.grey[500],
+      whiteSpace: "nowrap",
+      fontVariantNumeric: "tabular-nums",
+      transition: "opacity 0.12s ease"
     },
 
     // DeleteButton renders: Tooltip > span > IconButton.delete-button

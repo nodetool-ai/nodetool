@@ -1,7 +1,7 @@
 import path from "path";
 import log from "electron-log";
 import { createWriteStream, existsSync, mkdirSync, WriteStream } from "fs";
-import { getSystemDataPath } from "./config";
+import { getSystemDataPath } from "./systemPaths";
 
 /** The log level for the logger */
 type LogLevel = "info" | "warn" | "error";
@@ -60,7 +60,7 @@ export function logMessage(
       stream.write(trimmedMessage + "\n");
     }
   } catch (error) {
-    console.error(`Error in log function: ${(error as Error).message}`);
+    console.error(`Error in log function: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

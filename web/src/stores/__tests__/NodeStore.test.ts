@@ -74,9 +74,8 @@ const mockMetadata: Record<string, NodeMetadata> = {
         required: false
       }
     ],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     supports_dynamic_outputs: false,
-    expose_as_tool: false,
     recommended_models: [],
     is_streaming_output: false,
             required_settings: []
@@ -101,9 +100,8 @@ const mockMetadata: Record<string, NodeMetadata> = {
       }
     ],
     properties: [],
-    is_dynamic: true,
+    supports_dynamic_inputs: true,
     supports_dynamic_outputs: true,
-    expose_as_tool: false,
     recommended_models: [],
     is_streaming_output: false,
             required_settings: []
@@ -851,9 +849,8 @@ describe("Input Node Name Generation", () => {
         required: false
       }
     ],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     supports_dynamic_outputs: false,
-    expose_as_tool: false,
     recommended_models: [],
     is_streaming_output: false,
             required_settings: []

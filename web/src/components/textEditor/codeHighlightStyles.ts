@@ -8,7 +8,7 @@ export const codeHighlightTokenStyles = (theme: Theme) => ({
     display: "block",
     padding: "8px 12px",
     lineHeight: "1.53",
-    fontSize: "13px",
+    fontSize: "var(--fontSizeSmall)",
     margin: "8px 0",
     borderRadius: "1em",
     tabSize: 2,

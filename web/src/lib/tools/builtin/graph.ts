@@ -59,7 +59,7 @@ FrontendToolRegistry.register({
             id: z.string(),
             type: z.string().optional(),
             node_type: z.string().optional(),
-            data: z.record(z.string(), z.any()).optional(),
+            data: z.record(z.string(), z.unknown()).optional(),
             position: z
               .object({
                 x: z.number(),
@@ -73,7 +73,7 @@ FrontendToolRegistry.register({
             id: z.string(),
             type: z.string().optional(),
             node_type: z.string().optional(),
-            data: z.record(z.string(), z.any()).optional(),
+            data: z.record(z.string(), z.unknown()).optional(),
             position: z
               .object({
                 x: z.number(),
@@ -211,7 +211,6 @@ FrontendToolRegistry.register({
         properties,
         dynamic_properties: (rawData.dynamic_properties ?? {}) as Record<string, unknown>,
         dynamic_outputs: (rawData.dynamic_outputs ?? {}) as Record<string, TypeMetadata>,
-        sync_mode: (rawData.sync_mode ?? "on_any") as string,
         workflow_id: workflowId,
         selectable: (rawData.selectable ?? true) as boolean
       };

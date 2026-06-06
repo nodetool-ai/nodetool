@@ -12,9 +12,8 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Text, Caption, LoadingSpinner, Surface } from "../ui_primitives";
+import { Text, Caption, LoadingSpinner, Surface, Box } from "../ui_primitives";
 import {
   DataframeRef,
   NodeMetadata,
@@ -25,6 +24,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 const AppHeader = React.lazy(() => import("../panels/AppHeader"));
+const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
 const ModelListIndex = React.lazy(
   () => import("../hugging_face/model_list/ModelListIndex")
 );
@@ -80,6 +80,12 @@ const PREVIEWS: PreviewEntry[] = [
     label: "Dashboard",
     description: "Main dashboard / portal page",
     viewport: { width: 1920, height: 1080 }
+  },
+  {
+    id: "costs",
+    label: "Costs Dashboard",
+    description: "Spend analytics: stat cards, stacked bar chart and table",
+    viewport: { width: 1500, height: 1080 }
   },
   {
     id: "models",
@@ -260,9 +266,8 @@ const SAMPLE_NODE_README: NodeMetadata = {
   recommended_models: SAMPLE_RECOMMENDED_MODELS,
   inline_fields: ["prompt", "steps"],
   required_settings: [],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   is_streaming_output: false,
-  expose_as_tool: false,
   supports_dynamic_outputs: false
 };
 
@@ -364,6 +369,14 @@ const PreviewDashboard: React.FC = () => (
   </FullscreenBox>
 );
 
+const PreviewCosts: React.FC = () => (
+  <Box data-preview="costs" sx={{ width: "100%", height: "100vh" }}>
+    <Suspense fallback={<LoadingSpinner />}>
+      <CostsDashboard />
+    </Suspense>
+  </Box>
+);
+
 const PreviewModels: React.FC = () => (
   <FullscreenBox preview="models">
     <ModelListIndex />
@@ -462,7 +475,7 @@ const PreviewRecommendedModels: React.FC = () => {
         bgcolor: theme.palette.background.paper
       }}
     >
-      <Text size="big" weight={700} sx={{ mb: 1 }}>
+      <Text size="big" weight={600} sx={{ mb: 1 }}>
         Recommended Models
       </Text>
       <Text size="small" color="secondary" sx={{ mb: 3 }}>
@@ -606,7 +619,7 @@ const PreviewIndex: React.FC = () => {
         minHeight: "100vh"
       }}
     >
-      <Text size="big" weight={700} sx={{ mb: 1 }}>
+      <Text size="big" weight={600} sx={{ mb: 1 }}>
         Component Previews
       </Text>
       <Text size="small" color="secondary" sx={{ mb: 4 }}>
@@ -674,6 +687,7 @@ const PreviewIndex: React.FC = () => {
 const COMPONENT_MAP: Record<string, React.FC> = {
   "app-header": PreviewAppHeader,
   dashboard: PreviewDashboard,
+  costs: PreviewCosts,
   models: PreviewModels,
   assets: PreviewAssets,
   "confirm-dialog": PreviewConfirmDialog,

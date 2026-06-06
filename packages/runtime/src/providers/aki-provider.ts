@@ -1,5 +1,15 @@
-import { readFileSync } from "node:fs";
+import { importNodeBuiltin } from "@nodetool-ai/config";
 import OpenAI from "openai";
+
+const _nodeFs = await importNodeBuiltin<typeof import("node:fs")>("node:fs");
+const readFileSync = (
+  ...args: Parameters<typeof import("node:fs").readFileSync>
+): ReturnType<typeof import("node:fs").readFileSync> => {
+  if (!_nodeFs) {
+    throw new Error("node:fs.readFileSync requires Node");
+  }
+  return _nodeFs.readFileSync(...args);
+};
 import { AkiClient, decodeBinary } from "@aki-io/aki-io";
 import type {
   AkiClientConfig,

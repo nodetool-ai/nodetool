@@ -1,5 +1,7 @@
-import { createWorkflowRunnerStore } from "../WorkflowRunner";
+import { createWorkflowRunnerStore, deriveJobTitle } from "../WorkflowRunner";
+import useMetadataStore from "../MetadataStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import { uuidv4 } from "../uuidv4";
 import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
@@ -40,7 +42,6 @@ jest.mock("../ResultsStore", () => ({
     getState: jest.fn().mockReturnValue({
       clearEdges: jest.fn(),
       clearResults: jest.fn(),
-      clearPreviews: jest.fn(),
       clearProgress: jest.fn(),
       clearToolCalls: jest.fn(),
       clearTasks: jest.fn(),
@@ -252,20 +253,78 @@ describe("WorkflowRunner", () => {
     });
   });
 
+  describe("deriveJobTitle", () => {
+    const wf = { id: "wf", name: "My Flow" } as unknown as WorkflowAttributes;
+    const node = (id: string, type: string, title?: string) =>
+      ({ id, type, data: title ? { title } : {} }) as never;
+
+    it("uses the workflow name for a full run", () => {
+      expect(deriveJobTitle(wf, [])).toBe("My Flow");
+    });
+
+    it("uses the node's custom title for a single-node run", () => {
+      const nodes = [node("n1", "nodetool.image.SaveImage", "Save Hero")];
+      expect(deriveJobTitle(wf, nodes, new Set(["n1"]))).toBe("Save Hero");
+    });
+
+    it("uses the node's metadata title when there's no custom title", () => {
+      useMetadataStore.getState().setMetadata({
+        "nodetool.image.Flux": { title: "Flux Image" } as never
+      });
+      const nodes = [node("n1", "nodetool.image.Flux")];
+      expect(deriveJobTitle(wf, nodes, new Set(["n1"]))).toBe("Flux Image");
+      useMetadataStore.getState().setMetadata({});
+    });
+
+    it("falls back to the node type when there's no title or metadata", () => {
+      const nodes = [node("n1", "nodetool.text.Concat")];
+      expect(deriveJobTitle(wf, nodes, new Set(["n1"]))).toBe("Concat");
+    });
+
+    it("uses the workflow name when multiple nodes are selected", () => {
+      const nodes = [node("n1", "a.B"), node("n2", "c.D")];
+      expect(deriveJobTitle(wf, nodes, new Set(["n1", "n2"]))).toBe("My Flow");
+    });
+  });
+
   describe("run", () => {
     it.each(["connecting", "running", "paused", "suspended"] as const)(
-      "ignores run requests while state is %s",
+      "submits a queued run_job while state is %s without disturbing the active run",
       async (state) => {
         store.setState({ state, job_id: "job-active" });
 
         await store.getState().run({}, testWorkflow, [], []);
 
+        // The queued run is sent to the backend (which persists + queues it),
+        // but the active run's display state is left untouched and no new
+        // connection handshake is forced.
         expect(globalWebSocketManager.ensureConnection).not.toHaveBeenCalled();
-        expect(globalWebSocketManager.send).not.toHaveBeenCalled();
+        expect(globalWebSocketManager.send).toHaveBeenCalledTimes(1);
+        expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+          expect.objectContaining({ type: "run_job", command: "run_job" })
+        );
+        expect(store.getState().state).toBe(state);
       }
     );
 
-    it("only starts one run when called consecutively", async () => {
+    it("submits each run while busy", async () => {
+      store.setState({ state: "running", job_id: "job-active" });
+
+      await store.getState().run({ n: 1 }, testWorkflow, [], []);
+      await store.getState().run({ n: 2 }, testWorkflow, [], []);
+
+      expect(globalWebSocketManager.send).toHaveBeenCalledTimes(2);
+    });
+
+    it("cancel transitions to the cancelled state", async () => {
+      store.setState({ state: "running", job_id: "job-active" });
+
+      await store.getState().cancel();
+
+      expect(store.getState().state).toBe("cancelled");
+    });
+
+    it("submits both the active and the queued run when called consecutively", async () => {
       let resolveConnection!: () => void;
       (globalWebSocketManager.ensureConnection as jest.Mock).mockImplementationOnce(
         () =>
@@ -281,12 +340,14 @@ describe("WorkflowRunner", () => {
       resolveConnection();
       await Promise.all([firstRunPromise, secondRunPromise]);
 
+      // The first run owns the connection handshake; the second is submitted
+      // as a queued run. Both reach the backend as run_job commands.
       expect(globalWebSocketManager.ensureConnection).toHaveBeenCalledTimes(1);
-      expect(globalWebSocketManager.send).toHaveBeenCalledTimes(1);
+      expect(globalWebSocketManager.send).toHaveBeenCalledTimes(2);
       expect(globalWebSocketManager.send).toHaveBeenCalledWith(
         expect.objectContaining({
           type: "run_job",
-          command: "run_job",
+          command: "run_job"
         })
       );
     });
@@ -299,6 +360,51 @@ describe("WorkflowRunner", () => {
 
       await store.getState().run({}, testWorkflow, [], []);
       expect(globalWebSocketManager.send).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("run() return value", () => {
+    it("returns the job_id it created for a fresh run", async () => {
+      (uuidv4 as jest.Mock).mockReturnValueOnce("job-fresh");
+
+      const jobId = await store.getState().run({}, testWorkflow, [], []);
+
+      expect(jobId).toBe("job-fresh");
+      expect(store.getState().job_id).toBe("job-fresh");
+    });
+
+    it("returns the queued run's id (not the active one) when busy", async () => {
+      // A run is already in flight. Callers (sketch/timeline layer generation)
+      // need run() to hand back the NEW queued job's id so they subscribe to
+      // the right job. Before the fix run() returned void and callers fell
+      // back to runnerStore.job_id — the *previous* run's id — which stranded
+      // the queued job's updates and left its layer stuck "running".
+      store.setState({ state: "running", job_id: "job-active" });
+      (uuidv4 as jest.Mock).mockReturnValueOnce("job-queued");
+
+      const jobId = await store.getState().run({}, testWorkflow, [], []);
+
+      expect(jobId).toBe("job-queued");
+      // The queued run reached the backend under that same id.
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "run_job",
+          data: expect.objectContaining({ job_id: "job-queued" })
+        })
+      );
+      // The active run's tracked job_id is left untouched.
+      expect(store.getState().job_id).toBe("job-active");
+    });
+
+    it("passes the concurrent flag into the run_job payload when requested", async () => {
+      (uuidv4 as jest.Mock).mockReturnValueOnce("job-c");
+      await store.getState().run({}, testWorkflow, [], [], undefined, undefined, true);
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "run_job",
+          data: expect.objectContaining({ concurrent: true })
+        })
+      );
     });
   });
 });

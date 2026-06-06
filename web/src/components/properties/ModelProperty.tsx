@@ -2,7 +2,6 @@
 import { css } from "@emotion/react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
-import ComfyModelSelect from "./ComfyModelSelect";
 import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import TransformersJsModelSelect from "./TransformersJsModelSelect";
@@ -76,18 +75,24 @@ const ModelProperty = (props: PropertyProps) => {
 
   // Memoize task calculations to avoid recalculation on every render
   const { imageTask, videoTask, model3dTask } = useMemo(() => {
+    const imageTaskByNode = {
+      "nodetool.image.TextToImage": "text_to_image",
+      "nodetool.image.ImageToImage": "image_to_image",
+      "nodetool.image.Upscale": "upscale",
+      "nodetool.image.RemoveBackground": "remove_background",
+      "nodetool.image.Relight": "relight",
+      "nodetool.image.Vectorize": "vectorize"
+    } as const;
+    const videoTaskByNode = {
+      "nodetool.video.TextToVideo": "text_to_video",
+      "nodetool.video.ImageToVideo": "image_to_video",
+      "nodetool.video.VideoToVideo": "video_to_video",
+      "nodetool.video.LipSync": "lip_sync"
+    } as const;
     const imageTask =
-      props.nodeType === "nodetool.image.TextToImage"
-        ? ("text_to_image" as const)
-        : props.nodeType === "nodetool.image.ImageToImage"
-          ? ("image_to_image" as const)
-          : undefined;
+      imageTaskByNode[props.nodeType as keyof typeof imageTaskByNode];
     const videoTask =
-      props.nodeType === "nodetool.video.TextToVideo"
-        ? ("text_to_video" as const)
-        : props.nodeType === "nodetool.video.ImageToVideo"
-          ? ("image_to_video" as const)
-          : undefined;
+      videoTaskByNode[props.nodeType as keyof typeof videoTaskByNode];
     const model3dTask =
       props.nodeType === "nodetool.model3d.TextTo3D"
         ? ("text_to_3d" as const)
@@ -99,17 +104,7 @@ const ModelProperty = (props: PropertyProps) => {
 
   // Memoize model select component to avoid recreation on every render
   const modelSelectComponent = useMemo(() => {
-    if (modelType.startsWith("comfy.")) {
-      if (props.nodeType.startsWith("comfy.loaders.")) {
-        return (
-          <ComfyModelSelect
-            modelType={modelType}
-            onChange={props.onChange}
-            value={props.value?.name || ""}
-          />
-        );
-      }
-    } else if (modelType === "language_model") {
+    if (modelType === "language_model") {
       return (
         <LanguageModelSelect
           onChange={props.onChange}

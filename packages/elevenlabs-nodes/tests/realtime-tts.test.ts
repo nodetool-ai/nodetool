@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sentMessages: Array<Record<string, unknown>> = [];
 const lifecycleEvents: string[] = [];
+const wsUrls: string[] = [];
 
 class MockWebSocket extends EventEmitter {
   static readonly OPEN = 1;
@@ -10,8 +11,9 @@ class MockWebSocket extends EventEmitter {
 
   readyState = 0;
 
-  constructor(_url: string, _opts?: Record<string, unknown>) {
+  constructor(url: string, _opts?: Record<string, unknown>) {
     super();
+    wsUrls.push(url);
 
     setTimeout(() => {
       this.readyState = MockWebSocket.OPEN;
@@ -71,6 +73,7 @@ describe("RealtimeTextToSpeechNode", () => {
     process.env.ELEVENLABS_API_KEY = "test-key";
     sentMessages.length = 0;
     lifecycleEvents.length = 0;
+    wsUrls.length = 0;
   });
 
   afterEach(() => {
@@ -165,9 +168,9 @@ describe("RealtimeTextToSpeechNode", () => {
     ).rejects.toThrow("ELEVENLABS_API_KEY");
   });
 
-  it("throws when voice is unknown", async () => {
+  it("throws when voice_id is empty", async () => {
     const node = new RealtimeTextToSpeechNode();
-    node.voice = "UnknownVoice";
+    node.voice_id = "";
 
     await expect(
       node.run(
@@ -183,7 +186,30 @@ describe("RealtimeTextToSpeechNode", () => {
           complete() {}
         }
       )
-    ).rejects.toThrow("Unknown voice");
+    ).rejects.toThrow("voice_id is required");
+  });
+
+  it("uses a custom voice_id in the WebSocket URL", async () => {
+    const node = new RealtimeTextToSpeechNode();
+    node.voice_id = "customVoiceId123";
+
+    await node.run(
+      {
+        async *any() {
+          yield ["chunk", { content: "", done: true }] as [string, unknown];
+        },
+        async *stream() {},
+        async first() {
+          return undefined;
+        }
+      },
+      {
+        async emit() {},
+        complete() {}
+      }
+    );
+
+    expect(wsUrls.some((u) => u.includes("customVoiceId123"))).toBe(true);
   });
 
   it("includes voice_settings in the init message", async () => {

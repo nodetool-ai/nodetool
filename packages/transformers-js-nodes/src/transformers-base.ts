@@ -95,7 +95,9 @@ export async function loadTransformers(): Promise<TransformersModule> {
       } catch (err) {
         throw new Error(
           "The '@huggingface/transformers' package is required to run " +
-            "Transformers.js nodes. Install it with `npm install @huggingface/transformers`. " +
+            "Transformers.js nodes. Install the \"Transformers.js\" runtime " +
+            "package from the Package Manager (it bundles @huggingface/transformers " +
+            "and onnxruntime). " +
             `Original error: ${(err as Error)?.message ?? err}`
         );
       }
@@ -255,7 +257,11 @@ export async function loadMediaBytes(
   context?: ProcessingContext
 ): Promise<Uint8Array> {
   if (!ref || typeof ref !== "object") return new Uint8Array();
-  if (ref.data) return decodeBase64Data(ref.data);
+  // A zero-length Uint8Array is still truthy, so check length explicitly —
+  // otherwise an empty inline buffer would shadow a perfectly good `uri`.
+  const hasInlineData =
+    ref.data instanceof Uint8Array ? ref.data.length > 0 : Boolean(ref.data);
+  if (hasInlineData) return decodeBase64Data(ref.data);
   const uri = typeof ref.uri === "string" ? ref.uri : "";
   if (!uri) return new Uint8Array();
 
@@ -347,7 +353,9 @@ function parseWavBytes(bytes: Uint8Array): {
       dataOffset += 8;
       break;
     }
-    dataOffset += 8 + chunkSize;
+    // RIFF chunks are word-aligned: an odd-sized chunk is followed by a pad
+    // byte that is not counted in chunkSize. Skip it so we stay aligned.
+    dataOffset += 8 + chunkSize + (chunkSize & 1);
   }
 
   const bytesPerSample = bitsPerSample / 8;
@@ -486,12 +494,10 @@ async function ffmpegToWav(
  *      avoids a second pass and gives much better quality than the linear
  *      resampler used for the in-process WAV path.
  */
-export async function loadAudioSamples(
-  ref: AudioRefLike | undefined,
-  samplingRate: number,
-  context?: ProcessingContext
+export async function decodeAudioBytesToSamples(
+  bytes: Uint8Array,
+  samplingRate: number
 ): Promise<Float32Array> {
-  const bytes = await loadMediaBytes(ref, context);
   if (!bytes.length) {
     throw new Error("Audio input is empty");
   }
@@ -509,6 +515,15 @@ export async function loadAudioSamples(
 
   const mono = mixToMono(wav.samples, wav.numChannels);
   return resampleLinear(mono, wav.sampleRate, samplingRate);
+}
+
+export async function loadAudioSamples(
+  ref: AudioRefLike | undefined,
+  samplingRate: number,
+  context?: ProcessingContext
+): Promise<Float32Array> {
+  const bytes = await loadMediaBytes(ref, context);
+  return decodeAudioBytesToSamples(bytes, samplingRate);
 }
 
 // ---------------------------------------------------------------------------

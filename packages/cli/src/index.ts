@@ -15,7 +15,7 @@ import { program } from "commander";
 import { render } from "ink";
 import React from "react";
 import { App } from "./app.js";
-import { loadSettings, isAgentMode, type AgentMode } from "./settings.js";
+import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
 import { buildConfiguredProviders } from "./providers.js";
 import { initDb, getSecret } from "@nodetool-ai/models";
@@ -60,9 +60,9 @@ program
   .option("-m, --model <model>", "Model ID")
   .option(
     "-a, --agent [mode]",
-    "Agent mode: off | loop | plan | graph | multi-agent (default: plan when --agent is given without a value)"
+    "[deprecated] No-op — every chat session runs the unified loop"
   )
-  .option("--no-agent", "Force agent mode off (overrides saved settings)")
+  .option("--no-agent", "[deprecated] No-op")
   .option(
     "-w, --workspace <path>",
     "Workspace directory (default: current directory)"
@@ -162,35 +162,19 @@ const settings = await loadSettings();
 
 const provider = opts.provider ?? settings.provider;
 const model = opts.model ?? settings.model;
-/**
- * Resolve the agent mode from CLI flag + saved settings:
- * - `--agent <mode>` → use that mode (validated).
- * - `--agent` (bare) → use the saved mode if set, else "plan".
- * - `--no-agent` → "off".
- * - No flag, with --url → "off" (the WS server has its own agent flow).
- * - No flag, no --url → saved mode.
- */
-function resolveAgentMode(): AgentMode {
-  const flag = opts.agent;
-  if (flag === false) return "off";
-  if (typeof flag === "string") {
-    if (!isAgentMode(flag)) {
-      // eslint-disable-next-line no-console
-      console.error(
-        `Invalid --agent value: ${JSON.stringify(flag)}. ` +
-          `Expected one of: off, loop, plan, graph, multi-agent.`
-      );
-      process.exit(2);
-    }
-    return flag;
-  }
-  if (flag === true) {
-    return settings.agentMode === "off" ? "plan" : settings.agentMode;
-  }
-  if (opts.url) return "off";
-  return settings.agentMode;
+
+// `--agent` and the persisted `agentMode` setting are deprecated no-ops —
+// every chat session now runs the unified LLM-with-tools loop, and the
+// agent decides for itself whether to decompose via `run_subtask`. The flag
+// is still accepted for backwards compatibility; a warning is emitted when
+// it is used.
+if (opts.agent !== undefined) {
+  // eslint-disable-next-line no-console
+  console.error(
+    "Warning: --agent is deprecated and has no effect — the unified chat agent always runs."
+  );
 }
-const agentMode = resolveAgentMode();
+
 const workspace = opts.workspace ?? settings.workspace;
 const enabledTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
@@ -300,7 +284,6 @@ if (!process.stdin.isTTY) {
       provider,
       model,
       workspaceDir: workspace,
-      agentMode,
       wsUrl: opts.url,
       extraTools: sandboxExtraTools,
       registry: cliRegistry,
@@ -316,7 +299,6 @@ const { waitUntilExit } = render(
   React.createElement(App, {
     initialProvider: provider,
     initialModel: model,
-    initialAgentMode: agentMode,
     enabledTools,
     workspaceDir: workspace,
     wsUrl: opts.url,

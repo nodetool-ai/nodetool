@@ -110,8 +110,8 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   // workflow_id; otherwise refetch every cached versions list.
   if (resource_type === "workflowversion") {
     const workflowId =
-      typeof (resource as Record<string, unknown>).workflow_id === "string"
-        ? ((resource as Record<string, unknown>).workflow_id as string)
+      typeof resource.workflow_id === "string"
+        ? resource.workflow_id
         : null;
     if (workflowId) {
       console.info(
@@ -184,8 +184,8 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
       // the runner provides it, but we can also fall back to invalidating any
       // thread-scoped messages query.
       const threadId =
-        typeof (resource as Record<string, unknown>).thread_id === "string"
-          ? ((resource as Record<string, unknown>).thread_id as string)
+        typeof resource.thread_id === "string"
+          ? resource.thread_id
           : null;
       if (threadId) {
         queryClient.invalidateQueries({

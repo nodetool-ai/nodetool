@@ -1,7 +1,6 @@
 /**
  * Store for managing node metadata, recommended models, and node types.
- * Handles the global state for node-related metadata and configuration,
- * including filtering based on Comfy settings.
+ * Handles the global state for node-related metadata and configuration.
  */
 
 import { create } from "zustand";

@@ -2,8 +2,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { Menu, Box } from "@mui/material";
-import { EditorButton, Text, Divider } from "../ui_primitives";
+import { Menu } from "@mui/material";
+import { EditorButton, Text, Divider, FlexRow } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -29,6 +29,7 @@ import {
 } from "../../utils/nodeUtils";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { WORKFLOW_NODE_TYPE } from "../node/WorkflowNode";
+import { SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
 import { shallow } from "zustand/shallow";
 
 const PaneContextMenu: React.FC = () => {
@@ -333,25 +334,24 @@ const PaneContextMenu: React.FC = () => {
         />
         {favorites.length > 0 && [
           <Divider key="favorites-divider" />,
-          <Box
+          <FlexRow
             key="favorites-header"
+            align="center"
             sx={{
-              display: "flex",
-              alignItems: "center",
               gap: "0.5em",
               padding: "4px 16px",
               color: "text.secondary",
-              fontSize: "0.7rem",
+              fontSize: "var(--fontSizeSmaller)",
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: "0.5px"
             }}
           >
             <StarIcon
-              sx={{ fontSize: "0.85rem", color: "warning.main" }}
+              sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main" }}
             />
             <Text>Favorites</Text>
-          </Box>,
+          </FlexRow>,
           ...favorites.map((favorite) => {
             const displayName = getNodeDisplayName(favorite.nodeType);
             return (
@@ -361,7 +361,7 @@ const PaneContextMenu: React.FC = () => {
                 label={displayName}
                 IconComponent={
                   <StarIcon
-                    sx={{ fontSize: "1rem", color: "warning.main", opacity: 0.7 }}
+                    sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main", opacity: 0.7 }}
                   />
                 }
                 tooltip={`Add ${displayName} node`}
@@ -413,6 +413,11 @@ const PaneContextMenu: React.FC = () => {
           onClick={handleCreateNode(WORKFLOW_NODE_TYPE)}
           label="Add Workflow"
           tooltip={"Add a workflow node"}
+        />
+        <ContextMenuItem
+          onClick={handleCreateNode(SUBGRAPH_NODE_TYPE)}
+          label="Add Subgraph"
+          tooltip={"Add an inline subgraph node"}
         />
       </Menu>
       <Menu

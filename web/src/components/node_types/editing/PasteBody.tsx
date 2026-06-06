@@ -29,8 +29,7 @@ import {
   useUpstreamValue
 } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
-
-const PASTE_NODE_TYPE = "nodetool.image.Paste";
+import { PASTE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
   css({
@@ -47,7 +46,7 @@ const styles = (theme: Theme) =>
     "& > .handle-column": {
       top: theme.spacing(1),
       bottom: theme.spacing(1),
-      left: `calc(${theme.spacing(-0.5)})`
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -76,7 +75,7 @@ const styles = (theme: Theme) =>
         position: "absolute",
         bottom: theme.spacing(0.5),
         right: theme.spacing(0.5),
-        padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
         background: "rgba(0,0,0,0.6)",
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,

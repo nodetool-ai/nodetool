@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { Box } from "@mui/material";
+import { Box } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 
 interface EditorStatusBarProps {
@@ -48,12 +48,12 @@ const styles = (theme: Theme) =>
         textTransform: "uppercase",
         letterSpacing: "0.04em",
         ".label": {
-          fontWeight: "400",
+          fontWeight: 400,
           opacity: 0.7
         },
         ".value": {
           color: theme.vars.palette.grey[100],
-          fontWeight: "600"
+          fontWeight: 600
         }
       },
       ".stat-dot": {
@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.08)`,
       border: `1px solid rgba(${theme.vars.palette.warning.mainChannel} / 0.15)`,
       "svg": {
-        fontSize: "0.7rem"
+        fontSize: "var(--fontSizeSmaller)"
       }
     }
   });

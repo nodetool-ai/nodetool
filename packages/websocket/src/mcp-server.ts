@@ -22,16 +22,13 @@ import {
   rankNodeMetadata,
   type NodeMetadata
 } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerKieNodes } from "@nodetool-ai/kie-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
-  PythonStdioBridge,
-  type NodeExecutor
+  createPythonBridge,
+  logPythonWorkerStderr,
+  type NodeExecutor,
+  type PythonBridge
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import type { AgentTransport } from "./agent/transport.js";
@@ -65,7 +62,7 @@ async function getUnifiedNodeMetadata(
 
 type RuntimeEnvironment = {
   registry: NodeRegistry;
-  pythonBridge: PythonStdioBridge;
+  pythonBridge: PythonBridge;
   ensurePythonBridge: () => Promise<void>;
   resolveExecutor: (node: {
     id: string;
@@ -79,29 +76,15 @@ function getRuntimeEnvironment(
 ): Promise<RuntimeEnvironment> {
   if (!runtimeEnvironmentPromise) {
     runtimeEnvironmentPromise = (async () => {
-      const registry = new NodeRegistry();
-      registry.loadPythonMetadata({
-        roots: options?.metadataRoots,
-        maxDepth: options?.metadataMaxDepth ?? 8
+      const registry = await bootstrapNodeRegistry({
+        ...(options?.metadataRoots
+          ? { metadataRoots: options.metadataRoots }
+          : {}),
+        metadataMaxDepth: options?.metadataMaxDepth ?? 8,
+        log
       });
-      registerBaseNodes(registry);
-      registerElevenLabsNodes(registry);
-      if (process.env["NODETOOL_ENV"] !== "production") {
-        registerTransformersJsNodes(registry);
-      }
-      registerFalNodes(registry);
-      registerKieNodes(registry);
-      registerReplicateNodes(registry);
-      if (process.env["NODETOOL_ENV"] === "production") {
-        const skippedPrefixes = ["lib.tensorflow.", "transformers."];
-        for (const nodeType of registry.list()) {
-          if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
-            registry.unregister(nodeType);
-          }
-        }
-      }
 
-      const pythonBridge = new PythonStdioBridge({
+      const pythonBridge = createPythonBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
           ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
           : []
@@ -129,8 +112,12 @@ function getRuntimeEnvironment(
       let pythonBridgeReady = false;
       pythonBridge.on("stderr", (msg: string) => {
         for (const line of msg.split("\n")) {
-          if (line.trim()) log.debug(`[python-worker] ${line}`);
+          logPythonWorkerStderr(line, log);
         }
+      });
+      pythonBridge.on("error", (err: Error) => {
+        log.error(`MCP Python bridge protocol error: ${err.message}`);
+        pythonBridgeReady = false;
       });
       pythonBridge.on("exit", (code: number) => {
         log.warn(`MCP Python worker exited with code ${code}`);
@@ -210,7 +197,8 @@ function getRuntimeEnvironment(
             Object.fromEntries(
               (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
             ),
-            meta?.required_settings ?? []
+            meta?.required_settings ?? [],
+            node.id
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {

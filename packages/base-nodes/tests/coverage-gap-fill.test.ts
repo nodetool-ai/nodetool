@@ -75,7 +75,6 @@ import {
   MergeDataframeNode,
   AppendDataframeNode,
   JoinDataframeNode,
-  RowIteratorNode,
   FindRowNode,
   SortByColumnNode,
   DropDuplicatesNode,
@@ -2124,14 +2123,6 @@ describe("data.ts gaps", () => {
     expect((res.output as any).rows[0].b).toBe("y");
   });
 
-  it("RowIterator genProcess", async () => {
-    const node = new RowIteratorNode();
-    node.assign({ dataframe: df([{ x: 1 }, { x: 2 }]) });
-    const items = await collectGen(node.genProcess());
-    expect(items.length).toBe(2);
-    expect(items[0].index).toBe(0);
-  });
-
   it("FindRow", async () => {
     const __n174 = new FindRowNode();
     __n174.assign({
@@ -2414,7 +2405,6 @@ describe("data.ts gaps", () => {
     expect(new MergeDataframeNode().serialize()).toHaveProperty("dataframe_a");
     expect(new AppendDataframeNode().serialize()).toHaveProperty("dataframe_a");
     expect(new JoinDataframeNode().serialize()).toHaveProperty("join_on");
-    expect(new RowIteratorNode().serialize()).toHaveProperty("dataframe");
     expect(new FindRowNode().serialize()).toHaveProperty("condition");
     expect(new SortByColumnNode().serialize()).toHaveProperty("column");
     expect(new DropDuplicatesNode().serialize()).toHaveProperty("df");
@@ -3068,16 +3058,6 @@ describe("data.ts round 2", () => {
     expect(results.length).toBe(3);
     expect(results[0].row).toEqual({ x: 1 });
     expect(results[0].index).toBe(0);
-  });
-
-  it("RowIterator genProcess yields rows", async () => {
-    const node = new RowIteratorNode();
-    node.assign({
-      dataframe: df([{ a: "x" }, { a: "y" }])
-    });
-    const gen = node.genProcess();
-    const results = await collectGen(gen);
-    expect(results.length).toBe(2);
   });
 
   it("LoadCSVAssets genProcess reads CSV files from folder", async () => {

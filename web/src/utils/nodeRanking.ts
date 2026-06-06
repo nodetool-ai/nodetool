@@ -19,7 +19,6 @@ const PROVIDER_NAMESPACES = new Set([
   "fal",
   "replicate",
   "kie",
-  "comfyui",
   "apify",
   "messaging",
   "search"
@@ -27,7 +26,7 @@ const PROVIDER_NAMESPACES = new Set([
 
 type NamespaceClass = "core" | "provider" | "other";
 
-export interface ScoreOptions {
+interface ScoreOptions {
   includeProviderNodes?: boolean;
   namespacePrefix?: string;
   recentNodeTypes?: readonly string[];
@@ -36,7 +35,7 @@ export interface ScoreOptions {
   includeCandidateOnlyMatches?: boolean;
 }
 
-export interface ScoredNode<T extends NodeMetadata = NodeMetadata> {
+interface ScoredNode<T extends NodeMetadata = NodeMetadata> {
   meta: T;
   score: number;
 }
@@ -101,14 +100,6 @@ function buildConfig<T extends NodeMetadata>(
     candidateBoosts: options.candidateBoosts,
     includeCandidateOnlyMatches: options.includeCandidateOnlyMatches
   };
-}
-
-export function scoreNodeMetadata(
-  meta: NodeMetadata,
-  terms: readonly string[],
-  options: ScoreOptions = {}
-): number {
-  return scoreItem(meta, terms, buildConfig<NodeMetadata>(options));
 }
 
 export function rankNodeMetadata<T extends NodeMetadata>(

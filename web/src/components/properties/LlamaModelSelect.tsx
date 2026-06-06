@@ -105,7 +105,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             <LoadingSpinner size="medium" />
           </FlexRow>
         ) : ollamaError ? (
-          <div style={{ padding: 16, maxWidth: 300 }}>
+          <div style={{ padding: 8, maxWidth: 300 }}>
             <Text size="small" color="error" sx={{ mb: 1 }}>
               Could not load Ollama models
             </Text>

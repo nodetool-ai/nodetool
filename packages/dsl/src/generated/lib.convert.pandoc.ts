@@ -14,8 +14,8 @@ export interface ConvertFileOutputs {
   output: string;
 }
 
-export function convertFile(inputs: ConvertFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ConvertFileOutputs, "output"> {
-  return createNode("lib.convert.pandoc.ConvertFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function convertFile(inputs: ConvertFileInputs): DslNode<ConvertFileOutputs, "output"> {
+  return createNode("lib.convert.pandoc.ConvertFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Convert Text — lib.convert.pandoc.ConvertText
@@ -30,6 +30,6 @@ export interface ConvertTextOutputs {
   output: string;
 }
 
-export function convertText(inputs: ConvertTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ConvertTextOutputs, "output"> {
-  return createNode("lib.convert.pandoc.ConvertText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function convertText(inputs: ConvertTextInputs): DslNode<ConvertTextOutputs, "output"> {
+  return createNode("lib.convert.pandoc.ConvertText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

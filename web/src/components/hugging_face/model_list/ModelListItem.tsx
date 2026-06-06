@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
-import { Box, Link } from "@mui/material";
-import { Chip, FlexRow, Tooltip, Text } from "../../ui_primitives";
+import { Link } from "@mui/material";
+import { Chip, FlexRow, Tooltip, Text, Box } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { ModelComponentProps } from "../ModelUtils";
@@ -203,7 +203,7 @@ const ModelListItem: React.FC<
                   label={`Works with ${compatibilityCounts.total} node${compatibilityCounts.total > 1 ? "s" : ""}`}
                   size="small"
                   onClick={handleOpenDialog}
-                  icon={<VisibilityIcon style={{ fontSize: "1rem" }} />}
+                  icon={<VisibilityIcon style={{ fontSize: "var(--fontSizeNormal)" }} />}
                   sx={{
                     height: 20,
                     fontSize: theme.vars.fontSizeTiny,

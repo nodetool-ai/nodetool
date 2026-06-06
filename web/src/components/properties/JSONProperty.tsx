@@ -1,17 +1,27 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type * as monaco from "monaco-editor";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "fast-deep-equal";
+import { useTheme } from "@mui/material/styles";
 import { CopyButton, LoadingSpinner, ToolbarIconButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import TextEditorModal from "./TextEditorModal";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
+import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
 
 const JSONProperty = (props: PropertyProps) => {
+  const theme = useTheme();
   const id = `json-${props.property.name}-${props.propertyIndex}`;
+  const inspectorToolbarActionSx = useMemo(
+    () => ({
+      color: theme.vars.palette.common.white,
+      "& svg": { fontSize: "var(--fontSizeNormal)" }
+    }),
+    [theme]
+  );
   const [error, setError] = useState<{ message: string; line: number } | null>(
     null
   );
@@ -103,6 +113,33 @@ const JSONProperty = (props: PropertyProps) => {
     void loadMonacoIfNeeded();
   }, [loadMonacoIfNeeded]);
 
+  const editorActions = useMemo(
+    () => (
+      <>
+        <ToolbarIconButton
+          className="inspector-supplemental-action"
+          tooltip="Open Editor"
+          icon={<OpenInFullIcon />}
+          onClick={toggleExpand}
+          size="small"
+          sx={inspectorToolbarActionSx}
+        />
+        <CopyButton
+          className="inspector-supplemental-action"
+          value={value}
+          buttonSize="small"
+          sx={inspectorToolbarActionSx}
+        />
+      </>
+    ),
+    [inspectorToolbarActionSx, toggleExpand, value]
+  );
+
+  useInspectorHeaderSupplementalRegistration(
+    editorActions,
+    props.isInspector === true
+  );
+
   return (
     <div
       className="json-property"
@@ -128,7 +165,7 @@ const JSONProperty = (props: PropertyProps) => {
           padding: 0
         },
         ".json-action-buttons .MuiIconButton-root svg": {
-          fontSize: "0.75rem"
+          fontSize: "var(--fontSizeSmall)"
         },
         ".editor-wrapper": {
           height: "120px",
@@ -170,13 +207,14 @@ const JSONProperty = (props: PropertyProps) => {
           handleInteract();
         }}
         onMouseLeave={() => setIsHovered(false)}
+        onContextMenuCapture={props.onPropertyContextMenu}
       >
         <PropertyLabel
           name={props.property.name}
           description={props.property.description}
           id={id}
         />
-        {isHovered && (
+        {!props.isInspector && isHovered ? (
           <div className="json-action-buttons">
             <ToolbarIconButton
               tooltip="Open Editor"
@@ -186,9 +224,10 @@ const JSONProperty = (props: PropertyProps) => {
             />
             <CopyButton value={value} buttonSize="small" />
           </div>
-        )}
+        ) : null}
         <div
           className="value-container"
+          onContextMenuCapture={props.onPropertyContextMenu}
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -231,7 +270,7 @@ const JSONProperty = (props: PropertyProps) => {
                 <LoadingSpinner />
               </div>
             ) : (
-              <div className="editor-placeholder" tabIndex={0}>
+              <div className="editor-placeholder">
                 {value}
               </div>
             )}

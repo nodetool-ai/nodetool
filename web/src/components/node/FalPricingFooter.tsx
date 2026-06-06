@@ -4,6 +4,7 @@
  * A small footer "FAL: $X" chip rendered on selected FAL nodes (BaseNode).
  * Clicking opens a Popover that shows:
  *   - the full per-call pricing breakdown,
+ *   - a historical per-run cost estimate (when FAL_API_KEY is configured),
  *   - the user's FAL account credit balance (fetched on open), and
  *   - a "View on fal.ai" deep-link to the model page.
  *
@@ -37,6 +38,7 @@ import type { NodeMetadata } from "../../stores/ApiTypes";
 import {
   formatFalUnitPricingShort,
   formatFalUnitPricingTooltip,
+  formatFalPerRunEstimate,
   isFalVagueBillingSummary
 } from "../../utils/formatFalUnitPricing";
 import {
@@ -46,6 +48,10 @@ import {
   formatCredits,
   type FalCredits
 } from "../../utils/falCredits";
+import {
+  fetchFalPricingEstimate,
+  type FalPricingEstimate
+} from "../../utils/fetchFalPricingEstimate";
 
 export interface FalPricingFooterProps {
   metadata: NodeMetadata;
@@ -75,6 +81,10 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
   const [creditsData, setCreditsData] = useState<FalCredits | null | "error">(
     null
   );
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateData, setEstimateData] = useState<FalPricingEstimate | null>(
+    null
+  );
   const menuOpen = Boolean(anchorEl);
 
   const handleClick = useCallback(
@@ -82,13 +92,23 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
       e.stopPropagation();
       e.preventDefault();
       setAnchorEl(e.currentTarget);
+      const endpointId = metadata.fal_unit_pricing?.endpoint_id;
       setCreditsLoading(true);
+      setEstimateLoading(true);
       setCreditsData(null);
-      const result = await fetchFalCredits();
+      setEstimateData(null);
+
+      const [creditsResult, estimateResult] = await Promise.all([
+        fetchFalCredits(),
+        endpointId ? fetchFalPricingEstimate(endpointId) : Promise.resolve(null),
+      ]);
+
       setCreditsLoading(false);
-      setCreditsData(result ?? "error");
+      setEstimateLoading(false);
+      setCreditsData(creditsResult ?? "error");
+      setEstimateData(estimateResult);
     },
-    []
+    [metadata.fal_unit_pricing?.endpoint_id]
   );
 
   const handleClose = useCallback(() => {
@@ -134,7 +154,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
       py: 0,
       height: 20,
       borderRadius: 1,
-      fontSize: "0.65rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       lineHeight: 1.4,
       minHeight: 0,
@@ -179,7 +199,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
       >
         {pricing.source === "live" && (
           <span
-            style={{ marginRight: 3, fontSize: "0.55rem", opacity: 0.85 }}
+            style={{ marginRight: 3, fontSize: "var(--fontSizeSmaller)", opacity: 0.85 }}
             aria-label="live price"
           >
             ●
@@ -195,7 +215,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
         placement={placement}
         paperSx={{
           minWidth: 220,
-          fontSize: "12px"
+          fontSize: "var(--fontSizeSmall)"
         }}
       >
         <FlexColumn gap={0} sx={{ px: 2, py: 1 }}>
@@ -211,7 +231,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           </Caption>
           <Text
             sx={{
-              fontSize: "12px",
+              fontSize: "var(--fontSizeSmall)",
               mt: 0.5,
               whiteSpace: "pre-line",
               color: theme.vars.palette.text.secondary
@@ -219,6 +239,33 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           >
             {formatFalUnitPricingTooltip(pricing)}
           </Text>
+          {estimateLoading ? (
+            <FlexRow gap={1} align="center" sx={{ mt: 1 }}>
+              <LoadingSpinner size={12} />
+              <Text
+                sx={{
+                  fontSize: "var(--fontSizeSmall)",
+                  color: theme.vars.palette.text.secondary
+                }}
+              >
+                Loading estimate…
+              </Text>
+            </FlexRow>
+          ) : estimateData != null ? (
+            <Text
+              sx={{
+                fontSize: "var(--fontSizeSmall)",
+                mt: 1,
+                fontWeight: 600,
+                color: theme.vars.palette.text.primary
+              }}
+            >
+              {formatFalPerRunEstimate(
+                estimateData.total_cost,
+                estimateData.currency
+              )}
+            </Text>
+          ) : null}
         </FlexColumn>
 
         <Divider />
@@ -239,7 +286,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
               <LoadingSpinner size={12} />
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.text.secondary
                 }}
               >
@@ -249,7 +296,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           ) : creditsData === "error" || creditsData === null ? (
             <Text
               sx={{
-                fontSize: "12px",
+                fontSize: "var(--fontSizeSmall)",
                 color: theme.vars.palette.text.disabled,
                 mt: 0.5
               }}
@@ -260,7 +307,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
             <FlexColumn gap={0.5} sx={{ mt: 0.5 }}>
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.warning.main,
                   lineHeight: 1.4,
                   wordBreak: "break-word"
@@ -281,7 +328,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
           ) : (
             <Text
               sx={{
-                fontSize: "13px",
+                fontSize: "var(--fontSizeSmall)",
                 fontWeight: 600,
                 color: theme.vars.palette.success.main,
                 mt: 0.5

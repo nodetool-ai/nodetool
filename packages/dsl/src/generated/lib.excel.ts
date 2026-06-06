@@ -12,8 +12,8 @@ export interface CreateWorkbookOutputs {
   output: unknown;
 }
 
-export function createWorkbook(inputs: CreateWorkbookInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CreateWorkbookOutputs, "output"> {
-  return createNode("lib.excel.CreateWorkbook", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function createWorkbook(inputs: CreateWorkbookInputs): DslNode<CreateWorkbookOutputs, "output"> {
+  return createNode("lib.excel.CreateWorkbook", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Excel To Data Frame — lib.excel.ExcelToDataFrame
@@ -27,8 +27,8 @@ export interface ExcelToDataFrameOutputs {
   output: DataframeRef;
 }
 
-export function excelToDataFrame(inputs: ExcelToDataFrameInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExcelToDataFrameOutputs, "output"> {
-  return createNode("lib.excel.ExcelToDataFrame", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function excelToDataFrame(inputs: ExcelToDataFrameInputs): DslNode<ExcelToDataFrameOutputs, "output"> {
+  return createNode("lib.excel.ExcelToDataFrame", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Data Frame To Excel — lib.excel.DataFrameToExcel
@@ -44,8 +44,8 @@ export interface DataFrameToExcelOutputs {
   output: unknown;
 }
 
-export function dataFrameToExcel(inputs: DataFrameToExcelInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DataFrameToExcelOutputs, "output"> {
-  return createNode("lib.excel.DataFrameToExcel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function dataFrameToExcel(inputs: DataFrameToExcelInputs): DslNode<DataFrameToExcelOutputs, "output"> {
+  return createNode("lib.excel.DataFrameToExcel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Format Cells — lib.excel.FormatCells
@@ -62,8 +62,8 @@ export interface FormatCellsOutputs {
   output: unknown;
 }
 
-export function formatCells(inputs: FormatCellsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FormatCellsOutputs, "output"> {
-  return createNode("lib.excel.FormatCells", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function formatCells(inputs: FormatCellsInputs): DslNode<FormatCellsOutputs, "output"> {
+  return createNode("lib.excel.FormatCells", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Auto Fit Columns — lib.excel.AutoFitColumns
@@ -76,8 +76,8 @@ export interface AutoFitColumnsOutputs {
   output: unknown;
 }
 
-export function autoFitColumns(inputs: AutoFitColumnsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AutoFitColumnsOutputs, "output"> {
-  return createNode("lib.excel.AutoFitColumns", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function autoFitColumns(inputs: AutoFitColumnsInputs): DslNode<AutoFitColumnsOutputs, "output"> {
+  return createNode("lib.excel.AutoFitColumns", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Workbook — lib.excel.SaveWorkbook
@@ -90,6 +90,6 @@ export interface SaveWorkbookInputs {
 export interface SaveWorkbookOutputs {
 }
 
-export function saveWorkbook(inputs: SaveWorkbookInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SaveWorkbookOutputs> {
-  return createNode("lib.excel.SaveWorkbook", inputs as Record<string, unknown>, { outputNames: [], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function saveWorkbook(inputs: SaveWorkbookInputs): DslNode<SaveWorkbookOutputs> {
+  return createNode("lib.excel.SaveWorkbook", inputs as Record<string, unknown>, { outputNames: [] });
 }

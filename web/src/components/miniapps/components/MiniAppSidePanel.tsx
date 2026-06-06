@@ -2,8 +2,8 @@
 import React, { useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Box, Collapse } from "@mui/material";
-import { ToolbarIconButton, EditorButton } from "../../ui_primitives";
+import { Collapse } from "@mui/material";
+import { ToolbarIconButton, EditorButton, Box } from "../../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -59,7 +59,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
     marginTop: theme.spacing(2)
   }), [theme]);
 
-  const styles = css({
+  const styles = useMemo(() => css({
     ".side-panel-toggle": {
       position: "fixed",
       top: 80,
@@ -141,7 +141,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       textTransform: "uppercase",
       letterSpacing: "0.05em",
@@ -168,7 +168,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
         display: "none"
       }
     }
-  });
+  }), [theme, isOpen]);
 
   return (
     <Box css={styles}>
@@ -187,7 +187,11 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
       {/* Backdrop */}
       <div
         className="side-panel-backdrop"
+        role="button"
+        aria-label="Close settings panel"
+        tabIndex={-1}
         onClick={handleClosePanel}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleClosePanel(); } }}
       />
 
       {/* Panel */}
@@ -214,7 +218,10 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
           <div className="panel-section" style={panelSectionMarginStyle}>
             <div
               className="panel-section-header"
+              role="button"
+              tabIndex={0}
               onClick={handleToggleGraph}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleToggleGraph(); } }}
             >
               <span className="panel-section-title">
                 <AccountTreeIcon sx={{ fontSize: 16 }} />

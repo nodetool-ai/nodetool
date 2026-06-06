@@ -2,8 +2,9 @@
 /**
  * ContentCardBody
  *
- * Content-forward node body for nodes registered in `CONTENT_CARD_REGISTRY`
- * (image / video / text / etc. generators and "thin" image-edit nodes).
+ * Content-forward node body for nodes whose metadata declares
+ * `body: "content_card"` (image / video / text / etc. generators and "thin"
+ * image-edit nodes). See `isContentCardNode` in `contentCardRegistry`.
  * Three regions per plan §6.1:
  *
  *   1. Header           — already rendered by `NodeHeader` in `BaseNode`
@@ -30,8 +31,6 @@ import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LayersIcon from "@mui/icons-material/Layers";
-import { shallow } from "zustand/shallow";
-
 import {
   CheckerDropzone,
   DynamicInputButton,
@@ -45,12 +44,16 @@ import OutputRenderer from "../node/OutputRenderer";
 import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
 import { useSignedUrl, getMimeTypeFromUri, toUint8Array } from "../node/output";
+import { TextRenderer } from "../node/output/TextRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
-import { editorClassNames } from "../editor_ui";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
-import useResultsStore from "../../stores/ResultsStore";
+import { useNodeResultValue } from "../../hooks/nodes/useNodeExecState";
+import {
+  assetsToPreviewValue,
+  useNodeResultHistory
+} from "../../hooks/nodes/useNodeResultHistory";
 import { useNodes } from "../../contexts/NodeContext";
 
 import {
@@ -59,7 +62,12 @@ import {
   getPrimaryOutput,
   type ContentCardVariant
 } from "./contentCardRegistry";
-import { resolveExposedInputNames } from "../../utils/exposedInputs";
+import {
+  resolveExposedInputNames,
+  resolveInlineFieldNames
+} from "../../utils/exposedInputs";
+import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
+import NodeHistoryViewer from "../node/NodeHistoryViewer";
 
 const styles = (theme: Theme) =>
   css({
@@ -70,15 +78,21 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(0.5),
-      padding: theme.spacing(0.5),
+      padding: `${theme.spacing(1)} ${theme.spacing(0.5)} ${theme.spacing(0.5)}`,
       minHeight: 0
     },
-    // Preview dominates the card — fixed-min height so a freshly dropped
-    // card still feels content-forward even before its first run.
+    // Text variant inherits the node body color instead of the dark media
+    // backdrop — keeps text content visually flush with the rest of the
+    // node and matches the PreviewNode look.
+    "&[data-content-card-variant=\"text\"] .preview-area": {
+      backgroundColor: "transparent"
+    },
+    // Preview keeps a minimum strip when the node is resized very small;
+    // params (flex-shrink: 0) clip at the bottom via node-content-container.
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
-      minHeight: 160,
+      minHeight: theme.spacing(6),
       borderRadius: "var(--rounded-sm)",
       // Allow the handle column to extend past the preview's left edge so
       // the handle dots align with the card's outer edge (compensates for
@@ -93,7 +107,27 @@ const styles = (theme: Theme) =>
       "& > .handle-column": {
         top: 0,
         bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
+        left: `calc(${theme.spacing(0)})`
+      },
+      ".image-grid-preview": {
+        width: "100%",
+        height: "100%",
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+        gap: theme.spacing(1),
+        padding: theme.spacing(1),
+        overflow: "auto",
+        alignContent: "start"
+      },
+      ".image-grid-tile": {
+        aspectRatio: "1 / 1",
+        minHeight: theme.spacing(8),
+        borderRadius: "var(--rounded-sm)",
+        overflow: "hidden"
+      },
+      ".image-grid-tile .image-output": {
+        minHeight: 0,
+        height: "100%"
       },
       "& img": {
         display: "block",
@@ -104,16 +138,14 @@ const styles = (theme: Theme) =>
       ".text-preview": {
         width: "100%",
         height: "100%",
-        resize: "none",
-        border: "none",
-        outline: "none",
-        background: theme.vars.palette.grey[900],
-        color: theme.vars.palette.text.primary,
-        fontFamily: theme.fontFamily2,
-        fontSize: theme.fontSizeSmall,
-        padding: theme.spacing(1),
         overflow: "auto",
-        whiteSpace: "pre-wrap"
+        padding: theme.spacing(0.5),
+        background: "transparent",
+        // The inner TextRenderer/MaybeMarkdown brings its own typography
+        // (matches PreviewNode); just give it a scroll container.
+        "& > .output": {
+          height: "100%"
+        }
       },
       ".mask-empty": {
         width: "100%",
@@ -169,6 +201,14 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       paddingTop: theme.spacing(0.5)
     },
+    ".exposed-labeled-inputs": {
+      flex: "0 0 auto",
+      paddingTop: theme.spacing(0.5),
+      "& .node-inputs": {
+        marginTop: 0,
+        marginBottom: 0
+      }
+    },
     // Input handles are rendered by <HandleColumn /> — see HandleColumn.tsx
     // for the left-edge absolute positioning.
     ".outputs-row": {
@@ -194,27 +234,55 @@ export interface ContentCardBodyProps {
   isOutputNode: boolean;
 }
 
+const EMPTY_PROPERTIES: NonNullable<NodeMetadata["properties"]> = [];
+
 /**
- * Resolve the value to render in the preview area from the cached result.
- * Results may be:
- *   - A primitive / asset-ref directly, OR
- *   - A `{ [outputName]: value }` record for multi/single-output nodes.
- * We prefer the primary output's named slot when the record shape is present.
+ * Resolve the value(s) to render in the preview area from the cached
+ * result. The card surfaces every generation from the latest execution —
+ * for `num_images=N` style nodes that means N tiles in the grid.
+ *
+ * Inputs may be:
+ *   - A primitive / asset-ref directly,
+ *   - A `{ [outputName]: value }` record for multi/single-output nodes, or
+ *   - An array of either of the above accumulated from `output_update`s.
  */
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
 const extractPrimaryValue = (
   result: unknown,
   primaryOutputName: string | undefined
 ): unknown => {
   if (
-    result &&
-    typeof result === "object" &&
-    !Array.isArray(result) &&
+    isRecord(result) &&
     primaryOutputName &&
-    primaryOutputName in (result as Record<string, unknown>)
+    primaryOutputName in result
   ) {
-    return (result as Record<string, unknown>)[primaryOutputName];
+    return result[primaryOutputName];
   }
   return result;
+};
+
+const resolvePreviewValue = (
+  result: unknown,
+  primaryOutputName: string | undefined
+): unknown => {
+  if (!Array.isArray(result)) {
+    return extractPrimaryValue(result, primaryOutputName);
+  }
+
+  // Streamed outputs accumulate into an array; unwrap any record-shaped
+  // items (`{ output: ... }`) and flatten one level so a `num_images=N`
+  // run renders as N tiles, not one.
+  const values = result
+    .flatMap((item) => {
+      const value = extractPrimaryValue(item, primaryOutputName);
+      return Array.isArray(value) ? value : [value];
+    })
+    .filter((value) => value !== undefined && value !== null);
+
+  if (values.length === 0) return undefined;
+  return values.length === 1 ? values[0] : values;
 };
 
 /**
@@ -276,6 +344,12 @@ const useMediaSrc = (
 };
 
 const extractTextValue = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => extractTextValue(item))
+      .filter((item) => item.length > 0)
+      .join("\n");
+  }
   if (typeof value === "string") {
     return value;
   }
@@ -284,30 +358,91 @@ const extractTextValue = (value: unknown): string => {
     if (typeof v.value === "string") {return v.value;}
     if (typeof v.text === "string") {return v.text;}
     if (typeof v.data === "string") {return v.data;}
+    if (v.output !== undefined) {return extractTextValue(v.output);}
   }
   return "";
 };
 
-const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
+type ImagePreviewSource = string | Uint8Array;
+
+const isNumberArray = (value: unknown[]): value is number[] =>
+  value.length > 0 && value.every((item) => typeof item === "number");
+
+const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined => {
   if (typeof value === "string") {
-    return <ImageView source={value} />;
+    return value;
   }
-  if (value && typeof value === "object") {
-    const v = value as { uri?: string; data?: unknown };
-    if (typeof v.uri === "string" && v.uri) {
-      return <ImageView source={v.uri} />;
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return isNumberArray(value) ? new Uint8Array(value) : undefined;
+  }
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  if (typeof value.uri === "string" && value.uri) {
+    return value.uri;
+  }
+  if (typeof value.url === "string" && value.url) {
+    return value.url;
+  }
+
+  const data = value.data;
+  if (typeof data === "string") {
+    return data;
+  }
+  if (data instanceof Uint8Array) {
+    return data;
+  }
+  if (Array.isArray(data) && isNumberArray(data)) {
+    return new Uint8Array(data);
+  }
+  return undefined;
+};
+
+const extractImagePreviewValues = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) {
+    if (isNumberArray(value)) {
+      return [value];
     }
-    if (v.data) {
-      const source =
-        v.data instanceof Uint8Array
-          ? v.data
-          : Array.isArray(v.data)
-            ? new Uint8Array(v.data as number[])
-            : undefined;
-      if (source) {
-        return <ImageView source={source} />;
-      }
+    return value.flatMap((item) => extractImagePreviewValues(item));
+  }
+  if (isRecord(value)) {
+    if (value.output !== undefined) {
+      return extractImagePreviewValues(value.output);
     }
+    if (Array.isArray(value.data) && !isNumberArray(value.data)) {
+      return value.data.flatMap((item) => extractImagePreviewValues(item));
+    }
+  }
+  return imageSourceFromValue(value) ? [value] : [];
+};
+
+const SingleImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
+  const source = imageSourceFromValue(value);
+  if (source) {
+    return <ImageView source={source} />;
+  }
+  return <OutputRenderer value={value} showTextActions={false} />;
+};
+
+const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
+  const images = extractImagePreviewValues(value);
+  if (images.length > 1) {
+    return (
+      <div className="image-grid-preview nodrag nopan">
+        {images.map((item, index) => (
+          <div className="image-grid-tile" key={`image-${index}`}>
+            <SingleImagePreview value={item} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (images.length === 1) {
+    return <SingleImagePreview value={images[0]} />;
   }
   return <OutputRenderer value={value} showTextActions={false} />;
 };
@@ -349,20 +484,16 @@ const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
 };
 
 const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
+  // Render via the same TextRenderer PreviewNode uses (markdown + theme
+  // typography) so the card and the preview node match visually.
   const text = extractTextValue(value);
-  const [isFocused, setIsFocused] = useState(false);
   return (
-    <textarea
-      className={`text-preview nodrag nopan${
-        isFocused ? ` ${editorClassNames.nowheel}` : ""
-      }`}
-      readOnly
-      value={text}
-      spellCheck={false}
+    <div
+      className="text-preview nodrag nopan nowheel"
       aria-label="Generated text"
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-    />
+    >
+      <TextRenderer text={text} showActions={false} />
+    </div>
   );
 };
 
@@ -438,6 +569,8 @@ const PreviewArea: React.FC<{
   }
 };
 
+const MEDIA_VARIANTS: ContentCardVariant[] = ["image", "image_mask", "video", "audio", "model_3d"];
+
 const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   id,
   nodeType,
@@ -459,16 +592,28 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [primaryOutput]
   );
 
-  const result = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
-  const previewValue = useMemo(
-    () => extractPrimaryValue(result, primaryOutput?.name),
-    [result, primaryOutput?.name]
-  );
+  const result = useNodeResultValue(workflowId, id);
+  const { lastJobAssets } = useNodeResultHistory(workflowId, id);
 
-  const isDynamic = !!nodeMetadata.is_dynamic;
+  // Resolved live (in-memory) result for the primary output. NodeHistoryViewer
+  // takes this as `liveResult` and shows it during a run; otherwise it shows
+  // the indexed history asset.
+  const liveResolvedResult = useMemo(() => {
+    if (result === undefined) return undefined;
+    return resolvePreviewValue(result, primaryOutput?.name);
+  }, [result, primaryOutput?.name]);
+
+  // Fallback for non-media variants (text/generic) where there's no history
+  // navigator: show the latest job's saved assets when the in-memory result
+  // is gone after a page reload.
+  const fallbackPreviewValue = useMemo(() => {
+    if (result !== undefined) return liveResolvedResult;
+    return assetsToPreviewValue(lastJobAssets);
+  }, [result, liveResolvedResult, lastJobAssets]);
+
+  const isMediaVariant = MEDIA_VARIANTS.includes(variant);
+
+  const isDynamic = !!nodeMetadata.supports_dynamic_inputs;
 
   // Two-pass field classification per field-classification.md:
   // 1. inlineFields: rendered as full editors in normal flow
@@ -479,12 +624,11 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   const useNewLayout =
     nodeMetadata.inline_fields !== undefined ||
     nodeMetadata.input_fields !== undefined;
-  const inlineFields = nodeMetadata.inline_fields ?? [];
-
-  const properties = nodeMetadata.properties ?? [];
-  const inlineProps = useNewLayout
-    ? properties.filter((p) => inlineFields.includes(p.name))
-    : [];
+  const properties = nodeMetadata.properties ?? EMPTY_PROPERTIES;
+  const inlineFieldNameSet = useMemo(
+    () => new Set(resolveInlineFieldNames(nodeMetadata, data)),
+    [nodeMetadata, data]
+  );
   // Handle column = metadata input_fields ∪ user-promoted exposedInputs.
   const handleNames = useMemo(
     () =>
@@ -493,15 +637,31 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         : null,
     [useNewLayout, nodeMetadata, data]
   );
-  const handleProps = useNewLayout
-    ? properties.filter((p) => handleNames!.has(p.name))
-    : properties; // fallback: all properties render as handles
+  const inlineProps = useMemo(
+    () =>
+      useNewLayout
+        ? properties.filter((p) => inlineFieldNameSet.has(p.name))
+        : [],
+    [useNewLayout, properties, inlineFieldNameSet]
+  );
+  const handleProps = useMemo(
+    () =>
+      useNewLayout
+        ? properties.filter((p) => handleNames!.has(p.name))
+        : properties.filter(
+            (p) =>
+              !inlineFieldNameSet.has(p.name) &&
+              !(data.exposedInputsLabeled ?? []).includes(p.name) &&
+              !(data.exposedInputsHidden ?? []).includes(p.name)
+          ),
+    [useNewLayout, properties, handleNames, inlineFieldNameSet, data]
+  );
 
   // Adding a dynamic property is the responsibility of dynamic-input wiring
   // landed in earlier work (NodeInputs / NodePropertyForm). For PR 4 we
   // expose a placeholder onAdd that delegates to the same store flow used
   // by NodePropertyForm — but we only render the button when the node opts
-  // into `is_dynamic`. If no add handler is wired, the button is disabled.
+  // into `supports_dynamic_inputs`. If no add handler is wired, the button is disabled.
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const handleAddDynamicInput = useCallback(() => {
     const existing = data.dynamic_properties ?? {};
@@ -514,6 +674,11 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     });
   }, [data.dynamic_properties, id, updateNodeData]);
 
+  const renderSingle = useCallback(
+    (value: unknown) => <PreviewArea variant={variant} value={value} />,
+    [variant]
+  );
+
   return (
     <div
       css={cssStyles}
@@ -521,7 +686,16 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       data-content-card-variant={variant}
     >
       <div className="preview-area">
-        <PreviewArea variant={variant} value={previewValue} />
+        {isMediaVariant ? (
+          <NodeHistoryViewer
+            workflowId={workflowId}
+            nodeId={id}
+            liveResult={liveResolvedResult}
+            renderSingle={renderSingle}
+          />
+        ) : (
+          <PreviewArea variant={variant} value={fallbackPreviewValue} />
+        )}
         {/* Handle column lives inside the preview so its vertical extent
             is bounded by the preview — keeps `exposedInputs` handles from
             colliding with inline-field rows below. */}
@@ -544,6 +718,14 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
           />
         </div>
       )}
+
+      <ExposedLabeledInputs
+        id={id}
+        nodeMetadata={nodeMetadata}
+        nodeType={nodeType}
+        data={data}
+        properties={properties}
+      />
 
       {!isOutputNode && (
         <div className="outputs-row">

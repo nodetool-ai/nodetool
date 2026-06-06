@@ -31,6 +31,7 @@ import {
   snap,
   makeTrack,
   makeClip,
+  makeMarker,
   makeTrackEffect,
   createTimeOrderedUuid
 } from "@nodetool-ai/timeline";
@@ -39,11 +40,14 @@ import type {
   TimelineTrack,
   TimelineClip,
   TimelineMarker,
-  TrackEffect
+  TrackEffect,
+  ClipBindingKind,
+  TranscriptLine
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 import { trpcClient } from "../../trpc/client";
+import { migrateTranscriptToClips, reflowGenerated } from "./transcriptOps";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
 
@@ -66,6 +70,8 @@ export interface TimelineStoreState {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  /** Studio transcript lines (document state, persisted + undo-able). */
+  transcript: TranscriptLine[];
 
   // ── Initialisation ───────────────────────────────────────────────────────
 
@@ -250,32 +256,216 @@ export interface TimelineStoreState {
     startMs: number,
     opts?: { selectedOutputNodeId?: string; mediaTypeOverride?: "overlay" }
   ) => Promise<string>;
+
+  /**
+   * Create a direct-generation clip (text-to-image / image-to-image) bound
+   * to a provider+model+prompt directly — no workflow. The clip is added
+   * locally; autosave persists it. Returns the id of the new clip.
+   */
+  addDirectGenClip: (opts: {
+    trackId: string;
+    startMs: number;
+    durationMs?: number;
+    mediaType?: "image" | "video" | "audio" | "overlay";
+    bindingKind?:
+      | "text-to-image"
+      | "image-to-image"
+      | "text-to-video"
+      | "text-to-audio";
+    prompt: string;
+    provider?: string;
+    model?: string;
+    voice?: string;
+    sourceClipId?: string | null;
+    width?: number;
+    height?: number;
+    strength?: number;
+    numInferenceSteps?: number;
+    name?: string;
+  }) => string;
+
+  /** Update a direct-gen clip's prompt. Marks the clip stale if already generated. */
+  setClipPrompt: (clipId: string, prompt: string) => void;
+
+  /** Update a direct-gen clip's provider + model. Marks stale if already generated. */
+  setClipDirectGenModel: (
+    clipId: string,
+    provider: string,
+    model: string
+  ) => void;
+
+  /** Update arbitrary direct-gen binding fields on a clip. Marks stale when applicable. */
+  patchClipBinding: (
+    clipId: string,
+    patch: Partial<
+      Pick<
+        TimelineClip,
+        | "bindingKind"
+        | "prompt"
+        | "negativePrompt"
+        | "provider"
+        | "model"
+        | "voice"
+        | "sourceClipId"
+        | "width"
+        | "height"
+        | "strength"
+        | "numInferenceSteps"
+        | "seed"
+      >
+    >
+  ) => void;
+
+  /**
+   * "Regenerate as a new clip" — duplicates the clip immediately to the
+   * right, preserving its full binding (workflow + paramOverrides, OR
+   * direct-gen prompt + model). The new clip starts in `draft` so the
+   * caller can immediately kick off `useGenerateClip(newClipId)`.
+   *
+   * The original clip is left untouched — useful when a clip has been
+   * split and you want a fresh roll without losing the existing render.
+   */
+  regenerateAsCopy: (clipId: string, deltaMs?: number) => string;
+
+  /**
+   * Atomically replace any of the transcript / clips / duration document
+   * slices in a single store update (one undo entry). Studio transcript ops
+   * compute the next document with pure helpers and commit it here so a
+   * delete-line + clip-removal + re-flow lands as one coherent edit.
+   */
+  setTranscriptAndClips: (patch: {
+    transcript?: TranscriptLine[];
+    clips?: TimelineClip[];
+    durationMs?: number;
+  }) => void;
+
+  /** Append a timeline marker (e.g. a scene boundary) at the given time. */
+  addMarker: (timeMs: number, label?: string) => void;
+
+  /** Remove the marker with the given id. */
+  removeMarker: (id: string) => void;
+
+  /**
+   * Merge clip halves that were split at `timeMs` back into single clips — the
+   * inverse of {@link splitClipAtTime}. Per track, a left clip ending at `timeMs`
+   * and a right clip starting at `timeMs` that are contiguous in the same source
+   * (`right.inPointMs === left.outPointMs`, same asset) collapse into one.
+   */
+  mergeClipsAt: (timeMs: number) => void;
+
+  /**
+   * Drop a scene boundary at `timeMs`: add a marker AND split every clip there,
+   * as a SINGLE undo step. Inverse of {@link removeScene}.
+   */
+  addScene: (timeMs: number, label?: string) => void;
+
+  /**
+   * Remove a scene's marker AND merge back the clip it split, as a SINGLE undo
+   * step. A no-op merge is harmless for non-scene markers.
+   */
+  removeScene: (markerId: string) => void;
 }
 
 // ── Partialized type for zundo (only document state is undo-able) ──────────
 
 type PartializedState = Pick<
   TimelineStoreState,
-  "tracks" | "clips" | "markers" | "durationMs"
+  "tracks" | "clips" | "markers" | "durationMs" | "transcript"
 >;
+
+// ── Scene split/merge helpers (pure) ───────────────────────────────────────
+
+/** Split every clip that strictly contains `timeMs` into two halves. */
+function splitAllClipsAt(
+  clips: TimelineClip[],
+  timeMs: number
+): TimelineClip[] {
+  let next = [...clips];
+  const toSplit = next.filter(
+    (c) => timeMs > c.startMs && timeMs < c.startMs + c.durationMs
+  );
+  for (const clip of toSplit) {
+    try {
+      const [left, right] = splitClip(clip, timeMs);
+      next = next.filter((c) => c.id !== clip.id).concat([left, right]);
+    } catch {
+      // Skip clips where the split is invalid (e.g. boundary mismatch).
+    }
+  }
+  return next;
+}
+
+/**
+ * Merge clip halves split at `timeMs` back into single clips — inverse of
+ * `splitClip`. Returns the same array reference when nothing merges.
+ */
+function mergeClipsAtTime(
+  clips: TimelineClip[],
+  timeMs: number
+): TimelineClip[] {
+  const EPS = 1;
+  const removed = new Set<string>();
+  const replaced = new Map<string, TimelineClip>();
+  for (const right of clips) {
+    if (removed.has(right.id)) continue;
+    if (Math.abs(right.startMs - timeMs) > EPS) continue;
+    const left = clips.find(
+      (c) =>
+        c.id !== right.id &&
+        !removed.has(c.id) &&
+        c.trackId === right.trackId &&
+        c.currentAssetId === right.currentAssetId &&
+        Math.abs(c.startMs + c.durationMs - timeMs) <= EPS &&
+        // Source contiguity: the left half's source out-point must meet the
+        // right half's source in-point. Use outPointMs (set on every split half)
+        // rather than inPointMs + durationMs, which only holds at 1× speed.
+        Math.abs(
+          (c.outPointMs ?? (c.inPointMs ?? 0) + c.durationMs) -
+            (right.inPointMs ?? 0)
+        ) <= EPS
+    );
+    if (!left) continue;
+    const base = replaced.get(left.id) ?? left;
+    replaced.set(left.id, {
+      ...base,
+      durationMs: base.durationMs + right.durationMs,
+      outPointMs:
+        right.outPointMs ??
+        (base.inPointMs ?? 0) + base.durationMs + right.durationMs
+    });
+    removed.add(right.id);
+  }
+  if (removed.size === 0) return clips;
+  return clips
+    .filter((c) => !removed.has(c.id))
+    .map((c) => replaced.get(c.id) ?? c);
+}
 
 // ── Empty defaults ─────────────────────────────────────────────────────────
 
-const emptyState = {
-  sequenceId: null as string | null,
-  baseUpdatedAt: null as string | null,
+const emptyState: {
+  sequenceId: string | null;
+  baseUpdatedAt: string | null;
+  fps: number;
+  width: number;
+  height: number;
+  durationMs: number;
+  tracks: TimelineTrack[];
+  clips: TimelineClip[];
+  markers: TimelineMarker[];
+  transcript: TranscriptLine[];
+} = {
+  sequenceId: null,
+  baseUpdatedAt: null,
   fps: 30,
   width: 1920,
   height: 1080,
   durationMs: 0,
-  tracks: [] as TimelineTrack[],
-  clips: [] as TimelineClip[],
-  markers: [] as TimelineMarker[]
+  tracks: [],
+  clips: [],
+  markers: [],
+  transcript: []
 };
-
-// ── Store type (with temporal API) ─────────────────────────────────────────
-
-export type TimelineStore = ReturnType<typeof createTimelineStore>;
 
 // ── Factory ────────────────────────────────────────────────────────────────
 
@@ -285,8 +475,6 @@ export const createTimelineStore = (
   > = {}
 ) =>
   create<TimelineStoreState>()(
-    // @ts-expect-error zundo v2 / zustand v4 types are not fully compatible.
-    // Tracked in https://github.com/charkour/zundo/issues — same pattern as NodeStore.ts.
     temporal(
       (set, get) => ({
         ...emptyState,
@@ -294,7 +482,45 @@ export const createTimelineStore = (
 
         // ── Init ────────────────────────────────────────────────────────────
 
-        loadSequence: (seq) =>
+        loadSequence: (seq) => {
+          const transcript = seq.transcript ?? [];
+
+          // Legacy sequences stored the transcript as `TranscriptLine[]` binding
+          // a voiceover clip + a separate caption clip. Fold those words onto
+          // the voiceover clips so clips become the single source of truth; the
+          // transcript field is then cleared (and stays empty going forward).
+          if (transcript.length > 0) {
+            let tracks = seq.tracks;
+            let audioTrack = tracks.find((t) => t.type === "audio");
+            if (!audioTrack) {
+              audioTrack = makeTrack({
+                type: "audio",
+                name: "Voiceover",
+                index: tracks.length
+              });
+              tracks = [...tracks, audioTrack];
+            }
+            const migrated = migrateTranscriptToClips(
+              transcript,
+              seq.clips,
+              audioTrack.id
+            );
+            const { clips, durationMs } = reflowGenerated(migrated);
+            set({
+              sequenceId: seq.id,
+              baseUpdatedAt: seq.updatedAt,
+              fps: seq.fps,
+              width: seq.width,
+              height: seq.height,
+              durationMs: Math.max(seq.durationMs, durationMs),
+              tracks,
+              clips,
+              markers: seq.markers,
+              transcript: []
+            });
+            return;
+          }
+
           set({
             sequenceId: seq.id,
             baseUpdatedAt: seq.updatedAt,
@@ -304,8 +530,10 @@ export const createTimelineStore = (
             durationMs: seq.durationMs,
             tracks: seq.tracks,
             clips: seq.clips,
-            markers: seq.markers
-          }),
+            markers: seq.markers,
+            transcript: []
+          });
+        },
 
         reset: () => set({ ...emptyState }),
 
@@ -806,7 +1034,165 @@ export const createTimelineStore = (
           }));
 
           return newClip.id;
-        }
+        },
+
+        addDirectGenClip: (opts) => {
+          const bindingKind: ClipBindingKind = opts.bindingKind ?? "text-to-image";
+          const mediaType = opts.mediaType ?? "image";
+          const durationMs = opts.durationMs ?? 4000;
+          const trimmedPrompt = opts.prompt.trim();
+          const fallbackName =
+            trimmedPrompt.length > 0
+              ? trimmedPrompt.slice(0, 40)
+              : bindingKind === "image-to-image"
+                ? "Image-to-Image"
+                : bindingKind === "text-to-video"
+                  ? "Text-to-Video"
+                  : bindingKind === "text-to-audio"
+                    ? "Text-to-Audio"
+                    : "Text-to-Image";
+
+          const clip = makeClip({
+            id: createTimeOrderedUuid(),
+            name: opts.name ?? fallbackName,
+            trackId: opts.trackId,
+            startMs: opts.startMs,
+            durationMs,
+            mediaType,
+            sourceType: "generated",
+            bindingKind,
+            prompt: opts.prompt,
+            provider: opts.provider,
+            model: opts.model,
+            voice: opts.voice,
+            sourceClipId: opts.sourceClipId ?? null,
+            width: opts.width,
+            height: opts.height,
+            strength: opts.strength,
+            numInferenceSteps: opts.numInferenceSteps,
+            status: "draft",
+            locked: false,
+            versions: []
+          });
+
+          set((state) => ({ clips: [...state.clips, clip] }));
+          return clip.id;
+        },
+
+        setClipPrompt: (clipId, prompt) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              // Mark stale once a render exists, so the inspector hints "regenerate".
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
+              return { ...c, prompt, status };
+            })
+          })),
+
+        setClipDirectGenModel: (clipId, provider, model) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
+              return { ...c, provider, model, status };
+            })
+          })),
+
+        patchClipBinding: (clipId, patch) =>
+          set((state) => ({
+            clips: state.clips.map((c) => {
+              if (c.id !== clipId) return c;
+              const status: TimelineClip["status"] =
+                c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
+              return { ...c, ...patch, status };
+            })
+          })),
+
+        regenerateAsCopy: (clipId, deltaMs = 0) => {
+          let newId: string | undefined;
+          set((state) => {
+            const src = state.clips.find((c) => c.id === clipId);
+            if (!src) return state;
+            const clone = makeClip({
+              ...src,
+              id: createTimeOrderedUuid(),
+              startMs: src.startMs + src.durationMs + deltaMs,
+              // Clone independent overrides / binding so edits diverge.
+              paramOverrides: src.paramOverrides
+                ? structuredClone(src.paramOverrides)
+                : undefined,
+              // Reset render state so it generates fresh.
+              status: "draft",
+              locked: false,
+              currentAssetId: undefined,
+              lastGeneratedHash: undefined,
+              inPointMs: undefined,
+              outPointMs: undefined,
+              versions: []
+            });
+            newId = clone.id;
+            return { clips: [...state.clips, clone] };
+          });
+          if (!newId) {
+            throw new Error(`Clip ${clipId} not found`);
+          }
+          return newId;
+        },
+
+        setTranscriptAndClips: (patch) =>
+          set((state) => ({
+            transcript: patch.transcript ?? state.transcript,
+            clips: patch.clips ?? state.clips,
+            durationMs: patch.durationMs ?? state.durationMs
+          })),
+
+        addMarker: (timeMs, label) =>
+          set((state) => ({
+            markers: [
+              ...state.markers,
+              makeMarker({
+                timeMs: Math.max(0, Math.round(timeMs)),
+                label: label ?? ""
+              })
+            ]
+          })),
+
+        removeMarker: (id) =>
+          set((state) => ({
+            markers: state.markers.filter((m) => m.id !== id)
+          })),
+
+        mergeClipsAt: (timeMs) =>
+          set((state) => {
+            const next = mergeClipsAtTime(state.clips, timeMs);
+            return next === state.clips ? {} : { clips: next };
+          }),
+
+        addScene: (timeMs, label) =>
+          set((state) => ({
+            markers: [
+              ...state.markers,
+              makeMarker({
+                timeMs: Math.max(0, Math.round(timeMs)),
+                label: label ?? ""
+              })
+            ],
+            clips: splitAllClipsAt(state.clips, Math.round(timeMs))
+          })),
+
+        removeScene: (markerId) =>
+          set((state) => {
+            const marker = state.markers.find((m) => m.id === markerId);
+            const markers = state.markers.filter((m) => m.id !== markerId);
+            return {
+              markers,
+              clips: marker
+                ? mergeClipsAtTime(state.clips, marker.timeMs)
+                : state.clips
+            };
+          })
       }),
       {
         limit: 100,
@@ -814,24 +1200,37 @@ export const createTimelineStore = (
           tracks: state.tracks,
           clips: state.clips,
           markers: state.markers,
-          durationMs: state.durationMs
+          durationMs: state.durationMs,
+          transcript: state.transcript
         })
       }
     )
   );
 
-// ── Singleton store ────────────────────────────────────────────────────────
+// ── Store handle type ───────────────────────────────────────────────────────
 
-/**
- * The global singleton TimelineStore instance.
- * Use `createTimelineStore` in unit tests for isolation.
- */
-export const useTimelineStore = createTimelineStore();
+/** A single timeline-document store instance (with its zundo `temporal`). */
+export type TimelineStoreApi = ReturnType<typeof createTimelineStore>;
 
-// ── Typed temporal accessor ────────────────────────────────────────────────
+/** Read the zundo temporal (undo/redo) state of a given store instance. */
+export const timelineTemporalOf = (
+  store: TimelineStoreApi
+): TemporalState<PartializedState> =>
+  (
+    store as unknown as {
+      temporal: { getState: () => TemporalState<PartializedState> };
+    }
+  ).temporal.getState();
 
-/** Access undo / redo / clear on the singleton store. */
-export const getTimelineTemporal = (): TemporalState<PartializedState> =>
-  (useTimelineStore as unknown as { temporal: { getState: () => TemporalState<PartializedState> } })
-    .temporal.getState();
+export type { PartializedState as TimelinePartializedState };
+
+// The context-bound `useTimelineStore` hook and the active-instance
+// `getTimelineTemporal` accessor are defined against the surrounding instance
+// in the instance module and re-exported so existing imports keep resolving
+// from this path.
+export {
+  useTimelineStore,
+  useTimelineStoreApi,
+  getTimelineTemporal
+} from "./TimelineInstance";
 

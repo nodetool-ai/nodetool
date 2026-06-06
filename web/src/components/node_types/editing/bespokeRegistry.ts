@@ -27,15 +27,15 @@ import MasksExtractorBody, {
   MASKS_EXTRACTOR_NODE_TYPES
 } from "./MasksExtractorBody";
 import PainterBody, { PAINTER_NODE_TYPE } from "./PainterBody";
+import PromptComposerBody, { PROMPT_NODE_TYPE } from "./PromptComposerBody";
 import PasteBody, { PASTE_NODE_TYPE } from "./PasteBody";
 import ResizeBody, { RESIZE_NODE_TYPE } from "./ResizeBody";
 import RotateAndFlipBody, {
   ROTATE_AND_FLIP_NODE_TYPE
 } from "./RotateAndFlipBody";
 import ScaleBody, { SCALE_NODE_TYPE } from "./ScaleBody";
-import SimpleFilterBody, {
-  SIMPLE_FILTER_NODE_TYPES
-} from "./SimpleFilterBody";
+import SimpleFilterBody from "./SimpleFilterBody";
+import { SIMPLE_FILTER_NODE_TYPES } from "./SimpleFilterBody.constants";
 
 export interface BespokeBodyProps {
   id: string;
@@ -64,6 +64,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [MASK_NODE_TYPE]: MaskBody,
   [PAINTER_NODE_TYPE]: PainterBody,
   [PASTE_NODE_TYPE]: PasteBody,
+  [PROMPT_NODE_TYPE]: PromptComposerBody,
   [RESIZE_NODE_TYPE]: ResizeBody,
   [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody,
   [SCALE_NODE_TYPE]: ScaleBody,

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
@@ -43,7 +43,7 @@ const EditableTitle = memo(function EditableTitle({
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const theme = useTheme();
 
-  const styles = css({
+  const styles = useMemo(() => css({
     position: "absolute",
     top: "calc(100% + 12px)",
     left: "8px",
@@ -121,7 +121,7 @@ const EditableTitle = memo(function EditableTitle({
       border: "none",
       outline: "none",
       resize: "none",
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: "1.5",
       fontWeight: 400,
       letterSpacing: "0.01em",
@@ -142,14 +142,14 @@ const EditableTitle = memo(function EditableTitle({
       gap: "6px",
       marginBottom: "6px",
       opacity: 0.5,
-      fontSize: "10px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       textTransform: "uppercase",
       letterSpacing: "0.08em",
       color: theme.vars.palette.primary.light,
       transition: "opacity 0.2s ease",
       ".icon": {
-        fontSize: "12px"
+        fontSize: "var(--fontSizeSmall)"
       }
     },
 
@@ -178,7 +178,7 @@ const EditableTitle = memo(function EditableTitle({
       transform: "scale(0.9)",
       transition: "all 0.15s ease",
       ".icon": {
-        fontSize: "14px"
+        fontSize: "var(--fontSizeNormal)"
       },
       "&:hover": {
         color: theme.vars.palette.error.main,
@@ -198,7 +198,7 @@ const EditableTitle = memo(function EditableTitle({
       pointerEvents: "none",
       width: "100%",
       color: theme.vars.palette.text.secondary,
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       lineHeight: "1.5",
       fontWeight: 400,
       letterSpacing: "0.01em",
@@ -219,7 +219,7 @@ const EditableTitle = memo(function EditableTitle({
       animation: `${pulseGlow} 2s ease-in-out infinite`,
       opacity: 0.8
     }
-  });
+  }), [theme]);
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true);
@@ -273,6 +273,7 @@ const EditableTitle = memo(function EditableTitle({
         <textarea
           defaultValue={title}
           autoFocus
+          aria-label="Note text"
           placeholder="Add your note..."
           onKeyDown={handleKeyDown}
           onInput={handleInput}
@@ -283,6 +284,7 @@ const EditableTitle = memo(function EditableTitle({
         <>
           <div className="title">{title}</div>
           <button
+            type="button"
             className="remove-title"
             onClick={handleRemoveTitle}
             title="Remove note"

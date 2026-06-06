@@ -178,7 +178,7 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
           <React.Fragment key={provider}>
             {index > 0 && <Divider />}
             <MenuItem disabled sx={{ opacity: 1 }}>
-              <Caption color="secondary" sx={{ fontWeight: "bold" }}>
+              <Caption color="secondary" sx={{ fontWeight: 600 }}>
                 {provider}
               </Caption>
             </MenuItem>

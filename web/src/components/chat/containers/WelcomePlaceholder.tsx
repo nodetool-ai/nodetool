@@ -5,10 +5,8 @@ import type { Theme } from "@mui/material/styles";
 import { Text, Chip } from "../../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { memo, useCallback } from "react";
-import GettingStartedPanel from "../../dashboard/GettingStartedPanel";
-import { useOnboardingStore } from "../../../stores/OnboardingStore";
 
-const styles = (theme: Theme, withPanel: boolean) =>
+const styles = (theme: Theme) =>
   css({
     flex: 1,
     minHeight: 0,
@@ -17,9 +15,7 @@ const styles = (theme: Theme, withPanel: boolean) =>
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    // Top-align when the checklist is showing (it scrolls); otherwise center
-    // the suggestions block like the original empty state.
-    justifyContent: withPanel ? "flex-start" : "center",
+    justifyContent: "center",
     padding: "1.5rem 1rem 2rem",
 
     ".welcome-inner": {
@@ -40,7 +36,7 @@ const styles = (theme: Theme, withPanel: boolean) =>
     },
 
     ".welcome-icon": {
-      fontSize: "2rem",
+      fontSize: "var(--fontSizeBig)",
       color: theme.vars.palette.primary.main,
       opacity: 0.7
     },
@@ -48,12 +44,12 @@ const styles = (theme: Theme, withPanel: boolean) =>
     ".welcome-title": {
       color: theme.vars.palette.text.primary,
       fontWeight: 600,
-      fontSize: "1.15rem"
+      fontSize: "var(--fontSizeBig)"
     },
 
     ".welcome-subtitle": {
       color: theme.vars.palette.text.secondary,
-      fontSize: "0.9rem",
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: 1.6
     },
 
@@ -82,7 +78,6 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   onSuggestionClick
 }) => {
   const theme = useTheme();
-  const dismissed = useOnboardingStore((s) => s.dismissed);
 
   const handleClick = useCallback(
     (suggestion: string) => {
@@ -91,13 +86,9 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
     [onSuggestionClick]
   );
 
-  const showGettingStarted = !dismissed;
-
   return (
-    <div css={styles(theme, showGettingStarted)}>
+    <div css={styles(theme)}>
       <div className="welcome-inner">
-        {showGettingStarted && <GettingStartedPanel />}
-
         <div className="chat-suggestions-block">
           <AutoAwesomeIcon className="welcome-icon" />
           <Text className="welcome-title">How can I help you today?</Text>

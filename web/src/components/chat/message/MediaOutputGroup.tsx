@@ -16,12 +16,14 @@ import { BORDER_RADIUS, FlexColumn, FlexRow, Text } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
   Message,
-  MessageAudioContent,
-  MessageContent,
-  MessageImageContent,
-  MessageVideoContent
+  MessageContent
 } from "../../../stores/ApiTypes";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
+import {
+  isAudioContent,
+  isImageContent,
+  isVideoContent
+} from "./MediaOutputGroup.helpers";
 
 type ChatMessageWithMedia = Message & {
   media_generation?: MediaGenerationRequest | null;
@@ -32,52 +34,22 @@ interface MediaOutputGroupProps {
   mediaContents: MessageContent[];
 }
 
-function isImageContent(c: MessageContent): c is MessageImageContent {
-  return c.type === "image_url";
-}
-
-function isVideoContent(c: MessageContent): c is MessageVideoContent {
-  return c.type === "video";
-}
-
-function isAudioContent(c: MessageContent): c is MessageAudioContent {
-  return c.type === "audio";
-}
-
-/**
- * Returns true if the content array is purely image + video + audio media
- * blocks — i.e. the kind of output produced by a media generation turn.
- */
-export function isMediaOnlyContent(content: unknown): boolean {
-  if (!Array.isArray(content) || content.length === 0) {
-    return false;
-  }
-  return content.every(
-    (c) =>
-      typeof c === "object" &&
-      c !== null &&
-      (isImageContent(c as MessageContent) ||
-        isVideoContent(c as MessageContent) ||
-        isAudioContent(c as MessageContent))
-  );
-}
-
 const styles = (theme: Theme) =>
   css({
     width: "100%",
     borderRadius: 14,
     backgroundColor: theme.vars.palette.background.paper,
     border: `1px solid ${theme.vars.palette.divider}`,
-    padding: 14,
+    padding: 8,
     display: "flex",
     flexDirection: "column",
-    gap: 12,
+    gap: 8,
 
     ".media-output-header": {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: 12,
+      gap: 8,
       flexWrap: "wrap",
       color: theme.vars.palette.text.secondary
     },
@@ -85,7 +57,7 @@ const styles = (theme: Theme) =>
     ".media-output-meta": {
       display: "flex",
       alignItems: "center",
-      gap: 10,
+      gap: 8,
       flexWrap: "wrap"
     },
 
@@ -259,21 +231,24 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
           if (isImageContent(c)) {
             const src =
               c.image?.uri || (c.image?.data as string | undefined) || "";
+            const key = c.image?.asset_id || c.image?.uri || `media-${i}`;
             return (
-              <div key={`media-${i}`}>
+              <div key={key}>
                 <ImageView source={src} />
               </div>
             );
           }
           if (isVideoContent(c)) {
             const src = c.video?.uri || "";
+            const key = c.video?.asset_id || c.video?.uri || `media-${i}`;
             return (
-              <div key={`media-${i}`}>
+              <div key={key}>
                 <video
                   src={src}
                   controls
                   preload="metadata"
                   playsInline
+                  aria-label="Generated video"
                   style={{ width: "100%", height: "100%" }}
                 />
               </div>
@@ -281,12 +256,14 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
           }
           if (isAudioContent(c)) {
             const src = c.audio?.uri || "";
+            const key = c.audio?.asset_id || c.audio?.uri || `media-${i}`;
             return (
-              <div key={`media-${i}`}>
+              <div key={key}>
                 <audio
                   src={src}
                   controls
                   preload="metadata"
+                  aria-label="Generated audio"
                   style={{ width: "100%", padding: "12px" }}
                 />
               </div>

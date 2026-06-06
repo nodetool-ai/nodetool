@@ -3,7 +3,6 @@ import { css, keyframes } from "@emotion/react";
 import React from "react";
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Box } from "@mui/material";
 import {
   FormField,
   Text,
@@ -11,7 +10,8 @@ import {
   FlexColumn,
   LoadingSpinner,
   TextInput,
-  EditorButton
+  EditorButton,
+  Box
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -65,10 +65,10 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(0.5),
       color: theme.vars.palette.text.secondary,
       fontWeight: 500,
-      fontSize: "0.75rem"
+      fontSize: "var(--fontSizeSmall)"
     },
     ".field-icon": {
-      fontSize: "0.875rem",
+      fontSize: "var(--fontSizeNormal)",
       opacity: 0.7
     },
     ".text-input": {
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
         }
       },
       "& .MuiOutlinedInput-input": {
-        padding: theme.spacing(1.25, 1.5)
+        padding: theme.spacing(1, 1.5)
       }
     },
     ".model-select": {
@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".helper-text": {
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.4,
       opacity: 0.8
@@ -213,12 +213,12 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
           variant="contained"
           disabled={isSubmitDisabled}
           disableElevation
-          sx={{ alignSelf: "flex-end", mb: 0.25 }}
+          sx={{ alignSelf: "flex-end", mb: 0.5 }}
           startIcon={
             createMutation.isPending ? (
               <LoadingSpinner size="small" color="inherit" />
             ) : (
-              <AddCircleOutlineIcon sx={{ fontSize: "1.125rem" }} />
+              <AddCircleOutlineIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             )
           }
         >

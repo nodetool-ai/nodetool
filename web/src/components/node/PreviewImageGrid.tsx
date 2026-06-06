@@ -3,7 +3,6 @@ import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from "
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Checkbox, Box } from "@mui/material";
 import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
@@ -13,7 +12,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import { Dialog, Tooltip, EditorButton, ToolbarIconButton } from "../ui_primitives";
+import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box } from "../ui_primitives";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
@@ -413,6 +412,8 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           return (
             <div
               key={key}
+              role="button"
+              tabIndex={0}
               className={`tile ${isSelected ? "selected" : ""}`}
               onDoubleClick={() => {
                 if (selectionMode) { return; }
@@ -430,6 +431,25 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
               onClick={(e) => {
                 if (selectionMode) {
                   toggleSelect(idx, e);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (selectionMode) {
+                    // Synthesize a minimal mouse event for keyboard-driven selection
+                    const syntheticEvent = { stopPropagation: () => {}, shiftKey: e.shiftKey } as React.MouseEvent<HTMLDivElement>;
+                    toggleSelect(idx, syntheticEvent);
+                  } else if (onDoubleClick) {
+                    onDoubleClick(idx);
+                  } else {
+                    const url = urlMapRef.current.get(img);
+                    if (url) {
+                      setViewerUrl(url);
+                      setViewerOpen(true);
+                    }
+                  }
                 }
               }}
             >

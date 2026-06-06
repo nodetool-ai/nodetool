@@ -14,7 +14,6 @@ export type NodeData = {
   endpoint_id?: string;
   /** Resolved Kie.ai model id when schema is loaded */
   model_id?: string;
-  sync_mode?: string;
   workflow_id: string;
   title?: string;
   /** Marks snippet-backed Code nodes so the UI can lock title editing and hide code by default. */
@@ -28,10 +27,20 @@ export type NodeData = {
   bypassed?: boolean; // When true, node is bypassed and passes inputs through to outputs
   showResultPreference?: boolean; // User preference: true = show results after run, false/undefined = show inputs
   /**
-   * Advanced properties the user has promoted to render as input handles on
-   * the node body (plan §8.4). Missing → empty list (no migration needed).
+   * Advanced properties promoted as handle-only dots on the left edge (plan §8.4).
+   * Mutually exclusive with `exposedInputsLabeled` per property name.
    */
   exposedInputs?: string[];
+  /**
+   * Properties shown as labeled rows at the bottom (handle + title + editors).
+   * Overrides metadata defaults when set explicitly.
+   */
+  exposedInputsLabeled?: string[];
+  /**
+   * Properties hidden on the node body (inspector only). Used when cycling
+   * metadata input_fields / inline_fields off their default placement.
+   */
+  exposedInputsHidden?: string[];
   // Original node type from the workflow graph (useful when React Flow falls back to "default" type)
   originalType?: string;
   size?: {

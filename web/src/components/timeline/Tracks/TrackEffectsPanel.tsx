@@ -97,7 +97,7 @@ const effectCardStyles = (
     position: "relative",
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: 4,
-    padding: theme.spacing(0.75, 1),
+    padding: theme.spacing(1, 1),
     width,
     minWidth: width,
     maxWidth: width,
@@ -168,7 +168,7 @@ const addButtonStyles = (theme: Theme) =>
     background: theme.vars.palette.primary.main,
     color: theme.vars.palette.primary.contrastText,
     border: "none",
-    padding: theme.spacing(0.25, 1),
+    padding: theme.spacing(0.5, 1),
     borderRadius: 3,
     fontSize: theme.typography.caption.fontSize,
     cursor: "pointer",
@@ -439,7 +439,7 @@ const bandReadoutStyles = (theme: Theme, color: string) =>
     border: `1px solid ${theme.vars.palette.divider}`,
     borderTop: `2px solid ${color}`,
     borderRadius: 3,
-    padding: theme.spacing(0.5, 0.75),
+    padding: theme.spacing(0.5, 1),
     background: theme.vars.palette.background.paper,
     fontSize: theme.typography.caption.fontSize,
     display: "flex",
@@ -892,7 +892,7 @@ const compTileStyles = (theme: Theme, accent?: string) =>
     border: `1px solid ${theme.vars.palette.divider}`,
     borderTop: accent ? `2px solid ${accent}` : undefined,
     borderRadius: 3,
-    padding: theme.spacing(0.5, 0.75),
+    padding: theme.spacing(0.5, 1),
     background: theme.vars.palette.background.paper,
     display: "flex",
     flexDirection: "column",
@@ -1723,6 +1723,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
                 onDragEnd={handleDragEnd}
                 aria-label="Drag to reorder effect"
                 role="button"
+                tabIndex={0}
               >
                 <DragIndicatorIcon />
               </div>
@@ -1737,6 +1738,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
           <FlexRow gap={0.25}>
             <Tooltip title="Remove effect">
               <button
+                type="button"
                 css={iconButtonStyles(theme)}
                 onClick={handleRemove}
                 aria-label="Remove effect"
@@ -1863,9 +1865,9 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
           sx={{ mb: 1, alignItems: "center" }}
         >
           <Text size="small" weight={600}>
-            {chainLabel} — {track.name}
+            {chainLabel} - {track.name}
           </Text>
-          <button css={addButtonStyles(theme)} onClick={handleOpenAdd}>
+          <button type="button" css={addButtonStyles(theme)} onClick={handleOpenAdd}>
             <AddIcon />
             Add
           </button>

@@ -15,17 +15,20 @@ import { useSelectConnected } from "./useSelectConnected";
 import { useShallow } from "zustand/react/shallow";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
+import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
 import { useNavigate } from "react-router-dom";
 import { useFitView } from "./useFitView";
 import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
+import { useBottomPanelStore } from "../stores/BottomPanelStore";
+import { usePanelStore } from "../stores/PanelStore";
 import { NodeData } from "../stores/NodeData";
 import { getCollapseTogglePatches } from "../stores/collapseNodeLayout";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
-import { useFindInWorkflow } from "./useFindInWorkflow";
+import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
 import type { MenuEventData } from "../window";
@@ -68,10 +71,18 @@ import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
  */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
+interface NodeEditorShortcutsResult {
+  packageNameDialogOpen: boolean;
+  packageNameInput: string;
+  setPackageNameInput: (value: string) => void;
+  handleSaveExampleConfirm: () => Promise<void>;
+  handleSaveExampleCancel: () => void;
+}
+
 export const useNodeEditorShortcuts = (
   active: boolean,
   onShowShortcuts?: () => void
-) => {
+): NodeEditorShortcutsResult => {
   const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
   const [packageNameInput, setPackageNameInput] = useState("");
 
@@ -116,18 +127,22 @@ export const useNodeEditorShortcuts = (
     (state) => state.addNotification
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
-  const findInWorkflow = useFindInWorkflow();
+  const bottomPanelToggle = useBottomPanelStore((state) => state.handleViewChange);
+  const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
+  const openFind = useFindInWorkflowStore((state) => state.openFind);
   const nodeFocus = useNodeFocus();
   // All hooks above this line
 
-  // Calculate selectedEdgeCount from the store
-  const selectedEdgeCount = useNodes((state) =>
-    state.edges.filter((edge) => Boolean(edge.selected)).length
-  );
+  const selectedEdgeCount = useNodes((state) => {
+    let count = 0;
+    for (const edge of state.edges) {
+      if (edge.selected) count++;
+    }
+    return count;
+  });
 
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu } = nodeMenuStore;
-  const { openFind } = findInWorkflow;
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
@@ -202,17 +217,17 @@ export const useNodeEditorShortcuts = (
   }, [alignNodes]);
 
   const closeCurrentWorkflow = useCallback(() => {
-    const workflow = getCurrentWorkflow();
-    if (workflow) {
-      removeWorkflow(workflow.id);
-      const remaining = openWorkflows.filter((w) => w.id !== workflow.id);
-      if (remaining.length > 0) {
-        navigate(`/editor/${remaining[remaining.length - 1].id}`);
-      } else {
-        navigate("/editor");
-      }
+    // Close the active workspace tab — mirrors WorkspaceTabBar's × button.
+    // The legacy WorkflowManager-only close removed the workflow and navigated
+    // /editor (which now just re-opens a tab), leaving the visible tab in place.
+    const { activeTabId, tabs, closeTab } = useWorkspaceTabsStore.getState();
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (!tab) return;
+    closeTab(tab.id);
+    if (tab.type === "workflow") {
+      removeWorkflow(tab.ref);
     }
-  }, [removeWorkflow, getCurrentWorkflow, openWorkflows, navigate]);
+  }, [removeWorkflow]);
 
   const handleNewWorkflow = useCallback(async () => {
     const newWorkflow = await createNewWorkflow();
@@ -343,17 +358,14 @@ export const useNodeEditorShortcuts = (
         case "redo":
           redoHistory();
           break;
-        case "close":
-          closeCurrentWorkflow();
-          break;
+        // "close" / "closeTab" (Cmd+W) are handled at the workspace level
+        // (useWorkspaceMenuShortcuts) so they close the active tab for every
+        // surface, not just the node editor.
         case "fitView":
           handleFitView({ padding: 0.5 });
           break;
         case "newTab":
           handleNewWorkflow();
-          break;
-        case "closeTab":
-          closeCurrentWorkflow();
           break;
         case "resetZoom":
           reactFlow.zoomTo(0.5, { duration: 200 });
@@ -405,7 +417,6 @@ export const useNodeEditorShortcuts = (
       selectAllNodes,
       undoHistory,
       redoHistory,
-      closeCurrentWorkflow,
       handleFitView,
       handleNewWorkflow,
       reactFlow,
@@ -447,8 +458,8 @@ export const useNodeEditorShortcuts = (
   }, [inspectorToggle]);
 
   const handleWorkflowSettingsToggle = useCallback(() => {
-    inspectorToggle("workflow");
-  }, [inspectorToggle]);
+    leftPanelToggle("settings");
+  }, [leftPanelToggle]);
 
   const handleToggleSelectedNodesCollapsed = useCallback(() => {
     const selected = nodeStore.getState().getSelectedNodes();

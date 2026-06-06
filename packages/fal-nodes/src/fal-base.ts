@@ -40,6 +40,19 @@ export async function falSubmit(
   args: Record<string, unknown>,
   onProgress?: (message: string) => void
 ): Promise<Record<string, unknown>> {
+  return (await falSubmitWithMeta(apiKey, endpoint, args, onProgress)).data;
+}
+
+/**
+ * Like {@link falSubmit} but also surfaces the FAL queue `requestId`, used to
+ * look up the request's actual billed cost via the billing-events API.
+ */
+export async function falSubmitWithMeta(
+  apiKey: string,
+  endpoint: string,
+  args: Record<string, unknown>,
+  onProgress?: (message: string) => void
+): Promise<{ data: Record<string, unknown>; requestId: string | null }> {
   const client = getClient(apiKey);
   const result = await client.subscribe(endpoint, {
     input: args,
@@ -54,7 +67,10 @@ export async function falSubmit(
         }
       : undefined
   });
-  return (result.data ?? result) as Record<string, unknown>;
+  const data = (result.data ?? result) as Record<string, unknown>;
+  const requestId =
+    (result as { requestId?: string } | undefined)?.requestId ?? null;
+  return { data, requestId };
 }
 
 // ---------------------------------------------------------------------------

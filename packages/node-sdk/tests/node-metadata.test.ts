@@ -31,7 +31,7 @@ describe("getNodeMetadata", () => {
     expect(meta.node_type).toBe("nodetool.test.Add");
     expect(meta.namespace).toBe("nodetool.test");
     expect(meta.is_streaming_output).toBe(false);
-    expect(meta.is_dynamic).toBe(true);
+    expect(meta.supports_dynamic_inputs).toBe(true);
   });
 
   it("extracts properties with defaults", () => {
@@ -58,6 +58,52 @@ describe("getNodeMetadata", () => {
   it("detects streaming output on StreamingCounter", () => {
     const meta = getNodeMetadata(StreamingCounter);
     expect(meta.is_streaming_output).toBe(true);
+  });
+
+  it("includes correlation metadata", () => {
+    class CorrelatedNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.Correlated";
+      static readonly title = "Correlated";
+      static readonly description = "Has correlation metadata";
+      static readonly inputMode = "stream" as const;
+      static readonly outputCorrelation = {
+        output: { kind: "forward", source: "input" }
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(CorrelatedNode);
+    expect(meta.input_mode).toBe("stream");
+    expect(meta.output_correlation).toEqual({
+      output: { kind: "forward", source: "input" }
+    });
+  });
+
+  it("throws on invalid correlation metadata", () => {
+    class BadAggregateNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.BadAggregate";
+      static readonly title = "Bad Aggregate";
+      static readonly description = "Aggregate on a buffered node — rejected";
+      static readonly inputMode = "buffered" as const;
+      static readonly outputCorrelation = {
+        output: {
+          kind: "aggregate",
+          source: "input",
+          collapse: "innermost"
+        }
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    expect(() => getNodeMetadata(BadAggregateNode)).toThrow(
+      /aggregate output .* is not allowed on buffered nodes/
+    );
   });
 
   it("infers string types from defaults", () => {
@@ -207,9 +253,9 @@ describe("getNodeMetadata — additional coverage", () => {
     expect(configProp!.default).toEqual({ key: "value" });
   });
 
-  // ── is_dynamic defaults to false when node classes do not opt in ───────
+  // ── supports_dynamic_inputs defaults to false when node classes do not opt in ───────
 
-  it("is_dynamic is false for non-dynamic node types", () => {
+  it("supports_dynamic_inputs is false for non-dynamic node types", () => {
     const nodeClasses = [
       Passthrough,
       StreamingCounter,
@@ -219,7 +265,7 @@ describe("getNodeMetadata — additional coverage", () => {
     ];
     for (const cls of nodeClasses) {
       const meta = getNodeMetadata(cls);
-      expect(meta.is_dynamic).toBe(false);
+      expect(meta.supports_dynamic_inputs).toBe(false);
     }
   });
 
@@ -595,9 +641,8 @@ describe("getNodeMetadata – decorator-based properties", () => {
           stream: true
         }
       ],
-      is_dynamic: true,
+      supports_dynamic_inputs: true,
       is_streaming_output: true,
-      expose_as_tool: true,
       supports_dynamic_outputs: true,
       recommended_models: [{ id: "model-1" }],
       model_packs: [{ id: "pack-1" }]
@@ -617,6 +662,28 @@ describe("getNodeMetadata – decorator-based properties", () => {
     // Python-only optional fields are backfilled
     expect(meta.layout).toBe("default");
     expect(meta.model_packs).toEqual([{ id: "pack-1" }]);
+  });
+
+  it("backfills a Python `body` opt-in when the TS class does not set one", () => {
+    // `Add` does not declare `body`, so getNodeMetadata emits the "default"
+    // sentinel. That sentinel must not clobber a Python `body: content_card`.
+    const pythonMetadata: NodeMetadata = {
+      title: "Python Title",
+      description: "Python description",
+      namespace: "nodetool.test",
+      node_type: "nodetool.test.Add",
+      layout: "default",
+      body: "content_card",
+      properties: [],
+      outputs: []
+    };
+
+    const meta = getNodeMetadata(Add, {
+      pythonMetadata,
+      mergePythonBackfill: true
+    });
+
+    expect(meta.body).toBe("content_card");
   });
 });
 
@@ -671,5 +738,46 @@ describe("getNodeMetadata – outputTypes support", () => {
     expect(meta.outputs).toHaveLength(1);
     expect(meta.outputs[0].stream).toBeUndefined();
     expect(meta.is_streaming_output).toBe(true);
+  });
+
+  it("auto-derives is_streaming_output when genProcess is overridden", () => {
+    class AutoStreamingNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.AutoStreaming";
+      static readonly title = "Auto Streaming";
+      static readonly description = "";
+      static readonly outputTypes = { value: "int" };
+
+      async process() {
+        return {};
+      }
+
+      async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+        yield { value: 1 };
+        yield { value: 2 };
+      }
+    }
+
+    const meta = getNodeMetadata(
+      AutoStreamingNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.is_streaming_output).toBe(true);
+  });
+
+  it("leaves is_streaming_output false when neither flag nor genProcess override is set", () => {
+    class NonStreamingNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.NonStreaming";
+      static readonly title = "Non Streaming";
+      static readonly description = "";
+      static readonly outputTypes = { value: "int" };
+
+      async process() {
+        return { value: 1 };
+      }
+    }
+
+    const meta = getNodeMetadata(
+      NonStreamingNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.is_streaming_output).toBe(false);
   });
 });

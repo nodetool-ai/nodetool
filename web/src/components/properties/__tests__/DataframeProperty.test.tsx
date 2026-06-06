@@ -93,7 +93,7 @@ jest.mock("@mui/material/styles", () => ({
     },
     fontFamily1: "Arial",
     fontFamily2: "Arial",
-    fontSizeTiny: "11px",
+    fontSizeTiny: "var(--fontSizeSmaller)",
     fontSizeNormal: "14px",
     fontSizeSmall: "12px",
     spacing: (value: number) => `${value * 8}px`

@@ -30,7 +30,7 @@ type SurroundWithGroupOptions = {
  * surroundWithGroup({ selectedNodes: selectedNodesArray });
  * ```
  */
-export const useSurroundWithGroup = () => {
+export const useSurroundWithGroup = (): ((options: SurroundWithGroupOptions) => void) => {
   const theme = useTheme();
   const { createNode, setNodes } = useNodes((state) => ({
     createNode: state.createNode,

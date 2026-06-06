@@ -33,6 +33,21 @@ import {
  * loading/fetching/error state so pages can render incremental results safely.
  */
 
+export interface ModelsByProviderResult<T> {
+  models: T[];
+  providers: string[];
+  isLoading: boolean;
+  isFetching: boolean;
+  error: Error | null | undefined;
+  refetch: () => Promise<void>;
+}
+
+export interface LanguageModelsByProviderResult extends ModelsByProviderResult<LanguageModel> {
+  providerErrors: Array<{ provider: string; error: unknown }>;
+  loadingProgress: { total: number; loaded: number; loading: number };
+  allowedProviders: string[] | undefined;
+}
+
 /**
  * Hook to fetch language models from all providers that support language models.
  * Queries each provider in parallel for better performance.
@@ -45,7 +60,7 @@ export const useLanguageModelsByProvider = (options?: {
    * to support tools — matches the BaseProvider default).
    */
   requireToolSupport?: boolean;
-}) => {
+}): LanguageModelsByProviderResult => {
   const { providers: allProviders, isLoading: providersLoading } =
     useLanguageModelProviders();
 
@@ -78,13 +93,14 @@ export const useLanguageModelsByProvider = (options?: {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const aggregatedLanguageModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
-
-  const allModels = options?.requireToolSupport
-    ? aggregatedLanguageModels.filter((m) => m.supports_tools !== false)
-    : aggregatedLanguageModels;
+  const allModels = useMemo(() => {
+    const aggregated = queries
+      .filter((q) => q.data)
+      .flatMap((q) => q.data!.models);
+    return options?.requireToolSupport
+      ? aggregated.filter((m) => m.supports_tools !== false)
+      : aggregated;
+  }, [queries, options?.requireToolSupport]);
 
   // Track per-provider errors for debugging feedback
   const providerErrors = useMemo(() => {
@@ -115,9 +131,14 @@ export const useLanguageModelsByProvider = (options?: {
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,
@@ -132,7 +153,50 @@ export const useLanguageModelsByProvider = (options?: {
  * Hook to fetch image models from all providers that support image generation.
  * Queries each provider in parallel for better performance.
  */
-export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "image_to_image" }) => {
+export type ImageModelTask =
+  | "text_to_image"
+  | "image_to_image"
+  | "upscale"
+  | "remove_background"
+  | "relight"
+  | "vectorize";
+
+export type VideoModelTask =
+  | "text_to_video"
+  | "image_to_video"
+  | "video_to_video"
+  | "lip_sync";
+
+/**
+ * Specialized editing tasks. These are reliably detectable and mutually
+ * exclusive, so filtering is strict: only models that explicitly declare the
+ * task qualify. A model with no tasks never matches a specialized picker.
+ */
+const STRICT_MODEL_TASKS = new Set<string>([
+  "upscale",
+  "remove_background",
+  "relight",
+  "vectorize",
+  "video_to_video",
+  "lip_sync"
+]);
+
+const modelMatchesTask = (
+  supportedTasks: string[] | null | undefined,
+  task: string
+): boolean => {
+  const has = (supportedTasks?.length ?? 0) > 0;
+  if (STRICT_MODEL_TASKS.has(task)) {
+    return has && supportedTasks!.includes(task);
+  }
+  // Generation tasks (text_to_*/image_to_*): FAL/Replicate generators are
+  // tagged with both, so they filter strictly. The untagged-passes branch is a
+  // fallback only for providers that emit no tasks (e.g. HuggingFace models
+  // without a pipeline tag), so they don't vanish from the generation pickers.
+  return !has || supportedTasks!.includes(task);
+};
+
+export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): ModelsByProviderResult<ImageModel> => {
   const { providers, isLoading: providersLoading, error: providersError } = useImageModelProviders();
 
   const queries = useQueries({
@@ -164,17 +228,15 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
   const isFetching = queries.some((q) => q.isFetching);
   const error = providersError || queries.find((q) => q.error)?.error;
 
-  let allModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
-
-  // Filter by supported task if requested. Include models with unknown supported_tasks for compatibility.
-  if (opts?.task) {
-    const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
-  }
-
-  // Debug logging removed
+  const task = opts?.task;
+  const allModels = useMemo(() => {
+    const aggregated = queries
+      .filter((q) => q.data)
+      .flatMap((q) => q.data!.models);
+    return task
+      ? aggregated.filter((m) => modelMatchesTask(m.supported_tasks, task))
+      : aggregated;
+  }, [queries, task]);
 
   const refetch = useMemo(
     () => async () => {
@@ -183,9 +245,14 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,
@@ -197,7 +264,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
  * Hook to fetch TTS models from all providers that support text-to-speech.
  * Queries each provider in parallel for better performance.
  */
-export const useTTSModelsByProvider = () => {
+export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
   const { providers, isLoading: providersLoading } = useTTSProviders();
 
   const queries = useQueries({
@@ -221,9 +288,10 @@ export const useTTSModelsByProvider = () => {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const allModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
+  const allModels = useMemo(
+    () => queries.filter((q) => q.data).flatMap((q) => q.data!.models),
+    [queries]
+  );
 
   const refetch = useMemo(
     () => async () => {
@@ -232,9 +300,14 @@ export const useTTSModelsByProvider = () => {
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,
@@ -246,7 +319,7 @@ export const useTTSModelsByProvider = () => {
  * Hook to fetch ASR models from all providers that support automatic speech recognition.
  * Queries each provider in parallel for better performance.
  */
-export const useASRModelsByProvider = () => {
+export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
   const { providers, isLoading: providersLoading } = useASRProviders();
 
   const queries = useQueries({
@@ -270,9 +343,10 @@ export const useASRModelsByProvider = () => {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const allModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
+  const allModels = useMemo(
+    () => queries.filter((q) => q.data).flatMap((q) => q.data!.models),
+    [queries]
+  );
 
   const refetch = useMemo(
     () => async () => {
@@ -281,9 +355,14 @@ export const useASRModelsByProvider = () => {
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,
@@ -295,7 +374,7 @@ export const useASRModelsByProvider = () => {
  * Hook to fetch video models from all providers that support video generation.
  * Queries each provider in parallel for better performance.
  */
-export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "image_to_video" }) => {
+export const useVideoModelsByProvider = (opts?: { task?: VideoModelTask }): ModelsByProviderResult<VideoModel> => {
   const { providers, isLoading: providersLoading } = useVideoProviders();
 
   const queries = useQueries({
@@ -319,14 +398,15 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  let allModels = queries
-    .filter((q) => q.data)
-    .flatMap((q) => q.data!.models);
-
-  if (opts?.task) {
-    const task = opts.task;
-    allModels = allModels.filter((m) => !m.supported_tasks || m.supported_tasks.length === 0 || m.supported_tasks.includes(task));
-  }
+  const videoTask = opts?.task;
+  const allModels = useMemo(() => {
+    const aggregated = queries
+      .filter((q) => q.data)
+      .flatMap((q) => q.data!.models);
+    return videoTask
+      ? aggregated.filter((m) => modelMatchesTask(m.supported_tasks, videoTask))
+      : aggregated;
+  }, [queries, videoTask]);
 
   const refetch = useMemo(
     () => async () => {
@@ -335,9 +415,14 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
     [queries]
   );
 
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
   return {
     models: allModels || [],
-    providers: providers.map((p) => p.provider),
+    providers: providerNames,
     isLoading,
     isFetching,
     error,
@@ -351,9 +436,9 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
  * we fall back to the generic image models filtered by provider.
  */
 export const useHuggingFaceImageModelsByProvider = (opts?: {
-  task?: "text_to_image" | "image_to_image";
+  task?: ImageModelTask;
   modelType?: string;
-}) => {
+}): ModelsByProviderResult<ImageModel> => {
   const baseData = useImageModelsByProvider(opts?.task ? { task: opts.task } : undefined);
 
   const query = useQuery({
@@ -408,7 +493,7 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
 
 const fetchHfModelsByType = async (
   modelType: string,
-  _task?: "text_to_image" | "image_to_image"
+  _task?: ImageModelTask
 ): Promise<UnifiedModel[]> => {
   const normalizedType = modelType.startsWith("hf.") ? modelType : `hf.${modelType}`;
   return trpc.models.huggingfaceByType.query({ model_type: normalizedType }) as Promise<UnifiedModel[]>;
@@ -440,7 +525,7 @@ const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {
  */
 export const useTransformersJsModelsByType = (opts?: {
   modelType?: string;
-}) => {
+}): ModelsByProviderResult<ImageModel> => {
   const query = useQuery({
     queryKey: ["tjs-models", opts?.modelType ?? "none"],
     enabled: !!opts?.modelType,
@@ -456,13 +541,20 @@ export const useTransformersJsModelsByType = (opts?: {
     refetchOnMount: "always"
   });
 
+  const refetch = useMemo(
+    () => async () => {
+      await query.refetch();
+    },
+    [query]
+  );
+
   return {
     models: query.data ?? [],
     providers: ["transformers_js"],
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     error: query.error,
-    refetch: query.refetch
+    refetch
   };
 };
 

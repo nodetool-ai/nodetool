@@ -1,5 +1,5 @@
 import React, { memo, useRef, useState } from "react";
-import { Box, Slider } from "@mui/material";
+import { Slider } from "@mui/material";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CropIcon from "@mui/icons-material/Crop";
@@ -20,9 +20,11 @@ import { SelectSettings, SelectToolMode } from "../types";
 import {
   Divider,
   EditorButton,
+  FlexRow,
   Text,
   ToolbarIconButton,
-  Tooltip
+  Tooltip,
+  Box
 } from "../../ui_primitives";
 import { RefineSelectionPopover } from "./refine-selection";
 import { useSketchStore } from "../state";
@@ -142,22 +144,20 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         </>
       ) : null}
 
-      <Box
+      <FlexRow
+        align="center"
+        wrap
+        gap={0.5}
+        fullWidth
         sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 0.5,
-          rowGap: 0.75,
-          width: "100%"
+          rowGap: 1
         }}
       >
-        <Box
+        <FlexRow
+          align="center"
+          wrap
+          gap={1}
           sx={{
-            display: "flex",
-            gap: 1,
-            flexWrap: "wrap",
-            alignItems: "center",
             flex: 1,
             minWidth: 0
           }}
@@ -230,13 +230,12 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
               </ToolbarIconButton>
             </span>
           </Tooltip>
-        </Box>
+        </FlexRow>
         {onCropCanvasToSelection ? (
-          <Box
+          <FlexRow
+            align="center"
+            gap={0.75}
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.75,
               flexShrink: 0,
               ml: "auto"
             }}
@@ -263,9 +262,9 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                 </ToolbarIconButton>
               </span>
             </Tooltip>
-          </Box>
+          </FlexRow>
         ) : null}
-      </Box>
+      </FlexRow>
 
       <RefineSelectionPopover
         open={refineOpen}

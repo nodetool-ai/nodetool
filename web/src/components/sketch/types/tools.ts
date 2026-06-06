@@ -293,9 +293,6 @@ export function mergePenPressureIntoPencil(
 /** Brush: same stamp as Brush tool (`drawBrushStroke`). Pencil: same as Pencil tool (`drawPencilStroke`). */
 export type EraserMode = "brush" | "pencil";
 
-/** @deprecated Use `EraserMode`; kept for document migration only. */
-export type EraserTip = EraserMode;
-
 export interface EraserSettings {
   size: number;
   opacity: number;
@@ -347,8 +344,8 @@ export type SegmentPromptMode = "point" | "box" | "auto";
 /** Backend used for segmentation inference. */
 export type SegmentBackend = "fal" | "local-sam3";
 
-export const DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE = 32;
-export const DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH = 0.88;
+const DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE = 32;
+const DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH = 0.88;
 
 export function normalizeSegmentBackend(value: unknown): SegmentBackend {
   if (value === "local-sam3" || value === "fal") {

@@ -1,11 +1,10 @@
-import type { Chunk } from "@nodetool-ai/protocol";
+import type { Chunk, ProviderId } from "@nodetool-ai/protocol";
 
-export type ProviderId =
-  | "openai"
-  | "anthropic"
-  | "ollama"
-  | "llama_cpp"
-  | string;
+// Provider identifiers are owned by @nodetool-ai/protocol (the base dependency
+// for the whole monorepo). Re-exported here so existing runtime importers keep
+// resolving `ProviderId`/`PROVIDER_IDS` from `./types.js`.
+export { PROVIDER_IDS } from "@nodetool-ai/protocol";
+export type { ProviderId };
 
 export interface LanguageModel {
   id: string;
@@ -25,6 +24,14 @@ export interface VideoModel {
   name: string;
   provider: ProviderId;
   supportedTasks?: string[];
+  /**
+   * Per-model option constraints derived from the provider manifest's enum
+   * fields. When present the composer offers only these values (e.g. a model
+   * that only supports 5s/10s clips), avoiding 422s from unsupported params.
+   */
+  durations?: number[];
+  resolutions?: string[];
+  aspectRatios?: string[];
 }
 
 export interface TTSModel {
@@ -143,6 +150,41 @@ export interface ImageToImageParams {
   scheduler?: string | null;
 }
 
+/**
+ * Increase the resolution / detail of an image. Some upscalers (e.g. Clarity,
+ * Magic Refiner) accept a guiding `prompt` and `creativity` to hallucinate
+ * detail; pure ESRGAN-style models ignore them.
+ */
+export interface UpscaleImageParams {
+  model: ImageModel;
+  /** Target magnification factor, e.g. 2 or 4. */
+  scale?: number | null;
+  prompt?: string | null;
+  /** 0–1 hint for how much new detail the model may invent. */
+  creativity?: number | null;
+  seed?: number | null;
+}
+
+/** Remove the background from an image, returning an image with alpha. */
+export interface RemoveBackgroundParams {
+  model: ImageModel;
+}
+
+/**
+ * Re-light a subject according to a text prompt and/or a background reference.
+ */
+export interface RelightImageParams {
+  model: ImageModel;
+  prompt?: string | null;
+  negativePrompt?: string | null;
+  seed?: number | null;
+}
+
+/** Convert a raster image into a vector (SVG) representation. */
+export interface VectorizeImageParams {
+  model: ImageModel;
+}
+
 export interface TextToVideoParams {
   model: VideoModel;
   prompt: string;
@@ -168,6 +210,33 @@ export interface ImageToVideoParams {
   resolution?: string | null;
   guidanceScale?: number | null;
   numInferenceSteps?: number | null;
+  seed?: number | null;
+}
+
+/**
+ * Transform an existing video into a restyled / edited video, guided by a
+ * prompt (e.g. style transfer, motion restyle). Mirrors `ImageToImageParams`
+ * for the video domain.
+ */
+export interface VideoToVideoParams {
+  model: VideoModel;
+  prompt?: string | null;
+  negativePrompt?: string | null;
+  strength?: number | null;
+  durationSeconds?: number | null;
+  resolution?: string | null;
+  seed?: number | null;
+}
+
+/**
+ * Drive a face in a video (or still image) to match speech in an audio track.
+ * The primary visual is passed positionally to `lipSync`; the `audio` bytes
+ * ride along in the params.
+ */
+export interface LipSyncParams {
+  model: VideoModel;
+  /** Encoded audio bytes (e.g. WAV/MP3) the mouth motion should follow. */
+  audio: Uint8Array;
   seed?: number | null;
 }
 

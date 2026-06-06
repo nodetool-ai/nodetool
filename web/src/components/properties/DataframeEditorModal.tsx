@@ -102,9 +102,9 @@ const styles = (theme: Theme) =>
       zIndex: 5,
       h4: {
         cursor: "default",
-        fontWeight: "700",
+        fontWeight: 600,
         margin: "0",
-        fontSize: "1.1rem",
+        fontSize: "var(--fontSizeBig)",
         letterSpacing: "-0.01em",
         color: theme.vars.palette.text.primary,
         background: `linear-gradient(to right, ${theme.vars.palette.text.primary}, ${theme.vars.palette.grey[400]})`,
@@ -122,7 +122,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     },
     ".description": {
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.grey[400],
       lineHeight: 1.4,
       maxWidth: "600px",
@@ -219,14 +219,14 @@ const styles = (theme: Theme) =>
         width: "auto",
         minWidth: "120px",
         flexGrow: 1,
-        fontSize: "0.8rem",
+        fontSize: "var(--fontSizeSmall)",
         color: theme.vars.palette.grey[400]
       },
       "& .label-datatype": {
         width: "auto",
         minWidth: "80px",
         flexGrow: 0,
-        fontSize: "0.8rem",
+        fontSize: "var(--fontSizeSmall)",
         color: theme.vars.palette.grey[400]
       },
       "& .column": {
@@ -242,7 +242,7 @@ const styles = (theme: Theme) =>
         height: "2.25em"
       },
       "& .item-name .textfield input": {
-        fontSize: "0.85rem",
+        fontSize: "var(--fontSizeNormal)",
         padding: "0.35em 0.5em"
       },
       "& .item-datatype": {
@@ -254,7 +254,7 @@ const styles = (theme: Theme) =>
         minWidth: "75px"
       },
       "& .item-datatype .select .MuiSelect-select": {
-        fontSize: "0.85rem",
+        fontSize: "var(--fontSizeNormal)",
         padding: "0.35em 0.5em",
         height: "auto",
         minHeight: "1.5em"
@@ -262,7 +262,7 @@ const styles = (theme: Theme) =>
       "& .delete-button": {
         padding: "0.25em",
         "& svg": {
-          fontSize: "1rem"
+          fontSize: "var(--fontSizeNormal)"
         }
       }
     },
@@ -291,7 +291,7 @@ const styles = (theme: Theme) =>
         height: "1.5em"
       },
       "& .table-actions button svg": {
-        fontSize: "1rem"
+        fontSize: "var(--fontSizeNormal)"
       },
       // Softer row contrast - less difference between odd/even
       "& .tabulator-row": {
@@ -313,7 +313,7 @@ const styles = (theme: Theme) =>
       },
       "& .MuiInputBase-root": {
         height: "2.25em",
-        fontSize: "0.85rem",
+        fontSize: "var(--fontSizeNormal)",
         backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`,
         borderRadius: "var(--rounded-md)"
       },
@@ -324,7 +324,7 @@ const styles = (theme: Theme) =>
         marginRight: "0.25em"
       },
       "& svg": {
-        fontSize: "1rem",
+        fontSize: "var(--fontSizeNormal)",
         color: theme.vars.palette.grey[500]
       }
     },
@@ -333,7 +333,7 @@ const styles = (theme: Theme) =>
       marginBottom: "0.75em"
     },
     ".add-column-group button": {
-      fontSize: "0.9rem",
+      fontSize: "var(--fontSizeNormal)",
       fontFamily: theme.fontFamily2,
       fontWeight: 500,
       wordSpacing: "-0.1em",
@@ -353,7 +353,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".add-column-group button svg": {
-      fontSize: "1rem",
+      fontSize: "var(--fontSizeNormal)",
       marginRight: "0.35em"
     },
     ".resize-handle": {
@@ -395,7 +395,7 @@ const styles = (theme: Theme) =>
       },
       ".description": {
         display: "block",
-        fontSize: "0.75rem"
+        fontSize: "var(--fontSizeSmall)"
       },
       ".button": {
         minWidth: "36px",
@@ -551,6 +551,7 @@ const DataframeEditorModal = ({
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   <button
+                    type="button"
                     className="button"
                     onClick={toggleFullscreen}
                     aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
@@ -563,6 +564,7 @@ const DataframeEditorModal = ({
                   title="Close Editor | Esc"
                 >
                   <button
+                    type="button"
                     className="button button-close"
                     onClick={onClose}
                     aria-label="Close Editor"

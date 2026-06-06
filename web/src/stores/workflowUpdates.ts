@@ -9,13 +9,13 @@ import {
   ToolResultUpdate,
   PlanningUpdate,
   OutputUpdate,
-  PreviewUpdate,
   EdgeUpdate,
   LogUpdate,
   StepResult,
   Message,
   Chunk
 } from "./ApiTypes";
+import useWorkflowRunsStore, { RunState } from "./WorkflowRunsStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
@@ -28,12 +28,35 @@ import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPE
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
-import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
 
 export type { NodeStore };
+
+/**
+ * Map a JobUpdate status string to the RunState enum used by WorkflowRunsStore.
+ * Returns undefined for statuses that have no meaningful RunState equivalent.
+ */
+const mapJobStatusToRunState = (status: string): RunState | undefined => {
+  switch (status) {
+    case "queued":
+      return "queued";
+    case "running":
+    case "suspended":
+    case "paused":
+      return "running";
+    case "completed":
+      return "completed";
+    case "failed":
+    case "timed_out":
+      return "error";
+    case "cancelled":
+      return "cancelled";
+    default:
+      return undefined;
+  }
+};
 
 type WorkflowSubscription = {
   workflowId: string;
@@ -87,15 +110,6 @@ export const mergeNodeUpdateProperties = ({
   };
 };
 
-const formatJobDurationSeconds = (
-  duration: number | null | undefined
-): string | null => {
-  if (typeof duration !== "number" || !Number.isFinite(duration)) {
-    return null;
-  }
-  return duration.toLocaleString(undefined, { maximumFractionDigits: 2 });
-};
-
 // Module-level getter for NodeStore, set by WorkflowManagerStore during initialization
 let getNodeStoreImpl: (workflowId: string) => NodeStore | undefined = () =>
   undefined;
@@ -109,6 +123,7 @@ export const setGetNodeStore = (
 export const getNodeStore = (workflowId: string): NodeStore | undefined => {
   return getNodeStoreImpl(workflowId);
 };
+
 
 export const subscribeToWorkflowUpdates = (
   workflowId: string,
@@ -211,18 +226,8 @@ export type MsgpackData =
   | PlanningUpdate
   | OutputUpdate
   | StepResult
-  | PreviewUpdate
   | EdgeUpdate
   | Notification;
-
-interface JobRunState {
-  status: string;
-  suspended_node_id?: string;
-  suspension_reason?: string;
-  error_message?: string;
-  execution_strategy?: string;
-  is_resumable?: boolean;
-}
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,
@@ -232,123 +237,131 @@ export const handleUpdate = (
 ) => {
   const runner = runnerStore.getState();
   const setResult = useResultsStore.getState().setResult;
+  const setProviderCost = useResultsStore.getState().setProviderCost;
   const setOutputResult = useResultsStore.getState().setOutputResult;
-  const clearOutputResults = useResultsStore.getState().clearOutputResults;
   const setStatus = useStatusStore.getState().setStatus;
   const getStatus = useStatusStore.getState().getStatus;
-  const clearStatuses = useStatusStore.getState().clearStatuses;
   const appendLog = useLogsStore.getState().appendLog;
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
-  const clearProgress = useResultsStore.getState().clearProgress;
   const addChunk = useResultsStore.getState().addChunk;
-  const setPreview = useResultsStore.getState().setPreview;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
   const setEdge = useResultsStore.getState().setEdge;
-  const clearEdges = useResultsStore.getState().clearEdges;
   const addNotification = useNotificationStore.getState().addNotification;
   const startExecution = useExecutionTimeStore.getState().startExecution;
   const endExecution = useExecutionTimeStore.getState().endExecution;
-  const clearTimings = useExecutionTimeStore.getState().clearTimings;
-  const addToHistory = useNodeResultHistoryStore.getState().addToHistory;
 
 
   if (data.type === "log_update") {
-    const logUpdate = data as LogUpdate;
     appendLog({
       workflowId: workflow.id,
       workflowName: workflow.name,
-      nodeId: logUpdate.node_id,
-      nodeName: logUpdate.node_name,
-      content: logUpdate.content,
-      severity: logUpdate.severity,
+      nodeId: data.node_id,
+      nodeName: data.node_name,
+      content: data.content,
+      severity: data.severity,
       timestamp: Date.now()
     });
   }
 
   if (data.type === "notification") {
-    const notification = data as Notification;
     addNotification({
-      type: notification.severity,
-      content: notification.content
+      type: data.severity,
+      content: data.content
     });
   }
 
+  // Per-node results/progress/edges are scoped by the run (job) that produced
+  // them so concurrent same-workflow runs stay isolated. The backend stamps
+  // job_id on every data message; if it's absent, skip the per-job write rather
+  // than writing a malformed key.
+  const messageJobId =
+    (data as { job_id?: string | null }).job_id ?? undefined;
+
   if (data.type === "edge_update") {
-    const edgeUpdate = data as EdgeUpdate;
-    // Don't update edges if workflow is cancelled or in error state
     const currentState = runnerStore.getState().state;
-    if (currentState !== "cancelled" && currentState !== "error") {
+    if (
+      currentState !== "cancelled" &&
+      currentState !== "error" &&
+      messageJobId
+    ) {
       setEdge(
         workflow.id,
-        edgeUpdate.edge_id,
-        edgeUpdate.status,
-        edgeUpdate.counter ?? undefined
+        messageJobId,
+        data.edge_id,
+        data.status,
+        data.counter ?? undefined
       );
     }
   }
 
   if (data.type === "planning_update") {
-    const planningUpdate = data as PlanningUpdate;
-    if (planningUpdate.node_id) {
-      setPlanningUpdate(workflow.id, planningUpdate.node_id, planningUpdate);
-    } else {
+    if (data.node_id && messageJobId) {
+      setPlanningUpdate(workflow.id, messageJobId, data.node_id, data);
+    } else if (!data.node_id) {
       console.error("PlanningUpdate has no node_id");
     }
   }
   if (data.type === "tool_call_update") {
-    const toolCall = data as ToolCallUpdate;
-    if (toolCall.node_id) {
-      setToolCall(workflow.id, toolCall.node_id, toolCall);
+    if (data.node_id && messageJobId) {
+      setToolCall(workflow.id, messageJobId, data.node_id, data);
     }
-    // Note: Chat-related ToolCallUpdates don't have node_id - this is expected.
-    // They are handled separately in chatProtocol.ts.
   }
 
   if (data.type === "tool_result_update") {
-    const toolResult = data as ToolResultUpdate;
-    if (toolResult.node_id) {
-      setOutputResult(workflow.id, toolResult.node_id, toolResult.result, true);
-
-      // Add to history for display in ResultOverlay
-      addToHistory(workflow.id, toolResult.node_id, {
-        result: toolResult.result,
-        timestamp: Date.now(),
-        jobId: runner.job_id,
-        status: "completed"
-      });
+    if (data.node_id && messageJobId) {
+      setOutputResult(workflow.id, messageJobId, data.node_id, data.result, true);
     }
   }
 
   if (data.type === "task_update") {
-    const task = data as TaskUpdate;
-    if (task.node_id) {
-      setTask(workflow.id, task.node_id, task.task);
-    } else {
+    if (data.node_id && messageJobId) {
+      setTask(workflow.id, messageJobId, data.node_id, data.task);
+    } else if (!data.node_id) {
       console.error("TaskUpdate has no node_id");
     }
   }
 
   if (data.type === "output_update") {
-    const update = data as OutputUpdate;
-    const normalizedValue = normalizeOutputUpdateValue(update);
-    setOutputResult(workflow.id, update.node_id, normalizedValue, true);
-
-    // Add each streaming output to history for display in ResultOverlay
-    addToHistory(workflow.id, update.node_id, {
-      result: normalizedValue,
-      timestamp: Date.now(),
-      jobId: runner.job_id,
-      status: "completed"
-    });
+    const normalizedValue = normalizeOutputUpdateValue(data);
+    // eslint-disable-next-line no-console
+    console.log(
+      "[debug:gen] output_update",
+      {
+        nodeId: data.node_id,
+        outputName: data.output_name,
+        outputType: data.output_type,
+        valueIsArray: Array.isArray(data.value),
+        normalizedIsArray: Array.isArray(normalizedValue),
+        normalizedPreview:
+          typeof normalizedValue === "object" && normalizedValue !== null
+            ? Object.keys(normalizedValue as Record<string, unknown>)
+            : typeof normalizedValue
+      }
+    );
+    if (messageJobId) {
+      setOutputResult(workflow.id, messageJobId, data.node_id, normalizedValue, true);
+    }
+    // eslint-disable-next-line no-console
+    console.log(
+      "[debug:gen] outputResults after append",
+      {
+        nodeId: data.node_id,
+        accumulated: messageJobId
+          ? useResultsStore
+              .getState()
+              .getOutputResult(workflow.id, messageJobId, data.node_id)
+          : undefined
+      }
+    );
 
     appendLog({
       workflowId: workflow.id,
       workflowName: workflow.name,
-      nodeId: update.node_id,
-      nodeName: update.node_name,
+      nodeId: data.node_id,
+      nodeName: data.node_name,
       content: `Output: ${typeof normalizedValue === "string"
           ? normalizedValue
           : JSON.stringify(normalizedValue)
@@ -359,14 +372,30 @@ export const handleUpdate = (
   }
 
   if (data.type === "chunk") {
-    const chunk = data as Chunk;
-    if (chunk.node_id && chunk.content) {
-      addChunk(workflow.id, chunk.node_id, chunk.content);
+    if (data.node_id && data.content && messageJobId) {
+      addChunk(workflow.id, messageJobId, data.node_id, data.content);
     }
   }
   if (data.type === "job_update") {
-    const job = data as JobUpdate;
-    const runState = (job as JobUpdate & { run_state?: JobRunState }).run_state;
+    const job = data;
+    const runnerJobId = runnerStore.getState().job_id;
+    // The per-workflow runner represents the single full run. Concurrent
+    // inline/per-node jobs share this workflow_id but have their own job_id, so
+    // only updates for the runner's OWN job (or a fresh run when the runner is
+    // idle and hasn't claimed a job yet) may drive its state/job_id/queue.
+    // Otherwise an inline job's update could hijack the Stop button's target or
+    // clear the full run's queued position. The running-job COUNT below still
+    // tracks every job.
+    const runnerState = runnerStore.getState().state;
+    const isRunnerJob =
+      !job.job_id ||
+      job.job_id === runnerJobId ||
+      (runnerJobId === null &&
+        (runnerState === "idle" || runnerState === "connecting"));
+
+    // Whether this run was sitting in the backend's concurrency queue, so we
+    // can clear the "Queued…" status once it actually starts running.
+    const wasQueued = runnerStore.getState().queuePosition !== null;
 
     // Consolidate state mapping
     let newState:
@@ -399,23 +428,58 @@ export const handleUpdate = (
       newState = "error";
     }
 
-    if (newState) {
-      runnerStore.setState({ state: newState });
-    }
-
+    // Populate the WorkflowRunsStore registry so concurrent runs can be tracked.
     if (job.job_id) {
-      runnerStore.setState({ job_id: job.job_id });
+      const runState = mapJobStatusToRunState(job.status);
+      if (runState) {
+        const runsStore = useWorkflowRunsStore.getState();
+        const known = runsStore
+          .getRuns(workflow.id)
+          .some((r) => r.jobId === job.job_id);
+        if (!known) {
+          runsStore.recordRun({
+            jobId: job.job_id,
+            workflowId: workflow.id,
+            state: runState,
+            startedAt: Date.now(),
+            label: job.job_id
+          });
+        } else {
+          runsStore.updateRunState(workflow.id, job.job_id, runState);
+        }
+      }
     }
 
-    // Use suspension reason from run_state if available
-    if (runState?.suspension_reason && newState === "suspended") {
-      runnerStore.setState({ statusMessage: runState.suspension_reason });
+    if (isRunnerJob) {
+      if (newState) {
+        runnerStore.setState({ state: newState });
+      }
+
+      if (job.job_id) {
+        runnerStore.setState({ job_id: job.job_id });
+      }
+
+      // Track queue position so the UI can show "Queued (#N)". Any
+      // non-queued update (running, completed, …) clears it.
+      runnerStore.setState({
+        queuePosition:
+          job.status === "queued" ? job.queue_position ?? null : null
+      });
     }
 
-    // Invalidate jobs query to refresh the job panel when job state changes
-    // TEMPORARILY DISABLED "running" - testing performance impact of polling
     if (
-      // job.status === "running" ||
+      isRunnerJob &&
+      job.run_state?.suspension_reason &&
+      newState === "suspended"
+    ) {
+      runnerStore.setState({ statusMessage: job.run_state.suspension_reason });
+    }
+
+    // Refresh the Queue panel when a job moves between lifecycle columns.
+    // These are per-job (not per-node) updates, so the frequency is low.
+    if (
+      job.status === "queued" ||
+      job.status === "running" ||
       job.status === "completed" ||
       job.status === "cancelled" ||
       job.status === "failed" ||
@@ -425,20 +489,20 @@ export const handleUpdate = (
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     }
 
+    // Generative nodes auto-save outputs to assets on completion; refresh
+    // the per-node asset cache so history badges/panels update without
+    // waiting for staleTime to elapse.
+    if (job.status === "completed") {
+      queryClient.invalidateQueries({ queryKey: ["assets"] });
+    }
+
     switch (job.status) {
       case "completed": {
-        const formattedDuration = formatJobDurationSeconds(job.duration);
-        runner.addNotification({
-          type: "info",
-          alert: true,
-          content: formattedDuration
-            ? `Job completed in ${formattedDuration} seconds`
-            : "Job completed"
-        });
-        // Note: Don't clear edges on completion - keep the stream item counts visible
-        // Edges are cleared when a new run starts (in WorkflowRunner.ts)
-        clearProgress(workflow.id);
-        clearTimings(workflow.id);
+        // No toast — completion is reflected in the Queue panel/overlay.
+        // Don't clear this run's per-job state (progress/timings/edges): with
+        // per-job keys those clears span the whole workflow and would wipe a
+        // concurrently running sibling. The finished run's slice persists so it
+        // can be focused; a new run auto-focuses its own empty slice.
         break;
       }
       case "cancelled":
@@ -447,34 +511,50 @@ export const handleUpdate = (
           alert: true,
           content: "Job cancelled"
         });
-        clearStatuses(workflow.id);
-        clearEdges(workflow.id);
-        clearProgress(workflow.id);
-        clearOutputResults(workflow.id);
-        clearTimings(workflow.id);
+        // Keep this run's per-job slice (see "completed"): broad clears here
+        // would erase a concurrent sibling.
         break;
       case "failed":
       case "timed_out": {
-        const validationIssues = (
-          job as JobUpdate & {
-            validation_issues?: Array<{
-              node_id: string;
-              property: string;
-              message: string;
-            }> | null;
-          }
-        ).validation_issues;
+        const validationIssues = job.validation_issues;
         if (validationIssues && validationIssues.length > 0) {
           usePropertyValidationStore
             .getState()
             .setIssues(workflow.id, validationIssues);
-          const noun =
-            validationIssues.length === 1 ? "field" : "fields";
+          const firstIssue = validationIssues[0];
+          const nodeStore = getNodeStore(workflow.id);
+          const firstNode = nodeStore
+            ?.getState()
+            .findNode(firstIssue.node_id);
+          const nodeLabel =
+            firstNode?.data?.title?.trim() ||
+            firstNode?.type?.split(".").pop() ||
+            firstIssue.node_id;
+          const noun = validationIssues.length === 1 ? "field" : "fields";
+          const content =
+            validationIssues.length === 1
+              ? firstIssue.property
+                ? `Fix “${firstIssue.property}” on ${nodeLabel} before running.`
+                : `Fix “${nodeLabel}” before running: ${firstIssue.message}`
+              : `Fix ${validationIssues.length} ${noun} before running (starting at ${nodeLabel}).`;
           runner.addNotification({
             type: "error",
             alert: true,
-            content: `Fix ${validationIssues.length} highlighted ${noun} before running.`,
-            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+            content,
+            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED,
+            action: {
+              label: "Show",
+              onClick: () => {
+                const store = getNodeStore(workflow.id);
+                if (!store) return;
+                const { findNode, setSelectedNodes, setShouldFitToScreen } =
+                  store.getState();
+                const target = findNode(firstIssue.node_id);
+                if (!target) return;
+                setSelectedNodes([target]);
+                setShouldFitToScreen(true, [firstIssue.node_id]);
+              }
+            }
           });
         } else {
           runner.addNotification({
@@ -484,25 +564,23 @@ export const handleUpdate = (
             timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
           });
         }
-        clearStatuses(workflow.id);
-        clearEdges(workflow.id);
-        clearProgress(workflow.id);
-        clearOutputResults(workflow.id);
-        clearTimings(workflow.id);
+        // Keep this run's per-job slice (see "completed"): broad clears here
+        // would erase a concurrent sibling.
         break;
       }
       case "queued":
-        runnerStore.setState({
-          statusMessage: "Worker is booting (may take a 15 seconds)..."
-        });
+        if (isRunnerJob) {
+          runnerStore.setState({
+            statusMessage:
+              job.message || "Worker is booting (may take a few seconds)..."
+          });
+        }
         break;
       case "running":
-        if (job.message) {
-          runner.addNotification({
-            type: "info",
-            alert: true,
-            content: job.message
-          });
+        // Clear the "Queued…" status carried over once the run actually starts.
+        // No "started" toast — the Queue panel/overlay shows the running job.
+        if (isRunnerJob && wasQueued) {
+          runnerStore.setState({ statusMessage: null });
         }
         break;
       case "suspended":
@@ -518,48 +596,51 @@ export const handleUpdate = (
   }
 
   if (data.type === "prediction") {
-    const pred = data as Prediction;
     appendLog({
       workflowId: workflow.id,
       workflowName: workflow.name,
-      nodeId: pred.node_id,
+      nodeId: data.node_id,
       nodeName: "",
-      content: pred.logs || "",
+      content: data.logs || "",
       severity: "info",
       timestamp: Date.now()
     });
-    if (pred.status === "booting") {
-      setStatus(workflow.id, pred.node_id, "booting");
+    if (data.status === "booting") {
+      const predictionJobId =
+        (data as { job_id?: string | null }).job_id ?? undefined;
+      if (predictionJobId) {
+        setStatus(workflow.id, predictionJobId, data.node_id, "booting");
+      }
     }
   }
 
   if (data.type === "node_progress") {
-    const progress = data as NodeProgress;
     const currentState = runnerStore.getState().state;
-    // Don't update progress if workflow is cancelled
-    if (currentState !== "cancelled") {
+    if (currentState !== "cancelled" && messageJobId) {
       setProgress(
         workflow.id,
-        progress.node_id,
-        progress.progress,
-        progress.total
+        messageJobId,
+        data.node_id,
+        data.progress,
+        data.total
       );
     }
   }
 
-  if (data.type === "preview_update") {
-    const preview = data as PreviewUpdate;
-    setPreview(workflow.id, preview.node_id, preview.value, true);
-  }
-
   if (data.type === "node_update") {
-    const update = data as NodeUpdate;
+    const update = data;
     const currentState = runnerStore.getState().state;
 
     // Don't update node status if workflow is cancelled
     if (currentState === "cancelled") {
       return;
     }
+
+    // Per-node status/error/timing are scoped by the run that produced them so
+    // concurrent same-workflow runs stay isolated. The backend stamps job_id on
+    // every data message; if it's somehow absent, skip the per-job writes rather
+    // than writing a malformed key.
+    const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
 
     const normalizedNodeError = normalizeNodeError(update.error);
     if (normalizedNodeError) {
@@ -570,9 +651,11 @@ export const handleUpdate = (
         content: String(normalizedNodeError)
       });
       runnerStore.setState({ state: "error" });
-      endExecution(workflow.id, update.node_id);
-      setStatus(workflow.id, update.node_id, update.status);
-      setError(workflow.id, update.node_id, normalizedNodeError);
+      if (jobId) {
+        endExecution(workflow.id, jobId, update.node_id);
+        setStatus(workflow.id, jobId, update.node_id, update.status);
+        setError(workflow.id, jobId, update.node_id, normalizedNodeError);
+      }
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
@@ -587,46 +670,42 @@ export const handleUpdate = (
         statusMessage: `${update.node_name} ${update.status}`
       });
 
-      // Track execution timing
-      const previousStatus = getStatus(workflow.id, update.node_id);
-      const isStarting =
-        update.status === "running" ||
-        update.status === "starting" ||
-        update.status === "booting";
-      const isFinishing =
-        update.status === "completed" || update.status === "error";
+      // Track execution timing (per job)
+      if (jobId) {
+        const previousStatus = getStatus(workflow.id, jobId, update.node_id);
+        const isStarting =
+          update.status === "running" ||
+          update.status === "starting" ||
+          update.status === "booting";
+        const isFinishing =
+          update.status === "completed" || update.status === "error";
 
-      if (
-        isStarting &&
-        previousStatus !== "running" &&
-        previousStatus !== "starting" &&
-        previousStatus !== "booting"
-      ) {
-        startExecution(workflow.id, update.node_id);
-      } else if (isFinishing) {
-        endExecution(workflow.id, update.node_id);
+        if (
+          isStarting &&
+          previousStatus !== "running" &&
+          previousStatus !== "starting" &&
+          previousStatus !== "booting"
+        ) {
+          startExecution(workflow.id, jobId, update.node_id);
+        } else if (isFinishing) {
+          endExecution(workflow.id, jobId, update.node_id);
+        }
+
+        setStatus(workflow.id, jobId, update.node_id, update.status);
       }
 
-      setStatus(workflow.id, update.node_id, update.status);
+      if (update.provider_cost && jobId) {
+        setProviderCost(
+          workflow.id,
+          jobId,
+          update.node_id,
+          update.provider_cost
+        );
+      }
 
       // Store result if present
-      if (update.result) {
-        setResult(workflow.id, update.node_id, update.result);
-
-        // Add to history (persists across runs)
-        // Skip if we've already received streaming outputs via output_update
-        // (those are already added to history individually)
-        const existingOutputResult = useResultsStore
-          .getState()
-          .getOutputResult(workflow.id, update.node_id);
-        if (!existingOutputResult) {
-          addToHistory(workflow.id, update.node_id, {
-            result: update.result,
-            timestamp: Date.now(),
-            jobId: runner.job_id,
-            status: update.status
-          });
-        }
+      if (update.result && jobId) {
+        setResult(workflow.id, jobId, update.node_id, update.result);
       }
     }
 

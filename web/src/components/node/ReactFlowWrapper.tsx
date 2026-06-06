@@ -37,6 +37,7 @@ import {
 } from "../node/DynamicFalSchemaNode";
 import DynamicKieSchemaNode from "../node/DynamicKieSchemaNode/DynamicKieSchemaNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode/KieSchemaLoader";
+import DynamicComfySchemaNode from "../node/DynamicComfySchemaNode/DynamicComfySchemaNode";
 import {
   DynamicReplicateNode,
   DYNAMIC_REPLICATE_NODE_TYPE
@@ -45,6 +46,17 @@ import {
   WorkflowNode,
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
+import { SubgraphNode, SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
+import {
+  GROUP_NODE_TYPE,
+  COMMENT_NODE_TYPE,
+  PREVIEW_NODE_TYPE,
+  REROUTE_NODE_TYPE,
+  STRING_NODE_TYPE,
+  DYNAMIC_COMFY_NODE_TYPE
+} from "../../constants/nodeTypes";
+import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
+import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import ConstantStringNode from "../node/ConstantStringNode";
 import { useDropHandler } from "../../hooks/handlers/useDropHandler";
 import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
@@ -69,6 +81,7 @@ import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import { useReactFlowEvents } from "../../hooks/handlers/useReactFlowEvents";
 import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
@@ -118,6 +131,7 @@ const ReactFlowWrapper = ({
   workflowId,
   active
 }: ReactFlowWrapperProps) => {
+  const workflowManagerStore = useWorkflowManagerStore();
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
   // Combine multiple store subscriptions into a single selector to reduce re-renders
@@ -222,8 +236,13 @@ const ReactFlowWrapper = ({
 
   const { handleMoveEnd, handleOnMoveStart } = useReactFlowEvents();
 
-  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
-  const workflowExistsLocally = workflowId ? !!getNodeStore(workflowId) : false;
+  // Subscribe directly to `nodeStores[workflowId]` so the component re-renders
+  // when an ephemeral store is registered (e.g. a subgraph tab opening).
+  // Selecting `state.getNodeStore` would return a stable function reference
+  // and miss the store-injection event.
+  const workflowExistsLocally = useWorkflowManager((state) =>
+    workflowId ? !!state.nodeStores[workflowId] : false
+  );
 
   const { isLoading, error } = useWorkflow(workflowId, {
     enabled: !workflowExistsLocally
@@ -289,7 +308,11 @@ const ReactFlowWrapper = ({
       // ReactFlow caches handle bounds, so we must signal a refresh whenever
       // the set of handles can change, or new handles stay un-draggable until
       // some other event (e.g. a connection drag) forces a refresh.
-      const exposedPart = (n.data.exposedInputs ?? []).join(",");
+      const exposedPart = [
+        ...(n.data.exposedInputs ?? []),
+        ...(n.data.exposedInputsLabeled ?? []),
+        ...(n.data.exposedInputsHidden ?? [])
+      ].join(",");
       const dynPropsPart = Object.keys(n.data.dynamic_properties ?? {})
         .sort()
         .join(",");
@@ -373,19 +396,21 @@ const ReactFlowWrapper = ({
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
-      "nodetool.workflows.base_node.Group": GroupNode,
-      "nodetool.workflows.base_node.Comment": CommentNode,
-      "nodetool.workflows.base_node.Preview": PreviewNode,
+      [GROUP_NODE_TYPE]: GroupNode,
+      [COMMENT_NODE_TYPE]: CommentNode,
+      [PREVIEW_NODE_TYPE]: PreviewNode,
       "nodetool.workflows.base_node.Output": OutputNode,
       "nodetool.output.Output": OutputNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
-      "nodetool.constant.String": ConstantStringNode,
-      "nodetool.control.Reroute": RerouteNode,
+      [STRING_NODE_TYPE]: ConstantStringNode,
+      [REROUTE_NODE_TYPE]: RerouteNode,
       [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
       "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
+      [DYNAMIC_COMFY_NODE_TYPE]: DynamicComfySchemaNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
+      [SUBGRAPH_NODE_TYPE]: SubgraphNode,
       [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
@@ -400,7 +425,17 @@ const ReactFlowWrapper = ({
     []
   );
 
-  const settings = useSettingsStore((state) => state.settings);
+  const gridSnap = useSettingsStore((state) => state.settings.gridSnap);
+  const connectionSnap = useSettingsStore(
+    (state) => state.settings.connectionSnap
+  );
+  const panControls = useSettingsStore((state) => state.settings.panControls);
+  const selectNodesOnDrag = useSettingsStore(
+    (state) => state.settings.selectNodesOnDrag
+  );
+  const selectionMode = useSettingsStore(
+    (state) => state.settings.selectionMode
+  );
 
   const { onDrop, onDragOver } = useDropHandler();
 
@@ -417,22 +452,6 @@ const ReactFlowWrapper = ({
 
   useEffect(() => {
     if (!pendingNodeType) {
-      setGhostPosition(null);
-      return;
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        cancelPlacement();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [pendingNodeType, cancelPlacement]);
-
-  useEffect(() => {
-    if (!pendingNodeType) {
       if (ghostRafRef.current !== null) {
         cancelAnimationFrame(ghostRafRef.current);
         ghostRafRef.current = null;
@@ -440,6 +459,12 @@ const ReactFlowWrapper = ({
       setGhostPosition(null);
       return;
     }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        cancelPlacement();
+      }
+    };
 
     const handleMouseMove = (event: MouseEvent) => {
       const { clientX, clientY } = event;
@@ -451,26 +476,21 @@ const ReactFlowWrapper = ({
       });
     };
 
+    const previousCursor = document.body.style.cursor;
+    document.body.style.cursor = "crosshair";
+
+    window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("mousemove", handleMouseMove);
     return () => {
+      window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousemove", handleMouseMove);
       if (ghostRafRef.current !== null) {
         cancelAnimationFrame(ghostRafRef.current);
         ghostRafRef.current = null;
       }
-    };
-  }, [pendingNodeType]);
-
-  useEffect(() => {
-    if (!pendingNodeType) {
-      return;
-    }
-    const previousCursor = document.body.style.cursor;
-    document.body.style.cursor = "crosshair";
-    return () => {
       document.body.style.cursor = previousCursor;
     };
-  }, [pendingNodeType]);
+  }, [pendingNodeType, cancelPlacement]);
 
   const { isConnectionValid } = useConnectionEvents();
 
@@ -560,12 +580,19 @@ const ReactFlowWrapper = ({
 
   const edgeStatuses = useResultsStore((state) => state.edges);
   const nodeStatuses = useStatusStore((state) => state.statuses);
+  // Node statuses are keyed per run; the canvas animates edges for the
+  // workflow's focused run. Subscribing here re-runs edge processing when the
+  // focus switches between concurrent runs.
+  const focusedJobId = useWorkflowRunsStore(
+    (state) => state.focusedJob[workflowId]
+  );
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
     dataTypes: DATA_TYPES,
     getMetadata,
     workflowId,
+    focusedJobId,
     edgeStatuses,
     nodeStatuses,
     isSelecting
@@ -665,8 +692,8 @@ const ReactFlowWrapper = ({
   }, [shouldFitToScreen, setShouldFitToScreen]);
 
   const snapGrid = useMemo(
-    () => [settings.gridSnap, settings.gridSnap] as [number, number],
-    [settings.gridSnap]
+    () => [gridSnap, gridSnap] as [number, number],
+    [gridSnap]
   );
 
   const reactFlowClasses = useMemo(() => {
@@ -683,20 +710,23 @@ const ReactFlowWrapper = ({
   const conditionalProps = useMemo(() => {
     const props: { selectionOnDrag?: boolean } = {};
     // fitView disabled — viewport is restored from stored state
-    if (settings.panControls === "RMB") {
+    if (panControls === "RMB") {
       props.selectionOnDrag = true;
     }
     return props;
-  }, [settings.panControls]);
+  }, [panControls]);
 
-  if (isLoading) {
+  // Local stores (subgraph tabs included) bypass the fetch entirely; ignore
+  // any stale loading/error state cached from a previous query for the same
+  // workflowId — those reflect the server fetch which is no longer relevant.
+  if (!workflowExistsLocally && isLoading) {
     return (
       <div className="loading-overlay">
-        <LoadingSpinner /> Loading workflow...
+        <LoadingSpinner /> Loading workflow…
       </div>
     );
   }
-  if (error) {
+  if (!workflowExistsLocally && error) {
     return (
       <div className="loading-overlay">
         <Text color="error">
@@ -735,10 +765,10 @@ const ReactFlowWrapper = ({
         zoomOnScroll={!/Mac|iPhone|iPad/.test(navigator.platform)}
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}
-        connectionRadius={settings.connectionSnap}
+        connectionRadius={connectionSnap}
         isValidConnection={isConnectionValid}
         attributionPosition="bottom-left"
-        selectNodesOnDrag={settings.selectNodesOnDrag}
+        selectNodesOnDrag={selectNodesOnDrag}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDrag={onNodeDrag}
@@ -748,7 +778,7 @@ const ReactFlowWrapper = ({
         onSelectionStart={selectionEvents.handleSelectionStart}
         onSelectionEnd={selectionEvents.handleSelectionEnd}
         onSelectionContextMenu={selectionEvents.handleSelectionContextMenu}
-        selectionMode={settings.selectionMode as SelectionMode}
+        selectionMode={selectionMode as SelectionMode}
         onEdgesChange={onEdgesChange}
         onEdgeContextMenu={onEdgeContextMenu}
         onEdgeClick={onEdgeClick}
@@ -765,6 +795,35 @@ const ReactFlowWrapper = ({
         onNodeContextMenu={handleNodeContextMenu}
         onPaneClick={handlePaneClickWithSuppress}
         onNodeClick={handleNodeClick}
+        onNodeDoubleClick={(_event, node) => {
+          if (node.type !== SUBGRAPH_NODE_TYPE) return;
+          const data = node.data as {
+            workflow_id?: string;
+            title?: string;
+            properties?: { graph?: { nodes?: unknown[]; edges?: unknown[] } };
+          };
+          const innerGraph = data.properties?.graph ?? { nodes: [], edges: [] };
+          const key = useSubgraphTabsStore.getState().openTab({
+            workflowId: data.workflow_id ?? "",
+            nodeId: node.id,
+            label: data.title || "Subgraph",
+            initialGraph: {
+              nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
+              edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
+            }
+          });
+          const tab = useSubgraphTabsStore.getState().getTab(key);
+          if (tab) {
+            // Register the subgraph store synchronously so the upcoming
+            // SubgraphTabContent → ReactFlowWrapper render sees
+            // workflowExistsLocally === true and skips the 404 fetch for
+            // the synthetic id. SubgraphTabContent's useEffect also
+            // re-registers (idempotent) to survive StrictMode double-mount.
+            workflowManagerStore.setState((state) => ({
+              nodeStores: { ...state.nodeStores, [key]: tab.store }
+            }));
+          }
+        }}
         onPaneContextMenu={handlePaneContextMenu}
         onMoveStart={handleOnMoveStart}
         onDoubleClick={handleDoubleClick}
@@ -774,9 +833,9 @@ const ReactFlowWrapper = ({
       >
         <Background
           id={workflowId}
-          gap={100}
-          offset={4}
-          size={8}
+          gap={25}
+          offset={1}
+          size={3}
           color={theme.vars.palette.c_editor_grid_color}
           lineWidth={1}
           style={backgroundStyle}

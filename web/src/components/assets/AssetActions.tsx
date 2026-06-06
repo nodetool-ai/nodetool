@@ -1,46 +1,35 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useEffect, useRef, useState, useCallback, memo, useMemo } from "react";
-import { shallow } from "zustand/shallow";
-import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
+import { useCallback, memo, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import {
   ButtonGroup,
-  Popover,
-  TextField,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Select,
-  MenuItem,
-  Box
+  MenuItem
 } from "@mui/material";
 import { EditorButton } from "../editor_ui";
 
 import useAssets from "../../serverState/useAssets";
-import { useAssetStore } from "../../stores/AssetStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { useNotificationStore } from "../../stores/NotificationStore";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
-import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { UploadButton, Tooltip, LoadingSpinner } from "../ui_primitives";
+import { Tooltip, LoadingSpinner, Box } from "../ui_primitives";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
   handleSelectAllAssets: () => void;
   handleDeselectAssets: () => void;
   maxItemSize?: number;
-  onUploadFiles?: (files: File[]) => void;
 }
 
 const styles = (theme: Theme) =>
@@ -74,7 +63,7 @@ const styles = (theme: Theme) =>
 
     // Smaller, cleaner icons in the asset toolbar
     ".asset-button-group .MuiSvgIcon-root, .asset-button-group svg": {
-      fontSize: "18px",
+      fontSize: "var(--fontSizeBig)",
       width: "18px",
       height: "18px",
       color: theme.vars.palette.grey[400]
@@ -227,35 +216,21 @@ const styles = (theme: Theme) =>
 const AssetActions = ({
   handleSelectAllAssets,
   handleDeselectAssets,
-  maxItemSize = 10,
-  onUploadFiles
+  maxItemSize = 10
 }: AssetActionsProps) => {
   const theme = useTheme();
-  const currentFolder = useAssetGridStore((state) => state.currentFolder);
-  const { refetchAssetsAndFolders, isLoading } =
-    useAssets();
-  const [createFolderAnchor, setCreateFolderAnchor] =
-    useState<HTMLButtonElement | null>(null);
-  const [createFolderName, setCreateFolderName] =
-    useState<string>("New Folder");
-  const createFolder = useAssetStore((state) => state.createFolder);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
-  );
+  const { isLoading } = useAssets();
   const [settings, setAssetItemSize, setAssetsOrder] = useSettingsStore(
-    (state) => [state.settings, state.setAssetItemSize, state.setAssetsOrder] as const,
-    shallow
+    useShallow(
+      (state) => [state.settings, state.setAssetItemSize, state.setAssetsOrder] as const
+    )
   );
   const [sizeFilter, setSizeFilter] = useAssetGridStore(
-    (state) => [state.sizeFilter, state.setSizeFilter] as const,
-    shallow
+    useShallow((state) => [state.sizeFilter, state.setSizeFilter] as const)
   );
   const [viewMode, setViewMode] = useAssetGridStore(
-    (state) => [state.viewMode, state.setViewMode] as const,
-    shallow
+    useShallow((state) => [state.viewMode, state.setViewMode] as const)
   );
-
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleOrderChange = useCallback((_event: unknown, newOrder: "name" | "date" | "size" | null) => {
     if (newOrder !== null) {
@@ -272,21 +247,6 @@ const AssetActions = ({
   const handleViewModeToggle = useCallback(() => {
     setViewMode(viewMode === "grid" ? "list" : "grid");
   }, [viewMode, setViewMode]);
-
-  const handleCloseCreateFolder = useCallback(() => {
-    setCreateFolderAnchor(null);
-  }, []);
-
-  useEffect(() => {
-    if (createFolderAnchor) {
-      const timer = setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 10);
-      return () => clearTimeout(timer);
-    }
-  }, [createFolderAnchor]);
 
   const handleChange = useCallback((event: Event, value: number | number[]) => {
     if (Array.isArray(value)) {
@@ -307,22 +267,6 @@ const AssetActions = ({
     }
   }), []);
 
-  const handleCreateFolder = useCallback(() => {
-    setCreateFolderAnchor(null);
-    createFolder(currentFolder?.id || "", createFolderName).then(() => {
-      addNotification({
-        type: "success",
-        content: `CREATE FOLDER: ${createFolderName}`
-      });
-      setCreateFolderAnchor(null);
-      refetchAssetsAndFolders();
-    });
-  }, [createFolder, currentFolder?.id, createFolderName, addNotification, refetchAssetsAndFolders]);
-
-  const handleOpenCreateFolder = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    setCreateFolderAnchor(e.currentTarget);
-  }, []);
-
   const handleSortChange = useCallback((e: unknown) => {
     handleOrderChange(e, (e as React.ChangeEvent<HTMLSelectElement>).target.value as "name" | "date" | "size");
   }, [handleOrderChange]);
@@ -331,37 +275,9 @@ const AssetActions = ({
     handleSizeFilterChange(e, (e as React.ChangeEvent<HTMLSelectElement>).target.value as SizeFilterKey);
   }, [handleSizeFilterChange]);
 
-  const handleFolderNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter") {
-      handleCreateFolder();
-    }
-  }, [handleCreateFolder]);
-
-  const handleFolderNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setCreateFolderName(e.target.value);
-  }, []);
-
   return (
     <div className="asset-actions" css={styles(theme)}>
-      <UploadButton
-        onFileSelect={(files) => onUploadFiles?.(files)}
-        iconVariant="file"
-        tooltip="Upload files"
-        multiple
-      />
       <ButtonGroup className="asset-button-group" size="small" tabIndex={-1}>
-        <Tooltip
-          delay={TOOLTIP_ENTER_DELAY}
-          title="Create Folder"
-          disableInteractive
-        >
-          <EditorButton
-            onClick={handleOpenCreateFolder}
-            tabIndex={-1}
-          >
-            <CreateNewFolderIcon />
-          </EditorButton>
-        </Tooltip>
         <Tooltip
           delay={TOOLTIP_ENTER_DELAY}
           title="Select all"
@@ -467,45 +383,6 @@ const AssetActions = ({
           />
         </div>
       )}
-      <Popover
-        css={dialogStyles(theme)}
-        className="dialog"
-        open={Boolean(createFolderAnchor)}
-        anchorEl={createFolderAnchor}
-        onClose={handleCloseCreateFolder}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle className="dialog-title" id="alert-dialog-title">
-          {"Create Folder"}
-        </DialogTitle>
-        <DialogContent className="dialog-content">
-          <div>
-            <TextField
-              className="input-field"
-              inputRef={inputRef}
-              placeholder="Folder Name"
-              autoFocus
-              autoComplete="off"
-              id="name"
-              onKeyDown={handleFolderNameKeyDown}
-              onChange={handleFolderNameChange}
-              fullWidth
-            />
-          </div>
-        </DialogContent>
-        <DialogActions className="dialog-actions">
-          <EditorButton
-            className="button-cancel"
-            onClick={handleCloseCreateFolder}
-          >
-            Cancel
-          </EditorButton>
-          <EditorButton className="button-confirm" onClick={handleCreateFolder}>
-            Create Folder
-          </EditorButton>
-        </DialogActions>
-      </Popover>
     </div>
   );
 };

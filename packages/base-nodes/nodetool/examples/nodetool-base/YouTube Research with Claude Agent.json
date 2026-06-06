@@ -56,7 +56,7 @@
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "headline": "YouTube Research with Claude Agent",
-          "comment": "This workflow searches YouTube for videos on a topic using SerpAPI, then feeds the results to a Claude Agent for in-depth analysis.\n\n1. YouTubeSearch fetches video results via SerpAPI\n2. FormatText builds a research prompt with the results\n3. ClaudeAgent analyzes the videos and produces a research report\n\nRequires: SERPAPI_API_KEY and ANTHROPIC_API_KEY in your settings."
+          "comment": "This workflow searches YouTube for videos on a topic using SerpAPI, then feeds the results to a Claude Agent for in-depth analysis.\n\n1. YouTubeSearch fetches video results via SerpAPI\n2. FormatText builds a research prompt with the results\n3. The Agent analyzes the videos and produces a research report\n\nRequires: SERPAPI_API_KEY and ANTHROPIC_API_KEY in your settings."
         },
         "ui_properties": {
           "position": {
@@ -95,7 +95,7 @@
         "id": "format-prompt-node",
         "type": "nodetool.text.FormatText",
         "data": {
-          "template": "You are a YouTube research analyst. I searched YouTube for \"multi-agent frameworks 2026\" and found these results:\n\n{{ search_results }}\n\nPlease analyze these videos and provide:\n\n1. **Overview**: What are the main themes and topics covered?\n2. **Top Picks**: Which 3-5 videos seem most valuable and why?\n3. **Content Gaps**: What aspects of multi-agent frameworks are NOT well covered?\n4. **Creators to Watch**: Which channels stand out for quality content?\n5. **Summary**: A concise research brief synthesizing the key insights.\n\nBe specific — reference video titles, channels, and view counts in your analysis."
+          "template": "You are a YouTube research analyst. I searched YouTube for \"multi-agent frameworks 2026\" and found these results:\n\n{{ search_results }}\n\nPlease analyze these videos and provide:\n\n1. **Overview**: What are the main themes and topics covered?\n2. **Top Picks**: Which 3-5 videos seem most valuable and why?\n3. **Content Gaps**: What aspects of multi-agent frameworks are NOT well covered?\n4. **Creators to Watch**: Which channels stand out for quality content?\n5. **Summary**: A concise research brief synthesizing the key insights.\n\nBe specific \u2014 reference video titles, channels, and view counts in your analysis."
         },
         "ui_properties": {
           "position": {
@@ -118,17 +118,19 @@
       },
       {
         "id": "claude-agent-node",
-        "type": "anthropic.agents.ClaudeAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
           "prompt": "",
           "model": {
             "type": "language_model"
           },
-          "system_prompt": "You are a thorough research analyst specializing in YouTube content analysis. You provide structured, insightful analysis with specific references to the data provided. Be concise but comprehensive.",
+          "system": "You are a thorough research analyst specializing in YouTube content analysis. You provide structured, insightful analysis with specific references to the data provided. Be concise but comprehensive.",
           "max_turns": 5,
-          "allowed_tools": ["Read", "Write", "Bash"],
-          "permission_mode": "acceptEdits",
-          "use_claude_credentials": true
+          "tools": [
+            "Read",
+            "Write",
+            "Bash"
+          ]
         },
         "ui_properties": {
           "position": {

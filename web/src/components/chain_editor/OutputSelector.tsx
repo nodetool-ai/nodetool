@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import { Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
+import { Box } from "../ui_primitives";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -19,7 +20,7 @@ function formatType(type: { type: string; type_args: Array<{ type: string }> }):
   return type.type;
 }
 
-export const OutputSelector: React.FC<OutputSelectorProps> = ({ outputs, selectedOutput, onSelect }) => {
+export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function OutputSelector({ outputs, selectedOutput, onSelect }) {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const selected = outputs.find((o) => o.name === selectedOutput);
@@ -33,8 +34,8 @@ export const OutputSelector: React.FC<OutputSelectorProps> = ({ outputs, selecte
         sx={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 0.75,
-          px: 1.25,
+          gap: 1,
+          px: 1,
           py: 0.5,
           borderRadius: 1,
           border: `1px solid ${theme.vars.palette.primary.main}30`,
@@ -80,4 +81,4 @@ export const OutputSelector: React.FC<OutputSelectorProps> = ({ outputs, selecte
       </Menu>
     </>
   );
-};
+});

@@ -9,7 +9,7 @@ import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeArtifacts } from "../../../hooks/nodes/useNodeExecState";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
@@ -34,7 +34,8 @@ const styles = (theme: Theme) =>
         display: "flex",
         flexDirection: "column",
         overflow: "visible",
-        padding: 0,
+        "--node-body-padding": "8px",
+        padding: "var(--node-body-padding)",
         width: "100%",
         height: "100%",
         minWidth: "150px",
@@ -44,10 +45,11 @@ const styles = (theme: Theme) =>
         border: `1px solid ${theme.vars.palette.grey[700]}`
       },
       "&.output-node": {
-        padding: 0,
         margin: 0,
         "&.collapsed": {
-          ...NODE_COLLAPSED_LAYOUT
+          ...NODE_COLLAPSED_LAYOUT,
+          "--node-body-padding": "0px",
+          padding: "0 !important"
         },
         "&.collapsed .node-header ~ *": {
           display: "none !important"
@@ -99,14 +101,10 @@ const styles = (theme: Theme) =>
       {
         height: "fit-content !important"
       },
-      // header
+      // header — inherit minHeight from NodeHeader; parent padding provides spacing
       ".node-header": {
         width: "100%",
-        minHeight: "unset",
-        top: 0,
-        left: 0,
         margin: 0,
-        padding: 0,
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {
@@ -162,7 +160,7 @@ const styles = (theme: Theme) =>
         left: "50%",
         width: "80%",
         fontSize: "var(--fontSizeSmaller)",
-        fontWeight: "300",
+        fontWeight: 400,
         transform: "translate(-50%, -50%)",
         zIndex: 0,
         color: theme.vars.palette.grey[200],
@@ -309,9 +307,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const nodeMetadata = getMetadata(props.type);
 
   // Use getOutputResult instead of getPreview - this gets accumulated streaming outputs
-  const result = useResultsStore((state) =>
-    state.getOutputResult(props.data.workflow_id, props.id)
-  );
+  const result = useNodeArtifacts(props.data.workflow_id, props.id).output;
 
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
 
@@ -483,6 +479,8 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         <div
           className={`content ${isScrollable ? "scrollable nowheel" : "noscroll"
             }`}
+          role="region"
+          aria-label="Node output"
           style={CONTENT_DIV_STYLE}
           tabIndex={0}
           onFocus={handleContentFocus}

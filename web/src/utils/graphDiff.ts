@@ -80,9 +80,12 @@ const findNodePropertyChanges = (
 ): PropertyChange[] => {
   const changes: PropertyChange[] = [];
 
-  // Compare data properties (data is unknown, cast to Record)
-  const oldData = (oldNode.data || {}) as Record<string, unknown>;
-  const newData = (newNode.data || {}) as Record<string, unknown>;
+  const toRecord = (v: unknown): Record<string, unknown> =>
+    typeof v === "object" && v !== null && !Array.isArray(v)
+      ? (v as Record<string, unknown>)
+      : {};
+  const oldData = toRecord(oldNode.data);
+  const newData = toRecord(newNode.data);
 
   // Get all keys from both objects
   const allKeys = new Set([...Object.keys(oldData), ...Object.keys(newData)]);

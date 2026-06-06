@@ -8,13 +8,16 @@ import type {
   ModelPack,
   UnifiedModel
 } from "../../stores/ApiTypes";
-import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
+import {
+  useImageModelsByProvider,
+  type ImageModelTask
+} from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface ImageModelSelectProps {
   onChange: (value: ImageModelValue) => void;
   value: string;
-  task?: "text_to_image" | "image_to_image";
+  task?: ImageModelTask;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
 }

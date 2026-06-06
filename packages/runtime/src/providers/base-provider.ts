@@ -6,19 +6,25 @@ import type {
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
+  LipSyncParams,
   Message,
   Model3D,
   ProviderId,
   ProviderStreamItem,
   ProviderTool,
   EncodedAudioResult,
+  RelightImageParams,
+  RemoveBackgroundParams,
   StreamingAudioChunk,
   TextTo3DParams,
   TextToImageParams,
   TextToVideoParams,
   ToolCall,
   TTSModel,
-  VideoModel
+  UpscaleImageParams,
+  VectorizeImageParams,
+  VideoModel,
+  VideoToVideoParams
 } from "./types.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
@@ -47,8 +53,14 @@ export type ProviderCapability =
   | "generate_messages"
   | "text_to_image"
   | "image_to_image"
+  | "upscale_image"
+  | "remove_background"
+  | "relight_image"
+  | "vectorize_image"
   | "text_to_video"
   | "image_to_video"
+  | "video_to_video"
+  | "lip_sync"
   | "text_to_speech"
   | "automatic_speech_recognition"
   | "generate_embedding"
@@ -83,6 +95,28 @@ export function providerCapabilities(
     BaseProvider.prototype.getAvailableVideoModels
   ) {
     capabilities.push("text_to_video", "image_to_video");
+  }
+  // The remaining task types don't have their own model-discovery method —
+  // they reuse Image/VideoModel (advertised via each model's `supportedTasks`).
+  // Advertise the provider-level capability when the concrete class overrides
+  // the matching task method.
+  if (instance.upscaleImage !== BaseProvider.prototype.upscaleImage) {
+    capabilities.push("upscale_image");
+  }
+  if (instance.removeBackground !== BaseProvider.prototype.removeBackground) {
+    capabilities.push("remove_background");
+  }
+  if (instance.relightImage !== BaseProvider.prototype.relightImage) {
+    capabilities.push("relight_image");
+  }
+  if (instance.vectorizeImage !== BaseProvider.prototype.vectorizeImage) {
+    capabilities.push("vectorize_image");
+  }
+  if (instance.videoToVideo !== BaseProvider.prototype.videoToVideo) {
+    capabilities.push("video_to_video");
+  }
+  if (instance.lipSync !== BaseProvider.prototype.lipSync) {
+    capabilities.push("lip_sync");
   }
   if (
     instance.getAvailableTTSModels !==
@@ -252,7 +286,7 @@ export abstract class BaseProvider {
     maxTokens?: number;
     /**
      * Upper bound on internal agentic turns for providers that handle
-     * multi-turn tool execution within a single call (e.g. claude_agent).
+     * multi-turn tool execution within a single call.
      * Ignored by providers that delegate the loop to the caller.
      */
     maxTurns?: number;
@@ -543,6 +577,38 @@ export abstract class BaseProvider {
     return results;
   }
 
+  /** Increase the resolution / detail of an image. */
+  async upscaleImage(
+    _image: Uint8Array,
+    _params: UpscaleImageParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support upscaleImage`);
+  }
+
+  /** Remove the background from an image, returning an image with alpha. */
+  async removeBackground(
+    _image: Uint8Array,
+    _params: RemoveBackgroundParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support removeBackground`);
+  }
+
+  /** Re-light a subject according to a prompt / background reference. */
+  async relightImage(
+    _image: Uint8Array,
+    _params: RelightImageParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support relightImage`);
+  }
+
+  /** Convert a raster image into a vector (SVG) representation. */
+  async vectorizeImage(
+    _image: Uint8Array,
+    _params: VectorizeImageParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support vectorizeImage`);
+  }
+
   async *textToSpeech(_args: {
     text: string;
     model: string;
@@ -599,6 +665,22 @@ export abstract class BaseProvider {
     _params: ImageToVideoParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToVideo`);
+  }
+
+  /** Restyle / edit an existing video, guided by a prompt. */
+  async videoToVideo(
+    _video: Uint8Array,
+    _params: VideoToVideoParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support videoToVideo`);
+  }
+
+  /** Drive a face in a video/image to match the speech in an audio track. */
+  async lipSync(
+    _video: Uint8Array,
+    _params: LipSyncParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support lipSync`);
   }
 
   /**
@@ -688,16 +770,29 @@ export abstract class BaseProvider {
    * - Everything else     → returned unchanged (http/https/data: pass through)
    */
   protected async resolveUri(uri: string): Promise<string> {
-    const { readFile } = await import("node:fs/promises");
+    const { importNodeBuiltin } = await import("@nodetool-ai/config");
+    const fsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
+      "node:fs/promises"
+    );
+    if (!fsP) {
+      throw new Error(
+        "resolveUri requires node:fs/promises (Node-only feature)"
+      );
+    }
 
     if (uri.startsWith("file://")) {
       try {
-        const { fileURLToPath } = await import("node:url");
-        const filePath = fileURLToPath(uri);
-        const bytes = await readFile(filePath);
+        const urlMod = await importNodeBuiltin<typeof import("node:url")>(
+          "node:url"
+        );
+        if (!urlMod) {
+          throw new Error("resolveUri file:// requires node:url");
+        }
+        const filePath = urlMod.fileURLToPath(uri);
+        const bytes = (await fsP.readFile(filePath)) as Uint8Array;
         const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
         const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
-        return `data:${mime};base64,${bytes.toString("base64")}`;
+        return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
       } catch {
         return uri;
       }
@@ -707,10 +802,10 @@ export abstract class BaseProvider {
     if (uri.startsWith("/api/storage/")) {
       const key = uri.slice("/api/storage/".length);
       try {
-        const bytes = await readFile(getAssetFilePath(key));
+        const bytes = (await fsP.readFile(getAssetFilePath(key))) as Uint8Array;
         const ext = key.split(".").pop()?.toLowerCase() ?? "";
         const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
-        return `data:${mime};base64,${bytes.toString("base64")}`;
+        return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
       } catch {
         // Remote deployment: file not local, fall back to absolute HTTP
         return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
@@ -731,7 +826,7 @@ function applyUsageAttributes(span: Span, usage: LlmUsage | null): void {
     ...(usage.cachedInputTokens !== undefined && {
       "gen_ai.usage.cached_input_tokens": usage.cachedInputTokens
     }),
-    ...(usage.cost !== undefined && { "gen_ai.usage.cost_credits": usage.cost })
+    ...(usage.cost !== undefined && { "gen_ai.usage.cost_usd": usage.cost })
   });
 }
 

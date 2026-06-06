@@ -91,9 +91,8 @@ const mockNodeMetadata: NodeMetadata = {
       required: false
     }
   ],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
-  expose_as_tool: false,
   recommended_models: [],
   is_streaming_output: false,
             required_settings: []
@@ -102,7 +101,7 @@ const mockNodeMetadata: NodeMetadata = {
 const mockDynamicNodeMetadata: NodeMetadata = {
   ...mockNodeMetadata,
   node_type: "test.dynamic",
-  is_dynamic: true,
+  supports_dynamic_inputs: true,
   supports_dynamic_outputs: true
 };
 
@@ -129,9 +128,8 @@ const previewNodeMetadata: NodeMetadata = {
       required: false
     }
   ],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
-  expose_as_tool: false,
   recommended_models: [],
   is_streaming_output: false,
             required_settings: []
@@ -172,9 +170,8 @@ const rerouteNodeMetadata: NodeMetadata = {
       required: false
     }
   ],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
-  expose_as_tool: false,
   recommended_models: [],
   is_streaming_output: false,
             required_settings: []
@@ -418,7 +415,7 @@ describe("useConnectionHandlers", () => {
         layout: "default",
         properties: [],
         outputs: [],
-        is_dynamic: true
+        supports_dynamic_inputs: true
       }); // Target metadata
 
       // Mock the handle finding functions to return proper handle objects
@@ -1116,6 +1113,122 @@ describe("useConnectionHandlers", () => {
       );
       const payload = mockOpenContextMenu.mock.calls[0][9];
       expect(payload.options).toHaveLength(2);
+    });
+
+    it("passes dropPosition payload when opening source dropped-connection menu", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "source",
+        connectNodeId: "sourceNode",
+        connectHandleId: "output",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
+        isReconnecting: false
+      }));
+
+      const sourceNode = createMockNode("sourceNode", "test.node");
+      mockFindNode.mockImplementation((id: string) =>
+        id === "sourceNode" ? sourceNode : undefined
+      );
+      mockGetMetadata.mockReturnValue(mockNodeMetadata);
+
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn((className: string) => className === "react-flow__pane")
+          },
+          closest: jest.fn(() => null),
+          parentElement: null
+        },
+        clientX: 320,
+        clientY: 180
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any, {} as any);
+
+      expect(mockOpenContextMenu).toHaveBeenCalledWith(
+        "output-context-menu",
+        "sourceNode",
+        345,
+        130,
+        "react-flow__pane",
+        expect.any(Object),
+        "output",
+        undefined,
+        undefined,
+        { dropPosition: { x: 320, y: 180 } }
+      );
+    });
+
+    it("preserves numeric payload and adds dropPosition for target dropped-connection menu", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "target",
+        connectNodeId: "targetNode",
+        connectHandleId: "input",
+        connectType: {
+          type: "int",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        },
+        connectMin: 1,
+        connectMax: 10,
+        connectDefault: 3,
+        isReconnecting: false
+      }));
+
+      const targetNode = createMockNode("targetNode", "test.node");
+      mockFindNode.mockImplementation((id: string) =>
+        id === "targetNode" ? targetNode : undefined
+      );
+      mockGetMetadata.mockReturnValue(mockNodeMetadata);
+
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn((className: string) => className === "react-flow__pane")
+          },
+          closest: jest.fn(() => null),
+          parentElement: null
+        },
+        clientX: 400,
+        clientY: 240
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any, {} as any);
+
+      expect(mockOpenContextMenu).toHaveBeenCalledWith(
+        "input-context-menu",
+        "targetNode",
+        425,
+        190,
+        "react-flow__pane",
+        expect.any(Object),
+        "input",
+        undefined,
+        undefined,
+        {
+          connectMin: 1,
+          connectMax: 10,
+          connectDefault: 3,
+          dropPosition: { x: 400, y: 240 }
+        }
+      );
     });
 
     it("generates unique key when connecting second node of same type to dynamic output node", () => {

@@ -21,23 +21,28 @@ import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../uti
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
   CopyButton,
-  Tooltip,
   Caption,
   Text,
   FlexRow,
   FlexColumn,
   ToolbarIconButton,
-  LoadingSpinner
+  LoadingSpinner,
+  Collapse
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Collapse } from "@mui/material";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 
 
 import AgentExecutionView from "./AgentExecutionView";
-import MediaOutputGroup, { isMediaOnlyContent } from "./MediaOutputGroup";
-import { formatToolName } from "../../../utils/formatUtils";
+import MediaOutputGroup from "./MediaOutputGroup";
+import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
+import { ToolResult } from "./toolResults";
+import { formatDuration, formatToolName } from "../../../utils/formatUtils";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
+import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -61,54 +66,180 @@ const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
 PrettyJson.displayName = "PrettyJson";
 
 /**
+ * `run_subtask` is the recursive-decomposition primitive. We render its
+ * tool-call card differently from generic tools: the LLM-provided `title`
+ * becomes the headline, `instructions` go into the expanded section, and a
+ * tree icon signals that this card represents a deeper sub-execution.
+ */
+const RUN_SUBTASK_TOOL_NAME = "run_subtask";
+
+function formatTime(dateStr?: string | null): string | null {
+  if (!dateStr) {
+    return null;
+  }
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
  * ToolCallCard - Memoized component for displaying tool calls.
  * Extracted outside MessageView to prevent recreation on every render.
  */
 const ToolCallCard: React.FC<{
   tc: ToolCall;
   result?: { name?: string | null; content: unknown };
-}> = React.memo(({ tc, result: _result }) => {
+  durationMs?: number | null;
+}> = React.memo(({ tc, result, durationMs }) => {
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
-  const hasArgs = tc.args && Object.keys(tc.args).length > 0;
-  const hasDetails = !!hasArgs;
+  const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
+
+  // For run_subtask we lift `description` / `prompt` (Claude-Code Task naming)
+  // out of args into headline + expanded body. Tolerate the older
+  // `title`/`instructions` keys for messages already in the DB.
+  const rawArgs = (tc.args as Record<string, unknown> | null | undefined) ?? null;
+  const pickString = (key: string) =>
+    typeof rawArgs?.[key] === "string"
+      ? (rawArgs[key] as string).trim() || null
+      : null;
+  const subtaskTitle = isSubtask
+    ? pickString("description") ?? pickString("title")
+    : null;
+  const subtaskInstructions = isSubtask
+    ? pickString("prompt") ?? pickString("instructions")
+    : null;
+  const displayArgs = useMemo(() => {
+    const base = visibleArgs(rawArgs);
+    if (!isSubtask || !base) return base;
+    const stripped: Record<string, unknown> = { ...base };
+    for (const k of ["description", "prompt", "title", "instructions"]) {
+      delete stripped[k];
+    }
+    return Object.keys(stripped).length > 0 ? stripped : null;
+  }, [rawArgs, isSubtask]);
+
+  const hasArgs = !!displayArgs && Object.keys(displayArgs).length > 0;
+  const resultContent = result?.content;
+  const hasResult =
+    resultContent != null &&
+    !(typeof resultContent === "string" && resultContent.trim().length === 0);
+  const hasDetails = !!hasArgs || (isSubtask && !!subtaskInstructions) || hasResult;
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
+  const durationLabel =
+    !isRunning && typeof durationMs === "number" ? formatDuration(durationMs) : null;
 
   const handleToggleOpen = useCallback(() => {
     setOpen((v) => !v);
   }, []);
 
+  // For subtasks we keep the title + "Subtask" badge as the headline. For
+  // regular tool calls we drop the tool name entirely and let the LLM-authored
+  // `tc.message` carry the row — falling back to the formatted tool name only
+  // when no message was provided.
+  const liveMessage = isRunning ? runningToolMessage || tc.message : tc.message;
+  const fallbackName = formatToolName(tc.name);
+  const headline = isSubtask
+    ? subtaskTitle || fallbackName
+    : liveMessage || fallbackName;
+  const showSeparateMessage = isSubtask && !!liveMessage;
+  const headlineLabel = isSubtask ? "Subtask" : null;
+
   return (
-    <div className={`tool-call-card${isRunning ? " running" : ""}`}>
+    <div
+      className={`tool-call-card${isRunning ? " running" : ""}${
+        isSubtask ? " run-subtask" : ""
+      }`}
+    >
       <FlexRow className="tool-call-header" align="center" justify="space-between" fullWidth gap={0.5}>
         <FlexRow align="center" gap={0.5} sx={{ minWidth: 0 }}>
-          <Text component="span" size="small" weight={600} className="tool-call-name" truncate>
-            {formatToolName(tc.name)}
+          {isSubtask && (
+            <AccountTreeOutlinedIcon
+              fontSize="small"
+              className="subtask-icon"
+              aria-hidden
+            />
+          )}
+          {headlineLabel && (
+            <Text
+              component="span"
+              size="small"
+              weight={600}
+              className="tool-call-badge"
+            >
+              {headlineLabel}
+            </Text>
+          )}
+          <Text
+            component="span"
+            size="small"
+            weight={isSubtask ? 500 : 400}
+            className="tool-call-name"
+            truncate
+          >
+            {headline}
           </Text>
-          {(isRunning || tc.message) && (
+          {showSeparateMessage && (
             <Text component="span" size="small" className="tool-message" truncate>
-              {isRunning ? runningToolMessage || tc.message : tc.message}
+              {liveMessage}
             </Text>
           )}
           {isRunning && <LoadingSpinner size="small" />}
         </FlexRow>
-        {hasDetails && (
-          <ToolbarIconButton
-            tooltip={open ? "Hide details" : "Show details"}
-            onClick={handleToggleOpen}
-            icon={<ExpandMoreIcon className={`expand-icon${open ? " expanded" : ""}`} />}
-            className="tool-expand-button"
-          />
-        )}
+        <FlexRow align="center" gap={0.5} sx={{ flexShrink: 0 }}>
+          {durationLabel && (
+            <Text
+              component="span"
+              size="small"
+              className="tool-call-duration"
+              sx={{ color: "text.disabled", whiteSpace: "nowrap" }}
+            >
+              {durationLabel}
+            </Text>
+          )}
+          {hasDetails && (
+            <ToolbarIconButton
+              tooltip={open ? "Hide details" : "Show details"}
+              onClick={handleToggleOpen}
+              icon={<ExpandMoreIcon className={`expand-icon${open ? " expanded" : ""}`} />}
+              className="tool-expand-button"
+            />
+          )}
+        </FlexRow>
       </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
-        {hasArgs && (
-          <FlexColumn gap={0.25} sx={{ marginTop: "2px" }}>
-            <Caption className="tool-section-title">Arguments</Caption>
-            <PrettyJson value={tc.args} />
-          </FlexColumn>
-        )}
+        <FlexColumn gap={0.5} sx={{ marginTop: "4px" }}>
+          {isSubtask && subtaskInstructions && (
+            <FlexColumn gap={0.25}>
+              <Caption className="tool-section-title">Instructions</Caption>
+              <Text size="small" className="subtask-instructions">
+                {subtaskInstructions}
+              </Text>
+            </FlexColumn>
+          )}
+          {hasArgs && (
+            <FlexColumn gap={0.25}>
+              <Caption className="tool-section-title">
+                {isSubtask ? "Other arguments" : "Arguments"}
+              </Caption>
+              <PrettyJson value={displayArgs} />
+            </FlexColumn>
+          )}
+          {hasResult && (
+            <FlexColumn gap={0.25}>
+              <Caption className="tool-section-title">Result</Caption>
+              <ToolResult toolName={tc.name} content={resultContent} />
+            </FlexColumn>
+          )}
+        </FlexColumn>
       </Collapse>
     </div>
   );
@@ -120,8 +251,17 @@ interface MessageViewProps {
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
   onInsertCode?: (text: string, language?: string) => void;
-  toolResultsByCallId?: Record<string, { name?: string | null; content: unknown }>;
+  toolResultsByCallId?: Record<
+    string,
+    { name?: string | null; content: unknown; createdAt?: string | null }
+  >;
   executionMessagesById?: Map<string, Message[]>;
+  /**
+   * Render the per-message meta layout: an avatar + a persistent header line
+   * (role · time · model), left-aligned for both roles. Enabled only in the
+   * full-page chat; embedded chats keep the compact bubble layout.
+   */
+  showMeta?: boolean;
 }
 
 export const MessageView: React.FC<
@@ -132,22 +272,22 @@ export const MessageView: React.FC<
   onToggleThought,
   onInsertCode,
   toolResultsByCallId,
-  executionMessagesById
+  executionMessagesById,
+  showMeta = false
 }) => {
   const insertIntoEditor = useEditorInsertion();
 
-  // Memoize handlers to prevent recreation on every render
-  const handleCopy = useCallback(() => {
-    let textToCopy = "";
+  const copyText = useMemo(() => {
     if (typeof message.content === "string") {
-      textToCopy = message.content;
-    } else if (Array.isArray(message.content)) {
-      textToCopy = message.content
+      return message.content;
+    }
+    if (Array.isArray(message.content)) {
+      return message.content
         .filter((c) => c.type === "text")
         .map((c) => (c as MessageTextContent).text)
         .join("\n");
     }
-    return textToCopy;
+    return "";
   }, [message.content]);
 
   const createToggleHandler = useCallback((key: string) => {
@@ -185,11 +325,14 @@ export const MessageView: React.FC<
           return true;
         }));
 
+    const showRoleMeta =
+      showMeta && (message.role === "assistant" || message.role === "user");
     const messageClass = [
       baseClass,
       (message as Message & { error_type?: string }).error_type ? "error-message" : null,
       hasToolCalls ? "has-tool-calls" : null,
-      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null
+      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null,
+      showRoleMeta ? "chat-message--meta" : null
     ]
       .filter(Boolean)
       .join(" ");
@@ -275,39 +418,48 @@ export const MessageView: React.FC<
       | Array<MessageTextContent | MessageImageContent>
       | string;
 
-    // Format timestamp for display
-    const formatTime = (dateStr?: string | null) => {
-      if (!dateStr) {
-        return null;
-      }
-      try {
-        const date = new Date(dateStr);
-        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      } catch {
-        // Date parsing failed, return null
-        return null;
-      }
-    };
-
     const formattedTime = formatTime(message.created_at);
-
     return (
       <div className={messageClass}>
+        <div className="message-body">
+        {showRoleMeta && (
+          <div className="message-header">
+            {message.role === "user" ? (
+              <PersonOutlineRoundedIcon className="message-role-icon" />
+            ) : (
+              <HubOutlinedIcon className="message-role-icon" />
+            )}
+            {formattedTime && (
+              <span className="message-time">{formattedTime}</span>
+            )}
+            {message.role === "assistant" && message.model && (
+              <span className="message-model">{message.model}</span>
+            )}
+          </div>
+        )}
         <div className="message-content">
           {message.role === "assistant" &&
             Array.isArray(message.tool_calls) &&
             !message.agent_execution_id && // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
-            (message.tool_calls as ToolCall[]).map((tc, i) => (
-              <ToolCallCard
-                key={tc.id || i}
-                tc={tc}
-                result={
-                  tc.id && toolResultsByCallId
-                    ? toolResultsByCallId[String(tc.id)]
-                    : undefined
-                }
-              />
-            ))}
+            (message.tool_calls as ToolCall[]).map((tc, i) => {
+              const toolResult =
+                tc.id && toolResultsByCallId
+                  ? toolResultsByCallId[String(tc.id)]
+                  : undefined;
+              const durationMs =
+                toolResult?.createdAt && message.created_at
+                  ? new Date(toolResult.createdAt).getTime() -
+                    new Date(message.created_at).getTime()
+                  : null;
+              return (
+                <ToolCallCard
+                  key={tc.id || i}
+                  tc={tc}
+                  result={toolResult}
+                  durationMs={durationMs}
+                />
+              );
+            })}
           {(message.role === "assistant" || message.role === "user") && (
             <>
               {typeof message.content === "string" &&
@@ -346,16 +498,20 @@ export const MessageView: React.FC<
         {/* Message actions: timestamp + copy button */}
         {!Array.isArray(message.tool_calls) && (
           <div className="message-actions">
-            {formattedTime && (
+            {!showRoleMeta && formattedTime && (
               <span className="message-timestamp">{formattedTime}</span>
             )}
+            {!showRoleMeta && message.role === "assistant" && message.model && (
+              <span className="message-model">{message.model}</span>
+            )}
             <CopyButton
-              value={handleCopy()}
+              value={copyText}
               buttonSize="small"
               tooltip="Copy to clipboard"
             />
           </div>
         )}
+        </div>
       </div>
     );
 });

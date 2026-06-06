@@ -44,9 +44,19 @@ export async function getKokoro(
   if (!pending) {
     pending = (async () => {
       await loadTransformers();
-      const { KokoroTTS } = await importOptionalModule<typeof import("kokoro-js")>(
-        "kokoro-js"
-      );
+      let KokoroTTS: typeof import("kokoro-js").KokoroTTS;
+      try {
+        ({ KokoroTTS } = await importOptionalModule<typeof import("kokoro-js")>(
+          "kokoro-js"
+        ));
+      } catch (err) {
+        throw new Error(
+          "The 'kokoro-js' package is required for Kokoro text-to-speech. " +
+            "Install the \"Transformers.js\" runtime package from the Package " +
+            "Manager (it bundles kokoro-js and onnxruntime). " +
+            `Original error: ${(err as Error)?.message ?? err}`
+        );
+      }
       const opts: Record<string, unknown> = {};
       if (dtype) opts.dtype = dtype;
       if (device) opts.device = device;

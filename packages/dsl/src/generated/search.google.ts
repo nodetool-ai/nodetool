@@ -14,8 +14,8 @@ export interface GoogleSearchOutputs {
   text: string;
 }
 
-export function googleSearch(inputs: GoogleSearchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GoogleSearchOutputs> {
-  return createNode("search.google.GoogleSearch", inputs as Record<string, unknown>, { outputNames: ["results", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function googleSearch(inputs: GoogleSearchInputs): DslNode<GoogleSearchOutputs> {
+  return createNode("search.google.GoogleSearch", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }
 
 // Google News — search.google.GoogleNews
@@ -29,8 +29,8 @@ export interface GoogleNewsOutputs {
   text: string;
 }
 
-export function googleNews(inputs: GoogleNewsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GoogleNewsOutputs> {
-  return createNode("search.google.GoogleNews", inputs as Record<string, unknown>, { outputNames: ["results", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function googleNews(inputs: GoogleNewsInputs): DslNode<GoogleNewsOutputs> {
+  return createNode("search.google.GoogleNews", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }
 
 // Google Images — search.google.GoogleImages
@@ -44,8 +44,8 @@ export interface GoogleImagesOutputs {
   results: ImageRef[];
 }
 
-export function googleImages(inputs: GoogleImagesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GoogleImagesOutputs, "results"> {
-  return createNode("search.google.GoogleImages", inputs as Record<string, unknown>, { outputNames: ["results"], defaultOutput: "results", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function googleImages(inputs: GoogleImagesInputs): DslNode<GoogleImagesOutputs, "results"> {
+  return createNode("search.google.GoogleImages", inputs as Record<string, unknown>, { outputNames: ["results"], defaultOutput: "results" });
 }
 
 // Google Finance — search.google.GoogleFinance
@@ -58,8 +58,8 @@ export interface GoogleFinanceOutputs {
   results: Record<string, unknown>;
 }
 
-export function googleFinance(inputs: GoogleFinanceInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GoogleFinanceOutputs, "results"> {
-  return createNode("search.google.GoogleFinance", inputs as Record<string, unknown>, { outputNames: ["results"], defaultOutput: "results", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function googleFinance(inputs: GoogleFinanceInputs): DslNode<GoogleFinanceOutputs, "results"> {
+  return createNode("search.google.GoogleFinance", inputs as Record<string, unknown>, { outputNames: ["results"], defaultOutput: "results" });
 }
 
 // Google Jobs — search.google.GoogleJobs
@@ -74,8 +74,8 @@ export interface GoogleJobsOutputs {
   text: string;
 }
 
-export function googleJobs(inputs: GoogleJobsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GoogleJobsOutputs> {
-  return createNode("search.google.GoogleJobs", inputs as Record<string, unknown>, { outputNames: ["results", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function googleJobs(inputs: GoogleJobsInputs): DslNode<GoogleJobsOutputs> {
+  return createNode("search.google.GoogleJobs", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }
 
 // Google Lens — search.google.GoogleLens
@@ -87,8 +87,8 @@ export interface GoogleLensInputs {
 export interface GoogleLensOutputs {
 }
 
-export function googleLens(inputs: GoogleLensInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GoogleLensOutputs> {
-  return createNode("search.google.GoogleLens", inputs as Record<string, unknown>, { outputNames: [], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function googleLens(inputs: GoogleLensInputs): DslNode<GoogleLensOutputs> {
+  return createNode("search.google.GoogleLens", inputs as Record<string, unknown>, { outputNames: [] });
 }
 
 // Google Maps — search.google.GoogleMaps
@@ -102,8 +102,8 @@ export interface GoogleMapsOutputs {
   text: string;
 }
 
-export function googleMaps(inputs: GoogleMapsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GoogleMapsOutputs> {
-  return createNode("search.google.GoogleMaps", inputs as Record<string, unknown>, { outputNames: ["results", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function googleMaps(inputs: GoogleMapsInputs): DslNode<GoogleMapsOutputs> {
+  return createNode("search.google.GoogleMaps", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }
 
 // Google Shopping — search.google.GoogleShopping
@@ -122,6 +122,6 @@ export interface GoogleShoppingOutputs {
   text: string;
 }
 
-export function googleShopping(inputs: GoogleShoppingInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GoogleShoppingOutputs> {
-  return createNode("search.google.GoogleShopping", inputs as Record<string, unknown>, { outputNames: ["results", "text"], ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function googleShopping(inputs: GoogleShoppingInputs): DslNode<GoogleShoppingOutputs> {
+  return createNode("search.google.GoogleShopping", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }

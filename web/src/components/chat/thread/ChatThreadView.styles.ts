@@ -165,6 +165,100 @@ export const createStyles = (theme: Theme) => ({
       whiteSpace: "nowrap"
     },
 
+    ".message-model": {
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.disabled,
+      whiteSpace: "nowrap",
+      fontFamily: theme.fontFamily2
+    },
+
+    // ── Per-message meta layout (full-page chat: avatar + header) ──────────
+    // The body wrapper is layout-neutral by default so the compact (non-meta)
+    // layout is unchanged; it only becomes a column under `--meta`.
+    ".message-body": {
+      display: "contents"
+    },
+
+    ".chat-message--meta": {
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: 0
+    },
+
+    // Normalize horizontal padding for both roles so the message bodies line up
+    // on a single left edge. The base `.assistant` rule sets
+    // `padding: 0.75em 1em`, which would otherwise indent assistant rows.
+    ".chat-message.assistant.chat-message--meta, .chat-message.user.chat-message--meta": {
+      padding: "0.6em 0"
+    },
+
+    ".chat-message.assistant.chat-message--meta:hover": {
+      border: "1px solid transparent"
+    },
+
+    ".chat-message--meta .message-body": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(0.5),
+      width: "100%",
+      minWidth: 0
+    },
+
+    ".message-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(0.5),
+      fontSize: theme.fontSizeTiny,
+      lineHeight: 1
+    },
+
+    ".message-role-icon": {
+      fontSize: 15,
+      flexShrink: 0
+    },
+
+    // Quiet identity for the two voices: the user's own icon recedes, the
+    // assistant gets a soft brand tint so the eye lands on its turns.
+    ".chat-message.user .message-role-icon": {
+      color: theme.vars.palette.grey[500]
+    },
+
+    ".chat-message.assistant .message-role-icon": {
+      color: theme.vars.palette.primary.main,
+      opacity: 0.85
+    },
+
+    ".message-header .message-time, .message-header .message-model": {
+      color: theme.vars.palette.text.disabled,
+      fontVariantNumeric: "tabular-nums"
+    },
+
+    // Under the meta layout, user messages drop the right-aligned bubble and
+    // read left-aligned like the assistant.
+    ".chat-message.user.chat-message--meta": {
+      width: "100%",
+      maxWidth: "100%",
+      margin: "0.5em 0 0",
+      alignItems: "flex-start",
+      fontWeight: 400
+    },
+
+    ".chat-message.user.chat-message--meta .message-content": {
+      background: "transparent",
+      color: theme.vars.palette.text.primary,
+      textAlign: "left",
+      padding: 0,
+      border: "none"
+    },
+
+    ".chat-message.user.chat-message--meta:hover .message-content": {
+      borderColor: "transparent"
+    },
+
+    ".chat-message.user.chat-message--meta .markdown": {
+      padding: 0
+    },
+
     ".error-message": {
       backgroundColor: theme.vars.palette.error.dark,
       border: `1px solid ${theme.vars.palette.error.main}`,
@@ -197,7 +291,7 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      padding: theme.spacing(5, 0)
+      padding: theme.spacing(6, 0)
     },
 
     ".loading-dots": {
@@ -252,6 +346,53 @@ export const createStyles = (theme: Theme) => ({
 
     ".tool-call-card.running .tool-call-name": {
       color: theme.vars.palette.info.main
+    },
+
+    // `run_subtask` cards stand apart from generic tool calls — a light
+    // accent border + soft background marks them as a deeper sub-execution.
+    ".tool-call-card.run-subtask": {
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderLeft: `2px solid ${theme.vars.palette.primary.main}`,
+      borderRadius: 6,
+      padding: theme.spacing(0.5, 1),
+      background: `${theme.vars.palette.primary.main}0a`,
+      marginBottom: theme.spacing(0.5)
+    },
+
+    ".tool-call-card.run-subtask .subtask-icon": {
+      fontSize: 14,
+      color: theme.vars.palette.primary.main,
+      flexShrink: 0
+    },
+
+    ".tool-call-card.run-subtask .tool-call-badge": {
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+      color: theme.vars.palette.primary.main,
+      lineHeight: 1,
+      padding: "1px 5px",
+      border: `1px solid ${theme.vars.palette.primary.main}55`,
+      borderRadius: 3,
+      background: "transparent",
+      flexShrink: 0
+    },
+
+    ".tool-call-card.run-subtask .tool-call-name": {
+      // Subtask titles tend to be a phrase, not a snake_case identifier — let
+      // them wrap rather than truncate so the user can read the whole thing.
+      whiteSpace: "normal",
+      fontWeight: 500,
+      color: theme.vars.palette.text.primary,
+      fontSize: "var(--fontSizeSmall)"
+    },
+
+    ".tool-call-card.run-subtask .subtask-instructions": {
+      whiteSpace: "pre-wrap",
+      color: theme.vars.palette.text.secondary,
+      fontSize: "var(--fontSizeSmall)",
+      lineHeight: 1.45
     },
 
     ".chat-message.tool-calls-only": {
@@ -309,14 +450,14 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-name": {
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       whiteSpace: "nowrap"
     },
 
     ".tool-message": {
-      fontSize: "0.72rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary
     },
 

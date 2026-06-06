@@ -3,21 +3,19 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Toolbar, Box, useMediaQuery } from "@mui/material";
+import { Toolbar, useMediaQuery } from "@mui/material";
 import { EditorButton } from "../editor_ui";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
+import SaveImageEditPill from "./SaveImageEditPill";
 import Logo from "../Logo";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { FlexRow, Tooltip } from "../ui_primitives";
+import { FlexRow, Tooltip, Box, Text } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import { isProduction } from "../../lib/env";
-import { trpcClient } from "../../trpc/client";
 
 const workspacesEnabled = !isProduction;
 
@@ -30,7 +28,7 @@ const styles = (theme: Theme) =>
       backdropFilter: "blur(12px)",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: `0 4px 30px ${theme.vars.palette.grey[900]}1a`,
-      paddingLeft: "8px",
+      paddingLeft: "0",
       position: "fixed",
       top: 0,
       left: 0,
@@ -59,7 +57,7 @@ const styles = (theme: Theme) =>
         display: "block",
         width: "18px",
         height: "18px",
-        fontSize: "18px",
+        fontSize: "var(--fontSizeBig)",
         marginRight: "4px"
       },
       "& .icon-container": {
@@ -72,61 +70,17 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       WebkitAppRegion: "no-drag"
     },
-    // Mode pills - segmented control style
-    ".mode-pills": {
-      display: "flex",
-      alignItems: "center",
-      gap: "2px",
-      border: "1px solid var(--palette-grey-800)",
-      borderRadius: "var(--rounded-md)",
-      height: "1.6em",
-    },
-    ".mode-pill": {
-      padding: "5px 14px",
-      borderRadius: "var(--rounded-sm)",
-      fontWeight: 500,
-      letterSpacing: "0.02em",
-      color: theme.vars.palette.text.secondary,
-      minWidth: "auto",
-      textTransform: "uppercase",
-      fontSize: theme.vars.fontSizeSmall,
-      transition: "all 0.2s ease-out",
-      border: "none",
-      backgroundColor: "transparent",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-      "& svg, & .icon-container svg": {
-        width: "15px",
-        height: "15px",
-        fontSize: "15px"
-      },
-      "& .icon-container": {
-        width: "15px",
-        height: "15px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-      },
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
-        color: theme.vars.palette.text.primary
-      },
-      "&.active": {
-        backgroundColor: theme.vars.palette.action.selected,
-        color: theme.vars.palette.text.primary,
-        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.15)",
-        "& svg, & .icon-container svg": {
-          color: theme.vars.palette.text.primary
-        }
-      }
-    },
     ".logo-container": {
       display: "flex",
       alignItems: "center",
+      paddingLeft: "2px",
       marginRight: "16px",
-      cursor: "pointer"
+      cursor: "pointer",
+      opacity: 0.55,
+      transition: "opacity 150ms ease-out",
+      "&:hover": {
+        opacity: 1
+      }
     },
     ".buttons-right": {
       display: "flex",
@@ -142,164 +96,6 @@ const styles = (theme: Theme) =>
     }
     // Mobile styles handled via separate CSS file
   });
-
-// Mode pills component - segmented control for Editor, Chat, Dashboard
-const ModePills = memo(function ModePills({ currentPath }: { currentPath: string }) {
-  const navigate = useNavigate();
-  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
-  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
-  const lastUsedThreadId = useGlobalChatStore((state) => state.lastUsedThreadId);
-  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
-  const switchThread = useGlobalChatStore((state) => state.switchThread);
-
-  // Determine active mode - only modes are active, not other routes
-  const isEditorActive = currentPath.startsWith("/editor");
-  const isChatActive = currentPath.startsWith("/chat");
-  const isAppActive = currentPath.startsWith("/apps");
-  const isSketchActive = currentPath.startsWith("/sketch");
-  const isTimelineActive = currentPath.startsWith("/timeline");
-
-  const handleEditorClick = useCallback(async () => {
-    if (currentWorkflowId) {
-      navigate(`/editor/${currentWorkflowId}`);
-    } else {
-      try {
-        const workflow = await createNewWorkflow();
-        navigate(`/editor/${workflow.id}`);
-      } catch (error) {
-        console.error("Failed to create new workflow:", error);
-      }
-    }
-  }, [navigate, currentWorkflowId, createNewWorkflow]);
-
-  const handleChatClick = useCallback(async () => {
-    try {
-      if (lastUsedThreadId) {
-        switchThread(lastUsedThreadId);
-        navigate(`/chat/${lastUsedThreadId}`);
-      } else {
-        const newThreadId = await createNewThread();
-        switchThread(newThreadId);
-        navigate(`/chat/${newThreadId}`);
-      }
-    } catch {
-      // Thread creation failed, navigate to chat without thread
-      navigate(`/chat`);
-    }
-  }, [lastUsedThreadId, navigate, createNewThread, switchThread]);
-
-  const handleAppClick = useCallback(() => {
-    if (currentWorkflowId) {
-      navigate(`/apps/${currentWorkflowId}`);
-    }
-  }, [navigate, currentWorkflowId]);
-
-  const handleSketchClick = useCallback(async () => {
-    try {
-      const docs = await trpcClient.sketch.list.query({});
-      if (docs.length > 0) {
-        const mostRecent = docs.reduce((acc, cur) =>
-          cur.updatedAt > acc.updatedAt ? cur : acc
-        );
-        navigate(`/sketch/${mostRecent.id}`);
-        return;
-      }
-      const created = await trpcClient.sketch.create.mutate({
-        name: "Untitled image",
-        projectId: "default"
-      });
-      navigate(`/sketch/${created.id}`);
-    } catch (error) {
-      console.error("Failed to open Image Editor:", error);
-    }
-  }, [navigate]);
-
-  const handleTimelineClick = useCallback(async () => {
-    try {
-      const seqs = await trpcClient.timeline.list.query({});
-      if (seqs.length > 0) {
-        const mostRecent = seqs.reduce((acc, cur) =>
-          cur.updatedAt > acc.updatedAt ? cur : acc
-        );
-        navigate(`/timeline/${mostRecent.id}`);
-        return;
-      }
-      const created = await trpcClient.timeline.create.mutate({
-        name: "Untitled sequence",
-        projectId: "default"
-      });
-      navigate(`/timeline/${created.id}`);
-    } catch (error) {
-      console.error("Failed to open Timeline:", error);
-    }
-  }, [navigate]);
-
-  return (
-    <div className="mode-pills">
-      <Tooltip title="Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          className={`mode-pill ${isEditorActive ? "active" : ""}`}
-          onClick={handleEditorClick}
-          tabIndex={-1}
-          aria-current={isEditorActive ? "page" : undefined}
-        >
-          <span>Editor</span>
-        </button>
-      </Tooltip>
-      <Tooltip title="Chat" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          className={`mode-pill ${isChatActive ? "active" : ""}`}
-          onClick={handleChatClick}
-          tabIndex={-1}
-          aria-current={isChatActive ? "page" : undefined}
-        >
-          <span>Chat</span>
-        </button>
-      </Tooltip>
-      <Tooltip title={currentWorkflowId ? "Run as App" : "Open a workflow first"} delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <span style={{ display: "inline-flex" }}>
-          <button
-            className={`mode-pill ${isAppActive ? "active" : ""}`}
-            onClick={handleAppClick}
-            tabIndex={-1}
-            aria-current={isAppActive ? "page" : undefined}
-            disabled={!currentWorkflowId}
-            style={{
-              opacity: currentWorkflowId ? 1 : 0.4,
-              cursor: currentWorkflowId ? "pointer" : "default"
-            }}
-          >
-            <span>App</span>
-          </button>
-        </span>
-      </Tooltip>
-      <Tooltip title="Timeline" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          className={`mode-pill ${isTimelineActive ? "active" : ""}`}
-          onClick={handleTimelineClick}
-          tabIndex={-1}
-          aria-current={isTimelineActive ? "page" : undefined}
-          aria-label="Timeline"
-          data-testid="timeline-mode-pill"
-        >
-          <span>Timeline</span>
-        </button>
-      </Tooltip>
-      <Tooltip title="Image Editor" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-        <button
-          className={`mode-pill ${isSketchActive ? "active" : ""}`}
-          onClick={handleSketchClick}
-          tabIndex={-1}
-          aria-current={isSketchActive ? "page" : undefined}
-          aria-label="Image Editor"
-          data-testid="image-editor-mode-pill"
-        >
-          <span>Image</span>
-        </button>
-      </Tooltip>
-    </div>
-  );
-});
 
 // Templates button - positioned closer to right utility icons
 const TemplatesButton = memo(function TemplatesButton({
@@ -326,24 +122,25 @@ const TemplatesButton = memo(function TemplatesButton({
           height: "1.75em",
           minWidth: "auto",
           borderRadius: "var(--rounded-md)",
-          color: "var(--palette-text-default)",
+          color: "var(--palette-text-secondary)",
           border: "1px solid transparent",
           gap: "6px",
+          transition:
+            "color 150ms ease-out, background-color 150ms ease-out",
           "& .templates-icon": {
             width: "16px",
             height: "16px",
-            fontSize: "16px"
+            fontSize: "var(--fontSizeNormal)"
           },
           "&:hover": {
             backgroundColor: "var(--palette-action-hover)",
             color: "var(--palette-text-primary)",
-            borderColor: "transparent",
+            borderColor: "transparent"
           },
           "&.active": {
-
-            color: "var(--palette-primary-contrastText)",
-            backgroundColor: "var(--palette-primary-main)",
-            borderColor: "var(--palette-primary-main)",
+            color: "var(--palette-text-primary)",
+            backgroundColor: "var(--palette-action-selected)",
+            borderColor: "transparent"
           }
         }}
         className={`nav-button templates-button ${isActive ? "active" : ""}`}
@@ -367,7 +164,7 @@ const HeaderWorkspaceSelector = memo(function HeaderWorkspaceSelector() {
       delay={TOOLTIP_ENTER_DELAY}
       placement="bottom"
     >
-      <Box sx={{ width: 200 }}>
+      <Box sx={{ width: 280 }}>
         <WorkspaceSelect
           value={workspaceId}
           onChange={setWorkspaceId}
@@ -419,7 +216,7 @@ const ReturnToTimelinePill = memo(function ReturnToTimelinePill() {
           }
         }}
       >
-        <ArrowBackIcon sx={{ fontSize: "14px" }} />
+        <ArrowBackIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
         <span>Timeline</span>
       </EditorButton>
     </Tooltip>
@@ -467,7 +264,7 @@ const ReturnToSketchPill = memo(function ReturnToSketchPill() {
           }
         }}
       >
-        <ArrowBackIcon sx={{ fontSize: "14px" }} />
+        <ArrowBackIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
         <span>Image</span>
       </EditorButton>
     </Tooltip>
@@ -482,6 +279,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const isEditorRoute = path.startsWith("/editor/");
+  const sketchDocumentId = path.match(/^\/sketch\/([^/]+)/)?.[1];
 
   const handleLogoClick = useCallback(() => {
     navigate("/dashboard");
@@ -493,7 +291,13 @@ const AppHeader: React.FC = memo(function AppHeader() {
         <FlexRow className="navigate" gap={1} align="center">
           {/* Logo - clicks to Dashboard */}
           <Tooltip title="Go to Dashboard" delay={TOOLTIP_ENTER_DELAY} placement="bottom">
-            <div className="logo-container" onClick={handleLogoClick}>
+            <div
+              className="logo-container"
+              onClick={handleLogoClick}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleLogoClick(); }}
+              role="button"
+              tabIndex={0}
+            >
               <Logo
                 small
                 width="20px"
@@ -503,17 +307,17 @@ const AppHeader: React.FC = memo(function AppHeader() {
               />
             </div>
           </Tooltip>
-          {/* Mode Pills - Editor, Chat, Dashboard */}
-          <ModePills currentPath={path} />
           {/* Return to Timeline pill — only shown when opened from timeline */}
           {isEditorRoute && <ReturnToTimelinePill />}
           {/* Return to Image Editor pill — only shown when opened from sketch */}
           {isEditorRoute && <ReturnToSketchPill />}
+          {/* Save-to-image pill — only while editing an asset-linked sketch */}
+          {sketchDocumentId && (
+            <SaveImageEditPill documentId={sketchDocumentId} />
+          )}
           <Box sx={{ flexGrow: 1 }} />
         </FlexRow>
         <div className="buttons-right">
-          {workspacesEnabled && !isMobile && <HeaderWorkspaceSelector />}
-          <TemplatesButton isActive={path.startsWith("/templates")} />
           <RightSideButtons />
         </div>
       </Toolbar>

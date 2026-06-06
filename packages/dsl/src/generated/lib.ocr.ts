@@ -13,8 +13,8 @@ export interface ExtractTextOutputs {
   output: string;
 }
 
-export function extractText(inputs: ExtractTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractTextOutputs, "output"> {
-  return createNode("lib.ocr.ExtractText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractText(inputs: ExtractTextInputs): DslNode<ExtractTextOutputs, "output"> {
+  return createNode("lib.ocr.ExtractText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // OCR Extract Data — lib.ocr.ExtractData
@@ -27,6 +27,6 @@ export interface ExtractDataOutputs {
   output: Record<string, unknown>;
 }
 
-export function extractData(inputs: ExtractDataInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractDataOutputs, "output"> {
-  return createNode("lib.ocr.ExtractData", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractData(inputs: ExtractDataInputs): DslNode<ExtractDataOutputs, "output"> {
+  return createNode("lib.ocr.ExtractData", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

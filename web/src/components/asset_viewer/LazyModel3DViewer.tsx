@@ -44,7 +44,7 @@ const Model3DViewerLoadingFallback: React.FC<{ compact?: boolean }> = ({
     <LoadingSpinner size={compact ? "small" : "medium"} />
     {!compact && (
       <Text size="small" color="secondary">
-        Loading 3D viewer...
+        Loading 3D viewer…
       </Text>
     )}
   </FlexColumn>

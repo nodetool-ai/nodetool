@@ -50,7 +50,7 @@
     "nodes": [
       {
         "id": "claude-agent",
-        "type": "anthropic.agents.ClaudeAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
           "prompt": "Research the current state of open-source AI workflow tools in 2026. Use the available search tools to find information, then synthesize a brief research report with your findings. Search at least twice using different queries to get comprehensive coverage.",
           "model": {
@@ -59,11 +59,9 @@
             "id": "claude-sonnet-4-6",
             "name": "Claude Sonnet 4.6"
           },
-          "system_prompt": "You are a research analyst. You have access to search tools \u2014 use them to gather real data before writing your report. Be specific and cite sources.",
+          "system": "You are a research analyst. You have access to search tools \u2014 use them to gather real data before writing your report. Be specific and cite sources.",
           "max_turns": 10,
-          "allowed_tools": [],
-          "permission_mode": "acceptEdits",
-          "use_claude_credentials": true
+          "tools": []
         },
         "ui_properties": {
           "position": {

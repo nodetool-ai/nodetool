@@ -2,10 +2,11 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useEffect, useState, useMemo, memo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import WorkflowToolbar from "./WorkflowToolbar";
+import CategorySearchBar from "../node_menu/CategorySearchBar";
 import WorkflowDeleteDialog from "./WorkflowDeleteDialog";
 import {
   Workflow,
@@ -31,14 +32,9 @@ const styles = (theme: Theme) =>
       height: "100%"
     },
 
+    ".search-header": {},
     ".toolbar-header": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      padding: "0.75em 0 0.65em",
-      background: `linear-gradient(180deg, rgb(${theme.vars.palette.background.defaultChannel} / 0.92), rgb(${theme.vars.palette.background.defaultChannel} / 0.82))`,
-      backdropFilter: "blur(12px)",
-      borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
+      padding: "6px 0 10px"
     },
 
     ".status": {
@@ -46,9 +42,9 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      padding: "0.75em 0.75em 1em",
       flex: 1,
-      overflow: "hidden"
+      overflow: "hidden",
+      paddingLeft: "0.5em"
     },
     // Toggle category
     ".toggle-category": {
@@ -77,15 +73,23 @@ const WorkflowList = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const [filterValue, setFilterValue] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
   const [workflowsToDelete, setWorkflowsToDelete] = useState<
     WorkflowAttributes[]
   >([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [toolsExpanded, setToolsExpanded] = useState(false);
   const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
   const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
+  const shiftKeyRef = useRef(shiftKeyPressed);
+  shiftKeyRef.current = shiftKeyPressed;
+  const controlKeyRef = useRef(controlKeyPressed);
+  controlKeyRef.current = controlKeyPressed;
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 1000;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
@@ -126,9 +130,8 @@ const WorkflowList = () => {
     }
 
     if (showFavoritesOnly) {
-      filtered = filtered.filter((workflow) =>
-        favoriteWorkflowIds.includes(workflow.id)
-      );
+      const favSet = new Set(favoriteWorkflowIds);
+      filtered = filtered.filter((workflow) => favSet.has(workflow.id));
     }
 
     // Filter by selected tags (workflow must have ALL selected tags)
@@ -153,7 +156,7 @@ const WorkflowList = () => {
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyPressed || shiftKeyPressed) { return; }
+      if (controlKeyRef.current || shiftKeyRef.current) { return; }
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
@@ -162,7 +165,7 @@ const WorkflowList = () => {
         setSelectedWorkflows([]);
       }
     },
-    [controlKeyPressed, shiftKeyPressed]
+    [controlKeyRef, shiftKeyRef]
   );
 
   const onDelete = useCallback((workflow: Workflow) => {
@@ -280,24 +283,49 @@ const WorkflowList = () => {
     setShowFavoritesOnly((prev) => !prev);
   }, []);
 
+  const handleCloseDeleteDialog = useCallback(() => {
+    setIsDeleteDialogOpen(false);
+  }, []);
 
+  const handleCloseEditModal = useCallback(() => {
+    setWorkflowToEdit(null);
+  }, []);
+
+  const handleToggleCheckboxes = useCallback(() => {
+    setShowCheckboxes((prev) => !prev);
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    setWorkflowsToDelete(
+      workflows.filter((w) => selectedWorkflows.includes(w.id))
+    );
+    setIsDeleteDialogOpen(true);
+  }, [workflows, selectedWorkflows]);
 
   return (
     <>
       <WorkflowDeleteDialog
         open={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
+        onClose={handleCloseDeleteDialog}
         workflowsToDelete={workflowsToDelete}
       />
       {workflowToEdit && (
         <WorkflowFormModal
           open={!!workflowToEdit}
-          onClose={() => setWorkflowToEdit(null)}
+          onClose={handleCloseEditModal}
           workflow={workflowToEdit}
           availableTags={availableTags}
         />
       )}
       <FlexColumn gap={0} fullHeight css={styles(theme)}>
+        <div className="search-header">
+          <CategorySearchBar
+            ref={searchRef}
+            value={filterValue}
+            onChange={setFilterValue}
+            placeholder="Search workflows..."
+          />
+        </div>
         <FlexRow
           className="toolbar-header"
           align="center"
@@ -305,21 +333,13 @@ const WorkflowList = () => {
           justify="space-between"
         >
           <WorkflowToolbar
-            setFilterValue={setFilterValue}
             showCheckboxes={showCheckboxes}
-            toggleCheckboxes={() => setShowCheckboxes((prev) => !prev)}
+            toggleCheckboxes={handleToggleCheckboxes}
             selectedWorkflowsCount={selectedWorkflows.length}
-            onBulkDelete={() => {
-              setWorkflowsToDelete(
-                workflows.filter((w) => selectedWorkflows.includes(w.id))
-              );
-              setIsDeleteDialogOpen(true);
-            }}
+            onBulkDelete={handleBulkDelete}
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
             availableTags={availableTags}
-            compact={!toolsExpanded}
-            onExpand={() => setToolsExpanded(true)}
           />
         </FlexRow>
         <div className="status">

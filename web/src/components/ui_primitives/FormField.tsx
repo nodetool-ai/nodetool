@@ -101,7 +101,7 @@ export const FormField: React.FC<FormFieldProps> = ({
               component="span"
               sx={{
                 color: theme.vars.palette.error.main,
-                ml: 0.25,
+                ml: 0.5,
               }}
             >
               *

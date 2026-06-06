@@ -7,18 +7,18 @@
  */
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import SketchCanvasPresentation, {
-  cursorStyleForTool,
-  canvasTransformStyle
-} from "../SketchCanvasPresentation";
+import SketchCanvasPresentation from "../SketchCanvasPresentation";
 import type { SketchCanvasPresentationProps } from "../SketchCanvasPresentation";
+import { cursorStyleForTool } from "../sketchCursorStyle";
+import { canvasTransformStyle } from "../sketchCanvasPresentation.helpers";
 import { TransformTool } from "../tools/TransformTool";
 
 // Mock MUI ThemeProvider — SketchCanvasPresentation uses useTheme.
 jest.mock("@mui/material/styles", () => ({
   ...jest.requireActual("@mui/material/styles"),
   useTheme: () => ({
-    vars: { palette: { grey: { 800: "#424242" } } }
+    vars: { palette: { grey: { 800: "#424242" } } },
+    spacing: (n: number) => `${n * 8}px`
   })
 }));
 
@@ -31,6 +31,15 @@ jest.mock("../SketchCanvasResizeHandles", () => {
     }
   };
 });
+
+// Mock SelectionActionBar — this suite stubs useTheme with a minimal theme
+// that lacks the shape/shadows the bar reads. Its own behavior is covered by
+// SelectionActionBar.test.tsx.
+jest.mock("../SelectionActionBar", () => ({
+  __esModule: true,
+  SelectionActionBar: () => null,
+  default: () => null
+}));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

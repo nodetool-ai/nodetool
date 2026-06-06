@@ -16,8 +16,8 @@ export interface FetchRSSFeedOutputs {
   items: unknown[];
 }
 
-export function fetchRSSFeed(inputs: FetchRSSFeedInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<FetchRSSFeedOutputs> {
-  return createNode("lib.rss.FetchRSSFeed", inputs as Record<string, unknown>, { outputNames: ["title", "link", "published", "summary", "author", "items"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function fetchRSSFeed(inputs: FetchRSSFeedInputs): DslNode<FetchRSSFeedOutputs> {
+  return createNode("lib.rss.FetchRSSFeed", inputs as Record<string, unknown>, { outputNames: ["title", "link", "published", "summary", "author", "items"], streaming: true });
 }
 
 // Extract Feed Metadata — lib.rss.ExtractFeedMetadata
@@ -29,6 +29,6 @@ export interface ExtractFeedMetadataOutputs {
   output: Record<string, unknown>;
 }
 
-export function extractFeedMetadata(inputs: ExtractFeedMetadataInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractFeedMetadataOutputs, "output"> {
-  return createNode("lib.rss.ExtractFeedMetadata", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractFeedMetadata(inputs: ExtractFeedMetadataInputs): DslNode<ExtractFeedMetadataOutputs, "output"> {
+  return createNode("lib.rss.ExtractFeedMetadata", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

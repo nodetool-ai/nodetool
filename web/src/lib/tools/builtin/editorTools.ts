@@ -24,7 +24,7 @@ export interface EditorAdapter {
 
 let activeAdapter: EditorAdapter | null = null;
 
-export function setEditorAdapter(adapter: EditorAdapter | null) {
+export function setEditorAdapter(adapter: EditorAdapter | null): void {
   activeAdapter = adapter;
 }
 

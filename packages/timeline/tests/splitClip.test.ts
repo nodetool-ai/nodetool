@@ -85,4 +85,73 @@ describe("splitClip", () => {
     expect(left.id).toMatch(/^[0-9a-f]{32}$/);
     expect(right.id).toMatch(/^[0-9a-f]{32}$/);
   });
+
+  it("drops the boundary fades/transition that now fall on the interior cut", () => {
+    const clip: TimelineClip = {
+      ...makeBaseClip(),
+      fadeInMs: 80,
+      fadeOutMs: 90,
+      transitionIn: { type: "crossfade", durationMs: 120 }
+    };
+    const [left, right] = splitClip(clip, 250);
+
+    // The real clip start stays on the left, the real clip end on the right.
+    expect(left.fadeInMs).toBe(80);
+    expect(left.fadeOutMs).toBeUndefined();
+    expect(left.transitionIn).toEqual(clip.transitionIn);
+
+    expect(right.fadeOutMs).toBe(90);
+    expect(right.fadeInMs).toBeUndefined();
+    expect(right.transitionIn).toBeUndefined();
+  });
+
+  it("partitions caption words across the halves instead of duplicating them", () => {
+    const clip: TimelineClip = {
+      ...makeBaseClip(),
+      caption: {
+        words: [
+          { word: "alpha", startMs: 0, endMs: 100 },
+          { word: "beta", startMs: 120, endMs: 200 }, // straddles the cut at 150
+          { word: "gamma", startMs: 220, endMs: 380 }
+        ]
+      }
+    };
+    // Split at timeline 250 → 150ms into the clip (clip.startMs is 100).
+    const [left, right] = splitClip(clip, 250);
+
+    expect(left.caption?.words.map((w) => w.word)).toEqual(["alpha", "beta"]);
+    // The straddling word's end is clamped to the left half's duration (150).
+    expect(left.caption?.words[1]).toEqual({ word: "beta", startMs: 120, endMs: 150 });
+
+    // Right-half words are rebased to the right half's new start.
+    expect(right.caption?.words).toEqual([
+      { word: "gamma", startMs: 220 - 150, endMs: 380 - 150 }
+    ]);
+
+    // Each word lands in exactly one half — never duplicated across both.
+    const total =
+      (left.caption?.words.length ?? 0) + (right.caption?.words.length ?? 0);
+    expect(total).toBe(clip.caption!.words.length);
+  });
+
+  it("splits the source in/out points by playback rate for unbaked speed", () => {
+    // 2x speed, not baked: 400ms timeline consumes 800ms of source (50→850).
+    const clip: TimelineClip = {
+      ...makeBaseClip(),
+      inPointMs: 50,
+      outPointMs: 850,
+      durationMs: 400,
+      startMs: 100,
+      speedMultiplier: 2
+    };
+    const [left, right] = splitClip(clip, 300); // 200ms into the clip
+
+    // 200ms timeline * 2 = 400ms of source consumed by the left half.
+    expect(left.inPointMs).toBe(50);
+    expect(left.outPointMs).toBe(450);
+    expect(right.inPointMs).toBe(450);
+    expect(right.outPointMs).toBe(850);
+    // Source spans scale with rate; timeline durations still sum to the original.
+    expect(left.durationMs + right.durationMs).toBe(clip.durationMs);
+  });
 });

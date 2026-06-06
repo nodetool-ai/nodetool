@@ -6,6 +6,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { Tooltip, Text, Divider } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
+import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
@@ -16,6 +17,13 @@ import {
   formatFalUnitPricingTooltip,
   isFalVagueBillingSummary
 } from "../../utils/formatFalUnitPricing";
+import KieCreditsFooter from "../node/KieCreditsFooter";
+import { isKieNodeMetadata } from "../../utils/isKieNode";
+import {
+  formatKieUnitPricingShort,
+  formatKieUnitPricingTooltip,
+  isKieVagueBillingSummary,
+} from "../../utils/formatKieUnitPricing";
 import isEqual from "fast-deep-equal";
 
 interface NodeInfoProps {
@@ -51,7 +59,7 @@ const nodeInfoStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".replicate-status": {
-      fontWeight: "400",
+      fontWeight: 400,
       width: "fit-content",
       color: theme.vars.palette.grey[0],
       display: "inline-flex",
@@ -100,7 +108,7 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".node-usecases": {
       fontSize: theme.fontSizeSmaller,
-      fontWeight: "300",
+      fontWeight: 400,
       color: theme.vars.palette.text.secondary,
       lineHeight: "1.3em",
       ul: {
@@ -125,7 +133,7 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".inputs-outputs h4": {
       fontFamily: theme.fontFamily2,
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: "2em",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
@@ -199,10 +207,19 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag) => {
       const trimmedTag = tag.trim();
+      const handler = handleTagClick(trimmedTag);
       return (
         <span
-          onClick={handleTagClick(trimmedTag)}
+          onClick={handler}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handler();
+            }
+          }}
           key={trimmedTag}
+          role="button"
+          tabIndex={0}
           className="tag"
         >
           {trimmedTag}
@@ -269,6 +286,35 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
         </Tooltip>
       )}
 
+      {isKieNodeMetadata(nodeMetadata) && nodeMetadata.kie_unit_pricing && (
+        <Tooltip
+          delay={TOOLTIP_ENTER_DELAY}
+          placement="top-start"
+          title={
+            <Text sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+              {formatKieUnitPricingTooltip(nodeMetadata.kie_unit_pricing)}
+            </Text>
+          }
+        >
+          <Text
+            sx={{
+              fontSize: theme.fontSizeSmall,
+              color: isKieVagueBillingSummary(nodeMetadata.kie_unit_pricing)
+                ? theme.vars.palette.warning.main
+                : theme.vars.palette.success.main,
+              fontWeight: 600,
+              cursor: "default",
+            }}
+          >
+            KIE: {formatKieUnitPricingShort(nodeMetadata.kie_unit_pricing)}
+          </Text>
+        </Tooltip>
+      )}
+
+      {isKieNodeMetadata(nodeMetadata) && !nodeMetadata.kie_unit_pricing && (
+        <KieCreditsFooter metadata={nodeMetadata} selected variant="inline" />
+      )}
+
       {showConnections && (
         <div className="inputs-outputs">
           <div className="inputs">
@@ -296,7 +342,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                   <Text
                     className="type"
                     style={{
-                      borderColor: colorForType(property.type.type)
+                      borderColor: hexToRgba(colorForType(property.type.type), 0.4)
                     }}
                   >
                     {property.type.type}
@@ -318,7 +364,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                   <Text
                     className="type"
                     style={{
-                      borderColor: colorForType(property.type.type)
+                      borderColor: hexToRgba(colorForType(property.type.type), 0.4)
                     }}
                   >
                     {property.type.type}

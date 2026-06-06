@@ -2,6 +2,8 @@
 
 **Navigation**: [Root AGENTS.md](../../AGENTS.md) | [CLAUDE.md](../../CLAUDE.md) → **Web**
 
+> **Read [docs/DEVELOPMENT_STANDARDS.md](../../docs/DEVELOPMENT_STANDARDS.md) first.** It is the canonical source for React, Zustand, MUI/primitives, TanStack Query, ReactFlow, testing, accessibility, performance, and security standards. The rules below are the area-specific overlay for the web app.
+
 React single-page application for the NodeTool workflow editor. Runs on port 3000 in development, proxies API calls to the backend on port 7777.
 
 ## Build, Lint & Test
@@ -83,22 +85,27 @@ TanStack Query (web/src/serverState/)   — server data (workflows, assets, jobs
 
 ## Coding Guidelines
 
-See the [root AGENTS.md](../../AGENTS.md) for TypeScript, React, Zustand, MUI, and testing rules.
+See **[DEVELOPMENT_STANDARDS.md](../../docs/DEVELOPMENT_STANDARDS.md)** for the canonical rules and the [root AGENTS.md](../../AGENTS.md) for the base TypeScript/React/Zustand/MUI/testing reminders.
 
 Key reminders for this package:
 
-- **UI Primitives are mandatory.** Never import raw MUI components (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) in component files. Use the 90+ primitives from `components/ui_primitives/` instead. See the **[Primitives Strategy](components/ui_primitives/STRATEGY.md)** for the decision tree.
+- **UI Primitives are mandatory.** Never import raw MUI components (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) in component files. Use the 90+ primitives from `components/ui_primitives/` instead. See the **[Primitives Strategy](components/ui_primitives/STRATEGY.md)** for the decision tree and [DEVELOPMENT_STANDARDS §5](../../docs/DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives).
 - **Opportunistic migration**: When touching any file for any reason, migrate raw MUI usage to primitives.
-- Use TypeScript with explicit types. No `any`.
+- Use TypeScript with explicit types. No `any` — use `unknown` + narrowing or generics. See [§1](../../docs/DEVELOPMENT_STANDARDS.md#1-typescript).
 - Use functional components with typed props interfaces.
-- Use Zustand selectors to avoid unnecessary re-renders.
+- Use Zustand selectors to avoid unnecessary re-renders. See [§4](../../docs/DEVELOPMENT_STANDARDS.md#4-zustand).
 - Use `sx` prop on primitives for one-off styles. Use `styled()` only inside `ui_primitives/` for defining new primitives.
 - No inline `display: "flex"` — use `FlexRow`/`FlexColumn` layout primitives.
 - No hardcoded hex colors or pixel spacing — use theme values and spacing constants (`SPACING`, `GAP`, `PADDING`).
-- Place tests in `__tests__/` directories next to source files.
+- Place tests in `__tests__/` directories next to source files. See [§8](../../docs/DEVELOPMENT_STANDARDS.md#8-testing).
 - Follow the import order: React → third-party → stores/contexts → components → **primitives** → utils → styles.
 - Frontend tools (in `lib/`) must be prefixed with `ui_` (e.g., `ui_add_node`).
-- Use `GlobalWebSocketManager` singleton — never create WebSocket instances directly.
+- Use `GlobalWebSocketManager` singleton — never create WebSocket instances directly. See [§13](../../docs/DEVELOPMENT_STANDARDS.md#13-websocket-protocol).
+- **TanStack Query**: hierarchical keys via a per-resource factory, explicit `staleTime`, optimistic updates for list mutations. See [§6](../../docs/DEVELOPMENT_STANDARDS.md#6-tanstack-query-v5).
+- **Accessibility**: WCAG 2.2 AA target. `eslint-plugin-jsx-a11y` rules must pass. Every interactive element has a keyboard path and a visible focus ring. See [§14](../../docs/DEVELOPMENT_STANDARDS.md#14-accessibility-a11y).
+- **Performance budgets**: initial JS ≤ 250KB gzipped on the editor route; LCP ≤ 2.5s on Fast 3G. Lazy-load routes; code-split heavy deps. See [§15](../../docs/DEVELOPMENT_STANDARDS.md#15-performance).
+- **Error boundaries** wrap every route and every async data section. Suspense boundaries wrap every `lazy()` and every `useSuspenseQuery`.
+- **No `dangerouslySetInnerHTML`** without `DOMPurify.sanitize()`. See [§16](../../docs/DEVELOPMENT_STANDARDS.md#16-security).
 
 ## Dev Server Proxy
 
@@ -106,4 +113,3 @@ The Vite dev server proxies these paths to the backend:
 - `/api/*` → `http://localhost:7777`
 - `/ws/*` → `ws://localhost:7777`
 - `/storage/*` → `http://localhost:7777`
-- `/comfy-api/*` → `http://localhost:8000` (optional ComfyUI)

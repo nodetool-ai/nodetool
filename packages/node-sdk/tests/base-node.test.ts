@@ -76,7 +76,6 @@ describe("BaseNode", () => {
   it("genProcess() streams outputs via executor", async () => {
     class StreamNode extends BaseNode {
       static readonly nodeType = "test.Stream";
-      static readonly isStreamingOutput = true;
       async process() {
         return {};
       }
@@ -102,6 +101,26 @@ describe("BaseNode", () => {
     expect(desc.is_streaming_input).toBe(false);
     expect(desc.is_streaming_output).toBe(false);
     expect(desc.is_controlled).toBe(false);
+  });
+
+  it("toDescriptor() includes correlation metadata", () => {
+    class CorrelatedNode extends BaseNode {
+      static readonly nodeType = "test.Correlated";
+      static readonly inputMode = "stream" as const;
+      static readonly outputCorrelation = {
+        output: { kind: "forward", source: "input" }
+      } as const;
+
+      async process() {
+        return {};
+      }
+    }
+
+    const desc = CorrelatedNode.toDescriptor("my-id");
+    expect(desc.input_mode).toBe("stream");
+    expect(desc.output_correlation).toEqual({
+      output: { kind: "forward", source: "input" }
+    });
   });
 
   it("toDescriptor() uses nodeType as id when none provided", () => {
@@ -132,7 +151,6 @@ describe("BaseNode", () => {
   it("toExecutor() genProcess passes _control_context via getDynamic()", async () => {
     class ContextStreamNode extends BaseNode {
       static readonly nodeType = "test.ContextStream";
-      static readonly isStreamingOutput = true;
       async process() {
         return {};
       }

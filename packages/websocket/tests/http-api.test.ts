@@ -41,9 +41,8 @@ describe("HTTP API: metadata + workflows", () => {
 
             recommended_models: [],
             required_settings: [],
-            is_dynamic: false,
+            supports_dynamic_inputs: false,
             is_streaming_output: false,
-            expose_as_tool: false,
             supports_dynamic_outputs: false
           }
         ]
@@ -160,6 +159,46 @@ describe("HTTP API: metadata + workflows", () => {
 
     const missingRes = await handleApiRequest(getReq);
     expect(missingRes.status).toBe(404);
+  });
+
+  it("seeds create from configured examplesDir", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt-examples-api-"));
+    const examplesDir = path.join(root, "examples", "nodetool-base");
+    fs.mkdirSync(examplesDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(examplesDir, "demo.json"),
+      JSON.stringify({
+        name: "Demo",
+        graph: {
+          nodes: [{ id: "n1", type: "nodetool.constant.String" }],
+          edges: []
+        }
+      }),
+      "utf8"
+    );
+
+    const createReq = new Request(
+      "http://localhost/api/workflows/?from_example_name=demo",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-user-id": "user-1"
+        },
+        body: JSON.stringify({
+          name: "Demo Copy",
+          access: "private",
+          graph: { nodes: [], edges: [] }
+        })
+      }
+    );
+
+    const createRes = await handleApiRequest(createReq, { examplesDir });
+    expect(createRes.status).toBe(200);
+    const created = (await jsonBody(createRes)) as Record<string, unknown>;
+    const graph = created.graph as { nodes: unknown[]; edges: unknown[] };
+    expect(graph.nodes).toHaveLength(1);
+    expect(graph.nodes[0]).toMatchObject({ id: "n1" });
   });
 
   it("supports /api/workflows/public/{id} only for public workflows", async () => {

@@ -8,13 +8,14 @@ import React, {
 } from "react";
 import { shallow } from "zustand/shallow";
 //mui
-import { Box, InputAdornment, Menu, TextField } from "@mui/material";
+import { InputAdornment, Menu, TextField } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Divider, Text, ToolbarIconButton } from "../ui_primitives";
+import { Divider, Text, ToolbarIconButton, Box } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 //icons
 import PushPinIcon from "@mui/icons-material/PushPin";
 import InputIcon from "@mui/icons-material/Input";
+import EditNoteIcon from "@mui/icons-material/EditNote";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 //store
@@ -37,128 +38,128 @@ const NODE_ROW_HEIGHT = 28;
  * Returns null for types that don't have corresponding nodes.
  * sourceHandle is optional - defaults to "output" if not specified.
  */
+const NODE_PATHS_BY_TYPE: Record<
+  string,
+  { inputPath: string; constantPath: string; sourceHandle?: string }
+> = {
+  str: {
+    inputPath: "nodetool.input.StringInput",
+    constantPath: "nodetool.constant.String"
+  },
+  int: {
+    inputPath: "nodetool.input.IntegerInput",
+    constantPath: "nodetool.constant.Integer"
+  },
+  float: {
+    inputPath: "nodetool.input.FloatInput",
+    constantPath: "nodetool.constant.Float"
+  },
+  bool: {
+    inputPath: "nodetool.input.BooleanInput",
+    constantPath: "nodetool.constant.Bool"
+  },
+  boolean: {
+    inputPath: "nodetool.input.BooleanInput",
+    constantPath: "nodetool.constant.Bool"
+  },
+  image: {
+    inputPath: "nodetool.input.ImageInput",
+    constantPath: "nodetool.constant.Image"
+  },
+  audio: {
+    inputPath: "nodetool.input.AudioInput",
+    constantPath: "nodetool.constant.Audio"
+  },
+  video: {
+    inputPath: "nodetool.input.VideoInput",
+    constantPath: "nodetool.constant.Video"
+  },
+  document: {
+    inputPath: "nodetool.input.DocumentInput",
+    constantPath: "nodetool.constant.Document"
+  },
+  dataframe: {
+    inputPath: "nodetool.input.DataframeInput",
+    constantPath: "nodetool.constant.DataFrame"
+  },
+  enum: {
+    inputPath: "nodetool.input.SelectInput",
+    constantPath: "nodetool.constant.Select"
+  },
+  language_model: {
+    inputPath: "nodetool.input.LanguageModelInput",
+    constantPath: "nodetool.constant.LanguageModelConstant"
+  },
+  image_model: {
+    inputPath: "nodetool.input.ImageModelInput",
+    constantPath: "nodetool.constant.ImageModelConstant"
+  },
+  video_model: {
+    inputPath: "nodetool.input.VideoModelInput",
+    constantPath: "nodetool.constant.VideoModelConstant"
+  },
+  tts_model: {
+    inputPath: "nodetool.input.TTSModelInput",
+    constantPath: "nodetool.constant.TTSModelConstant"
+  },
+  asr_model: {
+    inputPath: "nodetool.input.ASRModelInput",
+    constantPath: "nodetool.constant.ASRModelConstant"
+  },
+  embedding_model: {
+    inputPath: "nodetool.input.EmbeddingModelInput",
+    constantPath: "nodetool.constant.EmbeddingModelConstant"
+  },
+  image_size: {
+    inputPath: "nodetool.input.ImageSizeInput",
+    constantPath: "nodetool.constant.ImageSize",
+    sourceHandle: "image_size"
+  }
+};
+
 const getNodePathsForType = (
   typeName: string
-): { inputPath: string; constantPath: string; sourceHandle?: string } | null => {
-  const mapping: Record<
-    string,
-    { inputPath: string; constantPath: string; sourceHandle?: string }
-  > = {
-    str: {
-      inputPath: "nodetool.input.StringInput",
-      constantPath: "nodetool.constant.String"
-    },
-    int: {
-      inputPath: "nodetool.input.IntegerInput",
-      constantPath: "nodetool.constant.Integer"
-    },
-    float: {
-      inputPath: "nodetool.input.FloatInput",
-      constantPath: "nodetool.constant.Float"
-    },
-    bool: {
-      inputPath: "nodetool.input.BooleanInput",
-      constantPath: "nodetool.constant.Bool"
-    },
-    boolean: {
-      inputPath: "nodetool.input.BooleanInput",
-      constantPath: "nodetool.constant.Bool"
-    },
-    image: {
-      inputPath: "nodetool.input.ImageInput",
-      constantPath: "nodetool.constant.Image"
-    },
-    audio: {
-      inputPath: "nodetool.input.AudioInput",
-      constantPath: "nodetool.constant.Audio"
-    },
-    video: {
-      inputPath: "nodetool.input.VideoInput",
-      constantPath: "nodetool.constant.Video"
-    },
-    document: {
-      inputPath: "nodetool.input.DocumentInput",
-      constantPath: "nodetool.constant.Document"
-    },
-    dataframe: {
-      inputPath: "nodetool.input.DataframeInput",
-      constantPath: "nodetool.constant.DataFrame"
-    },
-    enum: {
-      inputPath: "nodetool.input.SelectInput",
-      constantPath: "nodetool.constant.Select"
-    },
-    language_model: {
-      inputPath: "nodetool.input.LanguageModelInput",
-      constantPath: "nodetool.constant.LanguageModelConstant"
-    },
-    image_model: {
-      inputPath: "nodetool.input.ImageModelInput",
-      constantPath: "nodetool.constant.ImageModelConstant"
-    },
-    video_model: {
-      inputPath: "nodetool.input.VideoModelInput",
-      constantPath: "nodetool.constant.VideoModelConstant"
-    },
-    tts_model: {
-      inputPath: "nodetool.input.TTSModelInput",
-      constantPath: "nodetool.constant.TTSModelConstant"
-    },
-    asr_model: {
-      inputPath: "nodetool.input.ASRModelInput",
-      constantPath: "nodetool.constant.ASRModelConstant"
-    },
-    embedding_model: {
-      inputPath: "nodetool.input.EmbeddingModelInput",
-      constantPath: "nodetool.constant.EmbeddingModelConstant"
-    },
-    image_size: {
-      inputPath: "nodetool.input.ImageSizeInput",
-      constantPath: "nodetool.constant.ImageSize",
-      sourceHandle: "image_size"
-    }
-  };
-  return mapping[typeName] ?? null;
-};
+): { inputPath: string; constantPath: string; sourceHandle?: string } | null =>
+  NODE_PATHS_BY_TYPE[typeName] ?? null;
 
 /**
  * Maps element type to specialized list constant node paths.
  */
+const LIST_CONSTANT_PATHS: Record<
+  string,
+  { constantPath: string; inputPath: string; label: string }
+> = {
+  image: {
+    constantPath: "nodetool.constant.ImageList",
+    inputPath: "nodetool.input.ImageListInput",
+    label: "Image List"
+  },
+  video: {
+    constantPath: "nodetool.constant.VideoList",
+    inputPath: "nodetool.input.VideoListInput",
+    label: "Video List"
+  },
+  audio: {
+    constantPath: "nodetool.constant.AudioList",
+    inputPath: "nodetool.input.AudioListInput",
+    label: "Audio List"
+  },
+  text: {
+    constantPath: "nodetool.constant.TextList",
+    inputPath: "nodetool.input.TextListInput",
+    label: "Text List"
+  },
+  str: {
+    constantPath: "nodetool.constant.TextList",
+    inputPath: "nodetool.input.StringListInput",
+    label: "Text List"
+  }
+};
+
 const getListConstantPathForElementType = (
   elementTypeName: string
-): { constantPath: string; inputPath: string; label: string } | null => {
-  const mapping: Record<
-    string,
-    { constantPath: string; inputPath: string; label: string }
-  > = {
-    image: {
-      constantPath: "nodetool.constant.ImageList",
-      inputPath: "nodetool.input.ImageListInput",
-      label: "Image List"
-    },
-    video: {
-      constantPath: "nodetool.constant.VideoList",
-      inputPath: "nodetool.input.VideoListInput",
-      label: "Video List"
-    },
-    audio: {
-      constantPath: "nodetool.constant.AudioList",
-      inputPath: "nodetool.input.AudioListInput",
-      label: "Audio List"
-    },
-    text: {
-      constantPath: "nodetool.constant.TextList",
-      inputPath: "nodetool.input.TextListInput",
-      label: "Text List"
-    },
-    str: {
-      constantPath: "nodetool.constant.TextList",
-      inputPath: "nodetool.input.StringListInput",
-      label: "Text List"
-    }
-  };
-  return mapping[elementTypeName] ?? null;
-};
+): { constantPath: string; inputPath: string; label: string } | null =>
+  LIST_CONSTANT_PATHS[elementTypeName] ?? null;
 
 const InputContextMenu: React.FC = () => {
   const theme = useTheme();
@@ -220,6 +221,8 @@ const InputContextMenu: React.FC = () => {
     fallbackConstantPath;
   const inputNodeMetadata = getMetadata(inputNodePath);
   const constantNodeMetadata = getMetadata(constantNodePath);
+  const promptNodeMetadata =
+    type?.type === "str" ? getMetadata("nodetool.text.Prompt") : null;
 
   const specializedListLabel = specializedListPaths?.label;
 
@@ -462,6 +465,55 @@ const InputContextMenu: React.FC = () => {
     ]
   );
 
+  const createPromptNode = useCallback(
+    (event: React.MouseEvent) => {
+      if (!promptNodeMetadata) {
+        return;
+      }
+      const isCollect = type ? isCollectType(type) : false;
+      const placement = computeFlowPosition(
+        { x: event.clientX, y: event.clientY },
+        promptNodeMetadata
+      );
+      const newNode = createNode(promptNodeMetadata, {
+        x: placement.x,
+        y: placement.y
+      });
+      newNode.data.size = { width: placement.width, height: placement.height };
+      addNode(newNode);
+      const validEdges = replaceTargetEdges(
+        edges,
+        nodeId && handleId ? { nodeId, handleId } : null,
+        isCollect
+      );
+      setEdges([
+        ...validEdges,
+        {
+          id: generateEdgeId(),
+          source: newNode.id,
+          target: nodeId || "",
+          sourceHandle: "output",
+          targetHandle: handleId,
+          type: "default",
+          className: Slugify(type?.type || "")
+        }
+      ]);
+    },
+    [
+      promptNodeMetadata,
+      computeFlowPosition,
+      createNode,
+      type,
+      addNode,
+      replaceTargetEdges,
+      edges,
+      nodeId,
+      handleId,
+      setEdges,
+      generateEdgeId
+    ]
+  );
+
   const createCollectElementConstantNode = useCallback(
     (event: React.MouseEvent) => {
       if (!collectElementConstantNodeMetadata) {
@@ -575,6 +627,18 @@ const InputContextMenu: React.FC = () => {
     [createInputNode, closeContextMenu]
   );
 
+  const handleCreatePromptNode = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        createPromptNode(event);
+      }
+      closeContextMenu();
+    },
+    [createPromptNode, closeContextMenu]
+  );
+
   const handleCreateCollectElementConstantNode = useCallback(
     (event?: React.MouseEvent<HTMLElement>) => {
       if (event) {
@@ -621,7 +685,7 @@ const InputContextMenu: React.FC = () => {
     getScrollElement: () => scrollRef.current,
     estimateSize: () => NODE_ROW_HEIGHT,
     initialRect: { height: 160, width: 320 },
-    overscan: 12,
+    overscan: theme.virtualScroll.overscan.normal,
     getItemKey: (index) => rankedConnectableNodes[index]?.node_type ?? index
   });
 
@@ -649,12 +713,15 @@ const InputContextMenu: React.FC = () => {
       if (!menuPosition) {
         return;
       }
+      const anchorPosition =
+        (payload as { dropPosition?: { x: number; y: number } } | null)
+          ?.dropPosition ?? menuPosition;
       const outputName = getPreferredConnectableOutput(metadata);
       if (!outputName) {
         return;
       }
       const isCollect = type ? isCollectType(type) : false;
-      const placement = computeFlowPosition(menuPosition, metadata);
+      const placement = computeFlowPosition(anchorPosition, metadata);
       const newNode = createNode(metadata, {
         x: placement.x,
         y: placement.y
@@ -682,6 +749,7 @@ const InputContextMenu: React.FC = () => {
     },
     [
       menuPosition,
+      payload,
       getPreferredConnectableOutput,
       type,
       computeFlowPosition,
@@ -817,7 +885,7 @@ const InputContextMenu: React.FC = () => {
       }}
       transitionDuration={200}
     >
-      <Box sx={{ px: 0.75, py: 0.25 }}>
+      <Box sx={{ px: 1, py: 0.5 }}>
         <TextField
           inputRef={searchInputRef}
           size="small"
@@ -846,7 +914,7 @@ const InputContextMenu: React.FC = () => {
             },
             "& .MuiInputBase-input": {
               fontSize: "var(--fontSizeSmall)",
-              py: 0.25
+              py: 0.5
             }
           }}
           slotProps={{
@@ -874,7 +942,7 @@ const InputContextMenu: React.FC = () => {
         />
       </Box>
       {showStaticActions && (
-        <Box sx={{ px: 0.75, py: 0.1 }}>
+        <Box sx={{ px: 1, py: 0.5 }}>
           {collectElementConstantNodeMetadata && (
             <Box
               component="button"
@@ -935,6 +1003,20 @@ const InputContextMenu: React.FC = () => {
               <Text size="small">{inputLabel}</Text>
             </Box>
           )}
+          {promptNodeMetadata && (
+            <Box
+              component="button"
+              type="button"
+              className="create-prompt-node"
+              onClick={handleCreatePromptNode}
+              sx={actionRowStyles}
+            >
+              <span className="icon-bg">
+                <EditNoteIcon />
+              </span>
+              <Text size="small">Prompt</Text>
+            </Box>
+          )}
         </Box>
       )}
       {showStaticActions && <Divider />}
@@ -956,7 +1038,7 @@ const InputContextMenu: React.FC = () => {
             ".node-button": { padding: 0 },
             ".icon-bg": { padding: 0, width: "16px", height: "16px" },
             ".icon-bg svg": {
-              fontSize: "0.75rem",
+              fontSize: "var(--fontSizeSmall)",
               width: "12px",
               height: "12px"
             }

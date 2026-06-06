@@ -98,7 +98,7 @@ const styles = (theme: Theme, variant: BannerVariant, animate: boolean) => {
     
     .banner-description {
       color: ${theme.vars.palette.text.secondary};
-      font-size: 13px;
+      font-size: var(--fontSizeSmall);
       margin-top: 4px;
       line-height: 1.4;
     }

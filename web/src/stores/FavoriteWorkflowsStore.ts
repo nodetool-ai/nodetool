@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { useShallow } from "zustand/react/shallow";
 
 interface FavoriteWorkflowsState {
   favoriteWorkflowIds: string[];
@@ -54,14 +55,15 @@ export const useFavoriteWorkflowsStore = create<FavoriteWorkflowsState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ favoriteWorkflowIds: state.favoriteWorkflowIds }),
       migrate: (persistedState, _version) => {
-        if (!persistedState || typeof persistedState !== "object") {
+        if (!persistedState || typeof persistedState !== "object" || Array.isArray(persistedState)) {
           return { favoriteWorkflowIds: [] };
         }
         const state = persistedState as Record<string, unknown>;
-        if (!Array.isArray(state.favoriteWorkflowIds)) {
-          state.favoriteWorkflowIds = [];
-        }
-        return state;
+        return {
+          favoriteWorkflowIds: Array.isArray(state.favoriteWorkflowIds)
+            ? state.favoriteWorkflowIds.filter((x): x is string => typeof x === "string")
+            : []
+        };
       }
     }
   )
@@ -75,14 +77,16 @@ export interface FavoriteWorkflowActions {
   clearAll: () => void;
 }
 
-export const useFavoriteWorkflowActions = (): FavoriteWorkflowActions => {
-  const toggleFavorite = useFavoriteWorkflowsStore((state) => state.toggleFavorite);
-  const addFavorite = useFavoriteWorkflowsStore((state) => state.addFavorite);
-  const removeFavorite = useFavoriteWorkflowsStore((state) => state.removeFavorite);
-  const isFavorite = useFavoriteWorkflowsStore((state) => state.isFavorite);
-  const clearAll = useFavoriteWorkflowsStore((state) => state.clearAll);
-  return { toggleFavorite, addFavorite, removeFavorite, isFavorite, clearAll };
-};
+export const useFavoriteWorkflowActions = (): FavoriteWorkflowActions =>
+  useFavoriteWorkflowsStore(
+    useShallow((state) => ({
+      toggleFavorite: state.toggleFavorite,
+      addFavorite: state.addFavorite,
+      removeFavorite: state.removeFavorite,
+      isFavorite: state.isFavorite,
+      clearAll: state.clearAll
+    }))
+  );
 
 export const useIsWorkflowFavorite = (workflowId: string): boolean =>
   useFavoriteWorkflowsStore((state) =>

@@ -1,7 +1,15 @@
 /**
  * @jest-environment node
  */
-import { formatFileSize, SIZE_FILTERS, type SizeFilterKey } from '../formatUtils';
+import {
+  formatDuration,
+  formatFileSize,
+  formatToolName,
+  SIZE_FILTERS,
+  type SizeFilterKey,
+  TYPE_FILTERS,
+  type TypeFilterKey
+} from '../formatUtils';
 
 describe('formatFileSize', () => {
   test('formats bytes correctly', () => {
@@ -71,6 +79,37 @@ describe('formatFileSize', () => {
   });
 });
 
+describe('formatDuration', () => {
+  test('formats sub-second durations as ms', () => {
+    expect(formatDuration(0)).toBe('0ms');
+    expect(formatDuration(420)).toBe('420ms');
+    expect(formatDuration(999)).toBe('999ms');
+  });
+
+  test('formats seconds with one decimal', () => {
+    expect(formatDuration(1000)).toBe('1s');
+    expect(formatDuration(1240)).toBe('1.2s');
+    expect(formatDuration(59500)).toBe('59.5s');
+  });
+
+  test('formats minutes with zero-padded seconds', () => {
+    expect(formatDuration(60000)).toBe('1m 00s');
+    expect(formatDuration(64000)).toBe('1m 04s');
+    expect(formatDuration(125000)).toBe('2m 05s');
+  });
+
+  test('handles minute boundary rounding correctly', () => {
+    expect(formatDuration(119999)).toBe('2m 00s');
+    expect(formatDuration(59999)).toBe('1m 00s');
+  });
+
+  test('returns null for invalid input', () => {
+    expect(formatDuration(-1)).toBeNull();
+    expect(formatDuration(NaN)).toBeNull();
+    expect(formatDuration(Infinity)).toBeNull();
+  });
+});
+
 describe('SIZE_FILTERS', () => {
   test('has correct number of filters', () => {
     expect(SIZE_FILTERS).toHaveLength(6);
@@ -125,8 +164,66 @@ describe('SIZE_FILTERS', () => {
   test('type SizeFilterKey works correctly', () => {
     const testKey: SizeFilterKey = 'all';
     expect(testKey).toBe('all');
-    
+
     const validKeys: SizeFilterKey[] = ['all', 'empty', 'small', 'medium', 'large', 'xlarge'];
     expect(validKeys).toHaveLength(6);
+  });
+});
+
+describe('TYPE_FILTERS', () => {
+  test('has correct number of filters', () => {
+    expect(TYPE_FILTERS).toHaveLength(8);
+  });
+
+  test('has all required filter keys', () => {
+    const keys = TYPE_FILTERS.map(f => f.key);
+    expect(keys).toEqual(['all', 'image', 'video', 'audio', 'model_3d', 'text', 'application', 'other']);
+  });
+
+  test('has correct labels', () => {
+    const labels = TYPE_FILTERS.map(f => f.label);
+    expect(labels).toEqual(['All', 'Images', 'Videos', 'Audio', '3D Models', 'Text', 'Documents', 'Other']);
+  });
+
+  test('type TypeFilterKey works correctly', () => {
+    const testKey: TypeFilterKey = 'image';
+    expect(testKey).toBe('image');
+
+    const validKeys: TypeFilterKey[] = ['all', 'image', 'video', 'audio', 'model_3d', 'text', 'application', 'other'];
+    expect(validKeys).toHaveLength(8);
+  });
+});
+
+describe('formatToolName', () => {
+  test('converts snake_case to Title Case', () => {
+    expect(formatToolName('google_search')).toBe('Google Search');
+    expect(formatToolName('read_file')).toBe('Read File');
+  });
+
+  test('strips ui_ prefix', () => {
+    expect(formatToolName('ui_search_nodes')).toBe('Search Nodes');
+    expect(formatToolName('ui_add_node')).toBe('Add Node');
+  });
+
+  test('strips tool_ prefix', () => {
+    expect(formatToolName('tool_execute')).toBe('Execute');
+    expect(formatToolName('tool_list_files')).toBe('List Files');
+  });
+
+  test('extracts tool name from MCP-style names', () => {
+    expect(formatToolName('mcp__nodetool-ui__ui_search_nodes')).toBe('Search Nodes');
+    expect(formatToolName('mcp__server__read_file')).toBe('Read File');
+  });
+
+  test('handles MCP names with underscores in server name', () => {
+    expect(formatToolName('mcp__my_server__do_thing')).toBe('Do Thing');
+  });
+
+  test('handles single-word names', () => {
+    expect(formatToolName('search')).toBe('Search');
+  });
+
+  test('handles already capitalized input', () => {
+    expect(formatToolName('Search')).toBe('Search');
   });
 });

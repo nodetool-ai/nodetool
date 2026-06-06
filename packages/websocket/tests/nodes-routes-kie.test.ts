@@ -427,4 +427,101 @@ The \`callBackUrl\` parameter allows you to receive automatic notifications when
       }
     });
   });
+
+  it("resolves gemini-omni-video params from embedded OpenAPI YAML", async () => {
+    const docs = `# Gemini Omni Video
+
+| **Format** | \`gemini-omni-video\` |
+
+### input Object Parameters
+
+#### prompt
+- **Type**: \`string\`
+- **Required**: Yes
+- **Description**: Video prompt.
+
+#### image_urls
+- **Type**: \`array\`
+- **Required**: No
+- **Description**: Please provide the URL of the uploaded file,Upload an image file to use as input for the API
+- **Accepted File Types**: image/jpeg, image/png, image/webp, image/jpg
+
+\`\`\`yaml
+openapi: 3.0.1
+paths:
+  /api/v1/jobs/createTask:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  enum:
+                    - gemini-omni-video
+                input:
+                  type: object
+                  required:
+                    - prompt
+                  properties:
+                    prompt:
+                      type: string
+                    image_urls:
+                      type: array
+                      items:
+                        type: string
+                        format: uri
+                    audio_ids:
+                      type: array
+                      items:
+                        type: string
+                    video_list:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            format: uri
+                          start:
+                            type: number
+                          ends:
+                            type: number
+                    character_ids:
+                      type: array
+                      items:
+                        type: string
+\`\`\`
+`;
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/kie/resolve-dynamic-schema",
+      payload: { model_info: docs }
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      model_id: "gemini-omni-video",
+      dynamic_inputs: {
+        video_list: {
+          type: "list",
+          type_args: [{ type: "video", type_args: [] }]
+        },
+        audio_ids: {
+          type: "list",
+          type_args: [{ type: "str", type_args: [] }]
+        },
+        character_ids: {
+          type: "list",
+          type_args: [{ type: "str", type_args: [] }]
+        }
+      },
+      dynamic_outputs: {
+        video: { type: "video" }
+      }
+    });
+  });
 });

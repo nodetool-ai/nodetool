@@ -30,12 +30,12 @@ import {
   type LogUpdate
 } from "@nodetool-ai/protocol";
 import type { Step, Task } from "./types.js";
-import type { Tool } from "./tools/base-tool.js";
+import { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
+import { TOOL_CALL_ID_FIELD } from "./tools/subtask-fields.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
-import { rejectAgenticProvider } from "./reject-agentic-provider.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -64,6 +64,7 @@ const PROMPT_TOOL_USE = `# Tool Use
 - Use tools only when they materially improve correctness or are required.
 - Avoid exploratory or repeated tool calls that are unlikely to change the outcome.
 - Before each tool call, emit a one-sentence rationale describing what you're doing and why.
+- Every tool's input schema includes a \`_message\` string field. Set it on EVERY call to a short (5-12 words), present-continuous status describing what you're doing — this is what the user sees while the tool runs. Examples: "Reading config.json", "Searching the web for AI trends", "Adding image generator node", "Calling http_request to POST /api/items". Be specific about the target (file, URL, query, node type) — generic strings like "Running tool" are useless to the user.
 
 ## Memory Tools (progressive disclosure)
 - Shared agent memory holds results from prior steps and tasks, original inputs, and facts published by other agents.
@@ -781,12 +782,15 @@ export class StepExecutor {
   }
 
   /**
-   * Generate a user-facing message for a tool call.
+   * Generate a user-facing message for a tool call. Prefers the LLM-authored
+   * `_message` arg; falls back to the tool's parameter-aware template.
    */
   private generateToolCallMessage(toolCall: ToolCall): string {
+    const llm = Tool.extractMessage(toolCall.args);
+    if (llm) return llm;
     for (const tool of this.tools) {
       if (tool.name === toolCall.name) {
-        return tool.userMessage(toolCall.args);
+        return tool.userMessage(Tool.stripMessage(toolCall.args));
       }
     }
     return `Running ${toolCall.name}`;
@@ -883,8 +887,6 @@ export class StepExecutor {
       step: { id: this.step.id, instructions: this.step.instructions },
       event: TaskUpdateEvent.StepStarted
     } satisfies TaskUpdate;
-
-    rejectAgenticProvider(this.provider, "StepExecutor.execute");
 
     // --- Standard multi-iteration loop ---
     while (!this.step.completed && this.iterations < this.maxIterations) {
@@ -1058,6 +1060,7 @@ export class StepExecutor {
             yield {
               type: "tool_call_update",
               node_id: this.step.id,
+              tool_call_id: tc.id,
               name: tc.name,
               args: tc.args,
               message: this.generateToolCallMessage(tc)
@@ -1080,17 +1083,21 @@ export class StepExecutor {
             regularToolCalls.map(async (tc) => {
               const tool = this.tools.find((t) => t.name === tc.name);
               if (!tool) return { error: `Unknown tool: ${tc.name}` };
+              const cleanArgs = Tool.stripMessage(tc.args ?? {});
+              if (tool.needsToolCallId) {
+                cleanArgs[TOOL_CALL_ID_FIELD] = tc.id;
+              }
               // Intercept ControlNodeTool: create event instead of calling process()
               if (tool instanceof ControlNodeTool) {
-                const event = tool.createControlEvent(tc.args ?? {});
+                const event = tool.createControlEvent(cleanArgs);
                 this._controlEvents.push({
                   targetNodeId: tool.targetNodeId,
                   event
                 });
-                return tool.userMessage(tc.args ?? {});
+                return Tool.resolveMessage(tool, tc.args);
               }
               try {
-                const result = await tool.process(this.context, tc.args ?? {});
+                const result = await tool.process(this.context, cleanArgs);
                 return result;
               } catch (e) {
                 return { error: String(e) };

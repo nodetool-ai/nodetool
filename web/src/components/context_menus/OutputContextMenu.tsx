@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, memo, useRef, useState } from "react";
 import { shallow } from "zustand/shallow";
 //mui
-import { Box, InputAdornment, Menu, TextField } from "@mui/material";
+import { InputAdornment, Menu, TextField } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Divider, Text, ToolbarIconButton } from "../ui_primitives";
+import { Divider, Text, ToolbarIconButton, Box } from "../ui_primitives";
+import { PREVIEW_NODE_TYPE, REROUTE_NODE_TYPE } from "../../constants/nodeTypes";
 import { useTheme } from "@mui/material/styles";
 //icons
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -34,13 +35,15 @@ const OutputContextMenu: React.FC = () => {
     menuPosition,
     closeContextMenu,
     type: sourceType,
-    handleId: sourceHandle
+    handleId: sourceHandle,
+    payload
   } = useContextMenuStore((state) => ({
     nodeId: state.nodeId,
     menuPosition: state.menuPosition,
     closeContextMenu: state.closeContextMenu,
     type: state.type,
-    handleId: state.handleId
+    handleId: state.handleId,
+    payload: state.payload
   }), shallow);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -189,7 +192,7 @@ const OutputContextMenu: React.FC = () => {
 
   const createPreviewNode = useCallback(
     (event: React.MouseEvent) => {
-      const metadata = getMetadata("nodetool.workflows.base_node.Preview");
+      const metadata = getMetadata(PREVIEW_NODE_TYPE);
       if (!metadata) {
         return;
       }
@@ -210,7 +213,7 @@ const OutputContextMenu: React.FC = () => {
 
   const createRerouteNode = useCallback(
     (event: React.MouseEvent) => {
-      const metadata = getMetadata("nodetool.control.Reroute");
+      const metadata = getMetadata(REROUTE_NODE_TYPE);
       if (!metadata) {
         return;
       }
@@ -305,7 +308,7 @@ const OutputContextMenu: React.FC = () => {
     getScrollElement: () => scrollRef.current,
     estimateSize: () => NODE_ROW_HEIGHT,
     initialRect: { height: 160, width: 320 },
-    overscan: 12,
+    overscan: theme.virtualScroll.overscan.normal,
     getItemKey: (index) => rankedConnectableNodes[index]?.node_type ?? index
   });
 
@@ -362,14 +365,23 @@ const OutputContextMenu: React.FC = () => {
       if (!menuPosition) {
         return;
       }
+      const anchorPosition =
+        (payload as { dropPosition?: { x: number; y: number } } | null)
+          ?.dropPosition ?? menuPosition;
       const property = getPreferredConnectableInput(metadata);
       if (!property) {
         return;
       }
-      createNodeWithEdge(metadata, menuPosition, "connectable", property.name);
+      createNodeWithEdge(metadata, anchorPosition, "connectable", property.name);
       closeContextMenu();
     },
-    [closeContextMenu, createNodeWithEdge, getPreferredConnectableInput, menuPosition]
+    [
+      closeContextMenu,
+      createNodeWithEdge,
+      getPreferredConnectableInput,
+      menuPosition,
+      payload
+    ]
   );
 
   useEffect(() => {
@@ -464,7 +476,7 @@ const OutputContextMenu: React.FC = () => {
         }}
         transitionDuration={200}
       >
-        <Box sx={{ px: 0.75, py: 0.25 }}>
+        <Box sx={{ px: 1, py: 0.5 }}>
           <TextField
             inputRef={searchInputRef}
             size="small"
@@ -493,7 +505,7 @@ const OutputContextMenu: React.FC = () => {
               },
               "& .MuiInputBase-input": {
                 fontSize: "var(--fontSizeSmall)",
-                py: 0.25
+                py: 0.5
               }
             }}
             slotProps={{
@@ -521,7 +533,7 @@ const OutputContextMenu: React.FC = () => {
           />
         </Box>
         {showStaticActions && (
-          <Box sx={{ px: 0.75, py: 0.1 }}>
+          <Box sx={{ px: 1, py: 0.5 }}>
             <Box
             component="button"
             type="button"
@@ -586,7 +598,7 @@ const OutputContextMenu: React.FC = () => {
               "&:hover": { backgroundColor: theme.vars.palette.action.hover },
               ".node-button": { padding: 0 },
               ".icon-bg": { padding: 0, width: "16px", height: "16px" },
-              ".icon-bg svg": { fontSize: "0.75rem", width: "12px", height: "12px" }
+              ".icon-bg svg": { fontSize: "var(--fontSizeSmall)", width: "12px", height: "12px" }
             }
           }}
         >

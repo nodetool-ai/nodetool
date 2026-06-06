@@ -20,6 +20,20 @@
   margin-bottom: 0;
 }
 
+/* Value differs from default — subtle star marker near the label, no layout shift. */
+.node-property:has(> .property-input-container.value-changed)::after {
+  content: "✦";
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  font-size: var(--fontSizeSmaller);
+  line-height: 1;
+  color: color-mix(in srgb, var(--palette-primary-main) 60%, transparent);
+  opacity: 0.7;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Pre-flight validation: a property value is missing or invalid for the
    declared type. Goal is to draw the eye without overwhelming the node:
    a thin left accent bar, red label, and a focus-style ring on the input.
@@ -96,7 +110,7 @@
 
 .node-editor .node-output {
   padding: 0 1em;
-  margin: 1px 0 0;
+  margin: 0px 0 0;
 }
 
 /* Code display */

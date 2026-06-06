@@ -4,8 +4,7 @@ import { supabase } from "../lib/supabaseClient"; // Import Supabase client
 import type { Session, User, Provider } from "@supabase/supabase-js"; // Import Supabase types
 import { isLocalhost } from "../lib/env"; // Keep isLocalhost for potential dev bypass
 
-// Define Supabase provider types supported by the application
-export type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
+type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
 
 /**
  * Resolve the OAuth redirect URL.

@@ -27,7 +27,7 @@ import {
 
 const log = createLogger("nodetool.agents.planner");
 import type { Task, TaskPlan, Step } from "./types.js";
-import type { Tool } from "./tools/base-tool.js";
+import { Tool } from "./tools/base-tool.js";
 import { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 import {
   PlanBuilder,
@@ -35,7 +35,6 @@ import {
   RemoveTaskTool,
   FinishPlanTool
 } from "./tools/plan-builder-tools.js";
-import { rejectAgenticProvider } from "./reject-agentic-provider.js";
 
 const MAX_RETRIES = 3;
 const MAX_PER_TASK_RETRIES = 3;
@@ -48,6 +47,9 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 3. Add dependency tasks BEFORE their dependents (task-level \`depends_on\` must point at a task already added).
 4. If you added a task in error, call \`remove_task\` with its id.
 5. When all tasks are added, call \`finish_plan\` with the overall plan title.
+
+## User-Facing Status
+- Every tool's input schema includes a \`_message\` string field. Set it on EVERY call to a short (5-12 words), present-continuous status describing what you're doing (e.g. "Adding research task", "Removing duplicate summarize task", "Finalizing 5-task plan"). This is shown live in the UI while the planner runs.
 
 ## Structure
 - Task: { id, title, depends_on[], steps[] } — each task runs as an independent sub-agent.
@@ -122,6 +124,9 @@ const DEFAULT_SINGLE_TASK_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose ob
 - Reference available tools by name in step instructions.
 - Include \`output_schema\` (JSON schema string) for steps producing structured data.
 - Dependencies must form a valid DAG (no cycles).
+
+## User-Facing Status
+- Set the \`_message\` field on EVERY tool call to a short (5-12 words), present-continuous status describing what you're doing (e.g. "Creating 3-step research plan"). This is shown live in the UI.
 
 Call the \`create_task\` tool with your task plan.`;
 
@@ -210,7 +215,6 @@ export class TaskPlanner {
     objective: string,
     _context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, Task | null> {
-    rejectAgenticProvider(this.provider, "TaskPlanner.plan");
     const toolsInfo = this.formatToolsInfo();
 
     const userPrompt = TASK_CREATION_PROMPT_TEMPLATE
@@ -356,8 +360,6 @@ export class TaskPlanner {
       content: "Starting parallel task planning..."
     } satisfies PlanningUpdate;
 
-    rejectAgenticProvider(this.provider, "TaskPlanner.planMultiTask");
-
     const builder = new PlanBuilder(this.inputs);
     const addTaskTool = new AddTaskTool(builder);
     const removeTaskTool = new RemoveTaskTool(builder);
@@ -444,12 +446,12 @@ export class TaskPlanner {
           node_id: "",
           name: tc.name,
           args,
-          message: tool.userMessage(args)
+          message: Tool.resolveMessage(tool, args)
         } satisfies ToolCallUpdate;
 
         const result = (await tool.process(
           {} as ProcessingContext,
-          args
+          Tool.stripMessage(args)
         )) as Record<string, unknown>;
         messages.push({
           role: "tool",
@@ -626,7 +628,7 @@ export class TaskPlanner {
 
     const result = await planningTool.process(
       {} as ProcessingContext,
-      toolCallArgs
+      Tool.stripMessage(toolCallArgs)
     );
 
     if (

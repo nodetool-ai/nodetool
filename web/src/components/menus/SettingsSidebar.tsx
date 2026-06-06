@@ -105,7 +105,7 @@ const SettingsSidebar = ({
       {sections.map((section, index) => {
         const isOpen = openFolders[section.category] !== false;
         return (
-          <div key={`section-${index}`} className="settings-sidebar-folder">
+          <div key={section.category} className="settings-sidebar-folder">
             <div
               className={`settings-sidebar-category${isOpen ? " open" : ""}`}
               data-category={section.category}
@@ -140,14 +140,17 @@ const SettingsSidebar = ({
                 id={`settings-folder-${index}`}
                 className="settings-sidebar-folder-items"
               >
-                {section.items.map((item, itemIndex) => (
+                {section.items.map((item) => (
                   <div
-                    key={`${item.id}-${itemIndex}`}
+                    key={item.id}
                     data-section-id={item.id}
                     className={`settings-sidebar-item ${
                       activeSection === item.id ? "active" : ""
                     }`}
+                    role="button"
+                    tabIndex={0}
                     onClick={handleItemClick}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSectionClick(item.id); } }}
                   >
                     {item.label}
                   </div>

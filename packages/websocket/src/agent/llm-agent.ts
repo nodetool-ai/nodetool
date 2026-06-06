@@ -1,6 +1,6 @@
 /**
  * LlmAgentSdkProvider — runs an in-process LLM as an agent against the same
- * `ui_*` tool surface the Claude/Codex/OpenCode/Pi harnesses use, and the
+ * `ui_*` tool surface the Pi harness uses, and the
  * same workflow-builder system prompt.
  *
  * Architecture:
@@ -34,7 +34,13 @@
 import { randomUUID } from "node:crypto";
 
 import { processChat } from "@nodetool-ai/chat";
-import { Tool } from "@nodetool-ai/agents";
+import {
+  GraphPlanner,
+  Tool,
+  createDefaultLongTermMemory,
+  type LongTermMemory
+} from "@nodetool-ai/agents";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   ProcessingContext,
   getProvider as getRuntimeProvider,
@@ -42,6 +48,7 @@ import {
   listRegisteredProviderIds,
 } from "@nodetool-ai/runtime";
 import type { BaseProvider, Message, ToolCall } from "@nodetool-ai/runtime";
+import type { GraphData, NodeDescriptor, ProcessingMessage } from "@nodetool-ai/protocol";
 import {
   Message as DbMessage,
   Thread as DbThread,
@@ -68,10 +75,15 @@ const log = createLogger("nodetool.websocket.agent.llm");
 
 const MAX_AGGREGATED_MODELS = 200;
 
+let graphPlannerRegistry: NodeRegistry | null = null;
+
+export function setLlmAgentGraphPlannerRegistry(registry: NodeRegistry): void {
+  graphPlannerRegistry = registry;
+}
+
 /**
  * Marker stored on every persisted LLM-agent message so we can list /
- * disambiguate these threads from regular chat threads (which may also
- * carry `agent_mode = true` from the unified-websocket-runner path).
+ * disambiguate LLM-agent workflow-node threads from regular chat threads.
  */
 const LLM_AGENT_MARKER = "llm-agent";
 
@@ -116,7 +128,7 @@ class UiBridgeTool extends Tool {
     } catch (err) {
       // Tool failures (validation, runtime, etc.) must be returned to the
       // model as a tool-result so it can self-correct on the next turn,
-      // matching how harness providers (Claude SDK, MCP) surface errors.
+      // matching how the Pi harness (MCP) surfaces errors.
       // Rethrowing here would crash the entire processChat loop and end the
       // session on a single bad call.
       const message = err instanceof Error ? err.message : String(err);
@@ -137,6 +149,208 @@ class UiBridgeTool extends Tool {
   }
 }
 
+const PLAN_WORKFLOW_GRAPH_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    objective: {
+      type: "string" as const,
+      description: "Natural-language description of the workflow to build."
+    },
+    apply_to_canvas: {
+      type: "boolean" as const,
+      description:
+        "When true, apply the planned graph to the current workflow canvas with one bulk UI call.",
+      default: true
+    }
+  },
+  required: ["objective"] as string[]
+};
+
+type ExecutionAgentMessage = AgentMessage & {
+  event?: unknown;
+  event_type?: string;
+  agent_execution_id?: string;
+};
+
+type EmitAgentMessage = (message: ExecutionAgentMessage) => void;
+
+function workflowGraphToUiGraph(graph: GraphData): {
+  nodes: Array<{
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: Record<string, unknown>;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle: string;
+    targetHandle: string;
+  }>;
+} {
+  const nodes = graph.nodes.map((node: NodeDescriptor, index: number) => ({
+    id: node.id,
+    type: node.type,
+    position: {
+      x: (index % 4) * 280,
+      y: Math.floor(index / 4) * 180
+    },
+    data: {
+      title: node.name === node.id ? undefined : node.name,
+      properties: node.properties ?? {}
+    }
+  }));
+
+  const edges = graph.edges.map((edge, index) => ({
+    id: `graph-planner-edge-${index}`,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle
+  }));
+
+  return { nodes, edges };
+}
+
+class GraphPlannerUiTool extends Tool {
+  readonly name = "plan_workflow_graph";
+  readonly description =
+    "Build a complete NodeTool workflow graph from an objective using the backend GraphPlanner, stream planner updates to the UI, and optionally apply the final graph to the canvas in one bulk operation.";
+  readonly inputSchema: Record<string, unknown> = PLAN_WORKFLOW_GRAPH_SCHEMA;
+
+  constructor(
+    private readonly opts: {
+      provider: BaseProvider;
+      model: string;
+      transport: AgentTransport;
+      sessionId: string;
+      uiSessionId: string;
+      userId: string;
+      emit: EmitAgentMessage;
+    }
+  ) {
+    super();
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const objective = params.objective;
+    if (typeof objective !== "string" || objective.trim().length === 0) {
+      return { isError: true, error: "objective must be a non-empty string" };
+    }
+    if (!graphPlannerRegistry) {
+      return {
+        isError: true,
+        error: "Graph planner registry is not configured on the server."
+      };
+    }
+
+    const executionId = `graph-planner-${randomUUID()}`;
+    const emitUpdate = (event: ProcessingMessage): void => {
+      this.opts.emit({
+        type: "stream_event",
+        uuid: randomUUID(),
+        session_id: this.opts.uiSessionId,
+        event,
+        event_type: event.type,
+        agent_execution_id: executionId
+      });
+    };
+
+    const providers = await getConfiguredProvidersForUser(
+      this.opts.userId,
+      this.opts.provider
+    );
+    const planner = new GraphPlanner({
+      provider: this.opts.provider,
+      model: this.opts.model,
+      registry: graphPlannerRegistry,
+      tools: [],
+      providers
+    });
+
+    let deferredComplete: ProcessingMessage | null = null;
+    const planGen = planner.plan(objective.trim(), context);
+    let next = await planGen.next();
+    while (!next.done) {
+      const event = next.value;
+      if (
+        event.type === "planning_update" &&
+        (event as { phase?: string }).phase === "complete"
+      ) {
+        deferredComplete = event;
+      } else {
+        emitUpdate(event);
+      }
+      next = await planGen.next();
+    }
+
+    const graph = next.value;
+    if (!graph) {
+      if (deferredComplete) emitUpdate(deferredComplete);
+      return { isError: true, error: "GraphPlanner failed to build a graph." };
+    }
+
+    const applyToCanvas = params.apply_to_canvas !== false;
+    let applied = false;
+    let applyError: string | null = null;
+    if (applyToCanvas) {
+      const uiGraph = workflowGraphToUiGraph(graph);
+      emitUpdate({
+        type: "log_update",
+        node_id: "graph_planner",
+        node_name: "Graph planner",
+        content: `Applying ${uiGraph.nodes.length} nodes and ${uiGraph.edges.length} edges to the canvas...`,
+        severity: "info"
+      });
+      try {
+        await this.opts.transport.executeTool(
+          this.opts.sessionId,
+          randomUUID(),
+          "ui_graph",
+          uiGraph
+        );
+        applied = true;
+        emitUpdate({
+          type: "log_update",
+          node_id: "graph_planner",
+          node_name: "Graph planner",
+          content: "Workflow graph applied to the canvas.",
+          severity: "info"
+        });
+      } catch (error) {
+        applyError = error instanceof Error ? error.message : String(error);
+        emitUpdate({
+          type: "log_update",
+          node_id: "graph_planner",
+          node_name: "Graph planner",
+          content: `Failed to apply graph to the canvas: ${applyError}`,
+          severity: "error"
+        });
+      }
+    }
+
+    if (deferredComplete) emitUpdate(deferredComplete);
+
+    return {
+      status: "graph_planned",
+      nodes: graph.nodes.length,
+      edges: graph.edges.length,
+      applied_to_canvas: applied,
+      apply_error: applyError
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    const objective =
+      typeof params.objective === "string" ? params.objective.slice(0, 80) : "workflow";
+    return `Planning workflow graph: ${objective}`;
+  }
+}
+
 interface LlmAgentSessionOptions {
   chatProviderId: string;
   model: string;
@@ -148,6 +362,13 @@ interface LlmAgentSessionOptions {
   systemPrompt?: string;
   /** Existing thread id to resume; otherwise a new thread is created lazily. */
   threadId?: string;
+  /**
+   * Per-session opt-in for long-term memory. The renderer surfaces a
+   * toggle for this. When omitted, defaults to the global env gate
+   * (`NODETOOL_MEMORY_ENABLED`). When explicitly `false`, memory stays
+   * inert for the whole session even if the env gate is on.
+   */
+  memoryEnabled?: boolean;
 }
 
 /**
@@ -190,6 +411,19 @@ class LlmAgentSession implements AgentQuerySession {
   private readonly systemPrompt: string;
   private readonly userId: string;
   private threadId: string;
+  /**
+   * Long-term memory bound to this session. Resolved lazily on the first
+   * send() so secret lookups happen at most once per session — not every
+   * turn. `undefined` means "not yet resolved"; `null` means "resolved and
+   * not configured" (e.g. no embedding provider).
+   */
+  private longTermMemory: LongTermMemory | null | undefined = undefined;
+  /**
+   * Tri-state opt-in: `undefined` → fall back to env (default off);
+   * `true` → force-enable; `false` → force-disable. Mutable via
+   * {@link setMemoryEnabled} so the toggle can flip mid-session.
+   */
+  private memoryEnabled: boolean | undefined;
 
   constructor(opts: LlmAgentSessionOptions) {
     if (!opts.userId) {
@@ -202,6 +436,17 @@ class LlmAgentSession implements AgentQuerySession {
     // Lazy: thread row is created on first send so we don't write to the DB
     // for sessions the user opens but never sends a message in.
     this.threadId = opts.threadId ?? "";
+    this.memoryEnabled = opts.memoryEnabled;
+  }
+
+  /**
+   * Flip the memory opt-in for subsequent sends. Drops any cached
+   * resolution so the next send() re-resolves under the new flag.
+   */
+  setMemoryEnabled(enabled: boolean | undefined): void {
+    if (this.memoryEnabled === enabled) return;
+    this.memoryEnabled = enabled;
+    this.longTermMemory = undefined;
   }
 
   /**
@@ -274,7 +519,6 @@ class LlmAgentSession implements AgentQuerySession {
           tool_call_id: m.toolCallId ?? null,
           provider: this.chatProviderId,
           model: this.model,
-          agent_mode: true,
           agent_execution_id: LLM_AGENT_MARKER,
         });
       } catch (err) {
@@ -326,9 +570,18 @@ class LlmAgentSession implements AgentQuerySession {
         this.chatProviderId,
         (key) => getStoredSecret(key, this.userId).then((v) => v ?? undefined),
       );
-      const tools = manifest.map(
-        (m) => new UiBridgeTool(transport, sessionId, m),
-      );
+      const tools = [
+        new GraphPlannerUiTool({
+          provider,
+          model: this.model,
+          transport,
+          sessionId,
+          uiSessionId: this.threadId,
+          userId: this.userId,
+          emit
+        }),
+        ...manifest.map((m) => new UiBridgeTool(transport, sessionId, m))
+      ];
 
       // ProcessingContext is required by the Tool interface but UiBridgeTool
       // ignores it (the renderer holds all state). A minimal ctx is enough.
@@ -336,6 +589,36 @@ class LlmAgentSession implements AgentQuerySession {
         jobId: `llm-agent-${sessionId}`,
         userId: this.userId,
       });
+
+      // Best-effort long-term memory. Resolved once per session and cached
+      // on the instance so secret lookups don't repeat on every send(). A
+      // `null` cache value means "checked, not configured" — also reused.
+      if (this.longTermMemory === undefined) {
+        try {
+          this.longTermMemory = await createDefaultLongTermMemory({
+            userId: this.userId,
+            namespace: "chat",
+            // Scope per chat thread so memories from one conversation don't
+            // bleed into an unrelated thread for the same user. When no
+            // thread id is available (one-shot session), fall back to the
+            // shared bucket — but the env gate for opting in still applies.
+            workspaceId: this.threadId || undefined,
+            extractionProvider: provider,
+            extractionModel: this.model,
+            // Honour the per-session opt-in from the renderer. `undefined`
+            // means "use the env default" (which is itself default-off).
+            enabled: this.memoryEnabled
+          });
+        } catch (err) {
+          this.longTermMemory = null;
+          log.warn(
+            `Long-term memory init failed (session ${sessionId}): ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
+        }
+      }
+      const longTermMemory = this.longTermMemory;
 
       let assistantText = "";
       // The renderer dedupes assistant messages by `uuid` and replaces in
@@ -355,6 +638,7 @@ class LlmAgentSession implements AgentQuerySession {
         tools,
         threadId: this.threadId,
         signal: this.abortController.signal,
+        longTermMemory,
         callbacks: {
           onChunk: (text) => {
             assistantText += text;
@@ -442,6 +726,33 @@ class LlmAgentSession implements AgentQuerySession {
   }
 }
 
+async function getConfiguredProvidersForUser(
+  userId: string,
+  fallbackProvider: BaseProvider
+): Promise<Record<string, BaseProvider>> {
+  const providers: Record<string, BaseProvider> = {};
+  const getSecret = (key: string) =>
+    getStoredSecret(key, userId).then((v) => v ?? undefined);
+
+  await Promise.all(
+    listRegisteredProviderIds().map(async (providerId) => {
+      try {
+        if (await isProviderConfigured(providerId, getSecret)) {
+          providers[providerId] = await getRuntimeProvider(providerId, getSecret);
+        }
+      } catch (error) {
+        log.debug("Skipping provider for graph-planner model lookup", {
+          provider: providerId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    })
+  );
+
+  providers[fallbackProvider.provider] = fallbackProvider;
+  return providers;
+}
+
 /**
  * Aggregate language models from every configured chat provider, filter to
  * those that support tool calls, and tag each descriptor with its underlying
@@ -520,6 +831,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
     resumeSessionId?: string;
     systemPrompt?: string;
     chatProviderId?: string;
+    memoryEnabled?: boolean;
   }): AgentQuerySession {
     if (!options.chatProviderId) {
       throw new Error(
@@ -537,6 +849,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
       // The renderer's `resumeSessionId` is our DB thread id — `send()`
       // hydrates from `Message.paginate(threadId)` on first call.
       threadId: options.resumeSessionId,
+      memoryEnabled: options.memoryEnabled,
     });
   }
 
@@ -547,8 +860,8 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
     if (!userId) {
       throw new Error("listSessions requires an authenticated userId");
     }
-    // listSessions() in the harness providers returns sessions stored by their
-    // SDK (e.g. ~/.claude). For LLM sessions we own the storage — query the
+    // listSessions() in the Pi harness returns sessions stored by its
+    // SDK (~/.pi). For LLM sessions we own the storage — query the
     // `nodetool_messages` table for threads marked with LLM_AGENT_MARKER and
     // hydrate the most recent message of each as a summary.
     try {

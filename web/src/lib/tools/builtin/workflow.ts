@@ -1,8 +1,6 @@
 import { z } from "zod";
 import type { FrontendToolState } from "../frontendTools";
 
-export { optionalWorkflowIdSchema } from "@nodetool-ai/protocol";
-
 export const optionalWorkflowIdSchemaCompact = z.string().nullable().optional();
 
 export function resolveWorkflowId(

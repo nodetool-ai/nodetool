@@ -61,23 +61,14 @@ outro_faded = FadeOut(
     duration=3.0,  # 3 second fade out
 )
 
-# Mix all tracks together
-# Track allocation:
-# - Track 1: Intro (faded in)
-# - Track 2: Voice (main podcast)
-# - Track 3: Background music (low volume)
-# - Track 4: Outro (faded out)
+# Mix all tracks together. AudioMixer accepts any number of named audio
+# inputs as dynamic props. Wire a Gain node upstream of any track that
+# needs a different level — the mixer itself only sums tracks evenly.
 mixed_audio = AudioMixer(
-    track1=intro_faded.output,
-    track2=voice_track.output,
-    track3=bg_music.output,
-    track4=outro_faded.output,
-    # Volume levels (1.0 = original volume)
-    volume1=0.9,  # Intro at 90%
-    volume2=1.0,  # Voice at full volume (main content)
-    volume3=0.3,  # Background music at 30% (doesn't overpower voice)
-    volume4=0.85,  # Outro at 85%
-    volume5=1.0,  # Track 5 not used
+    intro=intro_faded.output,
+    voice=voice_track.output,
+    background=bg_music.output,
+    outro=outro_faded.output,
 )
 
 # Save final podcast episode

@@ -12,8 +12,7 @@ import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
-import { TextField } from "@mui/material";
-import { Tooltip, EditorButton } from "../ui_primitives";
+import { Tooltip, EditorButton, NodeTextField } from "../ui_primitives";
 import AssetViewer from "../assets/AssetViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { resolveAssetUri } from "../node/output/hooks";
@@ -47,7 +46,7 @@ const styles = (theme: Theme) =>
       zIndex: 2,
       color: theme.vars.palette.grey[500],
       backgroundColor: "transparent",
-      fontSize: "10px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       lineHeight: "1",
       height: "auto",
@@ -218,7 +217,7 @@ const Model3DProperty = (props: PropertyProps) => {
       />
       <div className="drop-container">
           {showUrlInput && (
-            <TextField
+            <NodeTextField
               className="url-input nowheel nodrag"
               value={uri || ""}
               autoComplete="off"

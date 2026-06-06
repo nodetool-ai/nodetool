@@ -20,18 +20,14 @@ import {
   getPostgresDatabaseUrl,
   loadEnvironment
 } from "@nodetool-ai/config";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerKieNodes } from "@nodetool-ai/kie-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   initTelemetry,
-  PythonStdioBridge
+  createPythonBridge,
+  logPythonWorkerStderr,
+  type PythonBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import {
@@ -40,7 +36,6 @@ import {
   migrateSqliteDb,
   runSeeds
 } from "@nodetool-ai/models";
-import { Tool, BUILTIN_TOOL_CLASSES } from "@nodetool-ai/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { handleMcpHttpRequest } from "./mcp-server.js";
@@ -72,7 +67,14 @@ import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import falCreditsRoute from "./routes/fal-credits.js";
 import falPricingRoute from "./routes/fal-pricing.js";
-import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
+import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
+import kieCreditsRoute from "./routes/kie-credits.js";
+import kiePricingRoute from "./routes/kie-pricing.js";
+import {
+  agentSocketRoute,
+  getAgentRuntime,
+  setLlmAgentGraphPlannerRegistry
+} from "./agent/index.js";
 
 // @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
 // resolves to false inside Electron utilityProcess (process.type === "utility"),
@@ -161,7 +163,7 @@ async function broadcastResourceChange(
 
 async function notifyPythonBridgeResourceChanges(
   app: FastifyInstance,
-  pythonBridge: PythonStdioBridge
+  pythonBridge: PythonBridge
 ): Promise<void> {
   await broadcastResourceChange(app, {
     event: "updated",
@@ -369,38 +371,21 @@ log.info(`Metadata roots detected [${startupMs()}]`, {
 // Node registry
 // ---------------------------------------------------------------------------
 
-const registry = new NodeRegistry();
-registry.loadPythonMetadata({ roots: metadataRoots, maxDepth: 8 });
-log.info(`Python metadata loaded [${startupMs()}]`);
-registerBaseNodes(registry);
-registerElevenLabsNodes(registry);
-if (process.env["NODETOOL_ENV"] !== "production") {
-  registerTransformersJsNodes(registry);
-}
-registerFalNodes(registry);
-registerKieNodes(registry);
-registerReplicateNodes(registry);
+const registry = await bootstrapNodeRegistry({
+  metadataRoots,
+  log
+});
+log.info(`Node registry ready [${startupMs()}]`);
+setLlmAgentGraphPlannerRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
 }
-// In production, unregister optional JS-only nodes that require on-demand npm packages.
-if (process.env["NODETOOL_ENV"] === "production") {
-  const skippedPrefixes = ["lib.tensorflow.", "transformers.", "vector."];
-  for (const nodeType of registry.list()) {
-    if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
-      if (registry.unregister(nodeType)) {
-        log.info(`Unregistered ${nodeType} in production`);
-      }
-    }
-  }
-}
-log.info(`Node registry ready [${startupMs()}]`);
 
 // ---------------------------------------------------------------------------
 // Python bridge
 // ---------------------------------------------------------------------------
 
-const pythonBridge = new PythonStdioBridge({
+const pythonBridge = createPythonBridge({
   workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
     ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
     : []
@@ -436,44 +421,18 @@ function logPythonBridgeDiagnostics(context: string): void {
 
 pythonBridge.on("stderr", (msg: string) => {
   for (const line of msg.split("\n")) {
-    if (line.trim()) log.debug(`[python-worker] ${line}`);
+    logPythonWorkerStderr(line, log);
   }
+});
+
+pythonBridge.on("error", (err: Error) => {
+  log.error(`Python bridge protocol error: ${err.message}`);
+  pythonBridgeReady = false;
 });
 
 pythonBridge.on("exit", (code: number) => {
   log.warn(`Python worker exited with code ${code}`);
   pythonBridgeReady = false;
-});
-
-// ---------------------------------------------------------------------------
-// Tool registry — sourced from @nodetool-ai/agents BUILTIN_TOOL_CLASSES
-// ---------------------------------------------------------------------------
-
-// Lazy tool class map — defers instantiation until first access.
-let _toolClassMap: Map<string, new () => Tool> | null = null;
-function getToolClassMap(): Map<string, new () => Tool> {
-  if (!_toolClassMap) {
-    _toolClassMap = new Map();
-    for (const cls of BUILTIN_TOOL_CLASSES) {
-      const instance = new cls();
-      _toolClassMap.set(instance.name, cls);
-    }
-    log.info(
-      `Tool class map built (${_toolClassMap.size} tools) [${startupMs()}]`
-    );
-  }
-  return _toolClassMap;
-}
-// Expose as a getter-backed object so existing code using toolClassMap works unchanged.
-const toolClassMap = new Proxy(new Map<string, new () => Tool>(), {
-  get(_target, prop, _receiver) {
-    const map = getToolClassMap();
-    const value = (map as unknown as Record<string | symbol, unknown>)[prop];
-    if (typeof value === "function") {
-      return value.bind(map);
-    }
-    return value;
-  }
 });
 
 // ---------------------------------------------------------------------------
@@ -673,6 +632,7 @@ app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
 const _serverDir = dirname(fileURLToPath(import.meta.url));
 const _envExamplesDir = process.env["NODETOOL_BASE_EXAMPLES_DIR"];
 const _bundledExamplesDir = resolve(_serverDir, "examples", "nodetool-base");
+const _bundledAssetsDir = resolve(_serverDir, "assets", "nodetool-base");
 const _monoExamplesDir = resolve(
   _serverDir,
   "..",
@@ -705,6 +665,9 @@ if (_resolvedExamplesDir) {
 const apiOptions: HttpApiOptions = { metadataRoots, registry };
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;
+  if (existsSync(_bundledAssetsDir)) {
+    apiOptions.examplesAssetsFallbackDir = _bundledAssetsDir;
+  }
 }
 const staticFolder = process.env["STATIC_FOLDER"];
 const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
@@ -773,11 +736,12 @@ await app.register(websocketPlugin, {
         ...(nodeMeta as unknown as NodeMetadata),
         namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
         layout: "default",
-        recommended_models: [],
+        recommended_models: nodeMeta.recommended_models ?? [],
         required_settings: nodeMeta.required_settings ?? [],
-        is_dynamic: nodeMeta.is_dynamic ?? false,
+        // Python worker still emits `is_dynamic` on the stdio wire; map it to
+        // the protocol's `supports_dynamic_inputs`.
+        supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
         is_streaming_output: nodeMeta.is_streaming_output ?? false,
-        expose_as_tool: false,
         supports_dynamic_outputs: false
       });
     }
@@ -825,8 +789,7 @@ await app.register(websocketPlugin, {
         err instanceof Error ? err : new Error(String(err))
       );
     });
-  },
-  toolClassMap
+  }
 });
 
 await app.register(healthRoute);
@@ -846,6 +809,9 @@ await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(falCreditsRoute);
 await app.register(falPricingRoute);
+await app.register(falPricingEstimateRoute);
+await app.register(kieCreditsRoute);
+await app.register(kiePricingRoute);
 // MCP endpoints are only available in local/dev mode — not in production.
 // The configuration endpoints moved to the tRPC `mcpConfig` router; the
 // `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.
@@ -1016,8 +982,8 @@ if (process.platform === "win32") {
   process.on("SIGBREAK", () => void shutdown("SIGBREAK"));
 }
 
-// Start Python bridge eagerly if Python is installed.
-if (pythonBridge.hasPython()) {
+// Start Python bridge eagerly if a worker is available.
+if (pythonBridge.isAvailable()) {
   log.info(`Starting Python bridge eagerly [${startupMs()}]`);
   pythonBridge
     .ensureConnected()
@@ -1034,11 +1000,12 @@ if (pythonBridge.hasPython()) {
           ...(nodeMeta as unknown as NodeMetadata),
           namespace: nodeMeta.node_type.split(".").slice(0, -1).join("."),
           layout: "default",
-          recommended_models: [],
+          recommended_models: nodeMeta.recommended_models ?? [],
           required_settings: nodeMeta.required_settings ?? [],
-          is_dynamic: nodeMeta.is_dynamic ?? false,
+          // Python worker still emits `is_dynamic` on the stdio wire; map it to
+          // the protocol's `supports_dynamic_inputs`.
+          supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
           is_streaming_output: nodeMeta.is_streaming_output ?? false,
-          expose_as_tool: false,
           supports_dynamic_outputs: false
         });
       }

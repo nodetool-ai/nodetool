@@ -7,13 +7,12 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, TextField } from "@mui/material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import { FlexRow } from "../ui_primitives/FlexRow";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { EmptyState } from "../ui_primitives/EmptyState";
-import { ToolbarIconButton } from "../ui_primitives";
+import { ToolbarIconButton, Box, TextInput } from "../ui_primitives";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainNodeCard } from "./ChainNodeCard";
 import { ChainConnector } from "./ChainConnector";
@@ -102,7 +101,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
           flexShrink: 0,
         }}
       >
-        <TextField
+        <TextInput
           size="small"
           variant="standard"
           value={workflowName}
@@ -135,7 +134,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
         }}
       >
         {chain.length === 0 ? (
-          <FlexColumn align="center" justify="center" sx={{ pt: 12 }}>
+          <FlexColumn align="center" justify="center" sx={{ pt: 8 }}>
             <EmptyState
               icon={<AccountTreeOutlinedIcon sx={{ fontSize: 48 }} />}
               title="Build Your Workflow"

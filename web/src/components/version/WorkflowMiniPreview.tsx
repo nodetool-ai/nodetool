@@ -7,8 +7,7 @@
  */
 
 import React, { useMemo } from "react";
-import { Box } from "@mui/material";
-import { Caption, FlexColumn, Surface } from "../ui_primitives";
+import { Caption, FlexColumn, Surface, Box } from "../ui_primitives";
 import { Graph } from "../../stores/ApiTypes";
 
 // Data structure that has graph - can be WorkflowVersion or Workflow
@@ -77,7 +76,7 @@ const getNodeColor = (nodeType: string): string => {
   if (type.includes("input") || type.includes("chatinput")) { return NodeColors.input; }
   if (type.includes("output") || type.includes("chatoutput") || type.includes("preview")) { return NodeColors.output; }
   if (type.includes("llm") || type.includes("chatgpt") || type.includes("claude") || type.includes("ollama") || type.includes("openai")) { return NodeColors.llm; }
-  if (type.includes("model") || type.includes("comfy")) { return NodeColors.model; }
+  if (type.includes("model")) { return NodeColors.model; }
   if (type.includes("image") || type.includes("diffusion") || type.includes("stable")) { return NodeColors.image; }
   if (type.includes("text") || type.includes("string") || type.includes("prompt")) { return NodeColors.text; }
   if (type.includes("audio") || type.includes("speech") || type.includes("tts")) { return NodeColors.audio; }
@@ -221,6 +220,21 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
     return map;
   }, [previewNodes]);
 
+  const { viewBoxWidth, viewBoxHeight } = useMemo(() => {
+    let mX = 0;
+    let mY = 0;
+    for (const n of previewNodes) {
+      const right = n.x + n.width;
+      const bottom = n.y + n.height;
+      if (right > mX) mX = right;
+      if (bottom > mY) mY = bottom;
+    }
+    return {
+      viewBoxWidth: mX + PADDING * 2,
+      viewBoxHeight: mY + PADDING * 2
+    };
+  }, [previewNodes]);
+
   const nodeCount = graph.nodes?.length || 0;
 
   if (nodeCount === 0) {
@@ -263,14 +277,6 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
       </Surface>
     );
   }
-
-  // Calculate bounding box
-  const maxX = Math.max(...previewNodes.map((n) => n.x + n.width), 0) + PADDING;
-  const maxY = Math.max(...previewNodes.map((n) => n.y + n.height), 0) + PADDING;
-
-  // Use a slight padding for the viewBox to ensure nothing is cut off
-  const viewBoxWidth = maxX + PADDING;
-  const viewBoxHeight = maxY + PADDING;
 
   return (
     <Surface

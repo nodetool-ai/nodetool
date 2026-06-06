@@ -3,7 +3,7 @@
  * Exposes the same backend-level chat options as the web ChatComposer
  * (agent mode, help mode, attached RAG collections).
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { apiService, CollectionResponse } from '../../services/api';
+import { type CollectionResponse } from '../../services/api';
+import { trpc } from '../../trpc/client';
 import { useTheme } from '../../hooks/useTheme';
 
 interface ToolEntry {
@@ -98,28 +99,16 @@ export const ChatOptionsBar: React.FC<ChatOptionsBarProps> = ({
   const insets = useSafeAreaInsets();
   const [modalOpen, setModalOpen] = useState(false);
   const [toolsModalOpen, setToolsModalOpen] = useState(false);
-  const [collections, setCollections] = useState<CollectionResponse[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadCollections = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiService.listCollections();
-      setCollections(data.collections || []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load collections');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (modalOpen) {
-      loadCollections();
-    }
-  }, [modalOpen, loadCollections]);
+  const collectionsQuery = trpc.collections.list.useQuery(undefined, {
+    enabled: modalOpen,
+  });
+  const collections = (collectionsQuery.data?.collections ??
+    []) as CollectionResponse[];
+  const loading = collectionsQuery.isLoading;
+  const error = collectionsQuery.error
+    ? collectionsQuery.error.message || 'Failed to load collections'
+    : null;
 
   const selectedToolSet = useMemo(() => new Set(selectedTools), [selectedTools]);
   const selectedToolEntries = useMemo(

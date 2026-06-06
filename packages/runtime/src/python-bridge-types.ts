@@ -17,6 +17,7 @@ export interface PythonNodeMetadata {
   properties: NodeMetadataProperty[];
   outputs: NodeMetadataOutput[];
   required_settings: string[];
+  recommended_models?: unknown[];
   is_streaming_output?: boolean;
   is_streaming_input?: boolean;
   is_dynamic?: boolean;
@@ -41,6 +42,22 @@ export interface PythonBridgeOptions {
   workerArgs?: string[];
   autoRestart?: boolean;
   startupTimeoutMs?: number;
+  /** Max time to wait for a single node execute (0 = no timeout). */
+  executeTimeoutMs?: number;
+  /**
+   * Max time to wait for the initial worker.status fetch during connect()
+   * (0 = no timeout). Guards against a silent worker hanging connect()
+   * forever. Default ~10000ms.
+   */
+  statusTimeoutMs?: number;
+  /**
+   * Max time to wait for the post-open RPC phase (discover + worker.status)
+   * during connect() and reconnect on the WebSocket bridge (0 = no timeout).
+   * The startup timeout only covers the TCP/WS handshake, not the RPC phase,
+   * so a worker that accepts the socket but never answers discover would
+   * otherwise wedge the reconnect loop forever. Default ~20000ms.
+   */
+  reconnectRpcTimeoutMs?: number;
 }
 
 export type StreamCallback = (chunk: Record<string, unknown>) => void;

@@ -3,6 +3,8 @@ import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
 export {
   IfNode,
   ForEachNode,
+  RepeatCountNode,
+  RepeatValueStreamNode,
   TakeNode,
   DropNode,
   TakeWhileNode,
@@ -19,7 +21,14 @@ export {
   SwitchNode,
   TryCatchNode,
   CONTROL_NODES
-} from "./nodes/control.js";
+} from "@nodetool-ai/core-nodes/nodes/control";
+export {
+  RangeNode,
+  TileNode,
+  RepeatEachNode,
+  RepeatValueNode,
+  LIST_NODES
+} from "@nodetool-ai/core-nodes/nodes/list";
 export {
   SplitTextNode,
   ExtractTextNode,
@@ -73,7 +82,7 @@ export {
   ReplaceTextNode,
   ToStringNode,
   TEXT_EXTRA_NODES
-} from "./nodes/text-extra.js";
+} from "@nodetool-ai/text-nodes/nodes/text-extra";
 export {
   ConstantBaseNode,
   ConstantBoolNode,
@@ -104,7 +113,7 @@ export {
   ConstantTTSModelNode,
   ConstantVideoModelNode,
   CONSTANT_NODES
-} from "./nodes/constant.js";
+} from "@nodetool-ai/core-nodes/nodes/constant";
 export {
   FloatInputNode,
   BooleanInputNode,
@@ -140,9 +149,10 @@ export {
   MessageListInputNode,
   MessageDeconstructorNode,
   INPUT_NODES
-} from "./nodes/input.js";
-export { OutputNode, PreviewNode, OUTPUT_NODES } from "./nodes/output.js";
-export { WorkflowNode, WORKFLOW_NODES } from "./nodes/workflow.js";
+} from "@nodetool-ai/core-nodes/nodes/input";
+export { OutputNode, PreviewNode, OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
+export { WorkflowNode, WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
+export { SubgraphNode, SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
 export {
   GetWorkspaceDirNode,
   ListWorkspaceFilesNode,
@@ -163,8 +173,8 @@ export {
   SaveImageFileNode,
   SaveVideoFileNode,
   WORKSPACE_NODES
-} from "./nodes/workspace.js";
-export { CompareImagesNode, COMPARE_NODES } from "./nodes/compare.js";
+} from "@nodetool-ai/automation-nodes/nodes/workspace";
+export { CompareImagesNode, COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 export {
   LoadDocumentFileNode,
   SaveDocumentFileNode,
@@ -175,7 +185,7 @@ export {
   SplitRecursivelyNode,
   SplitMarkdownNode,
   DOCUMENT_NODES
-} from "./nodes/document.js";
+} from "@nodetool-ai/document-nodes/nodes/document";
 export {
   SchemaNode,
   FilterDataframeNode,
@@ -193,7 +203,6 @@ export {
   MergeDataframeNode,
   AppendDataframeNode,
   JoinDataframeNode,
-  RowIteratorNode,
   FindRowNode,
   SortByColumnNode,
   DropDuplicatesNode,
@@ -208,7 +217,7 @@ export {
   FilterNoneNode,
   DescribeNode,
   DATA_NODES
-} from "./nodes/data.js";
+} from "@nodetool-ai/data-nodes/nodes/data";
 export {
   ExecutePythonNode,
   ExecuteJavaScriptNode,
@@ -229,8 +238,8 @@ export {
   RunRubyCommandDockerNode,
   RunShellCommandDockerNode,
   CODE_NODES
-} from "./nodes/code.js";
-export { CodeNode } from "./nodes/code-node.js";
+} from "@nodetool-ai/code-nodes/nodes/code";
+export { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
 export {
   DateNowNode,
   FormatDateNode,
@@ -238,7 +247,7 @@ export {
   DateDiffNode,
   DateStartEndNode,
   LIB_DATETIME_NODES
-} from "./nodes/lib-datetime.js";
+} from "@nodetool-ai/core-nodes/nodes/lib-datetime";
 export {
   ValidateEmailNode,
   ValidateURLNode,
@@ -246,7 +255,7 @@ export {
   ValidateStringNode,
   SanitizeStringNode,
   LIB_VALIDATE_NODES
-} from "./nodes/lib-validate.js";
+} from "@nodetool-ai/core-nodes/nodes/lib-validate";
 export {
   LoadAudioAssetsNode,
   LoadAudioFileNode,
@@ -272,7 +281,7 @@ export {
   ChunkToAudioNode,
   GetAudioInfoNode,
   AUDIO_NODES
-} from "./nodes/audio.js";
+} from "@nodetool-ai/audio-nodes/nodes/audio";
 export {
   WaitNode,
   ManualTriggerNode,
@@ -280,7 +289,7 @@ export {
   WebhookTriggerNode,
   FileWatchTriggerNode,
   TRIGGER_NODES
-} from "./nodes/triggers.js";
+} from "@nodetool-ai/automation-nodes/nodes/triggers";
 export {
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -301,8 +310,12 @@ export {
   ImageEditorNode,
   CompositorNode,
   PainterNode,
+  UpscaleImageNode,
+  RemoveBackgroundNode,
+  RelightImageNode,
+  VectorizeImageNode,
   IMAGE_NODES
-} from "./nodes/image.js";
+} from "@nodetool-ai/image-nodes/nodes/image";
 export {
   TextToVideoNode,
   ImageToVideoNode,
@@ -310,7 +323,7 @@ export {
   SaveVideoFileVideoNode,
   LoadVideoAssetsNode,
   SaveVideoNode,
-  FrameIteratorNode,
+  ForEachFrameNode,
   FpsNode,
   FrameToVideoNode,
   ConcatVideoNode,
@@ -333,8 +346,10 @@ export {
   ExtractAudioVideoNode,
   ExtractFrameVideoNode,
   GetVideoInfoNode,
+  VideoToVideoNode,
+  LipSyncNode,
   VIDEO_NODES
-} from "./nodes/video.js";
+} from "@nodetool-ai/video-nodes/nodes/video";
 export {
   SummarizerNode,
   CreateThreadNode,
@@ -343,7 +358,7 @@ export {
   AgentNode,
   AgentStepNode,
   AGENT_NODES
-} from "./nodes/agents.js";
+} from "@nodetool-ai/llm-nodes/nodes/agents";
 export {
   StructuredOutputGeneratorNode,
   DataGeneratorNode,
@@ -351,7 +366,7 @@ export {
   ChartGeneratorNode,
   SVGGeneratorNode,
   GENERATOR_NODES
-} from "./nodes/generators.js";
+} from "@nodetool-ai/llm-nodes/nodes/generators";
 export {
   LoadModel3DFileNode,
   SaveModel3DFileNode,
@@ -368,7 +383,7 @@ export {
   TextTo3DNode,
   ImageTo3DNode,
   MODEL3D_NODES
-} from "./nodes/model3d.js";
+} from "@nodetool-ai/video-nodes/nodes/model3d";
 export {
   WorkspaceDirectoryLibNode,
   OpenWorkspaceDirectoryLibNode,
@@ -400,7 +415,7 @@ export {
   PathToStringLibNode,
   ShowNotificationLibNode,
   LIB_OS_NODES
-} from "./nodes/lib-os.js";
+} from "@nodetool-ai/automation-nodes/nodes/lib-os";
 export {
   ExtractLinksMarkdownLibNode,
   ExtractHeadersMarkdownLibNode,
@@ -409,22 +424,22 @@ export {
   ExtractCodeBlocksMarkdownLibNode,
   ExtractTablesMarkdownLibNode,
   LIB_MARKDOWN_NODES
-} from "./nodes/lib-markdown.js";
-export { GetSecretLibNode, LIB_SECRET_NODES } from "./nodes/lib-secret.js";
+} from "@nodetool-ai/text-nodes/nodes/lib-markdown";
+export { GetSecretLibNode, LIB_SECRET_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-secret";
 export {
   ConvertFilePandocLibNode,
   ConvertTextPandocLibNode,
   LIB_PANDOC_NODES
-} from "./nodes/lib-doc-transform.js";
+} from "@nodetool-ai/document-nodes/nodes/lib-doc-transform";
 export {
   YtDlpDownloadLibNode,
   LIB_YTDLP_NODES
-} from "./nodes/lib-video-download.js";
+} from "@nodetool-ai/video-nodes/nodes/lib-video-download";
 export {
   SliceImageGridLibNode,
   CombineImageGridLibNode,
   LIB_GRID_NODES
-} from "./nodes/lib-grid.js";
+} from "@nodetool-ai/image-nodes/nodes/lib-grid";
 export {
   RectLibNode,
   CircleLibNode,
@@ -441,16 +456,16 @@ export {
   TransformLibNode,
   ClipPathLibNode,
   LIB_SVG_NODES
-} from "./nodes/lib-svg.js";
-export { LIB_IMAGE_ENHANCE_NODES } from "./nodes/lib-image-enhance.js";
-export { LIB_IMAGE_FILTER_NODES } from "./nodes/lib-image-filter.js";
-export { LIB_IMAGE_DRAW_NODES } from "./nodes/lib-image-draw.js";
-export { LIB_IMAGE_COLOR_GRADING_NODES } from "./nodes/lib-image-color-grading.js";
+} from "@nodetool-ai/text-nodes/nodes/lib-svg";
+export { LIB_IMAGE_ENHANCE_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-enhance";
+export { LIB_IMAGE_FILTER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-filter";
+export { LIB_IMAGE_DRAW_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-draw";
+export { LIB_IMAGE_COLOR_GRADING_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-color-grading";
 // Backward compatibility: existing tests that import LIB_PILLOW_NODES still work
-import { LIB_IMAGE_ENHANCE_NODES as _LIB_IMAGE_ENHANCE_NODES } from "./nodes/lib-image-enhance.js";
-import { LIB_IMAGE_FILTER_NODES as _LIB_IMAGE_FILTER_NODES } from "./nodes/lib-image-filter.js";
-import { LIB_IMAGE_DRAW_NODES as _LIB_IMAGE_DRAW_NODES } from "./nodes/lib-image-draw.js";
-import { LIB_IMAGE_COLOR_GRADING_NODES as _LIB_IMAGE_COLOR_GRADING_NODES } from "./nodes/lib-image-color-grading.js";
+import { LIB_IMAGE_ENHANCE_NODES as _LIB_IMAGE_ENHANCE_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-enhance";
+import { LIB_IMAGE_FILTER_NODES as _LIB_IMAGE_FILTER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-filter";
+import { LIB_IMAGE_DRAW_NODES as _LIB_IMAGE_DRAW_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-draw";
+import { LIB_IMAGE_COLOR_GRADING_NODES as _LIB_IMAGE_COLOR_GRADING_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-color-grading";
 export const LIB_PILLOW_NODES = [
   ..._LIB_IMAGE_ENHANCE_NODES,
   ..._LIB_IMAGE_FILTER_NODES,
@@ -464,7 +479,7 @@ export {
   ScreenshotLibNode,
   SpiderCrawlLibNode,
   LIB_BROWSER_NODES
-} from "./nodes/lib-browser.js";
+} from "@nodetool-ai/automation-nodes/nodes/lib-browser";
 export {
   HttpGetTextNode,
   HttpGetJsonNode,
@@ -474,33 +489,33 @@ export {
   HttpPatchNode,
   HttpDeleteNode,
   LIB_HTTP_NODES
-} from "./nodes/lib-http.js";
+} from "@nodetool-ai/integration-nodes/nodes/lib-http";
 export {
   GraphQLQueryLibNode,
   GraphQLQueryWithAuthLibNode,
   GraphQLIntrospectionLibNode,
   GraphQLBatchQueryLibNode,
   LIB_GRAPHQL_NODES
-} from "./nodes/lib-graphql.js";
+} from "@nodetool-ai/integration-nodes/nodes/lib-graphql";
 export {
   SendEmailLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
   MoveToArchiveLibNode,
   LIB_MAIL_NODES
-} from "./nodes/lib-mail.js";
+} from "@nodetool-ai/integration-nodes/nodes/lib-mail";
 export {
   TwilioSendSMSLibNode,
   TwilioSendWhatsAppLibNode,
   TwilioGetMessagesLibNode,
   TwilioLookupLibNode,
   LIB_TWILIO_NODES
-} from "./nodes/lib-twilio.js";
+} from "@nodetool-ai/integration-nodes/nodes/lib-twilio";
 export {
   ConvertToMarkdownLibNode,
   LIB_MARKITDOWN_NODES
-} from "./nodes/lib-doc-convert.js";
-export { ChartRendererLibNode, LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
+} from "@nodetool-ai/document-nodes/nodes/lib-doc-convert";
+export { ChartRendererLibNode, LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 export {
   BaseUrlLibNode,
   ExtractLinksLibNode,
@@ -511,12 +526,12 @@ export {
   HTMLToTextLibNode,
   WebsiteContentExtractorLibNode,
   LIB_BEAUTIFULSOUP_NODES
-} from "./nodes/lib-html-parse.js";
+} from "@nodetool-ai/text-nodes/nodes/lib-html-parse";
 export {
   FetchRSSFeedLibNode,
   ExtractFeedMetadataLibNode,
   LIB_RSS_NODES
-} from "./nodes/lib-rss.js";
+} from "@nodetool-ai/data-nodes/nodes/lib-rss";
 export {
   GainNode_,
   DelayNode_,
@@ -526,7 +541,7 @@ export {
   LowShelfFilterNode,
   PeakFilterNode,
   LIB_AUDIO_DSP_NODES
-} from "./nodes/lib-audio-dsp.js";
+} from "@nodetool-ai/audio-nodes/nodes/lib-audio-dsp";
 export {
   CreateTableLibNode,
   InsertLibNode as SqliteInsertLibNode,
@@ -536,7 +551,7 @@ export {
   ExecuteSQLLibNode,
   GetDatabasePathLibNode,
   LIB_SQLITE_NODES
-} from "./nodes/lib-sqlite.js";
+} from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
 export {
   SelectLibNode,
   InsertLibNode as SupabaseInsertLibNode,
@@ -545,7 +560,7 @@ export {
   UpsertLibNode,
   RPCLibNode,
   LIB_SUPABASE_NODES
-} from "./nodes/lib-supabase.js";
+} from "@nodetool-ai/integration-nodes/nodes/lib-supabase";
 export {
   NotionSearchLibNode,
   NotionGetPageLibNode,
@@ -554,7 +569,7 @@ export {
   NotionUpdatePageLibNode,
   NotionQueryDatabaseLibNode,
   LIB_NOTION_NODES
-} from "./nodes/lib-notion.js";
+} from "@nodetool-ai/integration-nodes/nodes/lib-notion";
 export {
   S3ListBucketsLibNode,
   S3ListObjectsLibNode,
@@ -564,7 +579,7 @@ export {
   S3CopyObjectLibNode,
   S3GetPresignedUrlLibNode,
   LIB_S3_NODES
-} from "./nodes/lib-s3.js";
+} from "@nodetool-ai/integration-nodes/nodes/lib-s3";
 export {
   CreateWorkbookLibNode,
   ExcelToDataFrameLibNode,
@@ -573,7 +588,7 @@ export {
   AutoFitColumnsLibNode,
   SaveWorkbookLibNode,
   LIB_EXCEL_NODES
-} from "./nodes/lib-excel.js";
+} from "@nodetool-ai/automation-nodes/nodes/lib-excel";
 export {
   CreateDocumentLibNode,
   LoadWordDocumentLibNode,
@@ -585,7 +600,7 @@ export {
   SetDocumentPropertiesLibNode,
   SaveDocumentLibNode,
   LIB_DOCX_NODES
-} from "./nodes/lib-docx.js";
+} from "@nodetool-ai/document-nodes/nodes/lib-docx";
 export {
   BitcrushNode,
   CompressNode,
@@ -597,7 +612,7 @@ export {
   NoiseGateNode,
   PhaserNode,
   LIB_PEDALBOARD_EXTRA_NODES
-} from "./nodes/lib-audio-effects.js";
+} from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 export {
   PdfPageCountNode,
   PdfExtractTextNode,
@@ -610,36 +625,36 @@ export {
   PdfSearchTextNode,
   PdfExtractOcrNode,
   LIB_PDF_NODES
-} from "./nodes/lib-pdf.js";
+} from "@nodetool-ai/document-nodes/nodes/lib-pdf";
 export {
   EpubMetadataLibNode,
   EpubTableOfContentsLibNode,
   EpubExtractTextLibNode,
   EpubExtractChaptersLibNode,
   LIB_EPUB_NODES
-} from "./nodes/lib-epub.js";
+} from "@nodetool-ai/document-nodes/nodes/lib-epub";
 export {
   PptxExtractTextLibNode,
   PptxExtractSlidesLibNode,
   LIB_PPTX_NODES
-} from "./nodes/lib-pptx.js";
+} from "@nodetool-ai/document-nodes/nodes/lib-pptx";
 export {
   OcrExtractTextLibNode,
   OcrExtractDataLibNode,
   LIB_OCR_NODES
-} from "./nodes/lib-ocr.js";
+} from "@nodetool-ai/automation-nodes/nodes/lib-ocr";
 export {
   TensorflowMobileNetClassifyNode,
   TensorflowMobileNetEmbeddingNode,
   TensorflowCocoSsdDetectNode,
   TensorflowQnaNode,
   LIB_TENSORFLOW_NODES
-} from "./nodes/lib-tensorflow.js";
+} from "@nodetool-ai/automation-nodes/nodes/lib-tensorflow";
 export {
   KieAINode,
   KIE_DYNAMIC_NODES,
   resolveKieDynamicSchema
-} from "./nodes/kie-dynamic.js";
+} from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
 export {
   CollectionNode,
   CountNode,
@@ -655,21 +670,24 @@ export {
   RemoveOverlapNode,
   HybridSearchNode,
   VECTOR_NODES
-} from "./nodes/vector.js";
-export { GEMINI_NODES } from "./nodes/gemini.js";
-export { APIFY_NODES } from "./nodes/apify.js";
-export { MESSAGING_NODES } from "./nodes/messaging.js";
-export { MISTRAL_NODES } from "./nodes/mistral.js";
-export { OPENAI_NODES } from "./nodes/openai.js";
-export { SEARCH_NODES } from "./nodes/search.js";
-export { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
+} from "@nodetool-ai/core-nodes/nodes/vector";
+export { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
+export { APIFY_NODES } from "@nodetool-ai/integration-nodes/nodes/apify";
+export {
+  ComfyWorkflowNode,
+  COMFY_NODES
+} from "@nodetool-ai/integration-nodes/nodes/comfy";
+export { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
+export { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
+export { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
+export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
+export { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
+export { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 export {
   SandboxShellNode,
   SandboxFileNode,
   SANDBOX_NODES
-} from "./nodes/sandbox.js";
-export { ANTHROPIC_NODES } from "./nodes/anthropic.js";
-export { TeamAgentNode, TeamLeadNode, TEAM_NODES } from "./nodes/team.js";
+} from "@nodetool-ai/code-nodes/nodes/sandbox";
 export {
   SentimentAnalysisLibNode,
   TokenizeLibNode,
@@ -679,84 +697,96 @@ export {
   ExtractEntitiesLibNode,
   PhoneticMatchLibNode,
   LIB_NLP_NODES
-} from "./nodes/lib-nlp.js";
-import { CONTROL_NODES } from "./nodes/control.js";
-import { TEXT_EXTRA_NODES } from "./nodes/text-extra.js";
-import { CONSTANT_NODES } from "./nodes/constant.js";
-import { EXTENDED_PLACEHOLDER_NODES } from "./nodes/extended-placeholders.js";
-import { INPUT_NODES } from "./nodes/input.js";
-import { OUTPUT_NODES } from "./nodes/output.js";
-import { WORKFLOW_NODES } from "./nodes/workflow.js";
-import { WORKSPACE_NODES } from "./nodes/workspace.js";
-import { COMPARE_NODES } from "./nodes/compare.js";
-import { DOCUMENT_NODES } from "./nodes/document.js";
-import { DATA_NODES } from "./nodes/data.js";
-import { CODE_NODES } from "./nodes/code.js";
-import { CodeNode } from "./nodes/code-node.js";
-import { AUDIO_NODES } from "./nodes/audio.js";
-import { TRIGGER_NODES } from "./nodes/triggers.js";
-import { IMAGE_NODES } from "./nodes/image.js";
-import { VIDEO_NODES } from "./nodes/video.js";
-import { AGENT_NODES } from "./nodes/agents.js";
-import { GENERATOR_NODES } from "./nodes/generators.js";
-import { MODEL3D_NODES } from "./nodes/model3d.js";
-import { LIB_OS_NODES } from "./nodes/lib-os.js";
-import { LIB_MARKDOWN_NODES } from "./nodes/lib-markdown.js";
-import { LIB_SECRET_NODES } from "./nodes/lib-secret.js";
-import { LIB_PANDOC_NODES } from "./nodes/lib-doc-transform.js";
-import { LIB_YTDLP_NODES } from "./nodes/lib-video-download.js";
-import { LIB_GRID_NODES } from "./nodes/lib-grid.js";
-import { LIB_SVG_NODES } from "./nodes/lib-svg.js";
-import { LIB_IMAGE_ENHANCE_NODES } from "./nodes/lib-image-enhance.js";
-import { LIB_IMAGE_FILTER_NODES } from "./nodes/lib-image-filter.js";
-import { LIB_IMAGE_DRAW_NODES } from "./nodes/lib-image-draw.js";
-import { LIB_IMAGE_COLOR_GRADING_NODES } from "./nodes/lib-image-color-grading.js";
-import { LIB_RSS_NODES } from "./nodes/lib-rss.js";
-import { LIB_AUDIO_DSP_NODES } from "./nodes/lib-audio-dsp.js";
-import { LIB_SQLITE_NODES } from "./nodes/lib-sqlite.js";
-import { LIB_SUPABASE_NODES } from "./nodes/lib-supabase.js";
-import { LIB_S3_NODES } from "./nodes/lib-s3.js";
-import { LIB_EXCEL_NODES } from "./nodes/lib-excel.js";
-import { LIB_DOCX_NODES } from "./nodes/lib-docx.js";
-import { LIB_BEAUTIFULSOUP_NODES } from "./nodes/lib-html-parse.js";
-import { LIB_BROWSER_NODES } from "./nodes/lib-browser.js";
-import { LIB_HTTP_NODES } from "./nodes/lib-http.js";
-import { LIB_GRAPHQL_NODES } from "./nodes/lib-graphql.js";
-import { LIB_MAIL_NODES } from "./nodes/lib-mail.js";
-import { LIB_TWILIO_NODES } from "./nodes/lib-twilio.js";
-import { LIB_MARKITDOWN_NODES } from "./nodes/lib-doc-convert.js";
-import { LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
-import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-audio-effects.js";
-import { LIB_PDF_NODES } from "./nodes/lib-pdf.js";
-import { LIB_EPUB_NODES } from "./nodes/lib-epub.js";
-import { LIB_PPTX_NODES } from "./nodes/lib-pptx.js";
-import { LIB_OCR_NODES } from "./nodes/lib-ocr.js";
-import { LIB_TENSORFLOW_NODES } from "./nodes/lib-tensorflow.js";
-import { LIB_NOTION_NODES } from "./nodes/lib-notion.js";
-import { KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
-import { VECTOR_NODES } from "./nodes/vector.js";
-import { GEMINI_NODES } from "./nodes/gemini.js";
-import { APIFY_NODES } from "./nodes/apify.js";
-import { MESSAGING_NODES } from "./nodes/messaging.js";
-import { MISTRAL_NODES } from "./nodes/mistral.js";
-import { OPENAI_NODES } from "./nodes/openai.js";
-import { SEARCH_NODES } from "./nodes/search.js";
-import { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
-import { SANDBOX_NODES } from "./nodes/sandbox.js";
-import { ANTHROPIC_NODES } from "./nodes/anthropic.js";
-import { TEAM_NODES } from "./nodes/team.js";
-import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
-import { LIB_DATETIME_NODES } from "./nodes/lib-datetime.js";
-import { LIB_VALIDATE_NODES } from "./nodes/lib-validate.js";
+} from "@nodetool-ai/text-nodes/nodes/lib-nlp";
+import { CONTROL_NODES } from "@nodetool-ai/core-nodes/nodes/control";
+import { LIST_NODES } from "@nodetool-ai/core-nodes/nodes/list";
+import { TEXT_EXTRA_NODES } from "@nodetool-ai/text-nodes/nodes/text-extra";
+import { CONSTANT_NODES } from "@nodetool-ai/core-nodes/nodes/constant";
+import { EXTENDED_PLACEHOLDER_NODES } from "@nodetool-ai/core-nodes/nodes/extended-placeholders";
+import { INPUT_NODES } from "@nodetool-ai/core-nodes/nodes/input";
+import { OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
+import { WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
+import { SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
+import { WORKSPACE_NODES } from "@nodetool-ai/automation-nodes/nodes/workspace";
+import { COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
+import { DOCUMENT_NODES } from "@nodetool-ai/document-nodes/nodes/document";
+import { DATA_NODES } from "@nodetool-ai/data-nodes/nodes/data";
+import { CODE_NODES } from "@nodetool-ai/code-nodes/nodes/code";
+import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
+import { AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/audio";
+import { TRIGGER_NODES } from "@nodetool-ai/automation-nodes/nodes/triggers";
+import { IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/image";
+import { VIDEO_NODES } from "@nodetool-ai/video-nodes/nodes/video";
+import { AGENT_NODES } from "@nodetool-ai/llm-nodes/nodes/agents";
+import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
+import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
+import { LIB_OS_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-os";
+import { LIB_MARKDOWN_NODES } from "@nodetool-ai/text-nodes/nodes/lib-markdown";
+import { LIB_SECRET_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-secret";
+import { LIB_PANDOC_NODES } from "@nodetool-ai/document-nodes/nodes/lib-doc-transform";
+import { LIB_YTDLP_NODES } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
+import { LIB_GRID_NODES } from "@nodetool-ai/image-nodes/nodes/lib-grid";
+import { LIB_SVG_NODES } from "@nodetool-ai/text-nodes/nodes/lib-svg";
+import { LIB_IMAGE_ENHANCE_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-enhance";
+import { LIB_IMAGE_FILTER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-filter";
+import { LIB_IMAGE_DRAW_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-draw";
+import { LIB_IMAGE_COLOR_GRADING_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-color-grading";
+import { LIB_RSS_NODES } from "@nodetool-ai/data-nodes/nodes/lib-rss";
+import { LIB_AUDIO_DSP_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-dsp";
+import { LIB_SQLITE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
+import { LIB_SUPABASE_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-supabase";
+import { LIB_S3_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-s3";
+import { LIB_EXCEL_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-excel";
+import { LIB_DOCX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-docx";
+import { LIB_BEAUTIFULSOUP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-html-parse";
+import { LIB_BROWSER_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
+import { LIB_HTTP_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-http";
+import { LIB_GRAPHQL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-graphql";
+import { LIB_MAIL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
+import { LIB_TWILIO_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-twilio";
+import { LIB_MARKITDOWN_NODES } from "@nodetool-ai/document-nodes/nodes/lib-doc-convert";
+import { LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
+import { LIB_PEDALBOARD_EXTRA_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
+import { LIB_PDF_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
+import { LIB_EPUB_NODES } from "@nodetool-ai/document-nodes/nodes/lib-epub";
+import { LIB_PPTX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pptx";
+import { LIB_OCR_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-ocr";
+import { LIB_TENSORFLOW_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-tensorflow";
+import { LIB_NOTION_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-notion";
+import { KIE_DYNAMIC_NODES } from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
+import { VECTOR_NODES } from "@nodetool-ai/core-nodes/nodes/vector";
+import { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
+import { APIFY_NODES } from "@nodetool-ai/integration-nodes/nodes/apify";
+import { COMFY_NODES } from "@nodetool-ai/integration-nodes/nodes/comfy";
+import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
+import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
+import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
+import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
+import { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
+import { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
+import { SANDBOX_NODES } from "@nodetool-ai/code-nodes/nodes/sandbox";
+import { LIB_NLP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-nlp";
+import { LIB_DATETIME_NODES } from "@nodetool-ai/core-nodes/nodes/lib-datetime";
+import { LIB_VALIDATE_NODES } from "@nodetool-ai/core-nodes/nodes/lib-validate";
+import { LIB_IMAGE_EFFECTS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-effects";
+import { LIB_IMAGE_KEYER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-keyer";
+import { LIB_IMAGE_MASK_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-mask";
+import { LIB_IMAGE_CHANNEL_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-channel";
+import { LIB_IMAGE_WARP_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-warp";
+import { LIB_IMAGE_GENERATORS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-generators";
+import { LIB_IMAGE_FILTER_EXTRAS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-filter-extras";
+import { LIB_IMAGE_COLOR_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-color";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
+  ...LIST_NODES,
   ...TEXT_EXTRA_NODES,
   ...CONSTANT_NODES,
   ...EXTENDED_PLACEHOLDER_NODES,
   ...INPUT_NODES,
   ...OUTPUT_NODES,
   ...WORKFLOW_NODES,
+  ...SUBGRAPH_NODES,
   ...WORKSPACE_NODES,
   ...COMPARE_NODES,
   ...DOCUMENT_NODES,
@@ -809,16 +839,33 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...VECTOR_NODES,
   ...GEMINI_NODES,
   ...APIFY_NODES,
+  ...COMFY_NODES,
   ...MESSAGING_NODES,
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
+  ...XAI_NODES,
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
   ...SANDBOX_NODES,
-  ...ANTHROPIC_NODES,
-  ...TEAM_NODES,
-  ...LIB_NLP_NODES
+  ...LIB_NLP_NODES,
+  ...LIB_IMAGE_EFFECTS_NODES,
+  ...LIB_IMAGE_KEYER_NODES,
+  ...LIB_IMAGE_MASK_NODES,
+  ...LIB_IMAGE_CHANNEL_NODES,
+  ...LIB_IMAGE_WARP_NODES,
+  ...LIB_IMAGE_GENERATORS_NODES,
+  ...LIB_IMAGE_FILTER_EXTRAS_NODES,
+  ...LIB_IMAGE_COLOR_NODES
 ];
+
+export { LIB_IMAGE_EFFECTS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-effects";
+export { LIB_IMAGE_KEYER_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-keyer";
+export { LIB_IMAGE_MASK_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-mask";
+export { LIB_IMAGE_CHANNEL_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-channel";
+export { LIB_IMAGE_WARP_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-warp";
+export { LIB_IMAGE_GENERATORS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-generators";
+export { LIB_IMAGE_FILTER_EXTRAS_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-filter-extras";
+export { LIB_IMAGE_COLOR_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-color";
 
 export function registerBaseNodes(registry: NodeRegistry): void {
   for (const nodeClass of ALL_BASE_NODES) {
@@ -851,7 +898,7 @@ export function registerBaseNodes(registry: NodeRegistry): void {
             "Execute a sub-workflow. Select a workflow to populate its inputs and outputs dynamically.",
           namespace: "nodetool.workflows.workflow_node",
           node_type: "nodetool.workflows.workflow_node.Workflow",
-          is_dynamic: true,
+          supports_dynamic_inputs: true,
           is_streaming_output: true,
           properties: [
             {
@@ -863,6 +910,29 @@ export function registerBaseNodes(registry: NodeRegistry): void {
               name: "workflow_json",
               type: { type: "dict", type_args: [] },
               default: {}
+            }
+          ],
+          outputs: [],
+          inline_fields: []
+        }
+      });
+      continue;
+    }
+    if (nodeClass.nodeType === "nodetool.workflows.subgraph.Subgraph") {
+      registry.register(nodeClass, {
+        metadata: {
+          title: "Subgraph",
+          description:
+            "Execute an inline sub-graph as an isolated workflow. Inputs/outputs are derived from inner Input/Output nodes.",
+          namespace: "nodetool.workflows.subgraph",
+          node_type: "nodetool.workflows.subgraph.Subgraph",
+          supports_dynamic_inputs: true,
+          is_streaming_output: true,
+          properties: [
+            {
+              name: "graph",
+              type: { type: "dict", type_args: [] },
+              default: { nodes: [], edges: [] }
             }
           ],
           outputs: [],

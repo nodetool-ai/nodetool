@@ -128,11 +128,16 @@ s(
   "Number of days to keep autosave versions before cleanup (default: 7)"
 );
 
-// ComfyUI
+// Execution
 s(
-  "COMFYUI_ADDR",
-  "ComfyUI",
-  "ComfyUI server address for API/WebSocket access (e.g., 127.0.0.1:8188)."
+  "MAX_CONCURRENT_JOBS",
+  "Execution",
+  "Maximum number of workflow runs a single client can execute at once (default: 4). Additional runs are queued and start automatically as running ones finish, preventing provider/API overload."
+);
+s(
+  "MAX_CONCURRENT_RUNS_PER_WORKFLOW",
+  "Execution",
+  "Maximum number of concurrent runs of the same workflow before additional runs queue (default: 4). Only applies to runs that opt into concurrency (e.g. timeline/sketch generation); canvas runs always stay sequential per workflow. Also bounded by MAX_CONCURRENT_JOBS."
 );
 
 // Provider endpoints
@@ -370,6 +375,21 @@ s(
   "KIE_TIMEOUT_SECONDS",
   "KIE",
   "Global timeout in seconds for Kie.ai API calls (0 = use default per-model timeout)"
+);
+sec(
+  "TOPAZ_API_KEY",
+  "Topaz",
+  "Topaz Labs API key for image and video enhancement. Get yours at https://developer.topazlabs.com/"
+);
+sec(
+  "REVE_API_KEY",
+  "Reve",
+  "Reve API key for image creation, editing, and remix. Get yours at https://api.reve.com/"
+);
+sec(
+  "ATLASCLOUD_API_KEY",
+  "AtlasCloud",
+  "AtlasCloud.ai API key for hosted image (GPT Image 2, Nano Banana) and video (Seedance 2.0) models. Get yours at https://www.atlascloud.ai/"
 );
 sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation. Get yours at https://app.meshy.ai/settings/api-keys");
 sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation. Get yours at https://hyperhuman.deemos.com/");

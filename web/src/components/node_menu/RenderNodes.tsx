@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { useTheme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -69,6 +70,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   onToggleSelection,
   showFavoriteButton = true
 }) => {
+  const theme = useTheme();
   const { setDragToCreate, groupedSearchResults, searchTerm } =
     useNodeMenuStore(
       useShallow((state) => ({
@@ -199,7 +201,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     count: virtualRows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize,
-    overscan: 40,
+    overscan: theme.virtualScroll.overscan.large,
     getItemKey: (index) => virtualRows[index]?.key ?? index,
   });
 

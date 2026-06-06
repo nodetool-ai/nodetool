@@ -1,5 +1,4 @@
 import React, { memo, useCallback } from "react";
-import { Box } from "@mui/material";
 import { Check } from "@mui/icons-material";
 import {
   BORDER_RADIUS,
@@ -7,7 +6,8 @@ import {
   DeleteButton,
   EditorButton,
   LoadingSpinner,
-  Tooltip
+  Tooltip,
+  Box
 } from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 
@@ -80,11 +80,11 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
             border: "1px solid",
             borderColor: "divider",
             color: "text.secondary",
-            fontSize: "0.75rem"
+            fontSize: "var(--fontSizeSmall)"
           }}
         >
           <LoadingSpinner inline size={12} thickness={5} color="inherit" />
-          Checking cache...
+          Checking cache…
         </Box>
       )}
       {onDownload && !downloaded && !isCheckingCache && (

@@ -5,9 +5,12 @@
  * Supports: textToImage, imageToImage, getAvailableImageModels
  */
 
-import { createRequire } from "node:module";
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
+
+const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
+  "node:module"
+);
 import type {
   ImageModel,
   VideoModel,
@@ -16,7 +19,13 @@ import type {
   TextToImageParams,
   ImageToImageParams,
   TextToVideoParams,
-  ImageToVideoParams
+  ImageToVideoParams,
+  UpscaleImageParams,
+  RemoveBackgroundParams,
+  RelightImageParams,
+  VectorizeImageParams,
+  VideoToVideoParams,
+  LipSyncParams
 } from "./types.js";
 import { loadImageModels, loadVideoModels } from "./manifest-models.js";
 
@@ -67,8 +76,11 @@ let _falManifestByEndpoint: Map<string, FalManifestEntry> | null = null;
 function getFalManifestEntry(modelId: string): FalManifestEntry | undefined {
   if (!_falManifestByEndpoint) {
     _falManifestByEndpoint = new Map();
+    if (!_nodeModule) {
+      return undefined;
+    }
     try {
-      const req = createRequire(import.meta.url);
+      const req = _nodeModule.createRequire(import.meta.url);
       const data = req(
         `${FAL_MANIFEST_PKG}/${FAL_MANIFEST_PATH}`
       ) as FalManifestEntry[];
@@ -114,11 +126,29 @@ class FalArgsBuilder {
     return this.accepted.get(apiName)?.propType.toLowerCase();
   }
 
-  /** Set `apiName` to `value` only if the endpoint accepts it (or unknown). */
+  /**
+   * Set `apiName` to `value` only if the endpoint accepts it (or unknown),
+   * coercing to the manifest's declared type. fal returns 422 when a value's
+   * type doesn't match the field — notably numeric `duration`/`seed`/
+   * `num_frames` sent to fields the endpoint declares as `enum`/`str` (e.g.
+   * `duration` enums are `"5"`/`"10"`, not `5`). Enum values that aren't in
+   * the field's vocabulary are dropped rather than sent.
+   */
   set(apiName: string, value: unknown): this {
     if (value == null) return this;
     if (typeof value === "string" && value === "") return this;
-    if (this.has(apiName)) this.args[apiName] = value;
+    if (!this.has(apiName)) return this;
+    const t = this.propType(apiName);
+    if (t === "enum") {
+      const v = this.acceptedEnumValue(apiName, String(value));
+      if (v !== undefined) this.args[apiName] = v;
+      return this;
+    }
+    if (t === "str" && typeof value !== "string") {
+      this.args[apiName] = String(value);
+      return this;
+    }
+    this.args[apiName] = value;
     return this;
   }
 
@@ -314,6 +344,7 @@ if (update.status === "IN_PROGRESS") {
     throw new Error("fal_ai does not support chat generation");
   }
 
+  // eslint-disable-next-line require-yield
   async *generateMessages(
     _args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
@@ -504,6 +535,137 @@ if (update.status === "IN_PROGRESS") {
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractVideoUrl(data));
+  }
+
+  /** Upload raw bytes to FAL storage and return the hosted URL. */
+  private async upload(bytes: Uint8Array, mimeType: string): Promise<string> {
+    const client = await this.getClient();
+    const blob = new Blob(
+      [new Uint8Array(bytes) as Uint8Array<ArrayBuffer>],
+      { type: mimeType }
+    );
+    return client.storage.upload(blob);
+  }
+
+  /** Run an endpoint that takes a single uploaded image and returns an image. */
+  private async runImageEndpoint(
+    modelId: string,
+    args: Record<string, unknown>
+  ): Promise<Uint8Array> {
+    const client = await this.getClient();
+    const result = await client.subscribe(modelId, {
+      input: args,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler()
+    });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    return downloadBytes(extractImageUrl(data));
+  }
+
+  /** Run an endpoint that returns a video and download the bytes. */
+  private async runVideoEndpoint(
+    modelId: string,
+    args: Record<string, unknown>
+  ): Promise<Uint8Array> {
+    const client = await this.getClient();
+    const result = await client.subscribe(modelId, {
+      input: args,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler()
+    });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    return downloadBytes(extractVideoUrl(data));
+  }
+
+  override async upscaleImage(
+    image: Uint8Array,
+    params: UpscaleImageParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const url = await this.upload(image, "image/png");
+    const b = new FalArgsBuilder(modelId);
+    b.attachAsset("image", url)
+      .set("prompt", params.prompt)
+      .set("upscale_factor", params.scale)
+      .set("scale", params.scale)
+      .set("creativity", params.creativity);
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    log.debug("FAL upscaleImage", { model: modelId });
+    return this.runImageEndpoint(modelId, b.args);
+  }
+
+  override async removeBackground(
+    image: Uint8Array,
+    params: RemoveBackgroundParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const url = await this.upload(image, "image/png");
+    const b = new FalArgsBuilder(modelId);
+    b.attachAsset("image", url).set("output_format", "png");
+    log.debug("FAL removeBackground", { model: modelId });
+    return this.runImageEndpoint(modelId, b.args);
+  }
+
+  override async relightImage(
+    image: Uint8Array,
+    params: RelightImageParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const url = await this.upload(image, "image/png");
+    const b = new FalArgsBuilder(modelId);
+    b.attachAsset("image", url)
+      .force("prompt", params.prompt)
+      .set("output_format", "png")
+      .set("negative_prompt", params.negativePrompt);
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    log.debug("FAL relightImage", { model: modelId });
+    return this.runImageEndpoint(modelId, b.args);
+  }
+
+  override async vectorizeImage(
+    image: Uint8Array,
+    params: VectorizeImageParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const url = await this.upload(image, "image/png");
+    const b = new FalArgsBuilder(modelId);
+    b.attachAsset("image", url);
+    log.debug("FAL vectorizeImage", { model: modelId });
+    return this.runImageEndpoint(modelId, b.args);
+  }
+
+  override async videoToVideo(
+    video: Uint8Array,
+    params: VideoToVideoParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const url = await this.upload(video, "video/mp4");
+    const b = new FalArgsBuilder(modelId);
+    b.attachAsset("video", url)
+      .set("prompt", params.prompt)
+      .set("negative_prompt", params.negativePrompt)
+      .set("strength", params.strength)
+      .set("duration", params.durationSeconds)
+      .setSize(null, params.resolution);
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    log.debug("FAL videoToVideo", { model: modelId });
+    return this.runVideoEndpoint(modelId, b.args);
+  }
+
+  override async lipSync(
+    video: Uint8Array,
+    params: LipSyncParams
+  ): Promise<Uint8Array> {
+    const modelId = params.model.id;
+    const [videoUrl, audioUrl] = await Promise.all([
+      this.upload(video, "video/mp4"),
+      this.upload(params.audio, "audio/mpeg")
+    ]);
+    const b = new FalArgsBuilder(modelId);
+    b.attachAsset("video", videoUrl).attachAsset("audio", audioUrl);
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    log.debug("FAL lipSync", { model: modelId });
+    return this.runVideoEndpoint(modelId, b.args);
   }
 }
 

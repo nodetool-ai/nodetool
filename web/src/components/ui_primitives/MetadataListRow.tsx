@@ -115,7 +115,7 @@ export const MetadataListRow: React.FC<MetadataListRowProps> = memo(
             sx={{
               display: "flex",
               alignItems: "baseline",
-              gap: 0.75,
+              gap: 1,
               minWidth: 0,
               flexWrap: "nowrap"
             }}

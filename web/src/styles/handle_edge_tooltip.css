@@ -289,7 +289,8 @@
 }
 .react-flow__node .react-flow__handle-left {
   transform-origin: right center;
-  left: -6px;
+  /* -6px (visual overhang) - node-body padding so handle sits on the outer edge */
+  left: calc(-6px - var(--node-body-padding, 0px));
   top: 5px;
   border-left: 1px solid var(--palette-grey-700);
   border-top: 1px solid var(--palette-grey-700);
@@ -301,7 +302,7 @@
   border-right: 1px solid var(--palette-grey-700);
   border-top: 1px solid var(--palette-grey-700);
   border-bottom: 1px solid var(--palette-grey-700);
-  right: -6px;
+  right: calc(-6px - var(--node-body-padding, 0px));
   top: 5px;
   border-radius: 0 2px 2px 0;
 }
@@ -450,6 +451,30 @@ ul.multi-outputs li::marker {
   display: contents;
 }
 
+.property-tooltip-wrapper {
+  display: inline;
+  position: relative;
+  max-width: 100%;
+}
+
+.property-handle-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 999;
+  pointer-events: none;
+  margin-top: 2px;
+}
+
+.property-handle-tooltip-type {
+  font-size: var(--fontSizeSmaller);
+  font-family: var(--fontFamily2, monospace);
+  opacity: 0.9;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
 .handle-tooltip {
   position: absolute;
   pointer-events: none;
@@ -489,6 +514,7 @@ ul.multi-outputs li::marker {
 
 /* Handle tooltip inner content */
 .handle-tooltip-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -498,26 +524,42 @@ ul.multi-outputs li::marker {
   white-space: nowrap;
 }
 
+.handle-tooltip-label {
+  position: relative;
+  display: inline-block;
+}
+
 .handle-tooltip-name {
-  font-size: var(--fontSizeNormal);
-  font-weight: bold;
+  font-size: var(--fontSizeSmaller);
+  font-weight: 600;
   border: 0;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
-  width: 100%;
   padding: 0.25em 0.5em;
   line-height: 1.2;
 }
 
-.handle-tooltip-type {
-  font-size: var(--fontSizeSmaller);
-  font-family: var(--fontFamily2, monospace);
-  opacity: 0.8;
-  padding: 0 0.5em 0.2em;
-  line-height: 1.1;
+.handle-tooltip-details {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, calc(-0.2em - 3px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
 }
 
-.handle-tooltip-streaming,
-.handle-tooltip-info {
+.handle-tooltip-type {
+  font-size: var(--fontSizeTinyer);
+  font-family: var(--fontFamily2, monospace);
+  opacity: 0.8;
+  padding: 0 0.35em;
+  line-height: 1;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.handle-tooltip-streaming {
   font-size: var(--fontSizeSmall);
   font-style: italic;
   opacity: 0.9;

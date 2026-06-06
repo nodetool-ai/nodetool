@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useMemo } from "react";
+import React, { memo, useContext, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
 import isEqual from "fast-deep-equal";
 import { Tooltip } from "../ui_primitives";
@@ -9,6 +9,13 @@ import { TypeMetadata } from "../../stores/ApiTypes";
 import HandleTooltip from "../HandleTooltip";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
+import {
+  useInspectorHeaderActions,
+  useInspectorHeaderReset,
+  useInspectorHeaderSupplemental
+} from "../../contexts/InspectorPropertyHeaderContext";
+import { FlexRow } from "../ui_primitives";
+import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
 
 interface PropertyLabelProps {
   id: string;
@@ -33,7 +40,6 @@ interface PropertyLabelProps {
   showDescriptionInline?: boolean;
   handleTooltipType?: TypeMetadata;
   handleTooltipPosition?: "left" | "right";
-  isCollectInput?: boolean;
 }
 
 const PropertyLabel: React.FC<PropertyLabelProps> = ({
@@ -45,10 +51,11 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   density = "normal",
   showDescriptionInline = false,
   handleTooltipType,
-  handleTooltipPosition = "left",
-  isCollectInput = false
+  handleTooltipPosition = "left"
 }) => {
   const theme = useTheme();
+  const contextHandleTooltipType = useContext(PropertyHandleTooltipContext);
+  const resolvedHandleTooltipType = handleTooltipType ?? contextHandleTooltipType;
   const scope = useEditorScope();
   const formattedName = useMemo(() => {
     if (isDynamicProperty) {
@@ -58,8 +65,16 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   }, [name, isDynamicProperty]);
 
   const isInspector = scope === "inspector";
+  const headerActions = useInspectorHeaderActions();
+  const headerReset = useInspectorHeaderReset();
+  const headerSupplemental = useInspectorHeaderSupplemental();
+  const hasHeaderActions =
+    isInspector &&
+    (headerActions != null ||
+      headerReset != null ||
+      headerSupplemental != null);
   const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
-  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.25);
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1);
   // Only show inline descriptions when explicitly requested, not automatically in inspector
   const shouldShowInlineDescription = showDescriptionInline && !isInspector;
 
@@ -69,12 +84,11 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     </label>
   );
 
-  const labelWithTooltip = handleTooltipType ? (
+  const labelWithTooltip = resolvedHandleTooltipType ? (
     <HandleTooltip
-      typeMetadata={handleTooltipType}
+      typeMetadata={resolvedHandleTooltipType}
       paramName={name}
       handlePosition={handleTooltipPosition}
-      isCollectInput={isCollectInput}
       variant="property"
     >
       {label}
@@ -109,37 +123,35 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     </Tooltip>
   );
 
-  return (
-    <div
-      className="property-label"
-      css={css({
-        width: "100%",
-        height: "auto",
-        padding: 0,
-        overflow: "visible",
-        flexGrow: 1,
-        "&:hover": {
-          "& label": {
-            opacity: 0.94
-          }
-        },
-        "& label": {
-          display: "block",
-          fontWeight: 500,
-          fontSize: labelFontSize,
-          color: theme.vars.palette.text.secondary,
-          padding: 0,
-          margin: `0 0 ${labelMarginBottom} 0`,
-          lineHeight: "1em",
-          maxHeight: "2em",
-          minHeight: "13px",
-          textTransform: "capitalize",
-          letterSpacing: "0.01em",
-          userSelect: "none"
-        }
-      })}
-    >
-      {labelWithTooltip}
+  const labelBlock = (
+    <>
+      {hasHeaderActions ? (
+        <FlexRow
+          className="property-label-row"
+          align="center"
+          gap={0.25}
+          sx={{ width: "100%", minWidth: 0 }}
+        >
+          <div
+            className="property-label-main"
+            css={css({ flex: "1 1 auto", minWidth: 0, overflow: "hidden" })}
+          >
+            {labelWithTooltip}
+          </div>
+          <FlexRow
+            className="property-label-actions inspector-header-toolbar inspector-toolbar-hoverable"
+            align="center"
+            gap={0.25}
+            sx={{ flex: "0 0 auto", flexShrink: 0 }}
+          >
+            {headerSupplemental}
+            {headerReset}
+            {headerActions}
+          </FlexRow>
+        </FlexRow>
+      ) : (
+        labelWithTooltip
+      )}
       {shouldShowInlineDescription && description && (
         <span
           css={css({
@@ -155,6 +167,101 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           {description}
         </span>
       )}
+    </>
+  );
+
+  return (
+    <div
+      className={`property-label${hasHeaderActions ? " property-label-with-actions" : ""}`}
+      css={css({
+        width: "100%",
+        height: "auto",
+        padding: 0,
+        overflow: "visible",
+        flexGrow: 1,
+        marginBottom: labelMarginBottom,
+        "&:hover": {
+          "& label": {
+            opacity: 0.94
+          }
+        },
+        "& label": {
+          display: "block",
+          fontWeight: 500,
+          fontSize: labelFontSize,
+          color: theme.vars.palette.text.secondary,
+          padding: 0,
+          margin: 0,
+          lineHeight: "1em",
+          maxHeight: "2em",
+          minHeight: "13px",
+          textTransform: "capitalize",
+          letterSpacing: "0.01em",
+          userSelect: "none"
+        },
+        ".inspector-header-toolbar .inspector-reset-button": {
+          padding: 0,
+          margin: 0,
+          width: 26,
+          height: 26,
+          flexShrink: 0,
+          "& svg": {
+            fontSize: "1.0625rem !important"
+          }
+        },
+        ".inspector-header-toolbar .inspector-reset-button.is-changed": {
+          color: theme.vars.palette.common.white,
+          opacity: 1
+        },
+        ".inspector-header-toolbar .inspector-reset-button.is-changed:hover": {
+          color: theme.vars.palette.common.white,
+          opacity: 0.85
+        },
+        ".inspector-header-toolbar .inspector-reset-button.Mui-disabled": {
+          opacity: 0.5,
+          color: theme.vars.palette.text.disabled
+        },
+        ".inspector-header-toolbar .MuiIconButton-root": {
+          padding: 0,
+          margin: 0,
+          width: 20,
+          height: 20
+        },
+        ".inspector-header-toolbar .MuiIconButton-root svg": {
+          fontSize: "var(--fontSizeSmall)"
+        },
+        ".inspector-header-toolbar .inspector-supplemental-action": {
+          width: 22,
+          height: 22,
+          padding: 0,
+          margin: 0,
+          flexShrink: 0,
+          color: theme.vars.palette.common.white,
+          "& svg": {
+            fontSize: "0.9375rem !important"
+          },
+          "&:hover": {
+            color: theme.vars.palette.common.white,
+            opacity: 0.85,
+            backgroundColor: "rgba(255, 255, 255, 0.08)"
+          }
+        },
+        ".inspector-header-toolbar .copy-button:not(.inspector-supplemental-action) svg": {
+          fontSize: "0.75rem !important"
+        },
+        ".inspector-header-toolbar .property-visibility-toggle": {
+          width: 22,
+          height: 22,
+          padding: 0,
+          margin: 0,
+          flexShrink: 0
+        },
+        ".inspector-header-toolbar .property-visibility-toggle svg": {
+          fontSize: "0.9375rem !important"
+        }
+      })}
+    >
+      {labelBlock}
     </div>
   );
 };

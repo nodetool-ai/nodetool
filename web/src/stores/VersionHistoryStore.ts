@@ -13,8 +13,6 @@ import type { WorkflowVersionSaveType } from "./ApiTypes";
 
 export type SaveType = WorkflowVersionSaveType;
 
-export type { WorkflowVersion } from "./ApiTypes";
-
 interface VersionHistoryState {
   // Currently selected version for viewing
   selectedVersionId: string | null;

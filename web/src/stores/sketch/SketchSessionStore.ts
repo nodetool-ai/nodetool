@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useMemo, useRef } from "react";
-import { create } from "zustand";
+import { create, type StoreApi, type UseBoundStore } from "zustand";
 import type {
   LayerStatus,
   LayerVersion,
@@ -30,7 +30,11 @@ import type {
 } from "@nodetool-ai/image-editor";
 
 import { type SketchTool } from "../../components/sketch/types";
-import { useSketchStore } from "../../components/sketch/state";
+import type { SketchStore } from "../../components/sketch/state";
+import {
+  useSketchInstance,
+  type SketchInstance
+} from "./SketchInstance";
 import { trpc, trpcClient } from "../../trpc/client";
 import { useNotificationStore } from "../NotificationStore";
 import { useAssetStore } from "../AssetStore";
@@ -93,9 +97,17 @@ const EMPTY_EXTRAS: LayerHashExtras = {
   workflowDriftToken: 0
 };
 
-interface SketchSessionState {
+export interface SketchSessionState {
   // ── Document metadata ────────────────────────────────────────────────
   documentId: string | null;
+  /**
+   * Id of the document whose content the editor has actually hydrated into
+   * the global sketch store. Distinct from `documentId` (set the moment a
+   * document's *metadata* loads, before the editor mounts): the lifecycle
+   * hook uses this to decide whether a freshly-mounted editor still needs to
+   * seed the global store, vs. a revisit where the in-memory edits should win.
+   */
+  hydratedDocumentId: string | null;
   name: string;
   baseUpdatedAt: string | null;
   lastServerHash: string | null;
@@ -111,6 +123,8 @@ interface SketchSessionState {
     response: Pick<SketchDocumentResponse, "id" | "name" | "updatedAt">,
     serverHash: string
   ) => void;
+  /** Record that the editor has seeded the global store from this document. */
+  markHydrated: (documentId: string) => void;
   markSaving: () => void;
   markSaved: (updatedAt: string, serverHash: string) => void;
   markSaveFailed: (conflict: boolean) => void;
@@ -207,9 +221,16 @@ const getExtras = (
   layerId: string
 ): LayerHashExtras => extras[layerId] ?? EMPTY_EXTRAS;
 
-export const useSketchSessionStore = create<SketchSessionState>((set, get) => ({
+export type SketchSessionStoreApi = UseBoundStore<
+  StoreApi<SketchSessionState>
+>;
+
+/** Create an isolated session/bindings store for one sketch-editor instance. */
+export const createSketchSessionStore = (): SketchSessionStoreApi =>
+  create<SketchSessionState>((set, get) => ({
   // Document metadata ----------------------------------------------------
   documentId: null,
+  hydratedDocumentId: null,
   name: "",
   baseUpdatedAt: null,
   lastServerHash: null,
@@ -229,6 +250,7 @@ export const useSketchSessionStore = create<SketchSessionState>((set, get) => ({
       saveState: "idle",
       hasConflict: false
     }),
+  markHydrated: (documentId) => set({ hydratedDocumentId: documentId }),
   markSaving: () => set({ saveState: "saving", hasConflict: false }),
   markSaved: (updatedAt, serverHash) =>
     set({
@@ -241,6 +263,7 @@ export const useSketchSessionStore = create<SketchSessionState>((set, get) => ({
   reset: () =>
     set({
       documentId: null,
+      hydratedDocumentId: null,
       name: "",
       baseUpdatedAt: null,
       lastServerHash: null,
@@ -538,13 +561,14 @@ export const useSketchSessionStore = create<SketchSessionState>((set, get) => ({
     })
 }));
 
-/** Convenience selector for a single binding. */
-export const useLayerBinding = (
-  layerId: string | null | undefined
-): LayerWorkflowBinding | undefined =>
-  useSketchSessionStore((state) =>
-    layerId ? state.bindings[layerId] : undefined
-  );
+// Context-bound hooks (the reactive `useSketchSessionStore` + `useLayerBinding`)
+// are defined against the active instance in the instance module and
+// re-exported here so existing imports keep resolving from this path.
+export {
+  useSketchSessionStore,
+  useSketchSessionStoreApi,
+  useLayerBinding
+} from "./SketchInstance";
 
 // ── Autosave helpers ────────────────────────────────────────────────────
 
@@ -674,8 +698,10 @@ async function externalizeOversizedBitmaps(
   };
 }
 
-function buildSnapshot(): SketchPersistenceSnapshot {
-  const sketchState = useSketchStore.getState();
+function buildSnapshot(
+  editorStore: StoreApi<SketchStore>
+): SketchPersistenceSnapshot {
+  const sketchState = editorStore.getState();
   return {
     document: sketchState.document,
     activeTool: sketchState.activeTool ?? DEFAULT_SKETCH_ACTIVE_TOOL,
@@ -687,18 +713,18 @@ function buildSnapshot(): SketchPersistenceSnapshot {
 }
 
 async function saveSnapshot(
+  instance: SketchInstance,
   documentId: string,
   name: string,
   onSaved?: (response: SketchDocumentResponse) => void
 ): Promise<void> {
-  const layerBindings = Object.values(
-    useSketchSessionStore.getState().bindings
-  );
-  const snapshot = buildSnapshot();
+  const session = instance.session;
+  const layerBindings = Object.values(session.getState().bindings);
+  const snapshot = buildSnapshot(instance.editor);
   const sketch = toPersistedSketchEditorState(snapshot);
   const prepared = await externalizeOversizedBitmaps(sketch, layerBindings);
   const nextHash = computeImageDocumentHash(prepared.sketch, layerBindings);
-  const store = useSketchSessionStore.getState();
+  const store = session.getState();
   const preparedBytes = getImageDocumentByteLength(
     prepared.sketch,
     layerBindings
@@ -709,7 +735,7 @@ async function saveSnapshot(
   }
 
   if (preparedBytes > MAX_PERSISTED_IMAGE_DOCUMENT_BYTES) {
-    useSketchSessionStore.getState().markSaveFailed(false);
+    session.getState().markSaveFailed(false);
     useNotificationStore.getState().addNotification({
       content:
         "Sketch autosave was skipped because the document is still too large even after externalizing big layers.",
@@ -732,7 +758,7 @@ async function saveSnapshot(
     });
   }
 
-  useSketchSessionStore.getState().markSaving();
+  session.getState().markSaving();
 
   try {
     const response = await trpcClient.sketch.update.mutate({
@@ -747,7 +773,7 @@ async function saveSnapshot(
         layerBindings
       }
     });
-    useSketchSessionStore.getState().markSaved(response.updatedAt, nextHash);
+    session.getState().markSaved(response.updatedAt, nextHash);
     // Mirror the freshly-saved document into the trpc query cache so a
     // remount of `SketchEditorPage` doesn't hydrate from a pre-edit cached
     // payload. Without this the page query (`staleTime: Infinity`,
@@ -762,7 +788,7 @@ async function saveSnapshot(
     // path, stack, etc.) — autosave runs in the background and otherwise has
     // no other channel to surface what went wrong.
     console.error("[sketch autosave]", error);
-    useSketchSessionStore.getState().markSaveFailed(conflict);
+    session.getState().markSaveFailed(conflict);
     useNotificationStore.getState().addNotification({
       content: conflict
         ? "Sketch autosave hit a document conflict — refresh before continuing."
@@ -777,10 +803,24 @@ async function saveSnapshot(
   }
 }
 
+export async function saveSketchDocument(
+  instance: SketchInstance,
+  onSaved?: (response: SketchDocumentResponse) => void
+): Promise<void> {
+  const store = instance.session.getState();
+  if (!store.documentId) {
+    return;
+  }
+  await saveSnapshot(instance, store.documentId, store.name, onSaved);
+}
+
 export function useStandaloneSketchDocument(
   response: SketchDocumentResponse | undefined,
   enabled = true
 ): SketchPersistenceSnapshot | null {
+  const instance = useSketchInstance();
+  const editorStore = instance.editor;
+  const sessionStore = instance.session;
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingHashRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
@@ -800,7 +840,7 @@ export function useStandaloneSketchDocument(
 
   useEffect(() => {
     if (!enabled || !response || !initialState) {
-      useSketchSessionStore.getState().reset();
+      sessionStore.getState().reset();
       return;
     }
     const serverHash = computeImageDocumentHash(
@@ -808,7 +848,7 @@ export function useStandaloneSketchDocument(
       response.document.layerBindings ?? []
     );
     pendingHashRef.current = serverHash;
-    const session = useSketchSessionStore.getState();
+    const session = sessionStore.getState();
     session.setLoadedDocument(
       {
         id: response.id,
@@ -818,7 +858,7 @@ export function useStandaloneSketchDocument(
       serverHash
     );
     session.setBindings(response.document.layerBindings ?? []);
-  }, [enabled, initialState, response]);
+  }, [enabled, initialState, response, sessionStore]);
 
   useEffect(() => {
     if (!enabled || !response || !initialState) {
@@ -830,7 +870,7 @@ export function useStandaloneSketchDocument(
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
-      const store = useSketchSessionStore.getState();
+      const store = sessionStore.getState();
       if (inFlightRef.current || !store.documentId) {
         return;
       }
@@ -841,11 +881,11 @@ export function useStandaloneSketchDocument(
       pendingHashRef.current = null;
       inFlightRef.current = true;
       const documentId = store.documentId;
-      void saveSnapshot(documentId, store.name, (saved) => {
+      void saveSnapshot(instance, documentId, store.name, (saved) => {
         utilsRef.current.sketch.get.setData({ id: documentId }, saved);
       }).finally(() => {
         inFlightRef.current = false;
-        const currentStore = useSketchSessionStore.getState();
+        const currentStore = sessionStore.getState();
         if (
           pendingHashRef.current &&
           pendingHashRef.current !== currentStore.lastServerHash
@@ -866,22 +906,20 @@ export function useStandaloneSketchDocument(
     };
 
     type SelectedFields = {
-      document: ReturnType<typeof useSketchStore.getState>["document"];
+      document: SketchStore["document"];
       activeTool: SketchTool;
       historyIndex: number;
       historyLength: number;
     };
-    const selectPersistenceFields = (
-      state: ReturnType<typeof useSketchStore.getState>
-    ): SelectedFields => ({
+    const selectPersistenceFields = (state: SketchStore): SelectedFields => ({
       document: state.document,
       activeTool: state.activeTool,
       historyIndex: state.historyIndex,
       historyLength: state.history.length
     });
-    let prevSelected = selectPersistenceFields(useSketchStore.getState());
+    let prevSelected = selectPersistenceFields(editorStore.getState());
 
-    const unsubscribeSketch = useSketchStore.subscribe((state) => {
+    const unsubscribeSketch = editorStore.subscribe((state) => {
       const nextSelected = selectPersistenceFields(state);
       if (
         nextSelected.document === prevSelected.document &&
@@ -902,26 +940,26 @@ export function useStandaloneSketchDocument(
           history: stripHistoryCanvasSnapshots(state.history),
           historyIndex: state.historyIndex
         }),
-        Object.values(useSketchSessionStore.getState().bindings)
+        Object.values(sessionStore.getState().bindings)
       );
       pendingHashRef.current = nextHash;
-      if (nextHash !== useSketchSessionStore.getState().lastServerHash) {
+      if (nextHash !== sessionStore.getState().lastServerHash) {
         schedule();
       }
     });
 
     // Subscribe to the merged session store too — bindings live here now,
     // and a binding change still needs to bump the pending hash.
-    let prevBindings = useSketchSessionStore.getState().bindings;
-    const unsubscribeSession = useSketchSessionStore.subscribe((state) => {
+    let prevBindings = sessionStore.getState().bindings;
+    const unsubscribeSession = sessionStore.subscribe((state) => {
       if (state.bindings === prevBindings) return;
       prevBindings = state.bindings;
       const nextHash = computeImageDocumentHash(
-        toPersistedSketchEditorState(buildSnapshot()),
+        toPersistedSketchEditorState(buildSnapshot(editorStore)),
         Object.values(state.bindings)
       );
       pendingHashRef.current = nextHash;
-      if (nextHash !== useSketchSessionStore.getState().lastServerHash) {
+      if (nextHash !== sessionStore.getState().lastServerHash) {
         schedule();
       }
     });
@@ -931,7 +969,7 @@ export function useStandaloneSketchDocument(
       unsubscribeSession();
       flush();
     };
-  }, [enabled, initialState, response]);
+  }, [enabled, initialState, response, editorStore, sessionStore, instance]);
 
   return initialState;
 }

@@ -101,7 +101,7 @@ import {
   IntervalTriggerNode,
   WebhookTriggerNode,
   FileWatchTriggerNode
-} from "../src/index.js";
+} from "@nodetool-ai/base-nodes";
 
 // Import extended-placeholders directly to cover internal functions
 import {
@@ -109,7 +109,7 @@ import {
   EXTENDED_PLACEHOLDER_NODES,
   titleFromNodeType,
   makePlaceholderNode
-} from "../src/nodes/extended-placeholders.js";
+} from "@nodetool-ai/core-nodes/nodes/extended-placeholders";
 
 // ============================================================
 // CONTROL NODES

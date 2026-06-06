@@ -4,7 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
-import { Box, Collapse } from "@mui/material";
+import { Collapse } from "@mui/material";
+import { Box } from "../../ui_primitives";
 import { ReasoningToggle } from "../../common/ReasoningToggle";
 
 type Props = {
@@ -60,7 +61,7 @@ const parseThinkSections = (input: string): Section[] => {
   return sections;
 };
 
-const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
+const ThinkBlock: React.FC<{ content: string }> = memo(({ content }) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const handleToggle = useCallback(() => {
@@ -98,7 +99,7 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
       </Collapse>
     </Box>
   );
-};
+});
 
 export const TextRenderer: React.FC<Props> = memo(({ text, showActions = true }) => {
   const theme = useTheme();

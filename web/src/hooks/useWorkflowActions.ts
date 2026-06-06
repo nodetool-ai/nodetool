@@ -2,6 +2,10 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Workflow } from "../stores/ApiTypes";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
+import {
+  examplePackageName,
+  exampleSeedRef
+} from "../utils/exampleWorkflow";
 
 /**
  * Custom hook for workflow-related actions and navigation.
@@ -23,7 +27,15 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
  * handleWorkflowClick(existingWorkflow);
  * ```
  */
-export const useWorkflowActions = () => {
+interface WorkflowActions {
+  loadingExampleId: string | null;
+  handleCreateNewWorkflow: () => Promise<void>;
+  handleWorkflowClick: (workflow: Workflow) => void;
+  handleExampleClick: (example: Workflow) => Promise<void>;
+  handleViewAllTemplates: () => void;
+}
+
+export const useWorkflowActions = (): WorkflowActions => {
   const navigate = useNavigate();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const createWorkflow = useWorkflowManager((state) => state.create);
@@ -64,8 +76,8 @@ export const useWorkflowActions = () => {
 
         const newWorkflow = await createWorkflow(
           req,
-          example.package_name || undefined,
-          example.name
+          examplePackageName(example),
+          exampleSeedRef(example)
         );
         navigate(`/editor/${newWorkflow.id}`);
       } catch (error) {

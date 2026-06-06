@@ -6,13 +6,9 @@ import {
   Asset as ProtocolAsset,
   AssetList,
   AssetRef,
-  AssetUpdateRequest,
   ASRModel,
   AudioRef,
   CalendarEvent,
-  ChartConfig,
-  ChartData,
-  ChartSeries,
   Chunk,
   CollectionCreate,
   CollectionList,
@@ -40,17 +36,12 @@ import {
   LanguageModel,
   LlamaModel,
   LogUpdate,
-  MediaGenerationMode,
-  MediaGenerationRequest,
-  Message,
+  Message as ProtocolMessage,
   MessageAudioContent,
   MessageCreateRequest,
   MessageDocumentContent,
   MessageImageContent,
-  MessageImageUrlContent,
-  MessageList,
   MessageTextContent,
-  MessageThoughtContent,
   MessageVideoContent,
   Model3DRef,
   ModelPack,
@@ -59,22 +50,21 @@ import {
   NodeProgress,
   NodeUpdate,
   Notification,
+  ProviderCost,
   NPArray,
   OutputSlot,
   OutputUpdate,
   PlanningUpdate,
   PlotlyConfig,
   Prediction,
-  PreviewUpdate,
   Property,
   PropertyTypeMetadata,
   Provider,
+  ProviderId,
+  PROVIDER_IDS,
   ProviderInfo,
   RepoPath,
-  ResourceChangeMessage,
-  ResourceLimits,
   RunJobRequest,
-  RunStateInfo,
   SecretResponse,
   SettingWithValue,
   SettingsResponse,
@@ -86,6 +76,9 @@ import {
   Task,
   TaskPlan,
   TaskUpdate,
+  TodoItem,
+  TodoStatus,
+  TodoUpdate,
   TextRef,
   Thread,
   ThreadCreateRequest,
@@ -109,11 +102,7 @@ import {
   WorkflowVersion,
   WorkflowVersionList,
   WorkflowVersionSaveType,
-  WorkspaceCreateRequest,
-  WorkspaceFileInfo,
-  WorkspaceListResponse,
-  WorkspaceResponse,
-  WorkspaceUpdateRequest
+  WorkspaceResponse
 } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
@@ -122,13 +111,9 @@ import {
 
 export type { AssetList };
 export type { AssetRef };
-export type { AssetUpdateRequest };
 export type { ASRModel };
 export type { AudioRef };
 export type { CalendarEvent };
-export type { ChartConfig };
-export type { ChartData };
-export type { ChartSeries };
 export type { CollectionCreate };
 export type { CollectionList };
 export type { CollectionResponse };
@@ -156,17 +141,26 @@ export type { JobUpdate };
 export type { LanguageModel };
 export type { LlamaModel };
 export type { LogUpdate };
-export type { MediaGenerationMode };
-export type { MediaGenerationRequest };
-export type { Message };
+/**
+ * Chat permission mode (per-thread). Sent on every outgoing chat message.
+ * - `plan`: read & propose only; actionable tools are blocked.
+ * - `default`: reads run; actionable tools ask for approval first.
+ * - `auto`: everything runs, no prompts.
+ */
+export type PermissionMode = "plan" | "default" | "auto";
+
+/**
+ * Frontend `Message` extends the protocol message with `permission_mode`,
+ * which governs how the agent's gated tool calls are handled for the thread.
+ */
+export interface Message extends ProtocolMessage {
+  permission_mode?: PermissionMode | null;
+}
 export type { MessageAudioContent };
 export type { MessageCreateRequest };
 export type { MessageDocumentContent };
 export type { MessageImageContent };
-export type { MessageImageUrlContent };
-export type { MessageList };
 export type { MessageTextContent };
-export type { MessageThoughtContent };
 export type { MessageVideoContent };
 export type { Model3DRef };
 export type { ModelPack };
@@ -180,16 +174,15 @@ export type { OutputUpdate };
 export type { PlanningUpdate };
 export type { PlotlyConfig };
 export type { Prediction };
-export type { PreviewUpdate };
 export type { Property };
 export type { PropertyTypeMetadata };
 export type { Provider };
+export type { ProviderId };
+export { PROVIDER_IDS };
+export type { ProviderCost };
 export type { ProviderInfo };
 export type { RepoPath };
-export type { ResourceChangeMessage };
-export type { ResourceLimits };
 export type { RunJobRequest };
-export type { RunStateInfo };
 export type { SecretResponse };
 export type { SettingWithValue };
 export type { SettingsResponse };
@@ -201,6 +194,9 @@ export type { SystemStats };
 export type { Task };
 export type { TaskPlan };
 export type { TaskUpdate };
+export type { TodoItem };
+export type { TodoStatus };
+export type { TodoUpdate };
 export type { TextRef };
 export type { Thread };
 export type { ThreadCreateRequest };
@@ -223,11 +219,7 @@ export type { WorkflowToolList };
 export type { WorkflowVersion };
 export type { WorkflowVersionList };
 export type { WorkflowVersionSaveType };
-export type { WorkspaceCreateRequest };
-export type { WorkspaceFileInfo };
-export type { WorkspaceListResponse };
 export type { WorkspaceResponse };
-export type { WorkspaceUpdateRequest };
 
 // ---------------------------------------------------------------------------
 // Aliases for backward compatibility
@@ -249,7 +241,7 @@ export type Graph = WorkflowGraph;
 export type TypeName = string;
 
 /** Re-export base metadata shape under its old name */
-export type BaseNodeMetadata = BaseNodeMetadataFromProtocol;
+type BaseNodeMetadata = BaseNodeMetadataFromProtocol;
 
 // ---------------------------------------------------------------------------
 // Local overrides / extensions
@@ -279,6 +271,19 @@ export interface FalUnitPricing {
   checked_at?: string | null;
 }
 
+/** kie.ai list price on generated KIE nodes — frontend-enriched shape. */
+export interface KieUnitPricing {
+  model_id: string;
+  unit_price: number;
+  billing_unit: string;
+  currency: "credits";
+  usd_price?: number;
+  tier_count?: number;
+  pricing_url?: string;
+  source?: "live" | "bundle";
+  checked_at?: string | null;
+}
+
 export interface NodeMetadata extends BaseNodeMetadata {
   searchInfo?: {
     score?: number;
@@ -300,6 +305,8 @@ export interface NodeMetadata extends BaseNodeMetadata {
   required_runtimes?: string[];
   /** FAL.ai unit pricing from generated TS nodes / metadata index. */
   fal_unit_pricing?: FalUnitPricing | null;
+  /** kie.ai unit pricing from generated KIE nodes / metadata index. */
+  kie_unit_pricing?: KieUnitPricing | null;
   /**
    * Marks a node as generative — its outputs should be auto-saved as assets
    * by the backend, and the UI uses this flag to auto-show the result preview

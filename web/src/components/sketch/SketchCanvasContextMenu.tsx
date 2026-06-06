@@ -3,7 +3,6 @@ import React, { memo, useEffect } from "react";
 import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
-  Box,
   ButtonBase,
   Divider,
   IconButton,
@@ -11,6 +10,7 @@ import {
   Stack,
   Typography
 } from "@mui/material";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import RestoreIcon from "@mui/icons-material/Restore";
@@ -43,15 +43,15 @@ import {
 } from "./toolDefinitions";
 import { displayCombo } from "./shortcuts";
 import SketchToolIconLabel from "./SketchToolIconLabel";
-import { ToolSettingsPanel, getToolSettingsLabel } from "./ToolSettingsPanels";
+import { ToolSettingsPanel } from "./ToolSettingsPanels";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <Typography
       sx={{
-        mb: 1.05,
+        mb: 1,
         fontSize: SKETCH_FONT.section,
-        fontWeight: 800,
+        fontWeight: 600,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
         color: "text.secondary"
@@ -75,7 +75,7 @@ function ColorPreview({ label, color }: { label: string; color: string }) {
           background: color
         }}
       />
-      <Typography sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 700, color: "text.secondary" }}>
+      <Typography sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 600, color: "text.secondary" }}>
         {label}
       </Typography>
     </Stack>
@@ -120,9 +120,9 @@ function SelectionMenuItem({
         }
       }}
     >
-      <Box sx={{ flex: "0 0 auto", display: "flex", color: "text.secondary" }}>
+      <FlexRow sx={{ flex: "0 0 auto", color: "text.secondary" }}>
         {icon}
-      </Box>
+      </FlexRow>
       <Typography sx={{ flex: 1, fontSize: SKETCH_FONT.md, fontWeight: 500, color: "text.primary" }}>
         {label}
       </Typography>
@@ -146,7 +146,7 @@ interface ToolGridButtonProps {
   compact?: boolean;
 }
 
-function ToolGridButton({
+const ToolGridButton = memo(function ToolGridButton({
   definition,
   selected,
   shortcut,
@@ -214,7 +214,7 @@ function ToolGridButton({
       />
     </ButtonBase>
   );
-}
+});
 
 export interface SketchCanvasContextMenuProps {
   /** Applied to the menu paper (e.g. `sketch-editor__context-menu`). */
@@ -464,21 +464,19 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
         }
       }}
     >
-      <Box
+      <FlexColumn
         className="sketch-context-menu__root"
-        sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}
+        gap={1.25}
       >
-        <Box
+        <FlexRow
           className="sketch-context-menu__header"
+          align="center"
+          gap={1}
           sx={{
             flex: "0 0 auto",
             minHeight: CONTEXT_MENU_HEADER_HEIGHT_PX,
             boxSizing: "border-box",
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 1,
-            px: 1.25,
+            px: 1,
             py: 0.5,
             borderRadius: "8px",
             // border: "1px solid",
@@ -507,13 +505,13 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               className="sketch-context-menu__header-shortcut"
               sx={{
                 flex: "0 0 auto",
-                px: 0.65,
-                py: 0.2,
+                px: 0.5,
+                py: 0.5,
                 borderRadius: "6px",
                 border: "1px solid",
                 borderColor: theme.vars.palette.grey[600],
                 fontSize: SKETCH_FONT.sm,
-                fontWeight: 700,
+                fontWeight: 600,
                 lineHeight: 1.2,
                 color: "text.secondary",
                 fontVariantNumeric: "tabular-nums"
@@ -528,16 +526,17 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             flexItem
             sx={{
               borderColor: alpha(theme.palette.primary.main, 0.22),
-              my: 0.75
+              my: 1
             }}
           />
-          <Box
+          <FlexRow
             className="sketch-context-menu__header-colors"
-            sx={{ flex: "0 0 auto", display: "flex", alignItems: "center" }}
+            align="center"
+            sx={{ flex: "0 0 auto" }}
           >
             {renderColorContext()}
-          </Box>
-        </Box>
+          </FlexRow>
+        </FlexRow>
 
         <Box
           className="sketch-context-menu__body"
@@ -570,8 +569,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               minHeight: 360,
               height: "100%",
               borderRadius: "8px",
-              px: 1.35,
-              py: 1.2
+              px: 1,
+              py: 1
             }}
           >
             <Box sx={{ minWidth: 0 }}>
@@ -692,16 +691,14 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             )}
           </Stack>
 
-          <Box
+          <FlexColumn
             className="sketch-context-menu__tools-column"
             sx={{
               minWidth: 0,
               alignSelf: "stretch",
               borderRadius: "8px",
-              px: 1.15,
-              py: 1.1,
-              display: "flex",
-              flexDirection: "column"
+              px: 1,
+              py: 1
             }}
           >
             <SectionLabel>Tools</SectionLabel>
@@ -719,7 +716,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     sx={{
                       display: "grid",
                       gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      gap: 0.65,
+                      gap: 0.5,
                       alignContent: "start"
                     }}
                   >
@@ -739,14 +736,14 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     ))}
                   </Box>
                   {groupIndex < CONTEXT_MENU_TOOL_GROUPS.length - 1 ? (
-                    <Divider sx={{ borderColor: surfaceSoft, my: 0.15 }} />
+                    <Divider sx={{ borderColor: surfaceSoft, my: 0.5 }} />
                   ) : null}
                 </React.Fragment>
               ))}
             </Stack>
-          </Box>
+          </FlexColumn>
         </Box>
-      </Box>
+      </FlexColumn>
       </Popover>
     </>
   );

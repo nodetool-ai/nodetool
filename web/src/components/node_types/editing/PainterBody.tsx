@@ -70,8 +70,7 @@ import { resolveExposedInputNames } from "../../../utils/exposedInputs";
 import { asImageRef } from "../../../utils/imageRef";
 import { createImageUrl } from "../../../utils/imageUtils";
 import { resolveAssetUri } from "../../node/output/hooks";
-
-const PAINTER_NODE_TYPE = "nodetool.image.Painter";
+import { PAINTER_NODE_TYPE } from "../../../constants/nodeTypes";
 
 // Max number of undo states retained. Keeps memory bounded; older
 // states are dropped from the front of the queue.
@@ -229,7 +228,7 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.75),
+      gap: theme.spacing(1),
       padding: theme.spacing(1),
       margin: theme.spacing(0.5, 0),
       borderRadius: "var(--rounded-sm)",
@@ -271,7 +270,7 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto"
     },
     ".tool-toggle .MuiToggleButton-root": {
-      padding: theme.spacing(0.5, 0.75),
+      padding: theme.spacing(0.5, 1),
       "& svg": { fontSize: 22 }
     },
     /* History cluster (undo/redo/clear) styled as proper buttons: the

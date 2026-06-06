@@ -37,8 +37,6 @@ const PACKAGE_EMOJIS: Record<string, string> = {
   ruby: "💎",
   lua: "🌙",
   pdftotext: "📑",
-  claude_agent_sdk: "🧠",
-  codex_sdk: "💻",
   transformers_js: "🤖",
   tensorflow_js: "📊",
 };
@@ -254,7 +252,7 @@ const PackageManager: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => { filterPackages(); }, [searchTerm, availablePackages, installedPackages, activeTab]);
+  useEffect(() => { filterPackages(); }, [searchTerm, availablePackages, installedPackages, activeTab, runtimes]);
 
   useEffect(() => {
     loadRuntimes();
@@ -315,7 +313,8 @@ const PackageManager: React.FC = () => {
 
   const filterPackages = () => {
     const term = searchTerm.toLowerCase().trim();
-    let baseList = availablePackages;
+    const runtimeIds = new Set(runtimes.map((r) => r.id));
+    let baseList = availablePackages.filter((p) => !runtimeIds.has(p.repo_id));
     if (activeTab === "installed") {
       baseList = availablePackages.filter(p => isPackageInstalled(p.repo_id));
     } else if (activeTab === "available") {
@@ -442,9 +441,12 @@ const PackageManager: React.FC = () => {
   }, []);
 
   const stats = useMemo(() => {
-    const total = availablePackages.length + runtimes.length;
-    const installed = installedPackages.length + runtimes.filter(r => r.installed).length;
-    const available = (availablePackages.length - installedPackages.length) + runtimes.filter(r => !r.installed).length;
+    const runtimeIds = new Set(runtimes.map((r) => r.id));
+    const registryPackages = availablePackages.filter((p) => !runtimeIds.has(p.repo_id));
+    const registryInstalled = installedPackages.filter((p) => !runtimeIds.has(p.repo_id));
+    const total = registryPackages.length + runtimes.length;
+    const installed = registryInstalled.length + runtimes.filter(r => r.installed).length;
+    const available = (registryPackages.length - registryInstalled.length) + runtimes.filter(r => !r.installed).length;
     const updates = installedPackages.filter(p => p.hasUpdate).length;
     return { total, installed, available, updates };
   }, [availablePackages, installedPackages, runtimes]);

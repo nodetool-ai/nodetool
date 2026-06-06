@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 import { Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
-import { Box } from "@mui/material";
-import { EditorButton, Text } from "./ui_primitives";
+import { EditorButton, Text, Box } from "./ui_primitives";
 import { ThemeContext } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 

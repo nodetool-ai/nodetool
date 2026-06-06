@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { createElement, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { Box } from "../ui_primitives";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { FlexRow } from "../ui_primitives/FlexRow";
 import { Text } from "../ui_primitives/Text";
@@ -11,7 +11,7 @@ import { Chip } from "../ui_primitives/Chip";
 import { NodeContext } from "../../contexts/NodeContext";
 import { createNodeStore } from "../../stores/NodeStore";
 import { EditorUiProvider } from "../editor_ui";
-import { getComponentForProperty } from "../node/PropertyInput";
+import { getComponentForProperty } from "../node/PropertyInput.resolver";
 import type { Property } from "../../stores/ApiTypes";
 
 interface ChainNodePropertiesProps {
@@ -45,7 +45,7 @@ const chainPropertyStyles = (theme: Theme) =>
 
     /* Labels */
     "& .property-label": {
-      marginBottom: theme.spacing(0.75),
+      marginBottom: theme.spacing(1),
     },
     "& .property-label label": {
       fontSize: theme.fontSizeSmall,
@@ -59,7 +59,7 @@ const chainPropertyStyles = (theme: Theme) =>
       width: "100%",
       borderRadius: theme.shape.borderRadius,
       backgroundColor: theme.vars.palette.action.hover,
-      padding: theme.spacing(0.75, 1),
+      padding: theme.spacing(1, 1),
       cursor: "ew-resize",
     },
     "& .number-input .value": {

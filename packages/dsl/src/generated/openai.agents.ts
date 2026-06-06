@@ -19,8 +19,8 @@ export interface RealtimeAgentOutputs {
   text: string;
 }
 
-export function realtimeAgent(inputs: RealtimeAgentInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RealtimeAgentOutputs> {
-  return createNode("openai.agents.RealtimeAgent", inputs as Record<string, unknown>, { outputNames: ["chunk", "audio", "text"], streaming: true, streamingInput: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function realtimeAgent(inputs: RealtimeAgentInputs): DslNode<RealtimeAgentOutputs> {
+  return createNode("openai.agents.RealtimeAgent", inputs as Record<string, unknown>, { outputNames: ["chunk", "audio", "text"], streaming: true, streamingInput: true });
 }
 
 // Realtime Transcription — openai.agents.RealtimeTranscription
@@ -36,6 +36,6 @@ export interface RealtimeTranscriptionOutputs {
   chunk: unknown;
 }
 
-export function realtimeTranscription(inputs: RealtimeTranscriptionInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<RealtimeTranscriptionOutputs> {
-  return createNode("openai.agents.RealtimeTranscription", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true, streamingInput: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function realtimeTranscription(inputs: RealtimeTranscriptionInputs): DslNode<RealtimeTranscriptionOutputs> {
+  return createNode("openai.agents.RealtimeTranscription", inputs as Record<string, unknown>, { outputNames: ["text", "chunk"], streaming: true, streamingInput: true });
 }

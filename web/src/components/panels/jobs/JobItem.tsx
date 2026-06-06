@@ -1,27 +1,27 @@
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, memo, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { alpha } from "@mui/material/styles";
 import {
-  Box,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Collapse
-} from "@mui/material";
-import { FlexColumn, Text, LoadingSpinner, Tooltip, ToolbarIconButton } from "../../ui_primitives";
+  FlexColumn,
+  FlexRow,
+  Text,
+  LoadingSpinner,
+  Tooltip,
+  ToolbarIconButton,
+  Box
+} from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import CancelIcon from "@mui/icons-material/Cancel";
+import BoltIcon from "@mui/icons-material/Bolt";
+import CheckIcon from "@mui/icons-material/Check";
+import BlockIcon from "@mui/icons-material/Block";
 import StopIcon from "@mui/icons-material/Stop";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
-import { Job } from "../../../stores/ApiTypes";
+import { Job, Asset } from "../../../stores/ApiTypes";
 import { useWorkflow } from "../../../serverState/useWorkflow";
 import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { useJobAssets } from "../../../serverState/useJobAssets";
 import { trpcClient } from "../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
-import AssetGridContent from "../../assets/AssetGridContent";
 import isEqual from "fast-deep-equal";
 
 /**
@@ -80,39 +80,148 @@ const getJobDuration = (
   return formatDuration(end - start);
 };
 
-const JobAssets = ({ jobId }: { jobId: string }) => {
-  const { data: assets, isLoading, error } = useJobAssets(jobId);
+/** Short clock label (e.g. "11:21 AM"), empty when no timestamp. */
+const clockLabel = (iso?: string | null): string =>
+  iso
+    ? new Date(iso).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    : "";
 
-  if (isLoading) {
-    return (
-      <FlexColumn align="center" padding={1}>
-        <LoadingSpinner size="small" />
-      </FlexColumn>
-    );
+const TILE_SIZE = 40;
+
+type TileVisual = {
+  icon: ReactNode;
+  fg: string;
+  /** Semantic palette to tint the tile background, or undefined for neutral. */
+  tint?: "primary" | "error" | "success";
+};
+
+const statusTileVisual = (job: Job, cancelling: boolean): TileVisual => {
+  if (cancelling) {
+    return { icon: <LoadingSpinner size="small" />, fg: "text.secondary" };
   }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 1 }}>
-        <Text size="tiny" color="error">Failed to load assets</Text>
-      </Box>
-    );
+  if (job.status === "failed" || job.status === "timed_out" || job.error) {
+    return {
+      icon: <ErrorOutlineIcon fontSize="small" />,
+      fg: "error.main",
+      tint: "error"
+    };
   }
-
-  if (!assets || assets.length === 0) {
-    return (
-      <Box sx={{ p: 1, pl: 7 }}>
-        <Text size="tiny" color="secondary">No assets generated</Text>
-      </Box>
-    );
+  switch (job.status) {
+    case "running":
+      return {
+        icon: <BoltIcon fontSize="small" />,
+        fg: "primary.main",
+        tint: "primary"
+      };
+    case "queued":
+    case "scheduled":
+    case "starting":
+      return { icon: <LoadingSpinner size="small" />, fg: "text.secondary" };
+    case "cancelled":
+      return { icon: <BlockIcon fontSize="small" />, fg: "text.secondary" };
+    case "completed":
+      return {
+        icon: <CheckIcon fontSize="small" />,
+        fg: "success.main",
+        tint: "success"
+      };
+    default:
+      return { icon: <CheckIcon fontSize="small" />, fg: "text.secondary" };
   }
+};
 
+/**
+ * Leading status glyph (40px). Anchors the row with an at-a-glance status that
+ * stays put while output thumbnails load alongside it.
+ */
+const StatusTile = memo(function StatusTile({
+  job,
+  cancelling
+}: {
+  job: Job;
+  cancelling: boolean;
+}) {
+  const visual = statusTileVisual(job, cancelling);
   return (
-    <Box sx={{ pl: 2, pr: 1, pb: 1 }}>
-      <AssetGridContent assets={assets} itemSpacing={1} />
+    <Box
+      sx={{
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+        flex: "0 0 auto",
+        borderRadius: "8px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: visual.fg,
+        backgroundColor: visual.tint
+          ? (theme) => alpha(theme.palette[visual.tint!].main, 0.16)
+          : "action.hover"
+      }}
+    >
+      {visual.icon}
     </Box>
   );
-};
+});
+
+/**
+ * A single generated output. Visual assets (image/video) render as a thumbnail;
+ * everything else as a small type tile. Clicking opens the asset.
+ */
+const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
+  const isVisual =
+    asset.content_type?.startsWith("image/") ||
+    asset.content_type?.startsWith("video/");
+  const src = isVisual ? asset.thumb_url || asset.get_url || undefined : undefined;
+
+  const handleOpen = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (asset.get_url) {
+        window.open(asset.get_url, "_blank", "noopener,noreferrer");
+      }
+    },
+    [asset.get_url]
+  );
+
+  return (
+    <Tooltip title={asset.name || asset.content_type}>
+      <Box
+        onClick={handleOpen}
+        sx={{
+          width: TILE_SIZE,
+          height: TILE_SIZE,
+          flex: "0 0 auto",
+          borderRadius: "8px",
+          overflow: "hidden",
+          border: 1,
+          borderColor: "divider",
+          backgroundColor: "action.hover",
+          cursor: asset.get_url ? "pointer" : "default",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}
+      >
+        {src ? (
+          <Box
+            component="img"
+            src={src}
+            alt={asset.name || "Output"}
+            loading="lazy"
+            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <Text size="tinyer" color="secondary" truncate sx={{ px: 0.5 }}>
+            {asset.content_type?.split("/")[1] || "file"}
+          </Text>
+        )}
+      </Box>
+    </Tooltip>
+  );
+});
 
 const JobItem = ({ job }: { job: Job }) => {
   const navigate = useNavigate();
@@ -121,8 +230,12 @@ const JobItem = ({ job }: { job: Job }) => {
   const [elapsedTime, setElapsedTime] = useState(
     formatElapsedTime(job.started_at)
   );
-  const [expanded, setExpanded] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+
+  // Only fetch outputs for finished runs — running/queued rows show a status
+  // glyph, so there's nothing to thumbnail yet.
+  const isCompleted = job.status === "completed";
+  const { data: assets } = useJobAssets(isCompleted ? job.id : "");
 
   useEffect(() => {
     if (job.status !== "running" && job.status !== "queued") {
@@ -139,7 +252,9 @@ const JobItem = ({ job }: { job: Job }) => {
   const handleStop = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (cancelling) {return;}
+      if (cancelling) {
+        return;
+      }
       setCancelling(true);
 
       try {
@@ -163,125 +278,126 @@ const JobItem = ({ job }: { job: Job }) => {
     [cancelling, job.id, job.workflow_id, queryClient]
   );
 
-  const handleExpandClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpanded(!expanded);
-  };
+  const workflowName = job.name || workflow?.name || "Loading...";
+  const shortId = `#${job.id.slice(0, 4)}`;
+  const isActive =
+    job.status === "running" ||
+    job.status === "queued" ||
+    job.status === "scheduled" ||
+    job.status === "starting";
+  const isError =
+    job.status === "failed" || job.status === "timed_out" || !!job.error;
 
-  const getStatusIcon = () => {
-    if (cancelling) {
-      return <LoadingSpinner size="small" />;
-    }
-    if (job.error) {
-      return <ErrorOutlineIcon color="error" />;
-    }
-    switch (job.status) {
-      case "running":
-        return <LoadingSpinner size="small" />;
-      case "queued":
-      case "starting":
-        return <HourglassEmptyIcon color="action" />;
-      case "cancelled":
-        return <CancelIcon color="warning" />;
-      default:
-        return <StopIcon color="action" />;
-    }
-  };
-
-  const workflowName = workflow?.name || "Loading...";
-  const startedTime = job.started_at
-    ? new Date(Date.parse(job.started_at)).toLocaleTimeString()
-    : "";
+  const elapsed = job.started_at ? elapsedTime : null;
   const duration = getJobDuration(job.started_at, job.finished_at);
-  const statusText = cancelling
-    ? "Cancelling..."
-    : job.status === "running"
-    ? `Running • ${elapsedTime}`
-    : job.status === "queued"
-    ? "Queued"
-    : job.status === "starting"
-    ? "Starting..."
-    : job.status === "cancelled"
-    ? "Cancelled"
-    : job.status;
+  const assetCount = assets?.length ?? 0;
+  const assetNoun = assets?.[0]?.content_type?.startsWith("video/")
+    ? "video"
+    : assets?.[0]?.content_type?.startsWith("image/")
+      ? "image"
+      : "asset";
+  const countText =
+    assetCount > 0
+      ? `${assetCount} ${assetNoun}${assetCount > 1 ? "s" : ""}`
+      : null;
+
+  let metaText: string;
+  if (cancelling) {
+    metaText = "Cancelling…";
+  } else if (isError) {
+    metaText = job.error || "Failed";
+  } else if (job.status === "running") {
+    metaText = ["Running", elapsed].filter(Boolean).join(" · ");
+  } else if (
+    job.status === "queued" ||
+    job.status === "scheduled" ||
+    job.status === "starting"
+  ) {
+    metaText = ["In queue", clockLabel(job.started_at)].filter(Boolean).join(
+      " · "
+    );
+  } else if (job.status === "cancelled") {
+    metaText = ["Cancelled", clockLabel(job.finished_at)]
+      .filter(Boolean)
+      .join(" · ");
+  } else {
+    metaText =
+      [duration, countText, clockLabel(job.finished_at)]
+        .filter(Boolean)
+        .join(" · ") || "Completed";
+  }
 
   return (
-    <>
-      <ListItem
-        onClick={handleClick}
-        sx={{
-          cursor: "pointer",
-          borderRadius: 1,
-          mb: 0.5,
-          "&:hover": { backgroundColor: "action.hover" }
-        }}
-        secondaryAction={
-          <ToolbarIconButton
-            size="small"
-            onClick={handleExpandClick}
-            ariaLabel={expanded ? "Collapse job details" : "Expand job details"}
-            tooltip={expanded ? "Collapse" : "Expand"}
-            icon={expanded ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
-          />
-        }
-      >
-        <ListItemIcon sx={{ minWidth: 40 }}>{getStatusIcon()}</ListItemIcon>
-        <Tooltip title={job.id}>
-          <ListItemText
-            primary={
-              <Text size="small" weight={500} truncate>
-                {workflowName}
-              </Text>
-            }
-            secondary={
-              <FlexColumn component="span" gap={0.25}>
-                <Text size="tiny" color="secondary">
-                  {statusText}
-                </Text>
-                {job.error && (
-                  <Text size="tiny" color="error" truncate>
-                    {job.error}
-                  </Text>
-                )}
-              </FlexColumn>
-            }
-          />
-        </Tooltip>
-        {(job.status === "running" ||
-          job.status === "queued" ||
-          job.status === "starting") && (
-          <ToolbarIconButton
-            size="small"
-            onClick={handleStop}
-            disabled={cancelling}
-            ariaLabel="Stop job"
-            tooltip="Stop job"
-            icon={cancelling ? <LoadingSpinner size="small" /> : <StopIcon fontSize="small" />}
-            sx={{
-              mr: 1,
-              color: "error.main",
-              "&:hover": {
-                backgroundColor: "error.light",
-                color: "error.contrastText"
-              }
-            }}
-          />
-        )}
-        <ListItemText sx={{ flex: "0 0 auto", textAlign: "right", mr: 1 }}>
-          <Text size="tiny" color="secondary" sx={{ display: "block" }}>
-            {startedTime}
+    <FlexRow
+      align="center"
+      gap={1}
+      onClick={handleClick}
+      sx={{
+        px: 1,
+        py: 1,
+        mb: 0.5,
+        borderRadius: "6px",
+        cursor: "pointer",
+        backgroundColor: isActive ? "action.selected" : "transparent",
+        transition: "background-color 120ms ease-out",
+        "&:hover": { backgroundColor: "action.hover" }
+      }}
+    >
+      <StatusTile job={job} cancelling={cancelling} />
+      <FlexColumn gap={0.25} sx={{ flex: "0 1 240px", minWidth: 0 }}>
+        <FlexRow align="baseline" gap={0.75} sx={{ minWidth: 0 }}>
+          <Text size="small" weight={500} truncate sx={{ minWidth: 0 }}>
+            {workflowName}
           </Text>
-          {duration && (
-            <Text size="tinyer" color="secondary" sx={{ display: "block" }}>
-              {duration}
+          <Tooltip title={job.id}>
+            <Text
+              size="tiny"
+              color="secondary"
+              family="secondary"
+              sx={{ flex: "0 0 auto" }}
+            >
+              {shortId}
             </Text>
-          )}
-        </ListItemText>
-      </ListItem>
-      <Collapse in={expanded} timeout="auto" unmountOnExit>
-        <JobAssets jobId={job.id} />
-      </Collapse>
-    </>
+          </Tooltip>
+        </FlexRow>
+        <Text size="tiny" color={isError ? "error" : "secondary"} truncate>
+          {metaText}
+        </Text>
+      </FlexColumn>
+      {/* All outputs, shown inline across the available width. */}
+      <FlexRow
+        gap={0.5}
+        sx={{ flex: "1 1 auto", minWidth: 0, overflowX: "auto", py: 0.5 }}
+      >
+        {assets?.map((asset) => (
+          <AssetThumb key={asset.id} asset={asset} />
+        ))}
+      </FlexRow>
+      {isActive && (
+        <ToolbarIconButton
+          size="small"
+          onClick={handleStop}
+          disabled={cancelling}
+          ariaLabel="Stop job"
+          tooltip="Stop job"
+          icon={
+            cancelling ? (
+              <LoadingSpinner size="small" />
+            ) : (
+              <StopIcon fontSize="small" />
+            )
+          }
+          sx={{
+            flex: "0 0 auto",
+            color: "error.main",
+            "&:hover": {
+              backgroundColor: "error.light",
+              color: "error.contrastText"
+            }
+          }}
+        />
+      )}
+    </FlexRow>
   );
 };
 

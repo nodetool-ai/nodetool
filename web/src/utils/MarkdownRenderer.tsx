@@ -8,8 +8,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { CopyButton, Dialog, ToolbarIconButton } from "../components/ui_primitives";
+import { CopyButton, Dialog, ToolbarIconButton, Box } from "../components/ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
@@ -43,7 +42,7 @@ const styles = (
       minHeight: opts.fillContainer ? 0 : undefined,
       padding: "0.25em 0.5em 2em 0.5em",
       fontSize: opts.fontSize ?? theme.vars.fontSizeBig,
-      fontWeight: "300",
+      fontWeight: 400,
       lineHeight: "1.3",
       position: "relative",
       ...(opts.constrainHeight
@@ -193,6 +192,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         }`}
         css={mainStyles}
         ref={containerRef}
+        role="region"
+        aria-label="Markdown content"
         tabIndex={0}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

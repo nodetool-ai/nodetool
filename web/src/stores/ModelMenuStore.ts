@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
 import type {
   ImageModel,
   LanguageModel,
@@ -18,20 +19,12 @@ export type EnabledProvidersMap = Record<string, boolean>;
 
 export interface ModelSelectorModel {
   type: string;
-  provider: string;
+  provider: ProviderId;
   id: string;
   name: string;
   path?: string | null;
   supported_tasks?: string[];
 }
-
-export type ModelType =
-  | LanguageModel
-  | ImageModel
-  | TTSModel
-  | ASRModel
-  | VideoModel
-  | EmbeddingModel;
 
 interface ModelMenuState<
   TModel extends ModelSelectorModel = LanguageModel
@@ -65,28 +58,33 @@ const isAkiProviderIdentifier = (provider: string): boolean => {
   }
 };
 
-export const requiredSecretForProvider = (provider?: string): string | null => {
+export const requiredSecretForProvider = (
+  provider?: ProviderId
+): string | null => {
   const p = (provider || "").toLowerCase();
-  if (p.includes("openai")) {return "OPENAI_API_KEY";}
-  if (p.includes("anthropic")) {return "ANTHROPIC_API_KEY";}
-  if (p.includes("gemini") || p.includes("google")) {return "GEMINI_API_KEY";}
-  if (p.includes("meshy")) {return "MESHY_API_KEY";}
-  if (p.includes("rodin")) {return "RODIN_API_KEY";}
+  // Canonical IDs come from PROVIDER_IDS; the extra literals below ("google",
+  // "fal", "kimi", "hf_", 3D providers, …) are aliases / Python-side IDs that
+  // aren't part of the TS provider registry but still map to a secret.
+  if (p.includes(PROVIDER_IDS.OPENAI)) {return "OPENAI_API_KEY";}
+  if (p.includes(PROVIDER_IDS.ANTHROPIC)) {return "ANTHROPIC_API_KEY";}
+  if (p.includes(PROVIDER_IDS.GEMINI) || p.includes("google")) {return "GEMINI_API_KEY";}
+  if (p.includes(PROVIDER_IDS.MESHY)) {return "MESHY_API_KEY";}
+  if (p.includes(PROVIDER_IDS.RODIN)) {return "RODIN_API_KEY";}
   if (p.includes("trellis")) {return "TRELLIS_API_KEY";}
   if (p.includes("tripo")) {return "TRIPO_API_KEY";}
   if (p.includes("hunyuan3d")) {return "HUNYUAN3D_API_KEY";}
   if (p.includes("shap_e") || p.includes("shap-e")) {return "SHAP_E_API_KEY";}
   if (p.includes("point_e") || p.includes("point-e")) {return "POINT_E_API_KEY";}
-  if (p.includes("huggingface") || p.includes("hf_")) {return "HF_TOKEN";}
-  if (p.includes("replicate")) {return "REPLICATE_API_TOKEN";}
+  if (p.includes(PROVIDER_IDS.HUGGINGFACE) || p.includes("hf_")) {return "HF_TOKEN";}
+  if (p.includes(PROVIDER_IDS.REPLICATE)) {return "REPLICATE_API_TOKEN";}
   if (p.includes("fal")) {return "FAL_API_KEY";}
   if (p.includes("aime")) {return "AIME_API_KEY";}
-  if (p.includes("moonshot") || p.includes("kimi")) {return "KIMI_API_KEY";}
-  if (p.includes("minimax")) {return "MINIMAX_API_KEY";}
-  if (p.includes("together")) {return "TOGETHER_API_KEY";}
-  if (p === "cohere") {return "COHERE_API_KEY";}
-  if (p === "voyage" || p === "voyage-ai" || p === "voyageai") {return "VOYAGE_API_KEY";}
-  if (p === "jina" || p === "jina-ai" || p === "jinaai") {return "JINA_API_KEY";}
+  if (p.includes(PROVIDER_IDS.MOONSHOT) || p.includes("kimi")) {return "KIMI_API_KEY";}
+  if (p.includes(PROVIDER_IDS.MINIMAX)) {return "MINIMAX_API_KEY";}
+  if (p.includes(PROVIDER_IDS.TOGETHER)) {return "TOGETHER_API_KEY";}
+  if (p === PROVIDER_IDS.COHERE) {return "COHERE_API_KEY";}
+  if (p === PROVIDER_IDS.VOYAGE || p === "voyage-ai" || p === "voyageai") {return "VOYAGE_API_KEY";}
+  if (p === PROVIDER_IDS.JINA || p === "jina-ai" || p === "jinaai") {return "JINA_API_KEY";}
   if (isAkiProviderIdentifier(p)) {return "AKI_API_KEY";}
   return null;
 };
@@ -135,10 +133,21 @@ export type ModelMenuStoreHook<TModel extends ModelSelectorModel> = <Selected>(
   equalityFn?: (left: Selected, right: Selected) => boolean
 ) => Selected;
 
+export interface ModelMenuData<TModel extends ModelSelectorModel> {
+  models: TModel[] | undefined;
+  providers: string[];
+  filteredModels: TModel[];
+  favoriteModels: TModel[];
+  recentModels: TModel[];
+  totalCount: number;
+  filteredCount: number;
+  totalActiveCount: number;
+}
+
 export const useModelMenuData = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
   storeHook: ModelMenuStoreHook<TModel>
-) => {
+): ModelMenuData<TModel> => {
   const { isApiKeySet } = useSecrets();
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);

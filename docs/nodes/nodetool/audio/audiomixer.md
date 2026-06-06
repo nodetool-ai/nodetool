@@ -11,23 +11,15 @@ namespace: "nodetool.audio"
 
 ## Description
 
-Mix up to 5 audio tracks together with individual volume controls.
-    audio, mix, volume, combine, blend, layer, add, overlay
+Mix multiple audio tracks together. Add tracks dynamically with the
+"add audio input" button; wire a Gain node upstream of any track that
+needs a different level.
+    audio, mix, combine, blend, layer, add, overlay
 
 ## Properties
 
-| Property | Type | Description | Default |
-|----------|------|-------------|---------|
-| track1 | `audio` | First audio track to mix. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
-| track2 | `audio` | Second audio track to mix. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
-| track3 | `audio` | Third audio track to mix. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
-| track4 | `audio` | Fourth audio track to mix. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
-| track5 | `audio` | Fifth audio track to mix. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
-| volume1 | `float` | Volume for track 1. 1.0 is original volume. | `1` |
-| volume2 | `float` | Volume for track 2. 1.0 is original volume. | `1` |
-| volume3 | `float` | Volume for track 3. 1.0 is original volume. | `1` |
-| volume4 | `float` | Volume for track 4. 1.0 is original volume. | `1` |
-| volume5 | `float` | Volume for track 5. 1.0 is original volume. | `1` |
+All inputs are dynamic — use the "add audio input" button on the node
+to add a named audio input handle. Each handle accepts an `audio` ref.
 
 ## Outputs
 

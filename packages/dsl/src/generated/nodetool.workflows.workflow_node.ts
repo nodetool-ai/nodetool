@@ -11,6 +11,6 @@ export interface WorkflowInputs {
 export interface WorkflowOutputs {
 }
 
-export function workflow(inputs: WorkflowInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<WorkflowOutputs> {
-  return createNode("nodetool.workflows.workflow_node.Workflow", inputs as Record<string, unknown>, { outputNames: [], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function workflow(inputs: WorkflowInputs): DslNode<WorkflowOutputs> {
+  return createNode("nodetool.workflows.workflow_node.Workflow", inputs as Record<string, unknown>, { outputNames: [], streaming: true });
 }

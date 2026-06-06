@@ -10,6 +10,8 @@ import {
   aggregateByModelInput,
   aggregateByModelOutput,
   summaryOutput,
+  dashboardInput,
+  dashboardOutput,
   type PredictionResponse,
   type AggregateByUserOutput
 } from "@nodetool-ai/protocol/api-schemas/costs.js";
@@ -19,6 +21,7 @@ function toPredictionResponse(pred: Prediction): PredictionResponse {
     id: pred.id,
     user_id: pred.user_id,
     node_id: pred.node_id ?? "",
+    node_type: pred.node_type ?? "",
     provider: pred.provider,
     model: pred.model,
     workflow_id: pred.workflow_id ?? null,
@@ -28,6 +31,10 @@ function toPredictionResponse(pred: Prediction): PredictionResponse {
     total_tokens: pred.total_tokens ?? null,
     cached_tokens: pred.cached_tokens ?? null,
     reasoning_tokens: pred.reasoning_tokens ?? null,
+    billing_unit: pred.billing_unit ?? null,
+    quantity: pred.quantity ?? null,
+    unit_price: pred.unit_price ?? null,
+    currency: pred.currency ?? null,
     created_at: pred.created_at,
     metadata: pred.metadata ?? null
   };
@@ -108,5 +115,21 @@ export const costsRouter = router({
       by_model: byModel,
       recent_calls: recentCalls.map(toPredictionResponse)
     };
-  })
+  }),
+
+  /**
+   * Windowed analytics powering the Costs dashboard: per-provider totals, a
+   * per-provider daily series, per-model totals, headline stats and recent
+   * executions — all scoped to the requested trailing window.
+   */
+  dashboard: protectedProcedure
+    .input(dashboardInput)
+    .output(dashboardOutput)
+    .query(({ ctx, input }) =>
+      Prediction.aggregateDashboard(ctx.userId, {
+        days: input.days,
+        tzOffsetMinutes: input.tzOffsetMinutes,
+        executionsLimit: input.executionsLimit
+      })
+    )
 });

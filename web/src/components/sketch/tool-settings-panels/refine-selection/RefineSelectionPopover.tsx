@@ -212,7 +212,7 @@ export const RefineSelectionPopover = memo(function RefineSelectionPopover({
       paperSx={{
         backgroundColor: theme.vars.palette.grey[900],
         border: `1px solid ${theme.vars.palette.grey[700]}`,
-        padding: 2.5,
+        padding: 3,
         pointerEvents: "auto"
       }}
       slotProps={{

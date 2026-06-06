@@ -3,10 +3,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { DragEvent as ReactDragEvent } from "react";
-import { Tooltip, Text, ToolbarIconButton, FlexRow, thinScrollbarStyles } from "../ui_primitives";
-import HistoryIcon from "@mui/icons-material/History";
+import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles } from "../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -16,8 +16,9 @@ import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
-import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles";
-import { IconForType, colorForType } from "../../config/data_types";
+import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles.constants";
+import { colorForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 
 const QUICK_ACTION_NODE_TYPES = new Set(
   QUICK_ACTION_BUTTONS.map((action) => action.nodeType)
@@ -41,7 +42,7 @@ const tileStyles = (theme: Theme) =>
       padding: "0 4px",
       "& h5": {
         margin: 0,
-        fontSize: "0.85rem",
+        fontSize: "var(--fontSizeNormal)",
         fontWeight: 600,
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
@@ -114,7 +115,7 @@ const tileStyles = (theme: Theme) =>
       marginBottom: "6px",
       transition: "transform 0.3s ease",
       "& svg": {
-        fontSize: "1.5rem",
+        fontSize: "var(--fontSizeBig)",
         filter: theme.palette.mode === "dark"
           ? "drop-shadow(0 3px 5px rgba(0,0,0,0.35))"
           : "none"
@@ -139,7 +140,7 @@ const tileStyles = (theme: Theme) =>
       padding: "1em",
       textAlign: "center",
       color: theme.vars.palette.text.secondary,
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       opacity: 0.6
     },
     ".clear-button": {
@@ -292,10 +293,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   return (
     <div css={memoizedStyles}>
       <div className="tiles-header">
-        <FlexRow align="center" gap={0.5}>
-          <HistoryIcon fontSize="small" sx={{ opacity: 0.8 }} />
-          <Text size="normal" weight={600}>Recent Nodes</Text>
-        </FlexRow>
+        <Text size="normal" weight={600}>Recent Nodes</Text>
         <ToolbarIconButton
           icon={<ClearIcon fontSize="small" />}
           tooltip="Clear recent nodes"
@@ -322,7 +320,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                   <div>{nodeType}</div>
                   <div
                     style={{
-                      fontSize: "0.7rem",
+                      fontSize: "var(--fontSizeSmaller)",
                       opacity: 0.75,
                       marginTop: "4px"
                     }}
@@ -337,10 +335,21 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
             >
               <div
                 className="recent-tile"
+                role="button"
+                tabIndex={0}
                 draggable
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleTileClick}
+                onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const nodeTypeKey = e.currentTarget.dataset.nodeType;
+                    if (!nodeTypeKey) return;
+                    const meta = getMetadata(nodeTypeKey);
+                    if (meta) requestCreate(meta);
+                  }
+                }}
                 onMouseEnter={handleTileMouseEnter}
                 data-node-type={nodeType}
               >

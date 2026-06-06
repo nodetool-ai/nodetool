@@ -13,8 +13,7 @@ jest.mock('../../utils/MousePosition', () => ({
 }));
 
 jest.mock('../../config/data_types', () => ({
-  colorForType: jest.fn(() => '#ff0000'),
-  textColorForType: jest.fn(() => '#ffffff')
+  colorForType: jest.fn(() => '#ff0000')
 }));
 
 jest.mock('react-dom', () => ({
@@ -208,10 +207,10 @@ describe('HandleTooltip', () => {
 
       render(<HandleTooltip {...defaultProps} />);
 
-      const wrapper = screen.getByRole('button');
+      const handle = screen.getByTestId('test-child');
 
       act(() => {
-        fireEvent.mouseEnter(wrapper);
+        fireEvent.mouseEnter(handle);
       });
 
       act(() => {
@@ -237,10 +236,10 @@ describe('HandleTooltip', () => {
 
       render(<HandleTooltip {...defaultProps} />);
 
-      const wrapper = screen.getByRole('button');
+      const handle = screen.getByTestId('test-child');
 
       act(() => {
-        fireEvent.mouseEnter(wrapper);
+        fireEvent.mouseEnter(handle);
         jest.advanceTimersByTime(1500);
       });
 
@@ -292,23 +291,6 @@ describe('HandleTooltip', () => {
   });
 
   describe('Tooltip Content', () => {
-    it('should display collect input info when flag is set', async () => {
-      const props = { ...defaultProps, isCollectInput: true };
-
-      render(<HandleTooltip {...props} />);
-
-      const wrapper = screen.getByRole('button');
-
-      await act(async () => {
-        wrapper.focus();
-      });
-
-      await waitFor(() => {
-        const tooltipInfo = document.querySelector('.handle-tooltip-info');
-        expect(tooltipInfo).toHaveTextContent('Collect input - accepts multiple connections that are combined into a list');
-      });
-    });
-
     it('should display parameter name in tooltip', async () => {
       render(<HandleTooltip {...defaultProps} />);
 

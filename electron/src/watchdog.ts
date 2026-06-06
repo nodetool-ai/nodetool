@@ -160,27 +160,7 @@ export class Watchdog {
     await this.removePidFile();
   }
 
-  async killImmediately(): Promise<void> {
-    this.stopped = true;
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
-    const pid = this.processPid;
-    if (pid) {
-      try {
-        process.kill(pid, "SIGKILL");
-      } catch (error) {
-        logMessage(
-          `${this.opts.name} watchdog: error sending SIGKILL: ${(error as Error).message
-          }`
-        );
-      }
-    }
-    this.childProcess = null;
-    this.utilProcess = null;
-    await this.removePidFile();
-  }
+
 
   async waitUntilHealthy(timeoutMs: number = 300000): Promise<void> {
     const start = Date.now();

@@ -5,12 +5,8 @@ import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import {
-  Box,
-  Button,
-  Skeleton
-} from "@mui/material";
-import { Text, Caption } from "../ui_primitives";
+import { Skeleton } from "@mui/material";
+import { Text, Caption, Box, EditorButton } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";
@@ -65,7 +61,7 @@ const workspaceTreeStyles = (theme: Theme) =>
     },
 
     ".workspace-header h6": {
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       letterSpacing: "0.02em",
       textTransform: "uppercase",
@@ -102,7 +98,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
     ".open-folder-button": {
       textTransform: "none",
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       borderColor: theme.vars.palette.grey[600],
       color: theme.vars.palette.text.secondary,
       "&:hover": {
@@ -116,7 +112,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "2px",
       padding: "4px 8px",
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.grey[800],
       borderRadius: "var(--rounded-sm)",
@@ -139,7 +135,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
     ".breadcrumb-separator": {
       color: theme.vars.palette.grey[600],
-      fontSize: "14px",
+      fontSize: "var(--fontSizeNormal)",
       flexShrink: 0
     },
 
@@ -180,8 +176,8 @@ const treeViewStyles = (theme: Theme) => ({
   },
   ".MuiTreeItem-label": {
     backgroundColor: "transparent !important",
-    fontWeight: 300,
-    fontSize: "0.875rem"
+    fontWeight: 400,
+    fontSize: "var(--fontSizeNormal)"
   },
   ".MuiTreeItem-content:has(.MuiTreeItem-iconContainer svg) .MuiTreeItem-label":
   {
@@ -524,7 +520,7 @@ const WorkspaceTree: React.FC = () => {
   }, [refetchFiles]);
 
   const handleManageWorkspace = useCallback(() => {
-    navigate("/settings?tab=4");
+    navigate("/settings?tab=5");
   }, [navigate]);
 
   // Handle double-click on tree container to find the specific tree item
@@ -596,12 +592,15 @@ const WorkspaceTree: React.FC = () => {
         <div className="breadcrumb">
           <span
             className="breadcrumb-segment"
+            role="button"
+            tabIndex={0}
             onClick={() => setSelectedFilePath("")}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelectedFilePath(""); } }}
           >
             ~
           </span>
           {breadcrumbSegments.map((segment, index) => (
-            <span key={index} style={{ display: "contents" }}>
+            <span key={`${index}-${segment}`} style={{ display: "contents" }}>
               <NavigateNextIcon className="breadcrumb-separator" />
               <span className="breadcrumb-segment">{segment}</span>
             </span>
@@ -611,15 +610,14 @@ const WorkspaceTree: React.FC = () => {
 
       {selectedFilePath && !selectedFilePath.includes("/loading") && (
         <div className="tree-actions">
-          <Button
+          <EditorButton
             className="open-folder-button"
-            size="small"
             variant="outlined"
             startIcon={<FolderOpenIcon />}
             onClick={handleOpenInFolder}
           >
             Open in Folder
-          </Button>
+          </EditorButton>
         </div>
       )}
 
@@ -635,14 +633,13 @@ const WorkspaceTree: React.FC = () => {
             <Caption color="secondary">
               Select a workspace above or create one
             </Caption>
-            <Button
-              size="small"
+            <EditorButton
               startIcon={<AddIcon />}
               onClick={handleManageWorkspace}
               sx={{ mt: 1 }}
             >
               Create Workspace
-            </Button>
+            </EditorButton>
           </div>
         ) : isLoadingFiles ? (
           <div className="skeleton-tree">

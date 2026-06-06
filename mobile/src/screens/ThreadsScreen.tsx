@@ -4,7 +4,7 @@
  * thread back into the chat screen or delete it. Mirrors the web
  * ThreadList sidebar.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,7 +20,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../navigation/types';
-import { apiService, Thread } from '../services/api';
+import { type Thread } from '../services/api';
+import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
 
 type Props = {
@@ -46,34 +47,23 @@ export default function ThreadsScreen({ navigation }: Props) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
-  const load = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const data = await apiService.listThreads({ limit: 100, reverse: true });
-      setThreads(data.threads || []);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to load threads';
-      setLoadError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const utils = trpc.useUtils();
+  const {
+    data,
+    isLoading,
+    isRefetching,
+    error,
+    refetch,
+  } = trpc.threads.list.useQuery({ limit: 100, reverse: true });
+  const threads = useMemo(() => (data?.threads ?? []) as Thread[], [data]);
+  const loadError = error ? error.message || 'Failed to load threads' : null;
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await load();
-    setIsRefreshing(false);
-  }, [load]);
+  const deleteThread = trpc.threads.delete.useMutation({
+    onSuccess: () => { utils.threads.list.invalidate(); },
+    onError: (e) => { Alert.alert('Delete failed', e.message); },
+  });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -98,19 +88,11 @@ export default function ThreadsScreen({ navigation }: Props) {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiService.deleteThread(thread.id);
-              await load();
-            } catch (e) {
-              const message = e instanceof Error ? e.message : 'Failed to delete thread';
-              Alert.alert('Delete failed', message);
-            }
-          },
+          onPress: () => { deleteThread.mutate({ id: thread.id }); },
         },
       ],
     );
-  }, [load]);
+  }, [deleteThread]);
 
   const renderItem = ({ item }: { item: Thread }) => (
     <TouchableOpacity
@@ -192,8 +174,8 @@ export default function ThreadsScreen({ navigation }: Props) {
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 96 }]}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
+            refreshing={isRefetching}
+            onRefresh={() => { refetch(); }}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />

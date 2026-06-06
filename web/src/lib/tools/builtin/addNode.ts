@@ -23,10 +23,9 @@ FrontendToolRegistry.register({
       input: unknown,
       fallbackIndex: number
     ): { x: number; y: number } => {
-      if (typeof input === "object" && input !== null) {
-        const maybe = input as { x?: unknown; y?: unknown };
-        if (typeof maybe.x === "number" && typeof maybe.y === "number") {
-          return { x: maybe.x, y: maybe.y };
+      if (typeof input === "object" && input !== null && "x" in input && "y" in input) {
+        if (typeof input.x === "number" && typeof input.y === "number") {
+          return { x: input.x, y: input.y };
         }
       }
 
@@ -128,7 +127,6 @@ FrontendToolRegistry.register({
         properties: resolvedProperties,
         dynamic_properties: {},
         dynamic_outputs: {},
-        sync_mode: "on_any",
         workflow_id: workflowId,
         selectable: true
       }

@@ -42,7 +42,14 @@ function fieldToVarName(name: string): string {
 }
 
 function isAssetType(type: string): boolean {
-  return ["image", "audio", "video", "list[image]", "list[video]", "list[audio]"].includes(type);
+  return [
+    "image",
+    "audio",
+    "video",
+    "list[image]",
+    "list[video]",
+    "list[audio]"
+  ].includes(type);
 }
 
 // ---------------------------------------------------------------------------
@@ -132,7 +139,6 @@ export class KieNodeGenerator {
       `  static readonly metadataOutputTypes = { output: ${JSON.stringify(node.outputType)} };`
     );
     lines.push(`  static readonly requiredSettings = ["KIE_API_KEY"];`);
-    lines.push(`  static readonly exposeAsTool = true;`);
 
     // Compute and emit field classification
     const { inlineFields, inputFields } = computeFieldClassification(node.fields);

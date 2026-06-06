@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback, memo, useRef } from "react";
 import { Handle, Position, useNodeConnections } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -22,13 +22,12 @@ export type NodeOutputProps = {
 const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
   const { connectType, connectDirection, connectNodeId, connectHandleId } =
     useConnectionStore(
-      (state) => ({
+      useShallow((state) => ({
         connectType: state.connectType,
         connectDirection: state.connectDirection,
         connectNodeId: state.connectNodeId,
         connectHandleId: state.connectHandleId
-      }),
-      shallow
+      }))
     );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const findNode = useNodes((state) => state.findNode);
@@ -138,10 +137,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
   ]);
 
   return (
-    <div
-      className="output-handle-container"
-      data-onboarding-target="output-handle"
-    >
+    <div className="output-handle-container">
       <HandleTooltip
         typeMetadata={output.type}
         paramName={output.name}

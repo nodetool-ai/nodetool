@@ -29,8 +29,7 @@ describe("nodeUtils", () => {
 
       expect(GROUP_NODE_METADATA).toHaveProperty("layout");
       expect(GROUP_NODE_METADATA).toHaveProperty("recommended_models");
-      expect(GROUP_NODE_METADATA).toHaveProperty("is_dynamic");
-      expect(GROUP_NODE_METADATA).toHaveProperty("expose_as_tool");
+      expect(GROUP_NODE_METADATA).toHaveProperty("supports_dynamic_inputs");
       expect(GROUP_NODE_METADATA).toHaveProperty("supports_dynamic_outputs");
     });
 
@@ -50,8 +49,7 @@ describe("nodeUtils", () => {
 
 
     it("should have all boolean flags set to false", () => {
-      expect(GROUP_NODE_METADATA.is_dynamic).toBe(false);
-      expect(GROUP_NODE_METADATA.expose_as_tool).toBe(false);
+      expect(GROUP_NODE_METADATA.supports_dynamic_inputs).toBe(false);
       expect(GROUP_NODE_METADATA.supports_dynamic_outputs).toBe(false);
     });
 
@@ -77,8 +75,7 @@ describe("nodeUtils", () => {
 
       expect(COMMENT_NODE_METADATA).toHaveProperty("layout");
       expect(COMMENT_NODE_METADATA).toHaveProperty("recommended_models");
-      expect(COMMENT_NODE_METADATA).toHaveProperty("is_dynamic");
-      expect(COMMENT_NODE_METADATA).toHaveProperty("expose_as_tool");
+      expect(COMMENT_NODE_METADATA).toHaveProperty("supports_dynamic_inputs");
       expect(COMMENT_NODE_METADATA).toHaveProperty("supports_dynamic_outputs");
     });
 
@@ -104,8 +101,7 @@ describe("nodeUtils", () => {
     });
 
     it("should have all boolean flags set to false", () => {
-      expect(COMMENT_NODE_METADATA.is_dynamic).toBe(false);
-      expect(COMMENT_NODE_METADATA.expose_as_tool).toBe(false);
+      expect(COMMENT_NODE_METADATA.supports_dynamic_inputs).toBe(false);
       expect(COMMENT_NODE_METADATA.supports_dynamic_outputs).toBe(false);
     });
   });
@@ -132,11 +128,8 @@ describe("nodeUtils", () => {
     });
 
     it("should both have same boolean flag values", () => {
-      expect(GROUP_NODE_METADATA.is_dynamic).toBe(
-        COMMENT_NODE_METADATA.is_dynamic
-      );
-      expect(GROUP_NODE_METADATA.expose_as_tool).toBe(
-        COMMENT_NODE_METADATA.expose_as_tool
+      expect(GROUP_NODE_METADATA.supports_dynamic_inputs).toBe(
+        COMMENT_NODE_METADATA.supports_dynamic_inputs
       );
       expect(GROUP_NODE_METADATA.supports_dynamic_outputs).toBe(
         COMMENT_NODE_METADATA.supports_dynamic_outputs

@@ -6,13 +6,13 @@ import { create } from "zustand";
 import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
 import useMetadataStore from "./MetadataStore";
-import { useComfyUIStore } from "./ComfyUIStore";
 import { useRecentNodesStore } from "./RecentNodesStore";
 import {
   computeSearchResults,
   filterNodesUtil,
   SearchResultGroup
 } from "../utils/nodeSearch";
+import { NODE_MENU_HOVER_INFO_DELAY_MS } from "../config/constants";
 
 export interface SplitNodeDescription {
   description: string;
@@ -110,25 +110,14 @@ export type NodeMenuStore = {
   getSelectedNode: () => NodeMetadata | null;
 };
 
-type NodeMenuStoreOptions = {
-  onlyTools?: boolean;
-};
-
-export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
+export const createNodeMenuStore = () =>
   create<NodeMenuStore>((set, get) => {
     let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+    let hoveredNodeTimeout: ReturnType<typeof setTimeout> | null = null;
     let pendingSearchId = 0;
 
-    const getFilteredMetadata = () => {
-      const all = Object.values(useMetadataStore.getState().metadata);
-      const isComfyConnected = useComfyUIStore.getState().isConnected;
-      const visibleNodes = isComfyConnected
-        ? all
-        : all.filter((node) => !node.node_type?.startsWith("comfy."));
-      return options.onlyTools
-        ? visibleNodes.filter((n) => n.expose_as_tool)
-        : visibleNodes;
-    };
+    const getFilteredMetadata = () =>
+      Object.values(useMetadataStore.getState().metadata);
     const filterNodes = (nodes: NodeMetadata[]) =>
       filterNodesUtil(
         nodes,
@@ -371,7 +360,21 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
         set({ highlightedNamespaces: namespaces }),
       hoveredNode: null,
       setHoveredNode: (node) => {
-        set({ hoveredNode: node });
+        if (hoveredNodeTimeout !== null) {
+          clearTimeout(hoveredNodeTimeout);
+          hoveredNodeTimeout = null;
+        }
+        if (node === null) {
+          set({ hoveredNode: null });
+          return;
+        }
+        if (get().hoveredNode?.node_type === node.node_type) {
+          return;
+        }
+        hoveredNodeTimeout = setTimeout(() => {
+          hoveredNodeTimeout = null;
+          set({ hoveredNode: node });
+        }, NODE_MENU_HOVER_INFO_DELAY_MS);
       },
 
       // DraggableNodeDocumentation
@@ -582,23 +585,6 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
 // can release them without leaking subscriptions across hot reloads.
 const nodeMenuMetadataUnsubscribers = new Set<() => void>();
 
-/**
- * Release all metadata subscriptions registered by `createNodeMenuStore`.
- * Intended for HMR cleanup (Vite's `import.meta.hot.dispose`); can also
- * be wired into test teardown if needed.
- */
-const cleanupNodeMenuMetadataSubscriptions = (): void => {
-  for (const unsubscribe of nodeMenuMetadataUnsubscribers) {
-    try {
-      unsubscribe();
-    } catch (err) {
-      console.warn("[NodeMenuStore] metadata unsubscribe failed", err);
-    }
-  }
-  nodeMenuMetadataUnsubscribers.clear();
-};
-
 export const useNodeMenuStore = createNodeMenuStore();
-export const useNodeToolsMenuStore = createNodeMenuStore({ onlyTools: true });
 
 export default useNodeMenuStore;

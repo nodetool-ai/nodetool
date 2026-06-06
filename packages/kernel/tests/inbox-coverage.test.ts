@@ -24,8 +24,8 @@ describe("NodeInbox – iterAnyWithEnvelope", () => {
     inbox.addUpstream("a", 1);
     inbox.addUpstream("b", 1);
 
-    await inbox.put("a", "data-a", { source: "node1" });
-    await inbox.put("b", "data-b", { source: "node2" });
+    await inbox.put("a", "data-a", { metadata: { source: "node1" } });
+    await inbox.put("b", "data-b", { metadata: { source: "node2" } });
     inbox.markSourceDone("a");
     inbox.markSourceDone("b");
 

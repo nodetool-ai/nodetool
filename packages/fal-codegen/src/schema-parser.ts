@@ -220,22 +220,9 @@ export class SchemaParser {
 
       if (nestedAssetKey) {
         // Determine asset type based on the nested key
-        let tsType: string;
-        let propType: string;
-        const keyLower = nestedAssetKey.toLowerCase();
-        if (keyLower.includes("video")) {
-          tsType = "video";
-          propType = "video";
-        } else if (keyLower.includes("image")) {
-          tsType = "image";
-          propType = "image";
-        } else if (keyLower.includes("audio")) {
-          tsType = "audio";
-          propType = "audio";
-        } else {
-          tsType = "string";
-          propType = "str";
-        }
+        const assetKind = this._assetKindFromKey(nestedAssetKey);
+        const tsType = assetKind ?? "string";
+        const propType = assetKind ?? "str";
 
         const defaultVal = this._getDefaultValue(
           { type: "asset" },
@@ -271,6 +258,44 @@ export class SchemaParser {
           });
         }
         continue;
+      }
+
+      // Array of pure single-asset wrapper structs (e.g. list[{image_url}]) →
+      // collapse to list[image]/list[video]/list[audio] so the field renders as
+      // a native asset list and accepts asset connections, instead of an opaque
+      // list[Struct] in a raw-JSON editor. The `nestedAssetKey` hint tells the
+      // runtime to wrap each uploaded URL back into { image_url: url } for the
+      // API. Only pure wrappers (no extra fields) collapse — structs carrying
+      // extra params keep their list[Struct] shape.
+      const propAsRecord = prop as AnyRecord;
+      if (propAsRecord["type"] === "array") {
+        const items = (propAsRecord["items"] as AnyRecord | undefined) ?? {};
+        if ("$ref" in items) {
+          const [itemAssetKey, itemExtraFields] =
+            this._getNestedAssetInfo(items);
+          const itemAssetKind = itemAssetKey
+            ? this._assetKindFromKey(itemAssetKey)
+            : null;
+          if (itemAssetKey && itemAssetKind && itemExtraFields.length === 0) {
+            const listPropType = `list[${itemAssetKind}]`;
+            const bounds = this._getBounds(propAsRecord, listPropType);
+            fields.push({
+              name,
+              tsType: `${itemAssetKind}[]`,
+              propType: listPropType,
+              default: [],
+              description:
+                (propAsRecord["description"] as string | undefined) ?? "",
+              fieldType,
+              required: required.includes(name),
+              enumRef: undefined,
+              nestedAssetKey: itemAssetKey,
+              ...(bounds.min !== undefined && { min: bounds.min }),
+              ...(bounds.max !== undefined && { max: bounds.max })
+            });
+            continue;
+          }
+        }
       }
 
       // Check for enum — either top-level or inside anyOf/oneOf variants
@@ -552,6 +577,19 @@ export class SchemaParser {
     }
 
     return { tsType: "any", propType: "any" };
+  }
+
+  /**
+   * Map a nested asset key (e.g. "image_url", "video_url") to its asset kind.
+   */
+  private _assetKindFromKey(
+    key: string
+  ): "image" | "video" | "audio" | null {
+    const k = key.toLowerCase();
+    if (k.includes("video")) return "video";
+    if (k.includes("image")) return "image";
+    if (k.includes("audio")) return "audio";
+    return null;
   }
 
   /**

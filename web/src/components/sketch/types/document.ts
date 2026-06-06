@@ -5,6 +5,7 @@
  * presets, normalization logic, and layer-tree helpers.
  */
 
+import { type BlendMode, coerceBlendMode } from "@nodetool-ai/gpu";
 import type {
   ToolSettings,
   EraserSettings,
@@ -123,44 +124,11 @@ export const SYMMETRY_DEFAULT_RAYS = 6;
 
 export type LayerType = "raster" | "mask" | "group";
 
-export type BlendMode =
-  | "normal"
-  | "multiply"
-  | "screen"
-  | "overlay"
-  | "darken"
-  | "lighten"
-  | "color-dodge"
-  | "color-burn"
-  | "hard-light"
-  | "soft-light"
-  | "difference"
-  | "exclusion";
-
-const BLEND_MODE_VALUES = [
-  "normal",
-  "multiply",
-  "screen",
-  "overlay",
-  "darken",
-  "lighten",
-  "color-dodge",
-  "color-burn",
-  "hard-light",
-  "soft-light",
-  "difference",
-  "exclusion"
-] as const satisfies readonly BlendMode[];
-
-const BLEND_MODE_SET: ReadonlySet<string> = new Set(BLEND_MODE_VALUES);
-
-/** Ensures UI (e.g. layer blend Select) never receives garbage strings like data URLs. */
-export function coerceBlendMode(value: unknown): BlendMode {
-  if (typeof value === "string" && BLEND_MODE_SET.has(value)) {
-    return value as BlendMode;
-  }
-  return "normal";
-}
+// Blend modes are defined once in @nodetool-ai/gpu and shared by the
+// sketch editor, the timeline preview compositor, and the Compositor node.
+// (imported at the top of this module; re-exported here for sketch consumers)
+export { coerceBlendMode };
+export type { BlendMode };
 
 /**
  * How the (optionally cropped) source image is mapped into the layer's
@@ -378,6 +346,24 @@ export const DEFAULT_SWATCHES: string[] = [
   "#000033", "#000066", "#000099", "#0000cc", "#0000ff", "#4d4dff", "#9999ff",
   // Row 7 — Purple / Pink
   "#330033", "#660066", "#990099", "#cc00cc", "#ff00ff", "#ff66ff", "#ff99ff"
+];
+
+/**
+ * Compact single-row preset palette for the inline COLOR panel swatch row
+ * (distinct from the 7×7 {@link DEFAULT_SWATCHES} grid used by the picker
+ * popover). One representative per hue family, matching the editor design.
+ */
+export const SKETCH_PRESET_SWATCHES: string[] = [
+  "#ffffff", // white
+  "#9ca3af", // grey
+  "#000000", // black
+  "#6366f1", // blue
+  "#e879f9", // magenta
+  "#14b8a6", // teal
+  "#ef4444", // red
+  "#f59e0b", // orange
+  "#22c55e", // green
+  "#06b6d4" // cyan
 ];
 
 // ─── Sketch Document ──────────────────────────────────────────────────────────

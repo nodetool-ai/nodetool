@@ -3,11 +3,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useState, useEffect, useCallback } from "react";
-import { Box } from "@mui/material";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
-import { CloseButton, NodeTextField, ToolbarIconButton } from "../ui_primitives";
+import { CloseButton, NodeTextField, ToolbarIconButton, Box } from "../ui_primitives";
 
 const MAX_SEARCH_LENGTH = 1000;
 

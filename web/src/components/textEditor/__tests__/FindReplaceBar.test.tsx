@@ -88,7 +88,8 @@ jest.mock("../../ui_primitives", () => ({
       aria-label={slotProps?.htmlInput?.["aria-label"]}
       maxLength={slotProps?.htmlInput?.maxLength}
     />
-  )
+  ),
+  Box: ({ children, ...props }: any) => <div {...props}>{children}</div>
 }));
 
 describe("FindReplaceBar", () => {

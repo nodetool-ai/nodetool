@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from "react";
-import { Menu, ListItemIcon, ListItemText, MenuItem } from "@mui/material";
+import { Menu } from "@mui/material";
 import { Divider } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
@@ -13,13 +13,14 @@ import BlockIcon from "@mui/icons-material/Block";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import DataArrayIcon from "@mui/icons-material/DataArray";
-import SyncIcon from "@mui/icons-material/Sync";
 import QueueIcon from "@mui/icons-material/Queue";
 import SouthIcon from "@mui/icons-material/South";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { isDevelopment } from "../../lib/env";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
+import { useGroupIntoSubgraph } from "../../hooks/nodes/useGroupIntoSubgraph";
 import { useNodes } from "../../contexts/NodeContext";
 
 const NodeContextMenu: React.FC = () => {
@@ -31,23 +32,24 @@ const NodeContextMenu: React.FC = () => {
     conditions
   } = useNodeContextMenu();
   const removeFromGroup = useRemoveFromGroup();
-  const updateNodeData = useNodes((state) => state.updateNodeData);
-
-  const syncMode = (node?.data as NodeData | undefined)?.sync_mode || "on_any";
-
-  const handleSelectMode = useCallback((mode: "on_any" | "zip_all") => {
-    if (node?.id) {
-      updateNodeData(node.id, { sync_mode: mode });
-    }
-    closeContextMenu();
-  }, [node, updateNodeData, closeContextMenu]);
-
   const handleRemoveFromGroup = useCallback(() => {
     removeFromGroup([node as Node<NodeData>]);
   }, [removeFromGroup, node]);
 
-  const handleSyncModeOnAny = useCallback(() => handleSelectMode("on_any"), [handleSelectMode]);
-  const handleSyncModeZipAll = useCallback(() => handleSelectMode("zip_all"), [handleSelectMode]);
+  const groupIntoSubgraph = useGroupIntoSubgraph();
+  const getSelectedNodes = useNodes((s) => s.getSelectedNodes);
+  const handleGroupIntoSubgraph = useCallback(() => {
+    const selected = getSelectedNodes();
+    const ids =
+      selected.length > 0
+        ? selected.map((n) => n.id)
+        : node
+        ? [node.id]
+        : [];
+    if (ids.length === 0) return;
+    groupIntoSubgraph(ids);
+    closeContextMenu();
+  }, [groupIntoSubgraph, getSelectedNodes, node, closeContextMenu]);
 
   const menuItems = [
     conditions.isInGroup && (
@@ -90,9 +92,9 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="run-from-here"
       onClick={handlers.handleRunFromHere}
-      label={conditions.isWorkflowRunning ? "Running..." : "Run From Here"}
+      label={conditions.isWorkflowRunning ? "Running..." : "Run Node"}
       IconComponent={<PlayArrowIcon />}
-      tooltip="Run the workflow from this node onwards, using previous results as inputs"
+      tooltip="Run this node as its own job, using previous results as inputs"
       addButtonClassName={conditions.isWorkflowRunning ? "disabled" : ""}
     />,
     <ContextMenuItem
@@ -121,6 +123,13 @@ const NodeContextMenu: React.FC = () => {
           ? "Remove the comment from this node"
           : "Add a comment to this node"
       }
+    />,
+    <ContextMenuItem
+      key="group-into-subgraph"
+      onClick={handleGroupIntoSubgraph}
+      label="Group into Subgraph"
+      IconComponent={<AccountTreeIcon />}
+      tooltip="Move the selected nodes into a new subgraph node"
     />,
     conditions.canConvertToInput && (
       <ContextMenuItem
@@ -154,46 +163,6 @@ const NodeContextMenu: React.FC = () => {
       IconComponent={<FilterListIcon />}
       tooltip="Select all nodes of the same type"
     />,
-    <MenuItem key="sync-mode" disabled sx={{ py: 0.5, minHeight: "unset" }}>
-      <ListItemText
-        primary="Sync Mode"
-        secondary="How inputs are coordinated"
-        primaryTypographyProps={{ fontSize: "0.75rem" }}
-        secondaryTypographyProps={{ fontSize: "0.7rem" }}
-      />
-    </MenuItem>,
-    <MenuItem
-      key="sync-on-any"
-      selected={syncMode === "on_any"}
-      onClick={handleSyncModeOnAny}
-      sx={{ py: 0.5, minHeight: "unset" }}
-    >
-      <ListItemIcon>
-        <SyncIcon sx={{ fontSize: "1rem" }} />
-      </ListItemIcon>
-      <ListItemText
-        primary="on_any"
-        secondary="Run when any input arrives"
-        primaryTypographyProps={{ fontSize: "0.75rem" }}
-        secondaryTypographyProps={{ fontSize: "0.7rem" }}
-      />
-    </MenuItem>,
-    <MenuItem
-      key="sync-zip-all"
-      selected={syncMode === "zip_all"}
-      onClick={handleSyncModeZipAll}
-      sx={{ py: 0.5, minHeight: "unset" }}
-    >
-      <ListItemIcon>
-        <SyncIcon sx={{ fontSize: "1rem", transform: "scaleX(-1)" }} />
-      </ListItemIcon>
-      <ListItemText
-        primary="zip_all"
-        secondary="Wait for all inputs; process items together"
-        primaryTypographyProps={{ fontSize: "0.75rem" }}
-        secondaryTypographyProps={{ fontSize: "0.7rem" }}
-      />
-    </MenuItem>,
     <Divider key="divider-before-delete" />,
     <ContextMenuItem
       key="delete-node"

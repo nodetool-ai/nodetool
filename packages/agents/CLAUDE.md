@@ -35,7 +35,6 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 | `StepExecutor` | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
 | `TaskExecutor` | Startup / process-mode aggregation | `input:<key>` / `step:<step.id>` | `input` / `step_result` |
 | `ParallelTaskExecutor` | After a task completes (idempotent) | `task:<task.id>` | `task_result` |
-| `TeamExecutor` | `TaskBoard.task_completed` event | `task:<task.id>` | `task_result` |
 | `AgentStepExecutor` | Workflow edge inputs | `input:<nodeId>.<key>` | `input` |
 | `memory_write` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
 
@@ -47,7 +46,7 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 
 ### Final synthesis: CompilerAgent
 
-`Agent` and `MultiModeAgent` (plan mode) end with a dedicated `CompilerAgent` pass after `ParallelTaskExecutor` finishes. The compiler reads the gathered memory snapshot, fetches values via `memory_read`, and produces the final deliverable:
+`Agent` ends with a dedicated `CompilerAgent` pass after `ParallelTaskExecutor` finishes. The compiler reads the gathered memory snapshot, fetches values via `memory_read`, and produces the final deliverable:
 
 - **Structured mode** (an `outputSchema` is set): `finish_step` is included in the toolset, and the compiler returns a schema-conformant value.
 - **Prose mode** (no `outputSchema`): `finish_step` is omitted; the compiler emits a final assistant message and the absence of any tool call ends the loop. The text becomes the result.
@@ -62,7 +61,7 @@ The planner is told NOT to create an aggregation/synthesis step — final assemb
 
 - `packages/runtime/tests/agent-memory.test.ts` — unit tests for `AgentMemory`
 - `packages/agents/tests/memory-tools.test.ts` — unit tests for `memory_list` / `memory_read` / `memory_write`
-- `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `MultiModeAgent` plan mode, including a fake-provider round trip that drives `memory_list` → `memory_read` → `finish_step`
+- `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `Agent`, including a fake-provider round trip that drives `memory_list` → `memory_read` → `finish_step`
 - `packages/agents/tests/_helpers/mock-context.ts` — shared mock context with a real `AgentMemory` for executor tests
 
 When asserting memory writes in tests, prefer `context.memory.has(memoryKeys.task("..."))` and `context.memory.subscribe(...)` over spies on `set` / `storeStepResult`.
@@ -296,7 +295,7 @@ Span attributes:
 
 - `agent.*`: `agent.kind` (execute/plan/step), `agent.objective`, `agent.provider`, `agent.model`, `agent.tools_count`, `agent.task` (for steps), `agent.plan.kind` (multi/single/graph)
 - `llm.*`: `llm.provider`, `llm.model`, `llm.request.message_count`, `llm.request.tools_count`, `llm.request.max_tokens`, `llm.request.stream`, `llm.response.content` (first 2000 chars), `llm.response.tool_calls_count`
-- `gen_ai.*` (OTel GenAI semconv): `gen_ai.system`, `gen_ai.request.model`, `gen_ai.operation.name`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, `gen_ai.usage.cost_credits`
+- `gen_ai.*` (OTel GenAI semconv): `gen_ai.system`, `gen_ai.request.model`, `gen_ai.operation.name`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, `gen_ai.usage.cost_usd`
 - `workflow.*` / `node.*`: `workflow.id`, `workflow.name`, `workflow.node_count`, `node.id`, `node.type`
 
 Sinks (simultaneous, each on its own SpanProcessor):

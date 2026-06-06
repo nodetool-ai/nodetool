@@ -1,12 +1,25 @@
 # Automatic Message Correlation: Replacing `sync_mode`
 
-Status: **Draft**.
+Status: **Default-on for the TypeScript scheduler.** Correlation-aware scheduling is now the only kernel scheduling path; the `NODETOOL_USE_CORRELATION` rollout flag and user-facing `sync_mode` selection have been removed. The Python stdio bridge work (PR 4a/4b) is still outstanding — Python-backed nodes must declare explicit `input_mode` / `output_correlation` metadata via the bridge to participate, and workflows whose Python nodes lack that metadata will fail correlation analysis at load time.
+
+| PR  | Description                                            | Status         |
+| --- | ------------------------------------------------------ | -------------- |
+| 0   | Inventory and tests                                    | Done            |
+| 1   | Add metadata, no scheduler change                      | Done            |
+| 2   | Propagate envelopes behind the flag                    | Done            |
+| 3   | Correlated buffered scheduler                          | Done (steps 1–4) |
+| 4   | Migrate stream nodes, Zip/Cross                        | TS-side done; Python bridge (4a/4b) outstanding |
+| 5   | Make correlation default                               | TS scheduler done; Python bridge parity pending 4a/4b |
+
+The correlation analyzer (`packages/kernel/src/correlation-analysis.ts`), the
+correlated buffered scheduler (`NodeActor._runCorrelated`), lineage signal
+recording (`NodeInbox.signalLineageDone`/`signalLineageScopeClosed`), pending
+key limits, EOS-driven `lineage_scope_closed` synthesis, and the
+`ZipNode`/`CrossNode` base nodes are all on `main` in TypeScript. Correlation is always enabled; the legacy `sync_mode` scheduler is no longer used.
 
 ## Problem
 
-The workflow kernel currently exposes `sync_mode: "on_any" | "zip_all"` as a
-per-node property (`packages/protocol/src/graph.ts`). Users don't know which
-value to pick, and the right behavior depends on lineage they cannot see.
+The workflow kernel used to expose `sync_mode: "on_any" | "zip_all"` as a per-node property. Users did not know which value to pick, and the right behavior depended on lineage they could not see.
 
 The current design fails in three ways:
 
@@ -37,7 +50,7 @@ knob.
 - Join messages by correlation identity, not arrival order.
 - Keep constant/config inputs reusable across correlated items.
 - Preserve stream-processing nodes that consume via `run()`.
-- Migrate behind a feature flag with old workflows still loading.
+- Keep old workflows loading while ignoring saved `sync_mode` fields.
 
 ## Non-goals
 
@@ -132,12 +145,11 @@ Grouped iteration outputs need an explicit emission contract:
   output value. If `values` supplies `index` during migration, the actor
   overwrites it and warns; after the node inventory is migrated, this becomes a
   validation error. Calling `outputs.emit()` on a grouped iteration handle is an
-  error under the correlation flag.
+  error under correlation.
 - If a frame emits one handle in a group but omits a sibling handle, the actor
   sends `lineage_done` for the missing sibling at the minted token.
 
-`isStreamingInput`, `isStreamingOutput`, and `sync_mode` remain as deprecated
-compatibility fields during migration.
+`isStreamingInput` and `isStreamingOutput` remain compatibility fields during migration. `sync_mode` is ignored when present in saved workflows.
 
 ### 2. Represent lineage as root-id to item-token mappings
 
@@ -539,8 +551,7 @@ correlated stream instead of multiple independent roots.
 - `packages/protocol/src/graph.ts`
   - Add `InputMode`, `OutputKind`, `CollapseSpec`, `OutputCorrelation`, and
     `output_correlation?: Record<string, OutputCorrelation>`.
-  - Keep `SyncMode`, `is_streaming_input`, and `is_streaming_output` as
-    deprecated fields until the removal PR.
+  - Keep `is_streaming_input` and `is_streaming_output` as compatibility fields during migration.
 
 - `packages/node-sdk/src/base-node.ts`
   - Add `static readonly inputMode` and `static readonly outputCorrelation`.
@@ -550,8 +561,7 @@ correlated stream instead of multiple independent roots.
     must not introduce any behavior path that treats its presence as streaming.
 
 - `packages/kernel/src/runner.ts`
-  - Replace `_analyzeStreaming` with `_analyzeCorrelation` behind a feature
-    flag.
+  - Run `_analyzeCorrelation` for every workflow before execution.
   - Store input/output scopes, `repeats_per_key`, possible child roots per
     outgoing source edge (including transitive roots through `forward` chains),
     and close-barrier contributor source-edge sets per node handle/output
@@ -566,7 +576,7 @@ correlated stream instead of multiple independent roots.
   - Add `lineage_done`, `lineage_scope_closed`, and pending-key limits.
 
 - `packages/kernel/src/actor.ts`
-  - Add `_runCorrelated` beside the existing `sync_mode` path while flagged.
+  - Use `_runCorrelated` for buffered execution.
   - Preserve triggering envelopes through input gathering.
   - Route output envelopes with per-output lineage rules.
   - Propagate `lineage_done` and `lineage_scope_closed` when a key cannot invoke
@@ -585,10 +595,10 @@ correlated stream instead of multiple independent roots.
 ### PR 0 — Inventory and tests
 
 Classify every node that currently sets `isStreamingInput`,
-`isStreamingOutput`, or `syncMode`. There is no generic legacy-flag to
+`isStreamingOutput`, or old `sync_mode` metadata. There is no generic legacy-flag to
 `output_correlation` mapping: registry metadata is authoritative under the
 correlation scheduler, and legacy saved flags are used only by the old scheduler.
-Graph validation under the correlation flag rejects node types without explicit
+Graph validation under correlation rejects node types without explicit
 correlation metadata. The inventory must also identify multi-input nodes whose
 outputs need explicit `source`, optional connected inputs that must emit
 done/close/default semantics, grouped iteration nodes with `index` outputs that
@@ -622,7 +632,7 @@ visible downstream when the correlation scheduler is active.
 
 ### PR 2 — Propagate envelopes behind a flag
 
-Under `NODETOOL_USE_CORRELATION=1`:
+Correlation runtime behavior:
 
 - attach `correlation_lineage` to every `MessageEnvelope`,
 - preserve envelopes through actor input gathering,
@@ -631,7 +641,7 @@ Under `NODETOOL_USE_CORRELATION=1`:
   one connected single-edge input handle, and explicit `outputs.forward()`
   calls,
 - add envelope-aware stream APIs,
-- keep the old `sync_mode` scheduler active.
+- the old `sync_mode` scheduler is removed from production execution.
 
 Do not compute multi-input invocation lineage from old FIFO/`on_any` batches;
 that starts in PR 3. Tests should assert edge/envelope propagation without
@@ -640,7 +650,7 @@ changing output values.
 ### PR 3 — Add the correlated buffered scheduler
 
 Implement `_analyzeCorrelation` and `_runCorrelated` for buffered nodes under
-the feature flag. Add `lineage_done`, `lineage_scope_closed`, and pending-key
+correlation. Add `lineage_done`, `lineage_scope_closed`, and pending-key
 limits. Convert grouped iteration nodes so actor-reserved `index` handles are
 omitted from frames under the correlation scheduler; add validation that rejects
 frames that still provide them.
@@ -670,7 +680,7 @@ correlation flag, `Zip` workflows are valid only when all upstream paths can
 produce `lineage_done`/`lineage_scope_closed`; graph validation should reject
 unconverted upstream paths feeding `Zip`.
 
-Convert selected real workflows to run with `NODETOOL_USE_CORRELATION=1` in CI.
+Convert selected real workflows to run with correlation in CI.
 Python-backed nodes must carry correlation metadata/events through the stdio
 bridge by this PR.
 
@@ -687,20 +697,20 @@ Stage the Python bridge work if it threatens the PR 4 scope:
   the negotiated capability, then add Python worker tests for iteration, chunk,
   forward, aggregate, and dropped keys across the bridge.
 
-PR 5 requires PR 4b. Limiting Python nodes to `single` outputs is allowed only
-for temporary opt-in testing before correlation becomes the default.
+PR 5 ships ahead of PR 4b for the TypeScript scheduler: the legacy fallback
+is gone, so Python-backed nodes that don't yet advertise correlation metadata
+through the bridge will fail analysis at load time. PR 4a/4b restores parity
+by adding the protocol-version handshake and lineage signals over stdio.
 
 ### PR 5 — Make correlation default
 
-Flip the flag default to on only after PR 4b's Python bridge work is complete.
-Hide `sync_mode` in the UI and DSL. Keep accepting saved `sync_mode` fields on
-load without warning.
+Correlation is always on. Hide `sync_mode` in the UI and DSL. Keep accepting saved `sync_mode` fields on load without warning.
 
-After one release, remove:
+Removed from production behavior:
 
-- `SyncMode`,
-- `_runOnAny`, `_gatherZipAll`, and `_initialStickyHandles`,
-- deprecated `isStreamingInput` / `isStreamingOutput` shims.
+- `sync_mode` selection,
+- the correlation rollout flag,
+- legacy scheduler selection.
 
 ## Remaining decisions
 
@@ -712,6 +722,4 @@ After one release, remove:
    PR should turn those limits into upstream backpressure instead of hard
    execution errors.
 
-3. **Python worker rollout.** Default-on correlation is blocked until the stdio
-   bridge carries output correlation metadata, lineage, `lineage_done`, and
-   `lineage_scope_closed`.
+3. **Python worker rollout.** Python bridge compatibility remains a rollout concern for Python-backed nodes that need full output correlation metadata, lineage, `lineage_done`, and `lineage_scope_closed`.

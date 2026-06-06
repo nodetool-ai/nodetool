@@ -1,10 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Box } from "@mui/material";
 import { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text } from "../ui_primitives";
+import { Text, Box } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { isGettingStarted } from "../../utils/templateCategories";
 import WorkflowCard from "./WorkflowCard";
@@ -28,14 +27,14 @@ const stripStyles = (theme: Theme) =>
       gap: "12px"
     },
     ".strip-title": {
-      fontSize: "0.85rem",
-      fontWeight: 700,
+      fontSize: "var(--fontSizeNormal)",
+      fontWeight: 600,
       letterSpacing: "0.5px",
       textTransform: "uppercase",
       color: theme.vars.palette.primary.main
     },
     ".strip-subtitle": {
-      fontSize: "0.8rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary
     },
     ".strip-row": {

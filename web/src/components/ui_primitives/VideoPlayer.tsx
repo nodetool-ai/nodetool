@@ -239,6 +239,7 @@ const VideoPlayerInner: React.FC<VideoPlayerProps> = ({
         loop={loop}
         muted={muted}
         playsInline
+        aria-label="Video player"
         onPlay={handlePlay}
         onPause={handlePause}
         onLoadedMetadata={handleLoadedMetadata}
