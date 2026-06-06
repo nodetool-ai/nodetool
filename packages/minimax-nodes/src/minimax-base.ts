@@ -225,7 +225,11 @@ export const MINIMAX_LANGUAGE_BOOST: string[] = [
   "Polish"
 ];
 
-export const MINIMAX_MUSIC_MODELS: string[] = ["music-1.5", "music-01"];
+export const MINIMAX_MUSIC_MODELS: string[] = [
+  "music-2.6",
+  "music-1.5",
+  "music-01"
+];
 
 export const MINIMAX_IMAGE_ASPECTS: string[] = [
   "1:1",

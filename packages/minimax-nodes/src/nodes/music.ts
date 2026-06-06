@@ -53,7 +53,7 @@ export class MinimaxMusicNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "music-1.5",
+    default: "music-2.6",
     title: "Model",
     description: "The MiniMax music model to use.",
     values: MINIMAX_MUSIC_MODELS
@@ -78,7 +78,7 @@ export class MinimaxMusicNode extends BaseNode {
     const lyrics = String(this.lyrics ?? "");
     if (!lyrics) throw new Error("Lyrics are required");
 
-    const model = String(this.model ?? "music-1.5");
+    const model = String(this.model ?? "music-2.6");
     const format = String(this.format ?? "mp3");
 
     const body: Record<string, unknown> = {

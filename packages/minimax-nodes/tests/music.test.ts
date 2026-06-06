@@ -36,7 +36,7 @@ describe("MinimaxMusicNode", () => {
     const body = JSON.parse(options.body as string) as Record<string, unknown>;
     expect(body.prompt).toBe("lo-fi beat");
     expect(body.lyrics).toBe("[Verse]\nhello");
-    expect(body.model).toBe("music-1.5");
+    expect(body.model).toBe("music-2.6");
 
     expect(result.output).toMatchObject({
       type: "audio",
