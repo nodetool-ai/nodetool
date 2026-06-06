@@ -30,9 +30,11 @@ import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
+import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
 import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
 import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 import {
   ProcessingContext,
   FileStorageAdapter,
@@ -450,9 +452,11 @@ workflows
         const registry = new NodeRegistry();
         registerBaseNodes(registry);
         registerElevenLabsNodes(registry);
+        registerMinimaxNodes(registry);
         registerTransformersJsNodes(registry);
         registerFalNodes(registry);
         registerReplicateNodes(registry);
+        registerHuggingFaceNodes(registry);
 
         // Create processing context with secret resolver
         const jobId = `job-${Date.now()}`;

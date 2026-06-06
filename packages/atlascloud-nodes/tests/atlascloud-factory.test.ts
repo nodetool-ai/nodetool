@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   createAtlasNodeClass,
   resolveAssetForAtlas,
@@ -34,6 +37,17 @@ describe("resolveAssetForAtlas", () => {
     expect(out).toBe("data:image/jpeg;base64,aGVsbG8=");
   });
 
+  it("honors a camelCase mimeType (as injected by prompt @-mentions) when the URI has no extension", async () => {
+    // mapPromptAssetsToInputs injects InjectedAssetRef shaped { uri, mimeType,
+    // data } — camelCase mimeType, and an asset:// URI with no file extension.
+    const out = await resolveAssetForAtlas(
+      { uri: "asset://abc123", data: "aGVsbG8=", mimeType: "image/webp" },
+      undefined,
+      "image"
+    );
+    expect(out).toBe("data:image/webp;base64,aGVsbG8=");
+  });
+
   it("uses context.storage to materialize internal URIs", async () => {
     const bytes = Uint8Array.from([1, 2, 3]);
     const storage = { retrieve: vi.fn().mockResolvedValue(bytes) };
@@ -52,6 +66,7 @@ describe("resolveAssetForAtlas", () => {
   describe("SSRF guard — rejects private / loopback / metadata hosts", () => {
     const blocked = [
       "http://localhost:7777/a.png",
+      "http://sub.localhost/a.png",
       "http://127.0.0.1/a.png",
       "http://0.0.0.0/a.png",
       "http://10.0.0.5/a.png",
@@ -62,7 +77,17 @@ describe("resolveAssetForAtlas", () => {
       "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
       "http://[::1]/a.png",
       "http://[fe80::1]/a.png",
-      "http://[fc00::1]/a.png"
+      "http://[fc00::1]/a.png",
+      // inet_aton numeric encodings of 127.0.0.1 the OS resolver still accepts
+      "http://2130706433/a.png", // decimal
+      "http://0x7f000001/a.png", // hex
+      "http://0177.0.0.1/a.png", // octal first octet
+      "http://127.1/a.png", // short form
+      // decimal encoding of 169.254.169.254 (cloud metadata)
+      "http://2852039166/latest/meta-data/",
+      // IPv4-mapped IPv6 loopback (dotted + hex tail)
+      "http://[::ffff:127.0.0.1]/a.png",
+      "http://[::ffff:7f00:1]/a.png"
     ];
     for (const uri of blocked) {
       it(`refuses to fetch ${uri}`, async () => {
@@ -544,5 +569,100 @@ describe("createAtlasNodeClass.process", () => {
     await expect(node.process({ storage: null })).rejects.toThrow(
       "AtlasCloud job failed: moderation flagged"
     );
+  });
+
+  it("retries a transient 5xx on the (already-billed) output download", async () => {
+    let dlAttempts = 0;
+    global.fetch = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.endsWith("/generateImage")) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ data: { id: "pid-1" } })
+        } as Response;
+      }
+      if (u.includes("/prediction/pid-1")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({
+              data: { status: "completed", outputs: ["https://cdn/out.png"] }
+            })
+        } as Response;
+      }
+      if (u === "https://cdn/out.png") {
+        dlAttempts++;
+        if (dlAttempts === 1) {
+          return {
+            ok: false,
+            status: 503,
+            headers: new Headers({ "Retry-After": "0" })
+          } as Response;
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          arrayBuffer: async () => Uint8Array.from([0x89, 0x50]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    const Cls = createAtlasNodeClass(makeSpec()) as unknown as new () => {
+      prompt: string;
+      size: string;
+      steps: number;
+      process: (ctx: unknown) => Promise<Record<string, unknown>>;
+      setDynamic: (k: string, v: unknown) => void;
+    };
+    const node = new Cls();
+    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    node.prompt = "a cat";
+    node.size = "1024x1024";
+    node.steps = 1;
+
+    const storage = { store: vi.fn().mockResolvedValue("memory://x.png") };
+    const out = await node.process({ storage });
+
+    // The CDN 503 was retried rather than throwing away the paid-for result.
+    expect(dlAttempts).toBe(2);
+    expect(storage.store).toHaveBeenCalledTimes(1);
+    expect(out).toEqual({ output: { type: "image", uri: "memory://x.png" } });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Manifest invariants
+// ---------------------------------------------------------------------------
+describe("atlascloud-manifest", () => {
+  const manifest = JSON.parse(
+    readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/atlascloud-manifest.json"),
+      "utf8"
+    )
+  ) as AtlasManifestEntry[];
+
+  it("no longer exposes the unsurfaced return_last_frame option", () => {
+    const offenders = manifest
+      .filter((e) => e.fields.some((f) => f.name === "return_last_frame"))
+      .map((e) => e.className);
+    expect(offenders).toEqual([]);
+  });
+
+  it("models multi-image edit inputs as list[image], not a single wrapped image", () => {
+    const edits = manifest.filter((e) =>
+      e.fields.some((f) => f.name === "images")
+    );
+    expect(edits.length).toBeGreaterThan(0);
+    for (const e of edits) {
+      const images = e.fields.find((f) => f.name === "images");
+      expect(images?.type).toBe("list[image]");
+      // the single-wrap `array` flag must be gone now that it's a real list
+      expect((images as { array?: boolean }).array).toBeUndefined();
+    }
   });
 });

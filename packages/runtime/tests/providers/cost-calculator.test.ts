@@ -135,7 +135,7 @@ describe("CostCalculator.calculate – local non-token modalities (USD)", () => 
       { inputCharacters: 5000 },
       "openai"
     );
-    expect(cost).toBeCloseTo((5000 / 1000) * PRICING_TIERS.ttsStandard.per1kChars!);
+    expect(cost).toBeCloseTo((5000 / 1000) * PRICING_TIERS.ttsGpt4oMini.per1kChars!);
   });
 
   it("calculates task-based cost (3D)", () => {

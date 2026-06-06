@@ -85,7 +85,7 @@ import {
 } from "@nodetool-ai/agents";
 import { RunNodeTool } from "./agent/run-node-tool.js";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
@@ -741,7 +741,7 @@ export interface UnifiedWebSocketRunnerOptions {
    * accept the bridge in their context. Plain workflow execution and chat
    * keep working without it.
    */
-  pythonBridge?: PythonStdioBridge;
+  pythonBridge?: PythonBridge;
   /** Whether the Python bridge has finished hydrating. Same wiring as the tRPC HTTP context. */
   getPythonBridgeReady?: () => boolean;
   /** API options forwarded into the tRPC context (metadata roots, registry, etc.). */
@@ -765,7 +765,7 @@ export class UnifiedWebSocketRunner {
   private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
   private validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
   private nodeRegistry?: NodeRegistry;
-  private pythonBridge?: PythonStdioBridge;
+  private pythonBridge?: PythonBridge;
   private getPythonBridgeReady?: () => boolean;
   private apiOptions?: HttpApiOptions;
   private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
