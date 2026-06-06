@@ -20,6 +20,7 @@ import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import NotificationButton from "../panels/NotificationButton";
 import OpenMenu from "./OpenMenu";
+import WorkspaceTabItem from "./WorkspaceTabItem";
 
 /** Whether a document type supports both View and Edit (vs view-only). */
 const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
@@ -128,17 +129,28 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap",
       minWidth: 0
     },
-    "& .close": {
+    "& .dirty-dot": {
+      width: "8px",
+      height: "8px",
+      borderRadius: "50%",
+      backgroundColor: theme.vars.palette.warning.main,
+      flexShrink: 0
+    },
+    "& .tab-close": {
       flexShrink: 0,
       width: "16px",
       height: "16px",
-      lineHeight: "16px",
-      textAlign: "center",
-      borderRadius: "3px",
+      minWidth: "16px",
+      padding: 0,
       color: theme.vars.palette.text.disabled,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         backgroundColor: "rgba(255,255,255,0.08)"
+      },
+      "& .MuiSvgIcon-root": {
+        width: "14px",
+        height: "14px",
+        fontSize: "14px"
       }
     },
 
@@ -231,6 +243,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
+  const closeOthers = useWorkspaceTabsStore((state) => state.closeOthers);
   const setMode = useWorkspaceTabsStore((state) => state.setMode);
   const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
 
@@ -357,6 +370,31 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     [closeTab, removeWorkflow]
   );
 
+  const handleCloseOthers = useCallback(
+    (keepTab: WorkspaceTab) => {
+      const toClose = useWorkspaceTabsStore
+        .getState()
+        .tabs.filter((tab) => tab.id !== keepTab.id);
+      for (const tab of toClose) {
+        if (tab.type === "workflow") {
+          removeWorkflow(tab.ref);
+        }
+      }
+      closeOthers(keepTab.id);
+    },
+    [closeOthers, removeWorkflow]
+  );
+
+  const handleCloseAll = useCallback(() => {
+    const snapshot = [...useWorkspaceTabsStore.getState().tabs];
+    for (const tab of snapshot) {
+      if (tab.type === "workflow") {
+        removeWorkflow(tab.ref);
+      }
+      closeTab(tab.id);
+    }
+  }, [closeTab, removeWorkflow]);
+
   return (
     <div css={tabBarStyles} className="workspace-tabbar">
       <button
@@ -377,74 +415,28 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         </span>
       </button>
       <div className="tabs">
-        {tabs.map((tab) => {
-          const isEditing = editingTabId === tab.id;
-          const dropClass =
-            dropTarget?.id === tab.id
-              ? dropTarget.position === "left"
-                ? " drop-target-left"
-                : " drop-target-right"
-              : "";
-
-          return (
-            <div
-              key={tab.id}
-              className={`tab${tab.id === activeTabId ? " active" : ""}${dropClass}`}
-              draggable={!isEditing}
-              onClick={() => setActiveTab(tab.id)}
-              onDoubleClick={() => {
-                if (tab.type === "workflow") {
-                  setEditingTabId(tab.id);
-                }
-              }}
-              onDragStart={(event) => handleDragStart(event, tab.id)}
-              onDragOver={(event) => handleDragOver(event, tab)}
-              onDragLeave={handleDragLeave}
-              onDrop={(event) => handleDrop(event, tab)}
-            >
-              <span className="glyph" style={{ color: TYPE_COLOR[tab.type] }}>
-                {TYPE_GLYPH[tab.type]}
-              </span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  className="tab-input"
-                  aria-label="Workflow name"
-                  defaultValue={tab.title}
-                  autoFocus
-                  onClick={(event) => event.stopPropagation()}
-                  onFocus={(event) => event.currentTarget.select()}
-                  onBlur={(event) => {
-                    void commitWorkflowRename(tab, event.currentTarget.value);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      void commitWorkflowRename(
-                        tab,
-                        event.currentTarget.value
-                      );
-                    } else if (event.key === "Escape") {
-                      setEditingTabId(null);
-                    }
-                  }}
-                />
-              ) : (
-                <span className="tab-name">{tab.title}</span>
-              )}
-              <span
-                className="close"
-                role="button"
-                aria-label={`Close ${tab.title}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleClose(tab);
-                }}
-              >
-                ×
-              </span>
-            </div>
-          );
-        })}
+        {tabs.map((tab) => (
+          <WorkspaceTabItem
+            key={tab.id}
+            tab={tab}
+            isActive={tab.id === activeTabId}
+            isEditing={editingTabId === tab.id}
+            dropTarget={dropTarget}
+            typeColor={TYPE_COLOR[tab.type]}
+            typeGlyph={TYPE_GLYPH[tab.type]}
+            onActivate={setActiveTab}
+            onBeginRename={() => setEditingTabId(tab.id)}
+            onClose={handleClose}
+            onCloseOthers={handleCloseOthers}
+            onCloseAll={handleCloseAll}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onCommitRename={commitWorkflowRename}
+            onCancelRename={() => setEditingTabId(null)}
+          />
+        ))}
       </div>
 
       <OpenMenu
