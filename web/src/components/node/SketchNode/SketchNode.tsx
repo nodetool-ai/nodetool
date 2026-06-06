@@ -60,6 +60,10 @@ import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import {
+  orderedRunJobIds,
+  resolveNodeResultAcrossRuns
+} from "../../../utils/upstreamResult";
 import { useShallow } from "zustand/react/shallow";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { useSettingsStore } from "../../../stores/SettingsStore";
@@ -551,29 +555,22 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     return connections;
   }, [edges, props.id, exposedInputLayers]);
 
-  // Layer-source outputs are scoped to the workflow's focused run; subscribe so
-  // they re-resolve when focus switches between concurrent runs.
-  const focusedJobId = useWorkflowRunsStore(
-    (s) => s.focusedJob[props.data.workflow_id]
+  // Resolve layer-source outputs across the workflow's runs (focused first, then
+  // newest, then the hydrated baseline) so layer previews persist when focus
+  // moves to a per-node run. Subscribe to the job list so they re-resolve.
+  const jobIds = useWorkflowRunsStore(
+    useShallow((s) => orderedRunJobIds(s, props.data.workflow_id))
   );
   const layerInputResults = useResultsStore(
     useShallow((state) => {
       const out: Record<string, unknown> = {};
-      if (!focusedJobId) {
-        return out;
-      }
       for (const [layerId, connection] of Object.entries(layerInputConnections)) {
-        out[layerId] =
-          state.getOutputResult(
-            props.data.workflow_id,
-            focusedJobId,
-            connection.sourceId
-          ) ??
-          state.getResult(
-            props.data.workflow_id,
-            focusedJobId,
-            connection.sourceId
-          );
+        out[layerId] = resolveNodeResultAcrossRuns(
+          state,
+          jobIds,
+          props.data.workflow_id,
+          connection.sourceId
+        );
       }
       return out;
     })

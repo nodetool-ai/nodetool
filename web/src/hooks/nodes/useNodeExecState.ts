@@ -18,6 +18,11 @@ import { useShallow } from "zustand/react/shallow";
 import useStatusStore from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
 import useResultsStore from "../../stores/ResultsStore";
+import {
+  orderedRunJobIds,
+  resolveNodeResultAcrossRuns,
+  resolveNodeOutputAcrossRuns
+} from "../../utils/upstreamResult";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 import useWorkflowRunsStore, {
   type RunState
@@ -162,12 +167,11 @@ export function useNodeResultValue(
   workflowId: string,
   nodeId: string
 ): unknown {
-  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  const jobIds = useWorkflowRunsStore(
+    useShallow((s) => orderedRunJobIds(s, workflowId))
+  );
   return useResultsStore((s) =>
-    jobId
-      ? s.getOutputResult(workflowId, jobId, nodeId) ??
-        s.getResult(workflowId, jobId, nodeId)
-      : undefined
+    resolveNodeResultAcrossRuns(s, jobIds, workflowId, nodeId)
   );
 }
 
@@ -260,26 +264,23 @@ export function useNodeArtifacts(
   planningUpdate: PlanningUpdate | undefined;
 } {
   const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  const jobIds = useWorkflowRunsStore(
+    useShallow((s) => orderedRunJobIds(s, workflowId))
+  );
   return useResultsStore(
     useShallow((s) => {
-      if (!jobId) {
-        return {
-          result: undefined,
-          output: undefined,
-          chunk: undefined,
-          task: undefined,
-          toolCall: undefined,
-          planningUpdate: undefined
-        };
-      }
-      const key = nodeKey(workflowId, jobId, nodeId);
+      // `result`/`output` persist across runs (a prior run or the hydrated
+      // baseline) so previews don't blank when focus moves to a per-node run.
+      // The live signals (chunk/task/toolCall/planning) stay scoped to the
+      // focused run — they only mean something for the run in progress.
+      const key = jobId ? nodeKey(workflowId, jobId, nodeId) : undefined;
       return {
-        result: s.outputResults[key] ?? s.results[key],
-        output: s.outputResults[key],
-        chunk: s.chunks[key] as string | undefined,
-        task: s.tasks[key],
-        toolCall: s.toolCalls[key],
-        planningUpdate: s.planningUpdates[key]
+        result: resolveNodeResultAcrossRuns(s, jobIds, workflowId, nodeId),
+        output: resolveNodeOutputAcrossRuns(s, jobIds, workflowId, nodeId),
+        chunk: key ? (s.chunks[key] as string | undefined) : undefined,
+        task: key ? s.tasks[key] : undefined,
+        toolCall: key ? s.toolCalls[key] : undefined,
+        planningUpdate: key ? s.planningUpdates[key] : undefined
       };
     })
   );

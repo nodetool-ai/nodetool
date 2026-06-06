@@ -2,13 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import useResultsStore from "../../stores/ResultsStore";
-import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import {
   getWorkflowRunnerStore,
   useWebsocketRunner
 } from "../../stores/WorkflowRunner";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+import { makeUpstreamResultGetter } from "../../utils/upstreamResult";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 
 export const MIN_RUNS = 1;
@@ -32,7 +31,6 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
   );
-  const getResult = useResultsStore((state) => state.getResult);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
   const [runProgress, setRunProgress] = useState<RunProgress | null>(null);
@@ -78,14 +76,10 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           selectedNodeIds.has(edge.target) && !selectedNodeIds.has(edge.source)
       );
 
-      // Seed external inputs from the workflow's focused run; if nothing has run
-      // there's no focused job and the store read yields undefined
-      // (literal-source fallback still applies).
-      const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
-        workflow.id
-      );
-      const getResultForFocusedJob = (wf: string, src: string): unknown =>
-        focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
+      // Seed external inputs from the workflow's focused run, checking the
+      // output bucket (streaming / hydrated assets) before the node_complete
+      // envelope — the same precedence the node bodies use to display results.
+      const getResultForFocusedJob = makeUpstreamResultGetter(workflow.id);
 
       const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
 
@@ -228,7 +222,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
         }
       }
     },
-    [isWorkflowRunning, nodeStore, getResult, run, addNotification]
+    [isWorkflowRunning, nodeStore, run, addNotification]
   );
 
   return {

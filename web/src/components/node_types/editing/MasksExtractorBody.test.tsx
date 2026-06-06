@@ -12,7 +12,11 @@ jest.mock("../../../stores/ResultsStore", () => ({
 jest.mock("../../../stores/WorkflowRunsStore", () => ({
   __esModule: true,
   default: (selector: (state: unknown) => unknown) =>
-    selector({ focusedJob: { "wf-1": "job-1" } })
+    selector({
+      focusedJob: { "wf-1": "job-1" },
+      getFocusedJob: (w: string) => (w === "wf-1" ? "job-1" : undefined),
+      getRuns: () => []
+    })
 }));
 
 jest.mock("../../../contexts/NodeContext", () => ({

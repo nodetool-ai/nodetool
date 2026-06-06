@@ -1,12 +1,10 @@
 import { useCallback } from "react";
-import { Edge, Node } from "@xyflow/react";
 
-import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import useResultsStore from "../../stores/ResultsStore";
-import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import useMetadataStore from "../../stores/MetadataStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+import { buildRunSubgraph } from "../../utils/runSubgraph";
+import { makeUpstreamResultGetter } from "../../utils/upstreamResult";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 
 interface UseRunSingleNodeReturn {
@@ -15,10 +13,12 @@ interface UseRunSingleNodeReturn {
 }
 
 /**
- * Run a single node by id. Inbound edges from non-selected upstream nodes
- * are resolved to their last cached result (same strategy as
- * `useRunSelectedNodes`), so the node executes with realistic inputs even
- * when only this one node is "in the subgraph".
+ * Run a single node by id. The node's upstream closure is resolved into the
+ * smallest runnable subgraph (see {@link buildRunSubgraph}): cached results and
+ * constant/input values are injected as overrides, deterministic upstream nodes
+ * are submitted alongside the target so they run and feed it, and uncached
+ * *generative* upstreams (auto-saving asset nodes) block the run with a message
+ * telling the user to execute them first.
  *
  * Used by bespoke editing bodies (e.g. MasksExtractorBody) that expose a
  * "Recalculate" action without requiring the user to select the node first.
@@ -30,7 +30,6 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
   );
-  const getResult = useResultsStore((state) => state.getResult);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -41,68 +40,44 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
       return;
     }
 
-    const { edges, workflow, findNode } = nodeStore.getState();
+    const { edges, nodes, workflow, findNode } = nodeStore.getState();
     const node = findNode(nodeId);
     if (!node) {
       return;
     }
 
-    // Seed inputs from the workflow's focused run; if nothing has run there's
-    // no focused job and the store read yields undefined (literal-source
-    // fallback still applies).
-    const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
-      workflow.id
-    );
-    const getResultForFocusedJob = (wf: string, src: string): unknown =>
-      focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
+    const subgraph = buildRunSubgraph({
+      targetId: nodeId,
+      nodes,
+      edges,
+      workflowId: workflow.id,
+      // Seed inputs from the workflow's runs (focused first, then newest, then
+      // the hydrated baseline), checking the output bucket before the envelope.
+      getResult: makeUpstreamResultGetter(workflow.id),
+      getMetadata: useMetadataStore.getState().getMetadata
+    });
 
-    const inboundEdges = edges.filter((e: Edge) => e.target === nodeId);
-
-    const overrides: Record<string, unknown> = {};
-    for (const edge of inboundEdges) {
-      if (!edge.targetHandle) {
-        continue;
-      }
-      const { value, hasValue } = resolveExternalEdgeValue(
-        edge,
-        workflow.id,
-        getResultForFocusedJob,
-        findNode
-      );
-      if (hasValue) {
-        overrides[edge.targetHandle] = value;
-      }
+    if (subgraph.blocked.length > 0) {
+      const names = subgraph.blocked.map((b) => `"${b.title}"`).join(", ");
+      addNotification({
+        type: "warning",
+        alert: true,
+        content: `Run ${names} first — this node depends on ${
+          subgraph.blocked.length > 1 ? "generative nodes" : "a generative node"
+        } that ${
+          subgraph.blocked.length > 1 ? "have" : "has"
+        } not been executed yet.`
+      });
+      return;
     }
-
-    const dynamicProps = node.data?.dynamic_properties || {};
-    const staticProps = node.data?.properties || {};
-    const updatedDynamicProps = { ...dynamicProps };
-    const updatedStaticProps = { ...staticProps };
-
-    for (const [key, value] of Object.entries(overrides)) {
-      if (Object.prototype.hasOwnProperty.call(dynamicProps, key)) {
-        updatedDynamicProps[key] = value;
-      } else {
-        updatedStaticProps[key] = value;
-      }
-    }
-
-    const nodeWithOverrides: Node<NodeData> = {
-      ...node,
-      data: {
-        ...node.data,
-        properties: updatedStaticProps,
-        dynamic_properties: updatedDynamicProps
-      }
-    };
 
     run(
       {},
       workflow,
-      [nodeWithOverrides],
-      [],
+      subgraph.nodes,
+      subgraph.edges,
       undefined,
-      new Set([nodeId]),
+      subgraph.nodeIds,
       true
     );
 
@@ -111,7 +86,7 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
       alert: false,
       content: "Running node"
     });
-  }, [nodeId, isWorkflowRunning, nodeStore, getResult, run, addNotification]);
+  }, [nodeId, isWorkflowRunning, nodeStore, run, addNotification]);
 
   return {
     runSingleNode,

@@ -20,17 +20,12 @@ import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { useNodeResultValue } from "./useNodeExecState";
 import { unwrapOutput } from "../../utils/imageRef";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+import {
+  orderedRunJobIds,
+  resolveNodeResultAcrossRuns
+} from "../../utils/upstreamResult";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import type { Edge } from "@xyflow/react";
-
-const readAnyStoreValue = (
-  state: ReturnType<typeof useResultsStore.getState>,
-  workflowId: string,
-  jobId: string,
-  nodeId: string
-): unknown =>
-  state.getOutputResult(workflowId, jobId, nodeId) ??
-  state.getResult(workflowId, jobId, nodeId);
 
 /**
  * Resolve a node's own latest output value, bare (envelope unwrapped).
@@ -74,9 +69,12 @@ export const useUpstreamValue = (
   // Single-node read for the upstream source — migrated to accessor hook.
   const upstreamRaw = useNodeResultValue(workflowId, upstreamEdge?.source ?? "");
 
-  // Reads are scoped to the workflow's focused run. Subscribe so the fallback
-  // re-resolves when focus switches between concurrent runs.
-  const focusedJobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  // Resolve across the workflow's runs (focused first, then newest, then the
+  // hydrated baseline) so a preview keeps showing when focus moves to a
+  // per-node run. Subscribe to the job list so it re-resolves on focus change.
+  const jobIds = useWorkflowRunsStore(
+    useShallow((s) => orderedRunJobIds(s, workflowId))
+  );
 
   // resolveExternalEdgeValue is a multi-source fallback; keep it inside the
   // store selector so it reads atomically from the store snapshot.
@@ -85,8 +83,7 @@ export const useUpstreamValue = (
     const resolved = resolveExternalEdgeValue(
       upstreamEdge,
       workflowId,
-      (wf, src) =>
-        focusedJobId ? readAnyStoreValue(state, wf, focusedJobId, src) : undefined,
+      (wf, src) => resolveNodeResultAcrossRuns(state, jobIds, wf, src),
       findNode
     );
     return resolved.hasValue ? resolved.value : undefined;
@@ -132,9 +129,12 @@ export const useUpstreamValues = (
     return map;
   }, [edges]);
 
-  // Reads are scoped to the workflow's focused run. Subscribe so values
-  // re-resolve when focus switches between concurrent runs.
-  const focusedJobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  // Resolve across the workflow's runs (focused first, then newest, then the
+  // hydrated baseline) so layer previews persist when focus moves to a per-node
+  // run. Subscribe to the job list so values re-resolve on focus change.
+  const jobIds = useWorkflowRunsStore(
+    useShallow((s) => orderedRunJobIds(s, workflowId))
+  );
 
   return useResultsStore(useShallow((state) => {
     const out: Record<string, unknown> = {};
@@ -144,12 +144,10 @@ export const useUpstreamValues = (
         out[name] = constants?.[name];
         continue;
       }
-      const storeValue = focusedJobId
-        ? unwrapOutput(
-            readAnyStoreValue(state, workflowId, focusedJobId, edge.source),
-            edge.sourceHandle
-          )
-        : undefined;
+      const storeValue = unwrapOutput(
+        resolveNodeResultAcrossRuns(state, jobIds, workflowId, edge.source),
+        edge.sourceHandle
+      );
       if (storeValue !== undefined) {
         out[name] = storeValue;
         continue;
@@ -157,8 +155,7 @@ export const useUpstreamValues = (
       const resolved = resolveExternalEdgeValue(
         edge,
         workflowId,
-        (wf, src) =>
-          focusedJobId ? readAnyStoreValue(state, wf, focusedJobId, src) : undefined,
+        (wf, src) => resolveNodeResultAcrossRuns(state, jobIds, wf, src),
         findNode
       );
       out[name] = resolved.hasValue ? resolved.value : undefined;
