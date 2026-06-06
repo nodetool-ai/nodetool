@@ -238,6 +238,7 @@ export const handleUpdate = (
   const runner = runnerStore.getState();
   const setResult = useResultsStore.getState().setResult;
   const setProviderCost = useResultsStore.getState().setProviderCost;
+  const upsertLiveGeneration = useResultsStore.getState().upsertLiveGeneration;
   const setOutputResult = useResultsStore.getState().setOutputResult;
   const setStatus = useStatusStore.getState().setStatus;
   const getStatus = useStatusStore.getState().getStatus;
@@ -655,6 +656,13 @@ export const handleUpdate = (
         endExecution(workflow.id, jobId, update.node_id);
         setStatus(workflow.id, jobId, update.node_id, update.status);
         setError(workflow.id, jobId, update.node_id, normalizedNodeError);
+        upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+          status: "error",
+          error:
+            typeof update.error === "string"
+              ? update.error
+              : String(normalizedNodeError)
+        });
       }
       appendLog({
         workflowId: workflow.id,
@@ -706,6 +714,25 @@ export const handleUpdate = (
       // Store result if present
       if (update.result && jobId) {
         setResult(workflow.id, jobId, update.node_id, update.result);
+      }
+
+      if (jobId) {
+        if (
+          update.status === "running" ||
+          update.status === "starting" ||
+          update.status === "booting"
+        ) {
+          upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+            createdAt: Date.now(),
+            status: "running"
+          });
+        } else if (update.status === "completed") {
+          upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+            status: "completed",
+            outputs: (update.result as Record<string, unknown>) ?? {},
+            cost: update.provider_cost ?? undefined
+          });
+        }
       }
     }
 
