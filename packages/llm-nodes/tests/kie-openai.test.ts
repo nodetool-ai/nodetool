@@ -294,7 +294,8 @@ describe("CreateImageNode", () => {
     const result = await node.process();
     expect(result.output).toEqual({
       type: "image",
-      data: "data:image/png;base64,abc123"
+      data: "abc123",
+      content_type: "image/png"
     });
   });
 
@@ -372,7 +373,8 @@ describe("EditImageNode", () => {
     const result = await node.process();
     expect(result.output).toEqual({
       type: "image",
-      data: "data:image/png;base64,edited123"
+      data: "edited123",
+      content_type: "image/png"
     });
   });
 
@@ -409,7 +411,8 @@ describe("EditImageNode", () => {
     const result = await node.process();
     expect(result.output).toEqual({
       type: "image",
-      data: "data:image/png;base64,result"
+      data: "result",
+      content_type: "image/png"
     });
   });
 
@@ -437,7 +440,8 @@ describe("EditImageNode", () => {
     const result = await node.process();
     expect(result.output).toEqual({
       type: "image",
-      data: "data:image/png;base64,masked"
+      data: "masked",
+      content_type: "image/png"
     });
   });
 
@@ -539,7 +543,9 @@ describe("TextToSpeechNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
     const output = result.output as Record<string, string>;
-    expect(output.data).toMatch(/^data:audio\/mp3;base64,/);
+    expect(output.data).toBe(Buffer.from([10, 20, 30]).toString("base64"));
+    expect(output.data.startsWith("data:")).toBe(false);
+    expect(output.content_type).toBe("audio/mpeg");
   });
 
   it("throws on API error", async () => {

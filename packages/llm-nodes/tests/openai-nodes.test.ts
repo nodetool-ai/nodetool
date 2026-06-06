@@ -5,6 +5,7 @@ import {
   ModerationNode,
   CreateImageNode,
   EditImageNode,
+  ImageVariationNode,
   TextToSpeechNode,
   TranslateNode,
   TranscribeNode,
@@ -150,7 +151,7 @@ describe("ModerationNode", () => {
 // ── CreateImageNode ───────────────────────────────────────────────────────
 
 describe("CreateImageNode", () => {
-  it("returns base64 image", async () => {
+  it("returns raw base64 image without a data URI prefix", async () => {
     const node = new CreateImageNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ data: [{ b64_json: "imgdata" }] })
@@ -159,7 +160,11 @@ describe("CreateImageNode", () => {
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
     const result = await node.process();
     const output = result.output as Record<string, string>;
-    expect(output.data).toContain("imgdata");
+    // Media refs must carry RAW base64 in `data` — a `data:` prefix corrupts
+    // asset saving (decodeAssetBytes) and downstream provider consumption.
+    expect(output.data).toBe("imgdata");
+    expect(output.data.startsWith("data:")).toBe(false);
+    expect(output.content_type).toBe("image/png");
   });
 
   it("returns URL image", async () => {
@@ -210,7 +215,7 @@ describe("EditImageNode", () => {
     await expect(node.process()).rejects.toThrow("Edit prompt cannot be empty");
   });
 
-  it("sends multipart with image", async () => {
+  it("sends multipart with image and returns raw base64", async () => {
     const node = new EditImageNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ data: [{ b64_json: "edited" }] })
@@ -222,21 +227,104 @@ describe("EditImageNode", () => {
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
     const result = await node.process();
     const output = result.output as Record<string, string>;
-    expect(output.data).toContain("edited");
+    expect(output.data).toBe("edited");
+    expect(output.data.startsWith("data:")).toBe(false);
+  });
+
+  it("does not send response_format (rejected by gpt-image-1)", async () => {
+    const node = new EditImageNode();
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ data: [{ b64_json: "edited" }] })
+    );
+    node.assign({
+      prompt: "make blue",
+      image: { data: "base64data" }
+    });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await node.process();
+    const body = mockFetch.mock.calls[0][1].body as FormData;
+    expect(body.has("response_format")).toBe(false);
+  });
+});
+
+// ── ImageVariationNode ────────────────────────────────────────────────────
+
+describe("ImageVariationNode", () => {
+  it("throws when image missing", async () => {
+    const node = new ImageVariationNode();
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Input image is required");
+  });
+
+  it("returns a variation image", async () => {
+    const node = new ImageVariationNode();
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ data: [{ b64_json: "varied" }] })
+    );
+    node.assign({ image: { data: "base64data" } });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    const result = await node.process();
+    const output = result.output as Record<string, string>;
+    expect(output.data).toBe("varied");
+    expect(output.content_type).toBe("image/png");
+    const body = mockFetch.mock.calls[0][1].body as FormData;
+    expect(body.get("model")).toBe("dall-e-2");
   });
 });
 
 // ── TextToSpeechNode ──────────────────────────────────────────────────────
 
 describe("TextToSpeechNode (OpenAI)", () => {
-  it("returns audio data", async () => {
+  it("returns raw base64 audio with content type", async () => {
     const node = new TextToSpeechNode();
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
     node.assign({ input: "Hello" });
     node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
     const result = await node.process();
     const output = result.output as Record<string, string>;
-    expect(output.data).toContain("base64");
+    expect(typeof output.data).toBe("string");
+    expect(output.data.length).toBeGreaterThan(0);
+    expect(output.data.startsWith("data:")).toBe(false);
+    expect(output.content_type).toBe("audio/mpeg");
+  });
+
+  it("throws on empty input", async () => {
+    const node = new TextToSpeechNode();
+    node.assign({ input: "" });
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await expect(node.process()).rejects.toThrow("Input text cannot be empty");
+  });
+
+  it("gates speed/instructions to the model that supports each", async () => {
+    // tts-1: speed supported, instructions rejected → only speed sent.
+    const ttsOne = new TextToSpeechNode();
+    mockFetch.mockResolvedValueOnce(jsonResponse({}));
+    ttsOne.assign({
+      input: "Hi",
+      model: "tts-1",
+      speed: 1.5,
+      instructions: "cheerful"
+    });
+    ttsOne.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await ttsOne.process();
+    const body1 = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body1.instructions).toBeUndefined();
+    expect(body1.speed).toBe(1.5);
+
+    // gpt-4o-mini-tts: instructions supported, speed rejected → only instructions.
+    const ttsMini = new TextToSpeechNode();
+    mockFetch.mockResolvedValueOnce(jsonResponse({}));
+    ttsMini.assign({
+      input: "Hi",
+      model: "gpt-4o-mini-tts",
+      speed: 1.5,
+      instructions: "cheerful"
+    });
+    ttsMini.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    await ttsMini.process();
+    const body2 = JSON.parse(mockFetch.mock.calls[1][1].body as string);
+    expect(body2.instructions).toBe("cheerful");
+    expect(body2.speed).toBeUndefined();
   });
 
   it("throws on API error", async () => {

@@ -23,27 +23,27 @@ import type {
   ToolCall
 } from "./types.js";
 import type { Chunk } from "@nodetool-ai/protocol";
-import type { PythonStdioBridge } from "../python-stdio-bridge.js";
+import type { PythonBridgeBase } from "../python-bridge-base.js";
 
 type PythonProviderOptions = Record<string, unknown> & {
   _id: string;
-  _bridge: PythonStdioBridge;
+  _bridge: PythonBridgeBase;
 };
 
 export class PythonProvider extends BaseProvider {
-  private _bridge: PythonStdioBridge;
+  private _bridge: PythonBridgeBase;
   private _pythonProviderId: string;
   private _secrets: Record<string, string>;
 
   constructor(
     providerId: string,
-    bridge: PythonStdioBridge,
+    bridge: PythonBridgeBase,
     secrets?: Record<string, string>
   );
   constructor(options: PythonProviderOptions);
   constructor(
     providerIdOrOptions: string | PythonProviderOptions,
-    bridge?: PythonStdioBridge,
+    bridge?: PythonBridgeBase,
     secrets: Record<string, string> = {}
   ) {
     if (typeof providerIdOrOptions === "string") {
