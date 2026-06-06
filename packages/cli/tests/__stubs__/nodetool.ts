@@ -283,6 +283,7 @@ export const registerMinimaxNodes = (_reg?: unknown) => {};
 export const registerTransformersJsNodes = (_reg?: unknown) => {};
 export const registerFalNodes = (_reg?: unknown) => {};
 export const registerReplicateNodes = (_reg?: unknown) => {};
+export const registerReveNodes = (_reg?: unknown) => {};
 export const registerHuggingFaceNodes = (_reg?: unknown) => {};
 
 // dsl
