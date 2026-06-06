@@ -1233,14 +1233,11 @@ export class SummarizerNode extends BaseNode {
   };
   static readonly inlineFields = ["text"];
   static readonly inputFields = ["image", "audio", "system_prompt"];
-  // TODO: process() awaits the full provider response and only returns
-  // `text` — `chunk` is never emitted. To actually stream, convert to
-  // `genProcess` and yield each provider piece as a `chunk`, then flip
-  // `chunk` to `iteration`. Keeping `single` so metadata reflects current
-  // behavior.
+  // Streamed output: each provider piece is emitted as a `chunk` iteration,
+  // and the final aggregated summary is the `text` single output.
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     text: { kind: "single", source: "__execution__" },
-    chunk: { kind: "single", source: "__execution__" }
+    chunk: { kind: "iteration", source: "__execution__", group: "stream" }
   };
   static readonly recommendedModels = [
     {
@@ -1303,7 +1300,7 @@ export class SummarizerNode extends BaseNode {
   @prop({
     type: "str",
     default:
-      "\n        You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring.\n        Follow these guidelines:\n        1. Identify and include only the most important information.\n        2. Maintain factual accuracy - do not add or modify information.\n        3. Use clear, direct language.\n        4. Aim for approximately {self.max_tokens} tokens.\n        ",
+      "\n        You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring.\n        Follow these guidelines:\n        1. Identify and include only the most important information.\n        2. Maintain factual accuracy - do not add or modify information.\n        3. Use clear, direct language.\n        4. Keep the summary brief and to the point.\n        ",
     title: "System Prompt",
     description: "The system prompt for the summarizer"
   })
@@ -1360,32 +1357,84 @@ export class SummarizerNode extends BaseNode {
   })
   declare audio: AudioRef;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const text = asText(this.text ?? this.text ?? "");
-    const maxSentences = Number((this as any).max_sentences ?? 3);
+  @prop({
+    type: "int",
+    default: 3,
+    title: "Max Sentences",
+    description: "Approximate number of sentences for the summary.",
+    min: 1,
+    max: 100
+  })
+  declare max_sentences: number;
+
+  private _maxSentences(): number {
+    const raw = Number(this.max_sentences ?? 3);
+    return Number.isFinite(raw) ? Math.max(1, raw) : 3;
+  }
+
+  async *genProcess(
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
+    const text = asText(this.text ?? "");
+    const maxSentences = this._maxSentences();
+    const systemPrompt =
+      asText(this.system_prompt ?? "").trim() || SUMMARIZER_SYSTEM_PROMPT;
     const { providerId, modelId } = getModelConfig(this.serialize());
+
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
-      const result = await generateProviderMessage(provider, {
-        model: modelId,
-        maxTokens: Number.isFinite(maxSentences)
-          ? Math.max(64, maxSentences * 128)
-          : 384,
+      let full = "";
+      for await (const item of streamProviderMessages(provider, {
         messages: [
-          { role: "system", content: SUMMARIZER_SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Summarize the following text in about ${Math.max(1, maxSentences)} sentence(s):\n\n${text}`
+            content: `Summarize the following text in about ${maxSentences} sentence(s):\n\n${text}`
           }
-        ]
-      });
-      return { text: result, output: result };
+        ],
+        model: modelId,
+        maxTokens: Math.max(64, maxSentences * 128)
+      })) {
+        if (isChunkItem(item) && !item.thinking) {
+          const piece = item.content ?? "";
+          if (piece) {
+            full += piece;
+            yield {
+              chunk: {
+                type: "chunk",
+                content: piece,
+                content_type: "text",
+                done: false
+              },
+              text: null
+            };
+          }
+        }
+      }
+      const summary = full.trim();
+      yield { chunk: null, text: summary, output: summary };
+      return;
     }
-    const result = summarize(
-      text,
-      Number.isFinite(maxSentences) ? maxSentences : 3
-    );
-    return { text: result, output: result };
+
+    const summary = summarize(text, maxSentences);
+    yield {
+      chunk: {
+        type: "chunk",
+        content: summary,
+        content_type: "text",
+        done: true
+      },
+      text: summary,
+      output: summary
+    };
+  }
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    let text = "";
+    for await (const item of this.genProcess(context)) {
+      if (typeof item.text === "string") text = item.text;
+    }
+    return { text, output: text };
   }
 }
 
@@ -1418,12 +1467,12 @@ export class CreateThreadNode extends BaseNode {
   declare thread_id: string;
 
   async process(): Promise<Record<string, unknown>> {
-    const requested = String(this.thread_id ?? this.thread_id ?? "").trim();
+    const requested = String(this.thread_id ?? "").trim();
     if (requested) {
       if (!THREAD_STORE.has(requested)) {
         THREAD_STORE.set(requested, {
           id: requested,
-          title: String(this.title ?? this.title ?? "Agent Conversation"),
+          title: String(this.title ?? "Agent Conversation"),
           messages: []
         });
       }
@@ -1433,7 +1482,7 @@ export class CreateThreadNode extends BaseNode {
     const id = makeThreadId();
     THREAD_STORE.set(id, {
       id,
-      title: String(this.title ?? this.title ?? "Agent Conversation"),
+      title: String(this.title ?? "Agent Conversation"),
       messages: []
     });
     return { thread_id: id };
@@ -1568,7 +1617,7 @@ export class ExtractorNode extends BaseNode {
   declare audio: AudioRef;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const text = asText(this.text ?? this.text ?? "");
+    const text = asText(this.text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
@@ -1582,7 +1631,11 @@ export class ExtractorNode extends BaseNode {
         model: modelId,
         maxTokens: Number((this as any).max_tokens ?? 1024),
         messages: [
-          { role: "system", content: EXTRACTOR_SYSTEM_PROMPT },
+          {
+            role: "system",
+            content:
+              asText(this.system_prompt ?? "").trim() || EXTRACTOR_SYSTEM_PROMPT
+          },
           { role: "user", content: text }
         ],
         toolName: "extraction_result",
@@ -1736,8 +1789,8 @@ export class ClassifierNode extends BaseNode {
   declare categories: string[];
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const text = asText(this.text ?? this.text ?? "");
-    const categories = getCategories(this.categories ?? this.categories);
+    const text = asText(this.text ?? "");
+    const categories = getCategories(this.categories);
     if (categories.length < 2) {
       throw new Error("At least 2 categories are required");
     }
@@ -1749,7 +1802,11 @@ export class ClassifierNode extends BaseNode {
         model: modelId,
         maxTokens: Number((this as any).max_tokens ?? 256),
         messages: [
-          { role: "system", content: CLASSIFIER_SYSTEM_PROMPT },
+          {
+            role: "system",
+            content:
+              asText(this.system_prompt ?? "").trim() || CLASSIFIER_SYSTEM_PROMPT
+          },
           {
             role: "user",
             content: `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`
@@ -2422,16 +2479,16 @@ export class AgentNode extends BaseNode {
       asText(this.system ?? DEFAULT_SYSTEM_PROMPT),
       dynamicVars
     );
-    const image = this.image ?? this.image;
-    const audio = this.audio ?? this.audio;
-    const historyInput = this.history ?? this.history;
+    const image = this.image;
+    const audio = this.audio;
+    const historyInput = this.history;
     const history = Array.isArray(historyInput)
       ? historyInput
           .map((item) => normalizeMessage(item))
           .filter((item): item is Message => item !== null)
       : [];
-    const threadId = String(this.thread_id ?? this.thread_id ?? "").trim();
-    const maxTokens = Number(this.max_tokens ?? this.max_tokens ?? 8192);
+    const threadId = String(this.thread_id ?? "").trim();
+    const maxTokens = Number(this.max_tokens ?? 8192);
     const maxTurns = Math.max(1, Number(this.max_turns ?? 100));
     const tools: ToolLike[] = await this.buildTools(context);
 
