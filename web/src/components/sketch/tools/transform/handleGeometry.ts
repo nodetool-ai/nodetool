@@ -121,26 +121,6 @@ function pointInPolygon(pt: Point, polygon: Point[]): boolean {
   return inside;
 }
 
-function distanceToSegment(pt: Point, start: Point, end: Point): number {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const lengthSq = dx * dx + dy * dy;
-  if (lengthSq <= 1e-9) {
-    return dist(pt, start);
-  }
-  const t = Math.max(
-    0,
-    Math.min(
-      1,
-      ((pt.x - start.x) * dx + (pt.y - start.y) * dy) / lengthSq
-    )
-  );
-  return Math.hypot(
-    pt.x - (start.x + t * dx),
-    pt.y - (start.y + t * dy)
-  );
-}
-
 // ─── Geometry primitives ──────────────────────────────────────────────────────
 
 /** Rotate a point around a center by `angle` radians. */
