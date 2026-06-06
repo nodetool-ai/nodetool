@@ -98,7 +98,12 @@ export function decodeWav(bytes: Uint8Array): DecodedWav {
   }
 
   const bytesPerSample = bitsPerSample / 8;
-  const totalFrames = dataSize / (bytesPerSample * numChannels);
+  // Trust the smaller of the declared data size and the bytes actually present.
+  // Streaming/truncated WAVs often over-declare the data chunk (or write a
+  // placeholder size); reading past the buffer would throw a RangeError.
+  const available = Math.max(0, bytes.length - dataOffset);
+  const usableData = Math.min(dataSize, available);
+  const totalFrames = Math.floor(usableData / (bytesPerSample * numChannels));
   const out = new Float32Array(totalFrames);
   for (let i = 0; i < totalFrames; i++) {
     let sum = 0;
@@ -106,7 +111,10 @@ export function decodeWav(bytes: Uint8Array): DecodedWav {
       const sampleOffset = dataOffset + (i * numChannels + c) * bytesPerSample;
       let v: number;
       if (bitsPerSample === 16) {
-        v = view.getInt16(sampleOffset, true) / 0x8000;
+        // Match `encodeWav` (which scales by 0x7fff) and the canonical
+        // parseWavBytes so encode/decode round-trips at unit gain and the
+        // provider's ASR path normalizes identically to the node path.
+        v = view.getInt16(sampleOffset, true) / 0x7fff;
       } else if (bitsPerSample === 8) {
         v = (view.getUint8(sampleOffset) - 128) / 128;
       } else {

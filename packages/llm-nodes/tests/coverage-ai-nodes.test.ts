@@ -218,11 +218,11 @@ describe("SummarizerNode", () => {
     expect(result.text).toBe("A. B. C.");
   });
 
-  it("uses assigned defaults when inputs are missing", async () => {
+  it("respects assigned max_sentences", async () => {
     const n = new (SummarizerNode as any)();
     n.assign({ text: "From props. Second.", max_sentences: 1 });
     const result = await n.process();
-    expect(result.text).toBe("From props. Second.");
+    expect(result.text).toBe("From props.");
   });
 });
 

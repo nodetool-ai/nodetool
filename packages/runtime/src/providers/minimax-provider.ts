@@ -214,6 +214,7 @@ export class MinimaxProvider extends OpenAIProvider {
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     return [
+      { id: "MiniMax-M3", name: "MiniMax M3", provider: "minimax" },
       { id: "MiniMax-M2.7", name: "MiniMax M2.7", provider: "minimax" },
       {
         id: "MiniMax-M2.7-highspeed",

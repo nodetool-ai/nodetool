@@ -357,9 +357,13 @@ async function coerceInputValue(
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const ref = value as Record<string, unknown>;
     if (ref.uri !== undefined || ref.data !== undefined) {
-      // Try data URI for images, CDN upload otherwise
-      const dataUrl = await imageToDataUrl(ref);
-      if (dataUrl) return dataUrl;
+      // Inline images as data URIs. Only images — `imageToDataUrl` always tags
+      // the payload with an image MIME type, so routing video/audio through it
+      // would mislabel them (e.g. an MP4 sent as `data:image/png`).
+      if (ref.type === "image") {
+        const dataUrl = await imageToDataUrl(ref);
+        if (dataUrl) return dataUrl;
+      }
       const uri = ref.uri as string | undefined;
       if (uri?.startsWith("https://") && !uri.includes("localhost")) return uri;
       const data = ref.data as string | undefined;

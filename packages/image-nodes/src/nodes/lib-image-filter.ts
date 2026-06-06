@@ -123,14 +123,15 @@ function createFilterNode(desc: Desc): NodeClass {
         return { output: toRef(Buffer.from(png), baseObj) };
       }
       if (t.endsWith(".Contour")) {
-        // Composite Prewitt-style edge detector. PIL's CONTOUR is a single
-        // 3×3 kernel; this approximates it with a centre-weighted Laplacian
-        // followed by inversion to give a white-background contour image.
+        // PIL CONTOUR: Laplacian kernel [-1×8, centre 8] (sum 0) with a
+        // full-white offset (255/255). Flat regions cancel to 0 → white
+        // background; edges survive as dark contour lines. A centre weight
+        // of 9 (sum 1) would sharpen and then blow out to white.
         const png = await runShaderOnPngBuffer(
           filtersConvolve3x3V1,
           {
             row0: d.vec4f(-1, -1, -1, 1),
-            row1: d.vec4f(-1, 9, -1, -1),
+            row1: d.vec4f(-1, 8, -1, 0),
             row2: d.vec4f(-1, -1, -1, 1)
           },
           new Uint8Array(baseBytes),

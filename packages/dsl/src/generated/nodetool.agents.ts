@@ -10,6 +10,7 @@ export interface SummarizerInputs {
   text?: Connectable<string>;
   image?: Connectable<ImageRef>;
   audio?: Connectable<AudioRef>;
+  max_sentences?: Connectable<number>;
 }
 
 export interface SummarizerOutputs {
