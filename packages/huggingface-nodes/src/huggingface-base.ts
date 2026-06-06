@@ -82,25 +82,34 @@ export async function refToBase64(ref: MediaRef): Promise<string> {
   return Buffer.from(bytes).toString("base64");
 }
 
-/** Wrap generated image bytes into an ImageRef-shaped output. */
+/**
+ * Wrap generated image bytes into an ImageRef-shaped output.
+ *
+ * `data` is RAW base64 (no `data:` prefix); the MIME type goes in
+ * `content_type`. Asset-saving (`decodeAssetBytes`) and provider forwarding
+ * (`asUint8Array`) decode `data` directly with `Buffer.from(data, "base64")`,
+ * so a `data:` prefix would corrupt the bytes.
+ */
 export function imageRefFromBytes(
   bytes: Uint8Array,
   mimeType = "image/png"
 ): Record<string, unknown> {
   return {
     type: "image",
-    data: `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`
+    data: Buffer.from(bytes).toString("base64"),
+    content_type: mimeType
   };
 }
 
-/** Wrap generated video bytes into a VideoRef-shaped output. */
+/** Wrap generated video bytes into a VideoRef-shaped output (raw base64 `data`). */
 export function videoRefFromBytes(
   bytes: Uint8Array,
   mimeType = "video/mp4"
 ): Record<string, unknown> {
   return {
     type: "video",
-    data: `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`,
+    data: Buffer.from(bytes).toString("base64"),
+    content_type: mimeType,
     format: mimeType.split("/")[1] ?? "mp4"
   };
 }
@@ -113,7 +122,7 @@ export function imageRefFromBase64(
   const clean = base64.startsWith("data:")
     ? base64.slice(base64.indexOf(",") + 1)
     : base64;
-  return { type: "image", data: `data:${mimeType};base64,${clean}` };
+  return { type: "image", data: clean, content_type: mimeType };
 }
 
 function authHeaders(token: string): Record<string, string> {
