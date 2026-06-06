@@ -2,21 +2,15 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MasksExtractorBody } from "./MasksExtractorBody";
 
-jest.mock("../../../stores/ResultsStore", () => ({
+// The node body resolves its own settled output via `useNodeOutput` and its
+// upstream input via `useUpstreamValue`, both backed by the generation timeline.
+// Mock those boundaries directly.
+let mockNodeOutput: unknown = undefined;
+let mockUpstreamValue: unknown = undefined;
+jest.mock("../../../hooks/nodes/useNodeIO", () => ({
   __esModule: true,
-  default: jest.fn()
-}));
-
-// Node-output reads resolve the workflow's focused run; provide a stable one so
-// the (mocked) result getters are consulted instead of short-circuiting.
-jest.mock("../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: (selector: (state: unknown) => unknown) =>
-    selector({
-      focusedJob: { "wf-1": "job-1" },
-      getFocusedJob: (w: string) => (w === "wf-1" ? "job-1" : undefined),
-      getRuns: () => []
-    })
+  useNodeOutput: () => mockNodeOutput,
+  useUpstreamValue: () => mockUpstreamValue
 }));
 
 jest.mock("../../../contexts/NodeContext", () => ({
@@ -120,11 +114,9 @@ jest.mock("@mui/material/styles", () => ({
   })
 }));
 
-import useResultsStore from "../../../stores/ResultsStore";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useRunSingleNode } from "../../../hooks/nodes/useRunSingleNode";
 
-const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockUseNodes = useNodes as unknown as jest.Mock;
 const mockUseRunSingleNode = useRunSingleNode as unknown as jest.Mock;
 
@@ -153,8 +145,9 @@ describe("MasksExtractorBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    mockNodeOutput = undefined;
+    mockUpstreamValue = undefined;
     mockUseNodes.mockImplementation((selector) => selector({ edges: [] }));
-    mockUseResultsStore.mockReturnValue(undefined);
     mockUseRunSingleNode.mockReturnValue({
       runSingleNode: mockRunSingleNode,
       isWorkflowRunning: false
@@ -187,29 +180,7 @@ describe("MasksExtractorBody", () => {
   });
 
   it.skip("shows upstream image in Image tab when edge is connected", () => {
-    mockUseNodes.mockReturnValue({
-      id: "edge-1",
-      source: "upstream-node",
-      target: "node-1",
-      sourceHandle: "output",
-      targetHandle: "image"
-    });
-
-    mockUseResultsStore.mockImplementation((selector: (state: unknown) => unknown) => {
-      if (typeof selector === "function") {
-        const state = {
-          getOutputResult: () => undefined,
-          getResult: (_wf: string, _jobId: string, nodeId: string) => {
-            if (nodeId === "upstream-node") {
-              return { output: { uri: "upstream.jpg" } };
-            }
-            return undefined;
-          }
-        };
-        return selector(state);
-      }
-      return undefined;
-    });
+    mockUpstreamValue = { uri: "upstream.jpg" };
 
     render(<MasksExtractorBody {...defaultProps} />);
 
@@ -218,21 +189,7 @@ describe("MasksExtractorBody", () => {
   });
 
   it("shows own result in Mask tab", () => {
-    mockUseResultsStore.mockImplementation((selector: (state: unknown) => unknown) => {
-      if (typeof selector === "function") {
-        const state = {
-          getOutputResult: () => undefined,
-          getResult: (_wf: string, _jobId: string, nodeId: string) => {
-            if (nodeId === "node-1") {
-              return { output: { uri: "mask.png" } };
-            }
-            return undefined;
-          }
-        };
-        return selector(state);
-      }
-      return undefined;
-    });
+    mockNodeOutput = { uri: "mask.png" };
 
     render(<MasksExtractorBody {...defaultProps} />);
 

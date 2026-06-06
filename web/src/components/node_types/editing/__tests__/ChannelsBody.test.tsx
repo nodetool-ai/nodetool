@@ -15,21 +15,12 @@ jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   }))
 }));
 
-jest.mock("../../../../stores/ResultsStore", () => ({
+// The node body reads its own settled output via `useNodeOutput`, which resolves
+// the node's current generation. Mock that boundary directly.
+let mockNodeOutput: unknown = undefined;
+jest.mock("../../../../hooks/nodes/useNodeIO", () => ({
   __esModule: true,
-  default: jest.fn()
-}));
-
-// Node-output reads resolve the workflow's focused run; provide a stable one so
-// the (mocked) result getters are consulted instead of short-circuiting.
-jest.mock("../../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: (selector: (state: unknown) => unknown) =>
-    selector({
-      focusedJob: { "wf-1": "job-1" },
-      getFocusedJob: (w: string) => (w === "wf-1" ? "job-1" : undefined),
-      getRuns: () => []
-    })
+  useNodeOutput: () => mockNodeOutput
 }));
 
 jest.mock("../../../node/HandleColumn", () => ({
@@ -56,10 +47,6 @@ jest.mock("../../../node/NodeProgress", () => ({
   default: () => <div data-testid="node-progress" />
 }));
 
-import useResultsStore from "../../../../stores/ResultsStore";
-
-const mockedUseResultsStore = useResultsStore as unknown as jest.Mock;
-
 const renderWithTheme = (ui: React.ReactElement) => {
   return render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
 };
@@ -79,18 +66,10 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
   ...overrides
 });
 
-const stubStore = (overrides: Record<string, unknown> = {}) => ({
-  getOutputResult: () => null,
-  getResult: () => null,
-  ...overrides
-});
-
 describe("ChannelsBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseResultsStore.mockImplementation((selector: any) =>
-      selector(stubStore())
-    );
+    mockNodeOutput = undefined;
   });
 
   it("shows dropzone when no result is available", () => {
@@ -100,13 +79,7 @@ describe("ChannelsBody", () => {
   });
 
   it("renders ImageView when a result is present", () => {
-    mockedUseResultsStore.mockImplementation((selector: any) =>
-      selector(
-        stubStore({
-          getResult: () => ({ output: { uri: "test-image.png" } })
-        })
-      )
-    );
+    mockNodeOutput = { uri: "test-image.png" };
     renderWithTheme(<ChannelsBody {...makeProps()} />);
     expect(screen.getByTestId("image-view")).toBeInTheDocument();
     expect(screen.getByText("test-image.png")).toBeInTheDocument();
