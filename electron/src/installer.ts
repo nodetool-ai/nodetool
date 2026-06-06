@@ -103,28 +103,6 @@ function persistInstallationPreferences(
   };
 }
 
-function readInstallationPreferences(): InstallationPreferences {
-  try {
-    const settings = readSettings();
-    const location = normalizeInstallLocation(settings["CONDA_ENV"]);
-    const modelBackend = normalizeModelBackend(
-      settings[MODEL_BACKEND_SETTING_KEY as keyof typeof settings]
-    );
-    return { location, modelBackend };
-  } catch (error) {
-    logMessage(
-      `Unable to read installer preferences, using defaults: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      "warn"
-    );
-    return {
-      location: getDefaultInstallLocation(),
-      modelBackend: "ollama",
-    };
-  }
-}
-
 /**
  * Prompt for install location
  * @returns The path to the install location

@@ -58,7 +58,23 @@ function authHeaders(apiKey: string): Record<string, string> {
 // HTTP helpers
 // ---------------------------------------------------------------------------
 
-async function fetchWithRetry(
+/**
+ * Resolve a `Retry-After` header to a millisecond delay. The header is allowed
+ * to be either delay-seconds (`"120"`) or an HTTP-date
+ * (`"Wed, 21 Oct 2025 07:28:00 GMT"`); a date used to parse to `NaN`, and
+ * `setTimeout(_, NaN)` fires immediately — defeating the backoff. Fall back to
+ * the caller's exponential delay when the header is absent or unparseable.
+ */
+export function retryAfterMs(header: string | null, fallback: number): number {
+  if (!header) return fallback;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
+  const when = Date.parse(header);
+  if (!Number.isNaN(when)) return Math.max(0, when - Date.now());
+  return fallback;
+}
+
+export async function fetchWithRetry(
   url: string,
   init: RequestInit = {},
   maxAttempts = 6
@@ -70,12 +86,26 @@ async function fetchWithRetry(
     if (!RETRYABLE_STATUS.has(resp.status)) return resp;
     last = resp;
     if (attempt === maxAttempts) break;
-    const retryAfter = resp.headers.get("Retry-After");
-    const wait = retryAfter ? Number(retryAfter) * 1000 : delay;
+    const wait = retryAfterMs(resp.headers.get("Retry-After"), delay);
     await sleep(wait);
     delay = Math.min(delay * 2, 30000);
   }
   return last as Response;
+}
+
+/**
+ * Download a finished prediction's output bytes. Retries 429/5xx with backoff:
+ * by the time we reach the download the job is already generated and billed,
+ * so a transient CDN blip must not throw the paid-for result away.
+ */
+export async function atlasDownload(url: string): Promise<Uint8Array> {
+  const res = await fetchWithRetry(url);
+  if (!res.ok) {
+    throw new Error(
+      `AtlasCloud download failed: HTTP ${res.status} fetching ${url}`
+    );
+  }
+  return new Uint8Array(await res.arrayBuffer());
 }
 
 // ---------------------------------------------------------------------------
@@ -123,6 +153,18 @@ interface AtlasPollResult {
   error?: string;
 }
 
+// AtlasCloud has not committed to a single status vocabulary across models, so
+// accept the synonyms its image and video workers have been observed to emit
+// rather than time out on a terminal-but-unrecognized word.
+const SUCCESS_STATUS = new Set([
+  "completed",
+  "complete",
+  "succeeded",
+  "success",
+  "done"
+]);
+const FAILURE_STATUS = new Set(["failed", "error", "canceled", "cancelled"]);
+
 export async function atlasPoll(
   apiKey: string,
   predictionId: string,
@@ -147,10 +189,10 @@ export async function atlasPoll(
     const d = data?.data ?? {};
     const status = String(d.status ?? "").toLowerCase();
 
-    if (status === "completed" || status === "succeeded" || status === "success") {
+    if (SUCCESS_STATUS.has(status)) {
       return d;
     }
-    if (status === "failed" || status === "error") {
+    if (FAILURE_STATUS.has(status)) {
       const msg = d.error || data?.message || text.slice(0, 500);
       throw new Error(
         `AtlasCloud job failed: ${msg} (predictionId: ${predictionId})`

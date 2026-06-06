@@ -26,8 +26,9 @@ import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
   initTelemetry,
-  PythonStdioBridge,
-  logPythonWorkerStderr
+  createPythonBridge,
+  logPythonWorkerStderr,
+  type PythonBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import {
@@ -163,7 +164,7 @@ async function broadcastResourceChange(
 
 async function notifyPythonBridgeResourceChanges(
   app: FastifyInstance,
-  pythonBridge: PythonStdioBridge
+  pythonBridge: PythonBridge
 ): Promise<void> {
   await broadcastResourceChange(app, {
     event: "updated",
@@ -385,7 +386,7 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 // Python bridge
 // ---------------------------------------------------------------------------
 
-const pythonBridge = new PythonStdioBridge({
+const pythonBridge = createPythonBridge({
   workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
     ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
     : []
@@ -1001,8 +1002,8 @@ if (process.platform === "win32") {
   process.on("SIGBREAK", () => void shutdown("SIGBREAK"));
 }
 
-// Start Python bridge eagerly if Python is installed.
-if (pythonBridge.hasPython()) {
+// Start Python bridge eagerly if a worker is available.
+if (pythonBridge.isAvailable()) {
   log.info(`Starting Python bridge eagerly [${startupMs()}]`);
   pythonBridge
     .ensureConnected()

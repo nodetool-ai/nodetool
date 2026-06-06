@@ -237,13 +237,23 @@ async function buildAssetContentParts(
   return parts;
 }
 
+/** Cap a string at `maxChars`, appending a marker noting how much was dropped. */
+function truncateText(text: string, maxChars: number): string {
+  if (maxChars <= 0 || text.length <= maxChars) return text;
+  return (
+    text.slice(0, maxChars) +
+    `\n…[truncated ${text.length - maxChars} chars]`
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Tool factories for skill agent loop
 // ---------------------------------------------------------------------------
 
 export function makeExecuteBashTool(
   workspaceDir: string,
-  timeoutMs = 120_000
+  timeoutMs = 120_000,
+  maxChars = 200_000
 ): ToolLike {
   return {
     name: "execute_bash",
@@ -269,8 +279,8 @@ export function makeExecuteBashTool(
           (error, stdout, stderr) => {
             resolve({
               success: !error,
-              stdout: stdout ?? "",
-              stderr: stderr ?? "",
+              stdout: truncateText(stdout ?? "", maxChars),
+              stderr: truncateText(stderr ?? "", maxChars),
               ...(error ? { error: error.message } : {})
             });
           }
@@ -335,18 +345,51 @@ class ToolAgentNode extends BaseNode {
   /** Override in subclasses to declare output sinks. Keys are output handle names, values are tool names. */
   static readonly _outputSinkConfig: Record<string, string> = {};
 
+  /** Names of builtin agent tools (from @nodetool-ai/agents) to expose to the loop. */
+  static readonly _builtinToolNames: readonly string[] = [];
+
+  /** Whether the execute_bash tool is included in the loop. */
+  static readonly _includeBash: boolean = true;
+
   /** Transient storage for output paths set during agent loop. */
   private _outputSinks: Record<string, string[]> = {};
 
-  /** Build tools for the agent loop. Includes execute_bash + any output sink tools. */
+  /** Resolved max serialized output chars, clamped to a positive value. */
+  protected _maxOutputChars(): number {
+    const v = Number((this as any).max_output_chars ?? 200_000);
+    return Number.isFinite(v) && v > 0 ? v : 200_000;
+  }
+
+  /**
+   * Extra context appended to the user prompt. Override in subclasses to
+   * inject node-specific fields (e.g. a URL or output directory) that are
+   * declared as props but would otherwise never reach the agent.
+   */
+  protected promptContext(): string {
+    return "";
+  }
+
+  /**
+   * Build tools for the agent loop: execute_bash (unless disabled), any
+   * builtin agent tools named by the subclass, and the declared output sinks.
+   */
   getTools(workspaceDir: string): ToolLike[] {
-    const tools: ToolLike[] = [
-      makeExecuteBashTool(
-        workspaceDir,
-        ((this as any).timeout_seconds ?? 120) * 1000
-      )
-    ];
-    const config = (this.constructor as typeof ToolAgentNode)._outputSinkConfig;
+    const ctor = this.constructor as typeof ToolAgentNode;
+    const tools: ToolLike[] = [];
+    if (ctor._includeBash) {
+      tools.push(
+        makeExecuteBashTool(
+          workspaceDir,
+          ((this as any).timeout_seconds ?? 120) * 1000,
+          this._maxOutputChars()
+        )
+      );
+    }
+    for (const name of ctor._builtinToolNames) {
+      const builtin = resolveBuiltinAgentTool(name);
+      if (builtin) tools.push(builtin as unknown as ToolLike);
+    }
+    const config = ctor._outputSinkConfig;
     this._outputSinks = {};
     for (const [outputName, toolName] of Object.entries(config)) {
       const sink: string[] = [];
@@ -450,6 +493,10 @@ class ToolAgentNode extends BaseNode {
     if (workspaceFiles.length > 0) {
       augmentedPrompt += `\n\nInput files available in the workspace directory:\n${workspaceFiles.map((f) => `- ${f}`).join("\n")}`;
     }
+    const extraContext = this.promptContext();
+    if (extraContext) {
+      augmentedPrompt += `\n\n${extraContext}`;
+    }
 
     const systemPrompt = (this.constructor as typeof ToolAgentNode)
       ._systemPrompt;
@@ -465,7 +512,10 @@ class ToolAgentNode extends BaseNode {
       maxIterations: 10
     });
 
-    return { text, ...(await this.readOutputSinks(workspaceDir)) };
+    return {
+      text: truncateText(text, this._maxOutputChars()),
+      ...(await this.readOutputSinks(workspaceDir))
+    };
   }
 }
 
@@ -544,11 +594,12 @@ export class BrowserAgentNode extends ToolAgentNode {
   static readonly metadataOutputTypes = {
     text: "str"
   };
+  static readonly _builtinToolNames = ["browser", "take_screenshot"];
   static readonly _systemPrompt =
     "You are a browser automation and extraction agent using Playwright-backed browser tools. " +
-    "Use `browser` to fetch page content and metadata, `take_screenshot` for screenshots, " +
-    "and DOM tools (`dom_examine`, `dom_search`, `dom_extract`) for structured inspection. " +
+    "Use `browser` to fetch page content and metadata, and `take_screenshot` for screenshots. " +
     "The `browser` tool returns JSON fields like `success`, `url`, `content`, `metadata`, or `error`. " +
+    "Use `execute_bash` for local processing of fetched content (parsing, filtering, saving files). " +
     "Do not browse search engine result pages directly; explain that direct SERP browsing is disabled.";
   @prop({
     type: "language_model",
@@ -1586,6 +1637,8 @@ export class HttpApiAgentNode extends ToolAgentNode {
   static readonly metadataOutputTypes = {
     text: "str"
   };
+  static readonly _builtinToolNames = ["http_request"];
+  static readonly _includeBash = false;
   static readonly _systemPrompt =
     "You are an HTTP API integration specialist. " +
     "You can use exactly one tool: `http_request`. " +
@@ -2270,6 +2323,16 @@ export class YtDlpDownloaderAgentNode extends ToolAgentNode {
     max: 2000000
   })
   declare max_output_chars: any;
+
+  protected promptContext(): string {
+    const url = String((this as any).url ?? "").trim();
+    const outputDir = String((this as any).output_dir ?? "").trim();
+    const lines: string[] = [];
+    if (url) lines.push(`Video URL: ${url}`);
+    if (outputDir)
+      lines.push(`Output directory (workspace-relative): ${outputDir}`);
+    return lines.join("\n");
+  }
 }
 
 // ---------------------------------------------------------------------------

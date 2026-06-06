@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
+  atlasDownload,
   atlasPoll,
   atlasSubmit,
+  fetchWithRetry,
   getApiKey,
-  pickOutputUrl
+  pickOutputUrl,
+  retryAfterMs
 } from "../src/atlascloud-base.js";
 
 // ---------------------------------------------------------------------------
@@ -75,6 +78,127 @@ describe("pickOutputUrl", () => {
 
   it("throws when no URL is present", () => {
     expect(() => pickOutputUrl({})).toThrow("No output URL in result");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// retryAfterMs
+// ---------------------------------------------------------------------------
+describe("retryAfterMs", () => {
+  it("returns the fallback when the header is absent", () => {
+    expect(retryAfterMs(null, 1234)).toBe(1234);
+  });
+
+  it("parses delay-seconds into milliseconds", () => {
+    expect(retryAfterMs("2", 1000)).toBe(2000);
+  });
+
+  it("parses an HTTP-date relative to now instead of yielding NaN", () => {
+    const future = new Date(Date.now() + 5000).toUTCString();
+    const ms = retryAfterMs(future, 1000);
+    expect(ms).toBeGreaterThan(0);
+    expect(ms).toBeLessThanOrEqual(5000);
+  });
+
+  it("clamps a past HTTP-date to zero (no negative sleep)", () => {
+    const past = new Date(Date.now() - 5000).toUTCString();
+    expect(retryAfterMs(past, 1000)).toBe(0);
+  });
+
+  it("falls back when the header is neither seconds nor a date", () => {
+    expect(retryAfterMs("soon", 777)).toBe(777);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fetchWithRetry
+// ---------------------------------------------------------------------------
+describe("fetchWithRetry", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it("retries retryable statuses then returns the first non-retryable response", async () => {
+    let calls = 0;
+    global.fetch = vi.fn(async () => {
+      calls++;
+      if (calls < 3) {
+        return {
+          ok: false,
+          status: 503,
+          headers: new Headers({ "Retry-After": "0" })
+        } as Response;
+      }
+      return { ok: true, status: 200, headers: new Headers() } as Response;
+    }) as unknown as typeof fetch;
+
+    const res = await fetchWithRetry("https://x");
+    expect(res.status).toBe(200);
+    expect(calls).toBe(3);
+  });
+
+  it("does not retry a non-retryable status", async () => {
+    const fn = vi.fn(
+      async () =>
+        ({ ok: false, status: 400, headers: new Headers() }) as Response
+    );
+    global.fetch = fn as unknown as typeof fetch;
+
+    const res = await fetchWithRetry("https://x");
+    expect(res.status).toBe(400);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// atlasDownload
+// ---------------------------------------------------------------------------
+describe("atlasDownload", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it("retries a transient 5xx and returns the bytes — the job is already billed", async () => {
+    let calls = 0;
+    global.fetch = vi.fn(async () => {
+      calls++;
+      if (calls === 1) {
+        return {
+          ok: false,
+          status: 503,
+          headers: new Headers({ "Retry-After": "0" })
+        } as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
+      } as Response;
+    }) as unknown as typeof fetch;
+
+    const bytes = await atlasDownload("https://cdn/out.png");
+    expect(Array.from(bytes)).toEqual([1, 2, 3]);
+    expect(calls).toBe(2);
+  });
+
+  it("throws a descriptive error once retries are exhausted", async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      headers: new Headers({ "Retry-After": "0" }),
+      text: async () => ""
+    })) as unknown as typeof fetch;
+
+    await expect(atlasDownload("https://cdn/out.png")).rejects.toThrow(
+      "AtlasCloud download failed: HTTP 500"
+    );
   });
 });
 
@@ -237,6 +361,38 @@ describe("atlasPoll", () => {
     const out = await atlasPoll("k", "p", { pollInterval: 0, maxAttempts: 10 });
     expect(out.status).toBe("succeeded");
     expect(calls).toBe(3);
+  });
+
+  it("recognizes alternative terminal success words (complete / done)", async () => {
+    for (const status of ["complete", "done"]) {
+      global.fetch = vi.fn(async () => {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          text: async () =>
+            JSON.stringify({ data: { status, outputs: ["u"] } })
+        } as Response;
+      }) as unknown as typeof fetch;
+
+      const out = await atlasPoll("k", "p", { pollInterval: 0, maxAttempts: 2 });
+      expect(out.status).toBe(status);
+    }
+  });
+
+  it("treats a 'canceled' status as a job failure rather than looping to timeout", async () => {
+    global.fetch = vi.fn(async () => {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        text: async () => JSON.stringify({ data: { status: "canceled" } })
+      } as Response;
+    }) as unknown as typeof fetch;
+
+    await expect(
+      atlasPoll("k", "p", { pollInterval: 0, maxAttempts: 2 })
+    ).rejects.toThrow("AtlasCloud job failed");
   });
 
   it("throws on a structured failure body with the error message", async () => {

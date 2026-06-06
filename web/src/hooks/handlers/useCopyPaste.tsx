@@ -143,7 +143,7 @@ export const useCopyPaste = (): UseCopyPasteResult => {
     const clipboardText = await readClipboardText();
     if (clipboardText) {
       try {
-        const parsed = JSON.parse(clipboardText);
+        const parsed: unknown = JSON.parse(clipboardText);
         if (
           parsed &&
           typeof parsed === "object" &&

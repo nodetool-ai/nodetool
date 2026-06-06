@@ -91,7 +91,7 @@ export async function loadMediaRefBytes(
     const b64 = comma >= 0 ? data.slice(comma + 1) : data;
     return new Uint8Array(Buffer.from(b64, "base64"));
   }
-  if (data instanceof Uint8Array) {
+  if (data instanceof Uint8Array && data.length > 0) {
     return data;
   }
 

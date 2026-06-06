@@ -2,7 +2,11 @@ import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
+  ASRModel,
+  ASRResult,
+  EmbeddingModel,
   ImageModel,
+  ImageToImageParams,
   LanguageModel,
   VideoModel,
   Message,
@@ -12,6 +16,7 @@ import type {
   ProviderTool,
   EncodedAudioResult,
   TextToImageParams,
+  TextToVideoParams,
   TTSModel
 } from "./types.js";
 
@@ -38,12 +43,65 @@ interface HfChatResponse {
   usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
+/** A binary result the SDK may return as bytes, a buffer, or a Blob. */
+type HfBinary = Uint8Array | ArrayBuffer | { arrayBuffer(): Promise<ArrayBuffer> };
+
 /** Minimal shape of the HfInference client used by this provider. */
 interface HfClient {
   chatCompletion(params: Record<string, unknown>): Promise<HfChatResponse>;
   chatCompletionStream(params: Record<string, unknown>): AsyncIterable<HfChatResponse>;
-  textToImage(params: Record<string, unknown>): Promise<Uint8Array | ArrayBuffer | { arrayBuffer(): Promise<ArrayBuffer> }>;
-  textToSpeech(params: Record<string, unknown>): Promise<Uint8Array | ArrayBuffer | { arrayBuffer(): Promise<ArrayBuffer> }>;
+  textToImage(params: Record<string, unknown>): Promise<HfBinary>;
+  imageToImage(params: Record<string, unknown>): Promise<HfBinary>;
+  textToVideo(params: Record<string, unknown>): Promise<HfBinary>;
+  textToSpeech(params: Record<string, unknown>): Promise<HfBinary>;
+  automaticSpeechRecognition(
+    params: Record<string, unknown>
+  ): Promise<{ text?: string; chunks?: Array<{ text?: string; timestamp?: [number, number] }> }>;
+  featureExtraction(
+    params: Record<string, unknown>
+  ): Promise<number[] | number[][] | number[][][]>;
+}
+
+/**
+ * Normalize a feature-extraction result into a list of embedding vectors.
+ * Sentence-transformer models return `number[]` (single) or `number[][]`
+ * (batch); token-level models may nest deeper, in which case we mean-pool the
+ * token axis so callers always get one vector per input.
+ */
+function normalizeEmbedding(
+  result: number[] | number[][] | number[][][]
+): number[][] {
+  if (!Array.isArray(result) || result.length === 0) return [];
+  if (typeof result[0] === "number") {
+    return [result as number[]];
+  }
+  const rows = result as number[][] | number[][][];
+  if (Array.isArray(rows[0]) && typeof (rows[0] as number[])[0] === "number") {
+    return rows as number[][];
+  }
+  // number[][][] — mean-pool the token dimension of each input.
+  return (rows as number[][][]).map(meanPool);
+}
+
+function meanPool(tokens: number[][]): number[] {
+  if (tokens.length === 0) return [];
+  const dim = tokens[0].length;
+  const out = new Array<number>(dim).fill(0);
+  for (const token of tokens) {
+    for (let i = 0; i < dim; i++) out[i] += token[i] ?? 0;
+  }
+  for (let i = 0; i < dim; i++) out[i] /= tokens.length;
+  return out;
+}
+
+/** Coerce any binary-ish SDK result into a Uint8Array. */
+async function toBytes(result: HfBinary): Promise<Uint8Array> {
+  if (result instanceof Uint8Array) return result;
+  if (result instanceof ArrayBuffer) return new Uint8Array(result);
+  if (typeof result?.arrayBuffer === "function") {
+    return new Uint8Array(await result.arrayBuffer());
+  }
+  throw new Error("HuggingFace returned an unexpected binary result type");
 }
 
 let _hfModule: HfInferenceModule | null = null;
@@ -156,6 +214,24 @@ async function getHfVideoModels(): Promise<VideoModel[]> {
 
 async function getHfTTSModels(): Promise<TTSModel[]> {
   const entries = await fetchHfModels("text-to-speech");
+  return entries.map((m) => ({
+    id: m.id,
+    name: hfModelName(m.id),
+    provider: "huggingface"
+  }));
+}
+
+async function getHfASRModels(): Promise<ASRModel[]> {
+  const entries = await fetchHfModels("automatic-speech-recognition");
+  return entries.map((m) => ({
+    id: m.id,
+    name: hfModelName(m.id),
+    provider: "huggingface"
+  }));
+}
+
+async function getHfEmbeddingModels(): Promise<EmbeddingModel[]> {
+  const entries = await fetchHfModels("feature-extraction");
   return entries.map((m) => ({
     id: m.id,
     name: hfModelName(m.id),
@@ -359,19 +435,111 @@ export class HuggingFaceProvider extends BaseProvider {
     }
 
     const result = await client.textToImage(request);
+    return toBytes(result);
+  }
 
-    // Result can be a Blob or ArrayBuffer
-    if (result instanceof Uint8Array) {
-      return result;
-    }
-    if (result instanceof ArrayBuffer) {
-      return new Uint8Array(result);
-    }
-    if (typeof result?.arrayBuffer === "function") {
-      return new Uint8Array(await result.arrayBuffer());
+  override async imageToImage(
+    image: Uint8Array,
+    params: ImageToImageParams
+  ): Promise<Uint8Array> {
+    const client = await this.getClient();
+
+    log.debug("HuggingFace imageToImage", { model: params.model.id });
+
+    const parameters: Record<string, unknown> = {};
+    if (params.prompt) parameters.prompt = params.prompt;
+    if (params.negativePrompt) parameters.negative_prompt = params.negativePrompt;
+    if (params.guidanceScale != null) parameters.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps != null)
+      parameters.num_inference_steps = params.numInferenceSteps;
+    if (params.targetWidth && params.targetHeight) {
+      parameters.target_size = {
+        width: params.targetWidth,
+        height: params.targetHeight
+      };
     }
 
-    throw new Error("HuggingFace textToImage returned unexpected result type");
+    const result = await client.imageToImage({
+      model: params.model.id,
+      inputs: new Blob([new Uint8Array(image) as Uint8Array<ArrayBuffer>]),
+      ...(Object.keys(parameters).length > 0 ? { parameters } : {})
+    });
+    return toBytes(result);
+  }
+
+  override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+    if (!params.prompt) {
+      throw new Error("The input prompt cannot be empty.");
+    }
+
+    const client = await this.getClient();
+
+    log.debug("HuggingFace textToVideo", { model: params.model.id });
+
+    const parameters: Record<string, unknown> = {};
+    if (params.negativePrompt) parameters.negative_prompt = params.negativePrompt;
+    if (params.numFrames != null) parameters.num_frames = params.numFrames;
+    if (params.guidanceScale != null) parameters.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps != null)
+      parameters.num_inference_steps = params.numInferenceSteps;
+    if (params.seed != null) parameters.seed = params.seed;
+
+    const result = await client.textToVideo({
+      model: params.model.id,
+      inputs: params.prompt,
+      ...(Object.keys(parameters).length > 0 ? { parameters } : {})
+    });
+    return toBytes(result);
+  }
+
+  override async automaticSpeechRecognition(args: {
+    audio: Uint8Array;
+    model: string;
+    language?: string;
+    prompt?: string;
+    temperature?: number;
+    word_timestamps?: boolean;
+  }): Promise<ASRResult> {
+    const client = await this.getClient();
+
+    log.debug("HuggingFace automaticSpeechRecognition", { model: args.model });
+
+    const result = await client.automaticSpeechRecognition({
+      model: args.model,
+      data: new Blob([new Uint8Array(args.audio) as Uint8Array<ArrayBuffer>]),
+      ...(args.word_timestamps
+        ? { parameters: { return_timestamps: true } }
+        : {})
+    });
+
+    return {
+      text: result?.text ?? "",
+      ...(result?.chunks
+        ? {
+            chunks: result.chunks.map((c) => ({
+              text: c.text ?? "",
+              timestamp: c.timestamp ?? [0, 0]
+            }))
+          }
+        : {})
+    };
+  }
+
+  override async generateEmbedding(args: {
+    text: string | string[];
+    model: string;
+    dimensions?: number;
+  }): Promise<number[][]> {
+    const client = await this.getClient();
+
+    log.debug("HuggingFace featureExtraction", { model: args.model });
+
+    const result = await client.featureExtraction({
+      model: args.model,
+      inputs: args.text
+    });
+
+    return normalizeEmbedding(result);
   }
 
   /**
@@ -440,5 +608,13 @@ export class HuggingFaceProvider extends BaseProvider {
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return getHfTTSModels();
+  }
+
+  override async getAvailableASRModels(): Promise<ASRModel[]> {
+    return getHfASRModels();
+  }
+
+  override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    return getHfEmbeddingModels();
   }
 }

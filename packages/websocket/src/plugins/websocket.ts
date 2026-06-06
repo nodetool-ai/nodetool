@@ -3,7 +3,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { WsAdapter } from "../ws-adapter.js";
 import { UnifiedWebSocketRunner } from "../unified-websocket-runner.js";
 import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 import { PythonNodeExecutor, getProvider } from "@nodetool-ai/runtime";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "../http-api.js";
@@ -17,7 +17,7 @@ const log = createLogger("nodetool.websocket.ws");
 
 export interface WebSocketPluginOptions {
   registry: NodeRegistry;
-  pythonBridge: PythonStdioBridge;
+  pythonBridge: PythonBridge;
   getPythonBridgeReady: () => boolean;
   ensurePythonBridge: () => Promise<void>;
   /** Forwarded to the runner for read-only RPC commands (list_workflows, …). */
@@ -177,7 +177,8 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
             Object.fromEntries(
               (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
             ),
-            meta?.required_settings ?? []
+            meta?.required_settings ?? [],
+            node.id
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {

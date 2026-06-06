@@ -119,20 +119,60 @@ function authHeaders(
 // HTTP helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Resolve a `Retry-After` header to milliseconds. The header may be either a
+ * delay in seconds or an HTTP date; an unparseable value falls back to the
+ * caller's backoff so we never end up with `sleep(NaN)` (≈ immediate retry).
+ */
+export function parseRetryAfterMs(
+  headerValue: string | null,
+  fallbackMs: number
+): number {
+  if (!headerValue) return fallbackMs;
+  const seconds = Number(headerValue);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
+  const dateMs = Date.parse(headerValue);
+  if (Number.isFinite(dateMs)) return Math.max(0, dateMs - Date.now());
+  return fallbackMs;
+}
+
+const IDEMPOTENT_METHODS = new Set(["GET", "HEAD", "PUT"]);
+
+/**
+ * Fetch with backoff on retryable statuses (and transient network errors).
+ *
+ * Only idempotent requests (GET/HEAD, and PUTs to presigned upload URLs) are
+ * retried — retrying a job-creating POST or a state-transitioning PATCH could
+ * duplicate work (e.g. submit two billable video jobs) when the server already
+ * acted before returning a 5xx, so those get a single attempt.
+ */
 async function fetchWithRetry(
   url: string,
   init: RequestInit = {},
   maxAttempts = 6
 ): Promise<Response> {
+  const method = (init.method ?? "GET").toUpperCase();
+  const attempts = IDEMPOTENT_METHODS.has(method) ? maxAttempts : 1;
   let delay = 1000;
   let last: Response | undefined;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const resp = await fetch(url, init);
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    let resp: Response;
+    try {
+      resp = await fetch(url, init);
+    } catch (err) {
+      // Network-level failure (reset/timeout). Retry idempotent requests;
+      // surface immediately otherwise.
+      if (attempt === attempts) throw err;
+      await sleep(delay);
+      delay = Math.min(delay * 2, 30000);
+      continue;
+    }
     if (!RETRYABLE_STATUS.has(resp.status)) return resp;
     last = resp;
-    if (attempt === maxAttempts) break;
-    const retryAfter = resp.headers.get("Retry-After");
-    const wait = retryAfter ? Number(retryAfter) * 1000 : delay;
+    if (attempt === attempts) break;
+    const wait = parseRetryAfterMs(resp.headers.get("Retry-After"), delay);
+    // Drain the discarded body so the connection can be reused.
+    await resp.arrayBuffer().catch(() => undefined);
     await sleep(wait);
     delay = Math.min(delay * 2, 30000);
   }
@@ -164,7 +204,7 @@ async function pollUntilTerminal(
     if (FAILURE_STATES.has(status)) {
       throw new Error(`Topaz job failed: ${JSON.stringify(data)}`);
     }
-    await sleep(pollInterval);
+    if (attempt < maxAttempts - 1) await sleep(pollInterval);
   }
   throw new Error(
     `Topaz job did not complete within ${maxAttempts} poll attempts`
@@ -353,9 +393,15 @@ function detectImageMime(bytes: Uint8Array): string {
   }
   if (
     bytes.length >= 4 &&
-    bytes[0] === 0x49 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x2a
+    // TIFF little-endian (II*\0) or big-endian (MM\0*).
+    ((bytes[0] === 0x49 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x2a &&
+      bytes[3] === 0x00) ||
+      (bytes[0] === 0x4d &&
+        bytes[1] === 0x4d &&
+        bytes[2] === 0x00 &&
+        bytes[3] === 0x2a))
   ) {
     return "image/tiff";
   }
@@ -579,6 +625,9 @@ export async function topazExecuteVideoTask(
   }
   const acceptJson = (await accept.json()) as Record<string, unknown>;
   // Spec: { uploadId, urls[] }. Tolerate legacy shapes just in case.
+  const uploadId = (acceptJson.uploadId ?? acceptJson.upload_id) as
+    | string
+    | undefined;
   const uploadUrls = (acceptJson.urls ??
     acceptJson.uploadUrls ??
     (acceptJson.uploadUrl ? [acceptJson.uploadUrl] : [])) as string[];
@@ -588,14 +637,16 @@ export async function topazExecuteVideoTask(
 
   // 3. PUT bytes (single- or multi-part)
   const size = videoBytes.byteLength;
-  const partSize = Math.ceil(size / uploadUrls.length);
+  const partSize = Math.max(1, Math.ceil(size / uploadUrls.length));
   const uploadResults: Array<{ partNum: number; eTag: string }> = [];
   const uploadContentType = containerContentType(sourceMeta.container);
   for (let i = 0; i < uploadUrls.length; i++) {
-    const slice = videoBytes.slice(
-      i * partSize,
-      Math.min((i + 1) * partSize, size)
-    );
+    const start = i * partSize;
+    // Equal ceil-sized chunks can leave trailing presigned URLs with no bytes
+    // (e.g. 9 bytes across 4 URLs → parts 3/3/3/0). Stop once the source is
+    // fully consumed rather than PUT empty parts, which the API rejects.
+    if (start >= size) break;
+    const slice = videoBytes.slice(start, Math.min(start + partSize, size));
     const put = await fetchWithRetry(uploadUrls[i], {
       method: "PUT",
       headers: { "Content-Type": uploadContentType },
@@ -610,13 +661,15 @@ export async function topazExecuteVideoTask(
     });
   }
 
-  // 4. Complete upload
+  // 4. Complete upload. Echo back the uploadId from accept when present so the
+  // API can correlate the multipart upload it handed out.
+  const completeBody = uploadId ? { uploadId, uploadResults } : { uploadResults };
   const complete = await fetchWithRetry(
     spec.completeEndpoint.replace("{request_id}", requestId),
     {
       method: "PATCH",
       headers: authHeaders(apiKey, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ uploadResults })
+      body: JSON.stringify(completeBody)
     }
   );
   if (!complete.ok) {

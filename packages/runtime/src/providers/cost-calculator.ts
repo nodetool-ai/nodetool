@@ -61,9 +61,13 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
   whisperStandard: { costType: CostType.DURATION_BASED, perMinute: 0.006 },
   whisperLowCost: { costType: CostType.DURATION_BASED, perMinute: 0.003 },
   // TTS / Text-to-Speech — per 1000 characters.
-  ttsStandard: { costType: CostType.CHARACTER_BASED, per1kChars: 0.0006 },
+  // tts-1 = $15/1M chars ($0.015/1k); tts-1-hd = $30/1M chars ($0.03/1k).
   ttsHd: { costType: CostType.CHARACTER_BASED, per1kChars: 0.015 },
   ttsUltraHd: { costType: CostType.CHARACTER_BASED, per1kChars: 0.03 },
+  // gpt-4o-mini-tts is natively token-based (text in + audio out); OpenAI's
+  // own estimate is ~$0.015/min of audio. Approximated here per-1k-chars
+  // (~1 min ≈ 900–1000 chars) since the TTS call meters characters, not tokens.
+  ttsGpt4oMini: { costType: CostType.CHARACTER_BASED, per1kChars: 0.015 },
 
   // --- 3D generation (TASK_BASED) — USD per task ---
   // Pricing sources (verify on each pricing change):
@@ -92,7 +96,7 @@ export const MODEL_TO_TIER: Record<string, string> = {
   "openai:gpt-4o-transcribe": "whisperStandard",
   "openai:gpt-4o-mini-transcribe": "whisperLowCost",
   // TTS / Text-to-Speech
-  "openai:gpt-4o-mini-tts": "ttsStandard",
+  "openai:gpt-4o-mini-tts": "ttsGpt4oMini",
   "openai:tts-1": "ttsHd",
   "openai:tts-1-hd": "ttsUltraHd",
   // Meshy 3D generation — text tier is textured (preview + refine); image is single-step
@@ -109,9 +113,20 @@ export const MODEL_TO_TIER: Record<string, string> = {
 };
 
 export interface UsageInfo {
+  /**
+   * Total prompt/input tokens, **inclusive** of `cachedTokens` and
+   * `cacheWriteTokens`. This matches the `@pydantic/genai-prices` contract,
+   * which derives the full-price text input as
+   * `inputTokens - cachedTokens - cacheWriteTokens`. Providers whose API
+   * reports the uncached portion separately (e.g. Anthropic) must add the
+   * cache read/write counts back in before populating this field.
+   */
   inputTokens?: number;
   outputTokens?: number;
+  /** Cache-read (hit) tokens — a subset of {@link inputTokens}, priced at a discount. */
   cachedTokens?: number;
+  /** Cache-write (creation) tokens — a subset of {@link inputTokens}, priced at a premium. */
+  cacheWriteTokens?: number;
   reasoningTokens?: number;
   inputCharacters?: number;
   durationSeconds?: number;
@@ -167,6 +182,9 @@ function calcTokenPriceUsd(
   };
   if (usage.cachedTokens && usage.cachedTokens > 0) {
     gpUsage.cache_read_tokens = usage.cachedTokens;
+  }
+  if (usage.cacheWriteTokens && usage.cacheWriteTokens > 0) {
+    gpUsage.cache_write_tokens = usage.cacheWriteTokens;
   }
 
   const providerId = GENAI_PROVIDER_MAP[providerLower];
