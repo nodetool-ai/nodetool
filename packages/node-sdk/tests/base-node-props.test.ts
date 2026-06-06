@@ -88,6 +88,60 @@ describe("BaseNode — dynamicProps", () => {
     const serialized = node.serialize();
     expect(serialized).not.toHaveProperty("extra");
   });
+
+  it("routes reserved _-prefixed keys away from dynamicProps", () => {
+    const node = new EmptyNode();
+    node.setDynamic("username", "alice");
+    node.setDynamic("_secrets", { OPENAI_API_KEY: "sk-secret" });
+    // Reserved internals are readable via getDynamic …
+    expect(node.getDynamic("_secrets")).toEqual({ OPENAI_API_KEY: "sk-secret" });
+    expect(node.getDynamic("username")).toBe("alice");
+    // … but never appear in the user-facing dynamicProps iteration.
+    expect(Object.fromEntries((node as any).dynamicProps)).toEqual({
+      username: "alice"
+    });
+  });
+});
+
+describe("BaseNode — reserved internals isolation (dynamic nodes)", () => {
+  class DynNode extends BaseNode {
+    static readonly nodeType = "test.DynReserved";
+    static readonly supportsDynamicInputs = true;
+    static readonly requiredSettings = ["OPENAI_API_KEY"];
+
+    async process(): Promise<Record<string, unknown>> {
+      // Mirrors llm-nodes/agents.ts: build template vars from dynamicProps.
+      return {
+        vars: Object.fromEntries(this.dynamicProps),
+        secrets: this.getDynamic("_secrets"),
+        control: this.getDynamic("_control_context")
+      };
+    }
+  }
+
+  const ctx = {
+    getSecret: async (k: string) =>
+      k === "OPENAI_API_KEY" ? "sk-SUPER-SECRET" : undefined
+  } as any;
+
+  it("keeps _secrets / _control_context out of dynamicProps and serialize()", async () => {
+    const node = new DynNode();
+    const out = await node.toExecutor().process(
+      { username: "alice", _control_context: { routes: { n2: {} } } },
+      ctx
+    );
+
+    // User dynamic input is present; injected internals are not.
+    expect(out.vars).toEqual({ username: "alice" });
+    // Internals remain reachable through the dedicated accessors.
+    expect(out.secrets).toEqual({ OPENAI_API_KEY: "sk-SUPER-SECRET" });
+    expect(out.control).toEqual({ routes: { n2: {} } });
+    // serialize() must not leak secrets/control into persisted state.
+    const serialized = node.serialize();
+    expect(serialized).not.toHaveProperty("_secrets");
+    expect(serialized).not.toHaveProperty("_control_context");
+    expect(serialized).toMatchObject({ username: "alice" });
+  });
 });
 
 describe("BaseNode — constructor with properties", () => {
