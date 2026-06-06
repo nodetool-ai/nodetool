@@ -50,7 +50,7 @@ The capability system uses introspection to automatically detect which features 
 | Google Gemini | `gemini-provider.ts` | ✅ | ✅ | ✅ | File input via Blobs, Veo video |
 | xAI (Grok) | `xai-provider.ts` | ✅ | ✅ | — | Grok models; `XAI_API_KEY` |
 | DeepSeek | `deepseek-provider.ts` | ✅ | ✅ | — | DeepSeek-V3 and R1 reasoning; `DEEPSEEK_API_KEY` |
-| Evolink | `evolink-provider.ts` | ✅ | ✅ | model-dependent | OpenAI-compatible gateway (GPT, Claude, Gemini, DeepSeek); `EVOLINK_API_KEY` |
+| Evolink | `evolink-provider.ts` | ✅ | ✅ | model-dependent | OpenAI-compatible gateway (GPT, Claude, Gemini, DeepSeek). Also image (GPT Image, Nano Banana 2, Seedream) and video (Seedance, Wan, Veo, Sora, Grok) generation; `EVOLINK_API_KEY` |
 | Ollama | `ollama-provider.ts` | ✅ | model-dependent | Base64 | Local, no API key. `ollama pull` first |
 | vLLM | `vllm-provider.ts` | ✅ | model-dependent | ✅ | OpenAI-compatible, self-hosted |
 | HuggingFace | `huggingface-provider.ts` | ✅ | — | — | Hub models via FAL/Together/Replicate. See [HuggingFace Integration](huggingface.md) |
@@ -114,6 +114,8 @@ Use the HuggingFace 3D nodes (`HFTextTo3D`, `HFImageTo3D`) or the generic nodes 
 ### Multi-Provider Aggregators
 
 **kie.ai** — `KIE_API_KEY`. Unified access to multiple models via a single API. Recommended for providers without direct NodeTool API key support (ByteDance Seedance, Runway, Luma, xAI Grok Imagine, Alibaba Wan 2.6, Kling 3.0, FLUX.2, Nano Banana 2.0, Ideogram V3, Z-Image Turbo, Suno, and more).
+
+**Evolink** — `EVOLINK_API_KEY`. OpenAI/Anthropic-compatible gateway for chat (GPT, Claude, Gemini, DeepSeek) plus an asynchronous task API for image (GPT Image 2, Nano Banana 2, Seedream 5.0) and video (Seedance 2.0, Wan 2.6, Veo 3.1, Sora 2 Pro, Grok Imagine) generation behind one key.
 
 ## Generic Nodes: Provider-Agnostic Workflows
 
