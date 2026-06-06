@@ -1764,9 +1764,10 @@ export class UnifiedWebSocketRunner {
             job.markCancelled();
           }
         }
-        if (active.providerCostTotal != null) {
-          job.cost = active.providerCostTotal;
-        }
+        job.cost =
+          (active.providerCostTotal ?? 0) > 0
+            ? (active.providerCostTotal ?? null)
+            : null;
         await job.save();
       }
     } catch (error) {

@@ -14,6 +14,9 @@ import type React from "react";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import BlurBody, { BLUR_NODE_TYPE } from "./BlurBody";
+import CanvasResizeBody, {
+  CANVAS_RESIZE_NODE_TYPE
+} from "./CanvasResizeBody";
 import ChannelsBody, { CHANNELS_NODE_TYPE } from "./ChannelsBody";
 import CompositorBody, { COMPOSITOR_NODE_TYPE } from "./CompositorBody";
 import CropBody, { CROP_NODE_TYPE } from "./CropBody";
@@ -53,6 +56,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   Record<string, BespokeBodyComponent>
 > = {
   [BLUR_NODE_TYPE]: BlurBody,
+  [CANVAS_RESIZE_NODE_TYPE]: CanvasResizeBody,
   [CHANNELS_NODE_TYPE]: ChannelsBody,
   [COMPOSITOR_NODE_TYPE]: CompositorBody,
   [CROP_NODE_TYPE]: CropBody,

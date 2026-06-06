@@ -45,6 +45,7 @@ describe("FAL factory argument building", () => {
     assetToFalUrl.mockClear();
     falSubmit.mockClear();
     imageToDataUrl.mockClear();
+    imageToDataUrl.mockResolvedValue(null);
   });
 
   it("builds nested asset objects from nestedAssetKey fields", async () => {
@@ -174,6 +175,145 @@ describe("FAL factory argument building", () => {
     expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
       image_urls: ["uploaded:https://example.com/a.png"]
     });
+  });
+
+  it("sends mask assets under mask_url api param", async () => {
+    imageToDataUrl.mockResolvedValueOnce(null);
+    imageToDataUrl.mockResolvedValueOnce("data:image/png;base64,abc");
+    const NodeClass = createFalNodeClass({
+      endpointId: "fal-ai/flux-pro/v1/fill",
+      className: "FluxProFill",
+      moduleName: "image_to_image",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      outputFields: [],
+      enums: [],
+      inputFields: [
+        {
+          name: "prompt",
+          propType: "str",
+          tsType: "string",
+          default: "",
+          description: "",
+          fieldType: "input",
+          required: true
+        },
+        {
+          name: "image",
+          propType: "image",
+          tsType: "image",
+          default: null,
+          description: "",
+          fieldType: "input",
+          required: true,
+          apiParamName: "image_url"
+        },
+        {
+          name: "mask",
+          propType: "image",
+          tsType: "image",
+          default: null,
+          description: "",
+          fieldType: "input",
+          required: true,
+          apiParamName: "mask_url"
+        }
+      ]
+    });
+
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).prompt = "fill sky";
+    (instance as unknown as Record<string, unknown>).image = {
+      type: "image",
+      uri: "https://example.com/base.png"
+    };
+    (instance as unknown as Record<string, unknown>).mask = {
+      type: "image",
+      data: "abc"
+    };
+
+    await instance.process();
+
+    expect(falSubmit).toHaveBeenCalledWith(
+      "test-key",
+      "fal-ai/flux-pro/v1/fill",
+      expect.objectContaining({
+        image_url: "uploaded:https://example.com/base.png",
+        mask_url: "data:image/png;base64,abc"
+      })
+    );
+  });
+
+  it("reads legacy apiParamName property when mask field is renamed", async () => {
+    imageToDataUrl.mockResolvedValueOnce("data:image/png;base64,legacy");
+    const NodeClass = createFalNodeClass({
+      endpointId: "fal-ai/flux-pro/v1/fill",
+      className: "FluxProFill",
+      moduleName: "image_to_image",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "str",
+      outputFields: [],
+      enums: [],
+      inputFields: [
+        {
+          name: "mask",
+          propType: "image",
+          tsType: "image",
+          default: null,
+          description: "",
+          fieldType: "input",
+          required: true,
+          apiParamName: "static_mask_url"
+        }
+      ]
+    });
+
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).static_mask_url = {
+      type: "image",
+      data: "legacy"
+    };
+
+    await instance.process();
+
+    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/flux-pro/v1/fill", {
+      static_mask_url: "data:image/png;base64,legacy"
+    });
+  });
+
+  it("throws a clear error when a required mask asset is missing", async () => {
+    const NodeClass = createFalNodeClass({
+      endpointId: "fal-ai/flux-pro/v1/fill",
+      className: "FluxProFill",
+      moduleName: "image_to_image",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "str",
+      outputFields: [],
+      enums: [],
+      inputFields: [
+        {
+          name: "mask",
+          propType: "image",
+          tsType: "image",
+          default: null,
+          description: "",
+          fieldType: "input",
+          required: true,
+          apiParamName: "mask_url"
+        }
+      ]
+    });
+
+    await expect(new NodeClass({}).process()).rejects.toThrow(
+      "Flux Pro Fill: Mask must be connected and match image dimensions"
+    );
+    expect(falSubmit).not.toHaveBeenCalled();
   });
 
   const makeNode = (overrides: Partial<Parameters<typeof createFalNodeClass>[0]>) =>

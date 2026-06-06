@@ -120,8 +120,8 @@ export async function writePricingBundles(
 }
 
 /**
- * Write empty (stub) bundles. Used when codegen runs without a provider API
- * key, so consumers always find parseable JSON at the alias targets.
+ * Write empty (stub) bundles for fresh checkouts that have no pricing files yet.
+ * Codegen must not call this when committed bundles already exist on disk.
  */
 export async function writeEmptyPricingBundles(
   paths: PricingOutputPaths
