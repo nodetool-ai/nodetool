@@ -491,7 +491,8 @@ export const sketchRouter = router({
           workflowId: source.id,
           workflowUpdatedAt,
           paramOverrides,
-          inputAssetHashes: []
+          inputAssetHashes: [],
+          selectedOutputNodeId: selectedOutputNode.id as string
         });
 
         const newBinding: LayerWorkflowBinding = {

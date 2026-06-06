@@ -467,7 +467,8 @@ export const timelineRouter = router({
           workflowId: source.id,
           workflowUpdatedAt,
           paramOverrides,
-          inputAssetHashes: []
+          inputAssetHashes: [],
+          selectedOutputNodeId: selectedOutputNode.id as string
         });
 
         // Clip name inherits the source workflow's name so users can

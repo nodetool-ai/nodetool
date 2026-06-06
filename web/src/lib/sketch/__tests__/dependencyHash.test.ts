@@ -74,4 +74,37 @@ describe("computeLayerDependencyHash", () => {
       })
     );
   });
+
+  it("keeps NaN, Infinity, -Infinity and null distinct", () => {
+    const base = {
+      workflowId: "w",
+      workflowUpdatedAt: "t",
+      inputAssetHashes: [] as string[]
+    };
+    const h = (cfg: unknown) =>
+      computeLayerDependencyHash({ ...base, paramOverrides: { cfg } });
+
+    expect(
+      new Set([h(NaN), h(Infinity), h(-Infinity), h(null), h(0)]).size
+    ).toBe(5);
+  });
+
+  it("keeps an undefined member distinct from null and from an absent key", () => {
+    const base = {
+      workflowId: "w",
+      workflowUpdatedAt: "t",
+      inputAssetHashes: [] as string[]
+    };
+    const hUndef = computeLayerDependencyHash({
+      ...base,
+      paramOverrides: { a: undefined }
+    });
+    const hNull = computeLayerDependencyHash({
+      ...base,
+      paramOverrides: { a: null }
+    });
+    const hAbsent = computeLayerDependencyHash({ ...base, paramOverrides: {} });
+
+    expect(new Set([hUndef, hNull, hAbsent]).size).toBe(3);
+  });
 });
