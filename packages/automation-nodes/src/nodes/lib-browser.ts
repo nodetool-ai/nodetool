@@ -13,7 +13,6 @@ export class WebFetchLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url", "selector"];
   static readonly inputFields = [];
 
@@ -89,7 +88,6 @@ export class DownloadFileLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bytes"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url"];
   static readonly inputFields = [];
 
@@ -132,7 +130,6 @@ export class BrowserLibNode extends BaseNode {
     content: "str",
     metadata: "dict[str, any]"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url"];
   static readonly inputFields = [];
 
@@ -183,7 +180,6 @@ export class ScreenshotLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["url", "selector"];
   static readonly inputFields = [];
 
@@ -253,7 +249,6 @@ export class SpiderCrawlLibNode extends BaseNode {
     status_code: "int",
     pages: "list"
   };
-  static readonly exposeAsTool = true;
 
   static readonly inlineFields = ["start_url"];
   static readonly inputFields = [];

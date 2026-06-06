@@ -1,0 +1,4274 @@
+[
+  {
+    "className": "FLUX1SchnellTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "black-forest-labs/FLUX.1-schnell",
+    "outputType": "image",
+    "title": "FLUX.1 Schnell — Text to Image",
+    "description": "FLUX.1 Schnell — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image"
+    ]
+  },
+  {
+    "className": "FLUX11ProTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "black-forest-labs/FLUX.1.1-pro",
+    "outputType": "image",
+    "title": "FLUX.1.1 Pro — Text to Image",
+    "description": "FLUX.1.1 Pro — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image"
+    ]
+  },
+  {
+    "className": "FLUX2ProTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "black-forest-labs/FLUX.2-pro",
+    "outputType": "image",
+    "title": "FLUX.2 Pro — Text to Image",
+    "description": "FLUX.2 Pro — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "FLUX2ProImageToImage",
+    "moduleName": "image",
+    "modality": "image_to_image",
+    "modelId": "black-forest-labs/FLUX.2-pro",
+    "outputType": "image",
+    "title": "FLUX.2 Pro — Image to Image",
+    "description": "FLUX.2 Pro — image to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "Source image to edit."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": null,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": null,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "FLUX2DevTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "black-forest-labs/FLUX.2-dev",
+    "outputType": "image",
+    "title": "FLUX.2 Dev — Text to Image",
+    "description": "FLUX.2 Dev — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "FLUX2DevImageToImage",
+    "moduleName": "image",
+    "modality": "image_to_image",
+    "modelId": "black-forest-labs/FLUX.2-dev",
+    "outputType": "image",
+    "title": "FLUX.2 Dev — Image to Image",
+    "description": "FLUX.2 Dev — image to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "Source image to edit."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": null,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": null,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "FLUX2FlexTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "black-forest-labs/FLUX.2-flex",
+    "outputType": "image",
+    "title": "FLUX.2 Flex — Text to Image",
+    "description": "FLUX.2 Flex — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "FLUX2FlexImageToImage",
+    "moduleName": "image",
+    "modality": "image_to_image",
+    "modelId": "black-forest-labs/FLUX.2-flex",
+    "outputType": "image",
+    "title": "FLUX.2 Flex — Image to Image",
+    "description": "FLUX.2 Flex — image to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "Source image to edit."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": null,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": null,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "FLUX1KontextProTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "black-forest-labs/FLUX.1-kontext-pro",
+    "outputType": "image",
+    "title": "FLUX.1 Kontext Pro — Text to Image",
+    "description": "FLUX.1 Kontext Pro — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "FLUX1KontextProImageToImage",
+    "moduleName": "image",
+    "modality": "image_to_image",
+    "modelId": "black-forest-labs/FLUX.1-kontext-pro",
+    "outputType": "image",
+    "title": "FLUX.1 Kontext Pro — Image to Image",
+    "description": "FLUX.1 Kontext Pro — image to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "Source image to edit."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": null,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": null,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "FLUX1KontextMaxTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "black-forest-labs/FLUX.1-kontext-max",
+    "outputType": "image",
+    "title": "FLUX.1 Kontext Max — Text to Image",
+    "description": "FLUX.1 Kontext Max — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "FLUX1KontextMaxImageToImage",
+    "moduleName": "image",
+    "modality": "image_to_image",
+    "modelId": "black-forest-labs/FLUX.1-kontext-max",
+    "outputType": "image",
+    "title": "FLUX.1 Kontext Max — Image to Image",
+    "description": "FLUX.1 Kontext Max — image to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "Source image to edit."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": null,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": null,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "Imagen40PreviewTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "google/imagen-4.0-preview",
+    "outputType": "image",
+    "title": "Imagen 4.0 Preview — Text to Image",
+    "description": "Imagen 4.0 Preview — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image"
+    ]
+  },
+  {
+    "className": "Imagen40FastTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "google/imagen-4.0-fast",
+    "outputType": "image",
+    "title": "Imagen 4.0 Fast — Text to Image",
+    "description": "Imagen 4.0 Fast — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image"
+    ]
+  },
+  {
+    "className": "FlashImage25TextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "google/flash-image-2.5",
+    "outputType": "image",
+    "title": "Flash Image 2.5 — Text to Image",
+    "description": "Flash Image 2.5 — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image"
+    ]
+  },
+  {
+    "className": "Gemini3ProImageTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "google/gemini-3-pro-image",
+    "outputType": "image",
+    "title": "Gemini 3 Pro Image — Text to Image",
+    "description": "Gemini 3 Pro Image — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "Gemini3ProImageImageToImage",
+    "moduleName": "image",
+    "modality": "image_to_image",
+    "modelId": "google/gemini-3-pro-image",
+    "outputType": "image",
+    "title": "Gemini 3 Pro Image — Image to Image",
+    "description": "Gemini 3 Pro Image — image to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "Source image to edit."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": null,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": null,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image",
+      "image_to_image"
+    ]
+  },
+  {
+    "className": "Ideogram30TextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "ideogram/ideogram-3.0",
+    "outputType": "image",
+    "title": "Ideogram 3.0 — Text to Image",
+    "description": "Ideogram 3.0 — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image"
+    ]
+  },
+  {
+    "className": "Seedream40TextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "ByteDance-Seed/Seedream-4.0",
+    "outputType": "image",
+    "title": "Seedream 4.0 — Text to Image",
+    "description": "Seedream 4.0 — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image"
+    ]
+  },
+  {
+    "className": "Seedream30TextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "ByteDance-Seed/Seedream-3.0",
+    "outputType": "image",
+    "title": "Seedream 3.0 — Text to Image",
+    "description": "Seedream 3.0 — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image"
+    ]
+  },
+  {
+    "className": "StableDiffusion3MediumTextToImage",
+    "moduleName": "image",
+    "modality": "text_to_image",
+    "modelId": "stabilityai/stable-diffusion-3-medium",
+    "outputType": "image",
+    "title": "Stable Diffusion 3 Medium — Text to Image",
+    "description": "Stable Diffusion 3 Medium — text to image via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 1024,
+        "title": "Width",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 1024,
+        "title": "Height",
+        "min": 256,
+        "max": 2048
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_image"
+    ]
+  },
+  {
+    "className": "MiniMaxHailuo02TextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "minimax/hailuo-02",
+    "outputType": "video",
+    "title": "MiniMax Hailuo 02 — Text to Video",
+    "description": "MiniMax Hailuo 02 — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "MiniMaxHailuo02ImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "minimax/hailuo-02",
+    "outputType": "video",
+    "title": "MiniMax Hailuo 02 — Image to Video",
+    "description": "MiniMax Hailuo 02 — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "MiniMaxVideo01DirectorTextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "minimax/video-01-director",
+    "outputType": "video",
+    "title": "MiniMax Video 01 Director — Text to Video",
+    "description": "MiniMax Video 01 Director — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "MiniMaxVideo01DirectorImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "minimax/video-01-director",
+    "outputType": "video",
+    "title": "MiniMax Video 01 Director — Image to Video",
+    "description": "MiniMax Video 01 Director — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Veo30TextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "google/veo-3.0",
+    "outputType": "video",
+    "title": "Veo 3.0 — Text to Video",
+    "description": "Veo 3.0 — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Veo30ImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "google/veo-3.0",
+    "outputType": "video",
+    "title": "Veo 3.0 — Image to Video",
+    "description": "Veo 3.0 — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Veo30AudioTextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "google/veo-3.0-audio",
+    "outputType": "video",
+    "title": "Veo 3.0 + Audio — Text to Video",
+    "description": "Veo 3.0 + Audio — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video"
+    ]
+  },
+  {
+    "className": "Veo20TextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "google/veo-2.0",
+    "outputType": "video",
+    "title": "Veo 2.0 — Text to Video",
+    "description": "Veo 2.0 — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Veo20ImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "google/veo-2.0",
+    "outputType": "video",
+    "title": "Veo 2.0 — Image to Video",
+    "description": "Veo 2.0 — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Sora2TextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "openai/sora-2",
+    "outputType": "video",
+    "title": "Sora 2 — Text to Video",
+    "description": "Sora 2 — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Sora2ImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "openai/sora-2",
+    "outputType": "video",
+    "title": "Sora 2 — Image to Video",
+    "description": "Sora 2 — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Sora2ProTextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "openai/sora-2-pro",
+    "outputType": "video",
+    "title": "Sora 2 Pro — Text to Video",
+    "description": "Sora 2 Pro — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Sora2ProImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "openai/sora-2-pro",
+    "outputType": "video",
+    "title": "Sora 2 Pro — Image to Video",
+    "description": "Sora 2 Pro — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Kling21MasterTextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "kwaivgI/kling-2.1-master",
+    "outputType": "video",
+    "title": "Kling 2.1 Master — Text to Video",
+    "description": "Kling 2.1 Master — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Kling21MasterImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "kwaivgI/kling-2.1-master",
+    "outputType": "video",
+    "title": "Kling 2.1 Master — Image to Video",
+    "description": "Kling 2.1 Master — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Kling21StandardTextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "kwaivgI/kling-2.1-standard",
+    "outputType": "video",
+    "title": "Kling 2.1 Standard — Text to Video",
+    "description": "Kling 2.1 Standard — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Kling21StandardImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "kwaivgI/kling-2.1-standard",
+    "outputType": "video",
+    "title": "Kling 2.1 Standard — Image to Video",
+    "description": "Kling 2.1 Standard — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Kling21ProTextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "kwaivgI/kling-2.1-pro",
+    "outputType": "video",
+    "title": "Kling 2.1 Pro — Text to Video",
+    "description": "Kling 2.1 Pro — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Kling21ProImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "kwaivgI/kling-2.1-pro",
+    "outputType": "video",
+    "title": "Kling 2.1 Pro — Image to Video",
+    "description": "Kling 2.1 Pro — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Seedance10ProTextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "ByteDance/Seedance-1.0-pro",
+    "outputType": "video",
+    "title": "Seedance 1.0 Pro — Text to Video",
+    "description": "Seedance 1.0 Pro — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Seedance10ProImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "ByteDance/Seedance-1.0-pro",
+    "outputType": "video",
+    "title": "Seedance 1.0 Pro — Image to Video",
+    "description": "Seedance 1.0 Pro — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Seedance10LiteTextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "ByteDance/Seedance-1.0-lite",
+    "outputType": "video",
+    "title": "Seedance 1.0 Lite — Text to Video",
+    "description": "Seedance 1.0 Lite — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Seedance10LiteImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "ByteDance/Seedance-1.0-lite",
+    "outputType": "video",
+    "title": "Seedance 1.0 Lite — Image to Video",
+    "description": "Seedance 1.0 Lite — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "PixVerseV5TextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "pixverse/pixverse-v5",
+    "outputType": "video",
+    "title": "PixVerse v5 — Text to Video",
+    "description": "PixVerse v5 — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "PixVerseV5ImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "pixverse/pixverse-v5",
+    "outputType": "video",
+    "title": "PixVerse v5 — Image to Video",
+    "description": "PixVerse v5 — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Vidu20TextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "vidu/vidu-2.0",
+    "outputType": "video",
+    "title": "Vidu 2.0 — Text to Video",
+    "description": "Vidu 2.0 — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Vidu20ImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "vidu/vidu-2.0",
+    "outputType": "video",
+    "title": "Vidu 2.0 — Image to Video",
+    "description": "Vidu 2.0 — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "ViduQ1TextToVideo",
+    "moduleName": "video",
+    "modality": "text_to_video",
+    "modelId": "vidu/vidu-q1",
+    "outputType": "video",
+    "title": "Vidu Q1 — Text to Video",
+    "description": "Vidu Q1 — text to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true,
+        "description": "Text prompt describing the desired output."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "ViduQ1ImageToVideo",
+    "moduleName": "video",
+    "modality": "image_to_video",
+    "modelId": "vidu/vidu-q1",
+    "outputType": "video",
+    "title": "Vidu Q1 — Image to Video",
+    "description": "Vidu Q1 — image to video via Together AI serverless.",
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "title": "Image",
+        "required": true,
+        "description": "First frame of the video."
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": false,
+        "description": "Optional prompt to guide motion."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 6,
+        "title": "Duration (seconds)",
+        "values": [
+          4,
+          5,
+          6,
+          8,
+          10
+        ]
+      },
+      {
+        "name": "steps",
+        "type": "int",
+        "default": null,
+        "title": "Steps",
+        "description": "Number of inference steps. Leave unset for the model default."
+      },
+      {
+        "name": "guidance_scale",
+        "type": "float",
+        "default": null,
+        "title": "Guidance Scale",
+        "description": "How strongly to follow the prompt. Leave unset for the default."
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": null,
+        "title": "Seed",
+        "description": "Set for reproducible output; leave unset for random."
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Describe what to avoid. Ignored by models that don't support it."
+      }
+    ],
+    "supportedTasks": [
+      "text_to_video",
+      "image_to_video"
+    ]
+  },
+  {
+    "className": "Orpheus3BTextToSpeech",
+    "moduleName": "audio",
+    "modality": "text_to_speech",
+    "modelId": "canopylabs/orpheus-3b-0.1-ft",
+    "outputType": "audio",
+    "title": "Orpheus 3B — Text to Speech",
+    "description": "Orpheus 3B — text to speech via Together AI serverless.",
+    "fields": [
+      {
+        "name": "text",
+        "type": "str",
+        "default": "",
+        "title": "Text",
+        "required": true,
+        "description": "Text to synthesize."
+      },
+      {
+        "name": "voice",
+        "type": "enum",
+        "default": "tara",
+        "title": "Voice",
+        "values": [
+          "tara",
+          "leah",
+          "jess",
+          "leo",
+          "dan",
+          "mia",
+          "zac",
+          "zoe"
+        ]
+      },
+      {
+        "name": "speed",
+        "type": "float",
+        "default": null,
+        "title": "Speed",
+        "min": 0.25,
+        "max": 4
+      },
+      {
+        "name": "format",
+        "type": "enum",
+        "default": "mp3",
+        "title": "Format",
+        "values": [
+          "mp3",
+          "wav"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Kokoro82MTextToSpeech",
+    "moduleName": "audio",
+    "modality": "text_to_speech",
+    "modelId": "hexgrad/Kokoro-82M",
+    "outputType": "audio",
+    "title": "Kokoro 82M — Text to Speech",
+    "description": "Kokoro 82M — text to speech via Together AI serverless.",
+    "fields": [
+      {
+        "name": "text",
+        "type": "str",
+        "default": "",
+        "title": "Text",
+        "required": true,
+        "description": "Text to synthesize."
+      },
+      {
+        "name": "voice",
+        "type": "enum",
+        "default": "af_heart",
+        "title": "Voice",
+        "values": [
+          "af_heart",
+          "af_alloy",
+          "af_aoede",
+          "af_bella",
+          "af_jessica",
+          "af_kore",
+          "af_nicole",
+          "af_nova",
+          "af_river",
+          "af_sarah",
+          "af_sky",
+          "am_adam",
+          "am_echo",
+          "am_eric",
+          "am_fenrir",
+          "am_liam",
+          "am_michael",
+          "am_onyx",
+          "am_puck",
+          "am_santa",
+          "bf_alice",
+          "bf_emma",
+          "bf_isabella",
+          "bf_lily",
+          "bm_daniel",
+          "bm_fable",
+          "bm_george",
+          "bm_lewis"
+        ]
+      },
+      {
+        "name": "speed",
+        "type": "float",
+        "default": null,
+        "title": "Speed",
+        "min": 0.25,
+        "max": 4
+      },
+      {
+        "name": "format",
+        "type": "enum",
+        "default": "mp3",
+        "title": "Format",
+        "values": [
+          "mp3",
+          "wav"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "CartesiaSonicTextToSpeech",
+    "moduleName": "audio",
+    "modality": "text_to_speech",
+    "modelId": "cartesia/sonic",
+    "outputType": "audio",
+    "title": "Cartesia Sonic — Text to Speech",
+    "description": "Cartesia Sonic — text to speech via Together AI serverless.",
+    "fields": [
+      {
+        "name": "text",
+        "type": "str",
+        "default": "",
+        "title": "Text",
+        "required": true,
+        "description": "Text to synthesize."
+      },
+      {
+        "name": "voice",
+        "type": "enum",
+        "default": "friendly sidekick",
+        "title": "Voice",
+        "values": [
+          "friendly sidekick",
+          "reading lady",
+          "newsman",
+          "meditation lady",
+          "calm lady",
+          "helpful woman",
+          "laidback woman",
+          "professional woman"
+        ]
+      },
+      {
+        "name": "speed",
+        "type": "float",
+        "default": null,
+        "title": "Speed",
+        "min": 0.25,
+        "max": 4
+      },
+      {
+        "name": "format",
+        "type": "enum",
+        "default": "mp3",
+        "title": "Format",
+        "values": [
+          "mp3",
+          "wav"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "WhisperLargeV3Transcribe",
+    "moduleName": "transcription",
+    "modality": "automatic_speech_recognition",
+    "modelId": "openai/whisper-large-v3",
+    "outputType": "string",
+    "title": "Whisper Large v3 — Transcribe",
+    "description": "Whisper Large v3 — transcribe via Together AI serverless.",
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "title": "Audio",
+        "required": true,
+        "description": "Audio to transcribe."
+      },
+      {
+        "name": "language",
+        "type": "str",
+        "default": "",
+        "title": "Language",
+        "description": "Optional ISO-639-1 code (e.g. 'en'). Leave empty to auto-detect."
+      }
+    ]
+  },
+  {
+    "className": "VoxtralMini3BTranscribe",
+    "moduleName": "transcription",
+    "modality": "automatic_speech_recognition",
+    "modelId": "mistralai/Voxtral-Mini-3B-2507",
+    "outputType": "string",
+    "title": "Voxtral Mini 3B — Transcribe",
+    "description": "Voxtral Mini 3B — transcribe via Together AI serverless.",
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "title": "Audio",
+        "required": true,
+        "description": "Audio to transcribe."
+      },
+      {
+        "name": "language",
+        "type": "str",
+        "default": "",
+        "title": "Language",
+        "description": "Optional ISO-639-1 code (e.g. 'en'). Leave empty to auto-detect."
+      }
+    ]
+  },
+  {
+    "className": "ParakeetTDT06BV3Transcribe",
+    "moduleName": "transcription",
+    "modality": "automatic_speech_recognition",
+    "modelId": "nvidia/parakeet-tdt-0.6b-v3",
+    "outputType": "string",
+    "title": "Parakeet TDT 0.6B v3 — Transcribe",
+    "description": "Parakeet TDT 0.6B v3 — transcribe via Together AI serverless.",
+    "fields": [
+      {
+        "name": "audio",
+        "type": "audio",
+        "title": "Audio",
+        "required": true,
+        "description": "Audio to transcribe."
+      },
+      {
+        "name": "language",
+        "type": "str",
+        "default": "",
+        "title": "Language",
+        "description": "Optional ISO-639-1 code (e.g. 'en'). Leave empty to auto-detect."
+      }
+    ]
+  }
+]

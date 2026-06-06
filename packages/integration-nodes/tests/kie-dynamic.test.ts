@@ -713,8 +713,8 @@ describe("resolveKieDynamicSchema gemini-omni-video", () => {
 
     expect(schema.model_id).toBe("gemini-omni-video");
     expect(schema.dynamic_inputs.video_list).toMatchObject({
-      type: "video_clip_list",
-      type_args: [],
+      type: "list",
+      type_args: [{ type: "video", type_args: [] }],
       optional: true
     });
     expect(schema.dynamic_inputs.audio_ids).toMatchObject({
@@ -768,8 +768,8 @@ describe("resolveKieDynamicSchema gemini-omni-video", () => {
       "video_list"
     ]);
     expect(schema.dynamic_inputs.video_list).toMatchObject({
-      type: "video_clip_list",
-      type_args: []
+      type: "list",
+      type_args: [{ type: "video", type_args: [] }]
     });
     expect(schema.dynamic_outputs).toMatchObject({
       video: { type: "video", type_args: [] }

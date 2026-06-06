@@ -28,7 +28,7 @@ import { NodeData } from "../stores/NodeData";
 import { getCollapseTogglePatches } from "../stores/collapseNodeLayout";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
-import { useFindInWorkflow } from "./useFindInWorkflow";
+import { useFindInWorkflowStore } from "../stores/FindInWorkflowStore";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
 import type { MenuEventData } from "../window";
@@ -71,10 +71,18 @@ import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
  */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
+interface NodeEditorShortcutsResult {
+  packageNameDialogOpen: boolean;
+  packageNameInput: string;
+  setPackageNameInput: (value: string) => void;
+  handleSaveExampleConfirm: () => Promise<void>;
+  handleSaveExampleCancel: () => void;
+}
+
 export const useNodeEditorShortcuts = (
   active: boolean,
   onShowShortcuts?: () => void
-) => {
+): NodeEditorShortcutsResult => {
   const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
   const [packageNameInput, setPackageNameInput] = useState("");
 
@@ -121,18 +129,20 @@ export const useNodeEditorShortcuts = (
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
   const bottomPanelToggle = useBottomPanelStore((state) => state.handleViewChange);
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
-  const findInWorkflow = useFindInWorkflow();
+  const openFind = useFindInWorkflowStore((state) => state.openFind);
   const nodeFocus = useNodeFocus();
   // All hooks above this line
 
-  // Calculate selectedEdgeCount from the store
-  const selectedEdgeCount = useNodes((state) =>
-    state.edges.filter((edge) => Boolean(edge.selected)).length
-  );
+  const selectedEdgeCount = useNodes((state) => {
+    let count = 0;
+    for (const edge of state.edges) {
+      if (edge.selected) count++;
+    }
+    return count;
+  });
 
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu } = nodeMenuStore;
-  const { openFind } = findInWorkflow;
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {

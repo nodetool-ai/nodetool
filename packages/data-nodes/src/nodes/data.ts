@@ -1,7 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation, Platform } from "@nodetool-ai/protocol";
 import type {
-  ProcessingContext,
   StreamingInputs,
   StreamingOutputs
 } from "@nodetool-ai/runtime";
@@ -43,7 +42,7 @@ function isArrayMatrix(data: unknown[]): data is unknown[][] {
   return data.every((row) => Array.isArray(row));
 }
 
-function asRows(value: unknown): Row[] {
+export function asRows(value: unknown): Row[] {
   if (Array.isArray(value)) {
     return value
       .filter(
@@ -89,25 +88,334 @@ function toCsv(rows: Row[]): string {
   return Papa.unparse(rows, { columns: headers, newline: "\n" });
 }
 
-function parseConditionExpr(condition: string): string {
-  return condition
-    .replace(/\band\b/g, "&&")
-    .replace(/\bor\b/g, "||")
-    .replace(/\bnot\b/g, "!");
+// Filter conditions are evaluated by a small recursive-descent parser rather
+// than `new Function`/`with(row)`. This supports the documented Python-style
+// semantics — chained comparisons (`100 <= price <= 200`), membership
+// (`status in ['Active', 'Pending']`), and `and`/`or`/`not` keywords — without
+// the previous bugs where chained comparisons were always true, `in` was a
+// JS property check, and `and`/`or`/`not` substrings inside string literals
+// got rewritten. Syntax errors throw instead of being silently swallowed.
+
+type FilterAst =
+  | { kind: "lit"; value: unknown }
+  | { kind: "col"; name: string }
+  | { kind: "arr"; items: FilterAst[] }
+  | { kind: "not"; expr: FilterAst }
+  | { kind: "neg"; expr: FilterAst }
+  | { kind: "logical"; op: "&&" | "||"; left: FilterAst; right: FilterAst }
+  | { kind: "arith"; op: "+" | "-" | "*" | "/" | "%"; left: FilterAst; right: FilterAst }
+  | { kind: "compare"; ops: string[]; operands: FilterAst[] }
+  | { kind: "in"; needle: FilterAst; haystack: FilterAst };
+
+type FilterTok =
+  | { t: "num"; v: number }
+  | { t: "str"; v: string }
+  | { t: "ident"; v: string }
+  | { t: "op"; v: string };
+
+function tokenizeCondition(input: string): FilterTok[] {
+  const toks: FilterTok[] = [];
+  const n = input.length;
+  let i = 0;
+  while (i < n) {
+    const c = input[i];
+    if (c === " " || c === "\t" || c === "\n" || c === "\r") {
+      i += 1;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      const quote = c;
+      i += 1;
+      let s = "";
+      while (i < n && input[i] !== quote) {
+        if (input[i] === "\\" && i + 1 < n) {
+          s += input[i + 1];
+          i += 2;
+        } else {
+          s += input[i];
+          i += 1;
+        }
+      }
+      if (i >= n) throw new Error("Unterminated string literal in condition");
+      i += 1;
+      toks.push({ t: "str", v: s });
+      continue;
+    }
+    if (/[0-9]/.test(c) || (c === "." && i + 1 < n && /[0-9]/.test(input[i + 1]))) {
+      let num = "";
+      while (i < n && /[0-9.]/.test(input[i])) {
+        num += input[i];
+        i += 1;
+      }
+      toks.push({ t: "num", v: Number(num) });
+      continue;
+    }
+    if (/[A-Za-z_]/.test(c)) {
+      let id = "";
+      while (i < n && /[A-Za-z0-9_]/.test(input[i])) {
+        id += input[i];
+        i += 1;
+      }
+      toks.push({ t: "ident", v: id });
+      continue;
+    }
+    const two = input.slice(i, i + 2);
+    if (["==", "!=", "<=", ">=", "&&", "||"].includes(two)) {
+      toks.push({ t: "op", v: two });
+      i += 2;
+      continue;
+    }
+    if ("<>!+-*/%()[],".includes(c)) {
+      toks.push({ t: "op", v: c });
+      i += 1;
+      continue;
+    }
+    throw new Error(`Unexpected character '${c}' in condition`);
+  }
+  return toks;
+}
+
+function parseCondition(input: string): FilterAst {
+  const toks = tokenizeCondition(input);
+  let pos = 0;
+  const peek = (): FilterTok | undefined => toks[pos];
+  const isOp = (v: string): boolean => {
+    const tk = peek();
+    return !!tk && tk.t === "op" && tk.v === v;
+  };
+  const isKw = (v: string): boolean => {
+    const tk = peek();
+    return !!tk && tk.t === "ident" && tk.v.toLowerCase() === v;
+  };
+
+  function parseOr(): FilterAst {
+    let left = parseAnd();
+    while (isKw("or") || isOp("||")) {
+      pos += 1;
+      left = { kind: "logical", op: "||", left, right: parseAnd() };
+    }
+    return left;
+  }
+  function parseAnd(): FilterAst {
+    let left = parseNot();
+    while (isKw("and") || isOp("&&")) {
+      pos += 1;
+      left = { kind: "logical", op: "&&", left, right: parseNot() };
+    }
+    return left;
+  }
+  function parseNot(): FilterAst {
+    if (isKw("not") || isOp("!")) {
+      pos += 1;
+      return { kind: "not", expr: parseNot() };
+    }
+    return parseComparison();
+  }
+  function parseComparison(): FilterAst {
+    const first = parseAdditive();
+    if (isKw("in")) {
+      pos += 1;
+      return { kind: "in", needle: first, haystack: parseAdditive() };
+    }
+    const ops: string[] = [];
+    const operands: FilterAst[] = [first];
+    while (
+      isOp("==") ||
+      isOp("!=") ||
+      isOp("<") ||
+      isOp("<=") ||
+      isOp(">") ||
+      isOp(">=")
+    ) {
+      const tk = toks[pos];
+      if (tk.t === "op") ops.push(tk.v);
+      pos += 1;
+      operands.push(parseAdditive());
+    }
+    return ops.length === 0 ? first : { kind: "compare", ops, operands };
+  }
+  function parseAdditive(): FilterAst {
+    let left = parseMultiplicative();
+    while (isOp("+") || isOp("-")) {
+      const op = isOp("+") ? "+" : "-";
+      pos += 1;
+      left = { kind: "arith", op, left, right: parseMultiplicative() };
+    }
+    return left;
+  }
+  function parseMultiplicative(): FilterAst {
+    let left = parseUnary();
+    while (isOp("*") || isOp("/") || isOp("%")) {
+      const op = isOp("*") ? "*" : isOp("/") ? "/" : "%";
+      pos += 1;
+      left = { kind: "arith", op, left, right: parseUnary() };
+    }
+    return left;
+  }
+  function parseUnary(): FilterAst {
+    if (isOp("-")) {
+      pos += 1;
+      return { kind: "neg", expr: parseUnary() };
+    }
+    return parsePrimary();
+  }
+  function parsePrimary(): FilterAst {
+    const tk = peek();
+    if (!tk) throw new Error("Unexpected end of condition");
+    if (tk.t === "num") {
+      pos += 1;
+      return { kind: "lit", value: tk.v };
+    }
+    if (tk.t === "str") {
+      pos += 1;
+      return { kind: "lit", value: tk.v };
+    }
+    if (tk.t === "op" && tk.v === "(") {
+      pos += 1;
+      const expr = parseOr();
+      if (!isOp(")")) throw new Error("Expected ')' in condition");
+      pos += 1;
+      return expr;
+    }
+    if (tk.t === "op" && tk.v === "[") {
+      pos += 1;
+      const items: FilterAst[] = [];
+      if (!isOp("]")) {
+        items.push(parseOr());
+        while (isOp(",")) {
+          pos += 1;
+          items.push(parseOr());
+        }
+      }
+      if (!isOp("]")) throw new Error("Expected ']' in condition");
+      pos += 1;
+      return { kind: "arr", items };
+    }
+    if (tk.t === "ident") {
+      pos += 1;
+      const low = tk.v.toLowerCase();
+      if (low === "true") return { kind: "lit", value: true };
+      if (low === "false") return { kind: "lit", value: false };
+      if (low === "none" || low === "null") return { kind: "lit", value: null };
+      return { kind: "col", name: tk.v };
+    }
+    throw new Error(`Unexpected token '${tk.v}' in condition`);
+  }
+
+  const ast = parseOr();
+  if (pos < toks.length) throw new Error("Unexpected trailing tokens in condition");
+  return ast;
+}
+
+function numericValue(value: unknown): number | null {
+  if (typeof value === "number") return value;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  if (value == null) return null;
+  const s = String(value).trim();
+  if (s === "") return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function looseEquals(a: unknown, b: unknown): boolean {
+  if (typeof a === "number" && typeof b === "number") return a === b;
+  if (a == null || b == null) return a === b;
+  if (typeof a === typeof b) return a === b;
+  if (typeof a !== "boolean" && typeof b !== "boolean") {
+    const na = numericValue(a);
+    const nb = numericValue(b);
+    if (na !== null && nb !== null) return na === nb;
+  }
+  return String(a) === String(b);
+}
+
+function compareValues(op: string, a: unknown, b: unknown): boolean {
+  if (op === "==") return looseEquals(a, b);
+  if (op === "!=") return !looseEquals(a, b);
+  const na = numericValue(a);
+  const nb = numericValue(b);
+  let cmp: number;
+  if (na !== null && nb !== null) cmp = na - nb;
+  else {
+    const sa = String(a ?? "");
+    const sb = String(b ?? "");
+    cmp = sa < sb ? -1 : sa > sb ? 1 : 0;
+  }
+  switch (op) {
+    case "<":
+      return cmp < 0;
+    case "<=":
+      return cmp <= 0;
+    case ">":
+      return cmp > 0;
+    case ">=":
+      return cmp >= 0;
+    default:
+      return false;
+  }
+}
+
+function evalFilterAst(node: FilterAst, row: Row): unknown {
+  switch (node.kind) {
+    case "lit":
+      return node.value;
+    case "col":
+      return row[node.name];
+    case "arr":
+      return node.items.map((item) => evalFilterAst(item, row));
+    case "not":
+      return !evalFilterAst(node.expr, row);
+    case "neg":
+      return -Number(evalFilterAst(node.expr, row));
+    case "logical": {
+      const left = evalFilterAst(node.left, row);
+      if (node.op === "&&") return left ? evalFilterAst(node.right, row) : left;
+      return left ? left : evalFilterAst(node.right, row);
+    }
+    case "arith": {
+      const a = Number(evalFilterAst(node.left, row));
+      const b = Number(evalFilterAst(node.right, row));
+      switch (node.op) {
+        case "+":
+          return a + b;
+        case "-":
+          return a - b;
+        case "*":
+          return a * b;
+        case "/":
+          return a / b;
+        case "%":
+          return a % b;
+        default:
+          return NaN;
+      }
+    }
+    case "compare":
+      for (let k = 0; k < node.ops.length; k += 1) {
+        const a = evalFilterAst(node.operands[k], row);
+        const b = evalFilterAst(node.operands[k + 1], row);
+        if (!compareValues(node.ops[k], a, b)) return false;
+      }
+      return true;
+    case "in": {
+      const needle = evalFilterAst(node.needle, row);
+      const haystack = evalFilterAst(node.haystack, row);
+      if (Array.isArray(haystack)) {
+        return haystack.some((item) => looseEquals(item, needle));
+      }
+      if (typeof haystack === "string") return haystack.includes(String(needle));
+      return false;
+    }
+    default:
+      return false;
+  }
 }
 
 function applyFilter(rows: Row[], condition: string): Row[] {
   const trimmed = condition.trim();
   if (!trimmed) return rows;
-  const expr = parseConditionExpr(trimmed);
-  return rows.filter((row) => {
-    try {
-      const fn = new Function("row", `with (row) { return Boolean(${expr}); }`);
-      return Boolean(fn(row));
-    } catch {
-      return false;
-    }
-  });
+  const ast = parseCondition(trimmed);
+  return rows.filter((row) => Boolean(evalFilterAst(ast, row)));
 }
 
 function uniqueRows(rows: Row[]): Row[] {
@@ -194,7 +502,6 @@ export class FilterDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -221,8 +528,8 @@ export class FilterDataframeNode extends BaseNode {
   declare condition: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.df ?? this.df);
-    const condition = String(this.condition ?? this.condition ?? "");
+    const rows = asRows(this.df);
+    const condition = String(this.condition ?? "");
     return { output: toDataframe(applyFilter(rows, condition)) };
   }
 }
@@ -237,7 +544,6 @@ export class SliceDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -267,15 +573,21 @@ export class SliceDataframeNode extends BaseNode {
     default: -1,
     title: "End Index",
     description:
-      "The ending index of the slice (exclusive). Use -1 for the last row."
+      "The ending index of the slice (exclusive). Use -1 to slice through the end; other negative values count back from the end (e.g. -2 drops the last two rows)."
   })
   declare end_index: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    const start = Number(this.start_index ?? this.start_index ?? 0);
-    let end = Number(this.end_index ?? this.end_index ?? -1);
-    if (end < 0) end = rows.length;
+    const rows = asRows(this.dataframe);
+    const len = rows.length;
+    let start = Number(this.start_index ?? 0);
+    if (!Number.isFinite(start)) start = 0;
+    let end = Number(this.end_index ?? -1);
+    if (!Number.isFinite(end)) end = len;
+    // -1 is the default sentinel meaning "through the last row". Other
+    // negative values count back from the end, Python-style.
+    if (end === -1) end = len;
+    else if (end < 0) end = Math.max(0, len + end);
     return { output: toDataframe(rows.slice(start, end)) };
   }
 }
@@ -291,7 +603,6 @@ export class SaveDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -331,9 +642,9 @@ export class SaveDataframeNode extends BaseNode {
   declare name: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.df ?? this.df);
-    const folder = String(this.folder ?? this.folder ?? ".");
-    const filename = dateName(String(this.name ?? this.name ?? "output.csv"));
+    const rows = asRows(this.df);
+    const folder = String(this.folder ?? ".");
+    const filename = dateName(String(this.name ?? "output.csv"));
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const full = path.resolve(folder, filename);
@@ -353,7 +664,6 @@ export class ImportCSVNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -364,7 +674,7 @@ export class ImportCSVNode extends BaseNode {
   declare csv_data: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const csv = String(this.csv_data ?? this.csv_data ?? "");
+    const csv = String(this.csv_data ?? "");
     return { output: toDataframe(parseCsv(csv)) };
   }
 }
@@ -379,7 +689,6 @@ export class LoadCSVURLNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -390,7 +699,7 @@ export class LoadCSVURLNode extends BaseNode {
   declare url: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const url = String(this.url ?? this.url ?? "");
+    const url = String(this.url ?? "");
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch CSV URL: ${response.status}`);
@@ -411,7 +720,6 @@ export class LoadCSVFileDataNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -422,7 +730,7 @@ export class LoadCSVFileDataNode extends BaseNode {
   declare file_path: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const file = String(this.file_path ?? this.file_path ?? "");
+    const file = String(this.file_path ?? "");
     if (!file) throw new Error("file_path cannot be empty");
     const fs = await loadNodeFsPromises();
     const csv = await fs.readFile(file, "utf8");
@@ -440,7 +748,6 @@ export class FromListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "list[any]",
@@ -451,8 +758,8 @@ export class FromListNode extends BaseNode {
   declare values: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const values = Array.isArray(this.values ?? this.values)
-      ? ((this.values ?? this.values) as unknown[])
+    const values = Array.isArray(this.values)
+      ? ((this.values) as unknown[])
       : [];
     const rows: Row[] = [];
     for (const item of values) {
@@ -495,14 +802,13 @@ export class JSONToDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "JSON" })
   declare text: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "[]");
-    const parsed = JSON.parse(text);
+    const text = String(this.text ?? "").trim();
+    const parsed = text === "" ? [] : JSON.parse(text);
     return { output: toDataframe(asRows(parsed)) };
   }
 }
@@ -517,7 +823,6 @@ export class ToListNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[dict]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -535,7 +840,7 @@ export class ToListNode extends BaseNode {
   declare dataframe: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: asRows(this.dataframe ?? this.dataframe) };
+    return { output: asRows(this.dataframe) };
   }
 }
 
@@ -549,7 +854,6 @@ export class SelectColumnNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -575,8 +879,8 @@ export class SelectColumnNode extends BaseNode {
   declare columns: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    const cols = String(this.columns ?? this.columns ?? "")
+    const rows = asRows(this.dataframe);
+    const cols = String(this.columns ?? "")
       .split(",")
       .map((c) => c.trim())
       .filter(Boolean);
@@ -599,7 +903,6 @@ export class ExtractColumnNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[any]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -625,8 +928,8 @@ export class ExtractColumnNode extends BaseNode {
   declare column_name: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    const column = String(this.column_name ?? this.column_name ?? "");
+    const rows = asRows(this.dataframe);
+    const column = String(this.column_name ?? "");
     return { output: rows.map((row) => row[column]) };
   }
 }
@@ -641,7 +944,6 @@ export class AddColumnNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -676,10 +978,10 @@ export class AddColumnNode extends BaseNode {
   declare values: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    const column = String(this.column_name ?? this.column_name ?? "");
-    const values = Array.isArray(this.values ?? this.values)
-      ? ((this.values ?? this.values) as unknown[])
+    const rows = asRows(this.dataframe);
+    const column = String(this.column_name ?? "");
+    const values = Array.isArray(this.values)
+      ? ((this.values) as unknown[])
       : [];
     return {
       output: toDataframe(
@@ -702,7 +1004,6 @@ export class MergeDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -735,8 +1036,8 @@ export class MergeDataframeNode extends BaseNode {
   declare dataframe_b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const a = asRows(this.dataframe_a ?? this.dataframe_a);
-    const b = asRows(this.dataframe_b ?? this.dataframe_b);
+    const a = asRows(this.dataframe_a);
+    const b = asRows(this.dataframe_b);
     const len = Math.max(a.length, b.length);
     const out: Row[] = [];
     for (let i = 0; i < len; i += 1) {
@@ -756,7 +1057,6 @@ export class AppendDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -789,8 +1089,8 @@ export class AppendDataframeNode extends BaseNode {
   declare dataframe_b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const a = asRows(this.dataframe_a ?? this.dataframe_a);
-    const b = asRows(this.dataframe_b ?? this.dataframe_b);
+    const a = asRows(this.dataframe_a);
+    const b = asRows(this.dataframe_b);
     if (a.length === 0) return { output: toDataframe(b) };
     if (b.length === 0) return { output: toDataframe(a) };
     const aCols = Object.keys(a[0]).sort().join(",");
@@ -814,7 +1114,6 @@ export class JoinDataframeNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -854,10 +1153,10 @@ export class JoinDataframeNode extends BaseNode {
   })
   declare join_on: any;
 
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const a = asRows(this.dataframe_a ?? this.dataframe_a);
-    const b = asRows(this.dataframe_b ?? this.dataframe_b);
-    const joinOn = String(this.join_on ?? this.join_on ?? "");
+  async process(): Promise<Record<string, unknown>> {
+    const a = asRows(this.dataframe_a);
+    const b = asRows(this.dataframe_b);
+    const joinOn = String(this.join_on ?? "");
 
     // Validate join column exists in both dataframes
     const colsA = a.length > 0 ? Object.keys(a[0]) : [];
@@ -873,22 +1172,12 @@ export class JoinDataframeNode extends BaseNode {
       );
     }
 
-    // Warn about column collisions (excluding the join column)
+    // Warn about column collisions (excluding the join column). Values from
+    // dataframe B overwrite dataframe A where columns collide.
     const colsASet = new Set(colsA.filter((c) => c !== joinOn));
     const colsBSet = new Set(colsB.filter((c) => c !== joinOn));
     const collisions = [...colsASet].filter((c) => colsBSet.has(c));
-    if (collisions.length > 0 && context && typeof context.emit === "function") {
-      const nodeId = String(
-        (this as unknown as Record<string, unknown>).__node_id ??
-          (this as unknown as Record<string, unknown>).name ??
-          ""
-      );
-      context.emit({
-        type: "node_progress",
-        node_id: nodeId,
-        progress: 0,
-        total: 0
-      });
+    if (collisions.length > 0) {
       console.warn(
         `Join: columns [${collisions.join(", ")}] exist in both dataframes and will be overwritten by dataframe B values.`
       );
@@ -921,7 +1210,6 @@ export class FindRowNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -948,8 +1236,8 @@ export class FindRowNode extends BaseNode {
   declare condition: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.df ?? this.df);
-    const condition = String(this.condition ?? this.condition ?? "");
+    const rows = asRows(this.df);
+    const condition = String(this.condition ?? "");
     const filtered = applyFilter(rows, condition).slice(0, 1);
     return { output: toDataframe(filtered) };
   }
@@ -989,8 +1277,8 @@ export class SortByColumnNode extends BaseNode {
   declare column: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.df ?? this.df);
-    const col = String(this.column ?? this.column ?? "");
+    const rows = asRows(this.df);
+    const col = String(this.column ?? "");
     const sorted = [...rows].sort((a, b) => {
       const left = a[col];
       const right = b[col];
@@ -1015,7 +1303,6 @@ export class DropDuplicatesNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1033,7 +1320,7 @@ export class DropDuplicatesNode extends BaseNode {
   declare df: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.df ?? this.df);
+    const rows = asRows(this.df);
     return { output: toDataframe(uniqueRows(rows)) };
   }
 }
@@ -1048,7 +1335,6 @@ export class DropNANode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1066,7 +1352,7 @@ export class DropNANode extends BaseNode {
   declare df: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.df ?? this.df);
+    const rows = asRows(this.df);
     const out = rows.filter((row) =>
       Object.values(row).every(
         (v) => v !== null && v !== undefined && !Number.isNaN(v)
@@ -1087,7 +1373,6 @@ export class ForEachRowNode extends BaseNode {
     row: "dict",
     index: "any"
   };
-  static readonly exposeAsTool = true;
 
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -1115,7 +1400,7 @@ export class ForEachRowNode extends BaseNode {
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
+    const rows = asRows(this.dataframe);
     for (const [index, row] of rows.entries()) {
       yield { row, index };
     }
@@ -1136,7 +1421,6 @@ export class LoadCSVAssetsNode extends BaseNode {
     dataframes: "list",
     names: "list"
   };
-  static readonly exposeAsTool = true;
 
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -1179,7 +1463,7 @@ export class LoadCSVAssetsNode extends BaseNode {
     dataframe: unknown;
     name: string;
   }> {
-    const folder = String(this.folder ?? this.folder ?? ".");
+    const folder = String(this.folder ?? ".");
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const entries = await fs.readdir(folder, { withFileTypes: true });
@@ -1215,7 +1499,6 @@ export class AggregateNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1250,12 +1533,12 @@ export class AggregateNode extends BaseNode {
   declare aggregation: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    const groupCols = String(this.columns ?? this.columns ?? "")
+    const rows = asRows(this.dataframe);
+    const groupCols = String(this.columns ?? "")
       .split(",")
       .map((c) => c.trim())
       .filter(Boolean);
-    const agg = String(this.aggregation ?? this.aggregation ?? "sum");
+    const agg = String(this.aggregation ?? "sum");
 
     const groups = new Map<string, Row[]>();
     for (const row of rows) {
@@ -1317,7 +1600,6 @@ export class PivotNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1367,11 +1649,11 @@ export class PivotNode extends BaseNode {
   declare aggfunc: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    const indexCol = String(this.index ?? this.index ?? "");
-    const colCol = String(this.columns ?? this.columns ?? "");
-    const valCol = String(this.values ?? this.values ?? "");
-    const agg = String(this.aggfunc ?? this.aggfunc ?? "sum");
+    const rows = asRows(this.dataframe);
+    const indexCol = String(this.index ?? "");
+    const colCol = String(this.columns ?? "");
+    const valCol = String(this.values ?? "");
+    const agg = String(this.aggfunc ?? "sum");
 
     const groups = new Map<unknown, Map<unknown, number[]>>();
     for (const row of rows) {
@@ -1414,7 +1696,6 @@ export class RenameNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1440,8 +1721,8 @@ export class RenameNode extends BaseNode {
   declare rename_map: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    const mapString = String(this.rename_map ?? this.rename_map ?? "");
+    const rows = asRows(this.dataframe);
+    const mapString = String(this.rename_map ?? "");
     const rename = new Map<string, string>();
     for (const pair of mapString.split(",")) {
       if (!pair.includes(":")) continue;
@@ -1467,7 +1748,6 @@ export class FillNANode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dataframe"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "dataframe",
@@ -1510,10 +1790,10 @@ export class FillNANode extends BaseNode {
   declare columns: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    const value = this.value ?? this.value ?? 0;
-    const method = String(this.method ?? this.method ?? "value");
-    const colsRaw = String(this.columns ?? this.columns ?? "");
+    const rows = asRows(this.dataframe);
+    const value = this.value ?? 0;
+    const method = String(this.method ?? "value");
+    const colsRaw = String(this.columns ?? "");
     const allCols = [...new Set(rows.flatMap((r) => Object.keys(r)))];
     const cols = colsRaw
       ? colsRaw
@@ -1615,9 +1895,9 @@ export class SaveCSVDataframeFileNode extends BaseNode {
   declare filename: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const rows = asRows(this.dataframe ?? this.dataframe);
-    const folder = String(this.folder ?? this.folder ?? "");
-    const filenameRaw = String(this.filename ?? this.filename ?? "");
+    const rows = asRows(this.dataframe);
+    const folder = String(this.folder ?? "");
+    const filenameRaw = String(this.filename ?? "");
     if (!folder) throw new Error("folder cannot be empty");
     if (!filenameRaw) throw new Error("filename cannot be empty");
     const filename = dateName(filenameRaw);

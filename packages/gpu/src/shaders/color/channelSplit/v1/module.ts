@@ -54,18 +54,23 @@ export const colorChannelSplitV1 = defineModule({
 @fragment
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
+  // Un-premultiply so the reported channel/luma reflects the underlying
+  // straight colour. Reading premultiplied rgb directly under-reports every
+  // channel on partial-alpha pixels (e.g. a 50%-transparent mid-grey reads at
+  // half its true value).
+  let straight = src.rgb / max(src.a, 1.0 / 255.0);
   let mode = i32(round(layout.$.params.mode));
   var v: f32 = 0.0;
   if (mode == 0) {
-    v = src.r;
+    v = straight.r;
   } else if (mode == 1) {
-    v = src.g;
+    v = straight.g;
   } else if (mode == 2) {
-    v = src.b;
+    v = straight.b;
   } else if (mode == 3) {
     v = src.a;
   } else {
-    v = dot(src.rgb, vec3f(0.299, 0.587, 0.114)); // premul: ok TODO(invariant-fixes): see review §BUGS — luma read on premul rgb
+    v = dot(straight, vec3f(0.299, 0.587, 0.114));
   }
   return vec4f(v, v, v, 1.0);
 }

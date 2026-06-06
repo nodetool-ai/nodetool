@@ -50,8 +50,7 @@ export interface KieFieldDef {
     | "list[str]"
     | "list[image]"
     | "list[video]"
-    | "list[audio]"
-    | "video_clip_list";
+    | "list[audio]";
   default?: unknown;
   title?: string;
   description?: string;
@@ -116,8 +115,7 @@ function isAssetType(type: string): boolean {
     "video",
     "list[image]",
     "list[video]",
-    "list[audio]",
-    "video_clip_list"
+    "list[audio]"
   ].includes(type);
 }
 
@@ -188,7 +186,6 @@ function defaultForType(type: string): unknown {
     case "list[video]":
     case "list[audio]":
     case "list[str]":
-    case "video_clip_list":
       return [];
     default:
       return "";
@@ -309,15 +306,16 @@ async function buildParams(
     const conditional = spec.conditionalFields?.find(
       (c) => c.field === field.name
     );
-    if (conditional) {
-      if (conditional.condition === "gte_zero" && Number(cast) >= 0) {
-        params[paramName] = cast;
-      } else if (conditional.condition === "truthy" && value) {
-        params[paramName] = cast;
-      } else if (!conditional) {
-        params[paramName] = cast;
-      }
+    if (conditional?.condition === "gte_zero") {
+      if (Number(cast) >= 0) params[paramName] = cast;
+    } else if (conditional?.condition === "truthy") {
+      if (value) params[paramName] = cast;
     } else {
+      // No conditional, or an unconditional rule ("not_default"): include the
+      // param as-is. Mirrors the codegen reference (node-generator.ts), whose
+      // `else` branch emits the value unconditionally. The previous
+      // `else if (!conditional)` was dead code inside `if (conditional)`, so
+      // "not_default" fields were silently dropped from the request.
       params[paramName] = cast;
     }
   }
@@ -480,10 +478,6 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
   });
   Object.defineProperty(KieNodeClass, "requiredSettings", {
     value: ["KIE_API_KEY"],
-    configurable: true
-  });
-  Object.defineProperty(KieNodeClass, "exposeAsTool", {
-    value: true,
     configurable: true
   });
   if (isGenerativeOutput) {

@@ -38,7 +38,20 @@ const sortModels = (
   return direction === "desc" ? sorted.reverse() : sorted;
 };
 
-export const useModels = () => {
+export interface UseModelsResult {
+  modelTypes: string[];
+  availableModelTypes: Set<string>;
+  modelCountsByType: Record<string, number>;
+  allModels: UnifiedModel[] | undefined;
+  groupedModels: Record<string, UnifiedModel[]>;
+  filteredModels: UnifiedModel[];
+  isLoading: boolean;
+  isFetching: boolean;
+  error: Error | null;
+  handleShowInExplorer: (modelId: string) => Promise<void>;
+}
+
+export const useModels = (): UseModelsResult => {
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);

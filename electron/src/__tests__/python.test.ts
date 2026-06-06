@@ -56,7 +56,7 @@ jest.mock("../torchPlatformCache", () => ({
 
 jest.mock("@nodetool-ai/protocol/bridge-protocol", () => ({
   BRIDGE_PROTOCOL_VERSION: 1,
-  MIN_NODETOOL_CORE_VERSION: "0.7.0rc8",
+  MIN_NODETOOL_CORE_VERSION: "0.7.0",
 }));
 
 const { promises: fsPromises } = jest.requireMock("fs") as {
@@ -104,7 +104,7 @@ describe("python environment helpers", () => {
 
   it("accepts an environment when nodetool-core is installed and nodetool.worker is importable", async () => {
     spawn
-      .mockImplementationOnce(() => createMockProcess(0, "0.7.0rc8\n"))
+      .mockImplementationOnce(() => createMockProcess(0, "0.7.0\n"))
       .mockImplementationOnce(() => createMockProcess(0));
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(true);
@@ -163,7 +163,7 @@ describe("python environment helpers", () => {
         "install",
         "--prerelease=allow",
         "--system",
-        "nodetool-core>=0.7.0rc8",
+        "nodetool-core>=0.7.0",
         "nodetool-huggingface",
       ]),
       expect.objectContaining({

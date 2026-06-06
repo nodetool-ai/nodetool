@@ -46,3 +46,27 @@ Every `TimelineStore` mutation (clip add, move, trim, split, delete) is
 observed by the autosave hook, which PATCHes the sequence document via the
 timeline REST API (NOD-299). Changes survive a page refresh. Concurrent
 edits from another tab are out of scope (last-write-wins via `updated_at`).
+
+## Video Export (frame-by-frame, 1:1 with live)
+
+The **Export** action in the `TopBar` renders the sequence to an MP4 entirely
+in the browser. It reuses the *same* compositor and scene description as the
+live preview, so an exported frame is identical to what playback showed:
+
+- `preview/sceneModel.ts` — the single source of truth for "what is on screen
+  at time *t*" (`computeActiveLayers`). Both `PreviewCompositor` (live) and the
+  renderer drive their GPU layer lists from it.
+- `render/TimelineRenderer.ts` — steps the playhead in exact `1 / fps`
+  increments, seeks each video element to the precise source frame (waiting for
+  `seeked` so decoding is deterministic, not best-effort), composites at full
+  sequence resolution with the shared `WebGPUCompositor`, then encodes each
+  frame with WebCodecs and muxes to MP4 via [mediabunny](https://mediabunny.dev).
+- `render/renderAudio.ts` — mixes the audio tracks down through the same
+  `AudioGraph` (clip gain, fades, speed, mute/solo, DSP chain) driven by an
+  `OfflineAudioContext`.
+- `useTimelineExport` (`hooks/timeline/`) — wires the store + asset URLs to the
+  renderer, reports progress, and downloads the resulting file.
+
+The renderer composites at the sequence's true `width × height` (clamped to even
+dimensions for H.264). mediabunny and the WebGPU compositor are dynamically
+imported only when an export runs, keeping the editor importable under jsdom.

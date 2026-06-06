@@ -1,19 +1,61 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { Tooltip, ToolbarIconButton } from "../../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { DataframeRef } from "../../../stores/ApiTypes";
+import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
 import DataTable from "../DataTable/DataTable";
 import DataframeEditorModal from "../../properties/DataframeEditorModal";
 
 interface DataframeRendererProps {
   dataframe: DataframeRef;
 }
+
+const inferColumnType = (
+  rows: Array<Record<string, unknown>>,
+  name: string
+): string => {
+  let sawNumber = false;
+  let sawFloat = false;
+  for (const row of rows) {
+    const value = row?.[name];
+    if (value == null || value === "") continue;
+    if (typeof value === "number") {
+      sawNumber = true;
+      if (!Number.isInteger(value)) sawFloat = true;
+      continue;
+    }
+    return "object";
+  }
+  if (!sawNumber) return "object";
+  return sawFloat ? "float" : "int";
+};
+
+// The data nodes (@nodetool-ai/data-nodes) emit dataframes as { rows: [...] }
+// rather than the canonical { columns, data } matrix that DataTable renders.
+// Normalize row-records into the matrix form so those node outputs display
+// instead of showing an empty table.
+const normalizeDataframe = (dataframe: DataframeRef): DataframeRef => {
+  if (dataframe.data && dataframe.data.length > 0) return dataframe;
+  const rows = (
+    dataframe as DataframeRef & { rows?: Array<Record<string, unknown>> }
+  ).rows;
+  if (!Array.isArray(rows) || rows.length === 0) return dataframe;
+
+  const hasColumns = !!dataframe.columns && dataframe.columns.length > 0;
+  const names = hasColumns
+    ? dataframe.columns!.map((column) => column.name)
+    : Array.from(new Set(rows.flatMap((row) => Object.keys(row ?? {}))));
+  const columns: ColumnDef[] = hasColumns
+    ? dataframe.columns!
+    : names.map((name) => ({ name, data_type: inferColumnType(rows, name) }));
+  const data = rows.map((row) => names.map((name) => row?.[name] ?? null));
+  return { ...dataframe, columns, data };
+};
 
 const styles = (theme: Theme) =>
   css({
@@ -48,6 +90,10 @@ const styles = (theme: Theme) =>
 const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
   const theme = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
+  const normalized = useMemo(
+    () => normalizeDataframe(dataframe),
+    [dataframe]
+  );
 
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
@@ -72,10 +118,10 @@ const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
           <OpenInFullIcon />
         </ToolbarIconButton>
       </div>
-      <DataTable dataframe={dataframe} editable={false} />
+      <DataTable dataframe={normalized} editable={false} />
       {isExpanded && (
         <DataframeEditorModal
-          value={dataframe}
+          value={normalized}
           onChange={handleChange}
           onClose={toggleExpand}
           propertyName="DataFrame"

@@ -63,6 +63,9 @@ const ConversationHeaderBase: React.FC<ConversationHeaderProps> = ({ messages })
       className="conversation-header"
       sx={{
         flexShrink: 0,
+        // Clear the floating sidebar toggle and "Back to editor" controls
+        // that overlay the top of the chat.
+        mt: 6,
         px: 0.5,
         pb: 1.5,
         mb: 1,

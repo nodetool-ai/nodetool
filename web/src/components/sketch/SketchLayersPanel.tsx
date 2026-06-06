@@ -457,10 +457,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onLoadLayerAsSelection
 }) => {
   const theme = useTheme();
+  const panelStyles = useMemo(() => styles(theme), [theme]);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const layerById = useMemo(
     () => new Map(layers.map((layer) => [layer.id, layer])),
+    [layers]
+  );
+  const layerRows = useMemo(
+    () => buildLayersPanelRows(layers),
     [layers]
   );
   const [dropTarget, setDropTarget] = useState<{
@@ -658,7 +663,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   );
 
   const handleVisibilityButtonMouseDown = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>, layerId: string) => {
+    (e: React.PointerEvent<HTMLButtonElement>, layerId: string) => {
       if (e.button !== 0) {
         return;
       }
@@ -679,7 +684,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   );
 
   const handleVisibilityButtonMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>, layerId: string) => {
+    (e: React.PointerEvent<HTMLButtonElement>, layerId: string) => {
       const dragState = visibilityDragStateRef.current;
       if (!dragState || (e.buttons & 1) !== 1) {
         return;
@@ -860,14 +865,21 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
 
   const handleLayerCtxClose = useCallback(() => setLayerCtxMenu(null), []);
 
-  const activeLayer = layers.find((l) => l.id === activeLayerId);
+  const activeLayer = useMemo(
+    () => layers.find((l) => l.id === activeLayerId),
+    [layers, activeLayerId]
+  );
   const activeLayerFlatIndex = activeLayer ? layers.indexOf(activeLayer) : -1;
 
   const hasMultiLayerSelection = selectedLayerIds.length >= 2;
-  const layerIdsInDoc = new Set(layers.map((l) => l.id));
-  const selectedLayersPresentCount = selectedLayerIds.filter((id) =>
-    layerIdsInDoc.has(id)
-  ).length;
+  const layerIdsInDoc = useMemo(
+    () => new Set(layers.map((l) => l.id)),
+    [layers]
+  );
+  const selectedLayersPresentCount = useMemo(
+    () => selectedLayerIds.filter((id) => layerIdsInDoc.has(id)).length,
+    [selectedLayerIds, layerIdsInDoc]
+  );
   const canDeleteToolbarLayer = hasMultiLayerSelection
     ? selectedLayersPresentCount > 0
     : layers.length > 1;
@@ -917,7 +929,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   return (
     <Box
       className="sketch-layers-panel sketch-panel-right"
-      css={styles(theme)}
+      css={panelStyles}
     >
       {/* ── Color Selector ── */}
       {showColorPicker && (
@@ -1106,7 +1118,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           overflowY: "auto"
         }}
       >
-        {buildLayersPanelRows(layers).map(({ layer, depth }) => {
+        {layerRows.map(({ layer, depth }) => {
           const realIdx = layers.indexOf(layer);
           const isPaintTarget = layer.id === activeLayerId;
           const isRowSelected =

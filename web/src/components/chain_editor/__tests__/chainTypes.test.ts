@@ -46,7 +46,6 @@ function makeMetadata(
     layout: "default",
     supports_dynamic_inputs: false,
     is_streaming_output: false,
-    expose_as_tool: false,
     supports_dynamic_outputs: false,
     recommended_models: [],
     required_settings: [],

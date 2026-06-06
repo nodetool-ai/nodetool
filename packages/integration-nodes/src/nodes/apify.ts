@@ -71,7 +71,6 @@ export class ApifyWebScraperNode extends BaseNode {
     output: "list[dict[str, any]]"
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["link_selector"];
   static readonly inputFields = ["start_urls"];
 
@@ -153,7 +152,6 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
     output: "list[dict[str, any]]"
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
-  static readonly exposeAsTool = true;
   static readonly inlineFields = [];
   static readonly inputFields = ["queries"];
 
@@ -246,7 +244,6 @@ export class ApifyInstagramScraperNode extends BaseNode {
     output: "list[dict[str, any]]"
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
-  static readonly exposeAsTool = true;
   static readonly inlineFields = [];
   static readonly inputFields = ["usernames", "hashtags"];
 
@@ -339,7 +336,6 @@ export class ApifyAmazonScraperNode extends BaseNode {
     output: "list[dict[str, any]]"
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
-  static readonly exposeAsTool = true;
   static readonly inlineFields = [];
   static readonly inputFields = ["search_queries", "product_urls"];
 
@@ -432,7 +428,6 @@ export class ApifyYouTubeScraperNode extends BaseNode {
     output: "list[dict[str, any]]"
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
-  static readonly exposeAsTool = true;
   static readonly inlineFields = [];
   static readonly inputFields = ["search_queries", "video_urls", "channel_urls"];
 
@@ -543,7 +538,6 @@ export class ApifyTwitterScraperNode extends BaseNode {
     output: "list[dict[str, any]]"
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
-  static readonly exposeAsTool = true;
   static readonly inlineFields = [];
   static readonly inputFields = ["search_terms", "usernames", "tweet_urls"];
 
@@ -643,7 +637,6 @@ export class ApifyLinkedInScraperNode extends BaseNode {
     output: "list[dict[str, any]]"
   };
   static readonly requiredSettings = ["APIFY_API_TOKEN"];
-  static readonly exposeAsTool = true;
   static readonly inlineFields = [];
   static readonly inputFields = ["profile_urls", "company_urls", "job_search_urls"];
 

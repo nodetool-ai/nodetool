@@ -41,6 +41,11 @@ import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
+import {
+  ScriptLane,
+  ScriptLaneHeader,
+  SCRIPT_LANE_HEIGHT_PX
+} from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
 import { FlexColumn, FlexRow } from "../../ui_primitives";
@@ -202,8 +207,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         const trackType: "video" | "audio" =
           mediaType === "audio" ? "audio" : "video";
 
-        const rect = e.currentTarget.getBoundingClientRect();
-        const dropX = e.clientX - rect.left;
+        const rect = scrollableRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const dropX = Math.max(0, e.clientX - rect.left);
         const startMs = Math.max(
           0,
           Math.round((dropX + scrollLeftPx) * msPerPx)
@@ -354,13 +360,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
-    const totalTracksHeight = tracks.reduce(
-      (sum, t) =>
-        sum +
-        (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
-        (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
-      0
-    );
+    const totalTracksHeight =
+      tracks.reduce(
+        (sum, t) =>
+          sum +
+          (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
+          (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
+        0
+      ) + SCRIPT_LANE_HEIGHT_PX;
+
+    // The script lane sits just above the first audio track (between video and
+    // audio, Descript-style); if there's no audio track it goes last.
+    const scriptBeforeTrackId =
+      tracks.find((t) => t.type === "audio")?.id ?? null;
 
     // The FX panel sticks to the left of the scroll viewport so it stays
     // visible while clips scroll horizontally. Its width matches the
@@ -420,11 +432,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             alignItems: "flex-start"
           }}
           fullWidth
+          onDragOver={handleEmptyAreaDragOver}
+          onDrop={handleEmptyAreaDrop}
         >
           {/* Header column */}
           <div css={headerColumnStyles(theme)}>
             {tracks.map((track) => (
               <React.Fragment key={track.id}>
+                {track.id === scriptBeforeTrackId && <ScriptLaneHeader />}
                 <TrackHeader track={track} typedIndex={typedIndexMap.get(track.id) ?? 1} />
                 {expandedFxTrackId === track.id && (
                   <div
@@ -434,6 +449,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 )}
               </React.Fragment>
             ))}
+            {scriptBeforeTrackId === null && <ScriptLaneHeader />}
           </div>
 
           {/* Scrollable lanes */}
@@ -442,8 +458,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             css={scrollableAreaStyles}
             onScroll={handleScroll}
             onWheel={handleWheel}
-            onDragOver={handleEmptyAreaDragOver}
-            onDrop={handleEmptyAreaDrop}
           >
             <div
               css={lanesContainerStyles}
@@ -451,6 +465,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             >
               {tracks.map((track) => (
                 <React.Fragment key={track.id}>
+                  {track.id === scriptBeforeTrackId && (
+                    <ScriptLane totalWidthPx={totalWidthPx} />
+                  )}
                   <TrackLane track={track} />
                   {expandedFxTrackId === track.id && (
                     <div
@@ -467,6 +484,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                   )}
                 </React.Fragment>
               ))}
+              {scriptBeforeTrackId === null && (
+                <ScriptLane totalWidthPx={totalWidthPx} />
+              )}
             </div>
           </div>
         </FlexRow>

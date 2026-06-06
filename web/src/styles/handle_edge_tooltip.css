@@ -475,15 +475,6 @@ ul.multi-outputs li::marker {
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
 }
 
-.property-handle-tooltip .handle-tooltip-info {
-  position: static;
-  transform: none;
-  margin-top: 0.35em;
-  padding: 0;
-  max-width: 220px;
-  text-align: left;
-}
-
 .handle-tooltip {
   position: absolute;
   pointer-events: none;
@@ -580,35 +571,6 @@ ul.multi-outputs li::marker {
   line-height: 1.3;
   white-space: normal;
   word-wrap: break-word;
-}
-
-/* Long collect-input copy sits outside the label stack so it does not cover neighbors. */
-.handle-tooltip-info {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: var(--fontSizeSmall);
-  font-style: italic;
-  opacity: 0.9;
-  max-width: 200px;
-  line-height: 1.3;
-  white-space: normal;
-  word-wrap: break-word;
-  pointer-events: none;
-  padding: 0 0.35em;
-  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
-}
-
-.handle-tooltip-info.handle-tooltip-info-left {
-  left: 100%;
-  margin-left: 0.35em;
-  text-align: left;
-}
-
-.handle-tooltip-info.handle-tooltip-info-right {
-  right: 100%;
-  margin-right: 0.35em;
-  text-align: right;
 }
 
 /* =============================================================================

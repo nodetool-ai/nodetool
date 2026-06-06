@@ -13,6 +13,7 @@ export const predictions = sqliteTable(
     id: text("id").primaryKey(),
     user_id: text("user_id").notNull(),
     node_id: text("node_id").notNull().default(""),
+    node_type: text("node_type").notNull().default(""),
     provider: text("provider").notNull().default(""),
     model: text("model").notNull().default(""),
     workflow_id: text("workflow_id"),
@@ -31,6 +32,9 @@ export const predictions = sqliteTable(
     quantity: real("quantity"),
     unit_price: real("unit_price"),
     currency: text("currency"),
+    // Provider-side request id (e.g. FAL queue request id) used to reconcile
+    // the estimated cost against the provider's actual billed amount.
+    provider_request_id: text("provider_request_id"),
     created_at: text("created_at"),
     started_at: text("started_at"),
     completed_at: text("completed_at"),

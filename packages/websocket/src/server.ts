@@ -25,8 +25,9 @@ import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-pro
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   initTelemetry,
-  PythonStdioBridge,
-  logPythonWorkerStderr
+  createPythonBridge,
+  logPythonWorkerStderr,
+  type PythonBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import {
@@ -162,7 +163,7 @@ async function broadcastResourceChange(
 
 async function notifyPythonBridgeResourceChanges(
   app: FastifyInstance,
-  pythonBridge: PythonStdioBridge
+  pythonBridge: PythonBridge
 ): Promise<void> {
   await broadcastResourceChange(app, {
     event: "updated",
@@ -384,7 +385,7 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 // Python bridge
 // ---------------------------------------------------------------------------
 
-const pythonBridge = new PythonStdioBridge({
+const pythonBridge = createPythonBridge({
   workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
     ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
     : []
@@ -741,7 +742,6 @@ await app.register(websocketPlugin, {
         // the protocol's `supports_dynamic_inputs`.
         supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
         is_streaming_output: nodeMeta.is_streaming_output ?? false,
-        expose_as_tool: false,
         supports_dynamic_outputs: false
       });
     }
@@ -982,8 +982,8 @@ if (process.platform === "win32") {
   process.on("SIGBREAK", () => void shutdown("SIGBREAK"));
 }
 
-// Start Python bridge eagerly if Python is installed.
-if (pythonBridge.hasPython()) {
+// Start Python bridge eagerly if a worker is available.
+if (pythonBridge.isAvailable()) {
   log.info(`Starting Python bridge eagerly [${startupMs()}]`);
   pythonBridge
     .ensureConnected()
@@ -1006,7 +1006,6 @@ if (pythonBridge.hasPython()) {
           // the protocol's `supports_dynamic_inputs`.
           supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
           is_streaming_output: nodeMeta.is_streaming_output ?? false,
-          expose_as_tool: false,
           supports_dynamic_outputs: false
         });
       }

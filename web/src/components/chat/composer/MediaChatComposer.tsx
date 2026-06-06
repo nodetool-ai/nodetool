@@ -13,8 +13,6 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AppsIcon from "@mui/icons-material/Apps";
 import DisplaySettingsIcon from "@mui/icons-material/Tv";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
 import ImageIcon from "@mui/icons-material/Image";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import MovieIcon from "@mui/icons-material/Movie";
@@ -52,10 +50,13 @@ import type {
   MediaMode,
   ImageResolution,
   VideoResolution,
-  AudioFormat
+  AudioFormat,
+  AspectRatioOption
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
 import MediaModeMenu from "./MediaModeMenu";
+import PiComposerControls, { piModeAvailable } from "./PiComposerControls";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import MediaOptionMenu, { MediaOption } from "./MediaOptionMenu";
 import MediaAspectRatioMenu from "./MediaAspectRatioMenu";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
@@ -109,6 +110,49 @@ function useElapsedTime(active: boolean): number {
   return elapsed;
 }
 
+/** Extract per-model video option constraints (manifest enums) from a model. */
+function videoModelConstraints(model: VideoModel): {
+  durations?: number[];
+  resolutions?: string[];
+  aspectRatios?: string[];
+} {
+  const durations = model.durations?.filter((d) => Number.isFinite(d));
+  const resolutions = model.resolutions ?? undefined;
+  const aspectRatios = model.aspect_ratios ?? undefined;
+  return {
+    durations: durations && durations.length > 0 ? durations : undefined,
+    resolutions:
+      resolutions && resolutions.length > 0 ? resolutions : undefined,
+    aspectRatios:
+      aspectRatios && aspectRatios.length > 0 ? aspectRatios : undefined
+  };
+}
+
+/** Keep `value` if the model allows it; otherwise snap to the first allowed. */
+function clampToAllowed<T>(value: T, allowed?: Array<T | string>): T {
+  if (!allowed || allowed.length === 0) return value;
+  if ((allowed as unknown[]).includes(value)) return value;
+  return allowed[0] as T;
+}
+
+/** Build aspect-ratio menu options from a model's allowed list. */
+function buildAspectOptions(
+  allowed: string[],
+  fallback: AspectRatioOption[]
+): AspectRatioOption[] {
+  const options = allowed
+    .map((id) => {
+      const known = fallback.find((a) => a.id === id);
+      if (known) return known;
+      const m = id.match(/^(\d+):(\d+)$/);
+      return m
+        ? { id, label: id, width: Number(m[1]), height: Number(m[2]) }
+        : null;
+    })
+    .filter((x): x is AspectRatioOption => x != null);
+  return options.length > 0 ? options : fallback;
+}
+
 export interface MediaChatComposerProps {
   isLoading: boolean;
   isStreaming: boolean;
@@ -127,6 +171,17 @@ export interface MediaChatComposerProps {
   allowedProviders?: string[];
   /** Hide non-tool-capable models in the language model picker. */
   requireToolSupport?: boolean;
+  /** Focus the prompt textarea on mount. Defaults to true (chat panel). */
+  autoFocus?: boolean;
+  /** When true, the composer minimizes to just the input (+ leading Run
+   *  button) while unfocused and empty, expanding to the full chip row on
+   *  focus. Used by the canvas composer; off in the chat panel. */
+  collapsible?: boolean;
+  /** Extra actions rendered at the end of the footer chip row (e.g. the
+   *  canvas Run button + workflow menu). Empty in the chat panel. */
+  trailingActions?: React.ReactNode;
+  /** Override the auto-generated, mode-aware textarea placeholder. */
+  placeholder?: string;
 }
 
 /**
@@ -157,11 +212,17 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   selectedModel,
   onModelChange,
   allowedProviders,
-  requireToolSupport
+  requireToolSupport,
+  autoFocus = true,
+  trailingActions,
+  placeholder: placeholderOverride,
+  collapsible = false
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
+  const [focused, setFocused] = useState(false);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Mode + media params from persistent store
   const mode = useMediaGenerationStore((s) => s.mode);
@@ -184,6 +245,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // Language-model selection from chat store (used in chat mode & forwarded
   // as provider/model for media calls when a media model is not picked).
   const languageModel = useGlobalChatStore((s) => s.selectedModel);
+
+  // Unified routing mode: "pi" swaps the chat-model controls for the
+  // workspace-aware Pi agent and routes sends through the agent socket.
+  const globalMode = useGlobalChatStore((s) => s.mode);
+  const setGlobalMode = useGlobalChatStore((s) => s.setMode);
+  const isPi = globalMode === "pi";
 
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
 
@@ -216,24 +283,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     useFileHandling();
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAttachClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleAttachChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        addFiles(Array.from(files));
-      }
-      // Reset so selecting the same file again re-triggers change.
-      e.target.value = "";
-    },
-    [addFiles]
-  );
-
   const { shiftKeyPressed, metaKeyPressed, altKeyPressed } = useKeyPressed(
     (state) => ({
       shiftKeyPressed: state.isKeyPressed("shift"),
@@ -260,8 +309,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   // Focus on mount
   useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+    if (autoFocus) {
+      textareaRef.current?.focus();
+    }
+  }, [autoFocus]);
 
   // Close any open model / option dialogs whenever the mode changes. The
   // image- and video-model dialogs are intentionally shared between the
@@ -395,6 +446,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   });
 
   const placeholder = useMemo(() => {
+    if (placeholderOverride) {
+      return placeholderOverride;
+    }
+    if (isPi) {
+      return "Message the Pi agent — it works in your workspace…";
+    }
     if (mode === "image") {
       return "Describe the image you want to generate…";
     }
@@ -423,7 +480,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       return "Describe the motion…";
     }
     return "Continue the thread — or @ a node to compose with the canvas…";
-  }, [mode]);
+  }, [mode, isPi, placeholderOverride]);
 
   const isMediaMode =
     mode === "image" ||
@@ -493,6 +550,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   // Mode icon for the mode chip
   const modeIcon = useMemo(() => {
+    if (isPi) return <SmartToyOutlinedIcon fontSize="small" />;
     if (mode === "image") return <ImageIcon fontSize="small" />;
     if (mode === "image_edit") return <AutoFixHighIcon fontSize="small" />;
     if (mode === "video") return <VideocamIcon fontSize="small" />;
@@ -500,9 +558,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "audio") return <RecordVoiceOverIcon fontSize="small" />;
     if (mode === "chat") return <ChatBubbleOutlineIcon fontSize="small" />;
     return <AutoAwesomeIcon fontSize="small" />;
-  }, [mode]);
+  }, [mode, isPi]);
 
   const modeLabel = useMemo(() => {
+    if (isPi) return "Pi";
     if (mode === "image") return "Image";
     if (mode === "image_edit") return "Image Edit";
     if (mode === "video") return "Video";
@@ -513,7 +572,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "retake") return "Retake";
     if (mode === "extend") return "Extend";
     return "Motion";
-  }, [mode]);
+  }, [mode, isPi]);
 
   // Model dialog selection callbacks
   const handlePickImageModel = useCallback(
@@ -539,13 +598,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handlePickVideoModel = useCallback(
     (model: VideoModel) => {
+      const constraints = videoModelConstraints(model);
       setVideoParams({
         model: {
           type: "video_model",
           id: model.id,
           provider: model.provider,
-          name: model.name || ""
-        }
+          name: model.name || "",
+          ...constraints
+        },
+        duration: clampToAllowed(videoParams.duration, constraints.durations),
+        resolution: clampToAllowed(
+          videoParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          videoParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -554,7 +624,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setVideoModelOpen(false);
     },
-    [setVideoParams, addRecentModel]
+    [setVideoParams, addRecentModel, videoParams.duration, videoParams.resolution, videoParams.aspectRatio]
   );
 
   const handlePickImageEditModel = useCallback(
@@ -580,13 +650,27 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handlePickImageToVideoModel = useCallback(
     (model: VideoModel) => {
+      const constraints = videoModelConstraints(model);
       setImageToVideoParams({
         model: {
           type: "video_model",
           id: model.id,
           provider: model.provider,
-          name: model.name || ""
-        }
+          name: model.name || "",
+          ...constraints
+        },
+        duration: clampToAllowed(
+          imageToVideoParams.duration,
+          constraints.durations
+        ),
+        resolution: clampToAllowed(
+          imageToVideoParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          imageToVideoParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -595,7 +679,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setVideoModelOpen(false);
     },
-    [setImageToVideoParams, addRecentModel]
+    [setImageToVideoParams, addRecentModel, imageToVideoParams.duration, imageToVideoParams.resolution, imageToVideoParams.aspectRatio]
   );
 
   const handlePickTtsModel = useCallback(
@@ -622,25 +706,47 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     [setAudioParams, addRecentModel, audioParams.voice]
   );
 
-  // Option lists
-  const durationOptions = useMemo<MediaOption<number>[]>(
-    () =>
-      VIDEO_DURATIONS.map((d) => ({
-        id: d,
-        label: `${d} Sec`,
-        icon: <AccessTimeIcon fontSize="small" />
-      })),
-    []
-  );
+  // The active video model for the current mode drives which duration /
+  // resolution / aspect options are offered (falling back to the full set when
+  // the model declares no constraints).
+  const activeVideoModel =
+    mode === "video"
+      ? videoParams.model
+      : mode === "image_to_video"
+        ? imageToVideoParams.model
+        : null;
 
-  const videoResolutionOptions = useMemo<MediaOption<VideoResolution>[]>(
+  // Option lists
+  const durationOptions = useMemo<MediaOption<number>[]>(() => {
+    const values =
+      activeVideoModel?.durations && activeVideoModel.durations.length > 0
+        ? activeVideoModel.durations
+        : VIDEO_DURATIONS;
+    return values.map((d) => ({
+      id: d,
+      label: `${d} Sec`,
+      icon: <AccessTimeIcon fontSize="small" />
+    }));
+  }, [activeVideoModel?.durations]);
+
+  const videoResolutionOptions = useMemo<MediaOption<VideoResolution>[]>(() => {
+    const values =
+      activeVideoModel?.resolutions && activeVideoModel.resolutions.length > 0
+        ? (activeVideoModel.resolutions as VideoResolution[])
+        : VIDEO_RESOLUTIONS;
+    return values.map((r) => ({
+      id: r,
+      label: r,
+      icon: <DisplaySettingsIcon fontSize="small" />
+    }));
+  }, [activeVideoModel?.resolutions]);
+
+  const videoAspectOptions = useMemo<AspectRatioOption[]>(
     () =>
-      VIDEO_RESOLUTIONS.map((r) => ({
-        id: r,
-        label: r,
-        icon: <DisplaySettingsIcon fontSize="small" />
-      })),
-    []
+      activeVideoModel?.aspectRatios && activeVideoModel.aspectRatios.length > 0
+        ? buildAspectOptions(activeVideoModel.aspectRatios, VIDEO_ASPECT_RATIOS)
+        : VIDEO_ASPECT_RATIOS,
+    [activeVideoModel?.aspectRatios]
   );
 
   const imageResolutionOptions = useMemo<MediaOption<ImageResolution>[]>(
@@ -725,12 +831,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     return m.name || m.id;
   }, [selectedModel, languageModel]);
 
-  const handleRetake = useCallback(() => {
-    setPrompt("");
-    clearFiles();
-    console.debug("Media composer reset");
-  }, [clearFiles]);
-
   const handleMoreClick = useCallback(() => {
     // Placeholder for "More" menu — additional options (seed, negative
     // prompt, guidance scale, etc.) will live here in a follow-up.
@@ -741,6 +841,41 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const isDisabled = disabled || isBusy;
   const elapsed = useElapsedTime(isBusy);
 
+  // When `collapsible`, the composer dims its border + footer controls while
+  // unfocused and idle, brightening on focus (or pending content / open menu /
+  // active generation). Blur is delayed so clicking a chip — which momentarily
+  // blurs the textarea before its menu opens — doesn't flash the dim state.
+  const anyMenuOpen =
+    !!modeAnchor ||
+    !!durationAnchor ||
+    !!resolutionAnchor ||
+    !!aspectAnchor ||
+    !!variationsAnchor ||
+    !!voiceAnchor ||
+    !!speedAnchor ||
+    !!audioFormatAnchor ||
+    !!strengthAnchor ||
+    !!stepsAnchor ||
+    imageModelOpen ||
+    videoModelOpen ||
+    languageModelOpen ||
+    ttsModelOpen;
+  const hasContent = prompt.trim().length > 0 || droppedFiles.length > 0;
+  const dimmed =
+    collapsible && !focused && !hasContent && !anyMenuOpen && !isBusy;
+
+  const handleFocus = useCallback(() => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+    setFocused(true);
+  }, []);
+  const handleBlur = useCallback(() => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+    blurTimer.current = setTimeout(() => setFocused(false), 150);
+  }, []);
+  useEffect(() => () => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+  }, []);
+
   const removeCallbacks = useMemo(
     () => new Map(droppedFiles.map((f) => [f.id, () => removeFile(f.id)])),
     [droppedFiles, removeFile]
@@ -749,7 +884,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   return (
     <div css={createMediaComposerStyles(theme)} className="media-chat-composer">
       <div
-        className={`media-compose-card${isDragging ? " dragging" : ""}`}
+        className={`media-compose-card${isDragging ? " dragging" : ""}${
+          dimmed ? " dimmed" : ""
+        }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -763,22 +900,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 onRemove={removeCallbacks.get(file.id)!}
               />
             ))}
-            <button
-              type="button"
-              className="media-attach-btn"
-              onClick={handleAttachClick}
-              aria-label="Attach files"
-            >
-              <AttachFileIcon />
-              <span>Attach</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              hidden
-              onChange={handleAttachChange}
-            />
           </div>
         )}
 
@@ -791,6 +912,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           onInput={adjustHeight}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={placeholder}
           rows={1}
           spellCheck={false}
@@ -836,11 +959,21 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             value={mode}
             onChange={(m: MediaMode) => {
               setMode(m);
+              setGlobalMode("chat");
+            }}
+            showPi={piModeAvailable}
+            piSelected={isPi}
+            onSelectPi={() => {
+              setMode("chat");
+              setGlobalMode("pi");
             }}
           />
 
+          {/* Pi mode: workspace + model pickers instead of the chat model. */}
+          {isPi && <PiComposerControls disabled={isBusy} />}
+
           {/* Model chip — changes based on mode */}
-          {mode === "chat" && (
+          {!isPi && mode === "chat" && (
             <>
               <MediaControlChip
                 ref={languageModelAnchorRef}
@@ -855,7 +988,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               {onMemoryToggle && (
                 <MediaControlChip
                   icon={<PsychologyOutlinedIcon fontSize="small" />}
-                  label={memoryEnabled ? "Memory: on" : "Memory: off"}
+                  title={memoryEnabled ? "Memory: on" : "Memory: off"}
                   active={!!memoryEnabled}
                   showChevron={false}
                   onClick={() => onMemoryToggle(!memoryEnabled)}
@@ -1011,7 +1144,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={videoParams.aspectRatio}
-                options={VIDEO_ASPECT_RATIOS}
+                options={videoAspectOptions}
                 onChange={(v) => setVideoParams({ aspectRatio: v })}
               />
 
@@ -1198,7 +1331,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={imageToVideoParams.aspectRatio}
-                options={VIDEO_ASPECT_RATIOS}
+                options={videoAspectOptions}
                 onChange={(v) => setImageToVideoParams({ aspectRatio: v })}
               />
 
@@ -1301,27 +1434,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
           <div className="media-chip-spacer" />
 
-          {!isMediaMode && (
-            <Text className="media-kbd-hint" aria-hidden size="smaller">
-              ↵ to send · ⇧↵ newline
-            </Text>
-          )}
-
-          {/* Retake (refresh) button */}
-          <Tooltip title="Clear prompt" delay={TOOLTIP_ENTER_DELAY}>
-            <span style={{ display: "inline-flex" }}>
-              <button
-                type="button"
-                className="media-retake-btn"
-                onClick={handleRetake}
-                disabled={!canGenerate}
-                aria-label="Clear prompt"
-              >
-                <RefreshIcon />
-              </button>
-            </span>
-          </Tooltip>
-
           {/* Primary Generate/Send button, or timer + stop when busy */}
           {isBusy ? (
             <FlexRow gap={1} alignItems="center">
@@ -1349,6 +1461,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               {isMediaMode ? "Generate" : <ArrowUpwardIcon fontSize="small" />}
             </button>
           )}
+
+          {/* Host-supplied actions at the end of the footer (e.g. the canvas
+              Run button + workflow menu). Empty in the chat panel. */}
+          {trailingActions}
         </div>
       </div>
 

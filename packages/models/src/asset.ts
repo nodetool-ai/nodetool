@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.asset`.
  */
 
-import { eq, and, like, desc, isNull } from "drizzle-orm";
+import { eq, and, like, desc, isNull, lt } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { assets } from "./schema/assets.js";
@@ -21,9 +21,12 @@ export class Asset extends DBModel {
   declare size: number | null;
   declare duration: number | null;
   declare metadata: Record<string, unknown> | null;
+  /** Sketch document that backs this image asset, if any (1:1 link). */
+  declare sketch_document_id: string | null;
   declare workflow_id: string | null;
   declare node_id: string | null;
   declare job_id: string | null;
+  declare timeline_id: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -38,9 +41,11 @@ export class Asset extends DBModel {
     this.size ??= null;
     this.duration ??= null;
     this.metadata ??= null;
+    this.sketch_document_id ??= null;
     this.workflow_id ??= null;
     this.node_id ??= null;
     this.job_id ??= null;
+    this.timeline_id ??= null;
     this.created_at ??= now;
     this.updated_at ??= now;
   }
@@ -83,7 +88,9 @@ export class Asset extends DBModel {
       workflowId?: string;
       nodeId?: string;
       jobId?: string;
+      timelineId?: string;
       limit?: number;
+      startKey?: string;
     } = {}
   ): Promise<[Asset[], string]> {
     const {
@@ -92,7 +99,9 @@ export class Asset extends DBModel {
       workflowId,
       nodeId,
       jobId,
-      limit = 50
+      timelineId,
+      limit = 50,
+      startKey
     } = opts;
     const db = getDb();
 
@@ -115,6 +124,15 @@ export class Asset extends DBModel {
     }
     if (jobId) {
       conditions.push(eq(assets.job_id, jobId));
+    }
+    if (startKey) {
+      const cursor = await Asset.get<Asset>(startKey);
+      if (cursor && cursor.user_id === userId) {
+        conditions.push(lt(assets.created_at, cursor.created_at));
+      }
+    }
+    if (timelineId) {
+      conditions.push(eq(assets.timeline_id, timelineId));
     }
 
     const rows = await db

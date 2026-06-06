@@ -26,6 +26,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/fal-codegen` | Code generator for FAL AI node definitions |
 | `@nodetool-ai/replicate-nodes` | Replicate integration nodes |
 | `@nodetool-ai/elevenlabs-nodes` | ElevenLabs TTS integration nodes |
+| `@nodetool-ai/minimax-nodes` | MiniMax TTS, music, image, and video nodes |
 | `@nodetool-ai/code-runners` | Secure code execution (Docker + subprocess sandboxing) |
 | `@nodetool-ai/huggingface` | HuggingFace model discovery and downloads |
 | `@nodetool-ai/vectorstore` | SQLite-vec vector store for RAG |
@@ -61,7 +62,7 @@ npm run dev:watch:server
 npm run dev:server
 ```
 
-**Important**: The dev server uses `tsx --watch` which runs TypeScript directly. However, `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, and `elevenlabs-nodes` use decorators and load from `dist/`. If you change these packages, run `npm run build:packages` first.
+**Important**: The dev server uses `tsx --watch` which runs TypeScript directly. However, `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes`, and `minimax-nodes` use decorators and load from `dist/`. If you change these packages, run `npm run build:packages` first.
 
 ## Testing
 
@@ -171,6 +172,162 @@ Backend-specific standards (full detail in `DEVELOPMENT_STANDARDS.md`):
 - **Errors at boundaries** return discriminated `Result` types when expected; throws are for bugs.
 
 `packages/*` currently has `@typescript-eslint/no-explicit-any` disabled (transitional). **target**: zero `any` in `packages/protocol`, `packages/kernel`, `packages/runtime`, `packages/agents`, `packages/node-sdk`. New code must use `unknown` + narrowing or proper generics.
+
+## Node Authoring — Bug Patterns to Avoid
+
+Most `*-nodes` packages have **no** AGENTS.md of their own, so these
+cross-cutting rules — distilled from shipped bug fixes — apply to **every** node
+you write or edit. Package-specific overlays (e.g. `audio-nodes`, `image-nodes`,
+`llm-nodes`) add to, not replace, this list.
+
+### Output contract
+
+- **Every key your `process()`/`genProcess()` returns must be a declared output
+  slot** in `metadataOutputTypes`. The graph editor only exposes declared slots
+  as connectable handles, so a returned key that isn't declared (a stray `name`,
+  `output`, `row_id`, …) is **unreachable downstream** — the data silently
+  vanishes. This bit automation-, image-, and audio-nodes.
+- **Test that each declared output port is actually populated, and never test a
+  node only as a terminal sink** — sinks collect every returned value regardless
+  of slot name, so they hide slot-name mismatches. Assert the invariant
+  "every returned key is a declared slot" (see
+  `automation-nodes/tests/output-slots-and-fixes.test.ts`).
+- **A streaming output handle (`chunk`) must be produced by an `async *genProcess`
+  generator**, and `outputCorrelation` must match: `iteration` for streamed
+  chunks, `single` for the final aggregate. Declaring a `chunk` output on a node
+  whose `process()` only returns a final value leaves it permanently empty.
+- **Implement every prop you declare.** A declared-but-unwired prop (filter
+  `extensions`, `include_subdirectories`, `timeout_seconds`, `gain_db`) is a
+  silent no-op. If you delegate to a shared loader, make sure it honors those props.
+
+### Media refs (ImageRef / VideoRef / AudioRef / Model3DRef)
+
+- **`data` carries RAW base64 or a `Uint8Array` — never a `data:` URI.** The hot
+  consumers (`decodeAssetBytes` in websocket, `asUint8Array` in openai-provider)
+  do `Buffer.from(data, "base64")` with no prefix stripping, so a
+  `data:image/png;base64,` prefix corrupts every saved/forwarded asset. Put the
+  MIME type in `content_type`, not inline in `data`.
+- **Always include the `type` discriminator** (`"image"`/`"audio"`/`"video"`/
+  `"model3d"`) on every ref you emit — `isAssetLikeValue`, asset auto-save, and
+  downstream type detection all key off it. A bare `Uint8Array` output is an
+  untyped value; wrap it as `{ type, data }`.
+- **Use your package's `*Ref`/`*RefFromBytes` helper** (`imageRef`/`videoRef`,
+  `audioRefFromBytes`/`audioRefFromWav`, the minimax `*RefFromBytes`) instead of
+  hand-rolling the object literal — the helper sets `type` and raw-base64 `data`
+  correctly.
+- **Read input media bytes with the async, context-aware resolver**
+  (`loadMediaRefBytes(value, context)` in runtime, or `audioBytesAsync` /
+  `videoBytesAsync`). The sync readers (`audioBytes`) see only inline `data` and
+  return empty for `asset://`/`file://`/`http`/storage refs — a node that uses
+  them silently drops media supplied as an asset or URL.
+- **Choosing inline `data` vs `uri`: check `.length > 0`, never bare
+  truthiness.** A zero-length `Uint8Array` is truthy, so `if (ref.data)` shadows
+  a perfectly good `uri`. Guard `data.length > 0` and fall through to URI/asset
+  resolution.
+
+### Indices, bounds, and numeric guards
+
+- **No `if (end < 0) end = length` catch-all.** Pick exactly one documented
+  sentinel (e.g. `-1` = "through the end") and count *other* negatives from the
+  end Python-style (`len + end`). Always clamp indices and crop/extract boxes to
+  the valid range before slicing — downstream libs (sharp) throw on out-of-range,
+  and wrappers may swallow the error and silently return the un-cropped input.
+- **Never write `Number(x) !== null` / `Number(x) !== undefined`.** `Number()`
+  returns a number or `NaN`, never null — the guard is always true and the branch
+  is dead. Use `Number.isFinite(x)`, or treat the prop default (usually `0`) as
+  "unset". Test *both* branches of every bound check.
+- **Evaluate any divisor derived from a prop at the prop's declared `min` and
+  `max`.** If it can reach `0` or non-finite (e.g. `2^(bitDepth-1)-1` at
+  `bitDepth=1`), floor/clamp it. Test the boundary values, not just the default.
+- **Generate evenly-spaced float series as `i * step`, not repeated `+= step`** —
+  accumulation drifts for fractional steps (frame ticks at `1000/30`).
+- **Track "did X happen" with an explicit boolean set at the decision point**, not
+  by inferring `result !== input` — that's wrong when the result legitimately
+  equals the input (a snap landing exactly on the cursor).
+
+### Defaults, dead code, and parsing
+
+- **Apply defaults as `{ ...options, key: options?.key ?? DEFAULT }` — spread
+  first, default last.** Spreading `...options` *after* a default lets an explicit
+  `key: undefined` clobber it (an explicit `undefined` is a present key).
+- **A prop default lives in exactly one place (the descriptor).** Inline
+  `?? literal` fallbacks must reference that same value, never a hardcoded copy
+  that drifts. Collapse any `a ?? a`. A default filename's extension must match
+  the bytes actually written.
+- **Treat a logically-unreachable branch as a bug, not dead weight** — it almost
+  always means the intended behavior was silently never executed (e.g. a dead
+  `else if` inside an outer truthy `if` dropped conditional fields). When a
+  runtime factory mirrors a codegen reference, keep the branch structure identical.
+- **Parse structured binary/markup by structure, not fixed offsets.** Walk RIFF
+  chunks honoring word-alignment padding (`offset += 8 + size + (size & 1)`);
+  validate the full magic signature *and* minimum byte length before indexing;
+  check both byte orders for endian-sensitive formats (TIFF `II*`/`MM\0*`); never
+  trust a declared length field from external/streamed data — clamp to bytes
+  present. Read feed fields by element/attribute, not RSS-only assumptions.
+- **Treat empty-string and whitespace-only input as a valid empty case**, not just
+  `null`/`undefined` — `.trim()` before `JSON.parse`/`new RegExp`/numeric parse.
+- **Never build an expression evaluator with `new Function`/`with` or naive
+  substring `.replace()` of keywords** (it corrupts string literals and makes
+  chained comparisons always-true). Tokenize and parse; throw on invalid input
+  instead of silently returning an empty result.
+- **Release native/GPU handles in a `finally` block, never on the trailing happy
+  path.** Allocate as `let h: T | undefined`, `h?.destroy()` in `finally`, so a
+  throw during encode/submit/`mapAsync` can't leak the handle.
+
+## External-API Wrapper Nodes
+
+Packages that wrap third-party AI APIs (`atlascloud-nodes`, `topaz-nodes`,
+`replicate-nodes`, `kie-nodes`, `fal-nodes`, `minimax-nodes`, …) share a billing
+and transport surface where transient errors cost real money. Rules from shipped
+fixes:
+
+- **Never retry a non-idempotent request (job-creating `POST`, state-transition
+  `PATCH`) on 5xx** — the server may have already acted (and billed) before the
+  error. Retry only `GET`/`HEAD` and idempotent `PUT`s (presigned uploads).
+- **Always retry the *download* of a billed result** (429/5xx with backoff) — once
+  a job is submitted and billed, a transient CDN blip must not discard the
+  paid-for output. Also retry *thrown* network errors (ECONNRESET/timeout) for
+  idempotent requests, and drain a discarded response body before retrying so the
+  keep-alive connection is reusable.
+- **Parse `Retry-After` as either delay-seconds *or* an HTTP-date**, clamp to
+  `>= 0`, and fall back to exponential backoff when unparseable. Never feed a raw
+  `Number(header)` into `sleep` — an HTTP-date yields `NaN` and fires immediately.
+- **Centralize terminal poll states in shared SUCCESS/FAILURE sets covering all
+  synonyms** (`fail`/`failed`, `cancel`/`canceled`/`cancelled`,
+  `complete`/`completed`/`done`/`succeeded`). A terminal status a poll loop
+  doesn't recognize must never silently degrade into a timeout. Don't sleep after
+  the final poll attempt.
+- **Harden SSRF checks on every URL you download**: normalize the host to numeric
+  octets using full `inet_aton` semantics (decimal `2130706433`, hex `0x7f...`,
+  octal, short-form `127.1`) and unwrap IPv4-mapped IPv6 (`[::ffff:127.0.0.1]`)
+  *before* range-checking private/loopback/link-local/metadata; block `localhost`
+  and `*.localhost`. A dotted-quad regex is not enough (the
+  `169.254.169.254` metadata IP has many encodings). `atlascloud-base.ts` has the
+  hardened reference.
+- **Extract output URLs by recursively scanning** string / `FileOutput`
+  (`.url()`/`.url`) / array / named-key-object shapes; accept a *nested* string
+  only if it matches `^(https?:|data:)`. Don't assume the URL sits under a fixed
+  key. Don't advertise an API option that produces an extra output the node's
+  single-output extractor can't surface.
+- **Detect all-numeric enums and register numeric values + numeric default**, and
+  coerce the API arg back to a number — a `String()` cast sends `"768"` and fails
+  the model's integer schema.
+- **Prune empty args by stripping only top-level `null`/`undefined`/`""` keys** —
+  never recurse into user-supplied `dict[...]` inputs (you'd mutate their intended
+  shape) and never strip `0`/`false`. Return `null` (so arg-cleanup drops it) for
+  an asset that can't be turned into a publicly reachable URL — never hand a remote
+  API a local/relative path.
+- **AssetRefs**: read both snake_case `mime_type` *and* camelCase `mimeType` (prompt
+  @-mention injection uses camelCase); model a multi-asset input as
+  `list[image]`/`list[video]`/`list[audio]`, not a single asset type with
+  `array: true`.
+- **Multipart upload**: stop chunking once the source is fully consumed (no
+  zero-byte trailing parts) and echo correlation IDs (`uploadId`) from the
+  accept/initiate step into the complete call.
+- **Wire `AbortSignal` into the runtime's cooperative cancellation hook** (e.g.
+  transformers.js `InterruptableStoppingCriteria`), not just a post-hoc
+  `signal.aborted` check, and surface `AbortError` (not the internal interrupt
+  error). Clean up the listener.
 
 ## Adding a New Package
 

@@ -20,7 +20,9 @@ vi.mock("ws", () => {
 });
 
 // Must import AFTER vi.mock so the mock is in effect
-const { executeComfy } = await import("../src/comfy-executor.js");
+const { executeComfy, uploadComfyFile } = await import(
+  "../src/comfy-executor.js"
+);
 
 const originalFetch = global.fetch;
 const mockFetch = vi.fn();
@@ -139,6 +141,117 @@ describe("executeComfy", () => {
     expect(mockFetch.mock.calls[0][0]).toBe(
       "https://pod123-8188.proxy.runpod.net/prompt"
     );
+  });
+
+  it("groups per-node outputs by media kind", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ prompt_id: "px" }));
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        px: {
+          outputs: {
+            "9": {
+              images: [{ filename: "img.png", subfolder: "", type: "output" }]
+            },
+            "12": {
+              audio: [{ filename: "snd.wav", subfolder: "", type: "output" }]
+            }
+          }
+        }
+      })
+    );
+    // image bytes, then audio bytes
+    mockFetch.mockResolvedValue(binaryResponse(new Uint8Array([1, 2, 3])));
+
+    const handle = executeComfy(samplePrompt, "127.0.0.1:8188");
+    await new Promise((r) => setTimeout(r, 50));
+    lastWsInstance?.emit(
+      "message",
+      JSON.stringify({ type: "execution_success", data: { prompt_id: "px" } })
+    );
+
+    const result = await handle.result;
+    expect(result.status).toBe("completed");
+    expect(result.nodeOutputs?.["9"].images).toHaveLength(1);
+    expect(result.nodeOutputs?.["9"].images?.[0].mimeType).toBe("image/png");
+    expect(result.nodeOutputs?.["12"].audio).toHaveLength(1);
+    expect(result.nodeOutputs?.["12"].audio?.[0].mimeType).toBe("audio/wav");
+    // Flat images convenience list still populated
+    expect(result.images).toHaveLength(1);
+  });
+
+  it("streams per-node outputs live on `executed` events", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ prompt_id: "ps" }));
+    // /view downloads for the streamed file, then empty /history reconcile
+    mockFetch.mockImplementation((url: string) =>
+      url.includes("/history/")
+        ? Promise.resolve(jsonResponse({ ps: { outputs: {} } }))
+        : Promise.resolve(binaryResponse(new Uint8Array([1, 2, 3])))
+    );
+
+    const streamed: Array<{ nodeId: string; kinds: string[] }> = [];
+    const handle = executeComfy(
+      samplePrompt,
+      "127.0.0.1:8188",
+      undefined,
+      600000,
+      (nodeId, outputs) => {
+        streamed.push({ nodeId, kinds: Object.keys(outputs) });
+      }
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    // A save node finishes and reports its file
+    lastWsInstance?.emit(
+      "message",
+      JSON.stringify({
+        type: "executed",
+        data: {
+          prompt_id: "ps",
+          node: "9",
+          output: {
+            images: [{ filename: "img.png", subfolder: "", type: "output" }]
+          }
+        }
+      })
+    );
+    await new Promise((r) => setTimeout(r, 20));
+    lastWsInstance?.emit(
+      "message",
+      JSON.stringify({ type: "execution_success", data: { prompt_id: "ps" } })
+    );
+
+    const result = await handle.result;
+    expect(result.status).toBe("completed");
+    // The output was streamed live (before completion), not only batched.
+    expect(streamed).toEqual([{ nodeId: "9", kinds: ["images"] }]);
+    // And it is reflected in the final result without a duplicate history fetch.
+    expect(result.nodeOutputs?.["9"].images).toHaveLength(1);
+  });
+
+  it("uploadComfyFile POSTs to /upload/image and returns the stored name", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ name: "stored.png", subfolder: "" })
+    );
+    const name = await uploadComfyFile(
+      "127.0.0.1:8188",
+      new Uint8Array([0x89, 0x50]),
+      "in.png",
+      "image/png"
+    );
+    expect(name).toBe("stored.png");
+    expect(mockFetch.mock.calls[0][0]).toBe("http://127.0.0.1:8188/upload/image");
+    expect(mockFetch.mock.calls[0][1]?.method).toBe("POST");
+  });
+
+  it("uploadComfyFile prefixes the subfolder when present", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ name: "stored.wav", subfolder: "audio" })
+    );
+    const name = await uploadComfyFile(
+      "127.0.0.1:8188",
+      new Uint8Array([1]),
+      "in.wav"
+    );
+    expect(name).toBe("audio/stored.wav");
   });
 
   it("returns failed on timeout", async () => {

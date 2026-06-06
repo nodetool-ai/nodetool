@@ -38,6 +38,15 @@ declare module "@mui/material/styles" {
     c_provider_hf?: string;
     c_app_header?: string;
     c_tabs_header?: string;
+    c_gray0?: string;
+    c_gray1?: string;
+    c_gray2?: string;
+    c_gray3?: string;
+    c_gray4?: string;
+    c_gray5?: string;
+    c_gray6?: string;
+    c_hl1?: string;
+    c_hl2?: string;
 
     // Provider badge colors
     providerApi?: string;
@@ -100,6 +109,15 @@ declare module "@mui/material/styles" {
     c_provider_hf?: string;
     c_app_header?: string;
     c_tabs_header?: string;
+    c_gray0?: string;
+    c_gray1?: string;
+    c_gray2?: string;
+    c_gray3?: string;
+    c_gray4?: string;
+    c_gray5?: string;
+    c_gray6?: string;
+    c_hl1?: string;
+    c_hl2?: string;
 
     // Provider badge colors
     providerApi?: string;
@@ -201,6 +219,15 @@ export const paletteLight: PaletteOptions = {
   c_provider_hf: "#6D4B6F",
   c_app_header: "#FFFFFF",
   c_tabs_header: "#F2EDE4",
+  c_gray0: "#FAF8F5",
+  c_gray1: "#F0EDE6",
+  c_gray2: "#E0DCD6",
+  c_gray3: "#C7C0B7",
+  c_gray4: "#A59F97",
+  c_gray5: "#8A857E",
+  c_gray6: "#6A6660",
+  c_hl1: "#2A8077",
+  c_hl2: "#1E5F58",
 
   // Provider badge colors (light) - single token per provider type
   providerApi: "#2C415A",

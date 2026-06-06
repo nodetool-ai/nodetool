@@ -35,11 +35,9 @@ import {
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
-import {
-  FrontendToolRegistry,
-  FrontendToolState
-} from "../lib/tools/frontendTools";
+import { FrontendToolRegistry } from "../lib/tools/frontendTools";
 import { uuidv4 } from "./uuidv4";
+import { createChatPiSlice, type ChatPiSlice } from "./chatPi";
 import {
   handleChatWebSocketMessage,
   MsgpackData,
@@ -56,6 +54,14 @@ type ChatStatus =
   | "error"
   | "stopping";
 
+/**
+ * How the unified chat routes a message:
+ * - "chat": the `/ws` LLM-with-tools loop (also covers media generation, which
+ *   is carried per-message via `media_generation`).
+ * - "pi": the workspace-aware Pi coding agent over `/ws/agent`.
+ */
+export type ChatMode = "chat" | "pi";
+
 export type StepToolCall = {
   id: string;
   name: string;
@@ -70,7 +76,7 @@ type AgentExecutionToolCalls = Record<
   Record<string, StepToolCall[]>
 >;
 
-export const DEFAULT_PERMISSION_MODE: PermissionMode = "default";
+const DEFAULT_PERMISSION_MODE: PermissionMode = "default";
 
 /** Decision a user can make on an inline tool-approval prompt. */
 export type ApprovalDecision = "allow" | "allow_for_chat" | "deny";
@@ -98,7 +104,7 @@ export interface ToolApprovalRequest {
   args: Record<string, unknown>;
 }
 
-export interface GlobalChatState {
+export interface GlobalChatState extends ChatPiSlice {
   // Connection state
   status: ChatStatus;
   statusMessage: string | null;
@@ -107,6 +113,16 @@ export interface GlobalChatState {
   workflowId: string | null;
   threadWorkflowId: Record<string, string | null>;
 
+  // Active chat mode (chat vs. pi). Media generation is a per-message concern
+  // carried in `media_generation`, so it does not need its own mode here.
+  mode: ChatMode;
+  setMode: (mode: ChatMode) => void;
+
+  // Per-workflow thread binding for the editor side panel: each workflow gets
+  // its own conversation. workflowId -> threadId.
+  workflowThreadId: Record<string, string>;
+  /** Bind the chat to a workflow's thread, creating one if needed. */
+  openWorkflowThread: (workflowId: string) => Promise<string>;
   // Tool call runtime UI state
   currentRunningToolCallId: string | null;
   currentToolMessage: string | null;
@@ -138,6 +154,9 @@ export interface GlobalChatState {
   memoryEnabled: boolean;
   setMemoryEnabled: (enabled: boolean) => void;
 
+  /** Clear the current error (e.g. when dismissing an error banner). */
+  clearError: () => void;
+
   // Agent execution trace
   agentExecutionToolCalls: AgentExecutionToolCalls;
 
@@ -162,18 +181,13 @@ export interface GlobalChatState {
 
   // Task updates
   currentTaskUpdate: TaskUpdate | null;
-  setTaskUpdate: (update: TaskUpdate | null) => void;
   currentTaskUpdateThreadId: string | null;
   lastTaskUpdatesByThread: Record<string, TaskUpdate | null>;
 
   // Log updates
   currentLogUpdate: LogUpdate | null;
-  setLogUpdate: (update: LogUpdate | null) => void;
-
   // Per-thread todo lists (TodoWrite-style checklist)
   todosByThread: Record<string, TodoItem[]>;
-  setTodosForThread: (threadId: string, todos: TodoItem[]) => void;
-  clearTodosForThread: (threadId: string) => void;
 
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
@@ -182,10 +196,6 @@ export interface GlobalChatState {
   sendMessageTimeoutId: ReturnType<typeof setTimeout> | null;
   // Safety timeout tracking for loadMessages after delete
   loadMessagesTimeoutId: ReturnType<typeof setTimeout> | null;
-
-  // Frontend tool state
-  frontendToolState: FrontendToolState;
-  setFrontendToolState: (state: FrontendToolState) => void;
 
   // Actions
   connect: () => Promise<void>;
@@ -199,7 +209,6 @@ export interface GlobalChatState {
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
-  setLastUsedThreadId: (threadId: string | null) => void;
   getCurrentMessages: () => Message[];
   getCurrentMessagesSync: () => Message[];
   loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
@@ -232,6 +241,22 @@ function buildDefaultLanguageModel(): LanguageModel {
   };
 }
 
+/** Flatten a message's content down to plain text (for the pi transport). */
+function extractMessageText(message: Message | ChatOutgoingMessage): string {
+  const { content } = message;
+  if (typeof content === "string") {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    return content
+      .filter((part) => part?.type === "text")
+      .map((part) => (part as { text?: string }).text ?? "")
+      .join("")
+      .trim();
+  }
+  return "";
+}
+
 const useGlobalChatStore = create<GlobalChatState>()(
   persist<GlobalChatState>(
     (set, get) => ({
@@ -247,6 +272,35 @@ const useGlobalChatStore = create<GlobalChatState>()(
       currentRunningToolCallId: null,
       currentToolMessage: null,
 
+      // Mode + Pi transport slice
+      mode: "chat",
+      setMode: (mode: ChatMode) => set({ mode }),
+      ...createChatPiSlice(set, get),
+
+      // Per-workflow thread binding (editor side panel)
+      workflowThreadId: {},
+      openWorkflowThread: async (workflowId: string) => {
+        set({ workflowId });
+        const existing = get().workflowThreadId[workflowId];
+        if (existing && get().threads[existing]) {
+          if (get().currentThreadId !== existing) {
+            get().switchThread(existing);
+          }
+          return existing;
+        }
+        // Reuse a persisted-but-not-yet-loaded thread id if we have one;
+        // otherwise create a fresh thread bound to this workflow.
+        const threadId = existing ?? (await get().createNewThread());
+        set((state) => ({
+          workflowThreadId: { ...state.workflowThreadId, [workflowId]: threadId },
+          threadWorkflowId: { ...state.threadWorkflowId, [threadId]: workflowId }
+        }));
+        if (get().threads[threadId] && get().currentThreadId !== threadId) {
+          get().switchThread(threadId);
+        }
+        return threadId;
+      },
+
       // Thread state - ensure default values
       threads: {} as Record<string, Thread>,
       currentThreadId: null as string | null,
@@ -261,6 +315,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       memoryEnabled: false,
       setMemoryEnabled: (enabled: boolean) => set({ memoryEnabled: enabled }),
+
+      clearError: () => set({ error: null }),
 
       // Agent execution trace
       agentExecutionToolCalls: {},
@@ -311,53 +367,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
       setPlanningUpdate: (update: PlanningUpdate | null) =>
         set({ currentPlanningUpdate: update }),
 
-      // Frontend tool state
-      frontendToolState: {
-        nodeMetadata: {},
-        currentWorkflowId: null,
-        getWorkflow: () => undefined,
-        addWorkflow: () => {},
-        removeWorkflow: () => {},
-        getNodeStore: () => undefined,
-        updateWorkflow: () => {},
-        saveWorkflow: () => Promise.resolve(),
-        getCurrentWorkflow: () => undefined,
-        setCurrentWorkflowId: () => {},
-        fetchWorkflow: () => Promise.resolve(),
-        newWorkflow: () => {
-          throw new Error("Not initialized");
-        },
-        createNew: () => Promise.reject(new Error("Not initialized")),
-        searchTemplates: () => Promise.reject(new Error("Not initialized")),
-        copy: () => Promise.reject(new Error("Not initialized"))
-      },
-      setFrontendToolState: (state: FrontendToolState) =>
-        set({ frontendToolState: state }),
       // Task updates
       currentTaskUpdate: null,
-      setTaskUpdate: (update: TaskUpdate | null) =>
-        set({ currentTaskUpdate: update }),
       currentTaskUpdateThreadId: null,
       lastTaskUpdatesByThread: {},
 
       // Log updates
       currentLogUpdate: null,
-      setLogUpdate: (update: LogUpdate | null) =>
-        set({ currentLogUpdate: update }),
 
       // Per-thread todo lists
       todosByThread: {},
-      setTodosForThread: (threadId: string, todos: TodoItem[]) =>
-        set((state) => ({
-          todosByThread: { ...state.todosByThread, [threadId]: todos }
-        })),
-      clearTodosForThread: (threadId: string) =>
-        set((state) => {
-          if (!(threadId in state.todosByThread)) return state;
-          const next = { ...state.todosByThread };
-          delete next[threadId];
-          return { todosByThread: next };
-        }),
 
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,
@@ -554,6 +573,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
           selectedModel,
           sendMessageTimeoutId
         } = get();
+
+        // Pi mode routes through the agent socket instead of the /ws chat loop.
+        if (get().mode === "pi") {
+          let threadId = currentThreadId;
+          if (!threadId) {
+            threadId = await get().createNewThread();
+          }
+          await get().sendPiMessage(threadId, extractMessageText(message));
+          return;
+        }
         // Agent mode is no longer a UI toggle — every chat session runs the
         // unified LLM-with-tools loop, and the agent decides for itself
         // whether to escalate via `run_subtask`. `agent_mode` and
@@ -932,9 +961,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
       },
 
-      setLastUsedThreadId: (threadId: string | null) =>
-        set({ lastUsedThreadId: threadId }),
-
       getCurrentMessages: () => {
         const { currentThreadId, messageCache } = get();
         if (!currentThreadId) {
@@ -1110,6 +1136,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
       stopGeneration: () => {
         const { currentThreadId, sendMessageTimeoutId, loadMessagesTimeoutId } = get();
 
+        // Pi mode stops via the agent socket, not the /ws stop command.
+        if (get().mode === "pi") {
+          FrontendToolRegistry.abortAll();
+          if (currentThreadId) {
+            get().stopPi(currentThreadId);
+          }
+          return;
+        }
+
         // Clear any pending sendMessage timeout
         if (sendMessageTimeoutId !== null) {
           clearTimeout(sendMessageTimeoutId);
@@ -1207,7 +1242,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
         lastUsedThreadId: state.lastUsedThreadId,
         selectedModel: state.selectedModel,
         permissionMode: state.permissionMode,
-        memoryEnabled: state.memoryEnabled
+        memoryEnabled: state.memoryEnabled,
+        // Per-workflow thread binding + Pi selections so the editor side panel
+        // restores the right conversation and agent setup across reloads.
+        workflowThreadId: state.workflowThreadId,
+        threadWorkflowId: state.threadWorkflowId,
+        piModel: state.piModel,
+        piWorkspaceId: state.piWorkspaceId,
+        piWorkspacePath: state.piWorkspacePath,
+        piSessionByThread: state.piSessionByThread
       }) as GlobalChatState,
       migrate: (persistedState, _version) => {
         // Corrupt localStorage (string, null, etc.) must yield a usable
@@ -1260,6 +1303,21 @@ const useGlobalChatStore = create<GlobalChatState>()(
           state.messageCursors = {};
           state.isLoadingMessages = false;
           state.isLoadingThreads = false;
+
+          // Guard the per-workflow + pi maps against corrupt persisted values
+          // (they're read with spreads, so a non-object would crash).
+          const asRecord = (value: unknown) =>
+            value && typeof value === "object" && !Array.isArray(value)
+              ? (value as Record<string, never>)
+              : {};
+          state.workflowThreadId = asRecord(state.workflowThreadId);
+          state.threadWorkflowId = asRecord(state.threadWorkflowId);
+          state.piSessionByThread = asRecord(state.piSessionByThread);
+          state.piThreadBySession = {};
+          if (typeof state.piModel !== "string") {
+            state.piModel = "";
+          }
+          state.mode = state.mode === "pi" ? "pi" : "chat";
 
           // Load threads from API if not loaded yet
           if (!state.threadsLoaded) {

@@ -37,6 +37,12 @@ const propertyInputContainerStyles = (theme: Theme) =>
       position: "relative",
       minHeight: 0
     },
+    // Editor is driven by a connected input edge — dim it and block
+    // interaction (the inner `inert` subtree removes it from the tab order).
+    ".property-connected-disabled": {
+      opacity: 0.5,
+      cursor: "not-allowed"
+    },
     // Changed-value bar is painted on `.node-property` in properties.css
     // (class kept for :has() + numberInputStyles).
     ".property-reset-anchor": {
@@ -166,6 +172,8 @@ export type PropertyInputProps = {
   tabIndex?: number;
   isDynamicProperty?: boolean;
   hideActionIcons?: boolean;
+  /** True when an edge is connected to this property's target handle. */
+  isConnected?: boolean;
   onValueChange?: (value: any) => void;
 };
 
@@ -182,6 +190,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   hideActionIcons,
   isInspector,
   inspectorBatchNodeIds,
+  isConnected,
   onValueChange
 }: PropertyInputProps) => {
   const theme = useTheme();
@@ -538,7 +547,16 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       onDoubleClick={handleDoubleClick}
     >
       <PropertyHandleTooltipContext.Provider value={property.type}>
-        {inputField}
+        {isConnected ? (
+          <div
+            className="property-connected-disabled"
+            title="Driven by a connected input — disconnect the edge to edit"
+          >
+            <div inert>{inputField}</div>
+          </div>
+        ) : (
+          inputField
+        )}
       </PropertyHandleTooltipContext.Provider>
       {canvasResetButton}
       {isDynamicProperty && !hideActionIcons && (

@@ -38,7 +38,7 @@ import {
   kieCreditsDetailSuggestsKeysLink,
   type KieCredits,
 } from "../../utils/kieCredits";
-import useResultsStore, { hashKey } from "../../stores/ResultsStore";
+import { useNodeProviderCost } from "../../hooks/nodes/useNodeExecState";
 import {
   formatKieUnitPricingShort,
   formatKieUnitPricingTooltip,
@@ -92,11 +92,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
   popoverResetDep,
 }) => {
   const theme = useTheme();
-  const lastRunCost = useResultsStore((state) =>
-    workflowId && nodeId
-      ? state.providerCosts[hashKey(workflowId, nodeId)]
-      : undefined,
-  );
+  const lastRunCost = useNodeProviderCost(workflowId ?? "", nodeId ?? "");
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(false);
   const [creditsData, setCreditsData] = useState<KieCredits | null | "error">(

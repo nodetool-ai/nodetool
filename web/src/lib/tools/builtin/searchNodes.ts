@@ -60,14 +60,13 @@ FrontendToolRegistry.register({
     );
 
     // Agent-facing preference: surface first-party `nodetool.*` nodes ahead of
-    // heavy integrations (huggingface, comfy, kie, fal, replicate, etc.) when
+    // heavy integrations (huggingface, kie, fal, replicate, etc.) when
     // their relevance is otherwise tied. The visual node-search UI keeps the
     // unbiased ranking; this only reorders the LLM's view because it tends to
     // pick the first plausible result and integration nodes often need
     // credentials/model downloads the user didn't ask for.
     const namespaceRank = (nodeType: string): number => {
       if (nodeType.startsWith("nodetool.")) return 0;
-      if (nodeType.startsWith("comfy.")) return 2;
       if (nodeType.startsWith("huggingface.")) return 2;
       return 1;
     };
@@ -81,7 +80,6 @@ FrontendToolRegistry.register({
         node_type: node.node_type,
         title: node.title,
         namespace: node.namespace,
-        expose_as_tool: node.expose_as_tool ?? false,
       };
 
       if (includeProperties) {

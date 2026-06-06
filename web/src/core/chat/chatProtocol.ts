@@ -96,10 +96,8 @@ import {
   TodoUpdate,
   ToolCallUpdate
 } from "../../stores/ApiTypes";
-import {
-  FrontendToolRegistry,
-  FrontendToolState
-} from "../../lib/tools/frontendTools";
+import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
+import { getFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 import type {
   GlobalChatState,
   StepToolCall
@@ -305,11 +303,15 @@ const applyEdgeUpdate = (
 ): ReducerResult => {
   const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
-  if (effectiveWorkflowId) {
+  // Edges are scoped by the producing run's job_id so concurrent same-workflow
+  // runs stay isolated. Skip the write if job_id is absent.
+  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+  if (effectiveWorkflowId && jobId) {
     useResultsStore
       .getState()
       .setEdge(
         effectiveWorkflowId,
+        jobId,
         update.edge_id,
         update.status,
         update.counter ?? undefined
@@ -330,15 +332,19 @@ const applyNodeUpdate = (
     // If running, we might want to clear previous error or result?
     // For now, allow multiple updates.
 
-    // Sync status
-    useStatusStore
-      .getState()
-      .setStatus(effectiveWorkflowId, update.node_id, update.status);
+    // Sync status, scoped by the producing run's job_id so concurrent
+    // same-workflow runs stay isolated. Skip the write if job_id is absent.
+    const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+    if (jobId) {
+      useStatusStore
+        .getState()
+        .setStatus(effectiveWorkflowId, jobId, update.node_id, update.status);
+    }
 
-    if (update.result) {
+    if (update.result && jobId) {
       useResultsStore
         .getState()
-        .setResult(effectiveWorkflowId, update.node_id, update.result);
+        .setResult(effectiveWorkflowId, jobId, update.node_id, update.result);
     }
   }
 
@@ -501,18 +507,22 @@ const applyOutputUpdate = (
 
   const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[threadId];
-  if (effectiveWorkflowId) {
+  // Output results are scoped by the producing run's job_id so concurrent
+  // same-workflow runs stay isolated. Skip the write if job_id is absent.
+  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+  if (effectiveWorkflowId && jobId) {
     useResultsStore
       .getState()
       .setOutputResult(
         effectiveWorkflowId,
+        jobId,
         update.node_id,
         update.value,
         true // append
       );
   }
 
-  if (update.output_type === "string") {
+  if (update.output_type === "string" && typeof update.value === "string") {
     const messages = state.messageCache[threadId] || [];
     const lastMessage = messages[messages.length - 1];
 
@@ -522,7 +532,7 @@ const applyOutputUpdate = (
       }
       const updatedMessage: Message = {
         ...lastMessage,
-        content: lastMessage.content + (update.value as string)
+        content: lastMessage.content + update.value
       };
       return {
         update: {
@@ -540,7 +550,7 @@ const applyOutputUpdate = (
     const message: Message = {
       role: "assistant",
       type: "message",
-      content: update.value as string
+      content: update.value
     };
     return {
       update: {
@@ -963,11 +973,15 @@ const applyNodeProgress = (
 ): ReducerResult => {
   const workflowId = progress.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
-  if (effectiveWorkflowId) {
+  // Progress is scoped by the producing run's job_id so concurrent same-workflow
+  // runs stay isolated. Skip the write if job_id is absent.
+  const jobId = (progress as { job_id?: string | null }).job_id ?? undefined;
+  if (effectiveWorkflowId && jobId) {
     useResultsStore
       .getState()
       .setProgress(
         effectiveWorkflowId,
+        jobId,
         progress.node_id,
         progress.progress,
         progress.total
@@ -1043,11 +1057,17 @@ async function executeToolCall(
 
   const startTime = Date.now();
   try {
+    // Resolve the canonical frontend-tool runtime state lazily — the same
+    // source the agent (`/ws/agent`) bridge uses, so `ui_*` tools behave
+    // identically in every chat mode. It is wired by the workflow editor
+    // (PanelRight); when no editor is mounted (e.g. the global /chat route
+    // with no open workflow) accessing it throws, which surfaces as a tool
+    // error instead of silently mutating a stub.
     const threadWorkflowId =
       get().threadWorkflowId?.[thread_id] ?? get().workflowId ?? null;
     if (threadWorkflowId) {
       try {
-        await get().frontendToolState.fetchWorkflow(threadWorkflowId);
+        await getFrontendToolRuntimeState().fetchWorkflow(threadWorkflowId);
       } catch (e) {
         console.warn("Failed to fetch workflow for tool call:", e);
       }
@@ -1067,12 +1087,14 @@ async function executeToolCall(
       effectiveArgs,
       tool_call_id,
       {
-        getState: () =>
-          ({
-            ...(get().frontendToolState as FrontendToolState),
+        getState: () => {
+          const runtimeState = getFrontendToolRuntimeState();
+          return {
+            ...runtimeState,
             currentWorkflowId:
-              threadWorkflowId ?? get().frontendToolState.currentWorkflowId
-          }) as FrontendToolState
+              threadWorkflowId ?? runtimeState.currentWorkflowId
+          };
+        }
       }
     );
 

@@ -27,7 +27,15 @@ import {
  * handleWorkflowClick(existingWorkflow);
  * ```
  */
-export const useWorkflowActions = () => {
+interface WorkflowActions {
+  loadingExampleId: string | null;
+  handleCreateNewWorkflow: () => Promise<void>;
+  handleWorkflowClick: (workflow: Workflow) => void;
+  handleExampleClick: (example: Workflow) => Promise<void>;
+  handleViewAllTemplates: () => void;
+}
+
+export const useWorkflowActions = (): WorkflowActions => {
   const navigate = useNavigate();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const createWorkflow = useWorkflowManager((state) => state.create);

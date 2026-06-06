@@ -6,6 +6,12 @@ jest.mock("../../../stores/ResultsStore", () => ({
   __esModule: true,
   default: jest.fn()
 }));
+// The hook seeds inputs from the workflow's focused run; provide a stable one
+// so getResult is consulted (otherwise the read short-circuits to undefined).
+jest.mock("../../../stores/WorkflowRunsStore", () => ({
+  __esModule: true,
+  default: { getState: () => ({ getFocusedJob: () => "job-1" }) }
+}));
 jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: jest.fn()
 }));

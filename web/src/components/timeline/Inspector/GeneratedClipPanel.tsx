@@ -40,6 +40,14 @@ export interface GeneratedClipPanelProps {
   clipId: string;
 }
 
+const panelSx = {
+  width: "100%",
+  height: "100%",
+  maxHeight: "100%",
+  minHeight: 0,
+  overflow: "auto"
+};
+
 const inputsContainerStyles = (theme: Theme) =>
   css({
     ".inputs-card, .application-card": {
@@ -125,7 +133,7 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
     const paramOverrides = clip.paramOverrides ?? {};
 
     return (
-      <Panel sx={{ width: "100%", overflow: "auto" }}>
+      <Panel sx={panelSx}>
         <FlexColumn gap={0}>
           <GeneratedClipHeader clip={clip} />
 

@@ -279,9 +279,6 @@ function audioRefFromBytes(data: Uint8Array, uri?: string): Record<string, unkno
 // Declare output types (required for UI connectors)
 static readonly metadataOutputTypes = { output: "str", count: "int" };
 
-// Make available to agents
-static readonly exposeAsTool = true;
-
 // Enable dynamic input connectors
 static readonly isDynamic = true;
 

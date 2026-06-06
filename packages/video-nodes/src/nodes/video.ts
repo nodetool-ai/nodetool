@@ -10,7 +10,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import {
-  audioBytes,
   audioBytesAsync,
   toBytes
 } from "@nodetool-ai/audio-nodes";
@@ -62,6 +61,23 @@ function filePath(uriOrPath: string): string {
     }
   }
   return uriOrPath;
+}
+
+/**
+ * Resolve a folder value to a filesystem path. Accepts either a plain string
+ * path/URI or a folder ref object (`{ uri }`); returns "" when no usable path
+ * is present. Coercing the ref object with `String()` would yield
+ * "[object Object]", so callers must funnel folder props through here.
+ */
+function folderPath(raw: unknown): string {
+  if (typeof raw === "string") {
+    return raw.startsWith("file:") ? filePath(raw) : raw;
+  }
+  if (raw && typeof raw === "object") {
+    const uri = (raw as Record<string, unknown>).uri;
+    if (typeof uri === "string" && uri.length > 0) return filePath(uri);
+  }
+  return "";
 }
 
 function dateName(name: string): string {
@@ -206,7 +222,6 @@ export class TextToVideoNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["prompt"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -314,7 +329,6 @@ export class ImageToVideoNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["image", "prompt"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -513,8 +527,8 @@ export class SaveVideoFileVideoNode extends BaseNode {
   declare filename: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const folder = String(this.folder ?? ".");
-    const fname = dateName(String(this.filename ?? "video.mp4"));
+    const folder = folderPath(this.folder) || ".";
+    const fname = dateName(String(this.filename || "video.mp4"));
     const p = path.resolve(folder, fname);
     await fs.mkdir(path.dirname(p), { recursive: true });
     await fs.writeFile(p, await videoBytesAsync(this.video, context));
@@ -577,15 +591,7 @@ export class LoadVideoAssetsNode extends BaseNode {
     video: unknown;
     name: string;
   }> {
-    const raw = this.folder;
-    const folder =
-      typeof raw === "string" && raw.length > 0
-        ? raw.startsWith("file:")
-          ? filePath(raw)
-          : raw
-        : typeof raw === "object" && raw !== null && typeof (raw as Record<string, unknown>).uri === "string" && ((raw as Record<string, unknown>).uri as string).length > 0
-          ? filePath((raw as Record<string, unknown>).uri as string)
-          : "";
+    const folder = folderPath(this.folder);
     if (!folder) return;
     let entries;
     try {
@@ -671,8 +677,8 @@ export class SaveVideoNode extends BaseNode {
   declare name: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const folder = String(this.folder ?? ".");
-    const filename = dateName(String(this.name ?? "video.mp4"));
+    const folder = folderPath(this.folder) || ".";
+    const filename = dateName(String(this.name || "video.mp4"));
     const full = path.resolve(folder, filename);
     await fs.mkdir(path.dirname(full), { recursive: true });
     const bytes = await videoBytesAsync(this.video, context);
@@ -940,16 +946,23 @@ export class FrameToVideoNode extends BaseNode {
     );
     const outputPath = path.join(outputDir, "output.mp4");
     try {
-      // Write each frame as a numbered PNG file
-      for (let i = 0; i < frames.length; i++) {
-        const f = frames[i];
+      // Write each frame as a numbered PNG file. Use a contiguous counter
+      // (not the loop index) so skipped/empty frames don't leave gaps in the
+      // sequence — ffmpeg's image2 demuxer stops at the first missing number.
+      let written = 0;
+      for (const f of frames) {
         if (!f || typeof f !== "object") continue;
         const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
         if (frameBytes.length === 0) continue;
+        written += 1;
         await fs.writeFile(
-          path.join(inputDir, `frame_${String(i + 1).padStart(6, "0")}.png`),
+          path.join(inputDir, `frame_${String(written).padStart(6, "0")}.png`),
           frameBytes
         );
+      }
+      if (written === 0) {
+        await outputs.emit("output", videoRef(new Uint8Array()));
+        return;
       }
 
       await execFile(
@@ -992,16 +1005,20 @@ export class FrameToVideoNode extends BaseNode {
     );
     const outputPath = path.join(outputDir, "output.mp4");
     try {
-      for (let i = 0; i < frames.length; i++) {
-        const f = frames[i];
+      // Contiguous counter so skipped/empty frames don't leave gaps in the
+      // numbered sequence (ffmpeg's image2 demuxer stops at the first gap).
+      let written = 0;
+      for (const f of frames) {
         if (!f || typeof f !== "object") continue;
         const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
         if (frameBytes.length === 0) continue;
+        written += 1;
         await fs.writeFile(
-          path.join(inputDir, `frame_${String(i + 1).padStart(6, "0")}.png`),
+          path.join(inputDir, `frame_${String(written).padStart(6, "0")}.png`),
           frameBytes
         );
       }
+      if (written === 0) return { output: videoRef(new Uint8Array()) };
 
       const fps = Math.max(1, Number(this.fps ?? 30));
       await execFile(
@@ -2200,7 +2217,7 @@ export class AddAudioVideoNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const v = await videoBytesAsync(this.video, context);
-    const a = audioBytes(this.audio);
+    const a = await audioBytesAsync(this.audio, context);
     if (v.length === 0) return { output: videoRef(v) };
     if (a.length === 0) return { output: videoRef(v) };
 
@@ -2326,9 +2343,10 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(this.video, context);
-    const color = String(this.key_color ?? "0x00FF00");
-    const similarity = Number(this.similarity ?? 0.1);
-    const blend = Number(this.blend ?? 0.0);
+    const keyColorObj = this.key_color as { value?: string } | undefined;
+    const color = String(keyColorObj?.value ?? "#00FF00").replace("#", "0x");
+    const similarity = Number(this.similarity ?? 0.3);
+    const blend = Number(this.blend ?? 0.1);
     const transformed =
       (await ffmpegTransform(bytes, [
         "-vf",
@@ -2605,7 +2623,6 @@ export class VideoToVideoNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "video" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["video", "prompt"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -2688,7 +2705,6 @@ export class LipSyncNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "video" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["video", "audio"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({

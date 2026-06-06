@@ -6,6 +6,7 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import useResultsStore from "../../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import type { Asset, NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import ContentCardBody from "../ContentCardBody";
@@ -100,6 +101,7 @@ jest.mock("../../node/NodeInputs", () => {
 });
 
 const workflowId = "workflow-1";
+const jobId = "job-current";
 const nodeId = "node-1";
 
 const nodeData = {
@@ -164,18 +166,28 @@ describe("ContentCardBody results", () => {
       toolCalls: {},
       planningUpdates: {}
     });
+    // Results are keyed per run; the node bodies read the workflow's focused
+    // run. Record one so reads resolve to it.
+    useWorkflowRunsStore.setState({ runs: {}, focusedJob: {}, pinned: {} });
+    useWorkflowRunsStore.getState().recordRun({
+      jobId,
+      workflowId,
+      state: "running",
+      startedAt: 1
+    });
   });
 
   it("renders every streamed output from the current run, not the stale node_update result", () => {
-    useResultsStore.getState().setResult(workflowId, nodeId, {
+    useResultsStore.getState().setResult(workflowId, jobId, nodeId, {
       output: { type: "image", uri: "stale-final.png" }
     });
-    useResultsStore.getState().setOutputResult(workflowId, nodeId, {
+    useResultsStore.getState().setOutputResult(workflowId, jobId, nodeId, {
       type: "image",
       uri: "stream-1.png"
     });
     useResultsStore.getState().setOutputResult(
       workflowId,
+      jobId,
       nodeId,
       { type: "image", uri: "stream-2.png" },
       true
@@ -191,11 +203,12 @@ describe("ContentCardBody results", () => {
   });
 
   it("unwraps per-output result records and renders each generation", () => {
-    useResultsStore.getState().setOutputResult(workflowId, nodeId, {
+    useResultsStore.getState().setOutputResult(workflowId, jobId, nodeId, {
       output: { type: "image", uri: "wrapped-1.png" }
     });
     useResultsStore.getState().setOutputResult(
       workflowId,
+      jobId,
       nodeId,
       { output: { type: "image", uri: "wrapped-2.png" } },
       true
@@ -242,7 +255,7 @@ describe("ContentCardBody results", () => {
     mockLastJobAssets = [fakeAsset("old-run", "job-1")];
     mockAssetHistory = mockLastJobAssets;
     mockRunnerState = "running";
-    useResultsStore.getState().setOutputResult(workflowId, nodeId, {
+    useResultsStore.getState().setOutputResult(workflowId, jobId, nodeId, {
       type: "image",
       uri: "live-run.png"
     });
@@ -254,10 +267,10 @@ describe("ContentCardBody results", () => {
   });
 
   it("joins streamed text values from the current run in a text content card", () => {
-    useResultsStore.getState().setOutputResult(workflowId, nodeId, "first");
+    useResultsStore.getState().setOutputResult(workflowId, jobId, nodeId, "first");
     useResultsStore
       .getState()
-      .setOutputResult(workflowId, nodeId, "second", true);
+      .setOutputResult(workflowId, jobId, nodeId, "second", true);
 
     renderContentCard(metadataForOutput("str"));
 

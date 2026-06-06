@@ -673,9 +673,14 @@ export {
 } from "@nodetool-ai/core-nodes/nodes/vector";
 export { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
 export { APIFY_NODES } from "@nodetool-ai/integration-nodes/nodes/apify";
+export {
+  ComfyWorkflowNode,
+  COMFY_NODES
+} from "@nodetool-ai/integration-nodes/nodes/comfy";
 export { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
 export { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 export { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
+export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 export { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 export { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 export {
@@ -752,9 +757,11 @@ import { KIE_DYNAMIC_NODES } from "@nodetool-ai/integration-nodes/nodes/kie-dyna
 import { VECTOR_NODES } from "@nodetool-ai/core-nodes/nodes/vector";
 import { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
 import { APIFY_NODES } from "@nodetool-ai/integration-nodes/nodes/apify";
+import { COMFY_NODES } from "@nodetool-ai/integration-nodes/nodes/comfy";
 import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
 import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
+import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 import { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 import { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 import { SANDBOX_NODES } from "@nodetool-ai/code-nodes/nodes/sandbox";
@@ -832,9 +839,11 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...VECTOR_NODES,
   ...GEMINI_NODES,
   ...APIFY_NODES,
+  ...COMFY_NODES,
   ...MESSAGING_NODES,
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
+  ...XAI_NODES,
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
   ...SANDBOX_NODES,

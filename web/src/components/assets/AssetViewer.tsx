@@ -41,6 +41,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
+import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
 import { useNavigate } from "react-router-dom";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { isElectron } from "../../utils/browser";
@@ -291,6 +292,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   // model3d → 3D editor), retiring the legacy /assets/edit route.
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const navigate = useNavigate();
+  const editVideoAsset = useEditVideoAsset();
 
   // Reset compare mode when viewer closes
   useEffect(() => {
@@ -326,6 +328,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const isAudio = useMemo(() => {
     const ct = currentAsset?.content_type || contentType;
     return ct?.startsWith("audio/") || false;
+  }, [currentAsset?.content_type, contentType]);
+
+  // Check if current asset is a video (editable via its source timeline)
+  const isVideo = useMemo(() => {
+    const ct = currentAsset?.content_type || contentType;
+    return ct?.startsWith("video/") || false;
   }, [currentAsset?.content_type, contentType]);
 
   // Check if there are multiple images to compare
@@ -424,6 +432,13 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       handleClose();
     }
   }, [currentAsset, isAudio, openTab, navigate, handleClose]);
+
+  const handleOpenVideoEditor = useCallback(() => {
+    if (currentAsset && isVideo) {
+      void editVideoAsset(currentAsset);
+      handleClose();
+    }
+  }, [currentAsset, isVideo, editVideoAsset, handleClose]);
 
 
   // Copy to clipboard state and handler
@@ -776,6 +791,20 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               icon={<EditIcon />}
               tooltip="Edit Audio"
               onClick={handleOpenAudioEditor}
+              className="button edit"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {isVideo && !compareMode && (
+            <ToolbarIconButton
+              icon={<EditIcon />}
+              tooltip={
+                currentAsset?.timeline_id
+                  ? "Edit Timeline"
+                  : "Create Timeline from Video"
+              }
+              onClick={handleOpenVideoEditor}
               className="button edit"
               nodrag={false}
               sx={viewerActionButtonSx}

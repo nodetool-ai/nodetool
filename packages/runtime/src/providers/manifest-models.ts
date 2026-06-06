@@ -20,6 +20,13 @@ const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
 // Manifest entry shapes — union of Kie / FAL / Replicate conventions
 // ---------------------------------------------------------------------------
 
+interface ManifestInputField {
+  name: string;
+  apiParamName?: string;
+  propType: string;
+  enumValues?: string[];
+}
+
 interface ManifestNode {
   /** Kie uses modelId */
   modelId?: string;
@@ -31,6 +38,45 @@ interface ManifestNode {
   className?: string;
   /** "image" | "video" | "audio" | ... */
   outputType?: string;
+  /** Explicit task set declared by manifests that know model capabilities. */
+  supportedTasks?: string[];
+  /** FAL ships per-endpoint input schemas; used to derive option constraints. */
+  inputFields?: ManifestInputField[];
+}
+
+function explicitTasks(n: ManifestNode): string[] | undefined {
+  return Array.isArray(n.supportedTasks) && n.supportedTasks.length > 0
+    ? n.supportedTasks
+    : undefined;
+}
+
+/** Enum values declared for a manifest input field, by canonical API name. */
+function enumValuesFor(
+  n: ManifestNode,
+  apiName: string
+): string[] | undefined {
+  const field = (n.inputFields ?? []).find(
+    (f) => (f.apiParamName ?? f.name) === apiName
+  );
+  const values = field?.enumValues;
+  return values && values.length > 0 ? values : undefined;
+}
+
+/** Option constraints (duration/resolution/aspect) for a video endpoint. */
+function videoConstraints(n: ManifestNode): {
+  durations?: number[];
+  resolutions?: string[];
+  aspectRatios?: string[];
+} {
+  const durationEnum = enumValuesFor(n, "duration");
+  const durations = durationEnum
+    ?.map((v) => Number(v))
+    .filter((v) => Number.isFinite(v));
+  return {
+    durations: durations && durations.length > 0 ? durations : undefined,
+    resolutions: enumValuesFor(n, "resolution"),
+    aspectRatios: enumValuesFor(n, "aspect_ratio")
+  };
 }
 
 function nodeId(n: ManifestNode): string {
@@ -145,14 +191,26 @@ export function loadVideoModels(
     const id = nodeId(n);
     if (!id) continue;
     const name = nodeName(n);
-    const tasks = inferVideoTasks(name, id);
+    const tasks = explicitTasks(n) ?? inferVideoTasks(name, id);
 
     const existing = seen.get(id);
     if (existing) {
       const merged = new Set([...(existing.supportedTasks ?? []), ...tasks]);
       existing.supportedTasks = [...merged];
+      // Prefer the first entry that actually declares constraints (image- and
+      // text-to-video variants of one model can share an id).
+      const c = videoConstraints(n);
+      existing.durations ??= c.durations;
+      existing.resolutions ??= c.resolutions;
+      existing.aspectRatios ??= c.aspectRatios;
     } else {
-      seen.set(id, { id, name, provider, supportedTasks: tasks });
+      seen.set(id, {
+        id,
+        name,
+        provider,
+        supportedTasks: tasks,
+        ...videoConstraints(n)
+      });
     }
   }
 
@@ -171,7 +229,7 @@ export function loadImageModels(
     const id = nodeId(n);
     if (!id || seen.has(id)) continue;
     const name = nodeName(n);
-    const tasks = inferImageTasks(name, id);
+    const tasks = explicitTasks(n) ?? inferImageTasks(name, id);
     // Image-typed entries always qualify. `dict`-typed entries (FAL endpoints
     // whose response schema is an object, e.g. clarity-upscaler) are salvaged
     // only when they're recognizable image transforms, so the picker can offer

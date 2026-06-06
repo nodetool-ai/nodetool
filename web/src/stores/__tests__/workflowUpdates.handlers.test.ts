@@ -71,49 +71,59 @@ describe("handleUpdate", () => {
   });
 
   it("stores progress on node_progress", () => {
-    const progress: NodeProgress = {
+    const progress = {
       type: "node_progress",
       node_id: "n1",
       progress: 5,
-      total: 10
-    };
+      total: 10,
+      // Per-node progress is keyed by the producing run's job_id.
+      job_id: "job-1"
+    } as unknown as NodeProgress;
 
     handleUpdate(mockWorkflow, progress, mockRunnerStore as never, () => undefined);
 
-    const stored = useResultsStore.getState().getProgress("workflow-1", "n1");
+    const stored = useResultsStore
+      .getState()
+      .getProgress("workflow-1", "job-1", "n1");
     expect(stored).toMatchObject({ progress: 5, total: 10 });
   });
 
   it("stores error on node_update with error", () => {
-    const update: NodeUpdate = {
+    const update = {
       type: "node_update",
       node_id: "n1",
       node_name: "Node 1",
       node_type: "test.Node",
       status: "error",
-      error: "something failed"
-    };
+      error: "something failed",
+      // Per-node error is keyed by the producing run's job_id.
+      job_id: "job-1"
+    } as unknown as NodeUpdate;
 
     handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
 
-    const error = useErrorStore.getState().getError("workflow-1", "n1");
+    const error = useErrorStore.getState().getError("workflow-1", "job-1", "n1");
     expect(error).toBe("something failed");
     expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: "error" });
   });
 
   it("stores provider_cost on completed node_update", () => {
-    const update: NodeUpdate = {
+    const update = {
       type: "node_update",
       node_id: "n1",
       node_name: "Node 1",
       node_type: "kie.test.Node",
       status: "completed",
-      provider_cost: { provider: "kie", amount: 12, unit: "credits" }
-    };
+      provider_cost: { provider: "kie", amount: 12, unit: "credits" },
+      // Per-node provider cost is keyed by the producing run's job_id.
+      job_id: "job-1"
+    } as unknown as NodeUpdate;
 
     handleUpdate(mockWorkflow, update, mockRunnerStore as never, () => undefined);
 
-    expect(useResultsStore.getState().getProviderCost("workflow-1", "n1")).toEqual({
+    expect(
+      useResultsStore.getState().getProviderCost("workflow-1", "job-1", "n1")
+    ).toEqual({
       provider: "kie",
       amount: 12,
       unit: "credits"
@@ -121,24 +131,28 @@ describe("handleUpdate", () => {
   });
 
   it("stores output result on output_update", () => {
-    const output: OutputUpdate = {
+    const output = {
       type: "output_update",
       node_id: "n1",
       node_name: "Out",
       output_name: "output",
       output_type: "string",
       value: "result",
-      metadata: {}
-    };
+      metadata: {},
+      // Per-node output result is keyed by the producing run's job_id.
+      job_id: "job-1"
+    } as unknown as OutputUpdate;
 
     handleUpdate(mockWorkflow, output, mockRunnerStore as never, () => undefined);
 
-    const stored = useResultsStore.getState().getOutputResult("workflow-1", "n1");
+    const stored = useResultsStore
+      .getState()
+      .getOutputResult("workflow-1", "job-1", "n1");
     expect(stored).toBe("result");
   });
 
-  it("updates runner state and clears progress on job_update completed", () => {
-    useResultsStore.getState().setProgress("workflow-1", "n1", 5, 10);
+  it("updates runner state and keeps the run's per-job progress on job_update completed", () => {
+    useResultsStore.getState().setProgress("workflow-1", "job-1", "n1", 5, 10);
 
     const jobUpdate: JobUpdate = {
       type: "job_update",
@@ -149,6 +163,11 @@ describe("handleUpdate", () => {
     handleUpdate(mockWorkflow, jobUpdate, mockRunnerStore as never, () => undefined);
 
     expect(mockRunnerStore.setState).toHaveBeenCalledWith({ state: "idle" });
-    expect(useResultsStore.getState().getProgress("workflow-1", "n1")).toBeUndefined();
+    // Completion no longer clears per-job state: those clears spanned the whole
+    // workflow and would wipe a concurrently running sibling. The finished
+    // run's slice persists so it can still be focused.
+    expect(
+      useResultsStore.getState().getProgress("workflow-1", "job-1", "n1")
+    ).toMatchObject({ progress: 5, total: 10 });
   });
 });

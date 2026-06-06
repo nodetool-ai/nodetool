@@ -88,7 +88,6 @@ export class TextTo3DNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "model_3d_model",
@@ -158,7 +157,6 @@ export class ImageTo3DNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "model_3d_model",

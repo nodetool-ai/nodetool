@@ -60,6 +60,7 @@ interface TableActionsProps {
   canUndo?: boolean;
   canRedo?: boolean;
   onHistoryChange?: () => void;
+  children?: React.ReactNode;
 }
 
 const TableActions: React.FC<TableActionsProps> = memo(({
@@ -79,7 +80,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
   isModalMode = false,
   canUndo = false,
   canRedo = false,
-  onHistoryChange
+  onHistoryChange,
+  children
 }) => {
   TableActions.displayName = 'TableActions';
   const { writeClipboard } = useClipboard();
@@ -148,7 +150,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       }
     } else {
       if (Array.isArray(data) && dataframeColumns) {
-        const newRow = defaultRow(dataframeColumns);
+        const newRow = defaultRow(dataframeColumns, data.length);
         (onChangeRows as (newData: unknown) => void)([...data as DictTableRow[], newRow]);
       } else if (!Array.isArray(data)) {
         const newKey = `new_key_${Object.keys(data).length}`;
@@ -549,17 +551,19 @@ const TableActions: React.FC<TableActionsProps> = memo(({
       <ToolbarIconButton title="Copy table data to clipboard" onClick={handleCopyData}>
         <ContentCopyIcon sx={{ fontSize: 12 }} />
       </ToolbarIconButton>
+
+      {children && <div className="table-actions-extra">{children}</div>}
     </div>
   );
 });
 
 export default TableActions;
 
-const defaultRow = (columns: ColumnDef[]): DictTableRow => {
+const defaultRow = (columns: ColumnDef[], rownum = 0): DictTableRow => {
   return columns.reduce((acc, col) => {
     (acc as Record<string, DataframeCellValue>)[col.name] = defaultValue(col);
     return acc;
-  }, { rownum: 0 });
+  }, { rownum });
 };
 
 const defaultValue = (column: ColumnDef): DataframeCellValue => {

@@ -56,7 +56,6 @@ function makeMetadata(nodeType: string): NodeMetadata {
     outputs: [],
     supports_dynamic_inputs: false,
     recommended_models: [],
-    expose_as_tool: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
     required_settings: []

@@ -4,7 +4,7 @@ import { LexicalEditor } from "lexical";
 /**
  * Export the current editor content as markdown
  */
-export function exportToMarkdown(editor: LexicalEditor): string {
+function exportToMarkdown(editor: LexicalEditor): string {
   let markdown = "";
 
   editor.getEditorState().read(() => {

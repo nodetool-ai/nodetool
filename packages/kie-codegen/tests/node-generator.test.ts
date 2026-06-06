@@ -212,11 +212,6 @@ describe("Class structure", () => {
     );
   });
 
-  it("generates exposeAsTool = true", () => {
-    const code = gen.generateModule(makeModule());
-    expect(code).toContain("static readonly exposeAsTool = true");
-  });
-
   it("extends BaseNode", () => {
     const code = gen.generateModule(makeModule());
     expect(code).toContain("extends BaseNode");

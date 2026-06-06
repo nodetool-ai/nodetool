@@ -115,7 +115,6 @@ export class PdfExtractTextNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "str" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -168,7 +167,6 @@ export class PdfExtractMarkdownNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "str" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -239,7 +237,14 @@ export class PdfExtractMarkdownNode extends BaseNode {
         const size = item.fontSize ?? item.height ?? 12;
         const isBold = /bold/i.test(item.fontName ?? "");
         if (existing) {
-          existing.text += item.str;
+          // Insert a separating space only at a clear word boundary so we don't
+          // merge adjacent runs ("Hello"+"World"), nor double up when liteparse
+          // already includes the spacing.
+          const needsSpace =
+            existing.text.length > 0 &&
+            !/\s$/.test(existing.text) &&
+            !/^\s/.test(item.str);
+          existing.text += (needsSpace ? " " : "") + item.str;
           existing.maxSize = Math.max(existing.maxSize, size);
           if (isBold) existing.isBold = true;
         } else {
@@ -372,7 +377,6 @@ export class PdfExtractTablesNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -538,7 +542,6 @@ export class PdfExtractTextBlocksNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -641,7 +644,6 @@ export class PdfExtractStyledTextNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -884,7 +886,7 @@ export class PdfToppmNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[image]" };
-  static readonly requiredRuntimes = ["pdftotext"];
+  static readonly requiredRuntimes = ["pdftoppm"];
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -1027,7 +1029,6 @@ export class PdfSearchTextNode extends BaseNode {
   static readonly inlineFields = ["phrase"];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[dict]" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;
@@ -1126,7 +1127,6 @@ export class PdfExtractOcrNode extends BaseNode {
   static readonly inlineFields = ["ocr_language"];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "str" };
-  static readonly exposeAsTool = true;
 
   @prop(PDF_INPUT)
   declare pdf: any;

@@ -50,10 +50,8 @@ import type {
 } from "@nodetool-ai/runtime";
 import {
   ProcessingContext as RuntimeProcessingContext,
-  executeComfy,
   encodeRawRgbaToPng,
-  type ComfyProgressEvent,
-  type ComfyExecutionHandle
+  getCostReconciler
 } from "@nodetool-ai/runtime";
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
 import type {
@@ -87,7 +85,7 @@ import {
 } from "@nodetool-ai/agents";
 import { RunNodeTool } from "./agent/run-node-tool.js";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
@@ -418,87 +416,6 @@ async function autoSaveAssets(
   }
 }
 
-/**
- * Returns true if every node in the graph has a type starting with "comfy.".
- */
-function isComfyGraph(graph: {
-  nodes: Array<Record<string, unknown>>;
-}): boolean {
-  return (
-    graph.nodes.length > 0 &&
-    graph.nodes.every(
-      (n) =>
-        typeof n.type === "string" && (n.type as string).startsWith("comfy.")
-    )
-  );
-}
-
-/**
- * Converts a NodeTool graph (with comfy.* nodes) into a ComfyUI API prompt dict.
- */
-function graphToComfyPrompt(graph: {
-  nodes: Array<Record<string, unknown>>;
-  edges: Array<Record<string, unknown>>;
-}): Record<string, { class_type: string; inputs: Record<string, unknown> }> {
-  const prompt: Record<
-    string,
-    { class_type: string; inputs: Record<string, unknown> }
-  > = {};
-
-  for (const node of graph.nodes) {
-    const id = String(node.id);
-    const classType = (node.type as string).replace(/^comfy\./, "");
-    const props: Record<string, unknown> =
-      (node.properties as Record<string, unknown>) ??
-      (node.data as Record<string, unknown>) ??
-      {};
-    const inputs: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(props)) {
-      if (key.startsWith("_") || key === "workflow_id") continue;
-      // MsgPack may decode large integers as BigInt; ComfyUI expects plain numbers
-      inputs[key] = typeof value === "bigint" ? Number(value) : value;
-    }
-    prompt[id] = { class_type: classType, inputs };
-  }
-
-  // Wire edges: set inputs to [sourceId, slotIndex]
-  for (const edge of graph.edges) {
-    const sourceId = String(edge.source);
-    const targetId = String(edge.target);
-    const sourceHandle = edge.sourceHandle as string;
-    const targetHandle = edge.targetHandle as string;
-
-    if (!prompt[targetId]) continue;
-
-    // Determine output slot index from source handle name.
-    // Handles may be "output_0", "output_1", etc. (generic indexed format)
-    // or named like "MODEL", "CLIP", "VAE" (resolved via _comfy_metadata).
-    let slotIndex = 0;
-    const outputMatch = /^output_(\d+)$/.exec(sourceHandle);
-    if (outputMatch) {
-      slotIndex = parseInt(outputMatch[1], 10);
-    } else {
-      const sourceNode = graph.nodes.find((n) => String(n.id) === sourceId);
-      if (sourceNode) {
-        const nodeProps =
-          (sourceNode.properties as Record<string, unknown>) ??
-          (sourceNode.data as Record<string, unknown>) ??
-          {};
-        const meta = (nodeProps._comfy_metadata ??
-          sourceNode._comfy_metadata) as { outputs?: string[] } | undefined;
-        if (meta?.outputs) {
-          const idx = meta.outputs.indexOf(sourceHandle);
-          if (idx >= 0) slotIndex = idx;
-        }
-      }
-    }
-
-    prompt[targetId].inputs[targetHandle] = [sourceId, slotIndex];
-  }
-
-  return prompt;
-}
-
 function createRuntimeContext(opts: {
   jobId: string;
   workflowId?: string | null;
@@ -687,6 +604,8 @@ export interface WebSocketConnection {
 export interface RunJobRequest {
   job_id?: string;
   workflow_id?: string;
+  /** Allow this run to start even if its workflow already has a run in flight. */
+  concurrent?: boolean;
   user_id?: string;
   auth_token?: string;
   /** Human-readable run title; persisted as the job name. */
@@ -713,8 +632,6 @@ interface ActiveJob {
   status: "running" | "completed" | "failed" | "cancelled";
   error?: string;
   streamTask?: Promise<void>;
-  /** For ComfyUI jobs: handle to cancel the underlying execution. */
-  comfyHandle?: ComfyExecutionHandle;
   /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
   providerCostTotal?: number;
 }
@@ -824,7 +741,7 @@ export interface UnifiedWebSocketRunnerOptions {
    * accept the bridge in their context. Plain workflow execution and chat
    * keep working without it.
    */
-  pythonBridge?: PythonStdioBridge;
+  pythonBridge?: PythonBridge;
   /** Whether the Python bridge has finished hydrating. Same wiring as the tRPC HTTP context. */
   getPythonBridgeReady?: () => boolean;
   /** API options forwarded into the tRPC context (metadata roots, registry, etc.). */
@@ -848,7 +765,7 @@ export class UnifiedWebSocketRunner {
   private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
   private validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
   private nodeRegistry?: NodeRegistry;
-  private pythonBridge?: PythonStdioBridge;
+  private pythonBridge?: PythonBridge;
   private getPythonBridgeReady?: () => boolean;
   private apiOptions?: HttpApiOptions;
   private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
@@ -1008,9 +925,7 @@ export class UnifiedWebSocketRunner {
 
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
-      if (job.comfyHandle) {
-        job.comfyHandle.cancel();
-      } else if (job.runner) {
+      if (job.runner) {
         job.runner.cancel();
       }
       this.activeJobs.delete(jobId);
@@ -1253,9 +1168,12 @@ export class UnifiedWebSocketRunner {
 
   /** Default cap when `MAX_CONCURRENT_JOBS` is unset/invalid. */
   private static readonly DEFAULT_MAX_CONCURRENT_JOBS = 4;
-  /** How long a resolved MAX_CONCURRENT_JOBS value is reused before re-reading. */
+  /** Default per-workflow cap when `MAX_CONCURRENT_RUNS_PER_WORKFLOW` is unset/invalid. */
+  private static readonly DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW = 4;
+  /** How long a resolved concurrency-setting value is reused before re-reading. */
   private static readonly MAX_CONCURRENT_JOBS_TTL_MS = 5000;
   private maxConcurrentJobsCache: { value: number; at: number } | null = null;
+  private maxRunsPerWorkflowCache: { value: number; at: number } | null = null;
 
   /**
    * Resolve the per-client concurrency cap from settings (>= 1), cached for a
@@ -1263,29 +1181,56 @@ export class UnifiedWebSocketRunner {
    * store every time. The setting changes rarely, so a short TTL is fine.
    */
   private async getMaxConcurrentJobs(): Promise<number> {
-    const now = Date.now();
     const cached = this.maxConcurrentJobsCache;
-    if (
-      cached &&
-      now - cached.at < UnifiedWebSocketRunner.MAX_CONCURRENT_JOBS_TTL_MS
-    ) {
-      return cached.value;
+    const value = await this.resolvePositiveIntSetting(
+      "MAX_CONCURRENT_JOBS",
+      UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS,
+      cached
+    );
+    this.maxConcurrentJobsCache = value;
+    return value.value;
+  }
+
+  /**
+   * Resolve the per-workflow concurrency cap (>= 1) for runs that opt into
+   * concurrency. When this many runs of the same workflow are already in
+   * flight, further opted-in runs queue. Cached like {@link getMaxConcurrentJobs}.
+   */
+  private async getMaxConcurrentRunsPerWorkflow(): Promise<number> {
+    const cached = this.maxRunsPerWorkflowCache;
+    const value = await this.resolvePositiveIntSetting(
+      "MAX_CONCURRENT_RUNS_PER_WORKFLOW",
+      UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW,
+      cached
+    );
+    this.maxRunsPerWorkflowCache = value;
+    return value.value;
+  }
+
+  /**
+   * Read a positive-integer setting, reusing the cached value while it's still
+   * within the TTL. Falls back to `fallback` when the setting is unset/invalid
+   * or the settings store is unavailable (e.g. DB not initialized) rather than
+   * blocking the run, matching the runner's other best-effort DB access.
+   */
+  private async resolvePositiveIntSetting(
+    key: string,
+    fallback: number,
+    cached: { value: number; at: number } | null
+  ): Promise<{ value: number; at: number }> {
+    const now = Date.now();
+    if (cached && now - cached.at < UnifiedWebSocketRunner.MAX_CONCURRENT_JOBS_TTL_MS) {
+      return cached;
     }
     let raw: string | null = null;
     try {
-      raw = await getSetting("MAX_CONCURRENT_JOBS");
+      raw = await getSetting(key);
     } catch {
-      // Settings store unavailable (e.g. DB not initialized) — fall back to the
-      // default rather than blocking the run, matching the runner's other
-      // best-effort DB access.
+      // Settings store unavailable — fall back to the default.
     }
     const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-    const value =
-      Number.isFinite(parsed) && parsed > 0
-        ? parsed
-        : UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS;
-    this.maxConcurrentJobsCache = { value, at: now };
-    return value;
+    const value = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    return { value, at: now };
   }
 
   /** Jobs occupying a concurrency slot: live + reserved-but-not-yet-registered. */
@@ -1294,24 +1239,37 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Whether a run for this workflow is already executing. Used to keep
-   * same-workflow runs sequential (the next one stays queued until the current
-   * finishes) so their live node updates don't clobber each other in the
+   * Number of live (unfinished) runs currently executing for a workflow. Used
+   * to enforce the per-workflow concurrency limit so non-concurrent runs stay
+   * sequential and their live node updates don't clobber each other in the
    * editor. Safe to check against `activeJobs` alone: commands are processed
    * one-at-a-time and `startJobInner` registers the job before returning.
    */
-  private hasActiveJobForWorkflow(
+  private countActiveJobsForWorkflow(
     workflowId: string | null | undefined
-  ): boolean {
+  ): number {
     if (!workflowId) {
-      return false;
+      return 0;
     }
+    let count = 0;
     for (const job of this.activeJobs.values()) {
       if (job.workflowId === workflowId && !job.finished) {
-        return true;
+        count++;
       }
     }
-    return false;
+    return count;
+  }
+
+  /**
+   * The per-workflow concurrency limit a given run is subject to: concurrency
+   * opt-in runs share the configurable {@link getMaxConcurrentRunsPerWorkflow}
+   * cap; everything else stays strictly sequential (one run per workflow) so
+   * live node updates don't clobber the editor.
+   */
+  private perWorkflowLimitFor(req: { concurrent?: boolean }): Promise<number> {
+    return req.concurrent
+      ? this.getMaxConcurrentRunsPerWorkflow()
+      : Promise.resolve(1);
   }
 
   /**
@@ -1321,13 +1279,15 @@ export class UnifiedWebSocketRunner {
    */
   async runJob(req: RunJobRequest): Promise<void> {
     const max = await this.getMaxConcurrentJobs();
+    const perWorkflowMax = await this.perWorkflowLimitFor(req);
     // Queue the run when over the global cap, or when this workflow already has
-    // a run in flight (one run per workflow at a time). Reserve the slot
-    // synchronously (after the only await above) so two run_job commands can't
-    // both observe a free slot before either registers.
+    // its per-workflow limit of runs in flight — 1 for normal runs, or the
+    // configurable MAX_CONCURRENT_RUNS_PER_WORKFLOW for runs that opt into
+    // concurrency. Reserve the slot synchronously (after the awaits above) so
+    // two run_job commands can't both observe a free slot before either registers.
     if (
       this.inFlightJobCount >= max ||
-      this.hasActiveJobForWorkflow(req.workflow_id)
+      this.countActiveJobsForWorkflow(req.workflow_id) >= perWorkflowMax
     ) {
       await this.enqueueJob(req);
       return;
@@ -1380,13 +1340,21 @@ export class UnifiedWebSocketRunner {
       const max = await this.getMaxConcurrentJobs().catch(
         () => UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS
       );
-      // Fill free slots with the first queued run whose workflow isn't already
-      // running (one run per workflow). startJob registers the job before it
-      // returns, so the next iteration sees it as in-flight.
+      const perWorkflowMax = await this.getMaxConcurrentRunsPerWorkflow().catch(
+        () => UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW
+      );
+      // Fill free slots with the first queued run whose workflow is still under
+      // its per-workflow limit (1 for normal runs, perWorkflowMax for opted-in
+      // concurrent runs). startJob registers the job before it returns, so the
+      // next iteration sees it as in-flight.
       while (this.inFlightJobCount < max) {
         const candidate = this.jobQueue
           .positions()
-          .find((p) => !this.hasActiveJobForWorkflow(p.workflowId));
+          .find(
+            (p) =>
+              this.countActiveJobsForWorkflow(p.workflowId) <
+              (p.concurrent ? perWorkflowMax : 1)
+          );
         if (!candidate) {
           break;
         }
@@ -1459,31 +1427,9 @@ export class UnifiedWebSocketRunner {
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
 
-    // Get the normalized (but not hydrated) graph first so we can check
-    // for comfy nodes before hydration strips unregistered node types.
     const rawGraph = await this.getRawGraph(req);
 
-    // Route ComfyUI workflows to the dedicated comfy executor
-    if (isComfyGraph(rawGraph)) {
-      if (this.beforeRunJob) {
-        try {
-          await this.beforeRunJob(rawGraph);
-        } catch (err) {
-          await this.emitBeforeRunFailure(jobId, workflowId, err);
-          return;
-        }
-      }
-      await this.runComfyJob(
-        jobId,
-        workflowId,
-        userId,
-        rawGraph,
-        req.settings ?? {}
-      );
-      return;
-    }
-
-    // Hydrate non-comfy graphs (resolves node types from the registry)
+    // Hydrate the graph (resolves node types from the registry)
     const graph = await this.hydrateGraph(rawGraph);
 
     if (this.beforeRunJob) {
@@ -1614,195 +1560,6 @@ export class UnifiedWebSocketRunner {
     );
 
     active.streamTask = this.streamJobMessages(active, executePromise);
-  }
-
-  /**
-   * Execute a ComfyUI workflow via the comfy executor (local or RunPod).
-   */
-  private async runComfyJob(
-    jobId: string,
-    workflowId: string | null,
-    _userId: string,
-    graph: {
-      nodes: Array<Record<string, unknown>>;
-      edges: Array<Record<string, unknown>>;
-    },
-    _settings: Record<string, unknown>
-  ): Promise<void> {
-    const active: ActiveJob = {
-      jobId,
-      workflowId,
-      context: null as unknown as ProcessingContext,
-      runner: null as unknown as WorkflowRunner,
-      graph,
-      finished: false,
-      status: "running"
-    };
-    this.activeJobs.set(jobId, active);
-
-    // Build node metadata lookup for status messages
-    const nodeLookup = new Map<string, { name: string; type: string }>();
-    for (const node of graph.nodes) {
-      const id = String(node.id);
-      const type = (node.type as string) ?? "comfy.unknown";
-      const props = (node.properties ?? node.data ?? {}) as Record<
-        string,
-        unknown
-      >;
-      const name = (props.title as string) ?? type;
-      nodeLookup.set(id, { name, type });
-    }
-    const getNode = (id: string) =>
-      nodeLookup.get(id) ?? { name: `Node ${id}`, type: "comfy.unknown" };
-
-    try {
-      await this.sendMessage({
-        type: "job_update",
-        status: "running",
-        job_id: jobId,
-        workflow_id: workflowId
-      });
-
-      const prompt = graphToComfyPrompt(graph);
-      const host = await getSetting("COMFYUI_ADDR");
-      if (!host) {
-        throw new Error("COMFYUI_ADDR is not configured. Set it in Settings.");
-      }
-
-      // Track active node so we can mark it completed when the next one starts
-      let activeNodeId: string | null = null;
-      const completeNode = (nodeId: string) => {
-        const n = getNode(nodeId);
-        void this.sendMessage({
-          type: "node_update",
-          node_id: nodeId,
-          node_name: n.name,
-          node_type: n.type,
-          status: "completed",
-          workflow_id: workflowId
-        });
-      };
-
-      const onProgress = (event: ComfyProgressEvent) => {
-        switch (event.type) {
-          case "executing": {
-            // When a new node starts, the previous one is implicitly done
-            if (activeNodeId && activeNodeId !== event.node) {
-              completeNode(activeNodeId);
-              activeNodeId = null;
-            }
-            if (event.node) {
-              activeNodeId = event.node;
-              const n = getNode(event.node);
-              void this.sendMessage({
-                type: "node_update",
-                node_id: event.node,
-                node_name: n.name,
-                node_type: n.type,
-                status: "running",
-                workflow_id: workflowId
-              });
-            } else {
-              // null node = execution finished, complete any lingering active node
-              if (activeNodeId) {
-                completeNode(activeNodeId);
-                activeNodeId = null;
-              }
-            }
-            break;
-          }
-          case "progress":
-            if (event.node) {
-              void this.sendMessage({
-                type: "node_progress",
-                node_id: event.node,
-                progress: event.progress ?? 0,
-                total: event.total ?? 1,
-                workflow_id: workflowId
-              });
-            }
-            break;
-          case "executed":
-            if (event.node) {
-              // Explicit completion with output — mark done and clear active
-              if (activeNodeId === event.node) activeNodeId = null;
-              const n = getNode(event.node);
-              void this.sendMessage({
-                type: "node_update",
-                node_id: event.node,
-                node_name: n.name,
-                node_type: n.type,
-                status: "completed",
-                result: event.output ?? null,
-                workflow_id: workflowId
-              });
-            }
-            break;
-          case "execution_cached":
-            if (event.cached_nodes) {
-              for (const nodeId of event.cached_nodes) {
-                completeNode(nodeId);
-              }
-            }
-            break;
-          case "execution_error":
-            if (event.node) {
-              activeNodeId = null;
-              const n = getNode(event.node);
-              void this.sendMessage({
-                type: "node_update",
-                node_id: event.node,
-                node_name: n.name,
-                node_type: n.type,
-                status: "error",
-                error: event.error ?? "Execution error",
-                workflow_id: workflowId
-              });
-            }
-            break;
-        }
-      };
-
-      const handle = executeComfy(prompt, host, onProgress);
-      active.comfyHandle = handle;
-      const result = await handle.result;
-
-      if (result.status === "completed") {
-        if (result.images && result.images.length > 0) {
-          await this.sendMessage({
-            type: "output_update",
-            job_id: jobId,
-            workflow_id: workflowId,
-            result: { images: result.images }
-          });
-        }
-        active.status = "completed";
-        active.finished = true;
-        await this.sendMessage({
-          type: "job_update",
-          status: "completed",
-          job_id: jobId,
-          workflow_id: workflowId
-        });
-      } else {
-        throw new Error(result.error ?? "ComfyUI execution failed");
-      }
-    } catch (err) {
-      active.status = "failed";
-      active.finished = true;
-      active.error = err instanceof Error ? err.message : String(err);
-      log.error("ComfyUI job failed", { jobId, error: active.error });
-      await this.sendMessage({
-        type: "job_update",
-        status: "failed",
-        job_id: jobId,
-        workflow_id: workflowId,
-        error: active.error
-      });
-    } finally {
-      this.activeJobs.delete(jobId);
-      this.drainQueue();
-    }
   }
 
   private async streamJobMessages(
@@ -1937,27 +1694,7 @@ export class UnifiedWebSocketRunner {
             }
           }
 
-          // Persist provider-reported spend (FAL / Kie / … generative nodes) so
-          // it shows up in the cost ledger alongside chat/LLM predictions, and
-          // sum it into the per-run total surfaced as job.cost.
-          if (
-            outbound.type === "node_update" &&
-            outbound.status === "completed" &&
-            outbound.provider_cost != null
-          ) {
-            await this._persistNodeProviderCost(
-              outbound.provider_cost as ProviderCost,
-              String(outbound.node_id ?? ""),
-              nodeType,
-              active.workflowId
-            );
-            const amount = (outbound.provider_cost as { amount?: unknown })
-              .amount;
-            if (typeof amount === "number" && Number.isFinite(amount)) {
-              active.providerCostTotal =
-                (active.providerCostTotal ?? 0) + amount;
-            }
-          }
+          await this._handleNodeProviderCost(active, outbound, nodeType);
 
           // Materialize binary assets to temp URLs before sending over WebSocket
           if (outbound.type === "node_update" && outbound.result != null) {
@@ -2017,13 +1754,18 @@ export class UnifiedWebSocketRunner {
       // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
       // while the job is still executing in memory. Don't overwrite that with a
       // completed/failed status when the in-flight run finishes.
-      if (job && job.status !== "cancelled") {
-        if (active.status === "completed") {
-          job.markCompleted();
-        } else if (active.status === "failed") {
-          job.markFailed(active.error ?? "Unknown error");
-        } else if (active.status === "cancelled") {
-          job.markCancelled();
+      if (job) {
+        if (job.status !== "cancelled") {
+          if (active.status === "completed") {
+            job.markCompleted();
+          } else if (active.status === "failed") {
+            job.markFailed(active.error ?? "Unknown error");
+          } else if (active.status === "cancelled") {
+            job.markCancelled();
+          }
+        }
+        if (active.providerCostTotal != null) {
+          job.cost = active.providerCostTotal;
         }
         if ((active.providerCostTotal ?? 0) > 0) {
           job.cost = active.providerCostTotal ?? null;
@@ -2118,9 +1860,7 @@ export class UnifiedWebSocketRunner {
       };
     }
 
-    if (active.comfyHandle) {
-      active.comfyHandle.cancel();
-    } else if (active.runner) {
+    if (active.runner) {
       active.runner.cancel();
     }
     active.status = "cancelled";
@@ -2526,10 +2266,15 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    // Route to workflow processor when workflow_target or workflow_id is set.
+    // Route to the workflow processor ONLY when the client explicitly opts in
+    // via `workflow_target: "workflow"`. A bare `workflow_id` is context, not a
+    // routing signal: the editor binds the open workflow so `ui_*` tools target
+    // it, and that ambient id must not hijack the turn into running the
+    // workflow as a chatbot. Genuine workflow-chatbot runs set `workflow_target`
+    // (and carry `workflow_id`/`graph` for the processor to load/execute).
     const workflowTarget =
       typeof data.workflow_target === "string" ? data.workflow_target : null;
-    if (workflowTarget === "workflow" || workflowId) {
+    if (workflowTarget === "workflow") {
       await this.handleWorkflowMessage(data, requestSeq);
       return;
     }
@@ -3159,6 +2904,32 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  /** Persist and accumulate provider cost from a completed node_update. */
+  private async _handleNodeProviderCost(
+    active: ActiveJob,
+    outbound: Record<string, unknown>,
+    nodeType: string
+  ): Promise<void> {
+    if (
+      outbound.type !== "node_update" ||
+      outbound.status !== "completed" ||
+      outbound.provider_cost == null
+    ) {
+      return;
+    }
+    const providerCost = outbound.provider_cost as ProviderCost;
+    await this._persistNodeProviderCost(
+      providerCost,
+      String(outbound.node_id ?? ""),
+      nodeType,
+      active.workflowId
+    );
+    const amount = (providerCost as { amount?: unknown }).amount;
+    if (typeof amount === "number" && Number.isFinite(amount)) {
+      active.providerCostTotal = (active.providerCostTotal ?? 0) + amount;
+    }
+  }
+
   /**
    * Persist a node-reported provider cost into the prediction ledger.
    * Covers generative nodes (FAL, Kie, …) that call
@@ -3174,15 +2945,17 @@ export class UnifiedWebSocketRunner {
       return;
     }
     try {
-      await Prediction.create({
+      const prediction = await Prediction.create<Prediction>({
         user_id: this.userId ?? "1",
         provider: cost.provider,
         model: cost.model ?? nodeType,
+        node_type: nodeType,
         cost: cost.amount,
         currency: cost.currency ?? cost.unit ?? null,
         billing_unit: cost.billing_unit ?? null,
         quantity: cost.quantity ?? null,
         unit_price: cost.unit_price ?? null,
+        provider_request_id: cost.provider_request_id ?? null,
         workflow_id: workflowId,
         node_id: nodeId,
         status: "completed"
@@ -3192,8 +2965,61 @@ export class UnifiedWebSocketRunner {
         model: cost.model ?? nodeType,
         cost: cost.amount
       });
+      // The amount above is an estimate for providers that bill out-of-band.
+      // If the provider exposes a request-keyed billing API, refine it to the
+      // actual charge in the background (best-effort, never blocks the run).
+      if (cost.provider_request_id) {
+        void this._reconcileProviderCost(
+          prediction,
+          cost.provider,
+          cost.provider_request_id,
+          cost.model ?? null
+        );
+      }
     } catch (err) {
       log.warn("Failed to persist node provider cost", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  }
+
+  /**
+   * Replace an estimated provider cost with the provider's actual billed
+   * amount, looked up by request id. Runs detached; swallows all errors and
+   * leaves the estimate in place when no actual is available.
+   */
+  private async _reconcileProviderCost(
+    prediction: Prediction,
+    provider: string,
+    requestId: string,
+    endpointId: string | null
+  ): Promise<void> {
+    const reconciler = getCostReconciler(provider);
+    if (!reconciler) return;
+    try {
+      const apiKey = await getSecret(
+        `${provider.toUpperCase()}_API_KEY`,
+        this.userId ?? undefined
+      );
+      const actual = await reconciler({
+        requestId,
+        endpointId,
+        secrets: apiKey ? { [`${provider.toUpperCase()}_API_KEY`]: apiKey } : {}
+      });
+      if (!actual) return;
+      await prediction.update({
+        cost: actual.cost,
+        currency: actual.currency ?? prediction.currency,
+        quantity: actual.quantity ?? prediction.quantity,
+        unit_price: actual.unit_price ?? prediction.unit_price
+      });
+      log.debug("Reconciled provider cost to actual", {
+        provider,
+        requestId,
+        cost: actual.cost
+      });
+    } catch (err) {
+      log.warn("Failed to reconcile provider cost", {
         error: err instanceof Error ? err.message : String(err)
       });
     }
@@ -4271,20 +4097,28 @@ export class UnifiedWebSocketRunner {
               workflowId
           };
 
-          // Capture output_update values for the response message
-          if (outbound.type === "output_update") {
+          if (
+            outbound.type === "node_update" ||
+            outbound.type === "output_update"
+          ) {
             const nodeId = String(outbound.node_id ?? "");
             const graphNodes = graph.nodes ?? [];
             const node = graphNodes.find((n) => n.id === nodeId);
             const nodeType = typeof node?.type === "string" ? node.type : "";
-            if (nodeType.includes("Output")) {
-              const nodeName =
-                typeof outbound.node_name === "string"
-                  ? outbound.node_name
-                  : nodeType;
-              result[nodeName] = outbound.value;
-            } else {
-              continue; // Skip non-output node output_updates
+
+            await this._handleNodeProviderCost(active, outbound, nodeType);
+
+            // Capture output_update values for the response message
+            if (outbound.type === "output_update") {
+              if (nodeType.includes("Output")) {
+                const nodeName =
+                  typeof outbound.node_name === "string"
+                    ? outbound.node_name
+                    : nodeType;
+                result[nodeName] = outbound.value;
+              } else {
+                continue; // Skip non-output node output_updates
+              }
             }
           }
 
@@ -4321,11 +4155,16 @@ export class UnifiedWebSocketRunner {
         const job = (await Job.get(jobId)) as Job | null;
         // Don't overwrite a cancelled row (DB-only tRPC cancel) when the
         // in-flight run finishes — keep the cancellation authoritative.
-        if (job && job.status !== "cancelled") {
-          if (active.status === "completed") job.markCompleted();
-          else if (active.status === "failed")
-            job.markFailed(active.error ?? "Unknown error");
-          else if (active.status === "cancelled") job.markCancelled();
+        if (job) {
+          if (job.status !== "cancelled") {
+            if (active.status === "completed") job.markCompleted();
+            else if (active.status === "failed")
+              job.markFailed(active.error ?? "Unknown error");
+            else if (active.status === "cancelled") job.markCancelled();
+          }
+          if (active.providerCostTotal != null) {
+            job.cost = active.providerCostTotal;
+          }
           await job.save();
         }
       } catch (error) {
@@ -4758,6 +4597,65 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Transcribe a stored audio asset to word-level caption timing. Mirrors the
+   * provider path used by the ASR node but skips the workflow machinery — the
+   * caller (Studio transcript beats) wants `{ word, startMs, endMs }[]` back in
+   * one shot. Timestamps are returned in milliseconds relative to the start of
+   * the audio.
+   */
+  private async runDirectTranscription(req: {
+    provider: string;
+    model: string;
+    assetId: string;
+    language?: string;
+  }): Promise<{
+    text: string;
+    words: Array<{ word: string; startMs: number; endMs: number }>;
+  }> {
+    if (!this.resolveProvider) {
+      throw new Error("No provider resolver configured");
+    }
+    if (!req.model) {
+      throw new Error("model is required");
+    }
+    if (!req.assetId) {
+      throw new Error("asset_id is required");
+    }
+
+    const userId = this.userId ?? "1";
+    const asset = await Asset.find(userId, req.assetId);
+    if (!asset) {
+      throw new Error(`Audio asset not found: ${req.assetId}`);
+    }
+    const ext = (asset.content_type ?? "audio/wav").split("/")[1] ?? "wav";
+    const adapter = getAssetAdapter();
+    const bytes = await adapter.retrieve(
+      adapter.uriForKey(`${req.assetId}.${ext}`)
+    );
+    if (!bytes) {
+      throw new Error(`Audio asset bytes not found: ${req.assetId}`);
+    }
+
+    const provider = await this.resolveProvider(req.provider, userId);
+    const result = await provider.automaticSpeechRecognition({
+      audio: bytes,
+      model: req.model,
+      language: req.language,
+      word_timestamps: true
+    });
+
+    const words = (result.chunks ?? [])
+      .map((chunk) => ({
+        word: chunk.text.trim(),
+        startMs: Math.round(chunk.timestamp[0] * 1000),
+        endMs: Math.round(chunk.timestamp[1] * 1000)
+      }))
+      .filter((w) => w.word.length > 0);
+
+    return { text: result.text, words };
+  }
+
+  /**
    * Build a tRPC caller bound to this connection's `userId`. Used to dispatch
    * the read-only RPC commands (list_workflows, get_workflow, list_assets,
    * get_asset, list_nodes, get_node) onto the existing tRPC routers — single
@@ -5083,6 +4981,19 @@ export class UnifiedWebSocketRunner {
             speed,
             audioFormat
           })
+        );
+      }
+      case "transcribe_audio": {
+        const provider = String(data.provider ?? this.defaultProvider);
+        const model = String(data.model ?? this.defaultModel);
+        const assetId =
+          typeof data.asset_id === "string" ? (data.asset_id as string) : "";
+        const language =
+          typeof data.language === "string"
+            ? (data.language as string)
+            : undefined;
+        return this.runRpc(command, () =>
+          this.runDirectTranscription({ provider, model, assetId, language })
         );
       }
       default:

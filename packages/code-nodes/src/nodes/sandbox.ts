@@ -389,7 +389,6 @@ export class SandboxShellNode extends BaseNode {
     exit_code: "union[int, none]",
     timed_out: "bool"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -459,7 +458,6 @@ export class SandboxFileNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",

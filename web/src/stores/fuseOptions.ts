@@ -1,10 +1,7 @@
 import { IFuseOptions } from "fuse.js";
 
-// Extend Fuse options type
 export interface ExtendedFuseOptions<T> extends Omit<IFuseOptions<T>, "keys"> {
   keys?: Array<{ name: string; weight: number }>;
-  tokenize?: boolean;
-  matchAllTokens?: boolean;
   findAllMatches?: boolean;
 }
 
@@ -24,7 +21,5 @@ export const fuseOptions: ExtendedFuseOptions<unknown> = {
   shouldSort: true,
   minMatchCharLength: 3,
   useExtendedSearch: true,
-  tokenize: false,
-  matchAllTokens: false,
   findAllMatches: true
 };

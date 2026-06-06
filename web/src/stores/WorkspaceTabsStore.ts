@@ -17,6 +17,7 @@ import { persist } from "zustand/middleware";
 export type WorkspaceTabType =
   | "workflow"
   | "image"
+  | "sketch"
   | "timeline"
   | "model3d"
   | "audio"

@@ -20,6 +20,8 @@ import {
   concatBytes,
   encodePcm16Wav,
   encodeWav,
+  parseWavBytes,
+  readWavHeader,
   toBytes,
   tryDecodeWav,
   uriToPath,
@@ -30,6 +32,53 @@ type ImageLike = {
   data?: Uint8Array | string;
   uri?: string;
 };
+
+const DEFAULT_AUDIO_EXTENSIONS = [
+  ".mp3",
+  ".wav",
+  ".flac",
+  ".ogg",
+  ".m4a",
+  ".aac"
+];
+
+/** Number of sample frames (samples per channel) in a decoded WAV. */
+function wavFrameCount(wav: WavData): number {
+  return wav.numChannels > 0
+    ? Math.floor(wav.samples.length / wav.numChannels)
+    : 0;
+}
+
+/**
+ * Recursively (optionally) walk a folder yielding audio files whose extension
+ * is in `extensions` (compared case-insensitively, leading dot required).
+ */
+async function* walkAudioFiles(
+  folder: string,
+  extensions: string[],
+  recursive: boolean
+): AsyncGenerator<{ full: string; name: string }> {
+  const fs = await loadNodeFsPromises();
+  const path = await loadNodePath();
+  let entries;
+  try {
+    entries = await fs.readdir(folder, { withFileTypes: true });
+  } catch {
+    // folder does not exist or is not accessible
+    return;
+  }
+  for (const entry of entries) {
+    const full = path.join(folder, entry.name);
+    if (entry.isDirectory()) {
+      if (recursive) yield* walkAudioFiles(full, extensions, recursive);
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const ext = path.extname(entry.name).toLowerCase();
+    if (!extensions.includes(ext)) continue;
+    yield { full, name: entry.name };
+  }
+}
 
 function dateName(name: string): string {
   const now = new Date();
@@ -135,23 +184,15 @@ export class LoadAudioAssetsNode extends BaseNode {
           : "";
     if (!folder) return;
     const fs = await loadNodeFsPromises();
-    const path = await loadNodePath();
-    let entries;
-    try {
-      entries = await fs.readdir(folder, { withFileTypes: true });
-    } catch {
-      // folder does not exist or is not accessible
-      return;
-    }
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      const ext = path.extname(entry.name).toLowerCase();
-      if (![".wav", ".mp3", ".m4a", ".flac", ".ogg"].includes(ext)) continue;
-      const full = path.join(folder, entry.name);
+    for await (const { full, name } of walkAudioFiles(
+      folder,
+      DEFAULT_AUDIO_EXTENSIONS,
+      false
+    )) {
       const data = new Uint8Array(await fs.readFile(full));
       yield {
         audio: audioRefFromBytes(data, `file://${full}`),
-        name: entry.name
+        name
       };
     }
   }
@@ -239,19 +280,63 @@ export class LoadAudioFolderNode extends BaseNode {
   })
   declare extensions: any;
 
+  private _resolveFolder(): string {
+    const raw = this.folder;
+    if (typeof raw === "string" && raw.length > 0) {
+      return raw.startsWith("file:") ? uriToPath(raw) : raw;
+    }
+    if (
+      raw &&
+      typeof raw === "object" &&
+      typeof raw.uri === "string" &&
+      raw.uri.length > 0
+    ) {
+      return uriToPath(raw.uri);
+    }
+    return "";
+  }
+
+  private _extensions(): string[] {
+    const list = Array.isArray(this.extensions)
+      ? (this.extensions as unknown[])
+      : DEFAULT_AUDIO_EXTENSIONS;
+    return list.map((e) => {
+      const s = String(e).toLowerCase();
+      return s.startsWith(".") ? s : `.${s}`;
+    });
+  }
+
+  private async *_load(): AsyncGenerator<Record<string, unknown>> {
+    const folder = this._resolveFolder();
+    if (!folder) return;
+    const recursive = Boolean(this.include_subdirectories);
+    const extensions = this._extensions();
+    const fs = await loadNodeFsPromises();
+    for await (const { full } of walkAudioFiles(
+      folder,
+      extensions,
+      recursive
+    )) {
+      const data = new Uint8Array(await fs.readFile(full));
+      yield { audio: audioRefFromBytes(data, `file://${full}`), path: full };
+    }
+  }
+
   async process(): Promise<Record<string, unknown>> {
-    const loader = new LoadAudioAssetsNode();
-    loader.assign({ folder: this.folder ?? "." });
-    const result = await loader.process();
-    return result;
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._load()) {
+      collected.push(item.audio as Record<string, unknown>);
+    }
+    return { audio: collected[0] ?? {}, path: "", audios: collected };
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const loader = new LoadAudioAssetsNode();
-    loader.assign({ folder: this.folder ?? "." });
-    for await (const item of loader.genProcess()) {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._load()) {
+      collected.push(item.audio as Record<string, unknown>);
       yield item;
     }
+    yield { audios: collected };
   }
 }
 
@@ -266,7 +351,6 @@ export class SaveAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -297,7 +381,7 @@ export class SaveAudioNode extends BaseNode {
 
   @prop({
     type: "str",
-    default: "%Y-%m-%d-%H-%M-%S.opus",
+    default: "%Y-%m-%d-%H-%M-%S.wav",
     title: "Name",
     description:
       "\n        The name of the audio file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
@@ -397,7 +481,6 @@ export class NormalizeAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -447,7 +530,6 @@ export class OverlayAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["a", "b"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -477,13 +559,37 @@ export class OverlayAudioNode extends BaseNode {
   })
   declare b: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const a = audioBytes(this.a);
-    const b = audioBytes(this.b);
-    const len = Math.max(a.length, b.length);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const aBytes = await audioBytesAsync(this.a, context);
+    const bBytes = await audioBytesAsync(this.b, context);
+    const aw = parseWavBytes(aBytes);
+    const bw = parseWavBytes(bBytes);
+
+    // When both inputs are WAV with matching layout, overlay = sum the
+    // samples (encodeWav clips to [-1, 1]) so the result stays playable.
+    if (
+      aw &&
+      bw &&
+      aw.sampleRate === bw.sampleRate &&
+      aw.numChannels === bw.numChannels
+    ) {
+      const len = Math.max(aw.samples.length, bw.samples.length);
+      const mixed = new Float32Array(len);
+      for (let i = 0; i < len; i += 1) {
+        mixed[i] = (aw.samples[i] ?? 0) + (bw.samples[i] ?? 0);
+      }
+      return {
+        output: audioRefFromWav(
+          encodeWav(mixed, aw.sampleRate, aw.numChannels)
+        )
+      };
+    }
+
+    // Fallback: byte-level max for non-WAV / mismatched inputs.
+    const len = Math.max(aBytes.length, bBytes.length);
     const out = new Uint8Array(len);
     for (let i = 0; i < len; i += 1) {
-      out[i] = Math.max(a[i] ?? 0, b[i] ?? 0);
+      out[i] = Math.max(aBytes[i] ?? 0, bBytes[i] ?? 0);
     }
     return { output: audioRefFromBytes(out) };
   }
@@ -499,7 +605,6 @@ export class RemoveSilenceNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -569,10 +674,100 @@ export class RemoveSilenceNode extends BaseNode {
   })
   declare min_silence_between_parts: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const data = audioBytes(this.audio);
-    const filtered = data.filter((v) => v !== 0);
-    return { output: audioRefFromBytes(filtered) };
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    const wav = parseWavBytes(bytes);
+    if (!wav || wav.samples.length === 0) {
+      return { output: audioRefFromBytes(bytes) };
+    }
+
+    const { sampleRate, numChannels } = wav;
+    const frames = wavFrameCount(wav);
+    const thresholdDb = Number(this.threshold ?? -40);
+    const minLenMs = Math.max(0, Number(this.min_length ?? 200));
+    const reduction = Math.min(1, Math.max(0, Number(this.reduction_factor ?? 1)));
+    const minGapMs = Math.max(0, Number(this.min_silence_between_parts ?? 100));
+    const crossfadeMs = Math.max(0, Number(this.crossfade ?? 10));
+
+    const thresholdLin = Math.pow(10, thresholdDb / 20);
+    const minLenFrames = Math.round((minLenMs / 1000) * sampleRate);
+    const minGapFrames = Math.round((minGapMs / 1000) * sampleRate);
+    const crossfadeFrames = Math.round((crossfadeMs / 1000) * sampleRate);
+
+    const isSilent = (f: number): boolean => {
+      let amp = 0;
+      for (let ch = 0; ch < numChannels; ch++) {
+        amp = Math.max(amp, Math.abs(wav.samples[f * numChannels + ch]));
+      }
+      return amp < thresholdLin;
+    };
+
+    // Collect the source frame indices to keep, shortening long silences.
+    const kept: number[] = [];
+    let f = 0;
+    while (f < frames) {
+      if (!isSilent(f)) {
+        kept.push(f);
+        f += 1;
+        continue;
+      }
+      const runStart = f;
+      while (f < frames && isSilent(f)) f += 1;
+      const runLen = f - runStart;
+      if (runLen < minLenFrames) {
+        for (let k = runStart; k < f; k++) kept.push(k);
+      } else {
+        let keep = Math.round(runLen * (1 - reduction));
+        // Preserve a minimum gap between non-silent segments.
+        if (kept.length > 0 && f < frames) keep = Math.max(keep, minGapFrames);
+        keep = Math.min(keep, runLen);
+        for (let k = 0; k < keep; k++) kept.push(runStart + k);
+      }
+    }
+
+    if (kept.length === frames) {
+      return {
+        output: audioRefFromWav(
+          encodeWav(wav.samples, sampleRate, numChannels)
+        )
+      };
+    }
+
+    const out = new Float32Array(kept.length * numChannels);
+    for (let i = 0; i < kept.length; i++) {
+      const src = kept[i];
+      for (let ch = 0; ch < numChannels; ch++) {
+        out[i * numChannels + ch] = wav.samples[src * numChannels + ch];
+      }
+    }
+
+    // Smooth the splices: short fades on either side of each discontinuity
+    // (where consecutive kept frames are not adjacent in the source) to avoid
+    // audible clicks.
+    if (crossfadeFrames > 0) {
+      for (let i = 1; i < kept.length; i++) {
+        if (kept[i] === kept[i - 1] + 1) continue;
+        for (let k = 0; k < crossfadeFrames; k++) {
+          const g = (k + 1) / (crossfadeFrames + 1);
+          const before = i - 1 - k;
+          const after = i + k;
+          if (before >= 0) {
+            for (let ch = 0; ch < numChannels; ch++) {
+              out[before * numChannels + ch] *= g;
+            }
+          }
+          if (after < kept.length) {
+            for (let ch = 0; ch < numChannels; ch++) {
+              out[after * numChannels + ch] *= g;
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      output: audioRefFromWav(encodeWav(out, sampleRate, numChannels))
+    };
   }
 }
 
@@ -586,7 +781,6 @@ export class SliceAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -620,12 +814,28 @@ export class SliceAudioNode extends BaseNode {
   })
   declare end: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const data = audioBytes(this.audio);
-    const start = Number(this.start ?? 0);
-    let end = Number(this.end ?? -1);
-    if (end < 0) end = data.length;
-    return { output: audioRefFromBytes(data.slice(start, end)) };
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    const start = Math.max(0, Number(this.start ?? 0));
+    const end = Number(this.end ?? -1);
+    const wav = parseWavBytes(bytes);
+    if (!wav) {
+      // Non-WAV: fall back to raw byte slicing.
+      const e = end < 0 ? bytes.length : end;
+      return { output: audioRefFromBytes(bytes.slice(start, e)) };
+    }
+    const { sampleRate, numChannels } = wav;
+    const frames = wavFrameCount(wav);
+    const startFrame = Math.min(frames, Math.round(start * sampleRate));
+    const endFrame =
+      end < 0 ? frames : Math.min(frames, Math.round(end * sampleRate));
+    const sliced = wav.samples.slice(
+      startFrame * numChannels,
+      Math.max(startFrame, endFrame) * numChannels
+    );
+    return {
+      output: audioRefFromWav(encodeWav(sliced, sampleRate, numChannels))
+    };
   }
 }
 
@@ -639,7 +849,6 @@ export class MonoToStereoNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -655,14 +864,33 @@ export class MonoToStereoNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const mono = audioBytes(this.audio);
-    const out = new Uint8Array(mono.length * 2);
-    for (let i = 0; i < mono.length; i += 1) {
-      out[i * 2] = mono[i];
-      out[i * 2 + 1] = mono[i];
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    const wav = parseWavBytes(bytes);
+    if (!wav) {
+      // Non-WAV fallback: duplicate raw bytes.
+      const out = new Uint8Array(bytes.length * 2);
+      for (let i = 0; i < bytes.length; i += 1) {
+        out[i * 2] = bytes[i];
+        out[i * 2 + 1] = bytes[i];
+      }
+      return { output: audioRefFromBytes(out) };
     }
-    return { output: audioRefFromBytes(out) };
+    // Already stereo (or more): pass through unchanged.
+    if (wav.numChannels >= 2) {
+      return {
+        output: audioRefFromWav(
+          encodeWav(wav.samples, wav.sampleRate, wav.numChannels)
+        )
+      };
+    }
+    const frames = wav.samples.length;
+    const out = new Float32Array(frames * 2);
+    for (let i = 0; i < frames; i += 1) {
+      out[i * 2] = wav.samples[i];
+      out[i * 2 + 1] = wav.samples[i];
+    }
+    return { output: audioRefFromWav(encodeWav(out, wav.sampleRate, 2)) };
   }
 }
 
@@ -676,7 +904,6 @@ export class StereoToMonoNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -700,13 +927,40 @@ export class StereoToMonoNode extends BaseNode {
   })
   declare method: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const stereo = audioBytes(this.audio);
-    const out = new Uint8Array(Math.ceil(stereo.length / 2));
-    for (let i = 0, j = 0; i < stereo.length; i += 2, j += 1) {
-      out[j] = stereo[i];
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    const method = String(this.method ?? "average");
+    const wav = parseWavBytes(bytes);
+    if (!wav) {
+      // Non-WAV fallback: keep every other byte.
+      const out = new Uint8Array(Math.ceil(bytes.length / 2));
+      for (let i = 0, j = 0; i < bytes.length; i += 2, j += 1) {
+        out[j] = bytes[i];
+      }
+      return { output: audioRefFromBytes(out) };
     }
-    return { output: audioRefFromBytes(out) };
+    const numChannels = wav.numChannels;
+    // Already mono: pass through unchanged.
+    if (numChannels <= 1) {
+      return {
+        output: audioRefFromWav(encodeWav(wav.samples, wav.sampleRate, 1))
+      };
+    }
+    const frames = wavFrameCount(wav);
+    const out = new Float32Array(frames);
+    for (let f = 0; f < frames; f += 1) {
+      const base = f * numChannels;
+      if (method === "left") {
+        out[f] = wav.samples[base];
+      } else if (method === "right") {
+        out[f] = wav.samples[base + 1];
+      } else {
+        let sum = 0;
+        for (let ch = 0; ch < numChannels; ch++) sum += wav.samples[base + ch];
+        out[f] = sum / numChannels;
+      }
+    }
+    return { output: audioRefFromWav(encodeWav(out, wav.sampleRate, 1)) };
   }
 }
 
@@ -720,7 +974,6 @@ export class ReverseAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -736,9 +989,25 @@ export class ReverseAudioNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const data = audioBytes(this.audio);
-    return { output: audioRefFromBytes(new Uint8Array([...data].reverse())) };
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    const wav = parseWavBytes(bytes);
+    if (!wav) {
+      // Non-WAV fallback: reverse raw bytes.
+      return { output: audioRefFromBytes(new Uint8Array([...bytes].reverse())) };
+    }
+    const { sampleRate, numChannels } = wav;
+    const frames = wavFrameCount(wav);
+    const out = new Float32Array(wav.samples.length);
+    for (let f = 0; f < frames; f += 1) {
+      const src = frames - 1 - f;
+      for (let ch = 0; ch < numChannels; ch++) {
+        out[f * numChannels + ch] = wav.samples[src * numChannels + ch];
+      }
+    }
+    return {
+      output: audioRefFromWav(encodeWav(out, sampleRate, numChannels))
+    };
   }
 }
 
@@ -752,7 +1021,6 @@ export class FadeInAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -777,13 +1045,24 @@ export class FadeInAudioNode extends BaseNode {
   })
   declare duration: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const data = new Uint8Array(audioBytes(this.audio));
-    const duration = Math.max(1, Number(this.duration ?? 1024));
-    for (let i = 0; i < Math.min(duration, data.length); i += 1) {
-      data[i] = Math.floor(data[i] * (i / duration));
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    const duration = Math.max(0, Number(this.duration ?? 1));
+    const wav = parseWavBytes(bytes);
+    if (!wav) return { output: audioRefFromBytes(bytes) };
+    const { sampleRate, numChannels } = wav;
+    const frames = wavFrameCount(wav);
+    const fadeFrames = Math.min(frames, Math.round(duration * sampleRate));
+    const out = new Float32Array(wav.samples);
+    for (let f = 0; f < fadeFrames; f += 1) {
+      const gain = fadeFrames > 0 ? f / fadeFrames : 1;
+      for (let ch = 0; ch < numChannels; ch++) {
+        out[f * numChannels + ch] *= gain;
+      }
     }
-    return { output: audioRefFromBytes(data) };
+    return {
+      output: audioRefFromWav(encodeWav(out, sampleRate, numChannels))
+    };
   }
 }
 
@@ -797,7 +1076,6 @@ export class FadeOutAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -822,15 +1100,25 @@ export class FadeOutAudioNode extends BaseNode {
   })
   declare duration: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const data = new Uint8Array(audioBytes(this.audio));
-    const duration = Math.max(1, Number(this.duration ?? 1024));
-    const start = Math.max(0, data.length - duration);
-    for (let i = start; i < data.length; i += 1) {
-      const factor = (data.length - i) / Math.max(1, data.length - start);
-      data[i] = Math.floor(data[i] * factor);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    const duration = Math.max(0, Number(this.duration ?? 1));
+    const wav = parseWavBytes(bytes);
+    if (!wav) return { output: audioRefFromBytes(bytes) };
+    const { sampleRate, numChannels } = wav;
+    const frames = wavFrameCount(wav);
+    const fadeFrames = Math.min(frames, Math.round(duration * sampleRate));
+    const out = new Float32Array(wav.samples);
+    const startFrame = frames - fadeFrames;
+    for (let f = startFrame; f < frames; f += 1) {
+      const gain = fadeFrames > 0 ? (frames - f) / fadeFrames : 1;
+      for (let ch = 0; ch < numChannels; ch++) {
+        out[f * numChannels + ch] *= gain;
+      }
     }
-    return { output: audioRefFromBytes(data) };
+    return {
+      output: audioRefFromWav(encodeWav(out, sampleRate, numChannels))
+    };
   }
 }
 
@@ -844,7 +1132,6 @@ export class RepeatAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -871,12 +1158,25 @@ export class RepeatAudioNode extends BaseNode {
   })
   declare loops: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const data = audioBytes(this.audio);
-    const count = Math.max(1, Number(this.loops ?? 2));
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    const count = Math.max(1, Math.floor(Number(this.loops ?? 2)));
+    const wav = parseWavBytes(bytes);
+    if (!wav) {
+      // Non-WAV fallback: repeat raw bytes.
+      return {
+        output: audioRefFromBytes(
+          concatBytes(Array.from({ length: count }, () => bytes))
+        )
+      };
+    }
+    const out = new Float32Array(wav.samples.length * count);
+    for (let r = 0; r < count; r += 1) {
+      out.set(wav.samples, r * wav.samples.length);
+    }
     return {
-      output: audioRefFromBytes(
-        concatBytes(Array.from({ length: count }, () => data))
+      output: audioRefFromWav(
+        encodeWav(out, wav.sampleRate, wav.numChannels)
       )
     };
   }
@@ -895,25 +1195,34 @@ export class AudioMixerNode extends BaseNode {
   static readonly inputFields: string[] = [];
   static readonly supportsDynamicInputs = true;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const inputs = Array.from(this.dynamicProps.values()).filter(
       (t) => t && typeof t === "object"
     );
 
     const tracks = (
-      await Promise.all(inputs.map((t) => audioBytesAsync(t)))
+      await Promise.all(inputs.map((t) => audioBytesAsync(t, context)))
     ).filter((bytes) => bytes.length > 0);
 
     if (tracks.length === 0)
       return { output: audioRefFromBytes(new Uint8Array()) };
 
-    // If every track is a valid WAV file, mix in Float32 sample space and
-    // emit a valid WAV so downstream nodes receive a playable file.
+    // If every track is a valid WAV file with a matching layout, mix in
+    // Float32 sample space and emit a valid WAV so downstream nodes receive a
+    // playable file. Index-based mixing only lines up when sample rate and
+    // channel count match across tracks.
     const parsed = tracks.map((bytes) => ({
       wav: tryDecodeWav({ data: bytes }),
       bytes
     }));
-    if (parsed.every((p) => p.wav !== null)) {
+    const uniformWav =
+      parsed.every((p) => p.wav !== null) &&
+      parsed.every(
+        (p) =>
+          p.wav!.sampleRate === parsed[0].wav!.sampleRate &&
+          p.wav!.numChannels === parsed[0].wav!.numChannels
+      );
+    if (uniformWav) {
       const wavs = parsed as Array<{ wav: WavData; bytes: Uint8Array }>;
       const len = Math.max(...wavs.map((p) => p.wav.samples.length));
       const mixed = new Float32Array(len);
@@ -952,7 +1261,6 @@ export class TrimAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -986,14 +1294,28 @@ export class TrimAudioNode extends BaseNode {
   })
   declare end: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const data = audioBytes(this.audio);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
     const start = Math.max(0, Number(this.start ?? 0));
     const end = Math.max(0, Number(this.end ?? 0));
+    const wav = parseWavBytes(bytes);
+    if (!wav) {
+      // Non-WAV fallback: treat start/end as raw byte offsets.
+      const e = end > 0 ? Math.max(start, end) : bytes.length;
+      return { output: audioRefFromBytes(bytes.slice(start, e)) };
+    }
+    const { sampleRate, numChannels } = wav;
+    const frames = wavFrameCount(wav);
+    // start/end are absolute times in seconds; end <= 0 means "to the end".
+    const startFrame = Math.min(frames, Math.round(start * sampleRate));
+    const endFrame =
+      end > 0 ? Math.min(frames, Math.round(end * sampleRate)) : frames;
+    const trimmed = wav.samples.slice(
+      startFrame * numChannels,
+      Math.max(startFrame, endFrame) * numChannels
+    );
     return {
-      output: audioRefFromBytes(
-        data.slice(start, Math.max(start, data.length - end))
-      )
+      output: audioRefFromWav(encodeWav(trimmed, sampleRate, numChannels))
     };
   }
 }
@@ -1018,9 +1340,24 @@ export class CreateSilenceNode extends BaseNode {
   })
   declare duration: any;
 
+  @prop({
+    type: "int",
+    default: 44100,
+    title: "Sample Rate",
+    description: "Sample rate of the generated silence in Hz.",
+    min: 1
+  })
+  declare sample_rate: any;
+
   async process(): Promise<Record<string, unknown>> {
-    const length = Math.max(0, Number(this.duration ?? 16000));
-    return { output: audioRefFromBytes(new Uint8Array(length)) };
+    const duration = Math.max(0, Number(this.duration ?? 1));
+    const sampleRate = Math.max(1, Math.floor(Number(this.sample_rate ?? 44100)));
+    const frames = Math.round(duration * sampleRate);
+    return {
+      output: audioRefFromWav(
+        encodeWav(new Float32Array(frames), sampleRate, 1)
+      )
+    };
   }
 }
 
@@ -1035,15 +1372,48 @@ export class ConcatAudioNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
-  static readonly exposeAsTool = true;
   static readonly supportsDynamicInputs = true;
 
-  async process(): Promise<Record<string, unknown>> {
-    const parts = Array.from(this.dynamicProps.values()).map((value) =>
-      audioBytes(value)
-    );
-    return { output: audioRefFromBytes(concatBytes(parts)) };
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const values = Array.from(this.dynamicProps.values());
+    const parts = (
+      await Promise.all(values.map((v) => audioBytesAsync(v, context)))
+    ).filter((b) => b.length > 0);
+    return { output: concatAudio(parts) };
   }
+}
+
+type AudioRefResult = ReturnType<typeof audioRefFromBytes>;
+
+/**
+ * Concatenate audio byte buffers. When every part is a WAV with a matching
+ * layout, decode and join in sample space so the result is a single valid
+ * WAV; otherwise fall back to raw byte concatenation.
+ */
+function concatAudio(parts: Uint8Array[]): AudioRefResult {
+  if (parts.length === 0) return audioRefFromBytes(new Uint8Array());
+  const wavs = parts.map((b) => parseWavBytes(b));
+  const uniform =
+    wavs.every((w) => w !== null) &&
+    wavs.every(
+      (w) =>
+        w!.sampleRate === wavs[0]!.sampleRate &&
+        w!.numChannels === wavs[0]!.numChannels
+    );
+  if (uniform) {
+    const list = wavs as WavData[];
+    const total = list.reduce((s, w) => s + w.samples.length, 0);
+    const out = new Float32Array(total);
+    let pos = 0;
+    for (const w of list) {
+      out.set(w.samples, pos);
+      pos += w.samples.length;
+    }
+    return audioRefFromWav(
+      encodeWav(out, list[0].sampleRate, list[0].numChannels)
+    );
+  }
+  return audioRefFromBytes(concatBytes(parts));
 }
 
 export class ConcatAudioListNode extends BaseNode {
@@ -1056,7 +1426,6 @@ export class ConcatAudioListNode extends BaseNode {
   };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["audio_files"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "list[audio]",
@@ -1066,12 +1435,14 @@ export class ConcatAudioListNode extends BaseNode {
   })
   declare audio_files: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audios = Array.isArray(this.audio_files)
       ? (this.audio_files as unknown[])
       : [];
-    const merged = concatBytes(audios.map((a) => audioBytes(a)));
-    return { output: audioRefFromBytes(merged) };
+    const parts = (
+      await Promise.all(audios.map((a) => audioBytesAsync(a, context)))
+    ).filter((b) => b.length > 0);
+    return { output: concatAudio(parts) };
   }
 }
 
@@ -1088,7 +1459,6 @@ export class TextToSpeechNode extends BaseNode {
   static readonly inlineFields: string[] = ["text"];
   static readonly inputFields: string[] = ["text"];
   static readonly autoSaveAsset = true;
-  static readonly exposeAsTool = true;
 
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -1175,10 +1545,10 @@ export class TextToSpeechNode extends BaseNode {
         }
       }
       const wav = encodePcm16Wav(concatBytes(chunks), sampleRate, 1);
-      return { output: audioRefFromWav(wav) };
+      return { audio: audioRefFromWav(wav) };
     }
     const bytes = Uint8Array.from(Buffer.from(text, "utf8"));
-    return { output: audioRefFromBytes(bytes) };
+    return { audio: audioRefFromBytes(bytes) };
   }
 }
 
@@ -1271,19 +1641,14 @@ export class GetAudioInfoNode extends BaseNode {
     let channels = 0;
     let duration = 0;
 
-    if (bytes.length >= 44) {
-      const header = Buffer.from(bytes);
-      const riff = header.toString("ascii", 0, 4);
-      const wave = header.toString("ascii", 8, 12);
-      if (riff === "RIFF" && wave === "WAVE") {
-        format = "wav";
-        channels = header.readUInt16LE(22);
-        sampleRate = header.readUInt32LE(24);
-        const bitsPerSample = header.readUInt16LE(34);
-        const dataSize = header.readUInt32LE(40);
-        if (sampleRate > 0 && channels > 0 && bitsPerSample > 0) {
-          duration = dataSize / (sampleRate * channels * (bitsPerSample / 8));
-        }
+    const header = readWavHeader(bytes);
+    if (header) {
+      format = "wav";
+      channels = header.numChannels;
+      sampleRate = header.sampleRate;
+      const { bitsPerSample, dataSize } = header;
+      if (sampleRate > 0 && channels > 0 && bitsPerSample > 0) {
+        duration = dataSize / (sampleRate * channels * (bitsPerSample / 8));
       }
     }
 

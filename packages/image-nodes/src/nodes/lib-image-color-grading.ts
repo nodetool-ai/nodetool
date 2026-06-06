@@ -1,25 +1,72 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import sharp from "sharp";
+import * as d from "typegpu/data";
 import {
   vignetteV1,
   colorHsbV1,
-  colorExposureV1
+  colorColorBalanceV1,
+  colorExposureToneV1,
+  colorLiftGammaGainV1,
+  colorCdlV1,
+  colorCurvesV1,
+  colorHslAdjustV1,
+  colorSplitToningV1,
+  colorFilmLookV1
 } from "@nodetool-ai/gpu/pool";
-import {
-  decodeImage,
-  toRef,
-  pickImage,
-  toFloatRGB,
-  fromFloatRGB,
-  clamp,
-  getLuminance,
-  rgbToHsv,
-  hsvToRgb
-} from "./lib-image-utils.js";
+import { decodeImage, toRef, pickImage, hsvToRgb } from "./lib-image-utils.js";
 import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
 import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+
+function num(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * Cinematic film-look presets. Each resolves to a shadow/highlight tint plus
+ * contrast / saturation / fade scalars that `color.filmLook@1` applies on the
+ * GPU. Kept on the host because the preset is a discrete enum, not a per-pixel
+ * input — the shader stays a generic grade.
+ */
+const FILM_PRESETS: Record<
+  string,
+  {
+    shadow: [number, number, number];
+    highlight: [number, number, number];
+    contrast: number;
+    saturation: number;
+    fade: number;
+  }
+> = {
+  TEAL_ORANGE: { shadow: [0.0, 0.5, 0.55], highlight: [1.0, 0.78, 0.6], contrast: 1.1, saturation: 1.1, fade: 0 },
+  BLOCKBUSTER: { shadow: [0.12, 0.24, 0.35], highlight: [1.0, 0.9, 0.78], contrast: 1.2, saturation: 1.0, fade: 0 },
+  NOIR: { shadow: [0.2, 0.2, 0.24], highlight: [0.86, 0.86, 0.9], contrast: 1.4, saturation: 0.3, fade: 0 },
+  VINTAGE: { shadow: [0.4, 0.32, 0.24], highlight: [1.0, 0.94, 0.78], contrast: 0.9, saturation: 0.8, fade: 0.15 },
+  COLD_BLUE: { shadow: [0.16, 0.24, 0.4], highlight: [0.78, 0.86, 1.0], contrast: 1.1, saturation: 0.9, fade: 0 },
+  WARM_SUNSET: { shadow: [0.47, 0.24, 0.16], highlight: [1.0, 0.86, 0.7], contrast: 1.0, saturation: 1.3, fade: 0 },
+  MATRIX: { shadow: [0.0, 0.16, 0.0], highlight: [0.6, 1.0, 0.6], contrast: 1.3, saturation: 0.7, fade: 0 },
+  BLEACH_BYPASS: { shadow: [0.24, 0.24, 0.27], highlight: [0.94, 0.94, 0.98], contrast: 1.5, saturation: 0.5, fade: 0.05 },
+  CROSS_PROCESS: { shadow: [0.0, 0.2, 0.3], highlight: [1.0, 0.9, 0.5], contrast: 1.2, saturation: 1.2, fade: 0 },
+  FADED_FILM: { shadow: [0.3, 0.28, 0.26], highlight: [0.95, 0.92, 0.88], contrast: 0.85, saturation: 0.7, fade: 0.2 }
+};
+
+/**
+ * Normalized hue windows (`[lo, hi]` in turns) for `HSLAdjust`'s color-range
+ * selector. `lo > hi` denotes a window that wraps past 1.0 (reds). `ALL` uses
+ * `useRange = 0` and ignores the window. Mirrors the legacy CPU table.
+ */
+const HUE_RANGES: Record<string, [number, number]> = {
+  ALL: [0, 1],
+  REDS: [0.95, 0.05],
+  ORANGES: [0.02, 0.1],
+  YELLOWS: [0.1, 0.18],
+  GREENS: [0.18, 0.45],
+  CYANS: [0.45, 0.55],
+  BLUES: [0.55, 0.72],
+  PURPLES: [0.72, 0.83],
+  MAGENTAS: [0.83, 0.95]
+};
 
 type Desc = {
   nodeType: string;
@@ -44,505 +91,229 @@ function createColorGradingNode(desc: Desc): NodeClass {
       context?: ProcessingContext
     ): Promise<Record<string, unknown>> {
       const t = desc.nodeType;
-      const self = this as unknown as Record<string, unknown>;
+      const props = this.serialize() as Record<string, unknown>;
 
-      const baseObj = pickImage(this.serialize(), this.serialize());
+      const baseObj = pickImage(props, props);
       const baseBytes = await decodeImage(baseObj, context);
       if (!baseBytes) {
         return { output: baseObj ?? {} };
       }
+      const bytes = new Uint8Array(baseBytes);
+      const emit = (png: Uint8Array) => ({
+        output: toRef(Buffer.from(png), baseObj)
+      });
 
-      // ColorBalance
       if (t.endsWith(".ColorBalance")) {
-        const temperature = Number(
-          (this as any).temperature ?? self.temperature ?? 0
-        );
-        const tint = Number((this as any).tint ?? self.tint ?? 0);
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        const tempShift = temperature * 0.3;
-        const tintShift = tint * 0.3;
-        for (let i = 0; i < data.length; i += 3) {
-          data[i] += tempShift + tintShift * 0.5;
-          data[i + 1] -= tintShift;
-          data[i + 2] = data[i + 2] - tempShift + tintShift * 0.5;
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
-      }
-
-      // Exposure — when the only non-default knob is `exposure` (or
-      // `exposure` + `contrast`), the math collapses to the shader's
-      // `color.exposure` ± `color.brightnessContrast` and we route there.
-      // The full eight-knob path (highlights/shadows/whites/blacks) stays
-      // CPU because the published catalog doesn't yet expose tone-mapped
-      // shadow/highlight rolloff.
-      if (t.endsWith(".Exposure")) {
-        const exposure = Number((this as any).exposure ?? self.exposure ?? 0);
-        const contrast = Number((this as any).contrast ?? self.contrast ?? 0);
-        const highlights = Number(
-          (this as any).highlights ?? self.highlights ?? 0
-        );
-        const shadows = Number((this as any).shadows ?? self.shadows ?? 0);
-        const whites = Number((this as any).whites ?? self.whites ?? 0);
-        const blacks = Number((this as any).blacks ?? self.blacks ?? 0);
-        if (
-          highlights === 0 &&
-          shadows === 0 &&
-          whites === 0 &&
-          blacks === 0 &&
-          contrast === 0
-        ) {
-          const png = await runShaderOnPngBuffer(
-            colorExposureV1,
-            { stops: exposure },
-            new Uint8Array(baseBytes),
+        return emit(
+          await runShaderOnPngBuffer(
+            colorColorBalanceV1,
+            { temperature: num(props.temperature, 0), tint: num(props.tint, 0) },
+            bytes,
             {},
             context
-          );
-          return { output: toRef(Buffer.from(png), baseObj) };
-        }
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        const expMul = Math.pow(2, exposure);
-        for (let i = 0; i < data.length; i += 3) {
-          let r = data[i] * expMul,
-            g = data[i + 1] * expMul,
-            b = data[i + 2] * expMul;
-          const lum = getLuminance(r, g, b);
-          const hlMask = clamp((lum - 0.5) * 2, 0, 1);
-          const shMask = clamp((0.5 - lum) * 2, 0, 1);
-          r -= hlMask * highlights * 0.5;
-          r += shMask * shadows * 0.5;
-          g -= hlMask * highlights * 0.5;
-          g += shMask * shadows * 0.5;
-          b -= hlMask * highlights * 0.5;
-          b += shMask * shadows * 0.5;
-          r += whites * 0.2 * r;
-          r += blacks * 0.2 * (1 - r);
-          g += whites * 0.2 * g;
-          g += blacks * 0.2 * (1 - g);
-          b += whites * 0.2 * b;
-          b += blacks * 0.2 * (1 - b);
-          data[i] = 0.5 + (r - 0.5) * (1 + contrast);
-          data[i + 1] = 0.5 + (g - 0.5) * (1 + contrast);
-          data[i + 2] = 0.5 + (b - 0.5) * (1 + contrast);
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
+          )
+        );
       }
 
-      // SaturationVibrance — vibrance isn't on the published HSB shader,
-      // so it's folded into saturation as an additive boost. Pure-saturation
-      // input still matches sharp's `modulate({ saturation })` semantics.
+      // The full tonal path (exposure + contrast + highlights/shadows/whites/
+      // blacks) runs in one shader pass; with every tonal knob at 0 it
+      // collapses to a pure `rgb * 2^exposure`.
+      if (t.endsWith(".Exposure")) {
+        return emit(
+          await runShaderOnPngBuffer(
+            colorExposureToneV1,
+            {
+              exposure: num(props.exposure, 0),
+              contrast: num(props.contrast, 0),
+              highlights: num(props.highlights, 0),
+              shadows: num(props.shadows, 0),
+              whites: num(props.whites, 0),
+              blacks: num(props.blacks, 0)
+            },
+            bytes,
+            {},
+            context
+          )
+        );
+      }
+
+      // Vibrance is folded into saturation as an additive boost — the published
+      // HSB shader has no separate skin-tone-protected channel.
       if (t.endsWith(".SaturationVibrance")) {
-        const saturation = Number(
-          (this as any).saturation ?? self.saturation ?? 0
-        );
-        const vibrance = Number((this as any).vibrance ?? self.vibrance ?? 0);
-        const png = await runShaderOnPngBuffer(
-          colorHsbV1,
-          {
-            hue: 0,
-            saturation: 1 + saturation + vibrance * 0.5,
-            brightness: 1
-          },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
-      }
-
-      // LiftGammaGain
-      if (t.endsWith(".LiftGammaGain")) {
-        const liftR = Number((this as any).lift_r ?? self.lift_r ?? 0);
-        const liftG = Number((this as any).lift_g ?? self.lift_g ?? 0);
-        const liftB = Number((this as any).lift_b ?? self.lift_b ?? 0);
-        const liftM = Number(
-          (this as any).lift_master ?? self.lift_master ?? 0
-        );
-        const gammaR = Number((this as any).gamma_r ?? self.gamma_r ?? 1);
-        const gammaG = Number((this as any).gamma_g ?? self.gamma_g ?? 1);
-        const gammaB = Number((this as any).gamma_b ?? self.gamma_b ?? 1);
-        const gammaM = Number(
-          (this as any).gamma_master ?? self.gamma_master ?? 1
-        );
-        const gainR = Number((this as any).gain_r ?? self.gain_r ?? 1);
-        const gainG = Number((this as any).gain_g ?? self.gain_g ?? 1);
-        const gainB = Number((this as any).gain_b ?? self.gain_b ?? 1);
-        const gainM = Number(
-          (this as any).gain_master ?? self.gain_master ?? 1
-        );
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        for (let i = 0; i < data.length; i += 3) {
-          // Apply: (input + lift) * gain, then gamma
-          const r = (data[i] + liftR + liftM) * gainR * gainM;
-          const g = (data[i + 1] + liftG + liftM) * gainG * gainM;
-          const b = (data[i + 2] + liftB + liftM) * gainB * gainM;
-          const gr = 1 / Math.max(0.01, gammaR * gammaM);
-          const gg = 1 / Math.max(0.01, gammaG * gammaM);
-          const gb = 1 / Math.max(0.01, gammaB * gammaM);
-          data[i] = r > 0 ? Math.pow(r, gr) : 0;
-          data[i + 1] = g > 0 ? Math.pow(g, gg) : 0;
-          data[i + 2] = b > 0 ? Math.pow(b, gb) : 0;
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
-      }
-
-      // CDL
-      if (t.endsWith(".CDL")) {
-        const slopeR = Number((this as any).slope_r ?? self.slope_r ?? 1);
-        const slopeG = Number((this as any).slope_g ?? self.slope_g ?? 1);
-        const slopeB = Number((this as any).slope_b ?? self.slope_b ?? 1);
-        const offsetR = Number((this as any).offset_r ?? self.offset_r ?? 0);
-        const offsetG = Number((this as any).offset_g ?? self.offset_g ?? 0);
-        const offsetB = Number((this as any).offset_b ?? self.offset_b ?? 0);
-        const powerR = Number((this as any).power_r ?? self.power_r ?? 1);
-        const powerG = Number((this as any).power_g ?? self.power_g ?? 1);
-        const powerB = Number((this as any).power_b ?? self.power_b ?? 1);
-        const sat = Number((this as any).saturation ?? self.saturation ?? 1);
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        for (let i = 0; i < data.length; i += 3) {
-          let r = clamp(data[i] * slopeR + offsetR, 0, 1);
-          let g = clamp(data[i + 1] * slopeG + offsetG, 0, 1);
-          let b = clamp(data[i + 2] * slopeB + offsetB, 0, 1);
-          r = Math.pow(r, powerR);
-          g = Math.pow(g, powerG);
-          b = Math.pow(b, powerB);
-          const lum = getLuminance(r, g, b);
-          data[i] = lum + (r - lum) * sat;
-          data[i + 1] = lum + (g - lum) * sat;
-          data[i + 2] = lum + (b - lum) * sat;
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
-      }
-
-      // Curves
-      if (t.endsWith(".Curves")) {
-        const blackPoint = Number(
-          (this as any).black_point ?? self.black_point ?? 0
-        );
-        const whitePoint = Number(
-          (this as any).white_point ?? self.white_point ?? 1
-        );
-        const shadowsV = Number((this as any).shadows ?? self.shadows ?? 0);
-        const midtones = Number((this as any).midtones ?? self.midtones ?? 0);
-        const highlightsV = Number(
-          (this as any).highlights ?? self.highlights ?? 0
-        );
-        const redMid = Number(
-          (this as any).red_midtones ?? self.red_midtones ?? 0
-        );
-        const greenMid = Number(
-          (this as any).green_midtones ?? self.green_midtones ?? 0
-        );
-        const blueMid = Number(
-          (this as any).blue_midtones ?? self.blue_midtones ?? 0
-        );
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        const range = Math.max(0.001, whitePoint - blackPoint);
-        const gammaAll = 1 / Math.max(0.01, 1 + midtones);
-        const gammaRed = 1 / Math.max(0.01, 1 + redMid);
-        const gammaGreen = 1 / Math.max(0.01, 1 + greenMid);
-        const gammaBlue = 1 / Math.max(0.01, 1 + blueMid);
-        for (let i = 0; i < data.length; i += 3) {
-          let r = clamp((data[i] - blackPoint) / range, 0, 1);
-          let g = clamp((data[i + 1] - blackPoint) / range, 0, 1);
-          let b = clamp((data[i + 2] - blackPoint) / range, 0, 1);
-          // Shadows
-          r += shadowsV * (1 - r) * r;
-          g += shadowsV * (1 - g) * g;
-          b += shadowsV * (1 - b) * b;
-          // Midtones (global gamma)
-          r = Math.pow(Math.max(0, r), gammaAll);
-          g = Math.pow(Math.max(0, g), gammaAll);
-          b = Math.pow(Math.max(0, b), gammaAll);
-          // Highlights
-          r += highlightsV * r * (1 - r);
-          g += highlightsV * g * (1 - g);
-          b += highlightsV * b * (1 - b);
-          // Per-channel gamma
-          data[i] = Math.pow(Math.max(0, r), gammaRed);
-          data[i + 1] = Math.pow(Math.max(0, g), gammaGreen);
-          data[i + 2] = Math.pow(Math.max(0, b), gammaBlue);
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
-      }
-
-      // HSLAdjust — when `color_range === "ALL"` the per-channel CPU loop
-      // collapses to a pure HSV multiply on every pixel, so we route it
-      // through the shader pool's `color.hsb` op. Range-restricted modes
-      // ("REDS", "GREENS", …) still go through the CPU path below because
-      // they need per-pixel hue gating that the published shader doesn't
-      // expose.
-      if (t.endsWith(".HSLAdjust")) {
-        const colorRange = String(
-          (this as any).color_range ?? self.color_range ?? "ALL"
-        ).toUpperCase();
-        const hueShift = Number((this as any).hue_shift ?? self.hue_shift ?? 0);
-        const satAdj = Number((this as any).saturation ?? self.saturation ?? 0);
-        const lumAdj = Number((this as any).luminance ?? self.luminance ?? 0);
-        if (colorRange === "ALL") {
-          const png = await runShaderOnPngBuffer(
+        const saturation = num(props.saturation, 0);
+        const vibrance = num(props.vibrance, 0);
+        return emit(
+          await runShaderOnPngBuffer(
             colorHsbV1,
             {
-              hue: hueShift * 180,
-              saturation: 1 + satAdj,
-              brightness: 1 + lumAdj
+              hue: 0,
+              saturation: 1 + saturation + vibrance * 0.5,
+              brightness: 1
             },
-            new Uint8Array(baseBytes),
+            bytes,
             {},
             context
-          );
-          return { output: toRef(Buffer.from(png), baseObj) };
-        }
-        const HUE_RANGES: Record<string, [number, number]> = {
-          ALL: [0, 1],
-          REDS: [0.95, 0.05],
-          ORANGES: [0.02, 0.1],
-          YELLOWS: [0.1, 0.18],
-          GREENS: [0.18, 0.45],
-          CYANS: [0.45, 0.55],
-          BLUES: [0.55, 0.72],
-          PURPLES: [0.72, 0.83],
-          MAGENTAS: [0.83, 0.95]
-        };
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        const hueRange = HUE_RANGES[colorRange] ?? HUE_RANGES.ALL;
-        for (let i = 0; i < data.length; i += 3) {
-          let [h, s, v] = rgbToHsv(data[i], data[i + 1], data[i + 2]);
-          let blend = 1;
-          if (colorRange !== "ALL") {
-            if (s < 0.1) {
-              blend = 0;
-            } else {
-              const [lo, hi] = hueRange;
-              if (lo > hi) {
-                // wraps around (REDS)
-                blend = h >= lo || h <= hi ? 1 : 0;
-                if (blend === 1) {
-                  const center = (lo + (1 - lo + hi) / 2) % 1;
-                  let dist = Math.abs(h - center);
-                  if (dist > 0.5) dist = 1 - dist;
-                  const halfWidth = (1 - lo + hi) / 2;
-                  blend = clamp(1 - dist / halfWidth, 0, 1);
-                }
-              } else {
-                const center = (lo + hi) / 2;
-                const halfWidth = (hi - lo) / 2;
-                const dist = Math.abs(h - center);
-                blend = clamp(1 - dist / halfWidth, 0, 1);
-              }
-            }
-          }
-          if (blend > 0) {
-            h = (h + hueShift * 0.5 * blend + 1) % 1;
-            s = clamp(s * (1 + satAdj * blend), 0, 1);
-            v = clamp(v * (1 + lumAdj * blend), 0, 1);
-          }
-          const [r, g, b] = hsvToRgb(h, s, v);
-          data[i] = r;
-          data[i + 1] = g;
-          data[i + 2] = b;
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
+          )
+        );
       }
 
-      // SplitToning
+      if (t.endsWith(".LiftGammaGain")) {
+        return emit(
+          await runShaderOnPngBuffer(
+            colorLiftGammaGainV1,
+            {
+              liftR: num(props.lift_r, 0),
+              liftG: num(props.lift_g, 0),
+              liftB: num(props.lift_b, 0),
+              liftMaster: num(props.lift_master, 0),
+              gammaR: num(props.gamma_r, 1),
+              gammaG: num(props.gamma_g, 1),
+              gammaB: num(props.gamma_b, 1),
+              gammaMaster: num(props.gamma_master, 1),
+              gainR: num(props.gain_r, 1),
+              gainG: num(props.gain_g, 1),
+              gainB: num(props.gain_b, 1),
+              gainMaster: num(props.gain_master, 1)
+            },
+            bytes,
+            {},
+            context
+          )
+        );
+      }
+
+      if (t.endsWith(".CDL")) {
+        return emit(
+          await runShaderOnPngBuffer(
+            colorCdlV1,
+            {
+              slopeR: num(props.slope_r, 1),
+              slopeG: num(props.slope_g, 1),
+              slopeB: num(props.slope_b, 1),
+              offsetR: num(props.offset_r, 0),
+              offsetG: num(props.offset_g, 0),
+              offsetB: num(props.offset_b, 0),
+              powerR: num(props.power_r, 1),
+              powerG: num(props.power_g, 1),
+              powerB: num(props.power_b, 1),
+              saturation: num(props.saturation, 1)
+            },
+            bytes,
+            {},
+            context
+          )
+        );
+      }
+
+      if (t.endsWith(".Curves")) {
+        return emit(
+          await runShaderOnPngBuffer(
+            colorCurvesV1,
+            {
+              blackPoint: num(props.black_point, 0),
+              whitePoint: num(props.white_point, 1),
+              shadows: num(props.shadows, 0),
+              midtones: num(props.midtones, 0),
+              highlights: num(props.highlights, 0),
+              redMidtones: num(props.red_midtones, 0),
+              greenMidtones: num(props.green_midtones, 0),
+              blueMidtones: num(props.blue_midtones, 0)
+            },
+            bytes,
+            {},
+            context
+          )
+        );
+      }
+
+      // `color_range === "ALL"` applies to every pixel (useRange 0); the named
+      // ranges gate the adjustment by per-pixel hue proximity inside the shader.
+      if (t.endsWith(".HSLAdjust")) {
+        const colorRange = String(props.color_range ?? "all").toUpperCase();
+        const [lo, hi] = HUE_RANGES[colorRange] ?? HUE_RANGES.ALL;
+        return emit(
+          await runShaderOnPngBuffer(
+            colorHslAdjustV1,
+            {
+              hueShift: num(props.hue_shift, 0),
+              satAdj: num(props.saturation, 0),
+              lumAdj: num(props.luminance, 0),
+              rangeLo: lo,
+              rangeHi: hi,
+              useRange: colorRange === "ALL" ? 0 : 1
+            },
+            bytes,
+            {},
+            context
+          )
+        );
+      }
+
+      // Resolve the shadow/highlight hues to RGB tint colours on the host; the
+      // shader weights them toward shadows/highlights by a balance-shifted mask.
       if (t.endsWith(".SplitToning")) {
-        const shadowHue = Number(
-          (this as any).shadow_hue ?? self.shadow_hue ?? 30
+        const [sr, sg, sb] = hsvToRgb(num(props.shadow_hue, 200) / 360, 1, 1);
+        const [hr, hg, hb] = hsvToRgb(num(props.highlight_hue, 40) / 360, 1, 1);
+        return emit(
+          await runShaderOnPngBuffer(
+            colorSplitToningV1,
+            {
+              shadowColor: d.vec3f(sr, sg, sb),
+              shadowSat: num(props.shadow_saturation, 0.3),
+              highlightColor: d.vec3f(hr, hg, hb),
+              highlightSat: num(props.highlight_saturation, 0.3),
+              balance: num(props.balance, 0)
+            },
+            bytes,
+            {},
+            context
+          )
         );
-        const shadowSat = Number(
-          (this as any).shadow_saturation ?? self.shadow_saturation ?? 0.5
-        );
-        const highlightHue = Number(
-          (this as any).highlight_hue ?? self.highlight_hue ?? 200
-        );
-        const highlightSat = Number(
-          (this as any).highlight_saturation ?? self.highlight_saturation ?? 0.5
-        );
-        const balance = Number((this as any).balance ?? self.balance ?? 0);
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        const [sr, sg, sb] = hsvToRgb(shadowHue / 360, 1, 1);
-        const [hr, hg, hb] = hsvToRgb(highlightHue / 360, 1, 1);
-        const balOff = balance * 0.25;
-        for (let i = 0; i < data.length; i += 3) {
-          const lum = getLuminance(data[i], data[i + 1], data[i + 2]);
-          const shMask = clamp((0.5 + balOff - lum) * 2, 0, 1);
-          const hlMask = clamp((lum - 0.5 + balOff) * 2, 0, 1);
-          data[i] +=
-            shMask * (sr - 0.5) * shadowSat +
-            hlMask * (hr - 0.5) * highlightSat;
-          data[i + 1] +=
-            shMask * (sg - 0.5) * shadowSat +
-            hlMask * (hg - 0.5) * highlightSat;
-          data[i + 2] +=
-            shMask * (sb - 0.5) * shadowSat +
-            hlMask * (hb - 0.5) * highlightSat;
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
       }
 
-      // FilmLook
       if (t.endsWith(".FilmLook")) {
-        const FILM_PRESETS: Record<
-          string,
-          {
-            shadow: [number, number, number];
-            highlight: [number, number, number];
-            contrast: number;
-            saturation: number;
-            fade: number;
-          }
-        > = {
-          TEAL_ORANGE: {
-            shadow: [0.0, 0.5, 0.55],
-            highlight: [1.0, 0.78, 0.6],
-            contrast: 1.1,
-            saturation: 1.1,
-            fade: 0
-          },
-          BLOCKBUSTER: {
-            shadow: [0.12, 0.24, 0.35],
-            highlight: [1.0, 0.9, 0.78],
-            contrast: 1.2,
-            saturation: 1.0,
-            fade: 0
-          },
-          NOIR: {
-            shadow: [0.2, 0.2, 0.24],
-            highlight: [0.86, 0.86, 0.9],
-            contrast: 1.4,
-            saturation: 0.3,
-            fade: 0
-          },
-          VINTAGE: {
-            shadow: [0.4, 0.32, 0.24],
-            highlight: [1.0, 0.94, 0.78],
-            contrast: 0.9,
-            saturation: 0.8,
-            fade: 0.15
-          },
-          COLD_BLUE: {
-            shadow: [0.16, 0.24, 0.4],
-            highlight: [0.78, 0.86, 1.0],
-            contrast: 1.1,
-            saturation: 0.9,
-            fade: 0
-          },
-          WARM_SUNSET: {
-            shadow: [0.47, 0.24, 0.16],
-            highlight: [1.0, 0.86, 0.7],
-            contrast: 1.0,
-            saturation: 1.3,
-            fade: 0
-          },
-          MATRIX: {
-            shadow: [0.0, 0.16, 0.0],
-            highlight: [0.6, 1.0, 0.6],
-            contrast: 1.3,
-            saturation: 0.7,
-            fade: 0
-          },
-          BLEACH_BYPASS: {
-            shadow: [0.24, 0.24, 0.27],
-            highlight: [0.94, 0.94, 0.98],
-            contrast: 1.5,
-            saturation: 0.5,
-            fade: 0.05
-          },
-          CROSS_PROCESS: {
-            shadow: [0.0, 0.2, 0.3],
-            highlight: [1.0, 0.9, 0.5],
-            contrast: 1.2,
-            saturation: 1.2,
-            fade: 0
-          },
-          FADED_FILM: {
-            shadow: [0.3, 0.28, 0.26],
-            highlight: [0.95, 0.92, 0.88],
-            contrast: 0.85,
-            saturation: 0.7,
-            fade: 0.2
-          }
-        };
-        const preset = String(
-          (this as any).preset ?? self.preset ?? "TEAL_ORANGE"
-        ).toUpperCase();
-        const intensity = Number(
-          (this as any).intensity ?? self.intensity ?? 1
-        );
+        const preset = String(props.preset ?? "teal_orange").toUpperCase();
         const p = FILM_PRESETS[preset] ?? FILM_PRESETS.TEAL_ORANGE;
-        const { data, width, height, alpha } = await toFloatRGB(baseBytes);
-        for (let i = 0; i < data.length; i += 3) {
-          const origR = data[i],
-            origG = data[i + 1],
-            origB = data[i + 2];
-          let r = origR,
-            g = origG,
-            b = origB;
-          const lum = getLuminance(r, g, b);
-          const shMask = clamp(1 - lum * 2, 0, 1);
-          const hlMask = clamp(lum * 2 - 1, 0, 1);
-          r +=
-            shMask * (p.shadow[0] - 0.5) * 0.3 +
-            hlMask * (p.highlight[0] - 0.5) * 0.3;
-          g +=
-            shMask * (p.shadow[1] - 0.5) * 0.3 +
-            hlMask * (p.highlight[1] - 0.5) * 0.3;
-          b +=
-            shMask * (p.shadow[2] - 0.5) * 0.3 +
-            hlMask * (p.highlight[2] - 0.5) * 0.3;
-          r = (r - 0.5) * p.contrast + 0.5;
-          g = (g - 0.5) * p.contrast + 0.5;
-          b = (b - 0.5) * p.contrast + 0.5;
-          const lum2 = getLuminance(r, g, b);
-          r = lum2 + (r - lum2) * p.saturation;
-          g = lum2 + (g - lum2) * p.saturation;
-          b = lum2 + (b - lum2) * p.saturation;
-          if (p.fade > 0) {
-            r = r * (1 - p.fade) + p.fade * 0.15;
-            g = g * (1 - p.fade) + p.fade * 0.15;
-            b = b * (1 - p.fade) + p.fade * 0.15;
-          }
-          data[i] = origR + (r - origR) * intensity;
-          data[i + 1] = origG + (g - origG) * intensity;
-          data[i + 2] = origB + (b - origB) * intensity;
-        }
-        const out = await fromFloatRGB(data, width, height, alpha);
-        return { output: toRef(out, baseObj) };
+        return emit(
+          await runShaderOnPngBuffer(
+            colorFilmLookV1,
+            {
+              shadow: d.vec3f(p.shadow[0], p.shadow[1], p.shadow[2]),
+              highlight: d.vec3f(p.highlight[0], p.highlight[1], p.highlight[2]),
+              contrast: p.contrast,
+              saturation: p.saturation,
+              fade: p.fade,
+              intensity: num(props.intensity, 1)
+            },
+            bytes,
+            {},
+            context
+          )
+        );
       }
 
-      // Vignette — GPU `filters.vignette@1`. The shader's `intensity` maps
-      // to the legacy `amount`; midpoint and feather translate roughly onto
-      // the shader's `radius` (where the vignette begins) and `softness`
-      // (how soft the falloff is). `roundness` isn't a parameter on the
-      // current shader — defaulted to the round shape.
+      // Shader `intensity` maps to the legacy `amount`; midpoint/feather map
+      // onto the shader's `radius` (where the vignette begins) and `softness`.
       if (t.endsWith(".Vignette")) {
-        const amount = Number((this as any).amount ?? self.amount ?? 0.5);
-        const midpoint = Number((this as any).midpoint ?? self.midpoint ?? 0.5);
-        const feather = Math.max(
-          0.01,
-          Number((this as any).feather ?? self.feather ?? 0.4)
+        const midpoint = num(props.midpoint, 0.5);
+        const feather = Math.max(0.01, num(props.feather, 0.4));
+        return emit(
+          await runShaderOnPngBuffer(
+            vignetteV1,
+            {
+              intensity: num(props.amount, 0.5),
+              radius: 1 - midpoint,
+              softness: feather
+            },
+            bytes,
+            {},
+            context
+          )
         );
-        const png = await runShaderOnPngBuffer(
-          vignetteV1,
-          { intensity: amount, radius: 1 - midpoint, softness: feather },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
       }
 
-      // Fallback: return image unchanged
-      const out = await sharp(baseBytes, { failOn: "none" }).png().toBuffer();
-      return { output: toRef(out, baseObj) };
+      // Unknown grade type — pass the source through unchanged.
+      return { output: toRef(Buffer.from(bytes), baseObj) };
     }
   };
 

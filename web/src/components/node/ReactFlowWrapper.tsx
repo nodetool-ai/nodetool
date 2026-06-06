@@ -37,6 +37,7 @@ import {
 } from "../node/DynamicFalSchemaNode";
 import DynamicKieSchemaNode from "../node/DynamicKieSchemaNode/DynamicKieSchemaNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode/KieSchemaLoader";
+import DynamicComfySchemaNode from "../node/DynamicComfySchemaNode/DynamicComfySchemaNode";
 import {
   DynamicReplicateNode,
   DYNAMIC_REPLICATE_NODE_TYPE
@@ -51,7 +52,8 @@ import {
   COMMENT_NODE_TYPE,
   PREVIEW_NODE_TYPE,
   REROUTE_NODE_TYPE,
-  STRING_NODE_TYPE
+  STRING_NODE_TYPE,
+  DYNAMIC_COMFY_NODE_TYPE
 } from "../../constants/nodeTypes";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
@@ -79,6 +81,7 @@ import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import { useReactFlowEvents } from "../../hooks/handlers/useReactFlowEvents";
 import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
@@ -405,6 +408,7 @@ const ReactFlowWrapper = ({
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
       "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
+      [DYNAMIC_COMFY_NODE_TYPE]: DynamicComfySchemaNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       [SUBGRAPH_NODE_TYPE]: SubgraphNode,
       [SKETCH_NODE_TYPE]: SketchNode,
@@ -576,12 +580,19 @@ const ReactFlowWrapper = ({
 
   const edgeStatuses = useResultsStore((state) => state.edges);
   const nodeStatuses = useStatusStore((state) => state.statuses);
+  // Node statuses are keyed per run; the canvas animates edges for the
+  // workflow's focused run. Subscribing here re-runs edge processing when the
+  // focus switches between concurrent runs.
+  const focusedJobId = useWorkflowRunsStore(
+    (state) => state.focusedJob[workflowId]
+  );
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
     dataTypes: DATA_TYPES,
     getMetadata,
     workflowId,
+    focusedJobId,
     edgeStatuses,
     nodeStatuses,
     isSelecting

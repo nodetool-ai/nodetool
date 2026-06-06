@@ -973,6 +973,7 @@ const Inspector: React.FC = () => {
                           propertyIndex={index.toString()}
                           showHandle={false}
                           isInspector={true}
+                          isConnected={connected}
                           nodeType={selectedNode.type ?? "inspector"}
                           data={selectedNode.data}
                           layout=""
@@ -1040,6 +1041,7 @@ const Inspector: React.FC = () => {
                         propertyIndex={`dynamic-${index}`}
                         showHandle={false}
                         isInspector={true}
+                        isConnected={Boolean(incoming)}
                         nodeType={selectedNode.type ?? "inspector"}
                         data={selectedNode.data}
                         layout=""

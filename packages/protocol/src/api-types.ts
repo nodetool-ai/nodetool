@@ -245,9 +245,13 @@ export interface Asset {
   size?: number | null;
   duration?: number | null;
   metadata?: Record<string, unknown> | null;
+  /** Sketch document that backs this image asset, if any. */
+  sketch_document_id?: string | null;
   workflow_id: string | null;
   node_id?: string | null;
   job_id?: string | null;
+  /** Source timeline a video was rendered from, if any. */
+  timeline_id?: string | null;
   created_at: string;
   /** URL to download/access the asset (computed by API) */
   get_url: string | null;
@@ -617,7 +621,6 @@ export interface NodeMetadata {
   is_streaming_output: boolean;
   input_mode?: InputMode;
   output_correlation?: Record<string, OutputCorrelation>;
-  expose_as_tool: boolean;
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
@@ -741,6 +744,7 @@ export const PROVIDER_IDS = {
   FAL_AI: "fal_ai",
   KIE: "kie",
   TOPAZ: "topaz",
+  REVE: "reve",
   ATLASCLOUD: "atlascloud",
   AKI: "aki",
   MESHY: "meshy",
@@ -861,6 +865,10 @@ export interface VideoModel {
   provider: Provider;
   path?: string | null;
   supported_tasks?: string[];
+  /** Per-model option constraints derived from the provider manifest. */
+  durations?: number[] | null;
+  resolutions?: string[] | null;
+  aspect_ratios?: string[] | null;
 }
 
 export interface LlamaModel {
@@ -915,6 +923,12 @@ export interface UnifiedModel {
   supports_tools?: boolean | null;
   /** Voice IDs supported by this model. Only meaningful for TTS models. */
   voices?: string[] | null;
+  /** Allowed clip durations (seconds). Only meaningful for video models. */
+  durations?: number[] | null;
+  /** Allowed output resolutions (e.g. "720p"). Only meaningful for video models. */
+  resolutions?: string[] | null;
+  /** Allowed aspect ratios (e.g. "16:9"). Only meaningful for video models. */
+  aspect_ratios?: string[] | null;
 }
 
 export interface ModelPack {

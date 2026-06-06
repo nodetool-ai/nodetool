@@ -193,6 +193,16 @@ function inpaintGraph(): { nodes: Record<string, unknown>[]; edges: Record<strin
 }
 
 function backgroundRemoveGraph(): { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] } {
+  // Uses the dedicated RemoveBackground node, which returns a true alpha
+  // cutout. (Prompt-guided ImageToImage cannot emit transparency.)
+  const bgModel = {
+    type: "image_model",
+    provider: "fal_ai",
+    id: "fal-ai/bria/background/remove",
+    name: "Bria Background Remove",
+    path: null,
+    supported_tasks: []
+  };
   const nodes = [
     node({
       id: "image",
@@ -205,67 +215,36 @@ function backgroundRemoveGraph(): { nodes: Record<string, unknown>[]; edges: Rec
       ui_properties: { x: 0, y: 0 }
     }),
     node({
-      id: "prompt",
-      type: "nodetool.input.StringInput",
-      data: {
-        name: "prompt",
-        value: "remove background, keep foreground details, transparent background",
-        description: "Background-removal instruction"
-      },
-      ui_properties: { x: 0, y: 160 }
-    }),
-    node({
       id: "model",
       type: "nodetool.input.ImageModelInput",
       data: {
         name: "model",
-        value: {
-          type: "image_model",
-          provider: "huggingface_fal_ai",
-          id: "fal-ai/flux/dev",
-          name: "FLUX.1 Dev",
-          path: null,
-          supported_tasks: []
-        },
-        description: "Model for transparent-background edits"
+        value: bgModel,
+        description: "Background-removal model"
       },
-      ui_properties: { x: 0, y: 320 }
+      ui_properties: { x: 0, y: 160 }
     }),
     node({
-      id: "i2i",
-      type: "nodetool.image.ImageToImage",
+      id: "rembg",
+      type: "nodetool.image.RemoveBackground",
       data: {
-        model: {
-          type: "image_model",
-          provider: "huggingface_fal_ai",
-          id: "fal-ai/flux/dev",
-          name: "FLUX.1 Dev",
-          path: null,
-          supported_tasks: []
-        },
-        image: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
-        prompt: "remove background, keep foreground details, transparent background",
-        negative_prompt: "",
-        strength: 0.85,
-        aspect_ratio: "1:1",
-        resolution: "1K",
-        timeout_seconds: 0
+        model: bgModel,
+        image: { type: "image", uri: "", asset_id: null, data: null, metadata: null }
       },
-      ui_properties: { x: 340, y: 160 }
+      ui_properties: { x: 340, y: 80 }
     }),
     node({
       id: "output",
       type: "nodetool.output.Output",
       data: { name: "image", value: null, description: "Foreground image with removed background" },
-      ui_properties: { x: 680, y: 160 }
+      ui_properties: { x: 680, y: 80 }
     })
   ];
 
   const edges = [
-    edge({ id: "e1", source: "image", sourceHandle: "output", target: "i2i", targetHandle: "image" }),
-    edge({ id: "e2", source: "prompt", sourceHandle: "output", target: "i2i", targetHandle: "prompt" }),
-    edge({ id: "e3", source: "model", sourceHandle: "output", target: "i2i", targetHandle: "model" }),
-    edge({ id: "e4", source: "i2i", sourceHandle: "output", target: "output", targetHandle: "value" })
+    edge({ id: "e1", source: "image", sourceHandle: "output", target: "rembg", targetHandle: "image" }),
+    edge({ id: "e2", source: "model", sourceHandle: "output", target: "rembg", targetHandle: "model" }),
+    edge({ id: "e3", source: "rembg", sourceHandle: "output", target: "output", targetHandle: "value" })
   ];
 
   return { nodes, edges };

@@ -438,7 +438,7 @@ describe("ImageToVideoGeminiNode", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.image).toBeDefined();
+    expect(body.instances[0].image).toBeDefined();
     expect((result.output as Record<string, unknown>).data).toBe("vid");
   });
 });

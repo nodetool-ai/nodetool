@@ -21,16 +21,20 @@
  *      resets the seed.
  */
 
-import React, { memo, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EmptyState, FlexColumn, LoadingSpinner } from "../ui_primitives";
-import SketchEditor from "./SketchEditor";
+import { EmptyState, EditorButton, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
+import SketchEditor, { type SketchEditorHandle } from "./SketchEditor";
 import { trpc } from "../../trpc/client";
 import type { SketchDocument } from "./types";
 import { useStandaloneSketchDocument } from "../../stores/sketch/SketchSessionStore";
+import { SketchProvider } from "../../stores/sketch/SketchInstance";
+import { useSaveSketchDocument } from "../../hooks/sketch/useSaveSketchDocument";
 
 const containerStyles = (theme: Theme) =>
   css({
@@ -46,12 +50,22 @@ interface StandaloneSketchEditorProps {
   documentId: string;
   /** Actions rendered at the trailing edge of the editor's top mode bar. */
   headerActions?: React.ReactNode;
+  /**
+   * Whether this editor is the focused/visible surface. Drives which instance
+   * receives imperative tool/keyboard/save actions. Defaults to `true` for the
+   * standalone page; the workspace tab passes its active flag.
+   */
+  active?: boolean;
 }
 
-const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = memo(
-  function StandaloneSketchEditor({ documentId, headerActions }) {
+const StandaloneSketchEditorBody: React.FC<
+  Omit<StandaloneSketchEditorProps, "active">
+> = memo(
+  function StandaloneSketchEditorBody({ documentId, headerActions }) {
     const theme = useTheme();
     const styles = useMemo(() => containerStyles(theme), [theme]);
+    const editorRef = useRef<SketchEditorHandle | null>(null);
+    const { save, saving } = useSaveSketchDocument();
 
     const documentQuery = trpc.sketch.get.useQuery(
       { id: documentId },
@@ -84,6 +98,54 @@ const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = memo(
       setSeed({ id: documentId, document: initialEditorState.document });
     }, [documentId, initialEditorState, seed?.id]);
 
+    const handleSave = useCallback(() => {
+      void save();
+    }, [save]);
+
+    useEffect(() => {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+          return;
+        }
+        if (event.key.toLowerCase() !== "s") {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        void save();
+      };
+      window.addEventListener("keydown", handleKeyDown, true);
+      return () => window.removeEventListener("keydown", handleKeyDown, true);
+    }, [save]);
+
+    const handleExportPng = () => {
+      editorRef.current?.exportPng();
+    };
+
+    const documentActions = (
+      <FlexRow gap={0.5} align="center" sx={{ flexShrink: 0 }}>
+        <EditorButton
+          size="small"
+          variant="outlined"
+          onClick={handleSave}
+          disabled={saving}
+          startIcon={<SaveOutlinedIcon fontSize="small" />}
+          data-testid="sketch-save-document"
+        >
+          {saving ? "Saving…" : "Save"}
+        </EditorButton>
+        <EditorButton
+          size="small"
+          variant="outlined"
+          onClick={handleExportPng}
+          startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
+          data-testid="sketch-export-png"
+        >
+          Export PNG
+        </EditorButton>
+      </FlexRow>
+    );
+
     // Show the spinner until we've captured a seed for this documentId.
     // Using `seed` (not the live query state) keeps the canvas mounted across
     // any future background query state changes.
@@ -109,14 +171,41 @@ const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = memo(
     return (
       <div className="sketch-editor-page" css={styles}>
         <SketchEditor
+          ref={editorRef}
           documentId={documentId}
           initialDocument={seed.document}
           initialEditorState={initialEditorState ?? undefined}
-          headerActions={headerActions}
+          headerActions={
+            headerActions ? (
+              <>
+                {documentActions}
+                {headerActions}
+              </>
+            ) : (
+              documentActions
+            )
+          }
         />
       </div>
     );
   }
+);
+
+StandaloneSketchEditorBody.displayName = "StandaloneSketchEditorBody";
+
+/**
+ * Wraps the editor body in a {@link SketchProvider} so each tab / page gets
+ * its own isolated sketch stores (editor, session, canvas refs). The autosave
+ * and save hooks run inside the body, under the provider, so they bind to this
+ * instance's stores rather than a shared singleton.
+ */
+const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = ({
+  active = true,
+  ...bodyProps
+}) => (
+  <SketchProvider active={active}>
+    <StandaloneSketchEditorBody {...bodyProps} />
+  </SketchProvider>
 );
 
 StandaloneSketchEditor.displayName = "StandaloneSketchEditor";

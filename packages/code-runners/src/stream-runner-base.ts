@@ -9,6 +9,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
 import { resolve as pathResolve } from "node:path";
 import { mkdirSync, existsSync } from "node:fs";
+import { StringDecoder } from "node:string_decoder";
 import Dockerode from "dockerode";
 
 // ---------------------------------------------------------------------------
@@ -77,8 +78,12 @@ export class StreamRunnerBase {
   public readonly workspaceMountPath: string | "host" | null;
   public readonly dockerWorkdir: string | null;
 
-  private _stopped = false;
-  private _activeContainerId: string | null = null;
+  // `protected` (not `private`) so subclasses that implement their own
+  // `stream()` — e.g. ServerDockerRunner — can register their container and
+  // observe stop() requests. Without this, the inherited stop() has no handle
+  // on the subclass's container and silently does nothing.
+  protected _stopped = false;
+  protected _activeContainerId: string | null = null;
   private _activeChild: ChildProcess | null = null;
   private _resolveInterleaveWait: (() => void) | null = null;
 
@@ -409,6 +414,7 @@ export class StreamRunnerBase {
     this._activeContainerId = container.id;
 
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    let timedOut = false;
 
     try {
       // Attach before start to not miss early output
@@ -441,6 +447,7 @@ export class StreamRunnerBase {
       // Set up timeout
       if (this.timeoutSeconds > 0) {
         timeoutHandle = setTimeout(() => {
+          timedOut = true;
           container.remove({ force: true }).catch(() => {
             // Intentional: best-effort container cleanup on timeout
           });
@@ -461,7 +468,9 @@ export class StreamRunnerBase {
 
       if (exitCode !== 0) {
         throw new ContainerFailureError(
-          `Container exited with non-zero status: ${exitCode}`,
+          timedOut
+            ? `Container timed out after ${this.timeoutSeconds}s`
+            : `Container exited with non-zero status: ${exitCode}`,
           exitCode
         );
       }
@@ -492,6 +501,10 @@ export class StreamRunnerBase {
     let buffer = Buffer.alloc(0);
     let stdoutBuf = "";
     let stderrBuf = "";
+    // Decode each slot with its own incremental decoder so multi-byte UTF-8
+    // characters that straddle a frame boundary aren't mangled into U+FFFD.
+    const stdoutDecoder = new StringDecoder("utf8");
+    const stderrDecoder = new StringDecoder("utf8");
 
     const chunks: Buffer[] = [];
     let resolveChunk: (() => void) | null = null;
@@ -549,25 +562,23 @@ export class StreamRunnerBase {
         const payload = buffer.subarray(8, 8 + payloadLength);
         buffer = buffer.subarray(8 + payloadLength);
 
-        const text = payload.toString("utf-8");
-
         if (streamType === 1) {
           // stdout
-          stdoutBuf += text;
+          stdoutBuf += stdoutDecoder.write(payload);
           while (stdoutBuf.includes("\n")) {
             const nlIdx = stdoutBuf.indexOf("\n");
             const line = stdoutBuf.substring(0, nlIdx);
             stdoutBuf = stdoutBuf.substring(nlIdx + 1);
-            yield ["stdout", line.endsWith("\n") ? line : line + "\n"];
+            yield ["stdout", line + "\n"];
           }
         } else if (streamType === 2) {
           // stderr
-          stderrBuf += text;
+          stderrBuf += stderrDecoder.write(payload);
           while (stderrBuf.includes("\n")) {
             const nlIdx = stderrBuf.indexOf("\n");
             const line = stderrBuf.substring(0, nlIdx);
             stderrBuf = stderrBuf.substring(nlIdx + 1);
-            yield ["stderr", line.endsWith("\n") ? line : line + "\n"];
+            yield ["stderr", line + "\n"];
           }
         }
       }
@@ -577,7 +588,9 @@ export class StreamRunnerBase {
       }
     }
 
-    // Flush remaining buffers
+    // Flush any bytes the decoders are still holding, then the line buffers.
+    stdoutBuf += stdoutDecoder.end();
+    stderrBuf += stderrDecoder.end();
     if (stdoutBuf) {
       yield ["stdout", stdoutBuf.endsWith("\n") ? stdoutBuf : stdoutBuf + "\n"];
     }
@@ -633,6 +646,7 @@ export class StreamRunnerBase {
     this._activeChild = child;
 
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    let timedOut = false;
 
     try {
       // Feed stdin if provided
@@ -653,6 +667,7 @@ export class StreamRunnerBase {
       // Set up timeout watchdog
       if (this.timeoutSeconds > 0) {
         timeoutHandle = setTimeout(() => {
+          timedOut = true;
           try {
             if (child.exitCode === null) {
               child.kill("SIGTERM");
@@ -694,7 +709,9 @@ export class StreamRunnerBase {
 
       if (exitCode !== 0) {
         throw new ContainerFailureError(
-          `Process exited with code ${exitCode}`,
+          timedOut
+            ? `Process timed out after ${this.timeoutSeconds}s`
+            : `Process exited with code ${exitCode}`,
           exitCode
         );
       }

@@ -159,21 +159,6 @@ function getAppVersion(): string {
   }
 }
 
-// Get all installed nodetool-* pip packages (excluding torchruntime which has separate installation)
-async function getInstalledNodetoolPackages(): Promise<string[]> {
-  try {
-    const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const parsed = JSON.parse(output);
-    const allPackages = isPipPackageArray(parsed) ? parsed : [];
-    return allPackages
-      .filter((pkg) => pkg.name.startsWith("nodetool-"))
-      .map((pkg) => pkg.name);
-  } catch (error: unknown) {
-    logMessage(`Failed to list installed packages: ${errorMsg(error)}`, "error");
-    return [];
-  }
-}
-
 // Simple in-memory cache for nodes
 let nodeCache: PackageNode[] | null = null;
 

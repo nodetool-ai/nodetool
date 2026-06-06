@@ -115,21 +115,30 @@ export const tableStyles = (theme: Theme) =>
     ".table-actions": {
       display: "flex",
       width: "100%",
-      gap: ".1em",
-      margin: ".4em 0 .2em 0",
+      gap: "0.25em",
+      margin: 0,
+      padding: "0.35em 0.5em",
       justifyContent: "flex-start",
-      alignItems: "flex-start",
-      height: "2em",
+      alignItems: "center",
+      minHeight: "2.5em",
+      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      backgroundColor: theme.vars.palette.grey[900],
       "& .disabled": {
         color: theme.vars.palette.action.disabled
       },
+      "& .table-actions-extra": {
+        marginLeft: "auto",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.35em"
+      },
       "& button": {
-        padding: ".1em",
-        width: ".8em",
-        height: ".8em",
+        padding: "4px",
+        width: "28px",
+        height: "28px",
         "& svg": {
-          width: "100%",
-          height: "100%"
+          width: "18px",
+          height: "18px"
         },
         "&.disabled": {
           opacity: 0.5

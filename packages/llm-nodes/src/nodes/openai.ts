@@ -35,7 +35,6 @@ export class EmbeddingNode extends BaseNode {
     output: "list"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({ type: "str", default: "", title: "Input" })
   declare input: any;
@@ -163,7 +162,6 @@ export class ModerationNode extends BaseNode {
   static readonly inlineFields = ["input"];
   static readonly inputFields: string[] = [];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -233,7 +231,6 @@ export class CreateImageNode extends BaseNode {
     output: "image"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -307,12 +304,13 @@ export class CreateImageNode extends BaseNode {
       throw new Error(`OpenAI CreateImage API error ${res.status}: ${err}`);
     }
     const data = (await res.json()) as {
-      data: Array<{ b64_json?: string; url?: string }>;
+      data?: Array<{ b64_json?: string; url?: string }>;
     };
 
-    const item = data.data[0];
+    const item = data.data?.[0];
+    if (!item) throw new Error("No image data in response");
     if (item.b64_json) {
-      return { output: { type: "image", data: `data:image/png;base64,${item.b64_json}` } };
+      return { output: imageRefFromB64(item.b64_json) };
     } else if (item.url) {
       return { output: { type: "image", uri: item.url } };
     }
@@ -335,7 +333,6 @@ export class EditImageNode extends BaseNode {
     output: "image"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -417,12 +414,15 @@ export class EditImageNode extends BaseNode {
     const quality = String(this.quality ?? "high");
 
     // Build multipart form data
+    // Note: gpt-image-1 always returns base64 and rejects `response_format`,
+    // so it must not be sent (unlike the legacy dall-e-2 edits endpoint).
     const formData = new FormData();
     formData.append("prompt", prompt);
     formData.append("model", model);
     formData.append("size", size);
     formData.append("quality", quality);
-    formData.append("response_format", "b64_json");
+    // Note: gpt-image-1 always returns base64 and rejects `response_format`
+    // (it's only valid for dall-e-2/3), so we don't send it here.
 
     // Convert image ref to blob
     const imageBlob = await refToBlob(image);
@@ -445,17 +445,115 @@ export class EditImageNode extends BaseNode {
       throw new Error(`OpenAI EditImage API error ${res.status}: ${err}`);
     }
     const data = (await res.json()) as {
-      data: Array<{ b64_json?: string; url?: string }>;
+      data?: Array<{ b64_json?: string; url?: string }>;
     };
 
-    const item = data.data[0];
+    const item = data.data?.[0];
+    if (!item) throw new Error("No image data in response");
     if (item.b64_json) {
-      return { output: { type: "image", data: `data:image/png;base64,${item.b64_json}` } };
+      return { output: imageRefFromB64(item.b64_json) };
     } else if (item.url) {
       return { output: { type: "image", uri: item.url } };
     }
     throw new Error("No image data in response");
   }
+}
+
+// ---------------------------------------------------------------------------
+// 5b. ImageVariation
+// ---------------------------------------------------------------------------
+export class ImageVariationNode extends BaseNode {
+  static readonly nodeType = "openai.image.ImageVariation";
+  static readonly body = "content_card";
+  static readonly title = "Image Variation";
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image"];
+  static readonly description =
+    "Generate variations of an input image using OpenAI's image variations API.\n    image, variation, remix, generate, alternative, dall-e\n\n    Takes a square PNG image and produces a new image that is a variation of it.\n    No text prompt is used — the model riffs on the source image directly.";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly requiredSettings = ["OPENAI_API_KEY"];
+  static readonly autoSaveAsset = true;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The source image to generate variations from (square PNG)."
+  })
+  declare image: any;
+
+  @prop({
+    type: "enum",
+    default: "1024x1024",
+    title: "Size",
+    description: "The size of the generated image.",
+    values: ["256x256", "512x512", "1024x1024"]
+  })
+  declare size: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const apiKey = getApiKey(this._secrets);
+    const image = this.image as Record<string, unknown> | undefined;
+    if (!image || (!image.data && !image.uri)) {
+      throw new Error("Input image is required");
+    }
+    const size = String(this.size ?? "1024x1024");
+
+    // The variations endpoint only supports dall-e-2, which requires the
+    // `response_format` to request base64 output.
+    const formData = new FormData();
+    formData.append("model", "dall-e-2");
+    formData.append("n", "1");
+    formData.append("size", size);
+    formData.append("response_format", "b64_json");
+
+    const imageBlob = await refToBlob(image);
+    formData.append("image", imageBlob, "image.png");
+
+    const res = await fetch(`${OPENAI_API_BASE}/images/variations`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`OpenAI ImageVariation API error ${res.status}: ${err}`);
+    }
+    const data = (await res.json()) as {
+      data: Array<{ b64_json?: string; url?: string }>;
+    };
+
+    const item = data.data[0];
+    if (item.b64_json) {
+      return { output: imageRefFromB64(item.b64_json) };
+    } else if (item.url) {
+      return { output: { type: "image", uri: item.url } };
+    }
+    throw new Error("No image data in response");
+  }
+}
+
+/**
+ * Build an image ref from raw base64. NodeTool's media refs carry **raw**
+ * base64 in `data` (matching `audioRefFromBytes` and the Gemini nodes); the
+ * asset-saving path (`decodeAssetBytes`) and downstream providers decode the
+ * field directly, so a `data:` prefix would corrupt the bytes.
+ */
+function imageRefFromB64(b64: string): Record<string, unknown> {
+  return { type: "image", data: b64, content_type: "image/png" };
+}
+
+/** Build an audio ref from raw base64 with an explicit mime type. */
+function audioRefFromB64(b64: string, contentType: string): Record<string, unknown> {
+  return { type: "audio", data: b64, content_type: contentType };
 }
 
 /** Convert an image/audio ref object to a Blob for multipart upload. */
@@ -496,7 +594,6 @@ export class TextToSpeechNode extends BaseNode {
   static readonly inputFields: string[] = [];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly autoSaveAsset = true;
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "enum",
@@ -532,23 +629,44 @@ export class TextToSpeechNode extends BaseNode {
   @prop({ type: "float", default: 1, title: "Speed", min: 0.25, max: 4 })
   declare speed: any;
 
+  @prop({
+    type: "str",
+    default: "",
+    title: "Instructions",
+    description:
+      "Steer the voice's tone, emotion, and delivery (gpt-4o-mini-tts only)."
+  })
+  declare instructions: any;
+
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const text = String(this.input ?? "");
+    if (!text) throw new Error("Input text cannot be empty");
     const model = String(this.model ?? "tts-1");
     const voice = String(this.voice ?? "alloy");
     const speed = Number(this.speed ?? 1.0);
+    const instructions = String(this.instructions ?? "");
+
+    const isMiniTts = model === "gpt-4o-mini-tts";
+    const body: Record<string, unknown> = {
+      model,
+      input: text,
+      voice,
+      response_format: "mp3"
+    };
+    // `speed` is supported by tts-1 / tts-1-hd but not gpt-4o-mini-tts, while
+    // `instructions` is the inverse — only honored by gpt-4o-mini-tts. Sending
+    // the wrong one to a model returns a 400.
+    if (isMiniTts) {
+      if (instructions) body.instructions = instructions;
+    } else {
+      body.speed = speed;
+    }
 
     const res = await fetch(`${OPENAI_API_BASE}/audio/speech`, {
       method: "POST",
       headers: authHeaders(apiKey),
-      body: JSON.stringify({
-        model,
-        input: text,
-        voice,
-        speed,
-        response_format: "mp3"
-      })
+      body: JSON.stringify(body)
     });
     if (!res.ok) {
       const err = await res.text();
@@ -557,7 +675,7 @@ export class TextToSpeechNode extends BaseNode {
 
     const arrayBuf = await res.arrayBuffer();
     const b64 = Buffer.from(arrayBuf).toString("base64");
-    return { output: { type: "audio", data: `data:audio/mp3;base64,${b64}` } };
+    return { output: audioRefFromB64(b64, "audio/mpeg") };
   }
 }
 
@@ -576,7 +694,6 @@ export class TranslateNode extends BaseNode {
     output: "str"
   };
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "audio",
@@ -645,7 +762,6 @@ export class TranscribeNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["audio", "prompt"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "enum",
@@ -1054,6 +1170,12 @@ export class RealtimeAgentNode extends BaseNode {
                   channels: 1
                 }
               });
+              // Also surface decoded PCM16 on the dedicated `audio` output so
+              // the declared handle isn't dead. PCM frames concatenate cleanly
+              // in arrival order downstream.
+              await outputs.emit("audio", {
+                data: new Uint8Array(Buffer.from(audioB64, "base64"))
+              });
             }
           } else if (msgType === "response.audio_transcript.delta") {
             const delta = String(msg.delta ?? "");
@@ -1416,6 +1538,7 @@ export const OPENAI_NODES = tagAsServer([
   ModerationNode,
   CreateImageNode,
   EditImageNode,
+  ImageVariationNode,
   TextToSpeechNode,
   TranslateNode,
   TranscribeNode,

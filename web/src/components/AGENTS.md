@@ -79,6 +79,24 @@ If no existing primitive fits your use case:
 - Don't create new inline objects/functions in JSX when passing to memoized children.
 - Co-locate tests in `__tests__/` subdirectories next to source files.
 
+## Node editor pitfalls
+
+From shipped fixes in `node_editor/`, `node/`, and the Inspector:
+
+- **Per-type handle/edge colors are generated CSS scoped to the canvas wrapper,
+  not inherited globally.** When you move or rename the component hosting the
+  ReactFlow canvas, carry the `css={generateCSS}` injection onto the new wrapper
+  — drop it and every handle falls back to grey.
+- **A property whose value is driven by a connected input edge must be rendered
+  inert and dimmed — never editable.** Plumb `isConnected` into `PropertyInput`
+  and use the `inert` attribute (not just `disabled`/`pointer-events`) so the
+  field also leaves the tab order; editing a connection-driven value is a no-op
+  that confuses users.
+- **Don't write `x !== null` after a truthiness guard (`x && …`).** The truthy
+  check already excludes `null`/`undefined`; the extra comparison is dead code
+  and gets flagged by CodeQL ("comparison between inconvertible types"). This bit
+  several node-status guards in `BaseNode`/`Dynamic*Node`.
+
 ## Styling
 
 - Use `sx` prop on primitives for one-off style overrides.

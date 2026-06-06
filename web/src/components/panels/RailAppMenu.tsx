@@ -9,6 +9,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
+import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
@@ -85,6 +86,11 @@ const RailAppMenu: React.FC = () => {
     close();
   }, [navigate, close]);
 
+  const goCosts = useCallback(() => {
+    navigate("/costs");
+    close();
+  }, [navigate, close]);
+
   const goSettings = useCallback(() => {
     navigate("/settings");
     close();
@@ -152,6 +158,11 @@ const RailAppMenu: React.FC = () => {
             label="Dashboard"
             icon={<SpaceDashboardOutlinedIcon />}
             onClick={goDashboard}
+          />
+          <MenuItemPrimitive
+            label="Costs"
+            icon={<PaidOutlinedIcon />}
+            onClick={goCosts}
             dividerAfter
           />
           <MenuItemPrimitive

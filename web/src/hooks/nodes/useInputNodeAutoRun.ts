@@ -16,6 +16,7 @@ import { useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { subgraph } from "../../core/graph";
 import useResultsStore from "../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { NodeData } from "../../stores/NodeData";
 import { Node, Edge } from "@xyflow/react";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
@@ -42,13 +43,6 @@ interface UseNodeAutoRunReturn {
    */
   onPropertyChangeComplete: () => void;
 }
-
-/**
- * Checks if a node type is an input node (nodetool.input.*)
- */
-export const isAutoRunInputNode = (nodeType: string): boolean => {
-  return nodeType.startsWith("nodetool.input.");
-};
 
 /**
  * Checks if auto-run should be enabled for a node based on settings and node type.
@@ -215,12 +209,19 @@ export const useNodeAutoRun = (
     // This includes edges to ANY node in the subgraph, not just the start node
     const externalInputEdges = findExternalInputEdges(edges, subgraphNodeIds);
 
-    // Collect cached values for all external dependencies
-    // getResult is stable from useResultsStore, no need to include in deps
+    // Collect cached values for all external dependencies from the workflow's
+    // focused run. getResult is stable from useResultsStore, no need to include
+    // in deps. If nothing has run there's no focused job and the store read
+    // yields undefined (literal-source fallback still applies).
+    const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
+      workflow.id
+    );
+    const getResultForFocusedJob = (wf: string, src: string): unknown =>
+      focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
     const propertyOverrides = collectCachedValuesForSubgraph(
       externalInputEdges,
       workflow.id,
-      getResult,
+      getResultForFocusedJob,
       findNode
     );
 

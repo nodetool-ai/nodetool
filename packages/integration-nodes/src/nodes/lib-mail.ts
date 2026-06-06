@@ -10,7 +10,6 @@ export class SendEmailLibNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "bool"
   };
-  static readonly exposeAsTool = true;
   static readonly inlineFields = ["to_address", "subject"];
   static readonly inputFields = ["body"];
 
@@ -165,7 +164,6 @@ export class GmailSearchLibNode extends BaseNode {
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"
   ];
-  static readonly exposeAsTool = true;
 
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -395,7 +393,6 @@ export class AddLabelLibNode extends BaseNode {
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"
   ];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",
@@ -464,7 +461,6 @@ export class MoveToArchiveLibNode extends BaseNode {
     "GOOGLE_MAIL_USER",
     "GOOGLE_APP_PASSWORD"
   ];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "str",

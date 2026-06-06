@@ -17,8 +17,9 @@ import {
   existsSync,
   mkdirSync,
   statSync,
+  lstatSync,
+  realpathSync,
   chmodSync,
-  createWriteStream,
   renameSync,
   readdirSync,
   unlinkSync,
@@ -26,9 +27,9 @@ import {
   writeFileSync
 } from "node:fs";
 import { resolve as pathResolve, join as pathJoin, sep } from "node:path";
+import { createHash } from "node:crypto";
+import { StringDecoder } from "node:string_decoder";
 import { getNodetoolDataDir } from "@nodetool-ai/config";
-import { get as httpGet, type IncomingMessage } from "node:http";
-import { get as httpsGet } from "node:https";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -110,53 +111,6 @@ function defaultCacheDir(): string {
 }
 
 /**
- * Download a file from an HTTP/HTTPS URL to `destPath` using an atomic
- * write (write to `.part` file, then rename).
- */
-function safeDownloadTo(destPath: string, url: string): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    const partPath = destPath + ".part";
-    const dir = pathResolve(destPath, "..");
-    mkdirSync(dir, { recursive: true });
-
-    const getter = url.startsWith("https") ? httpsGet : httpGet;
-
-    const handleResponse = (res: IncomingMessage): void => {
-      // Follow redirects (3xx)
-      const statusCode = res.statusCode;
-      if (statusCode && statusCode >= 300 && statusCode < 400) {
-        const location = res.headers["location"];
-        if (location) {
-          const redirectUrl = Array.isArray(location) ? location[0] : location;
-          if (redirectUrl) {
-            safeDownloadTo(destPath, redirectUrl).then(resolve, reject);
-            return;
-          }
-        }
-      }
-
-      const ws = createWriteStream(partPath);
-      res.pipe(ws);
-      ws.on("finish", () => {
-        ws.close();
-        try {
-          renameSync(partPath, destPath);
-          resolve();
-        } catch (e) {
-          reject(e);
-        }
-      });
-      ws.on("error", (e) => reject(e));
-    };
-
-    getter(url, handleResponse as (res: IncomingMessage) => void).on(
-      "error",
-      (e) => reject(e)
-    );
-  });
-}
-
-/**
  * Make a file executable (chmod +x).
  */
 function ensureExecutable(filePath: string): void {
@@ -170,20 +124,47 @@ function ensureExecutable(filePath: string): void {
 
 /**
  * Extract a ZIP archive to `destDir` using the system `unzip` command.
- * Performs Zip Slip prevention by checking that extracted entries stay
- * within `destDir`.
+ *
+ * Zip Slip is prevented in two stages:
+ *  1. Before writing anything, every archive entry is listed and rejected if
+ *     its target would resolve outside `destDir` (absolute paths, `..`).
+ *  2. After extraction, the tree is walked with `lstat` (so symlinks are not
+ *     followed) and any symlink whose real target escapes `destDir` is removed.
  */
 function safeExtractZip(zipPath: string, destDir: string): void {
   mkdirSync(destDir, { recursive: true });
+  const resolvedDest = pathResolve(destDir);
+  const destPrefix = resolvedDest + sep;
 
-  // Use system unzip for simplicity
+  const escapes = (target: string): boolean =>
+    target !== resolvedDest && !target.startsWith(destPrefix);
+
+  // Stage 1: validate entry names before extracting anything.
+  let listing = "";
+  try {
+    listing = execFileSync("unzip", ["-Z1", zipPath], {
+      encoding: "utf-8",
+      timeout: 120_000
+    });
+  } catch {
+    listing = "";
+  }
+  for (const raw of listing.split("\n")) {
+    const entry = raw.trim();
+    if (!entry) continue;
+    if (escapes(pathResolve(resolvedDest, entry))) {
+      throw new Error(
+        `Refusing to extract archive: entry '${entry}' escapes destination`
+      );
+    }
+  }
+
   execFileSync("unzip", ["-o", zipPath, "-d", destDir], {
     stdio: "ignore",
     timeout: 120_000
   });
 
-  // Post-extraction Zip Slip check: verify no symlinks or paths escaped destDir
-  const resolvedDest = pathResolve(destDir) + sep;
+  // Stage 2: drop any symlink whose real target points outside destDir.
   const walkAndCheck = (dir: string): void => {
     let entries: string[];
     try {
@@ -193,31 +174,48 @@ function safeExtractZip(zipPath: string, destDir: string): void {
     }
     for (const entry of entries) {
       const full = pathJoin(dir, entry);
-      const resolved = pathResolve(full);
-      if (
-        !resolved.startsWith(resolvedDest) &&
-        resolved !== pathResolve(destDir)
-      ) {
-        // Escaped destDir — remove it
+      let st;
+      try {
+        st = lstatSync(full);
+      } catch {
+        continue;
+      }
+      if (st.isSymbolicLink()) {
+        let real: string | null;
         try {
-          unlinkSync(full);
+          real = realpathSync(full);
         } catch {
-          // ignore
+          real = null;
+        }
+        if (real === null || escapes(real)) {
+          try {
+            unlinkSync(full);
+          } catch {
+            // ignore
+          }
         }
         continue;
       }
-      try {
-        const st = statSync(full);
-        if (st.isDirectory()) {
-          walkAndCheck(full);
-        }
-      } catch {
-        // ignore stat errors
+      if (st.isDirectory()) {
+        walkAndCheck(full);
       }
     }
   };
   walkAndCheck(destDir);
 }
+
+/**
+ * Derive a per-URL cache name so that two runners pointed at different
+ * `binaryUrl`s never collide on the same cache file. The human-readable
+ * `name` is kept as a prefix; a short hash of the URL guarantees uniqueness.
+ */
+function binaryCacheName(url: string, name: string): string {
+  const hash = createHash("sha256").update(url).digest("hex").slice(0, 16);
+  return `${name}-${hash}`;
+}
+
+/** @internal Exported for unit testing only. */
+export { binaryCacheName as _binaryCacheName };
 
 /**
  * Return a cached path for the remote binary, downloading if needed.
@@ -232,7 +230,10 @@ function cacheRemoteBinary(
   archiveInnerPath?: string | null
 ): string {
   const binDir = defaultCacheDir();
-  const dst = pathJoin(binDir, name);
+  // Cache key includes a hash of the URL — keying on `name` alone meant every
+  // binary collided on the same path and the first one cached won forever.
+  const cacheKey = binaryCacheName(url, name);
+  const dst = pathJoin(binDir, cacheKey);
 
   const isRemote = url.startsWith("http://") || url.startsWith("https://");
   const isFileUrl = url.startsWith("file://");
@@ -265,7 +266,7 @@ function cacheRemoteBinary(
     }
 
     // Extract
-    const extractDir = pathJoin(binDir, `${name}_zip`);
+    const extractDir = pathJoin(binDir, `${cacheKey}_zip`);
     const exeRel = archiveInnerPath.replace(/^[/\\]+/, "");
     let exePath = pathJoin(extractDir, ...exeRel.split("/"));
 
@@ -395,8 +396,8 @@ async function waitForServerReady(
   const deadline = Date.now() + Math.max(0, timeoutSeconds) * 1000;
 
   while (Date.now() < deadline) {
-    // If the process already died, abort
-    if (proc.exitCode !== null) return false;
+    // If the process already died — by clean exit or by signal — abort.
+    if (proc.exitCode !== null || proc.signalCode !== null) return false;
 
     const ok = await tcpProbe(host, port, 1000);
     if (ok) return true;
@@ -555,20 +556,20 @@ export class ServerSubprocessRunner {
           return;
         }
         let buf = "";
+        // Incremental decoder so multi-byte UTF-8 characters split across
+        // chunk boundaries aren't corrupted.
+        const decoder = new StringDecoder("utf8");
         readable.on("data", (chunk: Buffer) => {
-          buf += chunk.toString("utf-8");
+          buf += decoder.write(chunk);
           while (buf.includes("\n")) {
             const nlIdx = buf.indexOf("\n");
             const line = buf.substring(0, nlIdx);
             buf = buf.substring(nlIdx + 1);
-            pushLog({
-              type: "line",
-              slot,
-              value: line.endsWith("\n") ? line : line + "\n"
-            });
+            pushLog({ type: "line", slot, value: line + "\n" });
           }
         });
         readable.on("end", () => {
+          buf += decoder.end();
           if (buf) {
             pushLog({
               type: "line",
@@ -610,8 +611,18 @@ export class ServerSubprocessRunner {
         this.readyTimeoutSeconds
       );
       if (!ready) {
+        // Surface whatever the process printed so far — the reason it failed
+        // to start is almost always sitting unflushed in the log queue.
+        const captured = logQueue
+          .filter(
+            (i): i is { type: "line"; slot: "stdout" | "stderr"; value: string } =>
+              i.type === "line"
+          )
+          .map((i) => i.value)
+          .join("");
         throw new Error(
-          `Server did not become ready on ${this.hostIp}:${port}`
+          `Server did not become ready on ${this.hostIp}:${port}` +
+            (captured ? `\n--- server output ---\n${captured}` : "")
         );
       }
 

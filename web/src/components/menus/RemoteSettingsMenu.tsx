@@ -22,6 +22,48 @@ import {
 } from "../../stores/resourceChangeHandler";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import { formatSettingLabel } from "./settingsLabel";
+
+/** Groups surfaced elsewhere (General tab, Folders panel) or via SearchProviderSection. */
+const HIDDEN_SETTING_GROUPS = new Set(["Folders", "Search", "Execution"]);
+/** Search-provider settings rendered by SearchProviderSection, not the generic list. */
+const SEARCH_RELATED_SETTINGS = new Set([
+  "SERP_PROVIDER",
+  "SERPAPI_API_KEY",
+  "DATA_FOR_SEO_LOGIN",
+  "DATA_FOR_SEO_PASSWORD",
+  "BRAVE_API_KEY",
+  "APIFY_API_KEY"
+]);
+
+/** Anchor id for a settings group heading (e.g. "vLLM" → "vllm"). */
+export const settingGroupSlug = (groupName: string): string =>
+  groupName.toLowerCase().replace(/\s+/g, "-");
+
+/**
+ * Ordered list of group names the generic settings list actually renders —
+ * used to build the Integrations sidebar so it mirrors the visible sections.
+ */
+export const getDisplayedSettingGroups = (
+  settings: SettingWithValue[]
+): string[] => {
+  const groups: string[] = [];
+  const seen = new Set<string>();
+  for (const setting of settings) {
+    if (
+      HIDDEN_SETTING_GROUPS.has(setting.group) ||
+      setting.is_secret ||
+      SEARCH_RELATED_SETTINGS.has(setting.env_var)
+    ) {
+      continue;
+    }
+    if (!seen.has(setting.group)) {
+      seen.add(setting.group);
+      groups.push(setting.group);
+    }
+  }
+  return groups;
+};
 import ExternalLink from "../common/ExternalLink";
 import { isElectron } from "../../lib/env";
 import { restFetch } from "../../lib/rest-fetch";
@@ -111,7 +153,7 @@ const SettingItem = memo(function SettingItem({
           <InputLabel
             id={`${setting.env_var.toLowerCase()}-label`}
           >
-            {setting.env_var.replace(/_/g, " ")}
+            {formatSettingLabel(setting.env_var)}
           </InputLabel>
           <Select
             labelId={`${setting.env_var.toLowerCase()}-label`}
@@ -132,7 +174,7 @@ const SettingItem = memo(function SettingItem({
           type={setting.is_secret ? "password" : "text"}
           autoComplete="off"
           id={`${setting.env_var.toLowerCase()}-input`}
-          label={setting.env_var.replace(/_/g, " ")}
+          label={formatSettingLabel(setting.env_var)}
           value={value || ""}
           onChange={handleChange}
           variant="standard"
@@ -195,10 +237,7 @@ const RemoteSettings = () => {
       return (await response.json()) as HfTokenResponse;
     },
     refetchInterval: (query) => {
-      // Handle both v4 (data) and v5 (Query object)
-      const queryState = (query as unknown as { state?: { data?: unknown } }).state;
-      const data = (queryState?.data ?? query) as HfTokenResponse | undefined;
-      // Poll if we are loading and don't have a token yet
+      const data = query.state.data as HfTokenResponse | undefined;
       if (hfOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
         return 2000;
       }
@@ -286,23 +325,16 @@ const RemoteSettings = () => {
     }
 
     const filteredEntries: [string, SettingWithValue[]][] = [];
-    const searchRelatedSettings = new Set([
-      "SERP_PROVIDER",
-      "SERPAPI_API_KEY",
-      "DATA_FOR_SEO_LOGIN",
-      "DATA_FOR_SEO_PASSWORD",
-      "BRAVE_API_KEY",
-      "APIFY_API_KEY"
-    ]);
 
     settingsByGroup.forEach((groupSettings, groupName) => {
-      if (groupName === "Folders" || groupName === "Search") {
+      // Folders/Search/Execution are surfaced elsewhere — skip them here.
+      if (HIDDEN_SETTING_GROUPS.has(groupName)) {
         return;
       }
 
       const allowedSettings = groupSettings.filter(
         (setting) =>
-          !setting.is_secret && !searchRelatedSettings.has(setting.env_var)
+          !setting.is_secret && !SEARCH_RELATED_SETTINGS.has(setting.env_var)
       );
 
       if (allowedSettings.length > 0) {
@@ -418,13 +450,12 @@ const RemoteSettings = () => {
             css={getSharedSettingsStyles(theme)}
           >
             <div className="settings-main-content">
-              <Text size="giant">Settings</Text>
-
               {/* HuggingFace OAuth Section */}
               <div className="settings-section">
                 <Text
-                  size="bigger"
+                  size="big"
                   id="huggingface-oauth"
+                  className="settings-heading"
                 >
                   HuggingFace Authentication
                 </Text>
@@ -444,7 +475,7 @@ const RemoteSettings = () => {
                         <LoginIcon />
                       )
                     }
-                    sx={{ marginTop: "1em" }}
+                    sx={{ marginTop: "1em", alignSelf: "flex-start" }}
                   >
                     {isConnected
                       ? "Connected to HuggingFace"
@@ -469,8 +500,9 @@ const RemoteSettings = () => {
                 ([groupName, groupSettings]) => (
                   <div key={groupName} className="settings-section">
                     <Text
-                      size="bigger"
-                      id={groupName.toLowerCase().replace(/\s+/g, "-")}
+                      size="big"
+                      id={settingGroupSlug(groupName)}
+                      className="settings-heading"
                     >
                       {groupName}
                     </Text>

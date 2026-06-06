@@ -10,11 +10,14 @@ import ScheduleIcon from "@mui/icons-material/Schedule";
 import RemoveIcon from "@mui/icons-material/Remove";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CloseIcon from "@mui/icons-material/Close";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import { useWorkflow } from "../../serverState/useWorkflow";
 import { trpcClient } from "../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Job } from "../../stores/ApiTypes";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 
 const RUNNING = new Set(["running", "suspended", "paused"]);
 const QUEUED = new Set(["queued", "scheduled", "starting"]);
@@ -136,38 +139,119 @@ const IconButton = ({
 const RunningCard = memo(function RunningCard({
   job,
   now,
-  onCancel
+  onCancel,
+  isFocused,
+  onFocus
 }: {
   job: Job;
   now: number;
   onCancel: (id: string) => void;
+  isFocused: boolean;
+  onFocus?: () => void;
 }) {
+  const theme = useTheme();
   const name = useJobName(job);
   const elapsed = formatClock(job.started_at, now);
-  return (
-    <Box sx={cardSx}>
+
+  const focusableSx: SxProps<Theme> = onFocus
+    ? {
+        cursor: "pointer",
+        "&:hover": {
+          borderColor: theme.vars.palette.primary.main,
+          backgroundColor: "grey.900"
+        }
+      }
+    : {};
+
+  const focusedAccentSx: SxProps<Theme> = isFocused
+    ? {
+        borderColor: theme.vars.palette.primary.main,
+        borderLeftWidth: "3px"
+      }
+    : {};
+
+  const cardContent = (
+    <Box
+      sx={{
+        ...cardSx,
+        ...focusableSx,
+        ...focusedAccentSx,
+        transition: "border-color 120ms ease, background-color 120ms ease"
+      }}
+    >
       <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-        <Dot />
+        <Dot color={isFocused ? "primary.main" : undefined} />
         <Text size="small" weight={500} truncate sx={{ flex: 1, minWidth: 0 }}>
           {name}
         </Text>
-        {elapsed && (
+        {isFocused && (
+          <FlexRow
+            align="center"
+            gap={0.4}
+            sx={{ flex: "0 0 auto", color: "primary.main" }}
+          >
+            <VisibilityIcon sx={{ fontSize: 12 }} />
+            <Text size="tiny" sx={{ color: "primary.main" }}>
+              On canvas
+            </Text>
+          </FlexRow>
+        )}
+        {elapsed && !isFocused && (
           <Text size="tiny" color="secondary" family="secondary">
             {elapsed}
           </Text>
         )}
-        <IconButton
-          icon={<CloseIcon sx={{ fontSize: 15 }} />}
-          label="Stop run"
-          onClick={() => onCancel(job.id)}
-          hoverColor="error.main"
-        />
+        <Box
+          component="span"
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+          <IconButton
+            icon={<CloseIcon sx={{ fontSize: 15 }} />}
+            label="Stop run"
+            onClick={() => onCancel(job.id)}
+            hoverColor="error.main"
+          />
+        </Box>
       </FlexRow>
       <Box sx={{ mt: 1 }}>
         <RunBar />
       </Box>
     </Box>
   );
+
+  if (onFocus) {
+    return (
+      <Box
+        role="button"
+        tabIndex={0}
+        aria-label="Show run on canvas"
+        aria-pressed={isFocused}
+        onClick={onFocus}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onFocus();
+          }
+        }}
+        sx={{
+          display: "block",
+          width: "100%",
+          padding: 0,
+          textAlign: "left",
+          outline: "none",
+          "&:focus-visible": {
+            outline: `2px solid ${theme.vars.palette.primary.main}`,
+            outlineOffset: "2px",
+            borderRadius: "10px"
+          }
+        }}
+      >
+        {cardContent}
+      </Box>
+    );
+  }
+
+  return cardContent;
 });
 
 const EnqueuedCard = memo(function EnqueuedCard({
@@ -299,6 +383,11 @@ const QueueOverlay = memo(function QueueOverlay() {
   const { data: jobs } = useRunningJobs();
   const [expanded, setExpanded] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+
+  const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
+  const focusedJob = useWorkflowRunsStore((s) =>
+    currentWorkflowId ? s.focusedJob[currentWorkflowId] : undefined
+  );
 
   const {
     running: liveRunning,
@@ -447,14 +536,29 @@ const QueueOverlay = memo(function QueueOverlay() {
           <>
             <SectionLabel>Running</SectionLabel>
             <FlexColumn gap={1}>
-              {running.map((job) => (
-                <RunningCard
-                  key={job.id}
-                  job={job}
-                  now={now}
-                  onCancel={handleCancel}
-                />
-              ))}
+              {running.map((job) => {
+                const isCurrentWf =
+                  currentWorkflowId !== null &&
+                  currentWorkflowId !== undefined &&
+                  job.workflow_id === currentWorkflowId;
+                return (
+                  <RunningCard
+                    key={job.id}
+                    job={job}
+                    now={now}
+                    onCancel={handleCancel}
+                    isFocused={isCurrentWf && job.id === focusedJob}
+                    onFocus={
+                      isCurrentWf
+                        ? () =>
+                            useWorkflowRunsStore
+                              .getState()
+                              .setFocusedJob(currentWorkflowId!, job.id)
+                        : undefined
+                    }
+                  />
+                );
+              })}
             </FlexColumn>
           </>
         )}

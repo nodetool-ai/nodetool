@@ -36,6 +36,16 @@ export interface ScratchSpec {
   usage: GPUTextureUsageFlags;
   meta?: Partial<LabeledTextureMeta>;
   label?: string;
+  /**
+   * Allocate at exactly `width`×`height` instead of rounding up to the
+   * allocation bucket. Needed when the texture is sampled in normalized
+   * `[0,1]` space by a later pass *and* is filled by a writer that only covers
+   * the logical dimensions (the alpha auto-convert pass): a bucketed texture
+   * would leave the margin between the logical size and the bucket unwritten,
+   * which normalized sampling then reads as garbage. Trades pool reuse across
+   * sizes for a physical size that equals the logical size.
+   */
+  exact?: boolean;
 }
 
 /**
@@ -119,10 +129,21 @@ export function makeScratchPool(device: GPUDevice): ScratchPool {
   const free = new Map<string, LabeledTexture[]>();
   const live = new Set<LabeledTexture>();
 
-  const bucketKey = (spec: ScratchSpec): string =>
-    `${spec.format}:${spec.usage}:${ceilToBucket(spec.width)}x${ceilToBucket(
-      spec.height
-    )}`;
+  const dimsFor = (spec: ScratchSpec): { width: number; height: number } =>
+    spec.exact
+      ? {
+          width: Math.max(1, Math.floor(spec.width)),
+          height: Math.max(1, Math.floor(spec.height))
+        }
+      : { width: ceilToBucket(spec.width), height: ceilToBucket(spec.height) };
+
+  // Reuse keys on the *resolved* dimensions, so an exact 64×64 and a
+  // bucketed-to-64 request share a pool entry — a 64×64 texture is a 64×64
+  // texture regardless of how it was requested.
+  const bucketKey = (spec: ScratchSpec): string => {
+    const { width, height } = dimsFor(spec);
+    return `${spec.format}:${spec.usage}:${width}x${height}`;
+  };
 
   return {
     acquire(spec) {
@@ -133,9 +154,10 @@ export function makeScratchPool(device: GPUDevice): ScratchPool {
         live.add(reused);
         return reused;
       }
+      const dims = dimsFor(spec);
       const texture = createLabeledTexture(device, {
-        width: ceilToBucket(spec.width),
-        height: ceilToBucket(spec.height),
+        width: dims.width,
+        height: dims.height,
         format: spec.format,
         usage: spec.usage,
         label: spec.label ?? `scratch-${key}`,

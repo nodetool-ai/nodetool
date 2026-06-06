@@ -36,7 +36,8 @@ function asText(value: unknown): string {
 }
 
 function parseRequestedCount(prompt: string, fallback: number): number {
-  const m = prompt.match(/\b(\d{1,3})\b/);
+  // Match any integer; large requests are clamped below rather than ignored.
+  const m = prompt.match(/\b(\d{1,9})\b/);
   if (!m) return fallback;
   const n = Number(m[1]);
   if (!Number.isFinite(n)) return fallback;

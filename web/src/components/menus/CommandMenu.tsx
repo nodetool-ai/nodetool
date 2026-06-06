@@ -15,7 +15,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
-import { nodeToolGraphToComfyWorkflow } from "../../utils/comfyWorkflowConverter";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
 import { isDevelopment } from "../../lib/env";
@@ -26,7 +25,7 @@ import { useSurroundWithGroup } from "../../hooks/nodes/useSurroundWithGroup";
 import { useFitView } from "../../hooks/useFitView";
 import { useReactFlow } from "@xyflow/react";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
-import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
+import { useFindInWorkflowStore } from "../../stores/FindInWorkflowStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
@@ -111,15 +110,13 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     edges,
     currentWorkflow,
     workflowJSON,
-    autoLayout,
-    getWorkflow
+    autoLayout
   } = useNodes((state) => ({
     nodes: state.nodes,
     edges: state.edges,
     currentWorkflow: state.workflow,
     workflowJSON: state.workflowJSON,
-    autoLayout: state.autoLayout,
-    getWorkflow: state.getWorkflow
+    autoLayout: state.autoLayout
   }), shallow);
   const run = useWebsocketRunner((state) => state.run);
   const cancel = useWebsocketRunner((state) => state.cancel);
@@ -159,18 +156,6 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       content: "Copied workflow JSON to Clipboard!"
     });
   }, [writeClipboard, workflowJSON, addNotification]);
-
-  const exportAsComfyWorkflow = useCallback(() => {
-    const workflow = getWorkflow();
-    const comfyWorkflow = nodeToolGraphToComfyWorkflow(workflow.graph ?? { nodes: [], edges: [] });
-    const blob = new Blob([JSON.stringify(comfyWorkflow, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.download = `${currentWorkflow.name}_comfy.json`;
-    link.href = url;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [getWorkflow, currentWorkflow.name]);
 
   const handleSave = useCallback(async () => {
     const workflow = getCurrentWorkflow();
@@ -275,9 +260,6 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       <Command.Item onSelect={() => executeAndClose(downloadWorkflow)}>
         <FileDownloadRoundedIcon /> Download Workflow as JSON
       </Command.Item>
-      <Command.Item onSelect={() => executeAndClose(exportAsComfyWorkflow)}>
-        <FileDownloadRoundedIcon /> Export as ComfyUI Workflow
-      </Command.Item>
       <Command.Item onSelect={() => executeAndClose(handleImportWorkflow)}>
         <FileUploadRoundedIcon /> Import Workflow from JSON
       </Command.Item>
@@ -328,7 +310,7 @@ const EditCommands = memo(function EditCommands({
   );
   const surroundWithGroup = useSurroundWithGroup();
   const selectionActions = useSelectionActions();
-  const { openFind } = useFindInWorkflow();
+  const openFind = useFindInWorkflowStore((state) => state.openFind);
 
   const handleGroup = useCallback(() => {
     if (selectedNodes.length) {

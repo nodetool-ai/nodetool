@@ -35,9 +35,10 @@ import {
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
-  PythonStdioBridge,
+  createPythonBridge,
   logPythonWorkerStderr,
-  type NodeExecutor
+  type NodeExecutor,
+  type PythonBridge
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
@@ -108,7 +109,7 @@ function getStorageHandler(
 
 type WorkflowRuntimeEnvironment = {
   registry: NodeRegistry;
-  pythonBridge: PythonStdioBridge;
+  pythonBridge: PythonBridge;
   ensurePythonBridge: () => Promise<void>;
   resolveExecutor: (node: {
     id: string;
@@ -132,7 +133,7 @@ async function getWorkflowRuntimeEnvironment(
           log
         }));
 
-      const pythonBridge = new PythonStdioBridge({
+      const pythonBridge = createPythonBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
           ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
           : []
@@ -244,7 +245,8 @@ async function getWorkflowRuntimeEnvironment(
             Object.fromEntries(
               (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
             ),
-            meta?.required_settings ?? []
+            meta?.required_settings ?? [],
+            node.id
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
@@ -1539,12 +1541,14 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     content_type: asset.content_type,
     size: asset.size ?? null,
     metadata: asset.metadata ?? null,
+    sketch_document_id: asset.sketch_document_id ?? null,
     created_at: asset.created_at,
     get_url: getUrl,
     thumb_url: thumbUrl,
     duration: asset.duration ?? null,
     node_id: asset.node_id ?? null,
-    job_id: asset.job_id ?? null
+    job_id: asset.job_id ?? null,
+    timeline_id: asset.timeline_id ?? null
   };
 }
 

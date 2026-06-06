@@ -34,7 +34,6 @@ import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
 import ImageListProperty from "../properties/ImageListProperty";
 import VideoListProperty from "../properties/VideoListProperty";
-import VideoClipListProperty from "../properties/VideoClipListProperty";
 import AudioListProperty from "../properties/AudioListProperty";
 import TextListProperty from "../properties/TextListProperty";
 import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
@@ -141,8 +140,6 @@ function componentForType(type: string): ComponentType<PropertyProps> {
       return ImageListProperty;
     case "video_list":
       return VideoListProperty;
-    case "video_clip_list":
-      return VideoClipListProperty;
     case "audio_list":
       return AudioListProperty;
     case "text_list":
@@ -239,7 +236,7 @@ function handleListType(
 }
 
 function handleModelTypes(type: string): ComponentType<PropertyProps> {
-  const modelPrefixes = ["comfy.", "hf.", "tjs."];
+  const modelPrefixes = ["hf.", "tjs."];
 
   if (type.endsWith("_model")) {
     return ModelProperty;

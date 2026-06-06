@@ -147,7 +147,17 @@ function inferImageMime(uri: string | undefined, bytes: Uint8Array): string {
   if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
   if (bytes[0] === 0x47 && bytes[1] === 0x49) return "image/gif";
   if (bytes[0] === 0x42 && bytes[1] === 0x4d) return "image/bmp";
-  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57)
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 && // "R"
+    bytes[1] === 0x49 && // "I"
+    bytes[2] === 0x46 && // "F"
+    bytes[3] === 0x46 && // "F"
+    bytes[8] === 0x57 && // "W"
+    bytes[9] === 0x45 && // "E"
+    bytes[10] === 0x42 && // "B"
+    bytes[11] === 0x50 // "P"
+  )
     return "image/webp";
   if (
     bytes[0] === 0x89 &&
@@ -364,12 +374,14 @@ export class LoadImageFolderNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
+    let firstPath = "";
     for await (const item of this._loadImages()) {
+      if (collected.length === 0) firstPath = String(item.path ?? "");
       collected.push(item.image as Record<string, unknown>);
     }
     return {
       image: collected[0] ?? {},
-      name: "",
+      path: firstPath,
       images: collected
     };
   }
@@ -433,7 +445,7 @@ export class LoadImageFolderNode extends BaseNode {
           width: meta.width,
           height: meta.height
         }),
-        name: file.name
+        path: file.fullPath
       };
     }
   }
@@ -1044,16 +1056,7 @@ export class ScaleNode extends TransformImageNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const requestedScale = Number(this.scale ?? 0);
-    const targetWidth = 0;
-    const targetHeight = 0;
-    const scale =
-      requestedScale > 0
-        ? requestedScale
-        : targetWidth > 0 && (image.width ?? 0) > 0
-          ? targetWidth / Number(image.width)
-          : targetHeight > 0 && (image.height ?? 0) > 0
-            ? targetHeight / Number(image.height)
-            : 1;
+    const scale = requestedScale > 0 ? requestedScale : 1;
     const output = (await transformImage(image, (instance) => {
       const fallbackWidth = image.width ?? 1;
       const fallbackHeight = image.height ?? 1;
@@ -1063,17 +1066,13 @@ export class ScaleNode extends TransformImageNode {
       });
     }, context)) as Record<string, unknown>;
     const fallbackWidth =
-      targetWidth > 0
-        ? targetWidth
-        : image.width != null
-          ? Math.max(1, Math.round(Number(image.width) * scale))
-          : null;
+      image.width != null
+        ? Math.max(1, Math.round(Number(image.width) * scale))
+        : null;
     const fallbackHeight =
-      targetHeight > 0
-        ? targetHeight
-        : image.height != null
-          ? Math.max(1, Math.round(Number(image.height) * scale))
-          : null;
+      image.height != null
+        ? Math.max(1, Math.round(Number(image.height) * scale))
+        : null;
     return {
       output: {
         ...output,
@@ -1213,10 +1212,17 @@ export class CropNode extends TransformImageNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
+    const imgW = Number(image.width ?? 0);
+    const imgH = Number(image.height ?? 0);
     const left = Math.max(0, Number(this.left ?? 0));
     const top = Math.max(0, Number(this.top ?? 0));
-    const right = Number(this.right ?? image.width ?? 0);
-    const bottom = Number(this.bottom ?? image.height ?? 0);
+    // Clamp the crop box to the known image bounds. Without this an
+    // out-of-bounds region makes sharp.extract throw, which transformImage
+    // silently swallows and returns the full, uncropped image.
+    let right = Number(this.right ?? image.width ?? 0);
+    let bottom = Number(this.bottom ?? image.height ?? 0);
+    if (imgW > 0) right = Math.min(right, imgW);
+    if (imgH > 0) bottom = Math.min(bottom, imgH);
     const width = Math.max(1, right - left);
     const height = Math.max(1, bottom - top);
     const output = (await transformImage(image, (instance) =>
@@ -1282,7 +1288,7 @@ export class FitNode extends TransformImageNode {
     const width = Math.max(1, Number(this.width ?? image.width ?? 512));
     const height = Math.max(1, Number(this.height ?? image.height ?? 512));
     const output = (await transformImage(image, (instance) =>
-      instance.resize(width, height, { fit: "cover", position: "centre" })
+      instance.resize(width, height, { fit: "inside" })
     , context)) as Record<string, unknown>;
     return {
       output: {
@@ -1305,7 +1311,6 @@ export class TextToImageNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -1414,7 +1419,6 @@ export class ImageToImageNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image"];
   static readonly autoSaveAsset = true;
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "image_model",
@@ -2391,7 +2395,6 @@ export class UpscaleImageNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -2472,7 +2475,6 @@ export class RemoveBackgroundNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -2532,7 +2534,6 @@ export class RelightImageNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "image" };
   static readonly inlineFields = [];
   static readonly inputFields = ["image", "prompt"];
-  static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
   @prop({
@@ -2612,7 +2613,6 @@ export class VectorizeImageNode extends BaseNode {
   static readonly metadataOutputTypes = { output: "svg_element" };
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
-  static readonly exposeAsTool = true;
 
   @prop({
     type: "image_model",

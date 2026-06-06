@@ -115,6 +115,66 @@ describe("GeminiProvider", () => {
     });
   });
 
+  it("resolves functionResponse name from the call id", async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    // Real flow: tool result carries the generated call id, not the name.
+    const messages: Message[] = [
+      {
+        role: "assistant",
+        content: null,
+        toolCalls: [{ id: "call_123_abc", name: "search", args: { q: "x" } }]
+      },
+      {
+        role: "tool",
+        content: "result text",
+        toolCallId: "call_123_abc"
+      }
+    ];
+
+    const result = await provider.convertMessages(messages);
+
+    expect(result.contents[1]).toEqual({
+      role: "user",
+      parts: [
+        {
+          functionResponse: {
+            name: "search",
+            response: { result: "result text" }
+          }
+        }
+      ]
+    });
+  });
+
+  it("merges parallel tool results into one user turn", async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    const messages: Message[] = [
+      {
+        role: "assistant",
+        content: null,
+        toolCalls: [
+          { id: "call_1", name: "search", args: {} },
+          { id: "call_2", name: "lookup", args: {} }
+        ]
+      },
+      { role: "tool", content: "a", toolCallId: "call_1" },
+      { role: "tool", content: "b", toolCallId: "call_2" }
+    ];
+
+    const result = await provider.convertMessages(messages);
+
+    expect(result.contents).toHaveLength(2);
+    expect(result.contents[1]).toEqual({
+      role: "user",
+      parts: [
+        { functionResponse: { name: "search", response: { result: "a" } } },
+        { functionResponse: { name: "lookup", response: { result: "b" } } }
+      ]
+    });
+  });
+
   it("formats tools with name sanitization", () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
 

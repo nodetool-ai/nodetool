@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -19,6 +19,7 @@ import OpenMenu from "./OpenMenu";
 const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   workflow: true,
   image: true,
+  sketch: false,
   timeline: true,
   model3d: true,
   text: true,
@@ -28,6 +29,7 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
 const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   workflow: "⬡",
   image: "▦",
+  sketch: "✎",
   timeline: "▤",
   model3d: "◈",
   audio: "♪",
@@ -38,6 +40,7 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
 const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   workflow: colorForType("any"),
   image: colorForType("image"),
+  sketch: colorForType("image"),
   timeline: colorForType("video"),
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),
@@ -197,8 +200,9 @@ const styles = (theme: Theme) =>
     }
   });
 
-const WorkspaceTabBar = () => {
+const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const theme = useTheme();
+  const tabBarStyles = useMemo(() => styles(theme), [theme]);
   const tabs = useWorkspaceTabsStore((state) => state.tabs);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setActiveTab = useWorkspaceTabsStore((state) => state.setActiveTab);
@@ -207,7 +211,10 @@ const WorkspaceTabBar = () => {
 
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
 
-  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
+  const activeTab = useMemo(
+    () => tabs.find((tab) => tab.id === activeTabId) ?? null,
+    [tabs, activeTabId]
+  );
 
   const newTabButtonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -223,7 +230,7 @@ const WorkspaceTabBar = () => {
   );
 
   return (
-    <div css={styles(theme)} className="workspace-tabbar">
+    <div css={tabBarStyles} className="workspace-tabbar">
       <button
         ref={newTabButtonRef}
         type="button"
@@ -297,6 +304,6 @@ const WorkspaceTabBar = () => {
       </div>
     </div>
   );
-};
+});
 
 export default WorkspaceTabBar;

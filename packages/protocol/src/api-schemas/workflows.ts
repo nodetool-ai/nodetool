@@ -8,7 +8,6 @@ import { z } from "zod";
  * Standalone modes (appear in regular workflow listings):
  *   "workflow" | null  — standard workflows (null is legacy, treated as "workflow")
  *   "chat"             — chat-oriented workflows
- *   "comfy"            — ComfyUI-compatible workflows
  *   "app"              — HTML mini-app workflows
  *   "tool"             — workflow exposed as an agent tool
  *
@@ -20,7 +19,6 @@ import { z } from "zod";
 export const workflowRunModes = [
   "workflow",
   "chat",
-  "comfy",
   "app",
   "tool",
   "clip",
@@ -35,12 +33,11 @@ export const workflowRunModeSchema = z.enum(workflowRunModes);
 /**
  * Run modes that appear in standalone workflow listings.
  * Standalone listings use `run_mode IN ("workflow", null)` by default;
- * explicit filters may include "chat", "comfy", "app", or "tool".
+ * explicit filters may include "chat", "app", or "tool".
  */
 export const STANDALONE_RUN_MODES = [
   "workflow",
   "chat",
-  "comfy",
   "app",
   "tool"
 ] as const satisfies ReadonlyArray<WorkflowRunMode>;

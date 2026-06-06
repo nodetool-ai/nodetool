@@ -85,7 +85,7 @@ const storage = {
 
   // Retrieve the list of open workflow IDs.
   getOpenWorkflows: (): string[] =>
-    JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]"),
+    JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[],
 
   // Debounced setter for the current workflow ID.
   setCurrentWorkflow: debounce((workflowId: string) => {
@@ -103,7 +103,7 @@ const storage = {
 
 // Export storage utility function for use in WorkflowManagerContext
 export const getOpenWorkflowsFromStorage = (): string[] =>
-  JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]");
+  JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[];
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS

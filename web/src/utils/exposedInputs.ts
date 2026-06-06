@@ -3,7 +3,7 @@ import type { NodeData } from "../stores/NodeData";
 
 export type ExposedInputPlacement = "handle" | "labeled";
 
-export type ExposedInputPlacementData = Pick<
+type ExposedInputPlacementData = Pick<
   NodeData,
   "exposedInputs" | "exposedInputsLabeled" | "exposedInputsHidden"
 >;
@@ -56,20 +56,6 @@ export const getEffectiveExposedPlacement = (
     return "handle";
   }
   return getDefaultExposedPlacement(metadata, propertyName);
-};
-
-/** @deprecated Use getEffectiveExposedPlacement with metadata. */
-export const getExposedInputPlacement = (
-  data: NodeData,
-  propertyName: string
-): ExposedInputPlacement | null => {
-  if ((data.exposedInputs ?? []).includes(propertyName)) {
-    return "handle";
-  }
-  if ((data.exposedInputsLabeled ?? []).includes(propertyName)) {
-    return "labeled";
-  }
-  return null;
 };
 
 const addToList = (
@@ -153,12 +139,7 @@ export const addExposedInput = (
   propertyName: string
 ): string[] => addToList(current, propertyName);
 
-export const removeExposedInput = (
-  current: string[] | undefined,
-  propertyName: string
-): string[] => removeFromList(current, propertyName);
-
-export type ExposedInputListsPatch = {
+type ExposedInputListsPatch = {
   exposedInputs?: string[];
   exposedInputsLabeled?: string[];
   exposedInputsHidden?: string[];

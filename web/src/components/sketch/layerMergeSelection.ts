@@ -40,9 +40,12 @@ export function getMergeSelectedLayersPlan(
     return null;
   }
 
-  const indices = selectedLayers
-    .map((layer) => layers.findIndex((candidate) => candidate.id === layer.id))
-    .sort((a, b) => a - b);
+  const indices: number[] = [];
+  for (let i = 0; i < layers.length; i++) {
+    if (selectedSet.has(layers[i].id)) {
+      indices.push(i);
+    }
+  }
 
   if (indices.some((index) => index < 0)) {
     return null;

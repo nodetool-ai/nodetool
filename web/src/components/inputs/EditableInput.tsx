@@ -110,14 +110,14 @@ const EditableInput: React.FC<EditableInputProps> = ({
       if (event.key === "Enter" || event.code === "NumpadEnter") {
         event.preventDefault();
         event.stopPropagation();
-        _onBlur(event as unknown as React.FocusEvent<HTMLInputElement>);
+        inputRef.current?.blur();
         return;
       }
       // Prevent all other keys from bubbling to ReactFlow
       // (e.g. Backspace/Delete would otherwise delete the node)
       event.stopPropagation();
     },
-    [_onBlur]
+    []
   );
 
   return (

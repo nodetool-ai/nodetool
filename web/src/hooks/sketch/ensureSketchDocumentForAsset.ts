@@ -4,15 +4,12 @@ import type { Asset } from "../../stores/ApiTypes";
 import type { AssetUpdate } from "../../stores/AssetStore";
 import { buildSeededImageDocument } from "./buildSeededImageDocument";
 
-/** Metadata key under which an image asset records the sketch that backs it. */
-export const SKETCH_DOCUMENT_METADATA_KEY = "sketchDocumentId";
-
 /** Sketch documents are scoped to a project; assets aren't, so use the default. */
 const SKETCH_PROJECT_ID = "default";
 
 /** The sketch document this image asset is already backed by, if any. */
 export function readSketchDocumentId(asset: Asset): string | null {
-  const id = asset.metadata?.[SKETCH_DOCUMENT_METADATA_KEY];
+  const id = asset.sketch_document_id;
   return typeof id === "string" && id.length > 0 ? id : null;
 }
 
@@ -60,9 +57,9 @@ function loadImageSize(
 /**
  * Return the sketch document that backs an image asset, creating one on first
  * use. A new document is sized to the image and seeded with it as the base
- * layer; the two are linked bidirectionally (asset → sketch via metadata,
- * sketch → asset via `thumbnailAssetId`) so the document can later be reopened
- * and saving renders back into this asset.
+ * layer; the two are linked bidirectionally (asset → sketch via
+ * `sketch_document_id`, sketch → asset via `thumbnailAssetId`) so the document
+ * can later be reopened and saving renders back into this asset.
  */
 export async function ensureSketchDocumentForAsset(
   asset: Asset,
@@ -95,10 +92,7 @@ export async function ensureSketchDocumentForAsset(
 
   await updateAsset({
     id: asset.id,
-    metadata: {
-      ...(asset.metadata ?? {}),
-      [SKETCH_DOCUMENT_METADATA_KEY]: created.id
-    }
+    sketch_document_id: created.id
   });
 
   return created.id;

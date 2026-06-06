@@ -17,7 +17,7 @@ import {
  * path used when dragging a node from the menu, so the resulting graph is a
  * real, runnable workflow rather than a serialized fixture.
  */
-export const useCreateStarterWorkflow = () => {
+export const useCreateStarterWorkflow = (): ((trackId: WelcomeTrackId) => void) => {
   const store = useWorkflowManagerStore();
   const navigate = useNavigate();
 

@@ -107,11 +107,30 @@ function defaultForPropType(propType: string): unknown {
       return { type: "video", uri: "", asset_id: null, data: null, metadata: null, duration: null, format: null };
     default:
       if (propType.startsWith("list[")) return [];
+      if (propType.startsWith("dict[")) return null;
       return "";
   }
 }
 
-function castValue(value: unknown, propType: string): unknown {
+/**
+ * True when every enum option parses as a finite number (e.g. SD width/height,
+ * which Replicate types as an integer enum). The manifest stores all enum
+ * values as strings, so without this such fields would be sent to the API as
+ * strings ("768") and rejected against the model's integer schema.
+ */
+function isNumericEnum(enumValues?: string[]): boolean {
+  return (
+    Array.isArray(enumValues) &&
+    enumValues.length > 0 &&
+    enumValues.every((v) => v !== "" && Number.isFinite(Number(v)))
+  );
+}
+
+function castValue(
+  value: unknown,
+  propType: string,
+  enumValues?: string[]
+): unknown {
   if (value === null || value === undefined) return value;
   if (propType.startsWith("list[") || propType.startsWith("dict[")) {
     return value;
@@ -122,6 +141,8 @@ function castValue(value: unknown, propType: string): unknown {
       return Number(value);
     case "bool":
       return Boolean(value);
+    case "enum":
+      return isNumericEnum(enumValues) ? Number(value) : String(value);
     default:
       return String(value);
   }
@@ -237,7 +258,7 @@ async function buildArgs(
         }
       }
     } else {
-      args[apiName] = castValue(value, field.propType);
+      args[apiName] = castValue(value, field.propType, field.enumValues);
     }
   }
 
@@ -356,12 +377,30 @@ export function createReplicateNodeClass(
     if (field.parentField) continue;
     if (field.name === "num_outputs") continue;
 
+    // Numeric enums must register numeric options and a numeric default so the
+    // value stays an integer end-to-end (UI selection + API arg). Otherwise the
+    // numeric default never matches the string options and the API gets a string.
+    const numericEnum =
+      field.propType === "enum" && isNumericEnum(field.enumValues);
+    let defaultValue: unknown =
+      field.default ?? defaultForPropType(field.propType);
+    if (numericEnum) {
+      defaultValue =
+        defaultValue === "" || defaultValue == null
+          ? Number(field.enumValues![0])
+          : Number(defaultValue);
+    }
+
     const propOptions: PropOptions = {
       type: field.propType,
-      default: field.default ?? defaultForPropType(field.propType)
+      default: defaultValue
     };
     if (field.description) propOptions.description = field.description;
-    if (field.enumValues?.length) propOptions.values = field.enumValues;
+    if (field.enumValues?.length) {
+      propOptions.values = numericEnum
+        ? field.enumValues.map(Number)
+        : field.enumValues;
+    }
     if (field.min !== undefined) propOptions.min = field.min;
     if (field.max !== undefined) propOptions.max = field.max;
 

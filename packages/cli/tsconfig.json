@@ -38,6 +38,9 @@
       "path": "../elevenlabs-nodes"
     },
     {
+      "path": "../minimax-nodes"
+    },
+    {
       "path": "../transformers-js-nodes"
     },
     {

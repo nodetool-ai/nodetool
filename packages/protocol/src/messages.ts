@@ -155,6 +155,12 @@ export interface ProviderCost {
   unit_price?: number | null;
   /** ISO 4217 currency of `amount`/`unit_price` (e.g. "USD"). */
   currency?: string | null;
+  /**
+   * Provider-side request identifier (e.g. a FAL queue request id). Lets the
+   * runner reconcile the initial estimate against the provider's actual billed
+   * cost after the fact. `amount` is an estimate until reconciled.
+   */
+  provider_request_id?: string | null;
 }
 
 export interface NodeUpdate {
@@ -405,7 +411,8 @@ export type UnifiedCommandType =
   | "get_asset"
   | "list_nodes"
   | "get_node"
-  | "generate_media";
+  | "generate_media"
+  | "transcribe_audio";
 
 /**
  * Read-only RPC commands that require a `request_id` and return a single
@@ -414,6 +421,7 @@ export type UnifiedCommandType =
  *
  * `generate_media` is included here because the sketch editor and other
  * non-chat callers want a single asset id back, not a streamed Message row.
+ * `transcribe_audio` likewise returns word-level caption timing in one shot.
  */
 export type RpcCommandType =
   | "list_workflows"
@@ -422,7 +430,8 @@ export type RpcCommandType =
   | "get_asset"
   | "list_nodes"
   | "get_node"
-  | "generate_media";
+  | "generate_media"
+  | "transcribe_audio";
 
 export interface WebSocketCommandEnvelope<
   C extends UnifiedCommandType = UnifiedCommandType,

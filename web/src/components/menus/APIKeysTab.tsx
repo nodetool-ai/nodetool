@@ -65,6 +65,8 @@ interface ProviderMeta {
   icon?: string;
   /** Mono (single-color black) icon — needs inversion in dark mode to be visible. */
   mono?: boolean;
+  /** Extra hint rendered under the description (e.g. required key scope). */
+  note?: string;
 }
 
 const PROVIDER_META: ProviderMeta[] = [
@@ -177,7 +179,8 @@ const PROVIDER_META: ProviderMeta[] = [
     description: "Serverless AI image and video generation.",
     category: "other",
     docsUrl: "https://fal.ai/docs",
-    icon: falColorIcon
+    icon: falColorIcon,
+    note: "For exact cost tracking, use an admin key (fal.ai dashboard → Keys → scope “Admin”). NodeTool reads each request's actual billing from FAL; a standard key only yields estimates."
   },
   {
     key: "ELEVENLABS_API_KEY",
@@ -204,6 +207,13 @@ const PROVIDER_META: ProviderMeta[] = [
     category: "other",
     docsUrl: "https://www.atlascloud.ai/",
     icon: atlascloudIcon
+  },
+  {
+    key: "REVE_API_KEY",
+    name: "Reve",
+    description: "Image creation, editing, and remix with strong prompt adherence.",
+    category: "other",
+    docsUrl: "https://api.reve.com/"
   },
   {
     key: "KIMI_API_KEY",
@@ -486,6 +496,17 @@ const ProviderCard = memo(function ProviderCard({
         <Caption sx={{ opacity: 0.55, lineHeight: 1.4 }}>
           {meta.description}
         </Caption>
+        {meta.note && (
+          <Caption
+            sx={{
+              opacity: 0.45,
+              lineHeight: 1.4,
+              fontSize: theme.fontSizeTiny
+            }}
+          >
+            {meta.note}
+          </Caption>
+        )}
       </FlexColumn>
 
       {/* Status + Actions — right-aligned, vertically distributed */}

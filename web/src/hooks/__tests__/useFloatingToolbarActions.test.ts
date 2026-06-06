@@ -113,8 +113,7 @@ describe("useFloatingToolbarActions", () => {
       getState: jest.fn(() => ({
         nodes: [],
         edges: [],
-        getWorkflow: jest.fn(() => mockWorkflow),
-        isComfyWorkflow: jest.fn(() => false)
+        getWorkflow: jest.fn(() => mockWorkflow)
       }))
     } as any);
 

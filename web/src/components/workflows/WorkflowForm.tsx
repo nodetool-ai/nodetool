@@ -15,7 +15,6 @@ const workspacesEnabled = !isProduction;
 const RUN_MODE_OPTIONS = [
   { value: "workflow", label: "Workflow" },
   { value: "chat", label: "Chat" },
-  { value: "comfy", label: "Comfy" },
   { value: "app", label: "App" },
   { value: "tool", label: "Tool" }
 ];
@@ -24,7 +23,6 @@ const DEFAULT_TAG_SUGGESTIONS = [
   "image",
   "audio",
   "video",
-  "comfy",
   "chat",
   "docs",
   "mail",

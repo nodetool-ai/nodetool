@@ -180,6 +180,7 @@ export class OllamaProvider extends BaseProvider {
     // or [func_name(key=value)]
     const funcPattern = /\[?\b(\w+)\(([^)]*)\)\]?/g;
     let match: RegExpExecArray | null;
+    let callIndex = 0;
 
     while ((match = funcPattern.exec(content)) !== null) {
       const [fullMatch, name, argsStr] = match;
@@ -200,8 +201,17 @@ export class OllamaProvider extends BaseProvider {
         else args[key] = value;
       }
 
-      calls.push({ id: `emulated-${name}-${Date.now()}`, name, args });
-      cleaned = cleaned.replace(fullMatch, "").trim();
+      // Include a per-call index so repeated calls to the same tool within one
+      // response (same Date.now() millisecond) get distinct ids.
+      calls.push({
+        id: `emulated-${name}-${Date.now()}-${callIndex}`,
+        name,
+        args
+      });
+      callIndex += 1;
+      // replaceAll (not replace) so every occurrence of this call text is
+      // stripped, not just the first.
+      cleaned = cleaned.replaceAll(fullMatch, "").trim();
     }
 
     return [calls, cleaned];

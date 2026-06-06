@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useState
 } from "react";
-import * as ReactDOM from "react-dom";
+import { createPortal } from "react-dom";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -201,7 +201,7 @@ const AssetMentionPlugin: React.FC = () => {
         if (anchorElementRef.current === null) {
           return null;
         }
-        return ReactDOM.createPortal(
+        return createPortal(
           <div css={menuStyles(theme)} className="asset-mention-menu nowheel">
             {options.length === 0 ? (
               <div className="asset-empty">

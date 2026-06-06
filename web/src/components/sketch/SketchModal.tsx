@@ -126,6 +126,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
   onExportMask
 }) => {
   const theme = useTheme();
+  const modalStyles = useMemo(() => styles(theme), [theme]);
   const editorRef = useRef<SketchEditorHandle>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [symmetryAnchorEl, setSymmetryAnchorEl] = useState<HTMLElement | null>(null);
@@ -214,7 +215,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
   return ReactDOM.createPortal(
     <Box
       className="sketch-modal"
-      css={styles(theme)}
+      css={modalStyles}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
@@ -387,7 +388,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             </Tooltip>
           )}
 
-          <Tooltip title={`Export Image (${displayCombo("export-png")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+          <Tooltip title="Export Image" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton size="small" aria-label="Export Image" onClick={() => editorRef.current?.exportPng()}>
               <SaveAltIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
