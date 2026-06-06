@@ -32,8 +32,30 @@ export {
 } from "./mcp-server.js";
 export {
   materializeWorkflowConstantAssets,
+  collectWorkflowAssets,
+  transformMediaRefs,
   type WorkflowGraphLike,
   type MaterializeOptions,
   type MaterializeResult,
-  type ExportedAsset
+  type ExportedAsset,
+  type CollectOptions,
+  type CollectResult,
+  type CollectedAsset
 } from "./lib/package-asset-export.js";
+export {
+  packWorkflowBundle,
+  unpackWorkflowBundle,
+  importWorkflowBundle,
+  verifyBundleChecksums,
+  WORKFLOW_BUNDLE_SCHEME,
+  WORKFLOW_BUNDLE_FORMAT,
+  WORKFLOW_BUNDLE_VERSION,
+  type WorkflowBundleManifest,
+  type BundledWorkflow,
+  type PackBundleOptions,
+  type PackBundleResult,
+  type UnpackedBundle,
+  type ImportBundleOptions,
+  type ImportBundleResult,
+  type StoreAssetInput
+} from "./lib/workflow-bundle.js";

@@ -99,6 +99,55 @@ async function apiGetText(apiUrl: string, path: string): Promise<string> {
   return res.text();
 }
 
+// This CLI's package version, stamped into exported bundle manifests.
+function cliVersion(): string | undefined {
+  try {
+    const req = createRequire(import.meta.url);
+    return (req("../package.json") as { version?: string }).version;
+  } catch {
+    // Version is best-effort metadata; omit it if the file can't be read.
+    return undefined;
+  }
+}
+
+// Download asset bytes from a running server, used by the export commands to
+// resolve `asset://` / `/api/storage/` (and optionally http) refs into bytes.
+function makeAssetFetcher(
+  apiUrl: string
+): (ref: string) => Promise<Uint8Array | null> {
+  return async (ref: string): Promise<Uint8Array | null> => {
+    let url: string | null = null;
+    if (ref.startsWith("asset://")) {
+      const id = ref.slice("asset://".length);
+      const bareId = id.replace(/\.[^.]+$/, "");
+      try {
+        const meta = await fetch(
+          `${apiUrl}/api/assets/${encodeURIComponent(bareId)}`
+        );
+        if (meta.ok) {
+          const j = (await meta.json()) as { get_url?: string };
+          if (j.get_url) {
+            url = j.get_url.startsWith("/") ? `${apiUrl}${j.get_url}` : j.get_url;
+          }
+        }
+      } catch {
+        // Metadata lookup failed — fall back to the storage route below.
+      }
+      url ??= `${apiUrl}/api/storage/${encodeURIComponent(id)}`;
+    } else if (ref.includes("/api/storage/")) {
+      url = /^https?:\/\//.test(ref)
+        ? ref
+        : `${apiUrl}${ref.startsWith("/") ? ref : `/${ref}`}`;
+    } else if (/^https?:\/\//.test(ref)) {
+      url = ref;
+    }
+    if (!url) return null;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Table printer
 // ---------------------------------------------------------------------------
@@ -664,41 +713,7 @@ workflows
         const examplesDir = opts.examplesDir ?? join(baseNodesDir, "examples");
 
         const apiUrl = opts.apiUrl.replace(/\/+$/, "");
-        const fetchAssetBytes = async (
-          ref: string
-        ): Promise<Uint8Array | null> => {
-          let url: string | null = null;
-          if (ref.startsWith("asset://")) {
-            const id = ref.slice("asset://".length);
-            const bareId = id.replace(/\.[^.]+$/, "");
-            try {
-              const meta = await fetch(
-                `${apiUrl}/api/assets/${encodeURIComponent(bareId)}`
-              );
-              if (meta.ok) {
-                const j = (await meta.json()) as { get_url?: string };
-                if (j.get_url) {
-                  url = j.get_url.startsWith("/")
-                    ? `${apiUrl}${j.get_url}`
-                    : j.get_url;
-                }
-              }
-            } catch {
-              // fall back to the storage route below
-            }
-            url ??= `${apiUrl}/api/storage/${encodeURIComponent(id)}`;
-          } else if (ref.includes("/api/storage/")) {
-            url = /^https?:\/\//.test(ref)
-              ? ref
-              : `${apiUrl}${ref.startsWith("/") ? ref : `/${ref}`}`;
-          } else if (/^https?:\/\//.test(ref)) {
-            url = ref;
-          }
-          if (!url) return null;
-          const res = await fetch(url);
-          if (!res.ok) return null;
-          return new Uint8Array(await res.arrayBuffer());
-        };
+        const fetchAssetBytes = makeAssetFetcher(apiUrl);
 
         const result = await materializeWorkflowConstantAssets(graph, {
           packageName: opts.package,
@@ -740,6 +755,171 @@ workflows
       }
     }
   );
+
+workflows
+  .command("export-bundle <workflow_id_or_file>")
+  .description(
+    "Export a workflow as a portable .nodetool bundle (zip): the graph plus the " +
+      "bytes of every asset it references, sharable as a single file"
+  )
+  .option(
+    "--api-url <url>",
+    "API base URL (used to fetch the workflow and asset bytes by id)",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("-o, --output <file>", "Output path (default: <name>.nodetool)")
+  .option(
+    "--include-remote",
+    "Also embed http(s) and local-file refs (off by default)"
+  )
+  .action(
+    async (
+      idOrFile: string,
+      opts: { apiUrl: string; output?: string; includeRemote?: boolean }
+    ) => {
+      try {
+        const { readFileSync } = await import("node:fs");
+        const { writeFile } = await import("node:fs/promises");
+        const { packWorkflowBundle } = await import("@nodetool-ai/websocket");
+
+        let workflow: {
+          name: string;
+          description?: string;
+          tags?: string[];
+          run_mode?: string | null;
+          settings?: Record<string, unknown> | null;
+          graph: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
+        };
+
+        const isFile =
+          idOrFile.endsWith(".json") ||
+          idOrFile.includes("/") ||
+          idOrFile.includes("\\");
+
+        if (isFile) {
+          const raw = JSON.parse(readFileSync(idOrFile, "utf8")) as Record<
+            string,
+            unknown
+          >;
+          workflow = {
+            name: typeof raw.name === "string" ? raw.name : "workflow",
+            description:
+              typeof raw.description === "string" ? raw.description : "",
+            tags: Array.isArray(raw.tags)
+              ? raw.tags.filter((t): t is string => typeof t === "string")
+              : [],
+            run_mode: (raw.run_mode as string | null | undefined) ?? null,
+            settings: (raw.settings as Record<string, unknown> | null) ?? null,
+            graph: (raw.graph ?? raw) as typeof workflow.graph
+          };
+        } else {
+          const wf = (await createApiClient(opts.apiUrl).workflows.get.query({
+            id: idOrFile
+          })) as Record<string, unknown>;
+          workflow = {
+            name: typeof wf.name === "string" ? wf.name : "workflow",
+            description:
+              typeof wf.description === "string" ? wf.description : "",
+            tags: Array.isArray(wf.tags)
+              ? wf.tags.filter((t): t is string => typeof t === "string")
+              : [],
+            run_mode: (wf.run_mode as string | null | undefined) ?? null,
+            settings: (wf.settings as Record<string, unknown> | null) ?? null,
+            graph: wf.graph as typeof workflow.graph
+          };
+        }
+
+        if (!workflow.graph?.nodes) {
+          throw new Error("Workflow has no graph to export");
+        }
+
+        const apiUrl = opts.apiUrl.replace(/\/+$/, "");
+        const fetchAssetBytes = makeAssetFetcher(apiUrl);
+
+        const { bytes, manifest, skipped } = await packWorkflowBundle({
+          workflow,
+          fetchAssetBytes,
+          nodetoolVersion: cliVersion(),
+          ...(opts.includeRemote ? { includeRemote: true } : {})
+        });
+
+        const safeName = workflow.name.replace(/[^A-Za-z0-9._-]+/g, "_");
+        const outPath = opts.output ?? `${safeName}.nodetool`;
+        await writeFile(outPath, bytes);
+
+        for (const a of manifest.assets) {
+          console.error(`  embedded ${a.file} (${a.bytes} bytes)`);
+        }
+        for (const s of skipped) {
+          console.error(`  warning: could not resolve asset ${s} (left as-is)`);
+        }
+        console.log(outPath);
+      } catch (e) {
+        console.error(String(e));
+        process.exit(1);
+      }
+    }
+  );
+
+workflows
+  .command("import-bundle <bundle_file>")
+  .description(
+    "Import a .nodetool bundle into the local library: store its assets and " +
+      "create the workflow with refs rewritten to the imported assets"
+  )
+  .option("--json", "Output the created workflow as JSON")
+  .action(async (bundleFile: string, opts: { json?: boolean }) => {
+    try {
+      const { readFileSync } = await import("node:fs");
+      const { randomUUID } = await import("node:crypto");
+      const { extname } = await import("node:path");
+      const { importWorkflowBundle } = await import("@nodetool-ai/websocket");
+
+      await setupDb();
+      const storage = new FileStorageAdapter(getDefaultAssetsPath());
+
+      const zip = new Uint8Array(readFileSync(bundleFile));
+      const result = await importWorkflowBundle(zip, {
+        storeAsset: async ({ bytes, fileName, contentType }) => {
+          const id = randomUUID();
+          const key = `${id}${extname(fileName)}`;
+          await storage.store(key, bytes, contentType);
+          return { uri: `asset://${key}`, assetId: id };
+        }
+      });
+
+      const wf = result.workflow;
+      const created = (await Workflow.create({
+        user_id: "1",
+        name: wf.name,
+        description: wf.description ?? "",
+        tags: wf.tags ?? [],
+        access: "private",
+        graph: wf.graph,
+        run_mode: wf.run_mode ?? "workflow",
+        settings: wf.settings ?? null
+      })) as unknown as Record<string, unknown>;
+
+      for (const s of result.missing) {
+        console.error(`  warning: bundle asset ${s} was missing from the archive`);
+      }
+      for (const m of result.checksumMismatches) {
+        console.error(`  warning: ${m}`);
+      }
+      console.error(
+        `  imported ${result.imported.length} asset(s) into local storage`
+      );
+
+      if (opts.json) {
+        asJson(created);
+      } else {
+        console.log(String(created["id"]));
+      }
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
 
 // ---------------------------------------------------------------------------
 // jobs
