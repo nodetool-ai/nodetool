@@ -3,7 +3,7 @@
  *
  * Keys are scoped by job: `${workflowId}:${jobId}:${id}` where `id` is a node
  * id (or an edge id for the `edges` map). This lets concurrent same-workflow
- * runs keep independent results/progress/edges while the canvas focuses one run
+ * runs keep independent output/progress/edges while the canvas focuses one run
  * at a time (see WorkflowRunsStore). For a single run the focused job is that
  * run, so behavior is unchanged.
  */
@@ -14,7 +14,6 @@ import { nodeKey, edgeKey, type NodeKey, type EdgeKey } from "./nodeKey";
 import type { Generation } from "../utils/nodeGenerations";
 
 type ResultsStore = {
-  results: Record<NodeKey, unknown>;
   outputResults: Record<NodeKey, unknown>;
   liveGenerations: Record<string, Generation[]>;
   providerCosts: Record<NodeKey, ProviderCost>;
@@ -26,7 +25,6 @@ type ResultsStore = {
   toolCalls: Record<NodeKey, ToolCallUpdate>;
   toolResults: Record<NodeKey, unknown[]>;
   planningUpdates: Record<NodeKey, PlanningUpdate>;
-  deleteResult: (workflowId: string, jobId: string, nodeId: string) => void;
   clearResults: (workflowId: string, nodeIds?: Set<string>) => void;
   clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => void;
   clearProgress: (workflowId: string, nodeIds?: Set<string>) => void;
@@ -47,14 +45,6 @@ type ResultsStore = {
     jobId: string,
     edgeId: string
   ) => { status: string; counter?: number } | undefined;
-  setResult: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string,
-    result: unknown,
-    append?: boolean
-  ) => void;
-  getResult: (workflowId: string, jobId: string, nodeId: string) => unknown;
   upsertLiveGeneration: (
     workflowId: string,
     nodeId: string,
@@ -200,7 +190,6 @@ const filterRecord = <K extends string, T>(
 };
 
 const useResultsStore = create<ResultsStore>((set, get) => ({
-  results: {},
   outputResults: {},
   liveGenerations: {},
   providerCosts: {},
@@ -336,27 +325,10 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     return get().tasks[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
-   * Delete the result for a node.
-   * The result is removed from the results map.
-   *
-   * @param workflowId The id of the workflow.
-   * @param jobId The id of the run/job.
-   * @param nodeId The id of the node.
-   */
-  deleteResult: (workflowId: string, jobId: string, nodeId: string) => {
-    const key = nodeKey(workflowId, jobId, nodeId);
-    set((state) => {
-      const { [key]: removed, ...remainingResults } = state.results;
-      return { results: remainingResults };
-    });
-  },
-  /**
-   * Clear the results for a workflow.
-   * The results are removed from the results map.
+   * Clear the provider costs for a workflow.
    */
   clearResults: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
-      results: filterRecord(state.results, workflowId, nodeIds),
       providerCosts: filterRecord(state.providerCosts, workflowId, nodeIds)
     }));
   },
@@ -405,63 +377,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       chunks: filterRecord(state.chunks, workflowId, nodeIds)
     }));
   },
-  /**
-   * Set the result for a node.
-   * The result is stored in the results map.
-   *
-   * @param workflowId The id of the workflow.
-   * @param nodeId The id of the node.
-   * @param result The result to set.
-   */
-  setResult: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string,
-    result: unknown,
-    append?: boolean
-  ) => {
-    const key = nodeKey(workflowId, jobId, nodeId);
-    set((state) => {
-      const currentResult = state.results[key];
-      const nextVersion = state.resultsVersion + 1;
-      if (currentResult === undefined || !append) {
-        return { results: { ...state.results, [key]: result }, resultsVersion: nextVersion };
-      } else {
-        if (Array.isArray(currentResult)) {
-          return {
-            results: {
-              ...state.results,
-              [key]: [...currentResult, result]
-            },
-            resultsVersion: nextVersion
-          };
-        } else {
-          return {
-            results: {
-              ...state.results,
-              [key]: [currentResult, result]
-            },
-            resultsVersion: nextVersion
-          };
-        }
-      }
-    });
-  },
-
-  /**
-   * Get the result for a node.
-   *
-   * @param workflowId The id of the workflow.
-   * @param jobId The id of the run/job.
-   * @param nodeId The id of the node.
-   * @returns The result for the node.
-   */
-  getResult: (workflowId: string, jobId: string, nodeId: string) => {
-    const results = get().results;
-    const key = nodeKey(workflowId, jobId, nodeId);
-    return results[key];
-  },
-
   /**
    * Upsert a live generation for a node, keyed by `${workflowId}:${nodeId}`.
    * A generation is identified within the node by its `jobId`: the first patch

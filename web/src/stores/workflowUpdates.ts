@@ -236,7 +236,6 @@ export const handleUpdate = (
   getNodeStore: (workflowId: string) => NodeStore | undefined
 ) => {
   const runner = runnerStore.getState();
-  const setResult = useResultsStore.getState().setResult;
   const setProviderCost = useResultsStore.getState().setProviderCost;
   const upsertLiveGeneration = useResultsStore.getState().upsertLiveGeneration;
   const setOutputResult = useResultsStore.getState().setOutputResult;
@@ -689,11 +688,6 @@ export const handleUpdate = (
           update.node_id,
           update.provider_cost
         );
-      }
-
-      // Store result if present
-      if (update.result && jobId) {
-        setResult(workflow.id, jobId, update.node_id, update.result);
       }
 
       if (jobId) {

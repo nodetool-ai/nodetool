@@ -133,7 +133,6 @@ describe("ContentCardBody results", () => {
     mockLastJobAssets = [];
     mockRunnerState = "idle";
     useResultsStore.setState({
-      results: {},
       outputResults: {},
       progress: {},
       edges: {},
@@ -153,10 +152,7 @@ describe("ContentCardBody results", () => {
     });
   });
 
-  it("renders every streamed output from the current run, not the stale node_update result", () => {
-    useResultsStore.getState().setResult(workflowId, jobId, nodeId, {
-      output: { type: "image", uri: "stale-final.png" }
-    });
+  it("renders every streamed output from the current run", () => {
     useResultsStore.getState().setOutputResult(workflowId, jobId, nodeId, {
       type: "image",
       uri: "stream-1.png"
@@ -175,7 +171,6 @@ describe("ContentCardBody results", () => {
     expect(rendered).toHaveLength(2);
     expect(rendered[0]).toHaveTextContent("stream-1.png");
     expect(rendered[1]).toHaveTextContent("stream-2.png");
-    expect(screen.queryByText("stale-final.png")).not.toBeInTheDocument();
   });
 
   it("unwraps per-output result records and renders each generation", () => {
