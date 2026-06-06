@@ -139,10 +139,12 @@ export class ExtensionBridge {
    * reconnects; it observes the bridge, not a specific socket.
    */
   getChannel(): ExtensionChannel {
-    const bridge = this;
+    // Arrow functions capture the bridge's `this` lexically (no `const self =
+    // this` alias); the getter delegates to one so it reads live state too.
+    const isConnected = (): boolean => this.socket !== null;
     return {
-      send(frame: ExtensionFrame): void {
-        const socket = bridge.socket;
+      send: (frame: ExtensionFrame): void => {
+        const socket = this.socket;
         if (!socket) {
           log.warn(
             `No extension connected; dropping ${frame.kind} frame host→ext`
@@ -158,16 +160,16 @@ export class ExtensionBridge {
           );
         }
       },
-      onMessage(cb: (frame: ExtensionFrame) => void): () => void {
-        bridge.observers.add(cb);
+      onMessage: (cb: (frame: ExtensionFrame) => void): (() => void) => {
+        this.observers.add(cb);
         return () => {
-          bridge.observers.delete(cb);
+          this.observers.delete(cb);
         };
       },
-      close(): void {
-        const socket = bridge.socket;
+      close: (): void => {
+        const socket = this.socket;
         if (socket) {
-          bridge.socket = null;
+          this.socket = null;
           try {
             socket.close();
           } catch {
@@ -176,7 +178,7 @@ export class ExtensionBridge {
         }
       },
       get connected(): boolean {
-        return bridge.socket !== null;
+        return isConnected();
       }
     };
   }
