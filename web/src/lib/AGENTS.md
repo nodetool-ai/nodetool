@@ -20,6 +20,12 @@ This directory contains integrations with external libraries (WebSocket, Supabas
 - Always subscribe to updates and return the unsubscribe function.
 - Clean up subscriptions in `useEffect` cleanup.
 - Validate all incoming messages before processing.
+- **Every run-submission path must set `concurrent: true` on the `run_job`
+  payload.** Without it the backend serializes the run behind any in-flight
+  same-workflow run. When you add a new way to launch a run (e.g.
+  `runInlineGraphJob` for Run-from-here / node context-menu), match the flag the
+  other paths use — an unset flag silently queues the run instead of running it
+  alongside the others.
 
 ### Supabase
 

@@ -429,3 +429,21 @@ NODETOOL_AGENT_AUTO_SKILLS=0                # Disable auto-matching (default: en
 6. **Restrict tools**: Per-step `tools` arrays limit which tools a step can call
 7. **Observe**: Enable tracing (`OTEL_TRACES_EXPORTER=console`) to see every LLM call
 8. **Iterate on skills**: Add domain-specific SKILL.md files to improve agent behavior
+
+## Authoring Agent Nodes — Pitfalls
+
+When building a node that wraps an agent (e.g. the `code-nodes` tool-agents, or
+`llm-nodes` `AgentNode`):
+
+- **Every tool named in an agent's system prompt must actually be registered in
+  its toolset.** `BrowserAgent`/`HttpApiAgent` prompts instructed the model to call
+  `browser`/`take_screenshot`/`http_request` tools that were never registered (only
+  `execute_bash` was) — a prompt-referenced-but-unregistered tool is a silent
+  no-op. Resolve real builtin tools (`resolveBuiltinAgentTool`) and don't reference
+  tools you didn't wire.
+- **Every declared prop must be consumed by `process()` or injected into the
+  prompt.** A declared-but-unwired prop (`max_output_chars`, `url`, `output_dir`)
+  does nothing — inject node props via a `promptContext()` hook.
+- **`yield` structured results so the kernel routes them to dynamic output
+  handles; don't `return` them from a generator** (`yield*` discards the return
+  value). Keep structured-output emission consistent across modes (loop vs plan).
