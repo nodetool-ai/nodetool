@@ -29,6 +29,53 @@ function toTitleCase(value: string): string {
   );
 }
 
+// Expands a replacement template against a single match the same way
+// String.prototype.replace does ($$, $&, $`, $', $n, $nn, $<name>), so the
+// count-limited path stays consistent with the unlimited native replace.
+function applyReplacement(template: string, match: RegExpExecArray): string {
+  const groupCount = match.length - 1;
+  return template.replace(
+    /\$(\$|&|`|'|<([^>]*)>|\d{1,2})/g,
+    (whole: string, token: string, name?: string): string => {
+      if (token === "$") return "$";
+      if (token === "&") return match[0];
+      if (token === "`") return match.input.slice(0, match.index);
+      if (token === "'") {
+        return match.input.slice(match.index + match[0].length);
+      }
+      if (name !== undefined) {
+        return match.groups?.[name] ?? "";
+      }
+      if (token.length === 2) {
+        const two = Number(token);
+        if (two >= 1 && two <= groupCount) return match[two] ?? "";
+        const one = Number(token[0]);
+        if (one >= 1 && one <= groupCount) {
+          return (match[one] ?? "") + token[1];
+        }
+        return whole;
+      }
+      const one = Number(token);
+      if (one >= 1 && one <= groupCount) return match[one] ?? "";
+      return whole;
+    }
+  );
+}
+
+// Expands strftime-style date tokens (%Y %m %d %H %M %S) so the documented
+// filename variables produce unique names instead of a literal "%Y-...".
+function formatFilename(name: string): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return name
+    .replace(/%Y/g, String(now.getFullYear()))
+    .replace(/%m/g, pad(now.getMonth() + 1))
+    .replace(/%d/g, pad(now.getDate()))
+    .replace(/%H/g, pad(now.getHours()))
+    .replace(/%M/g, pad(now.getMinutes()))
+    .replace(/%S/g, pad(now.getSeconds()));
+}
+
 function folderPath(value: unknown): string {
   if (typeof value === "string") return value;
   if (!value || typeof value !== "object") return "";
@@ -142,7 +189,7 @@ export class ChunkTextNode extends BaseNode {
     const words = text.split(separator);
     const chunks: string[] = [];
     for (let i = 0; i < words.length; i += step) {
-      chunks.push(words.slice(i, i + length).join(" "));
+      chunks.push(words.slice(i, i + length).join(separator));
     }
     return { output: chunks };
   }
@@ -429,7 +476,7 @@ export class RegexReplaceNode extends BaseNode {
   declare count: any;
 
   async process(): Promise<Record<string, unknown>> {
-    let text = String(this.text ?? this.text ?? "");
+    const text = String(this.text ?? this.text ?? "");
     const pattern = String(this.pattern ?? this.pattern ?? "");
     const replacement = String(this.replacement ?? this.replacement ?? "");
     const count = Number(this.count ?? this.count ?? 0);
@@ -439,15 +486,23 @@ export class RegexReplaceNode extends BaseNode {
     }
 
     const regex = new RegExp(pattern, "g");
+    let result = "";
+    let lastIndex = 0;
     let replaced = 0;
-    text = text.replace(regex, (match) => {
-      if (replaced >= count) {
-        return match;
-      }
+    while (replaced < count) {
+      const match = regex.exec(text);
+      if (match === null) break;
+      result += text.slice(lastIndex, match.index);
+      result += applyReplacement(replacement, match);
+      lastIndex = match.index + match[0].length;
       replaced += 1;
-      return replacement;
-    });
-    return { output: text };
+      // Advance past zero-width matches to avoid an infinite loop.
+      if (match[0].length === 0) {
+        regex.lastIndex += 1;
+      }
+    }
+    result += text.slice(lastIndex);
+    return { output: result };
   }
 }
 
@@ -772,11 +827,11 @@ export class SliceTextNode extends BaseNode {
     const chars = [...text];
     const result: string[] = [];
     const len = chars.length;
-    const normStart = start < 0 ? len + start : start;
-    const effectiveStop = stop === 0 ? len : stop;
-    const normStop = effectiveStop < 0 ? len + effectiveStop : effectiveStop;
 
     if (step > 0) {
+      const normStart = start < 0 ? len + start : start;
+      const effectiveStop = stop === 0 ? len : stop;
+      const normStop = effectiveStop < 0 ? len + effectiveStop : effectiveStop;
       for (
         let i = Math.max(0, normStart);
         i < Math.min(len, normStop);
@@ -785,6 +840,12 @@ export class SliceTextNode extends BaseNode {
         result.push(chars[i]);
       }
     } else {
+      // For a negative step, an unset start (0) begins at the last character
+      // and an unset stop (0) walks down to and including index 0 — so a bare
+      // step=-1 reverses the text, matching Python's s[::-1].
+      const normStart =
+        start === 0 ? len - 1 : start < 0 ? len + start : start;
+      const normStop = stop === 0 ? -1 : stop < 0 ? len + stop : stop;
       for (
         let i = Math.min(len - 1, normStart);
         i > Math.max(-1, normStop);
@@ -1073,7 +1134,6 @@ export class RemovePunctuationNode extends BaseNode {
     const replacement = String(this.replacement ?? this.replacement ?? "");
     const punctuation = String(
       this.punctuation ??
-        this.punctuation ??
         `!"#$%&'()*+,\\-./:;<=>?@[\\]^_{|}~`
     );
 
@@ -1202,13 +1262,14 @@ export class HasLengthTextNode extends BaseNode {
 
     const length = text.length;
 
-    if (exactLength !== null) {
+    // A length of 0 means the bound is unset (props default to 0).
+    if (exactLength > 0) {
       return { output: length === exactLength };
     }
-    if (minLength !== null && length < minLength) {
+    if (minLength > 0 && length < minLength) {
       return { output: false };
     }
-    if (maxLength !== null && length > maxLength) {
+    if (maxLength > 0 && length > maxLength) {
       return { output: false };
     }
     return { output: true };
@@ -1864,7 +1925,7 @@ export class SaveTextFileNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const text = String(this.text ?? this.text ?? "");
     const folder = String(this.folder ?? this.folder ?? "");
-    const name = String(this.name ?? this.name ?? "output.txt");
+    const name = formatFilename(String(this.name ?? this.name ?? "output.txt"));
     if (!folder) {
       throw new Error("folder cannot be empty");
     }
@@ -1920,10 +1981,17 @@ export class SaveTextNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const text = String(this.text ?? this.text ?? "");
-    const name = String(this.name ?? this.name ?? "output.txt");
+    const name = formatFilename(String(this.name ?? this.name ?? "output.txt"));
+    const folder = folderPath(this.folder ?? "");
     const fs = await loadNodeFsPromises();
-    await fs.writeFile(name, text, "utf-8");
-    return { output: { uri: name, data: text } };
+    const path = await loadNodePath();
+    const fsPath = folder ? path.join(folder, name) : name;
+    if (folder) {
+      await fs.mkdir(folder, { recursive: true });
+    }
+    await fs.writeFile(fsPath, text, "utf-8");
+    const uri = fsPath.replace(/\\/g, "/");
+    return { output: { uri, data: text } };
   }
 }
 
