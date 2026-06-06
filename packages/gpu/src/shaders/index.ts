@@ -24,6 +24,14 @@ import { colorChannelShuffleV1 } from "./color/channelShuffle/v1/module.js";
 import { colorChannelMergeV1 } from "./color/channelMerge/v1/module.js";
 import { colorGrayscaleV1 } from "./color/grayscale/v1/module.js";
 import { colorSolarizeV1 } from "./color/solarize/v1/module.js";
+import { colorColorBalanceV1 } from "./color/colorBalance/v1/module.js";
+import { colorExposureToneV1 } from "./color/exposureTone/v1/module.js";
+import { colorLiftGammaGainV1 } from "./color/liftGammaGain/v1/module.js";
+import { colorCdlV1 } from "./color/cdl/v1/module.js";
+import { colorCurvesV1 } from "./color/curves/v1/module.js";
+import { colorHslAdjustV1 } from "./color/hslAdjust/v1/module.js";
+import { colorSplitToningV1 } from "./color/splitToning/v1/module.js";
+import { colorFilmLookV1 } from "./color/filmLook/v1/module.js";
 
 import { blurGaussianV1 } from "./filters/blur/gaussian/v1/module.js";
 import { sharpenUnsharpMaskV1 } from "./filters/sharpen/unsharpMask/v1/module.js";
@@ -83,6 +91,14 @@ export {
   colorChannelMergeV1,
   colorGrayscaleV1,
   colorSolarizeV1,
+  colorColorBalanceV1,
+  colorExposureToneV1,
+  colorLiftGammaGainV1,
+  colorCdlV1,
+  colorCurvesV1,
+  colorHslAdjustV1,
+  colorSplitToningV1,
+  colorFilmLookV1,
   blurGaussianV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
@@ -141,6 +157,14 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorChannelMergeV1,
   colorGrayscaleV1,
   colorSolarizeV1,
+  colorColorBalanceV1,
+  colorExposureToneV1,
+  colorLiftGammaGainV1,
+  colorCdlV1,
+  colorCurvesV1,
+  colorHslAdjustV1,
+  colorSplitToningV1,
+  colorFilmLookV1,
   // filters
   blurGaussianV1,
   sharpenUnsharpMaskV1,
