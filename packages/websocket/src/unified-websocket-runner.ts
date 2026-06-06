@@ -1764,12 +1764,8 @@ export class UnifiedWebSocketRunner {
             job.markCancelled();
           }
         }
-        if (active.providerCostTotal != null) {
-          job.cost = active.providerCostTotal;
-        }
-        if ((active.providerCostTotal ?? 0) > 0) {
-          job.cost = active.providerCostTotal ?? null;
-        }
+        job.cost =
+          (active.providerCostTotal ?? 0) > 0 ? active.providerCostTotal : null;
         await job.save();
       }
     } catch (error) {
@@ -4162,9 +4158,10 @@ export class UnifiedWebSocketRunner {
               job.markFailed(active.error ?? "Unknown error");
             else if (active.status === "cancelled") job.markCancelled();
           }
-          if (active.providerCostTotal != null) {
-            job.cost = active.providerCostTotal;
-          }
+          job.cost =
+            (active.providerCostTotal ?? 0) > 0
+              ? active.providerCostTotal
+              : null;
           await job.save();
         }
       } catch (error) {

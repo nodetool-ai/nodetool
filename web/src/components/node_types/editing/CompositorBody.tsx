@@ -399,8 +399,9 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
         {imageKeys.length === 0 ? (
           <div className="empty-state">No layers yet - add one below.</div>
         ) : (
-          [...imageKeys].reverse().map((key) => {
-            const idx = imageKeys.indexOf(key);
+          imageKeys.map((_, reverseIndex) => {
+            const idx = imageKeys.length - 1 - reverseIndex;
+            const key = imageKeys[idx];
             return (
               <LayerRow
                 key={key}

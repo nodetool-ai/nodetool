@@ -2,6 +2,7 @@
 import React, {
   memo,
   useCallback,
+  useRef,
   useState,
   type DragEvent,
   type MouseEvent
@@ -64,6 +65,7 @@ const WorkspaceTabItem = ({
     x: number;
     y: number;
   } | null>(null);
+  const cancelRenameRef = useRef(false);
 
   const dropClass =
     dropTarget?.id === tab.id
@@ -144,12 +146,17 @@ const WorkspaceTabItem = ({
             onClick={(event) => event.stopPropagation()}
             onFocus={(event) => event.currentTarget.select()}
             onBlur={(event) => {
-              void onCommitRename(tab, event.currentTarget.value);
+              if (!cancelRenameRef.current) {
+                void onCommitRename(tab, event.currentTarget.value);
+              }
+              cancelRenameRef.current = false;
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
-                void onCommitRename(tab, event.currentTarget.value);
+                event.preventDefault();
+                event.currentTarget.blur();
               } else if (event.key === "Escape") {
+                cancelRenameRef.current = true;
                 onCancelRename();
               }
             }}
