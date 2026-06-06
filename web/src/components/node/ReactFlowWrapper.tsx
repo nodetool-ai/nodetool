@@ -37,6 +37,7 @@ import {
 } from "../node/DynamicFalSchemaNode";
 import DynamicKieSchemaNode from "../node/DynamicKieSchemaNode/DynamicKieSchemaNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode/KieSchemaLoader";
+import DynamicComfySchemaNode from "../node/DynamicComfySchemaNode/DynamicComfySchemaNode";
 import {
   DynamicReplicateNode,
   DYNAMIC_REPLICATE_NODE_TYPE
@@ -46,6 +47,14 @@ import {
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
 import { SubgraphNode, SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
+import {
+  GROUP_NODE_TYPE,
+  COMMENT_NODE_TYPE,
+  PREVIEW_NODE_TYPE,
+  REROUTE_NODE_TYPE,
+  STRING_NODE_TYPE,
+  DYNAMIC_COMFY_NODE_TYPE
+} from "../../constants/nodeTypes";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import ConstantStringNode from "../node/ConstantStringNode";
@@ -72,6 +81,7 @@ import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
 import { useReactFlowEvents } from "../../hooks/handlers/useReactFlowEvents";
 import { usePaneEvents } from "../../hooks/handlers/usePaneEvents";
@@ -386,18 +396,19 @@ const ReactFlowWrapper = ({
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
-      "nodetool.workflows.base_node.Group": GroupNode,
-      "nodetool.workflows.base_node.Comment": CommentNode,
-      "nodetool.workflows.base_node.Preview": PreviewNode,
+      [GROUP_NODE_TYPE]: GroupNode,
+      [COMMENT_NODE_TYPE]: CommentNode,
+      [PREVIEW_NODE_TYPE]: PreviewNode,
       "nodetool.workflows.base_node.Output": OutputNode,
       "nodetool.output.Output": OutputNode,
       "nodetool.compare.CompareImages": CompareImagesNode,
-      "nodetool.constant.String": ConstantStringNode,
-      "nodetool.control.Reroute": RerouteNode,
+      [STRING_NODE_TYPE]: ConstantStringNode,
+      [REROUTE_NODE_TYPE]: RerouteNode,
       [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
       "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
+      [DYNAMIC_COMFY_NODE_TYPE]: DynamicComfySchemaNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       [SUBGRAPH_NODE_TYPE]: SubgraphNode,
       [SKETCH_NODE_TYPE]: SketchNode,
@@ -414,7 +425,17 @@ const ReactFlowWrapper = ({
     []
   );
 
-  const settings = useSettingsStore((state) => state.settings);
+  const gridSnap = useSettingsStore((state) => state.settings.gridSnap);
+  const connectionSnap = useSettingsStore(
+    (state) => state.settings.connectionSnap
+  );
+  const panControls = useSettingsStore((state) => state.settings.panControls);
+  const selectNodesOnDrag = useSettingsStore(
+    (state) => state.settings.selectNodesOnDrag
+  );
+  const selectionMode = useSettingsStore(
+    (state) => state.settings.selectionMode
+  );
 
   const { onDrop, onDragOver } = useDropHandler();
 
@@ -559,12 +580,19 @@ const ReactFlowWrapper = ({
 
   const edgeStatuses = useResultsStore((state) => state.edges);
   const nodeStatuses = useStatusStore((state) => state.statuses);
+  // Node statuses are keyed per run; the canvas animates edges for the
+  // workflow's focused run. Subscribing here re-runs edge processing when the
+  // focus switches between concurrent runs.
+  const focusedJobId = useWorkflowRunsStore(
+    (state) => state.focusedJob[workflowId]
+  );
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
     dataTypes: DATA_TYPES,
     getMetadata,
     workflowId,
+    focusedJobId,
     edgeStatuses,
     nodeStatuses,
     isSelecting
@@ -664,8 +692,8 @@ const ReactFlowWrapper = ({
   }, [shouldFitToScreen, setShouldFitToScreen]);
 
   const snapGrid = useMemo(
-    () => [settings.gridSnap, settings.gridSnap] as [number, number],
-    [settings.gridSnap]
+    () => [gridSnap, gridSnap] as [number, number],
+    [gridSnap]
   );
 
   const reactFlowClasses = useMemo(() => {
@@ -682,11 +710,11 @@ const ReactFlowWrapper = ({
   const conditionalProps = useMemo(() => {
     const props: { selectionOnDrag?: boolean } = {};
     // fitView disabled — viewport is restored from stored state
-    if (settings.panControls === "RMB") {
+    if (panControls === "RMB") {
       props.selectionOnDrag = true;
     }
     return props;
-  }, [settings.panControls]);
+  }, [panControls]);
 
   // Local stores (subgraph tabs included) bypass the fetch entirely; ignore
   // any stale loading/error state cached from a previous query for the same
@@ -694,7 +722,7 @@ const ReactFlowWrapper = ({
   if (!workflowExistsLocally && isLoading) {
     return (
       <div className="loading-overlay">
-        <LoadingSpinner /> Loading workflow...
+        <LoadingSpinner /> Loading workflow…
       </div>
     );
   }
@@ -737,10 +765,10 @@ const ReactFlowWrapper = ({
         zoomOnScroll={!/Mac|iPhone|iPad/.test(navigator.platform)}
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}
-        connectionRadius={settings.connectionSnap}
+        connectionRadius={connectionSnap}
         isValidConnection={isConnectionValid}
         attributionPosition="bottom-left"
-        selectNodesOnDrag={settings.selectNodesOnDrag}
+        selectNodesOnDrag={selectNodesOnDrag}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDrag={onNodeDrag}
@@ -750,7 +778,7 @@ const ReactFlowWrapper = ({
         onSelectionStart={selectionEvents.handleSelectionStart}
         onSelectionEnd={selectionEvents.handleSelectionEnd}
         onSelectionContextMenu={selectionEvents.handleSelectionContextMenu}
-        selectionMode={settings.selectionMode as SelectionMode}
+        selectionMode={selectionMode as SelectionMode}
         onEdgesChange={onEdgesChange}
         onEdgeContextMenu={onEdgeContextMenu}
         onEdgeClick={onEdgeClick}

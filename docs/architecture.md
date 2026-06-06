@@ -133,10 +133,11 @@ NodeTool includes a full agent execution framework for autonomous task completio
 
 ### Components
 
+- **Agent** -- Top-level entry point. Takes an objective (+ optional pre-built task) and orchestrates planning + execution.
 - **TaskPlanner** -- Breaks complex goals into ordered subtasks with dependencies
 - **TaskExecutor** -- Manages the execution of a complete task plan
 - **StepExecutor** -- Runs individual steps within a task, including tool calls
-- **MultiModeAgent** -- Supports both agent mode (autonomous planning) and direct chat mode
+- **CompilerAgent** -- Final synthesis pass that reads accumulated memory and produces the deliverable
 
 ### Available Tools (20+)
 

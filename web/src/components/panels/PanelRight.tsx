@@ -34,8 +34,8 @@ const styles = (theme: Theme, bottomOffset: number) =>
   css({
     position: "fixed",
     right: 0,
-    top: `${HEADER_AREA_HEIGHT}px`,
-    height: `calc(100vh - ${HEADER_AREA_HEIGHT}px - ${bottomOffset}px)`,
+    top: `var(--workspace-header-height, ${HEADER_AREA_HEIGHT}px)`,
+    height: `calc(100vh - var(--workspace-header-height, ${HEADER_AREA_HEIGHT}px) - ${bottomOffset}px)`,
     display: "flex",
     flexDirection: "row",
     zIndex: 1100,
@@ -155,7 +155,7 @@ const FrontendToolRuntimeSync = memo(function FrontendToolRuntimeSync() {
       const { nodes, edges } = nodeStore;
       await getWorkflowRunnerStore(workflowId)
         .getState()
-        .run(params, workflow, nodes, edges);
+        .run(params, workflow, nodes, edges, undefined, undefined, true);
     },
     [fetchWorkflow, getNodeStore, getWorkflow]
   );
@@ -290,10 +290,12 @@ const PanelRight: React.FC = () => {
   const bottomPanelVisible = useBottomPanelStore(
     (state) => state.panel.isVisible
   );
-  // Mirror PanelBottom: it only mounts under /editor and collapses to the
-  // header bar when not visible. Subtract whatever it actually occupies so
+  // Mirror PanelBottom: it mounts under /editor and /workspace, collapsing to
+  // the header bar when not visible. Subtract whatever it actually occupies so
   // the inspector's bottom (Runs section) isn't covered.
-  const bottomOffset = !pathname.startsWith("/editor")
+  const editorChrome =
+    pathname.startsWith("/editor") || pathname.startsWith("/workspace");
+  const bottomOffset = !editorChrome
     ? 0
     : bottomPanelVisible
       ? bottomPanelSize
@@ -374,6 +376,9 @@ const PanelRight: React.FC = () => {
               onMouseDown={handleMouseDown}
               role="slider"
               aria-label="Resize panel"
+              aria-valuenow={panelSize}
+              aria-valuemin={60}
+              aria-valuemax={600}
               tabIndex={-1}
             />
             <div className="panel-inner-content">{inspectorBody}</div>

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import {
   Autocomplete,
   Menu,
@@ -30,6 +30,8 @@ const TYPE_CATEGORIES = [
   { value: "video", label: "Video", icon: "video" },
   { value: "float", label: "Number", icon: "float" }
 ];
+
+const TYPE_CHIP_ICON_CONTAINER_STYLE = { width: 16, height: 16 } as const;
 
 type TypeOption = {
   value: string;
@@ -69,8 +71,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".provider-quick": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.75),
-      marginRight: theme.spacing(0.25),
+      gap: theme.spacing(1),
+      marginRight: theme.spacing(0.5),
       paddingRight: theme.spacing(1.5),
       borderRight: `1px solid ${theme.vars.palette.divider}`
     },
@@ -80,7 +82,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       borderRadius: "var(--rounded-xl)",
       border: `1px solid ${theme.vars.palette.divider}`,
       "& .MuiChip-label": {
-        paddingInline: theme.spacing(1.25)
+        paddingInline: theme.spacing(1)
       }
     },
     ".provider-quick-chip.selected": {
@@ -93,13 +95,13 @@ const typeFilterChipsStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
-      marginInline: theme.spacing(0, 0.25),
+      marginInline: theme.spacing(0, 0.5),
       whiteSpace: "nowrap"
     },
     ".filter-section": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.75),
+      gap: theme.spacing(1),
       flexWrap: "nowrap"
     },
     ".filter-label": {
@@ -127,8 +129,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
         paddingInline: theme.spacing(0.5)
       },
       "& .MuiChip-icon": {
-        marginLeft: theme.spacing(0.75),
-        marginRight: theme.spacing(0.25),
+        marginLeft: theme.spacing(1),
+        marginRight: theme.spacing(0.5),
         display: "inline-flex",
         alignItems: "center"
       },
@@ -145,7 +147,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".filter-actions": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.75),
+      gap: theme.spacing(1),
       flexShrink: 0,
       marginLeft: "auto"
     },
@@ -154,7 +156,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       borderRadius: "var(--rounded-xl)",
       fontSize: theme.fontSizeSmall,
       lineHeight: 1.2,
-      padding: theme.spacing(0.75, 1.25),
+      padding: theme.spacing(1, 1),
       minWidth: "unset",
       color: theme.vars.palette.text.primary,
       borderColor: theme.vars.palette.text.secondary,
@@ -167,13 +169,13 @@ const typeFilterChipsStyles = (theme: Theme) =>
       marginBottom: "12px"
     },
     ".menu-title": {
-      fontSize: "0.82rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary,
       fontWeight: 600,
       marginBottom: "4px"
     },
     ".menu-section-title": {
-      fontSize: "0.72rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.55px",
@@ -364,7 +366,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   icon={
                     <IconForType
                       iconName={type.icon}
-                      containerStyle={{ width: 16, height: 16 }}
+                      containerStyle={TYPE_CHIP_ICON_CONTAINER_STYLE}
                     />
                   }
                   label={type.label}
@@ -463,7 +465,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   sx: {
                     "& .MuiAutocomplete-option": {
                       minHeight: "30px",
-                      py: 0.25
+                      py: 0.5
                     }
                   }
                 }
@@ -510,7 +512,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   sx: {
                     "& .MuiAutocomplete-option": {
                       minHeight: "30px",
-                      py: 0.25
+                      py: 0.5
                     }
                   }
                 }

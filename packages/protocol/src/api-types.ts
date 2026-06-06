@@ -245,9 +245,13 @@ export interface Asset {
   size?: number | null;
   duration?: number | null;
   metadata?: Record<string, unknown> | null;
+  /** Sketch document that backs this image asset, if any. */
+  sketch_document_id?: string | null;
   workflow_id: string | null;
   node_id?: string | null;
   job_id?: string | null;
+  /** Source timeline a video was rendered from, if any. */
+  timeline_id?: string | null;
   created_at: string;
   /** URL to download/access the asset (computed by API) */
   get_url: string | null;
@@ -496,6 +500,15 @@ export interface Message {
   graph?: Record<string, unknown> | null;
   tools?: string[] | null;
   collections?: string[] | null;
+  /**
+   * Permission mode for the chat turn. Governs whether the agent's tool calls
+   * run automatically, ask for approval, or are blocked:
+   * - `"plan"` — read-only; actionable tools are blocked.
+   * - `"default"` — read tools auto-run; actions require approval.
+   * - `"auto"` — everything runs without prompting.
+   * Omitted defaults to `"default"`.
+   */
+  permission_mode?: "plan" | "default" | "auto" | null;
   agent_mode?: boolean | null;
   /**
    * When `agent_mode` is true, selects which planner the server uses:
@@ -591,6 +604,12 @@ export interface NodeMetadata {
   namespace: string;
   node_type: string;
   layout: string;
+  /**
+   * Node body renderer. "content_card" opts the node into the media/text-forward
+   * ContentCardBody (variant derived from the primary output type). Absent or
+   * "default" uses the generic input/output body.
+   */
+  body?: string;
   properties: Property[];
   outputs: OutputSlot[];
 
@@ -598,14 +617,18 @@ export interface NodeMetadata {
   inline_fields?: string[];
   input_fields?: string[];
   required_settings: string[];
-  is_dynamic: boolean;
+  supports_dynamic_inputs: boolean;
   is_streaming_output: boolean;
   input_mode?: InputMode;
   output_correlation?: Record<string, OutputCorrelation>;
-  expose_as_tool: boolean;
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
+  /**
+   * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
+   * Platform type. Absent or empty values are treated as ["node"].
+   */
+  platforms?: readonly ("node" | "workers" | "edge" | "browser")[];
 }
 
 export interface IndexResponse {
@@ -642,6 +665,8 @@ export interface JobResponse {
   job_type: string;
   workflow_id: string;
   status: string | null;
+  /** Human-readable run title (workflow name, or node name for a single-node run). */
+  name?: string | null;
   error?: string | null;
   started_at?: string | null;
   finished_at?: string | null;
@@ -662,6 +687,8 @@ export interface JobListResponse {
 export interface RunJobRequest {
   type?: "run_job_request";
   job_id?: string | null;
+  /** Human-readable title for the run (workflow name, or node name for a single-node run). */
+  job_name?: string | null;
   job_type?: string;
   execution_strategy?: string;
   workflow_id: string;
@@ -685,19 +712,74 @@ export interface ResourceLimits {
 // Models
 // ---------------------------------------------------------------------------
 
-export type Provider =
-  | "openai"
-  | "anthropic"
-  | "google"
-  | "ollama"
-  | "huggingface"
-  | "replicate"
-  | "fal"
-  | "elevenlabs"
-  | "aime"
-  | "local"
-  | "empty"
-  | string;
+/**
+ * Canonical registry of model-provider identifiers.
+ *
+ * This is the single source of truth for provider IDs across the monorepo:
+ * the runtime provider registry, the cost calculator, and the web model menu
+ * all derive from here instead of re-spelling the literals. Keys are stable
+ * UPPER_SNAKE references; values are the wire identifiers stored on models and
+ * passed to `getProvider()`.
+ *
+ * Adding a provider? Add it here first, then register it in
+ * `@nodetool-ai/runtime`'s provider index.
+ */
+export const PROVIDER_IDS = {
+  // Hosted LLM / multimodal APIs
+  OPENAI: "openai",
+  ANTHROPIC: "anthropic",
+  GEMINI: "gemini",
+  GROQ: "groq",
+  MISTRAL: "mistral",
+  MOONSHOT: "moonshot",
+  MINIMAX: "minimax",
+  DEEPSEEK: "deepseek",
+  XAI: "xai",
+  COHERE: "cohere",
+  OPENROUTER: "openrouter",
+  TOGETHER: "together",
+  CEREBRAS: "cerebras",
+  // Media / 3D / utility APIs
+  REPLICATE: "replicate",
+  FAL_AI: "fal_ai",
+  KIE: "kie",
+  TOPAZ: "topaz",
+  REVE: "reve",
+  ATLASCLOUD: "atlascloud",
+  AKI: "aki",
+  MESHY: "meshy",
+  RODIN: "rodin",
+  // Embeddings / reranking
+  VOYAGE: "voyage",
+  JINA: "jina",
+  // Local / self-hosted
+  OLLAMA: "ollama",
+  LMSTUDIO: "lmstudio",
+  LLAMA_CPP: "llama_cpp",
+  VLLM: "vllm",
+  HUGGINGFACE: "huggingface",
+  TRANSFORMERS_JS: "transformers_js",
+  // Test-only (gated behind NODETOOL_ENABLE_FAKE_PROVIDER)
+  FAKE: "fake"
+} as const;
+
+/** A provider identifier known to the registry above. */
+export type KnownProviderId = (typeof PROVIDER_IDS)[keyof typeof PROVIDER_IDS];
+
+/**
+ * Provider identifier. Resolves to a known {@link PROVIDER_IDS} value with
+ * editor autocompletion, but still accepts arbitrary strings — dynamic
+ * sub-providers (OpenRouter, HuggingFace inference) and Python-bridged
+ * providers (MLX, local HF) supply IDs that aren't enumerated above. The
+ * `(string & {})` arm preserves the literal hints while keeping the type open.
+ */
+export type ProviderId = KnownProviderId | (string & {});
+
+/**
+ * Alias of {@link ProviderId}. Retained as the field-type name used across the
+ * model interfaces below (`LanguageModel.provider`, `ProviderInfo.provider`, …).
+ */
+export type Provider = ProviderId;
 
 export type InferenceProvider =
   | "cerebras"
@@ -783,6 +865,10 @@ export interface VideoModel {
   provider: Provider;
   path?: string | null;
   supported_tasks?: string[];
+  /** Per-model option constraints derived from the provider manifest. */
+  durations?: number[] | null;
+  resolutions?: string[] | null;
+  aspect_ratios?: string[] | null;
 }
 
 export interface LlamaModel {
@@ -837,6 +923,12 @@ export interface UnifiedModel {
   supports_tools?: boolean | null;
   /** Voice IDs supported by this model. Only meaningful for TTS models. */
   voices?: string[] | null;
+  /** Allowed clip durations (seconds). Only meaningful for video models. */
+  durations?: number[] | null;
+  /** Allowed output resolutions (e.g. "720p"). Only meaningful for video models. */
+  resolutions?: string[] | null;
+  /** Allowed aspect ratios (e.g. "16:9"). Only meaningful for video models. */
+  aspect_ratios?: string[] | null;
 }
 
 export interface ModelPack {

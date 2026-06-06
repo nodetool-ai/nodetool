@@ -35,7 +35,8 @@ import { useExposedInputToggle } from "../hooks/nodes/useExposedInputToggle";
 import usePropertyValidationStore from "../stores/PropertyValidationStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
-import { IconForType, colorForType } from "../config/data_types";
+import { colorForType } from "../config/data_types";
+import { IconForType } from "../config/IconForType";
 
 const styles = (theme: Theme) =>
   css({
@@ -57,7 +58,7 @@ const styles = (theme: Theme) =>
       gridTemplateColumns: "auto 1fr auto",
       alignItems: "center",
       gap: theme.spacing(1.5),
-      padding: `${theme.spacing(2.5)} ${theme.spacing(4)} ${theme.spacing(2)}`,
+      padding: `${theme.spacing(3)} ${theme.spacing(4)} ${theme.spacing(2)}`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".inspector-head-icon": {
@@ -87,7 +88,7 @@ const styles = (theme: Theme) =>
     },
     ".inspector-title": {
       fontFamily: theme.fontFamily1,
-      fontSize: "1.0625rem",
+      fontSize: "var(--fontSizeBig)",
       fontWeight: 600,
       letterSpacing: "-0.01em",
       lineHeight: 1.2,
@@ -130,7 +131,7 @@ const styles = (theme: Theme) =>
       padding: 0,
       opacity: 0.55,
       "&:hover": { opacity: 1, backgroundColor: "transparent" },
-      "& svg": { fontSize: "0.75rem" }
+      "& svg": { fontSize: "var(--fontSizeSmall)" }
     },
     ".inspector-head-close": {
       paddingTop: "2px"
@@ -150,7 +151,7 @@ const styles = (theme: Theme) =>
       background: "transparent",
       border: "none",
       cursor: "pointer",
-      padding: `${theme.spacing(1.25)} ${theme.spacing(1.5)} ${theme.spacing(1.25)} 0`,
+      padding: `${theme.spacing(1)} ${theme.spacing(1.5)} ${theme.spacing(1)} 0`,
       marginRight: theme.spacing(2),
       color: theme.vars.palette.text.secondary,
       fontFamily: theme.fontFamily1,
@@ -170,7 +171,7 @@ const styles = (theme: Theme) =>
     },
     ".inspector-tab .tab-count": {
       fontFamily: theme.fontFamily2,
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       fontVariantNumeric: "tabular-nums"
     },
@@ -203,7 +204,7 @@ const styles = (theme: Theme) =>
       left: 0,
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(2.5),
+      gap: theme.spacing(3),
       width: "100%",
       height: "100%",
       padding: theme.spacing(4)
@@ -242,7 +243,7 @@ const styles = (theme: Theme) =>
       },
     ".property-required-badge": {
       fontFamily: theme.fontFamily1,
-      fontSize: "0.625rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
@@ -318,7 +319,7 @@ const styles = (theme: Theme) =>
     },
     ".io-section-title": {
       fontFamily: theme.fontFamily1,
-      fontSize: "0.6875rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
@@ -330,7 +331,7 @@ const styles = (theme: Theme) =>
       gridTemplateColumns: "1fr auto",
       gap: theme.spacing(1),
       alignItems: "center",
-      padding: `${theme.spacing(0.75)} 0`,
+      padding: `${theme.spacing(1)} 0`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       "&:last-child": { borderBottom: "none" }
     },
@@ -344,7 +345,7 @@ const styles = (theme: Theme) =>
     },
     ".io-row-type": {
       fontFamily: theme.fontFamily2,
-      fontSize: "0.6875rem",
+      fontSize: "var(--fontSizeSmaller)",
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       padding: "2px 6px",
@@ -368,11 +369,11 @@ const styles = (theme: Theme) =>
     ".help-tags": {
       display: "flex",
       flexWrap: "wrap",
-      gap: theme.spacing(0.75)
+      gap: theme.spacing(1)
     },
     ".help-tag": {
       fontFamily: theme.fontFamily2,
-      fontSize: "0.6875rem",
+      fontSize: "var(--fontSizeSmaller)",
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       padding: "2px 8px",
@@ -392,7 +393,7 @@ const styles = (theme: Theme) =>
       justifyContent: "space-between",
       alignItems: "baseline",
       gap: theme.spacing(2),
-      padding: `${theme.spacing(1.25)} 0`,
+      padding: `${theme.spacing(1)} 0`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       fontSize: theme.fontSizeSmall,
       "&:last-child": { borderBottom: "none" }
@@ -972,6 +973,7 @@ const Inspector: React.FC = () => {
                           propertyIndex={index.toString()}
                           showHandle={false}
                           isInspector={true}
+                          isConnected={connected}
                           nodeType={selectedNode.type ?? "inspector"}
                           data={selectedNode.data}
                           layout=""
@@ -1039,6 +1041,7 @@ const Inspector: React.FC = () => {
                         propertyIndex={`dynamic-${index}`}
                         showHandle={false}
                         isInspector={true}
+                        isConnected={Boolean(incoming)}
                         nodeType={selectedNode.type ?? "inspector"}
                         data={selectedNode.data}
                         layout=""
@@ -1146,7 +1149,7 @@ const Inspector: React.FC = () => {
                       {metadata.namespace}
                     </span>
                   </div>
-                  {metadata.is_dynamic ? (
+                  {metadata.supports_dynamic_inputs ? (
                     <div className="help-meta-row">
                       <span className="help-meta-key">Dynamic</span>
                       <span className="help-meta-value">yes</span>

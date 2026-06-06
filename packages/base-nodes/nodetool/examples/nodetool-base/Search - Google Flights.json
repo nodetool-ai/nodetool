@@ -41,7 +41,7 @@
     "nodes": [
       {
         "id": "claude-agent",
-        "type": "anthropic.agents.ClaudeAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
           "prompt": "Find the best round-trip flights from New York (JFK) to London (LHR) departing 2026-05-01 and returning 2026-05-08. Compare economy options by price, duration, and number of stops. Recommend the best overall value.",
           "model": {
@@ -50,11 +50,9 @@
             "id": "claude-sonnet-4-6",
             "name": "Claude Sonnet 4.6"
           },
-          "system_prompt": "You are a travel planning assistant. Use Google Flights to search for flights and provide clear comparisons. Consider price, duration, stops, and airline reputation. Format results as a structured recommendation.",
+          "system": "You are a travel planning assistant. Use Google Flights to search for flights and provide clear comparisons. Consider price, duration, stops, and airline reputation. Format results as a structured recommendation.",
           "max_turns": 10,
-          "allowed_tools": [],
-          "permission_mode": "acceptEdits",
-          "use_claude_credentials": true
+          "tools": []
         },
         "ui_properties": {
           "position": {

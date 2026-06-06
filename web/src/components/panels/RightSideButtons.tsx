@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
     "& svg, & .MuiSvgIcon-root": {
       width: "16px",
       height: "16px",
-      fontSize: "16px",
+      fontSize: "var(--fontSizeNormal)",
       margin: 0
     }
   });
@@ -86,7 +86,6 @@ const RightSideButtons: React.FC = () => {
   return (
     <Box className="buttons-right" css={styles(theme)}>
       {!isProduction && !isMobile && <OverallDownloadProgress />}
-      <ThemeToggleButton />
       <NotificationButton />
       <Help open={helpOpen} handleClose={handleCloseHelp} />
       <HelpButton

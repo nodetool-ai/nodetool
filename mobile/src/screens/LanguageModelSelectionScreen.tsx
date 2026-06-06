@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useLayoutEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { apiService } from '../services/api';
+import { normalizeModels } from '../services/api';
+import { trpc } from '../trpc/client';
 import { useChatStore } from '../stores/ChatStore';
 import { useTheme } from '../hooks/useTheme';
-import { LanguageModel } from '../types';
+import { LanguageModel, ProviderInfo } from '../types';
 
 interface Provider {
   provider: string;
@@ -24,12 +24,34 @@ export default function LanguageModelSelectionScreen() {
   const navigation = useNavigation();
   const setSelectedModel = useChatStore((state) => state.setSelectedModel);
   const [step, setStep] = useState<1 | 2>(1);
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [models, setModels] = useState<LanguageModel[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { colors, shadows } = useTheme();
+
+  const providersQuery = trpc.models.providers.useQuery(undefined, {
+    select: (all) =>
+      (all as ProviderInfo[])
+        .filter((p) => p.capabilities?.includes('generate_message'))
+        .map((p) => ({ provider: p.provider })),
+  });
+  const providers = useMemo(
+    () => providersQuery.data ?? [],
+    [providersQuery.data]
+  );
+
+  const modelsQuery = trpc.models.llmByProvider.useQuery(
+    { provider: selectedProvider ?? '' },
+    {
+      enabled: step === 2 && !!selectedProvider,
+      select: (m) =>
+        normalizeModels<LanguageModel>(
+          m as unknown as Array<Record<string, unknown>>,
+          selectedProvider ?? ''
+        ),
+    }
+  );
+  const models = useMemo(() => modelsQuery.data ?? [], [modelsQuery.data]);
+  const loading = step === 1 ? providersQuery.isLoading : modelsQuery.isLoading;
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -47,37 +69,10 @@ export default function LanguageModelSelectionScreen() {
     });
   }, [navigation, step, selectedProvider, colors.text]);
 
-  useEffect(() => {
-    loadProviders();
-  }, []);
-
-  const loadProviders = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.getLanguageModelProviders();
-      setProviders(data);
-    } catch (error) {
-      console.error('Failed to load providers:', error);
-      Alert.alert('Error', 'Failed to load model providers. Check your server connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleProviderSelect = async (provider: string) => {
+  const handleProviderSelect = (provider: string) => {
     setSelectedProvider(provider);
     setSearchQuery('');
-    setLoading(true);
-    try {
-      const data = await apiService.getLanguageModels(provider);
-      setModels(data);
-      setStep(2);
-    } catch (error) {
-      console.error('Failed to load models:', error);
-      Alert.alert('Error', 'Failed to load models for this provider.');
-    } finally {
-      setLoading(false);
-    }
+    setStep(2);
   };
 
   const handleModelSelect = (model: LanguageModel) => {
@@ -187,7 +182,7 @@ export default function LanguageModelSelectionScreen() {
       {!searchQuery && (
         <TouchableOpacity
           style={[styles.retryButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
-          onPress={step === 1 ? loadProviders : () => selectedProvider && handleProviderSelect(selectedProvider)}
+          onPress={step === 1 ? () => providersQuery.refetch() : () => modelsQuery.refetch()}
         >
           <Ionicons name="refresh-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
           <Text style={[styles.retryText, { color: colors.primary }]}>Retry</Text>

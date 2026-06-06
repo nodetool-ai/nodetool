@@ -124,9 +124,8 @@ describe("nodes router", () => {
       layout: "default",
       recommended_models: [],
       required_settings: [],
-      is_dynamic: false,
+      supports_dynamic_inputs: false,
       is_streaming_output: false,
-      expose_as_tool: false,
       supports_dynamic_outputs: false
     };
     const BAZ = {
@@ -205,9 +204,8 @@ describe("nodes router", () => {
       layout: "default",
       recommended_models: [],
       required_settings: [],
-      is_dynamic: false,
+      supports_dynamic_inputs: false,
       is_streaming_output: false,
-      expose_as_tool: false,
       supports_dynamic_outputs: false
     };
     const registry = { listMetadata: () => [NODE] } as never;

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
+import { JobConcurrencyQueue } from "./job-queue.js";
 import { pack, unpack } from "msgpackr";
 import {
   createLogger,
@@ -49,13 +50,15 @@ import type {
 } from "@nodetool-ai/runtime";
 import {
   ProcessingContext as RuntimeProcessingContext,
-  executeComfy,
   encodeRawRgbaToPng,
-  type ComfyProgressEvent,
-  type ComfyExecutionHandle
+  getCostReconciler
 } from "@nodetool-ai/runtime";
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
-import type { Chunk } from "@nodetool-ai/protocol";
+import type {
+  Chunk,
+  ProcessingMessage,
+  ProviderCost
+} from "@nodetool-ai/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -63,13 +66,26 @@ import type {
   RpcErrorPayload
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
+import { RunSubtaskTool } from "@nodetool-ai/agents";
+import {
+  getBuiltinTools,
+  getAllMcpTools,
+  registerBuiltinTools,
+  ListCollectionsTool,
+  QueryCollectionTool,
+  gateTools,
+  type PermissionMode,
+  type ApprovalDecision,
+  type ApprovalRequest
+} from "@nodetool-ai/agents";
 import {
   createDefaultLongTermMemory,
   formatMemoryForPrompt,
   type LongTermMemory
 } from "@nodetool-ai/agents";
+import { RunNodeTool } from "./agent/run-node-tool.js";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
@@ -400,90 +416,10 @@ async function autoSaveAssets(
   }
 }
 
-/**
- * Returns true if every node in the graph has a type starting with "comfy.".
- */
-function isComfyGraph(graph: {
-  nodes: Array<Record<string, unknown>>;
-}): boolean {
-  return (
-    graph.nodes.length > 0 &&
-    graph.nodes.every(
-      (n) =>
-        typeof n.type === "string" && (n.type as string).startsWith("comfy.")
-    )
-  );
-}
-
-/**
- * Converts a NodeTool graph (with comfy.* nodes) into a ComfyUI API prompt dict.
- */
-function graphToComfyPrompt(graph: {
-  nodes: Array<Record<string, unknown>>;
-  edges: Array<Record<string, unknown>>;
-}): Record<string, { class_type: string; inputs: Record<string, unknown> }> {
-  const prompt: Record<
-    string,
-    { class_type: string; inputs: Record<string, unknown> }
-  > = {};
-
-  for (const node of graph.nodes) {
-    const id = String(node.id);
-    const classType = (node.type as string).replace(/^comfy\./, "");
-    const props: Record<string, unknown> =
-      (node.properties as Record<string, unknown>) ??
-      (node.data as Record<string, unknown>) ??
-      {};
-    const inputs: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(props)) {
-      if (key.startsWith("_") || key === "workflow_id") continue;
-      // MsgPack may decode large integers as BigInt; ComfyUI expects plain numbers
-      inputs[key] = typeof value === "bigint" ? Number(value) : value;
-    }
-    prompt[id] = { class_type: classType, inputs };
-  }
-
-  // Wire edges: set inputs to [sourceId, slotIndex]
-  for (const edge of graph.edges) {
-    const sourceId = String(edge.source);
-    const targetId = String(edge.target);
-    const sourceHandle = edge.sourceHandle as string;
-    const targetHandle = edge.targetHandle as string;
-
-    if (!prompt[targetId]) continue;
-
-    // Determine output slot index from source handle name.
-    // Handles may be "output_0", "output_1", etc. (generic indexed format)
-    // or named like "MODEL", "CLIP", "VAE" (resolved via _comfy_metadata).
-    let slotIndex = 0;
-    const outputMatch = /^output_(\d+)$/.exec(sourceHandle);
-    if (outputMatch) {
-      slotIndex = parseInt(outputMatch[1], 10);
-    } else {
-      const sourceNode = graph.nodes.find((n) => String(n.id) === sourceId);
-      if (sourceNode) {
-        const nodeProps =
-          (sourceNode.properties as Record<string, unknown>) ??
-          (sourceNode.data as Record<string, unknown>) ??
-          {};
-        const meta = (nodeProps._comfy_metadata ??
-          sourceNode._comfy_metadata) as { outputs?: string[] } | undefined;
-        if (meta?.outputs) {
-          const idx = meta.outputs.indexOf(sourceHandle);
-          if (idx >= 0) slotIndex = idx;
-        }
-      }
-    }
-
-    prompt[targetId].inputs[targetHandle] = [sourceId, slotIndex];
-  }
-
-  return prompt;
-}
-
 function createRuntimeContext(opts: {
   jobId: string;
   workflowId?: string | null;
+  threadId?: string | null;
   userId: string;
   workspaceDir: string | null;
   assetOutputMode?:
@@ -496,7 +432,6 @@ function createRuntimeContext(opts: {
 }): RuntimeProcessingContext {
   const storagePath = getAssetStoragePath();
   const tempAdapter = getTempAdapter();
-  const assetAdapter = getAssetAdapter();
   // The agent's "workspace" — where file_read / file_write / file_list land.
   // Local: a FileStorageAdapter rooted at workspaceDir. Cloud: callers can
   // wire a different StorageAdapter when constructing the runner; for now
@@ -549,11 +484,36 @@ function createRuntimeContext(opts: {
       if (args.content) {
         const ext = MIME_TO_EXT[args.contentType] ?? "bin";
         const key = `${asset.id}.${ext}`;
-        await assetAdapter.store(key, args.content, args.contentType);
+        await storeAssetWithThumbnail(asset.id, key, args.content, args.contentType);
         asset.size = args.content.length;
       }
       await asset.save();
       return asset;
+    },
+    listFolderAssets: async ({ userId, folderId }) => {
+      const folder = await Asset.find(userId, folderId);
+      if (!folder || folder.content_type !== "folder") return null;
+      const out: Array<{ id: string; content_type: string; name: string }> = [];
+      const seen = new Set<string>();
+      const visit = async (parentId: string): Promise<void> => {
+        if (seen.has(parentId)) return; // guard against cyclic parent links
+        seen.add(parentId);
+        const children = await Asset.getChildren(userId, parentId, 1000);
+        for (const child of children) {
+          if (child.content_type === "folder") {
+            await visit(child.id);
+          } else {
+            out.push({
+              id: child.id,
+              content_type: child.content_type,
+              name: child.name
+            });
+          }
+        }
+      };
+      await visit(folderId);
+      out.sort((a, b) => a.name.localeCompare(b.name));
+      return out;
     }
   });
 
@@ -561,19 +521,69 @@ function createRuntimeContext(opts: {
 }
 
 /**
- * Default system prompt for regular chat — matches Python's REGULAR_SYSTEM_PROMPT.
+ * System prompt for the unified chat agent. The agent decides for itself how
+ * deep to go: answer directly when it can, call a single tool when one
+ * suffices, or call `run_subtask` to spin up a focused child loop for
+ * multi-step / parallel work. Planning is not forced — it is one of the
+ * choices the agent can make.
  */
-const REGULAR_SYSTEM_PROMPT = `You are a helpful assistant.
+const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in clear, concise prose.
 
-# IMAGE TOOLS
-When using image tools, you will get an image url as result.
-ALWAYS EMBED THE IMAGE AS MARKDOWN IMAGE TAG.
+# How to think about effort
+- For simple questions, answer directly without any tool calls.
+- When one tool suffices, call it and reply.
+- When work needs a focused multi-step sub-execution (research a topic
+  end-to-end, transform a document, gather structured data), call
+  \`run_subtask\` with a tight \`title\` and \`instructions\`. The subtask runs
+  as its own agent loop with the same tools.
+- For independent parallel work, emit multiple \`run_subtask\` calls in one
+  turn — they run concurrently. Siblings spawned in the same turn cannot
+  read each other's results; sequence dependent work across turns.
+- Subtasks can themselves call \`run_subtask\` (bounded recursion). Don't
+  decompose work that you could just do directly.
+
+# Your toolbelt
+You always have a fixed toolbelt — there is no per-message tool selection.
+- Run any node directly with \`run_node\`, or run a saved workflow with
+  \`run_workflow\`. Discover node types and inputs via \`list_nodes\`,
+  \`search_nodes\`, \`get_node_info\`, and workflows via \`list_workflows\`.
+- Find and read knowledge collections yourself: \`list_collections\` to see
+  what exists, then \`query_collection\` to search one.
+- Read and write files, browse and search the web, and generate images and
+  audio. Decompose work with \`run_subtask\`.
+
+# Image and media
+When tools return media URLs, embed them as markdown image / link tags.
 
 # File types
-References to documents, images, videos or audio files are objects with following structure:
-- type: either document, image, video, audio
-- uri: either local "file:///path/to/file" or "http://"
+References to documents, images, videos, or audio files have the shape:
+- \`type\`: document | image | video | audio
+- \`uri\`: \`file:///path/to/file\` or \`http(s)://...\`
 `;
+
+const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
+  plan:
+    "\n# Permission mode: PLAN (read-only)\n" +
+    "You may only use read-only tools (search, read, inspect, query " +
+    "collections). Tools that write, run, or act are blocked. Do NOT attempt " +
+    "them — instead investigate and produce a concrete, step-by-step plan the " +
+    "user can run after switching out of plan mode.\n",
+  default:
+    "\n# Permission mode: DEFAULT\n" +
+    "Read-only tools run automatically. Actions (writing files, running nodes " +
+    "or workflows, generating media, browser interactions, external tools) " +
+    "require user approval before each call. If the user denies a call, do not " +
+    "retry it — explain or propose an alternative.\n",
+  auto:
+    "\n# Permission mode: AUTO\n" +
+    "All tools run automatically without prompting. Be deliberate with actions " +
+    "that write, run, or have external side effects.\n"
+};
+
+/** Build the chat-agent system prompt for the given permission mode. */
+function buildChatAgentSystemPrompt(mode: PermissionMode): string {
+  return CHAT_AGENT_SYSTEM_PROMPT + PERMISSION_MODE_PROMPTS[mode];
+}
 
 export interface WebSocketReceiveFrame {
   type: string;
@@ -594,8 +604,12 @@ export interface WebSocketConnection {
 export interface RunJobRequest {
   job_id?: string;
   workflow_id?: string;
+  /** Allow this run to start even if its workflow already has a run in flight. */
+  concurrent?: boolean;
   user_id?: string;
   auth_token?: string;
+  /** Human-readable run title; persisted as the job name. */
+  job_name?: string;
   params?: Record<string, unknown>;
   graph?: {
     nodes: Array<Record<string, unknown>>;
@@ -618,8 +632,8 @@ interface ActiveJob {
   status: "running" | "completed" | "failed" | "cancelled";
   error?: string;
   streamTask?: Promise<void>;
-  /** For ComfyUI jobs: handle to cancel the underlying execution. */
-  comfyHandle?: ComfyExecutionHandle;
+  /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
+  providerCostTotal?: number;
 }
 
 class ToolBridge {
@@ -682,67 +696,6 @@ class ToolBridge {
   }
 }
 
-/**
- * Proxy tool that forwards execution to the frontend via ToolBridge.
- * Mirrors Python's UIToolProxy from messaging/ui_tool_proxy.py.
- */
-class UIToolProxy extends Tool {
-  readonly name: string;
-  readonly description: string;
-  readonly inputSchema: Record<string, unknown>;
-
-  private bridge: ToolBridge;
-  private sendMsg: (msg: Record<string, unknown>) => Promise<void>;
-
-  constructor(
-    manifest: Record<string, unknown>,
-    bridge: ToolBridge,
-    sendMsg: (msg: Record<string, unknown>) => Promise<void>
-  ) {
-    super();
-    this.name = typeof manifest.name === "string" ? manifest.name : "";
-    this.description =
-      typeof manifest.description === "string"
-        ? manifest.description
-        : "UI tool";
-    this.inputSchema =
-      typeof manifest.parameters === "object" && manifest.parameters !== null
-        ? (manifest.parameters as Record<string, unknown>)
-        : {};
-    this.bridge = bridge;
-    this.sendMsg = sendMsg;
-  }
-
-  async process(
-    _context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const toolCallId = randomUUID();
-    await this.sendMsg({
-      type: "tool_call",
-      tool_call_id: toolCallId,
-      name: this.name,
-      args: params
-    });
-
-    try {
-      const payload = await this.bridge.createWaiter(toolCallId, 60_000);
-      if ((payload as Record<string, unknown>).ok) {
-        return (payload as Record<string, unknown>).result ?? {};
-      }
-      return {
-        error: `Frontend tool execution failed: ${(payload as Record<string, unknown>).error ?? "Unknown error"}`
-      };
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : String(err) };
-    }
-  }
-
-  userMessage(_params: Record<string, unknown>): string {
-    return `Executing frontend tool: ${this.name}`;
-  }
-}
-
 export interface UnifiedWebSocketRunnerOptions {
   userId?: string;
   authToken?: string;
@@ -758,8 +711,6 @@ export interface UnifiedWebSocketRunnerOptions {
     providerId: string,
     userId: string
   ) => Promise<BaseProvider>;
-  /** Resolve server-side Tool instances by name (for tool execution in chat). */
-  resolveTools?: (toolNames: string[], userId: string) => Promise<Tool[]>;
   getSystemStats?: () => Record<string, unknown>;
   workspaceResolver?: (
     workflowId: string,
@@ -779,9 +730,8 @@ export interface UnifiedWebSocketRunnerOptions {
    */
   validateNode?: NodeValidator;
   /**
-   * Optional NodeRegistry. When supplied, agent-mode chat routes through the
-   * graph-native MultiModeAgent → GraphPlanner path, biasing node selection
-   * toward `nodetool.*` core nodes and exposing a `find_model` tool.
+   * Optional NodeRegistry. When supplied, MCP node tools surfaced to the
+   * chat agent (`list_nodes`, `search_nodes`, etc.) read from this registry.
    */
   nodeRegistry?: NodeRegistry;
   /**
@@ -791,7 +741,7 @@ export interface UnifiedWebSocketRunnerOptions {
    * accept the bridge in their context. Plain workflow execution and chat
    * keep working without it.
    */
-  pythonBridge?: PythonStdioBridge;
+  pythonBridge?: PythonBridge;
   /** Whether the Python bridge has finished hydrating. Same wiring as the tRPC HTTP context. */
   getPythonBridgeReady?: () => boolean;
   /** API options forwarded into the tRPC context (metadata roots, registry, etc.). */
@@ -809,14 +759,13 @@ export class UnifiedWebSocketRunner {
   private resolveExecutor: UnifiedWebSocketRunnerOptions["resolveExecutor"];
   private resolveNodeType?: UnifiedWebSocketRunnerOptions["resolveNodeType"];
   private resolveProvider?: UnifiedWebSocketRunnerOptions["resolveProvider"];
-  private resolveTools?: UnifiedWebSocketRunnerOptions["resolveTools"];
   private getSystemStats: () => Record<string, unknown>;
   private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
   private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
   private validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
   private nodeRegistry?: NodeRegistry;
-  private pythonBridge?: PythonStdioBridge;
+  private pythonBridge?: PythonBridge;
   private getPythonBridgeReady?: () => boolean;
   private apiOptions?: HttpApiOptions;
   private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
@@ -824,12 +773,31 @@ export class UnifiedWebSocketRunner {
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
+  /**
+   * Runs that arrived while {@link MAX_CONCURRENT_JOBS} runs were already in
+   * flight. They start automatically (FIFO) as active jobs finish.
+   */
+  private jobQueue = new JobConcurrencyQueue<RunJobRequest>();
+  /**
+   * Count of jobs that have passed the concurrency gate but haven't been added
+   * to {@link activeJobs} yet (startJob awaits graph hydration first). Counted
+   * toward the cap synchronously so two run_job commands arriving back-to-back
+   * can't both slip past `activeJobs.size` and exceed MAX_CONCURRENT_JOBS.
+   */
+  private startingJobs = 0;
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
   private chatRequestSeq = 0;
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
   private toolBridge = new ToolBridge();
+  /** Round-trips permission approvals for gated tool calls. */
+  private approvalBridge = new ToolBridge();
+  /**
+   * Per-thread set of tool names the user approved for the rest of the chat
+   * via "Allow for this chat". Persists across messages within a thread.
+   */
+  private chatSessionAllow = new Map<string, Set<string>>();
   private observerRegistered = false;
 
   private logError(context: string, error: unknown): void {
@@ -849,51 +817,6 @@ export class UnifiedWebSocketRunner {
       return texts.length > 0 ? texts.join(" ") : fallback;
     }
     return fallback;
-  }
-
-  /**
-   * Run one final LLM call to present structured agent results as readable
-   * markdown. Falls back to formatted JSON if the call fails.
-   */
-  private async presentStructuredResults(
-    provider: BaseProvider,
-    model: string,
-    objective: string,
-    resultsJson: string,
-    threadId: string
-  ): Promise<string> {
-    const messages: ProviderMessage[] = [
-      {
-        role: "user",
-        content: `You completed the following task:\n"${objective}"\n\nHere are the structured results:\n\`\`\`json\n${resultsJson}\n\`\`\`\n\nPresent these results to the user in clear, well-formatted markdown. Be concise — do not repeat the raw JSON. Focus on readability.`
-      }
-    ];
-
-    try {
-      let content = "";
-      for await (const item of provider.generateMessagesTraced({
-        messages,
-        model
-      })) {
-        if ("type" in item && item.type === "chunk") {
-          const chunk = item as { content?: string };
-          content += chunk.content ?? "";
-          // Stream chunks to client so the user sees the response forming
-          await this.sendMessage({
-            type: "chunk",
-            content: chunk.content ?? "",
-            done: false,
-            thread_id: threadId
-          });
-        }
-      }
-      return content || resultsJson;
-    } catch (err) {
-      log.warn("Failed to present structured results via LLM, using JSON fallback", {
-        error: err instanceof Error ? err.message : String(err)
-      });
-      return resultsJson;
-    }
   }
 
   private inferOutputType(value: unknown): string {
@@ -960,7 +883,6 @@ export class UnifiedWebSocketRunner {
     this.resolveExecutor = options.resolveExecutor;
     this.resolveNodeType = options.resolveNodeType;
     this.resolveProvider = options.resolveProvider;
-    this.resolveTools = options.resolveTools;
     this.workspaceResolver = options.workspaceResolver;
     this.beforeRunJob = options.beforeRunJob;
     this.getNodeMetadata = options.getNodeMetadata;
@@ -999,12 +921,11 @@ export class UnifiedWebSocketRunner {
     this.stopStatsBroadcast();
     this.unregisterObserver();
     this.toolBridge.cancelAll();
+    this.approvalBridge.cancelAll();
 
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
-      if (job.comfyHandle) {
-        job.comfyHandle.cancel();
-      } else if (job.runner) {
+      if (job.runner) {
         job.runner.cancel();
       }
       this.activeJobs.delete(jobId);
@@ -1091,6 +1012,48 @@ export class UnifiedWebSocketRunner {
       return JSON.parse(message.text) as Record<string, unknown>;
     }
     return null;
+  }
+
+  /**
+   * If `event` is a tool_call_update, also emit a synthetic assistant message
+   * whose `tool_calls` array contains this call. The chat UI renders a
+   * persistent ToolCallCard from messages with tool_calls; tool_call_update
+   * by itself only drives transient "now running" state. We skip events that
+   * already carry `agent_execution_id` because those are routed to
+   * ExecutionTree via the agent_execution path.
+   */
+  private async emitSyntheticToolCallCard(
+    event: Record<string, unknown>
+  ): Promise<void> {
+    if (event["type"] !== "tool_call_update") return;
+    const toolCallId = event["tool_call_id"];
+    const name = event["name"];
+    if (typeof toolCallId !== "string" || typeof name !== "string") return;
+    if (!toolCallId || !name) return;
+    const args =
+      event["args"] && typeof event["args"] === "object"
+        ? (event["args"] as Record<string, unknown>)
+        : {};
+    const message =
+      typeof event["message"] === "string" ? event["message"] : null;
+    await this.sendMessage({
+      type: "message",
+      role: "assistant",
+      content: null,
+      tool_calls: [
+        {
+          id: toolCallId,
+          name,
+          args,
+          message,
+          result: null
+        }
+      ],
+      parent_tool_call_id: event["parent_tool_call_id"] ?? null,
+      subtask_depth: event["subtask_depth"] ?? null,
+      thread_id: event["thread_id"] ?? null,
+      workflow_id: event["workflow_id"] ?? null
+    });
   }
 
   /**
@@ -1203,36 +1166,270 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  /** Default cap when `MAX_CONCURRENT_JOBS` is unset/invalid. */
+  private static readonly DEFAULT_MAX_CONCURRENT_JOBS = 4;
+  /** Default per-workflow cap when `MAX_CONCURRENT_RUNS_PER_WORKFLOW` is unset/invalid. */
+  private static readonly DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW = 4;
+  /** How long a resolved concurrency-setting value is reused before re-reading. */
+  private static readonly MAX_CONCURRENT_JOBS_TTL_MS = 5000;
+  private maxConcurrentJobsCache: { value: number; at: number } | null = null;
+  private maxRunsPerWorkflowCache: { value: number; at: number } | null = null;
+
+  /**
+   * Resolve the per-client concurrency cap from settings (>= 1), cached for a
+   * few seconds so back-to-back run_job/drainQueue calls don't hit the settings
+   * store every time. The setting changes rarely, so a short TTL is fine.
+   */
+  private async getMaxConcurrentJobs(): Promise<number> {
+    const cached = this.maxConcurrentJobsCache;
+    const value = await this.resolvePositiveIntSetting(
+      "MAX_CONCURRENT_JOBS",
+      UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS,
+      cached
+    );
+    this.maxConcurrentJobsCache = value;
+    return value.value;
+  }
+
+  /**
+   * Resolve the per-workflow concurrency cap (>= 1) for runs that opt into
+   * concurrency. When this many runs of the same workflow are already in
+   * flight, further opted-in runs queue. Cached like {@link getMaxConcurrentJobs}.
+   */
+  private async getMaxConcurrentRunsPerWorkflow(): Promise<number> {
+    const cached = this.maxRunsPerWorkflowCache;
+    const value = await this.resolvePositiveIntSetting(
+      "MAX_CONCURRENT_RUNS_PER_WORKFLOW",
+      UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW,
+      cached
+    );
+    this.maxRunsPerWorkflowCache = value;
+    return value.value;
+  }
+
+  /**
+   * Read a positive-integer setting, reusing the cached value while it's still
+   * within the TTL. Falls back to `fallback` when the setting is unset/invalid
+   * or the settings store is unavailable (e.g. DB not initialized) rather than
+   * blocking the run, matching the runner's other best-effort DB access.
+   */
+  private async resolvePositiveIntSetting(
+    key: string,
+    fallback: number,
+    cached: { value: number; at: number } | null
+  ): Promise<{ value: number; at: number }> {
+    const now = Date.now();
+    if (cached && now - cached.at < UnifiedWebSocketRunner.MAX_CONCURRENT_JOBS_TTL_MS) {
+      return cached;
+    }
+    let raw: string | null = null;
+    try {
+      raw = await getSetting(key);
+    } catch {
+      // Settings store unavailable — fall back to the default.
+    }
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    const value = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    return { value, at: now };
+  }
+
+  /** Jobs occupying a concurrency slot: live + reserved-but-not-yet-registered. */
+  private get inFlightJobCount(): number {
+    return this.activeJobs.size + this.startingJobs;
+  }
+
+  /**
+   * Number of live (unfinished) runs currently executing for a workflow. Used
+   * to enforce the per-workflow concurrency limit so non-concurrent runs stay
+   * sequential and their live node updates don't clobber each other in the
+   * editor. Safe to check against `activeJobs` alone: commands are processed
+   * one-at-a-time and `startJobInner` registers the job before returning.
+   */
+  private countActiveJobsForWorkflow(
+    workflowId: string | null | undefined
+  ): number {
+    if (!workflowId) {
+      return 0;
+    }
+    let count = 0;
+    for (const job of this.activeJobs.values()) {
+      if (job.workflowId === workflowId && !job.finished) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * The per-workflow concurrency limit a given run is subject to: concurrency
+   * opt-in runs share the configurable {@link getMaxConcurrentRunsPerWorkflow}
+   * cap; everything else stays strictly sequential (one run per workflow) so
+   * live node updates don't clobber the editor.
+   */
+  private perWorkflowLimitFor(req: { concurrent?: boolean }): Promise<number> {
+    return req.concurrent
+      ? this.getMaxConcurrentRunsPerWorkflow()
+      : Promise.resolve(1);
+  }
+
+  /**
+   * Entry point for the "run_job" command. Starts the run immediately when the
+   * client is under its concurrency cap, otherwise queues it (FIFO) and emits a
+   * `queued` job update. Queued runs start automatically as active jobs finish.
+   */
   async runJob(req: RunJobRequest): Promise<void> {
+    const max = await this.getMaxConcurrentJobs();
+    const perWorkflowMax = await this.perWorkflowLimitFor(req);
+    // Queue the run when over the global cap, or when this workflow already has
+    // its per-workflow limit of runs in flight — 1 for normal runs, or the
+    // configurable MAX_CONCURRENT_RUNS_PER_WORKFLOW for runs that opt into
+    // concurrency. Reserve the slot synchronously (after the awaits above) so
+    // two run_job commands can't both observe a free slot before either registers.
+    if (
+      this.inFlightJobCount >= max ||
+      this.countActiveJobsForWorkflow(req.workflow_id) >= perWorkflowMax
+    ) {
+      await this.enqueueJob(req);
+      return;
+    }
+    this.startingJobs++;
+    await this.startJob(req);
+  }
+
+  /** Queue a run that can't start yet, persist it, and notify the client. */
+  private async enqueueJob(req: RunJobRequest): Promise<void> {
+    const jobId = req.job_id ?? randomUUID();
+    req.job_id = jobId;
+    const position = this.jobQueue.enqueue(req);
+    log.info("Job queued", { jobId, position });
+    // Persist the queued run so it shows in jobs.list (Queue panel, reload,
+    // other tabs). Best-effort, mirroring startJobInner's persistence. It flips
+    // to "running" in startJobInner when a slot frees.
+    try {
+      const existing = await Job.get(jobId);
+      if (!existing) {
+        await Job.create({
+          id: jobId,
+          workflow_id: req.workflow_id ?? "",
+          user_id: req.user_id ?? this.userId ?? "1",
+          status: "queued",
+          name: req.job_name ?? "",
+          params: req.params ?? {},
+          graph: req.graph ?? { nodes: [], edges: [] }
+        });
+      }
+    } catch (err) {
+      this.logError("enqueue persistence failed", err);
+    }
+    void this.sendMessage({
+      type: "job_update",
+      status: "queued",
+      job_id: jobId,
+      workflow_id: req.workflow_id ?? null,
+      queue_position: position,
+      message: `Queued (#${position})`
+    });
+  }
+
+  /**
+   * Start the next queued run (if any) after a job slot frees up, and refresh
+   * the reported positions of the runs still waiting.
+   */
+  private drainQueue(): void {
+    void (async () => {
+      const max = await this.getMaxConcurrentJobs().catch(
+        () => UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_JOBS
+      );
+      const perWorkflowMax = await this.getMaxConcurrentRunsPerWorkflow().catch(
+        () => UnifiedWebSocketRunner.DEFAULT_MAX_CONCURRENT_RUNS_PER_WORKFLOW
+      );
+      // Fill free slots with the first queued run whose workflow is still under
+      // its per-workflow limit (1 for normal runs, perWorkflowMax for opted-in
+      // concurrent runs). startJob registers the job before it returns, so the
+      // next iteration sees it as in-flight.
+      while (this.inFlightJobCount < max) {
+        const candidate = this.jobQueue
+          .positions()
+          .find(
+            (p) =>
+              this.countActiveJobsForWorkflow(p.workflowId) <
+              (p.concurrent ? perWorkflowMax : 1)
+          );
+        if (!candidate) {
+          break;
+        }
+        const next = this.jobQueue.remove(candidate.jobId);
+        if (!next) {
+          break;
+        }
+        // Reserve the slot synchronously, mirroring runJob, so a concurrent
+        // run_job/drain can't also claim it before startJob registers.
+        this.startingJobs++;
+        try {
+          await this.startJob(next);
+        } catch (err) {
+          // The dequeued job threw before it could register/stream. Don't
+          // silently lose it: tell the client this run failed, then keep
+          // draining so the rest of the queue still progresses.
+          this.logError("startJob (from queue) failed", err);
+          await this.sendMessage({
+            type: "job_update",
+            status: "failed",
+            job_id: next.job_id ?? null,
+            workflow_id: next.workflow_id ?? null,
+            error: formatSanitizedError(err)
+          });
+        }
+      }
+      this.broadcastQueuePositions();
+    })();
+  }
+
+  /** Push updated queue positions to every still-waiting run. */
+  private broadcastQueuePositions(): void {
+    for (const { jobId, workflowId, position } of this.jobQueue.positions()) {
+      void this.sendMessage({
+        type: "job_update",
+        status: "queued",
+        job_id: jobId,
+        workflow_id: workflowId,
+        queue_position: position,
+        message: `Queued (#${position})`
+      });
+    }
+  }
+
+  private async startJob(req: RunJobRequest): Promise<void> {
+    // The caller (runJob/drainQueue) reserved a concurrency slot via
+    // startingJobs++. Release it exactly once here: the slot is handed off to
+    // activeJobs on successful registration, or freed on early return/throw.
+    let slotReleased = false;
+    const releaseSlot = () => {
+      if (!slotReleased) {
+        slotReleased = true;
+        this.startingJobs = Math.max(0, this.startingJobs - 1);
+      }
+    };
+    try {
+      await this.startJobInner(req, releaseSlot);
+    } finally {
+      // Safety net: if startJobInner returned/threw without registering, the
+      // slot is freed so it doesn't leak and permanently shrink the cap.
+      releaseSlot();
+    }
+  }
+
+  private async startJobInner(
+    req: RunJobRequest,
+    releaseSlot: () => void
+  ): Promise<void> {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
 
-    // Get the normalized (but not hydrated) graph first so we can check
-    // for comfy nodes before hydration strips unregistered node types.
     const rawGraph = await this.getRawGraph(req);
 
-    // Route ComfyUI workflows to the dedicated comfy executor
-    if (isComfyGraph(rawGraph)) {
-      if (this.beforeRunJob) {
-        try {
-          await this.beforeRunJob(rawGraph);
-        } catch (err) {
-          await this.emitBeforeRunFailure(jobId, workflowId, err);
-          return;
-        }
-      }
-      await this.runComfyJob(
-        jobId,
-        workflowId,
-        userId,
-        rawGraph,
-        req.settings ?? {}
-      );
-      return;
-    }
-
-    // Hydrate non-comfy graphs (resolves node types from the registry)
+    // Hydrate the graph (resolves node types from the registry)
     const graph = await this.hydrateGraph(rawGraph);
 
     if (this.beforeRunJob) {
@@ -1271,7 +1468,7 @@ export class UnifiedWebSocketRunner {
             nodeType: string;
             propertyTypes?: Record<string, string>;
             outputs?: Record<string, string>;
-            isDynamic?: boolean;
+            supportsDynamicInputs?: boolean;
             descriptorDefaults?: Record<string, unknown>;
           } | null>
       );
@@ -1296,16 +1493,44 @@ export class UnifiedWebSocketRunner {
       status: "running"
     };
     this.activeJobs.set(jobId, active);
+    // Slot ownership transfers from startingJobs to activeJobs now that the
+    // job is registered and counted by activeJobs.size.
+    releaseSlot();
     log.info("Job started", { jobId, workflowId });
 
     try {
       const existing = await Job.get(jobId);
-      if (!existing) {
+      if (existing) {
+        // The run may have been cancelled via the DB-only cancel path (tRPC
+        // `jobs.cancel`) while it was still sitting in the in-memory queue —
+        // that path doesn't remove it from `jobQueue`, so drainQueue can still
+        // hand it to us. Honor the cancellation instead of resurrecting it:
+        // undo the start, surface the cancelled status, and free the slot.
+        if (existing.status === "cancelled") {
+          log.info("Skipping start of cancelled job", { jobId });
+          this.activeJobs.delete(jobId);
+          void this.sendMessage({
+            type: "job_update",
+            status: "cancelled",
+            job_id: jobId,
+            workflow_id: workflowId
+          });
+          return;
+        }
+        // Was persisted as "queued" while waiting for a slot — flip it to
+        // running now that it's actually starting.
+        if (existing.status !== "running") {
+          existing.markRunning();
+          await existing.save();
+        }
+      } else {
         await Job.create({
           id: jobId,
           workflow_id: workflowId ?? "",
           user_id: userId,
           status: "running",
+          name: req.job_name ?? "",
+          started_at: new Date().toISOString(),
           params: req.params ?? {},
           graph
         });
@@ -1335,194 +1560,6 @@ export class UnifiedWebSocketRunner {
     );
 
     active.streamTask = this.streamJobMessages(active, executePromise);
-  }
-
-  /**
-   * Execute a ComfyUI workflow via the comfy executor (local or RunPod).
-   */
-  private async runComfyJob(
-    jobId: string,
-    workflowId: string | null,
-    _userId: string,
-    graph: {
-      nodes: Array<Record<string, unknown>>;
-      edges: Array<Record<string, unknown>>;
-    },
-    _settings: Record<string, unknown>
-  ): Promise<void> {
-    const active: ActiveJob = {
-      jobId,
-      workflowId,
-      context: null as unknown as ProcessingContext,
-      runner: null as unknown as WorkflowRunner,
-      graph,
-      finished: false,
-      status: "running"
-    };
-    this.activeJobs.set(jobId, active);
-
-    // Build node metadata lookup for status messages
-    const nodeLookup = new Map<string, { name: string; type: string }>();
-    for (const node of graph.nodes) {
-      const id = String(node.id);
-      const type = (node.type as string) ?? "comfy.unknown";
-      const props = (node.properties ?? node.data ?? {}) as Record<
-        string,
-        unknown
-      >;
-      const name = (props.title as string) ?? type;
-      nodeLookup.set(id, { name, type });
-    }
-    const getNode = (id: string) =>
-      nodeLookup.get(id) ?? { name: `Node ${id}`, type: "comfy.unknown" };
-
-    try {
-      await this.sendMessage({
-        type: "job_update",
-        status: "running",
-        job_id: jobId,
-        workflow_id: workflowId
-      });
-
-      const prompt = graphToComfyPrompt(graph);
-      const host = await getSetting("COMFYUI_ADDR");
-      if (!host) {
-        throw new Error("COMFYUI_ADDR is not configured. Set it in Settings.");
-      }
-
-      // Track active node so we can mark it completed when the next one starts
-      let activeNodeId: string | null = null;
-      const completeNode = (nodeId: string) => {
-        const n = getNode(nodeId);
-        void this.sendMessage({
-          type: "node_update",
-          node_id: nodeId,
-          node_name: n.name,
-          node_type: n.type,
-          status: "completed",
-          workflow_id: workflowId
-        });
-      };
-
-      const onProgress = (event: ComfyProgressEvent) => {
-        switch (event.type) {
-          case "executing": {
-            // When a new node starts, the previous one is implicitly done
-            if (activeNodeId && activeNodeId !== event.node) {
-              completeNode(activeNodeId);
-              activeNodeId = null;
-            }
-            if (event.node) {
-              activeNodeId = event.node;
-              const n = getNode(event.node);
-              void this.sendMessage({
-                type: "node_update",
-                node_id: event.node,
-                node_name: n.name,
-                node_type: n.type,
-                status: "running",
-                workflow_id: workflowId
-              });
-            } else {
-              // null node = execution finished, complete any lingering active node
-              if (activeNodeId) {
-                completeNode(activeNodeId);
-                activeNodeId = null;
-              }
-            }
-            break;
-          }
-          case "progress":
-            if (event.node) {
-              void this.sendMessage({
-                type: "node_progress",
-                node_id: event.node,
-                progress: event.progress ?? 0,
-                total: event.total ?? 1,
-                workflow_id: workflowId
-              });
-            }
-            break;
-          case "executed":
-            if (event.node) {
-              // Explicit completion with output — mark done and clear active
-              if (activeNodeId === event.node) activeNodeId = null;
-              const n = getNode(event.node);
-              void this.sendMessage({
-                type: "node_update",
-                node_id: event.node,
-                node_name: n.name,
-                node_type: n.type,
-                status: "completed",
-                result: event.output ?? null,
-                workflow_id: workflowId
-              });
-            }
-            break;
-          case "execution_cached":
-            if (event.cached_nodes) {
-              for (const nodeId of event.cached_nodes) {
-                completeNode(nodeId);
-              }
-            }
-            break;
-          case "execution_error":
-            if (event.node) {
-              activeNodeId = null;
-              const n = getNode(event.node);
-              void this.sendMessage({
-                type: "node_update",
-                node_id: event.node,
-                node_name: n.name,
-                node_type: n.type,
-                status: "error",
-                error: event.error ?? "Execution error",
-                workflow_id: workflowId
-              });
-            }
-            break;
-        }
-      };
-
-      const handle = executeComfy(prompt, host, onProgress);
-      active.comfyHandle = handle;
-      const result = await handle.result;
-
-      if (result.status === "completed") {
-        if (result.images && result.images.length > 0) {
-          await this.sendMessage({
-            type: "output_update",
-            job_id: jobId,
-            workflow_id: workflowId,
-            result: { images: result.images }
-          });
-        }
-        active.status = "completed";
-        active.finished = true;
-        await this.sendMessage({
-          type: "job_update",
-          status: "completed",
-          job_id: jobId,
-          workflow_id: workflowId
-        });
-      } else {
-        throw new Error(result.error ?? "ComfyUI execution failed");
-      }
-    } catch (err) {
-      active.status = "failed";
-      active.finished = true;
-      active.error = err instanceof Error ? err.message : String(err);
-      log.error("ComfyUI job failed", { jobId, error: active.error });
-      await this.sendMessage({
-        type: "job_update",
-        status: "failed",
-        job_id: jobId,
-        workflow_id: workflowId,
-        error: active.error
-      });
-    } finally {
-      this.activeJobs.delete(jobId);
-    }
   }
 
   private async streamJobMessages(
@@ -1657,6 +1694,8 @@ export class UnifiedWebSocketRunner {
             }
           }
 
+          await this._handleNodeProviderCost(active, outbound, nodeType);
+
           // Materialize binary assets to temp URLs before sending over WebSocket
           if (outbound.type === "node_update" && outbound.result != null) {
             outbound.result = await active.context.normalizeOutputValue(
@@ -1712,13 +1751,21 @@ export class UnifiedWebSocketRunner {
     // Persist final job status
     try {
       const job = (await Job.get(active.jobId)) as Job | null;
+      // A DB-only cancel (tRPC `jobs.cancel`) can finalize the row as cancelled
+      // while the job is still executing in memory. Don't overwrite that with a
+      // completed/failed status when the in-flight run finishes.
       if (job) {
-        if (active.status === "completed") {
-          job.markCompleted();
-        } else if (active.status === "failed") {
-          job.markFailed(active.error ?? "Unknown error");
-        } else if (active.status === "cancelled") {
-          job.markCancelled();
+        if (job.status !== "cancelled") {
+          if (active.status === "completed") {
+            job.markCompleted();
+          } else if (active.status === "failed") {
+            job.markFailed(active.error ?? "Unknown error");
+          } else if (active.status === "cancelled") {
+            job.markCancelled();
+          }
+        }
+        if (active.providerCostTotal != null) {
+          job.cost = active.providerCostTotal;
         }
         await job.save();
       }
@@ -1727,6 +1774,7 @@ export class UnifiedWebSocketRunner {
     }
 
     this.activeJobs.delete(active.jobId);
+    this.drainQueue();
   }
 
   async reconnectJob(jobId: string, workflowId?: string): Promise<void> {
@@ -1770,6 +1818,36 @@ export class UnifiedWebSocketRunner {
       return { error: "No job_id provided" };
     }
 
+    // A run that's still queued has no ActiveJob yet — drop it from the queue
+    // and tell the client it's cancelled before it ever starts.
+    const queued = this.jobQueue.remove(jobId);
+    if (queued) {
+      const cancelledWorkflowId = queued.workflow_id ?? workflowId ?? null;
+      // Mark the persisted queued row cancelled so it leaves the queue in
+      // jobs.list too (not just the in-memory queue).
+      try {
+        const job = await Job.get(jobId);
+        if (job) {
+          job.markCancelled();
+          await job.save();
+        }
+      } catch (err) {
+        this.logError("cancel persistence failed", err);
+      }
+      await this.sendMessage({
+        type: "job_update",
+        status: "cancelled",
+        job_id: jobId,
+        workflow_id: cancelledWorkflowId
+      });
+      this.broadcastQueuePositions();
+      return {
+        message: "Queued job cancelled",
+        job_id: jobId,
+        workflow_id: cancelledWorkflowId
+      };
+    }
+
     const active = this.activeJobs.get(jobId);
     if (!active) {
       return {
@@ -1779,9 +1857,7 @@ export class UnifiedWebSocketRunner {
       };
     }
 
-    if (active.comfyHandle) {
-      active.comfyHandle.cancel();
-    } else if (active.runner) {
+    if (active.runner) {
       active.runner.cancel();
     }
     active.status = "cancelled";
@@ -1945,64 +2021,7 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Query vector store collections and return concatenated context string.
-   * Mirrors Python's RegularChatProcessor._query_collections().
-   */
-  private async queryCollections(
-    collections: string[],
-    queryText: string,
-    nResults = 5
-  ): Promise<string> {
-    if (!collections.length || !queryText) return "";
-
-    try {
-      const { getDefaultVectorProvider } = await import(
-        "@nodetool-ai/vectorstore"
-      );
-      const provider = getDefaultVectorProvider();
-
-      const allResults: string[] = [];
-
-      for (const collectionName of collections) {
-        try {
-          const collection = await provider.getCollection({
-            name: collectionName
-          });
-          const matches = await collection.query({
-            text: queryText,
-            topK: nResults
-          });
-
-          if (matches.length > 0) {
-            let collectionResults = `\n\n### Results from ${collectionName}:\n`;
-            for (const match of matches) {
-              const doc = match.document;
-              if (!doc) continue;
-              const preview =
-                doc.length > 200 ? `${doc.slice(0, 200)}...` : doc;
-              collectionResults += `\n- ${preview}`;
-            }
-            allResults.push(collectionResults);
-          }
-        } catch (err) {
-          log.warn("Collection query failed", {
-            collection: collectionName,
-            error: err instanceof Error ? err.message : String(err)
-          });
-        }
-      }
-
-      return allResults.join("\n");
-    } catch (err) {
-      log.warn("Vector store init failed", {
-        error: err instanceof Error ? err.message : String(err)
-      });
-      return "";
-    }
-  }
-
-  /**
-   * Add collection context as a system message before the last user message.
+   * Add context as a system message before the last user message.
    * Mirrors Python's RegularChatProcessor._add_collection_context().
    */
   private addCollectionContext(
@@ -2033,6 +2052,161 @@ export class UnifiedWebSocketRunner {
       ];
     }
     return messages;
+  }
+
+  /**
+   * Round-trip a permission approval to the client and resolve with the
+   * user's decision. Emits a `tool_approval_request`, then waits for the
+   * matching `tool_approval_response` (resolved via {@link approvalBridge}).
+   * A cancelled wait (stop) is treated as a denial.
+   */
+  private async requestToolApproval(
+    threadId: string,
+    request: ApprovalRequest
+  ): Promise<ApprovalDecision> {
+    const approvalId = `appr_${randomUUID()}`;
+    await this.sendMessage({
+      type: "tool_approval_request",
+      thread_id: threadId,
+      approval_id: approvalId,
+      tool_name: request.toolName,
+      category: request.category,
+      message: request.message,
+      args: request.args
+    });
+    try {
+      // No timeout — the user may take a while; `stop` cancels via cancelAll.
+      const response = await this.approvalBridge.createWaiter(approvalId, 0);
+      const decision = response.decision;
+      if (
+        decision === "allow" ||
+        decision === "allow_for_chat" ||
+        decision === "deny"
+      ) {
+        return decision;
+      }
+      return "deny";
+    } catch {
+      // Cancelled (generation stopped) — treat as a denial.
+      return "deny";
+    }
+  }
+
+  /**
+   * Execute a single node by type and return its output. Builds a one-node
+   * graph and runs it through a fresh {@link WorkflowRunner}, then returns the
+   * node's completed result. Backs the `run_node` chat tool.
+   */
+  private async runSingleNode(
+    nodeType: string,
+    inputs: Record<string, unknown>,
+    userId: string
+  ): Promise<unknown> {
+    const jobId = randomUUID();
+    const nodeId = "node_0";
+    const rawGraph = {
+      nodes: [{ id: nodeId, type: nodeType, data: inputs ?? {} }],
+      edges: [] as Array<Record<string, unknown>>
+    };
+
+    let graph: {
+      nodes: Array<Record<string, unknown>>;
+      edges: Array<Record<string, unknown>>;
+    };
+    try {
+      graph = await this.hydrateGraph(rawGraph);
+    } catch (err) {
+      return {
+        error: `Failed to prepare node '${nodeType}': ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      };
+    }
+
+    if (this.beforeRunJob) {
+      try {
+        await this.beforeRunJob(graph);
+      } catch (err) {
+        return {
+          error: `Node prerequisites failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        };
+      }
+    }
+
+    const context = createRuntimeContext({
+      jobId,
+      workflowId: null,
+      userId,
+      workspaceDir: tmpdir(),
+      assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
+    });
+    context.setResolveExecutor((node) => this.resolveExecutor(node));
+    if (this.resolveNodeType) {
+      const resolverObj =
+        typeof this.resolveNodeType === "function"
+          ? { resolveNodeType: this.resolveNodeType }
+          : this.resolveNodeType;
+      context.setResolveNodeType(
+        (type) =>
+          resolverObj.resolveNodeType(type) as Promise<{
+            nodeType: string;
+            propertyTypes?: Record<string, string>;
+            outputs?: Record<string, string>;
+            isDynamic?: boolean;
+            descriptorDefaults?: Record<string, unknown>;
+          } | null>
+      );
+    }
+
+    const runner = new WorkflowRunner(jobId, {
+      resolveExecutor: (node) =>
+        this.resolveExecutor(
+          node as { id: string; type: string; [key: string]: unknown }
+        ),
+      executionContext: context,
+      validateNode: this.validateNode
+    });
+
+    const result = await runner.run(
+      { job_id: jobId, params: {} },
+      graph as unknown as {
+        nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
+        edges: Array<{
+          id?: string | null;
+          source: string;
+          target: string;
+          sourceHandle: string;
+          targetHandle: string;
+          edge_type: "data" | "control";
+        }>;
+      }
+    );
+
+    // Capture the node's completed result from the streamed updates.
+    let nodeResult: unknown;
+    while (context.hasMessages()) {
+      const msg = context.popMessage() as Record<string, unknown> | undefined;
+      if (
+        msg &&
+        msg.type === "node_update" &&
+        msg.node_id === nodeId &&
+        msg.status === "completed" &&
+        msg.result != null
+      ) {
+        nodeResult = msg.result;
+      }
+    }
+
+    if (result.status === "failed") {
+      return { error: result.error ?? `Node '${nodeType}' failed` };
+    }
+    if (nodeResult === undefined) {
+      // Fall back to the runner's collected outputs (e.g. Output nodes).
+      return result.outputs ?? { status: result.status };
+    }
+    return this.processToolResult(nodeResult, context);
   }
 
   /**
@@ -2089,11 +2263,15 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    // Route to workflow processor when workflow_target or workflow_id is set — matches Python's handle_message_impl
-    // This check comes BEFORE agent_mode, matching Python's routing priority.
+    // Route to the workflow processor ONLY when the client explicitly opts in
+    // via `workflow_target: "workflow"`. A bare `workflow_id` is context, not a
+    // routing signal: the editor binds the open workflow so `ui_*` tools target
+    // it, and that ambient id must not hijack the turn into running the
+    // workflow as a chatbot. Genuine workflow-chatbot runs set `workflow_target`
+    // (and carry `workflow_id`/`graph` for the processor to load/execute).
     const workflowTarget =
       typeof data.workflow_target === "string" ? data.workflow_target : null;
-    if (workflowTarget === "workflow" || workflowId) {
+    if (workflowTarget === "workflow") {
       await this.handleWorkflowMessage(data, requestSeq);
       return;
     }
@@ -2120,13 +2298,6 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    // Route to agent mode if requested — matches Python's handle_message_impl
-    const agentMode = data.agent_mode === true || data.agent_mode === "true";
-    if (agentMode) {
-      await this.handleAgentMessage(data, requestSeq);
-      return;
-    }
-
     // Load history from DB, filter out agent_execution — matches Python's get_chat_history_from_db
     const [dbMessages] = await Message.paginate(threadId, { limit: 1000 });
     const chatHistory: ProviderMessage[] = [];
@@ -2137,31 +2308,99 @@ export class UnifiedWebSocketRunner {
 
     const provider = await this.resolveProvider(providerId, userId);
 
-    // Extract tool names from raw tool data — supports both string[] and object[]
-    const rawTools = Array.isArray(data.tools) ? data.tools : [];
-    const toolNames: string[] = rawTools
-      .map((t) => {
-        if (typeof t === "string") return t;
-        const tool = t as Record<string, unknown>;
-        return typeof tool.name === "string" ? tool.name : "";
-      })
-      .filter((n) => n.length > 0);
-    log.info("Chat tools from client", {
-      rawToolCount: rawTools.length,
-      rawToolTypes: rawTools.map((t) => typeof t),
-      toolNames
+    // Permission mode for this turn. Governs whether gated tool calls run,
+    // ask for approval, or are blocked. Defaults to "default".
+    const permissionMode: PermissionMode =
+      data.permission_mode === "plan" ||
+      data.permission_mode === "auto" ||
+      data.permission_mode === "default"
+        ? data.permission_mode
+        : "default";
+
+    // Assemble the fixed, always-on toolbelt. There is no per-message tool
+    // selection anymore — the agent reasons over the full toolbelt and the
+    // permission gate (below) governs execution.
+    registerBuiltinTools();
+    const chatProviders = await this.getConfiguredProviders(userId);
+    const rawToolbelt: Tool[] = [
+      ...getBuiltinTools(),
+      ...getAllMcpTools({
+        registry: this.nodeRegistry,
+        providers: chatProviders
+      }),
+      new ListCollectionsTool(),
+      new QueryCollectionTool(),
+      new RunNodeTool((nodeType, inputs) =>
+        this.runSingleNode(nodeType, inputs, userId)
+      )
+    ];
+    // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
+    const dedupedToolbelt: Tool[] = [];
+    const seenToolNames = new Set<string>();
+    for (const tool of rawToolbelt) {
+      if (seenToolNames.has(tool.name)) continue;
+      seenToolNames.add(tool.name);
+      dedupedToolbelt.push(tool);
+    }
+
+    // Wrap the toolbelt in the permission gate. The wrapper is transparent
+    // except for `process()`, so the chat loop AND any `run_subtask` child
+    // loop inherit gating by simply calling `tool.process()`. The session
+    // allow-set is shared per thread so "Allow for this chat" sticks.
+    const sessionAllow =
+      this.chatSessionAllow.get(threadId) ?? new Set<string>();
+    this.chatSessionAllow.set(threadId, sessionAllow);
+    const requestApproval = (
+      request: ApprovalRequest
+    ): Promise<ApprovalDecision> =>
+      this.requestToolApproval(threadId, request);
+    const baseTools = gateTools(dedupedToolbelt, {
+      mode: permissionMode,
+      sessionAllow,
+      requestApproval
     });
 
-    // Resolve server-side Tool instances for execution
-    let serverTools: Tool[] = [];
-    if (toolNames.length > 0 && this.resolveTools) {
-      serverTools = await this.resolveTools(toolNames, userId);
+    // Inject the recursive-decomposition primitive (ungated — it spawns a
+    // child loop whose own tools are the gated `baseTools`). Child events
+    // stream back tagged with `parent_tool_call_id` so the UI can nest cards.
+    const serverTools: Tool[] = baseTools.slice();
+    {
+      const subtaskThreadId = threadId;
+      const subtaskWorkflowId = workflowId;
+      const forwardSubtaskMessage = async (msg: ProcessingMessage) => {
+        const enriched: Record<string, unknown> = {
+          ...(msg as unknown as Record<string, unknown>)
+        };
+        if (enriched.thread_id == null) enriched.thread_id = subtaskThreadId;
+        if (enriched.workflow_id == null) enriched.workflow_id = subtaskWorkflowId;
+        try {
+          await this.sendMessage(enriched);
+          // Tool calls inside a subtask only arrive here as transient
+          // tool_call_update events; the chat UI needs a persistent assistant
+          // message with tool_calls to render a ToolCallCard. Emit a synthetic
+          // one so child tool calls show up as cards nested below the parent
+          // run_subtask card.
+          await this.emitSyntheticToolCallCard(enriched);
+        } catch (err) {
+          log.warn("Failed to forward subtask event", {
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
+      };
+      serverTools.unshift(
+        new RunSubtaskTool({
+          provider,
+          model,
+          parentTools: () => baseTools,
+          forwardMessage: forwardSubtaskMessage
+        })
+      );
     }
+
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));
     log.info("Resolved server tools", {
-      requested: toolNames,
-      resolved: serverTools.map((t) => t.name),
-      hasResolveTools: !!this.resolveTools
+      permissionMode,
+      resolved: serverTools.map((t) => t.name)
     });
 
     // Build provider-format tool schemas from resolved Tool instances + client tools
@@ -2202,6 +2441,7 @@ export class UnifiedWebSocketRunner {
         : tmpdir();
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
+      threadId: threadId || null,
       userId,
       workspaceDir: chatWorkspaceDir
     });
@@ -2210,27 +2450,17 @@ export class UnifiedWebSocketRunner {
     if (chatHistory.length === 0 || chatHistory[0].role !== "system") {
       chatHistory.unshift({
         role: "system",
-        content: REGULAR_SYSTEM_PROMPT,
+        content: buildChatAgentSystemPrompt(permissionMode),
         toolCallId: null,
         toolCalls: null,
         threadId: null
       });
     }
 
-    // Query collections for RAG context — matches Python's _query_collections()
-    const collections = Array.isArray(data.collections)
-      ? (data.collections as string[]).filter((c) => typeof c === "string")
-      : [];
+    // The agent now discovers and queries collections itself via the
+    // list_collections / query_collection tools, so there is no client-driven
+    // RAG pre-query here.
     const userContent = this.extractTextContent(data.content);
-    let collectionContext = "";
-    if (collections.length > 0 && userContent) {
-      collectionContext = await this.queryCollections(collections, userContent);
-      if (collectionContext) {
-        log.debug("Retrieved collection context", {
-          chars: collectionContext.length
-        });
-      }
-    }
 
     // Resolve long-term memory if the renderer opted in for this turn. The
     // helper is default-off; we only build it when the wire flag is true so
@@ -2284,15 +2514,6 @@ export class UnifiedWebSocketRunner {
 
         let messagesToSend = [...chatHistory, ...unprocessedMessages];
         unprocessedMessages = [];
-
-        // Add collection context on first iteration — matches Python
-        if (collectionContext) {
-          messagesToSend = this.addCollectionContext(
-            messagesToSend,
-            collectionContext
-          );
-          collectionContext = ""; // Clear after first use
-        }
 
         // Long-term memory recall is injected on the first iteration only.
         // Like the collection context, the recalled block is ephemeral —
@@ -2677,6 +2898,127 @@ export class UnifiedWebSocketRunner {
       };
       await this.saveMessageToDb(errorMsgData);
       await this.sendMessage(errorMsgData);
+    }
+  }
+
+  /** Persist and accumulate provider cost from a completed node_update. */
+  private async _handleNodeProviderCost(
+    active: ActiveJob,
+    outbound: Record<string, unknown>,
+    nodeType: string
+  ): Promise<void> {
+    if (
+      outbound.type !== "node_update" ||
+      outbound.status !== "completed" ||
+      outbound.provider_cost == null
+    ) {
+      return;
+    }
+    const providerCost = outbound.provider_cost as ProviderCost;
+    await this._persistNodeProviderCost(
+      providerCost,
+      String(outbound.node_id ?? ""),
+      nodeType,
+      active.workflowId
+    );
+    const amount = (providerCost as { amount?: unknown }).amount;
+    if (typeof amount === "number" && Number.isFinite(amount)) {
+      active.providerCostTotal = (active.providerCostTotal ?? 0) + amount;
+    }
+  }
+
+  /**
+   * Persist a node-reported provider cost into the prediction ledger.
+   * Covers generative nodes (FAL, Kie, …) that call
+   * `context.setProviderCost()`. Best-effort: never throws.
+   */
+  private async _persistNodeProviderCost(
+    cost: ProviderCost,
+    nodeId: string,
+    nodeType: string,
+    workflowId: string | null
+  ): Promise<void> {
+    if (typeof cost.amount !== "number" || !Number.isFinite(cost.amount)) {
+      return;
+    }
+    try {
+      const prediction = await Prediction.create<Prediction>({
+        user_id: this.userId ?? "1",
+        provider: cost.provider,
+        model: cost.model ?? nodeType,
+        node_type: nodeType,
+        cost: cost.amount,
+        currency: cost.currency ?? cost.unit ?? null,
+        billing_unit: cost.billing_unit ?? null,
+        quantity: cost.quantity ?? null,
+        unit_price: cost.unit_price ?? null,
+        provider_request_id: cost.provider_request_id ?? null,
+        workflow_id: workflowId,
+        node_id: nodeId,
+        status: "completed"
+      });
+      log.debug("Persisted node provider cost", {
+        provider: cost.provider,
+        model: cost.model ?? nodeType,
+        cost: cost.amount
+      });
+      // The amount above is an estimate for providers that bill out-of-band.
+      // If the provider exposes a request-keyed billing API, refine it to the
+      // actual charge in the background (best-effort, never blocks the run).
+      if (cost.provider_request_id) {
+        void this._reconcileProviderCost(
+          prediction,
+          cost.provider,
+          cost.provider_request_id,
+          cost.model ?? null
+        );
+      }
+    } catch (err) {
+      log.warn("Failed to persist node provider cost", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  }
+
+  /**
+   * Replace an estimated provider cost with the provider's actual billed
+   * amount, looked up by request id. Runs detached; swallows all errors and
+   * leaves the estimate in place when no actual is available.
+   */
+  private async _reconcileProviderCost(
+    prediction: Prediction,
+    provider: string,
+    requestId: string,
+    endpointId: string | null
+  ): Promise<void> {
+    const reconciler = getCostReconciler(provider);
+    if (!reconciler) return;
+    try {
+      const apiKey = await getSecret(
+        `${provider.toUpperCase()}_API_KEY`,
+        this.userId ?? undefined
+      );
+      const actual = await reconciler({
+        requestId,
+        endpointId,
+        secrets: apiKey ? { [`${provider.toUpperCase()}_API_KEY`]: apiKey } : {}
+      });
+      if (!actual) return;
+      await prediction.update({
+        cost: actual.cost,
+        currency: actual.currency ?? prediction.currency,
+        quantity: actual.quantity ?? prediction.quantity,
+        unit_price: actual.unit_price ?? prediction.unit_price
+      });
+      log.debug("Reconciled provider cost to actual", {
+        provider,
+        requestId,
+        cost: actual.cost
+      });
+    } catch (err) {
+      log.warn("Failed to reconcile provider cost", {
+        error: err instanceof Error ? err.message : String(err)
+      });
     }
   }
 
@@ -3659,7 +4001,7 @@ export class UnifiedWebSocketRunner {
               nodeType: string;
               propertyTypes?: Record<string, string>;
               outputs?: Record<string, string>;
-              isDynamic?: boolean;
+              supportsDynamicInputs?: boolean;
               descriptorDefaults?: Record<string, unknown>;
             } | null>
         );
@@ -3752,20 +4094,28 @@ export class UnifiedWebSocketRunner {
               workflowId
           };
 
-          // Capture output_update values for the response message
-          if (outbound.type === "output_update") {
+          if (
+            outbound.type === "node_update" ||
+            outbound.type === "output_update"
+          ) {
             const nodeId = String(outbound.node_id ?? "");
             const graphNodes = graph.nodes ?? [];
             const node = graphNodes.find((n) => n.id === nodeId);
             const nodeType = typeof node?.type === "string" ? node.type : "";
-            if (nodeType.includes("Output")) {
-              const nodeName =
-                typeof outbound.node_name === "string"
-                  ? outbound.node_name
-                  : nodeType;
-              result[nodeName] = outbound.value;
-            } else {
-              continue; // Skip non-output node output_updates
+
+            await this._handleNodeProviderCost(active, outbound, nodeType);
+
+            // Capture output_update values for the response message
+            if (outbound.type === "output_update") {
+              if (nodeType.includes("Output")) {
+                const nodeName =
+                  typeof outbound.node_name === "string"
+                    ? outbound.node_name
+                    : nodeType;
+                result[nodeName] = outbound.value;
+              } else {
+                continue; // Skip non-output node output_updates
+              }
             }
           }
 
@@ -3800,11 +4150,18 @@ export class UnifiedWebSocketRunner {
       // Persist final job status
       try {
         const job = (await Job.get(jobId)) as Job | null;
+        // Don't overwrite a cancelled row (DB-only tRPC cancel) when the
+        // in-flight run finishes — keep the cancellation authoritative.
         if (job) {
-          if (active.status === "completed") job.markCompleted();
-          else if (active.status === "failed")
-            job.markFailed(active.error ?? "Unknown error");
-          else if (active.status === "cancelled") job.markCancelled();
+          if (job.status !== "cancelled") {
+            if (active.status === "completed") job.markCompleted();
+            else if (active.status === "failed")
+              job.markFailed(active.error ?? "Unknown error");
+            else if (active.status === "cancelled") job.markCancelled();
+          }
+          if (active.providerCostTotal != null) {
+            job.cost = active.providerCostTotal;
+          }
           await job.save();
         }
       } catch (error) {
@@ -3812,6 +4169,7 @@ export class UnifiedWebSocketRunner {
       }
 
       this.activeJobs.delete(jobId);
+      this.drainQueue();
 
       // Signal completion — done chunk with job_id + workflow_id
       await this.sendMessage({
@@ -3870,8 +4228,8 @@ export class UnifiedWebSocketRunner {
   /**
    * Build the map of configured BaseProvider instances for the given user.
    * Cached per user — invalidate by clearing `configuredProvidersCache`.
-   * Used to expose `find_model` to the GraphPlanner agent so it can pick a
-   * real model+provider for generic AI nodes.
+   * Used by MCP tools (`find_model`, media generation) that need provider
+   * access.
    */
   private async getConfiguredProviders(
     userId: string
@@ -3903,503 +4261,6 @@ export class UnifiedWebSocketRunner {
     );
     this.configuredProvidersCache.set(userId, result);
     return result;
-  }
-
-  /**
-   * Handle agent mode messages.
-   * Mirrors Python's AgentMessageProcessor.process().
-   *
-   * Creates an Agent with the user's objective and streams execution events
-   * (Chunk, ToolCallUpdate, TaskUpdate, PlanningUpdate, LogUpdate, StepResult)
-   * to the client. Messages with type "message" are persisted to DB.
-   */
-  private async handleAgentMessage(
-    data: Record<string, unknown>,
-    requestSeq?: number
-  ): Promise<void> {
-    const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
-    const providerId = data.provider as string;
-    const model = data.model as string;
-    const workflowId =
-      typeof data.workflow_id === "string" ? data.workflow_id : null;
-    const userId = this.userId ?? "1";
-
-    const provider = await this.resolveProvider!(providerId, userId);
-
-    // Extract objective from content
-    const objective = this.extractTextContent(
-      data.content,
-      "Complete the requested task"
-    );
-
-    // Generate unique execution ID — matches Python
-    const agentExecutionId = randomUUID();
-
-    // Resolve tools — matches Python's tool resolution
-    const {
-      MultiModeAgent,
-      ReadFileTool,
-      WriteFileTool,
-      BrowserTool,
-      GoogleSearchTool,
-      getAllMcpTools,
-      resolveTool,
-      registerBuiltinTools
-    } = await import("@nodetool-ai/agents");
-
-    // Ensure the global tool registry is populated with all built-in tools,
-    // so `resolveTool(name)` works for any builtin selected by the client.
-    // Idempotent — only the first call does real work.
-    registerBuiltinTools();
-
-    let selectedTools: Tool[] = [];
-    const rawToolNames = Array.isArray(data.tools)
-      ? (data.tools as string[]).filter((t) => typeof t === "string")
-      : [];
-
-    // Build configured providers up-front so both `getAllMcpTools` and the
-    // MultiModeAgent below share the same map. Cached per-user in
-    // `getConfiguredProviders`. Independent of the NodeRegistry — the
-    // multi-task planner needs `find_model` and the media-generation tools
-    // even when no registry is wired (i.e. graph mode is unavailable).
-    const agentProviders = await this.getConfiguredProviders(userId);
-
-    if (rawToolNames.length > 0) {
-      // User explicitly specified tools — resolve by name
-      for (const name of rawToolNames) {
-        const tool = resolveTool(name);
-        if (tool) selectedTools.push(tool);
-      }
-      log.debug("Selected tools for agent", {
-        tools: selectedTools.map((t) => t.name)
-      });
-    } else {
-      // No tools specified — use the current built-in defaults plus NodeTool's
-      // MCP-style backend tools. When a NodeRegistry is wired up, the MCP
-      // helper swaps the REST search/list/get tools for the in-process biased
-      // versions and adds `find_model`, so any agent loop (not just the
-      // GraphPlanner) gets the same node-selection bias.
-      selectedTools = [
-        new ReadFileTool(),
-        new WriteFileTool(),
-        new BrowserTool(),
-        new GoogleSearchTool(),
-        ...getAllMcpTools({
-          registry: this.nodeRegistry,
-          providers: agentProviders
-        })
-      ];
-      log.debug("Using default + MCP tools for agent", {
-        count: selectedTools.length
-      });
-    }
-
-    // Server-side tools from resolveTools option
-    if (rawToolNames.length > 0 && this.resolveTools) {
-      const serverTools = await this.resolveTools(rawToolNames, userId);
-      for (const st of serverTools) {
-        if (!selectedTools.find((t) => t.name === st.name)) {
-          selectedTools.push(st);
-        }
-      }
-    }
-
-    // Include UI proxy tools if client provided a manifest via tool bridge — matches Python
-    if (Object.keys(this.clientToolsManifest).length > 0) {
-      const sendMsg = this.sendMessage.bind(this);
-      for (const [, manifest] of Object.entries(this.clientToolsManifest)) {
-        try {
-          selectedTools.push(
-            new UIToolProxy(manifest, this.toolBridge, sendMsg)
-          );
-        } catch (err) {
-          log.warn("Failed to register UI tool proxy", {
-            error: err instanceof Error ? err.message : String(err)
-          });
-        }
-      }
-      log.debug("Added UI tool proxies to agent", {
-        count: Object.keys(this.clientToolsManifest).length
-      });
-    }
-
-    // Create ProcessingContext for agent execution
-    const agentWorkspaceDir =
-      workflowId && this.workspaceResolver
-        ? await this.workspaceResolver(workflowId, userId)
-        : tmpdir();
-    const ctx = createRuntimeContext({
-      jobId: randomUUID(),
-      userId,
-      workspaceDir: agentWorkspaceDir,
-      // `temp_url` materializes any asset-like value (image/audio/video refs
-      // with inline `data` bytes) to a real /api/storage/<id>.<ext> URL via
-      // the temp adapter. Without this the agent context defaults to
-      // `python`, which leaves binary data inline — when those results are
-      // JSON-stringified and shown to the structured-results presenter the
-      // LLM dutifully echoes the base64 back as `data:image/png;base64,...`
-      // markdown.
-      assetOutputMode: "temp_url"
-    });
-
-    const maxStepIterations =
-      typeof data.max_step_iterations === "number" &&
-      data.max_step_iterations > 0
-        ? Math.floor(data.max_step_iterations)
-        : 20;
-    const maxSteps =
-      typeof data.max_steps === "number" && data.max_steps > 0
-        ? Math.floor(data.max_steps)
-        : undefined;
-
-    // Pick the planner. Explicit `agent_planner` from the client wins; if
-    // omitted, default to "graph" when a NodeRegistry is wired (the
-    // workflow-builder path) and "multi" otherwise (TaskPlanner →
-    // ParallelTaskExecutor). Either way the request only reaches the
-    // graph path when a registry is actually available.
-    const requestedPlanner =
-      data.agent_planner === "graph" || data.agent_planner === "multi"
-        ? data.agent_planner
-        : null;
-    const defaultPlanner: "graph" | "multi" = this.nodeRegistry
-      ? "graph"
-      : "multi";
-    const plannerType = requestedPlanner ?? defaultPlanner;
-    const useGraphPlanner = plannerType === "graph" && !!this.nodeRegistry;
-    if (requestedPlanner === "graph" && !this.nodeRegistry) {
-      log.warn(
-        "Client requested graph planner but no NodeRegistry is wired — falling back to multi-task planner."
-      );
-    }
-
-    const markdownOutputSchema = {
-      type: "object",
-      properties: {
-        markdown: {
-          type: "string",
-          description: "The markdown content of the response"
-        }
-      },
-      required: ["markdown"]
-    } as const;
-
-    try {
-      // Both planner types route through MultiModeAgent in plan mode; the
-      // `useGraphPlanner` flag picks GraphPlanner vs TaskPlanner under the
-      // hood. The legacy plain `Agent` is no longer used for agent_mode.
-      const agent = new MultiModeAgent({
-        name: "Assistant",
-        objective,
-        provider,
-        model,
-        mode: "plan",
-        tools: selectedTools,
-        useGraphPlanner,
-        registry: useGraphPlanner ? this.nodeRegistry : undefined,
-        providers: useGraphPlanner ? agentProviders : undefined,
-        maxStepIterations,
-        ...(maxSteps !== undefined ? { maxSteps } : {}),
-        outputSchema: markdownOutputSchema
-      });
-
-      for await (const item of agent.execute(ctx)) {
-        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
-          return;
-
-        const msgType = (item as { type?: string }).type;
-
-        if (msgType === "chunk") {
-          // Stream text chunks to client
-          const chunk = item as {
-            type: string;
-            content?: string;
-            done?: boolean;
-            thinking?: boolean;
-            thread_id?: string;
-          };
-          await this.sendMessage({
-            type: "chunk",
-            content: chunk.content ?? "",
-            done: chunk.done ?? false,
-            thinking: chunk.thinking ?? false,
-            thread_id: chunk.thread_id ?? threadId
-          });
-        } else if (msgType === "tool_call_update") {
-          // Forward tool call updates live AND persist them as an
-          // agent_execution message so that reopening a thread preserves the
-          // full per-step debug trace (which tools were called, with what args).
-          const tc = item as {
-            name: string;
-            args: Record<string, unknown>;
-            tool_call_id?: string;
-            step_id?: string;
-            node_id?: string;
-            message?: string;
-          };
-          await this.sendMessage({
-            type: "tool_call_update",
-            thread_id: threadId,
-            workflow_id: workflowId,
-            tool_call_id: tc.tool_call_id ?? null,
-            name: tc.name,
-            message: tc.message ?? `Calling ${tc.name}...`,
-            args: tc.args,
-            step_id: tc.step_id ?? null,
-            node_id: tc.node_id ?? null,
-            agent_execution_id: agentExecutionId
-          });
-          const persisted: Record<string, unknown> = {
-            type: "message",
-            role: "agent_execution",
-            execution_event_type: "tool_call_update",
-            agent_execution_id: agentExecutionId,
-            content: {
-              type: "tool_call_update",
-              tool_call_id: tc.tool_call_id ?? null,
-              name: tc.name,
-              message: tc.message ?? `Calling ${tc.name}...`,
-              args: tc.args ?? {},
-              step_id: tc.step_id ?? null,
-              node_id: tc.node_id ?? null
-            },
-            thread_id: threadId,
-            workflow_id: workflowId,
-            provider: providerId,
-            model,
-            agent_mode: true
-          };
-          await this.saveMessageToDb(persisted);
-        } else if (msgType === "task_update") {
-          // Send task update as agent_execution message — persisted by _run_processor pattern
-          const tu = item as { task?: unknown; step?: unknown; event?: string };
-          const contentDict = {
-            type: "task_update",
-            event: tu.event,
-            task: tu.task ?? null,
-            step: tu.step ?? null
-          };
-          const msg: Record<string, unknown> = {
-            type: "message",
-            role: "agent_execution",
-            execution_event_type: "task_update",
-            agent_execution_id: agentExecutionId,
-            content: contentDict,
-            thread_id: threadId,
-            workflow_id: workflowId,
-            provider: providerId,
-            model,
-            agent_mode: true
-          };
-          await this.saveMessageToDb(msg);
-          await this.sendMessage(msg);
-        } else if (msgType === "planning_update") {
-          // Send planning update as agent_execution message
-          const pu = item as {
-            phase?: string;
-            status?: string;
-            content?: string;
-            node_id?: string;
-          };
-          const contentDict = {
-            type: "planning_update",
-            phase: pu.phase,
-            status: pu.status,
-            content: pu.content,
-            node_id: pu.node_id
-          };
-          const msg: Record<string, unknown> = {
-            type: "message",
-            role: "agent_execution",
-            execution_event_type: "planning_update",
-            agent_execution_id: agentExecutionId,
-            content: contentDict,
-            thread_id: threadId,
-            workflow_id: workflowId,
-            provider: providerId,
-            model,
-            agent_mode: true
-          };
-          await this.saveMessageToDb(msg);
-          await this.sendMessage(msg);
-
-          // Also send persistent LogUpdate for completed phases — matches Python
-          if (pu.status === "Success" || pu.status === "Failed") {
-            const logMsg: Record<string, unknown> = {
-              type: "message",
-              role: "agent_execution",
-              execution_event_type: "log_update",
-              agent_execution_id: agentExecutionId,
-              content: {
-                type: "log_update",
-                node_id: pu.node_id ?? "agent",
-                node_name: "Agent",
-                content: `${pu.phase}: ${pu.content ?? ""}`,
-                severity: pu.status === "Failed" ? "error" : "info"
-              },
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model,
-              agent_mode: true
-            };
-            await this.saveMessageToDb(logMsg);
-            await this.sendMessage(logMsg);
-          }
-        } else if (msgType === "log_update") {
-          // Forward log updates as agent_execution messages
-          const lu = item as {
-            node_id?: string;
-            node_name?: string;
-            content?: string;
-            severity?: string;
-          };
-          const msg: Record<string, unknown> = {
-            type: "message",
-            role: "agent_execution",
-            execution_event_type: "log_update",
-            agent_execution_id: agentExecutionId,
-            content: {
-              type: "log_update",
-              node_id: lu.node_id,
-              node_name: lu.node_name,
-              content: lu.content,
-              severity: lu.severity
-            },
-            thread_id: threadId,
-            workflow_id: workflowId,
-            provider: providerId,
-            model,
-            agent_mode: true
-          };
-          await this.saveMessageToDb(msg);
-          await this.sendMessage(msg);
-        } else if (msgType === "step_result") {
-          const sr = item as {
-            step?: unknown;
-            result?: unknown;
-            error?: string;
-            is_task_result?: boolean;
-          };
-          // Only forward non-task step results — task result handled via agent.results
-          if (!sr.is_task_result) {
-            const contentDict = {
-              type: "step_result",
-              result: sr.result,
-              step: sr.step ?? null,
-              error: sr.error,
-              is_task_result: sr.is_task_result
-            };
-            const msg: Record<string, unknown> = {
-              type: "message",
-              role: "agent_execution",
-              execution_event_type: "step_result",
-              agent_execution_id: agentExecutionId,
-              content: contentDict,
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model,
-              agent_mode: true
-            };
-            await this.saveMessageToDb(msg);
-            await this.sendMessage(msg);
-          }
-        }
-      }
-
-      // Normalize final agent output — matches Python.
-      // First materialize any asset-like values (ImageRef/AudioRef/VideoRef
-      // with inline `data` bytes) to real `/api/storage/<id>.<ext>` URIs so
-      // the structured-results presenter sees clean references, not raw
-      // base64 to echo into markdown.
-      const rawResults = agent.getResults();
-      const results =
-        rawResults != null && typeof rawResults === "object"
-          ? await ctx.normalizeOutputValue(rawResults, "temp_url")
-          : rawResults;
-      let content: string;
-      if (typeof results === "string") {
-        content = results;
-      } else if (
-        results &&
-        typeof results === "object" &&
-        "markdown" in results
-      ) {
-        const md = (results as Record<string, unknown>).markdown;
-        content = typeof md === "string" ? md : String(results);
-      } else if (results != null && typeof results === "object") {
-        // Structured result — run one more LLM call to present it
-        const resultsJson = JSON.stringify(results, null, 2);
-        content = await this.presentStructuredResults(
-          provider,
-          model,
-          objective,
-          resultsJson,
-          threadId
-        );
-      } else {
-        content = results != null ? String(results) : "";
-      }
-
-      // Send final assistant message — persisted
-      const finalMsg: Record<string, unknown> = {
-        type: "message",
-        role: "assistant",
-        content,
-        thread_id: threadId,
-        workflow_id: workflowId,
-        provider: providerId,
-        model,
-        agent_mode: true
-      };
-      await this.saveMessageToDb(finalMsg);
-      await this.sendMessage(finalMsg);
-
-      // Signal completion
-      await this.sendMessage({
-        type: "chunk",
-        content: "",
-        done: true,
-        thread_id: threadId,
-        workflow_id: workflowId
-      });
-
-      log.debug("Agent execution complete", { threadId });
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      log.error("Agent execution error", { threadId, error: errMsg });
-
-      await this.sendMessage({
-        type: "error",
-        message: `Agent execution error: ${errMsg}`,
-        error_type: "agent_error",
-        thread_id: threadId,
-        workflow_id: workflowId
-      });
-
-      // Signal completion even on error
-      await this.sendMessage({
-        type: "chunk",
-        content: "",
-        done: true,
-        thread_id: threadId,
-        workflow_id: workflowId
-      });
-
-      // Return error assistant message
-      const errorFinalMsg: Record<string, unknown> = {
-        type: "message",
-        role: "assistant",
-        content: `Agent execution error: ${errMsg}`,
-        thread_id: threadId,
-        workflow_id: workflowId,
-        provider: providerId,
-        model,
-        agent_mode: true
-      };
-      await this.saveMessageToDb(errorFinalMsg);
-      await this.sendMessage(errorFinalMsg);
-    }
   }
 
   async handleInference(
@@ -4733,6 +4594,65 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Transcribe a stored audio asset to word-level caption timing. Mirrors the
+   * provider path used by the ASR node but skips the workflow machinery — the
+   * caller (Studio transcript beats) wants `{ word, startMs, endMs }[]` back in
+   * one shot. Timestamps are returned in milliseconds relative to the start of
+   * the audio.
+   */
+  private async runDirectTranscription(req: {
+    provider: string;
+    model: string;
+    assetId: string;
+    language?: string;
+  }): Promise<{
+    text: string;
+    words: Array<{ word: string; startMs: number; endMs: number }>;
+  }> {
+    if (!this.resolveProvider) {
+      throw new Error("No provider resolver configured");
+    }
+    if (!req.model) {
+      throw new Error("model is required");
+    }
+    if (!req.assetId) {
+      throw new Error("asset_id is required");
+    }
+
+    const userId = this.userId ?? "1";
+    const asset = await Asset.find(userId, req.assetId);
+    if (!asset) {
+      throw new Error(`Audio asset not found: ${req.assetId}`);
+    }
+    const ext = (asset.content_type ?? "audio/wav").split("/")[1] ?? "wav";
+    const adapter = getAssetAdapter();
+    const bytes = await adapter.retrieve(
+      adapter.uriForKey(`${req.assetId}.${ext}`)
+    );
+    if (!bytes) {
+      throw new Error(`Audio asset bytes not found: ${req.assetId}`);
+    }
+
+    const provider = await this.resolveProvider(req.provider, userId);
+    const result = await provider.automaticSpeechRecognition({
+      audio: bytes,
+      model: req.model,
+      language: req.language,
+      word_timestamps: true
+    });
+
+    const words = (result.chunks ?? [])
+      .map((chunk) => ({
+        word: chunk.text.trim(),
+        startMs: Math.round(chunk.timestamp[0] * 1000),
+        endMs: Math.round(chunk.timestamp[1] * 1000)
+      }))
+      .filter((w) => w.word.length > 0);
+
+    return { text: result.text, words };
+  }
+
+  /**
    * Build a tRPC caller bound to this connection's `userId`. Used to dispatch
    * the read-only RPC commands (list_workflows, get_workflow, list_assets,
    * get_asset, list_nodes, get_node) onto the existing tRPC routers — single
@@ -4952,6 +4872,7 @@ export class UnifiedWebSocketRunner {
           }
         }
         this.toolBridge.cancelAll();
+        this.approvalBridge.cancelAll();
         await this.sendMessage({
           type: "generation_stopped",
           message: "Generation stopped by user",
@@ -5057,6 +4978,19 @@ export class UnifiedWebSocketRunner {
             speed,
             audioFormat
           })
+        );
+      }
+      case "transcribe_audio": {
+        const provider = String(data.provider ?? this.defaultProvider);
+        const model = String(data.model ?? this.defaultModel);
+        const assetId =
+          typeof data.asset_id === "string" ? (data.asset_id as string) : "";
+        const language =
+          typeof data.language === "string"
+            ? (data.language as string)
+            : undefined;
+        return this.runRpc(command, () =>
+          this.runDirectTranscription({ provider, model, assetId, language })
         );
       }
       default:
@@ -5201,6 +5135,15 @@ export class UnifiedWebSocketRunner {
           typeof data.tool_call_id === "string" ? data.tool_call_id : null;
         if (toolCallId) {
           this.toolBridge.resolveResult(toolCallId, data);
+        }
+        continue;
+      }
+
+      if (msgType === "tool_approval_response") {
+        const approvalId =
+          typeof data.approval_id === "string" ? data.approval_id : null;
+        if (approvalId) {
+          this.approvalBridge.resolveResult(approvalId, data);
         }
         continue;
       }

@@ -1,20 +1,26 @@
 /**
- * Centralized cost calculation for all AI providers.
+ * Centralized cost calculation for all AI providers — in real US dollars.
  *
- * This module provides a unified interface for calculating API costs in credits.
- * 1 credit = $0.01 USD (i.e., 1000 credits = $10 USD)
- * All rates include a 50% premium over provider base costs.
+ * Token and embedding pricing comes from `@pydantic/genai-prices` (the bundled,
+ * community-maintained price catalog), so chat/LLM costs track each provider's
+ * published per-token rates exactly, including prompt-cache discounts and
+ * tiered (context-length) pricing. No markup is applied.
+ *
+ * A small local table covers the modalities genai-prices does not price per
+ * token — image generation (per image), speech-to-text (per minute),
+ * text-to-speech (per 1k characters) and 3D generation (per task). Those values
+ * are the providers' list prices in USD.
  *
  * Usage:
  *    import { CostCalculator, UsageInfo } from "./cost-calculator.js";
- *
- *    // Calculate cost for a chat completion
- *    const usage: UsageInfo = { inputTokens: 1000, outputTokens: 500 };
- *    const cost = CostCalculator.calculate("gpt-4o-mini", usage, "openai");
- *
- *    // Or use convenience helper functions
- *    const cost2 = calculateChatCost("gpt-4o-mini", 1000, 500);
+ *    const cost = CostCalculator.calculate("gpt-4o-mini", { inputTokens: 1000, outputTokens: 500 }, "openai");
  */
+
+import { calcPrice, type Usage } from "@pydantic/genai-prices";
+import { createLogger } from "@nodetool-ai/config";
+import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
+
+const log = createLogger("nodetool.runtime.cost");
 
 export enum CostType {
   TOKEN_BASED = "token_based",
@@ -29,318 +35,70 @@ export enum CostType {
 
 export interface PricingTier {
   costType: CostType;
-  inputPer1kTokens?: number;
-  outputPer1kTokens?: number;
-  cachedPer1kTokens?: number;
+  /** USD per 1000 characters (CostType.CHARACTER_BASED). */
   per1kChars?: number;
+  /** USD per minute of audio (CostType.DURATION_BASED). */
   perMinute?: number;
+  /** USD per generated image (CostType.IMAGE_BASED). */
   perImage?: number;
+  /** USD per second of video (CostType.VIDEO_BASED). */
   perSecondVideo?: number;
-  /** Cost per submitted task (CostType.TASK_BASED). In nodetool credits (1 credit = $0.01). */
+  /** USD per submitted task (CostType.TASK_BASED). */
   perTask?: number;
 }
 
 /**
- * Pricing tiers by tier name - derived from Python cost_calculator.py PRICING_TIERS.
+ * Local pricing for non-token modalities, in USD (provider list prices).
+ * Token/embedding models are intentionally absent — those are priced via
+ * `@pydantic/genai-prices`.
  */
 export const PRICING_TIERS: Record<string, PricingTier> = {
-  // GPT-5 Series (newest flagship models)
-  gpt5Tier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.002625,
-    outputPer1kTokens: 0.021,
-    cachedPer1kTokens: 0.0002625
-  },
-  gpt5ProTier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0315,
-    outputPer1kTokens: 0.252
-  },
-  gpt5MiniTier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.000375,
-    outputPer1kTokens: 0.003,
-    cachedPer1kTokens: 0.0000375
-  },
-  // GPT-4.1 family
-  gpt41Tier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0045,
-    outputPer1kTokens: 0.018,
-    cachedPer1kTokens: 0.001125
-  },
-  gpt41MiniTier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0012,
-    outputPer1kTokens: 0.0048,
-    cachedPer1kTokens: 0.0003
-  },
-  gpt41NanoTier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0003,
-    outputPer1kTokens: 0.0012,
-    cachedPer1kTokens: 0.000075
-  },
-  // O4-mini (reasoning)
-  o4MiniTier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.006,
-    outputPer1kTokens: 0.024,
-    cachedPer1kTokens: 0.0015
-  },
-  // O1 Series (existing reasoning models)
-  o1Tier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 2.25,
-    outputPer1kTokens: 9.0
-  },
-  o1MiniTier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.45,
-    outputPer1kTokens: 1.8
-  },
-  // GPT-4o Series
-  topTierChat: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.375,
-    outputPer1kTokens: 1.5
-  },
-  lowTierChat: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0225,
-    outputPer1kTokens: 0.09
-  },
-  // Kie.ai chat models. Kie credits are advertised at $0.005/credit;
-  // NodeTool credits are $0.01, so values below are converted to NodeTool credits.
-  kieGpt55Tier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.14,
-    outputPer1kTokens: 0.84,
-    cachedPer1kTokens: 0.014
-  },
-  kieGemini31ProTier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0,
-    outputPer1kTokens: 0
-  },
-  kieGemini3FlashTier: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0,
-    outputPer1kTokens: 0
-  },
-  // GPT-4 Turbo
-  gpt4Turbo: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 1.5,
-    outputPer1kTokens: 6.0
-  },
-  // Image generation - gpt-image-1
-  imageGptLow: {
-    costType: CostType.IMAGE_BASED,
-    perImage: 1.5
-  },
-  imageGptMedium: {
-    costType: CostType.IMAGE_BASED,
-    perImage: 6.0
-  },
-  imageGptHigh: {
-    costType: CostType.IMAGE_BASED,
-    perImage: 25.0
-  },
-  // Image generation GPT-image-1.5
-  imageGpt15: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0075,
-    outputPer1kTokens: 0.015
-  },
-  // Whisper / Speech-to-Text
-  whisperStandard: {
-    costType: CostType.DURATION_BASED,
-    perMinute: 0.9
-  },
-  whisperLowCost: {
-    costType: CostType.DURATION_BASED,
-    perMinute: 0.45
-  },
-  // TTS / Text-to-Speech
-  ttsStandard: {
-    costType: CostType.CHARACTER_BASED,
-    per1kChars: 0.09
-  },
-  ttsHd: {
-    costType: CostType.CHARACTER_BASED,
-    per1kChars: 2.25
-  },
-  ttsUltraHd: {
-    costType: CostType.CHARACTER_BASED,
-    per1kChars: 4.5
-  },
-  // Embeddings
-  embeddingSmall: {
-    costType: CostType.EMBEDDING,
-    inputPer1kTokens: 0.003
-  },
-  embeddingLarge: {
-    costType: CostType.EMBEDDING,
-    inputPer1kTokens: 0.0195
-  },
-  // Anthropic Claude 4 family (2025)
-  claudeOpus4: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.045,
-    outputPer1kTokens: 0.15
-  },
-  claudeSonnet4: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0075,
-    outputPer1kTokens: 0.0375
-  },
-  claudeHaiku4: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.00225,
-    outputPer1kTokens: 0.0075
-  },
-  // Claude 3.7 family
-  claude37Sonnet: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.009,
-    outputPer1kTokens: 0.027
-  },
-  // Claude 3.5 family
-  claude35Sonnet: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0075,
-    outputPer1kTokens: 0.0225
-  },
-  claude35Haiku: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0015,
-    outputPer1kTokens: 0.006
-  },
-  // Claude 3 Opus
-  claude3Opus: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.045,
-    outputPer1kTokens: 0.15
-  },
-  // Claude 3 Sonnet
-  claude3Sonnet: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.0075,
-    outputPer1kTokens: 0.0225
-  },
-  // Claude 3 Haiku
-  claude3Haiku: {
-    costType: CostType.TOKEN_BASED,
-    inputPer1kTokens: 0.000375,
-    outputPer1kTokens: 0.0015
-  },
+  // OpenAI gpt-image-1 — per generated 1024² image, by quality.
+  imageGptLow: { costType: CostType.IMAGE_BASED, perImage: 0.011 },
+  imageGptMedium: { costType: CostType.IMAGE_BASED, perImage: 0.042 },
+  imageGptHigh: { costType: CostType.IMAGE_BASED, perImage: 0.167 },
+  // Whisper / Speech-to-Text — per minute.
+  whisperStandard: { costType: CostType.DURATION_BASED, perMinute: 0.006 },
+  whisperLowCost: { costType: CostType.DURATION_BASED, perMinute: 0.003 },
+  // TTS / Text-to-Speech — per 1000 characters.
+  // tts-1 = $15/1M chars ($0.015/1k); tts-1-hd = $30/1M chars ($0.03/1k).
+  ttsHd: { costType: CostType.CHARACTER_BASED, per1kChars: 0.015 },
+  ttsUltraHd: { costType: CostType.CHARACTER_BASED, per1kChars: 0.03 },
+  // gpt-4o-mini-tts is natively token-based (text in + audio out); OpenAI's
+  // own estimate is ~$0.015/min of audio. Approximated here per-1k-chars
+  // (~1 min ≈ 900–1000 chars) since the TTS call meters characters, not tokens.
+  ttsGpt4oMini: { costType: CostType.CHARACTER_BASED, per1kChars: 0.015 },
 
-  // --- 3D generation (TASK_BASED) ---
-  // Pricing sources:
-  //   Meshy:  https://www.meshy.ai/pricing  (verify on each pricing change)
-  //   Rodin:  https://hyperhuman.deemos.com/rodin  (verify on each pricing change)
-  // All values are in nodetool credits (1 credit = $0.01 USD), including 50% premium.
-  // "Preview" = shape-only (fast); "Textured" = preview + refine (PBR textures embedded).
-  //
-  // TODO: verify exact per-task costs against the live pricing pages above.
-  meshy4TextPreviewTier: { costType: CostType.TASK_BASED, perTask: 63 },   // ~$0.42/task
-  meshy4TextTexturedTier: { costType: CostType.TASK_BASED, perTask: 221 }, // ~$0.42 preview + ~$1.05 refine = $1.47/task
-  meshy4ImageTier: { costType: CostType.TASK_BASED, perTask: 63 },         // ~$0.42/task
-  meshy3TurboTextPreviewTier: { costType: CostType.TASK_BASED, perTask: 32 },   // ~$0.21/task
-  meshy3TurboTextTexturedTier: { costType: CostType.TASK_BASED, perTask: 111 }, // ~$0.21 + ~$0.53 = $0.74/task
-  meshy3TurboImageTier: { costType: CostType.TASK_BASED, perTask: 32 },    // ~$0.21/task
-  rodinGen1Tier: { costType: CostType.TASK_BASED, perTask: 120 },          // ~$0.80/task
-  rodinGen1TurboTier: { costType: CostType.TASK_BASED, perTask: 75 },      // ~$0.50/task
-  rodinSketchTier: { costType: CostType.TASK_BASED, perTask: 45 }          // ~$0.30/task
+  // --- 3D generation (TASK_BASED) — USD per task ---
+  // Pricing sources (verify on each pricing change):
+  //   Meshy:  https://www.meshy.ai/pricing
+  //   Rodin:  https://hyperhuman.deemos.com/rodin
+  // "Preview" = shape-only (fast); "Textured" = preview + refine (PBR textures).
+  meshy4TextPreviewTier: { costType: CostType.TASK_BASED, perTask: 0.42 },
+  meshy4TextTexturedTier: { costType: CostType.TASK_BASED, perTask: 1.47 },
+  meshy4ImageTier: { costType: CostType.TASK_BASED, perTask: 0.42 },
+  meshy3TurboTextPreviewTier: { costType: CostType.TASK_BASED, perTask: 0.21 },
+  meshy3TurboTextTexturedTier: { costType: CostType.TASK_BASED, perTask: 0.74 },
+  meshy3TurboImageTier: { costType: CostType.TASK_BASED, perTask: 0.21 },
+  rodinGen1Tier: { costType: CostType.TASK_BASED, perTask: 0.8 },
+  rodinGen1TurboTier: { costType: CostType.TASK_BASED, perTask: 0.5 },
+  rodinSketchTier: { costType: CostType.TASK_BASED, perTask: 0.3 }
 };
 
 /**
- * Model ID to tier mapping.
- * Keys are "provider:modelId" strings for provider-specific pricing.
+ * Model ID to tier mapping for the local (non-token) pricing table.
+ * Keys are "provider:modelId". Token/embedding models are priced via
+ * genai-prices and are deliberately not listed here.
  */
 export const MODEL_TO_TIER: Record<string, string> = {
-  // GPT-5 Series (newest models) - OpenAI specific
-  "openai:gpt-5": "gpt5Tier",
-  "openai:gpt-5.2": "gpt5Tier",
-  "openai:gpt-5.2-pro": "gpt5ProTier",
-  "openai:gpt-5-mini": "gpt5MiniTier",
-  // GPT-4.1 Family - OpenAI specific
-  "openai:gpt-4.1": "gpt41Tier",
-  "openai:gpt-4.1-mini": "gpt41MiniTier",
-  "openai:gpt-4.1-nano": "gpt41NanoTier",
-  // O4 Series (reasoning models) - OpenAI specific
-  "openai:o4-mini": "o4MiniTier",
-  // O1 Series (existing reasoning models) - OpenAI specific
-  "openai:o1": "o1Tier",
-  "openai:o1-preview": "o1Tier",
-  "openai:o1-mini": "o1MiniTier",
-  // O3 Series (future models) - OpenAI specific
-  "openai:o3": "o1Tier",
-  "openai:o3-mini": "o1MiniTier",
-  // GPT-4o Series - OpenAI specific
-  "openai:gpt-4o": "topTierChat",
-  "openai:gpt-4o-2024-11-20": "topTierChat",
-  "openai:gpt-4o-2024-08-06": "topTierChat",
-  "openai:gpt-4o-2024-05-13": "topTierChat",
-  "openai:gpt-4o-search-preview": "topTierChat",
-  "openai:gpt-4o-mini": "lowTierChat",
-  "openai:gpt-4o-mini-2024-07-18": "lowTierChat",
-  "openai:gpt-4o-mini-search-preview": "lowTierChat",
-  // GPT-4 Turbo Series - OpenAI specific
-  "openai:gpt-4-turbo": "gpt4Turbo",
-  "openai:gpt-4-turbo-2024-04-09": "gpt4Turbo",
-  "openai:gpt-4-turbo-preview": "gpt4Turbo",
-  "openai:gpt-4-0125-preview": "gpt4Turbo",
-  "openai:gpt-4-1106-preview": "gpt4Turbo",
-  "openai:computer-use-preview": "topTierChat",
-  // Image models - OpenAI specific
-  "openai:gpt-image-2": "imageGpt15",
-  "openai:gpt-image-1.5": "imageGpt15",
-  // Whisper / Speech-to-Text - OpenAI specific
+  // Whisper / Speech-to-Text
   "openai:whisper-1": "whisperStandard",
   "openai:gpt-4o-transcribe": "whisperStandard",
   "openai:gpt-4o-mini-transcribe": "whisperLowCost",
-  // TTS / Text-to-Speech - OpenAI specific
-  "openai:gpt-4o-mini-tts": "ttsStandard",
+  // TTS / Text-to-Speech
+  "openai:gpt-4o-mini-tts": "ttsGpt4oMini",
   "openai:tts-1": "ttsHd",
   "openai:tts-1-hd": "ttsUltraHd",
-  // Embeddings - OpenAI specific
-  "openai:text-embedding-3-small": "embeddingSmall",
-  "openai:text-embedding-3-large": "embeddingLarge",
-  // Kie.ai chat models
-  "kie:gpt-5-5": "kieGpt55Tier",
-  "kie:claude-opus-4-6": "claudeOpus4",
-  "kie:claude-sonnet-4-6": "claudeSonnet4",
-  "kie:claude-haiku-4-5": "claudeHaiku4",
-  "kie:gemini-3.1-pro": "kieGemini31ProTier",
-  "kie:gemini-3-flash": "kieGemini3FlashTier",
-  // Anthropic Models - Anthropic specific
-  "anthropic:claude-opus-4-6": "claudeOpus4",
-  "anthropic:claude-opus-4-5": "claudeOpus4",
-  "anthropic:claude-opus-4-20250514": "claudeOpus4",
-  "anthropic:claude-opus-4-20250501": "claudeOpus4",
-  "anthropic:claude-sonnet-4-6": "claudeSonnet4",
-  "anthropic:claude-sonnet-4-5": "claudeSonnet4",
-  "anthropic:claude-sonnet-4-20250514": "claudeSonnet4",
-  "anthropic:claude-sonnet-4-20250501": "claudeSonnet4",
-  "anthropic:claude-haiku-4-5": "claudeHaiku4",
-  "anthropic:claude-haiku-4-20250514": "claudeHaiku4",
-  "anthropic:claude-haiku-4-20250501": "claudeHaiku4",
-  "anthropic:claude-3-7-sonnet-20250511": "claude37Sonnet",
-  "anthropic:claude-3-7-sonnet-20250219": "claude37Sonnet",
-  "anthropic:claude-3-5-sonnet-20241022": "claude35Sonnet",
-  "anthropic:claude-3-5-sonnet-20240620": "claude35Sonnet",
-  "anthropic:claude-3-5-sonnet-latest": "claude35Sonnet",
-  "anthropic:claude-3-5-haiku-20241022": "claude35Haiku",
-  "anthropic:claude-3-5-haiku-latest": "claude35Haiku",
-  "anthropic:claude-3-opus-20240229": "claude3Opus",
-  "anthropic:claude-3-opus-latest": "claude3Opus",
-  "anthropic:claude-3-sonnet-20240229": "claude3Sonnet",
-  "anthropic:claude-3-sonnet-latest": "claude3Sonnet",
-  "anthropic:claude-3-haiku-20240307": "claude3Haiku",
-  "anthropic:claude-3-haiku-latest": "claude3Haiku",
-
   // Meshy 3D generation — text tier is textured (preview + refine); image is single-step
   "meshy:meshy-4": "meshy4TextTexturedTier",
   "meshy:meshy-4-preview": "meshy4TextPreviewTier",
@@ -355,9 +113,20 @@ export const MODEL_TO_TIER: Record<string, string> = {
 };
 
 export interface UsageInfo {
+  /**
+   * Total prompt/input tokens, **inclusive** of `cachedTokens` and
+   * `cacheWriteTokens`. This matches the `@pydantic/genai-prices` contract,
+   * which derives the full-price text input as
+   * `inputTokens - cachedTokens - cacheWriteTokens`. Providers whose API
+   * reports the uncached portion separately (e.g. Anthropic) must add the
+   * cache read/write counts back in before populating this field.
+   */
   inputTokens?: number;
   outputTokens?: number;
+  /** Cache-read (hit) tokens — a subset of {@link inputTokens}, priced at a discount. */
   cachedTokens?: number;
+  /** Cache-write (creation) tokens — a subset of {@link inputTokens}, priced at a premium. */
+  cacheWriteTokens?: number;
   reasoningTokens?: number;
   inputCharacters?: number;
   durationSeconds?: number;
@@ -367,40 +136,89 @@ export interface UsageInfo {
   taskCount?: number;
 }
 
-import { createLogger } from "@nodetool-ai/config";
+/**
+ * NodeTool provider id → genai-prices provider id. Providers absent here fall
+ * back to genai-prices' model-name matching (`providerId` omitted).
+ */
+const GENAI_PROVIDER_MAP: Record<string, string> = {
+  openai: "openai",
+  anthropic: "anthropic",
+  claude_agent_sdk: "anthropic",
+  "claude-agent-sdk": "anthropic",
+  gemini: "google",
+  google: "google",
+  mistral: "mistral",
+  groq: "groq",
+  deepseek: "deepseek",
+  xai: "x-ai",
+  grok: "x-ai"
+};
 
-const log = createLogger("nodetool.runtime.cost");
+/** Providers that run locally and incur no API cost. */
+const LOCAL_FREE_PROVIDERS = new Set([
+  "ollama",
+  "local",
+  "lmstudio",
+  "llama_cpp",
+  "llamacpp",
+  "llama-cpp"
+]);
+
+/**
+ * Token/embedding cost in USD via genai-prices. Returns `null` when no price is
+ * known (so the caller can fall back or report zero), and `0` for local models.
+ */
+function calcTokenPriceUsd(
+  modelId: string,
+  usage: UsageInfo,
+  provider: ProviderId
+): number | null {
+  const providerLower = provider.toLowerCase();
+  if (LOCAL_FREE_PROVIDERS.has(providerLower)) return 0;
+
+  const gpUsage: Usage = {
+    input_tokens: usage.inputTokens ?? 0,
+    output_tokens: usage.outputTokens ?? 0
+  };
+  if (usage.cachedTokens && usage.cachedTokens > 0) {
+    gpUsage.cache_read_tokens = usage.cachedTokens;
+  }
+  if (usage.cacheWriteTokens && usage.cacheWriteTokens > 0) {
+    gpUsage.cache_write_tokens = usage.cacheWriteTokens;
+  }
+
+  const providerId = GENAI_PROVIDER_MAP[providerLower];
+  const result = calcPrice(
+    gpUsage,
+    modelId,
+    providerId ? { providerId } : undefined
+  );
+  return result ? result.total_price : null;
+}
 
 export class CostCalculator {
   /**
-   * Get the pricing tier for a model ID scoped by provider.
-   *
-   * @param modelId - The model identifier
-   * @param provider - Provider name (e.g., "openai", "anthropic")
-   * @returns The pricing tier name, or null if not found
+   * Get the local (non-token) pricing tier for a model, scoped by provider.
+   * Token/embedding models are priced via genai-prices and return `null` here.
    */
-  static getTier(modelId: string, provider: string): string | null {
+  static getTier(modelId: string, provider: ProviderId): string | null {
     const modelLower = modelId.toLowerCase();
     const providerLower = provider.toLowerCase();
 
-    // Direct lookup with "provider:model" key
     const providerKey = `${providerLower}:${modelLower}`;
     if (providerKey in MODEL_TO_TIER) {
       return MODEL_TO_TIER[providerKey];
     }
 
-    // Try prefix match with provider key - sort by model length descending
-    // Only look at keys that match the provider
+    // Longest-prefix match within the same provider.
     const providerPrefix = `${providerLower}:`;
-    const providerKeys = Object.keys(MODEL_TO_TIER).filter((key) =>
-      key.startsWith(providerPrefix)
-    );
-    // Sort by model portion length descending (longest prefix first)
-    providerKeys.sort(
-      (a, b) =>
-        b.substring(providerPrefix.length).length -
-        a.substring(providerPrefix.length).length
-    );
+    const providerKeys = Object.keys(MODEL_TO_TIER)
+      .filter((key) => key.startsWith(providerPrefix))
+      .sort(
+        (a, b) =>
+          b.substring(providerPrefix.length).length -
+          a.substring(providerPrefix.length).length
+      );
     for (const key of providerKeys) {
       const modelPart = key.substring(providerPrefix.length);
       if (modelLower.startsWith(modelPart)) {
@@ -412,160 +230,130 @@ export class CostCalculator {
   }
 
   /**
-   * Calculate cost in credits for an API call.
+   * Calculate the cost of an API call in USD.
    *
    * @param modelId - The model identifier
    * @param usage - Usage information from the API response
    * @param provider - Provider name for pricing lookup
-   * @returns Cost in credits (1 credit = $0.01 USD)
+   * @returns Cost in US dollars (0 when no price is known)
    */
   static calculate(
     modelId: string,
     usage: UsageInfo,
-    provider: string
+    provider: ProviderId
   ): number {
+    // Non-token modalities (image / audio duration / characters / 3D task).
     const tierName = CostCalculator.getTier(modelId, provider);
-    if (tierName === null) {
-      log.warn(
-        `No pricing tier found for model: ${modelId} (provider: ${provider})`
-      );
-      return 0.0;
-    }
-
-    const tier = PRICING_TIERS[tierName];
-    if (tier === undefined) {
+    if (tierName !== null) {
+      const tier = PRICING_TIERS[tierName];
+      if (tier !== undefined) {
+        return CostCalculator._calculateForTier(tier, usage);
+      }
       log.warn(`Pricing tier '${tierName}' not defined`);
-      return 0.0;
     }
 
-    return CostCalculator._calculateForTier(tier, usage);
+    // Token / embedding pricing via @pydantic/genai-prices (real USD).
+    const tokenCost = calcTokenPriceUsd(modelId, usage, provider);
+    if (tokenCost !== null) return tokenCost;
+
+    log.warn(
+      `No price found for model: ${modelId} (provider: ${provider})`
+    );
+    return 0.0;
   }
 
-  /**
-   * Calculate cost based on tier type.
-   */
+  /** Cost for a local non-token modality tier, in USD. */
   private static _calculateForTier(
     tier: PricingTier,
     usage: UsageInfo
   ): number {
-    const inputTokens = usage.inputTokens ?? 0;
-    const outputTokens = usage.outputTokens ?? 0;
-    const cachedTokens = usage.cachedTokens ?? 0;
     const inputCharacters = usage.inputCharacters ?? 0;
     const durationSeconds = usage.durationSeconds ?? 0;
     const imageCount = usage.imageCount ?? 0;
     const videoSeconds = usage.videoSeconds ?? 0;
 
-    if (tier.costType === CostType.TOKEN_BASED) {
-      let inputCost: number;
-      let cachedCost: number;
-
-      if (cachedTokens > 0 && (tier.cachedPer1kTokens ?? 0) > 0) {
-        const nonCachedInput = Math.max(0, inputTokens - cachedTokens);
-        inputCost = (nonCachedInput / 1000) * (tier.inputPer1kTokens ?? 0);
-        cachedCost = (cachedTokens / 1000) * (tier.cachedPer1kTokens ?? 0);
-      } else {
-        inputCost = (inputTokens / 1000) * (tier.inputPer1kTokens ?? 0);
-        cachedCost = 0.0;
-      }
-
-      const outputCost = (outputTokens / 1000) * (tier.outputPer1kTokens ?? 0);
-      return inputCost + outputCost + cachedCost;
-    } else if (tier.costType === CostType.EMBEDDING) {
-      return (inputTokens / 1000) * (tier.inputPer1kTokens ?? 0);
-    } else if (tier.costType === CostType.CHARACTER_BASED) {
-      return (inputCharacters / 1000) * (tier.per1kChars ?? 0);
-    } else if (tier.costType === CostType.DURATION_BASED) {
-      const durationMinutes = durationSeconds / 60.0;
-      return durationMinutes * (tier.perMinute ?? 0);
-    } else if (tier.costType === CostType.IMAGE_BASED) {
-      return imageCount * (tier.perImage ?? 0);
-    } else if (tier.costType === CostType.VIDEO_BASED) {
-      return videoSeconds * (tier.perSecondVideo ?? 0);
-    } else if (tier.costType === CostType.TASK_BASED) {
-      const taskCount = usage.taskCount ?? 1;
-      return taskCount * (tier.perTask ?? 0);
+    switch (tier.costType) {
+      case CostType.CHARACTER_BASED:
+        return (inputCharacters / 1000) * (tier.per1kChars ?? 0);
+      case CostType.DURATION_BASED:
+        return (durationSeconds / 60.0) * (tier.perMinute ?? 0);
+      case CostType.IMAGE_BASED:
+        return imageCount * (tier.perImage ?? 0);
+      case CostType.VIDEO_BASED:
+        return videoSeconds * (tier.perSecondVideo ?? 0);
+      case CostType.TASK_BASED:
+        return (usage.taskCount ?? 1) * (tier.perTask ?? 0);
+      default:
+        return 0.0;
     }
-
-    return 0.0;
   }
 }
 
 // Convenience functions
 
-/**
- * Calculate chat completion cost.
- */
+/** Calculate chat completion cost in USD. */
 export function calculateChatCost(
   modelId: string,
   inputTokens: number,
   outputTokens: number,
   cachedTokens: number = 0,
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
   const usage: UsageInfo = { inputTokens, outputTokens, cachedTokens };
   return CostCalculator.calculate(modelId, usage, provider);
 }
 
-/**
- * Calculate embedding cost.
- */
+/** Calculate embedding cost in USD. */
 export function calculateEmbeddingCost(
   modelId: string,
   inputTokens: number,
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
   const usage: UsageInfo = { inputTokens };
   return CostCalculator.calculate(modelId, usage, provider);
 }
 
-/**
- * Calculate TTS cost.
- */
+/** Calculate TTS cost in USD. */
 export function calculateSpeechCost(
   modelId: string,
   inputChars: number,
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
   const usage: UsageInfo = { inputCharacters: inputChars };
   return CostCalculator.calculate(modelId, usage, provider);
 }
 
-/**
- * Calculate ASR/Whisper cost.
- */
+/** Calculate ASR/Whisper cost in USD. */
 export function calculateWhisperCost(
   modelId: string,
   durationSeconds: number,
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
   const usage: UsageInfo = { durationSeconds };
   return CostCalculator.calculate(modelId, usage, provider);
 }
 
 /**
- * Calculate 3D model generation cost.
+ * Calculate 3D model generation cost in USD.
  * Pass `taskCount` > 1 only if multiple tasks were submitted (rare).
  */
 export function calculateModel3DCost(
   modelId: string,
-  provider: string,
+  provider: ProviderId,
   taskCount: number = 1
 ): number {
   const usage: UsageInfo = { taskCount };
   return CostCalculator.calculate(modelId, usage, provider);
 }
 
-/**
- * Calculate image generation cost.
- */
+/** Calculate image generation cost in USD. */
 export function calculateImageCost(
   modelId: string,
   imageCount: number = 1,
   quality: string = "medium",
-  provider: string = "openai"
+  provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
-  // Adjust tier based on quality for gpt-image models
+  // gpt-image-1 is priced per image by quality.
   if (modelId.toLowerCase().includes("gpt-image") && !modelId.includes("1.5")) {
     const qualityMap: Record<string, string> = {
       low: "imageGptLow",
@@ -575,8 +363,7 @@ export function calculateImageCost(
     const tierOverride = qualityMap[quality.toLowerCase()] ?? "imageGptMedium";
     const tier = PRICING_TIERS[tierOverride];
     if (tier) {
-      const usage: UsageInfo = { imageCount };
-      return CostCalculator["_calculateForTier"](tier, usage);
+      return CostCalculator["_calculateForTier"](tier, { imageCount });
     }
   }
 

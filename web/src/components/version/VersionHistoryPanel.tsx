@@ -341,8 +341,8 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               variant={isCompareMode ? "contained" : "text"}
               onClick={handleToggleCompareMode}
               sx={{
-                fontSize: "0.7rem",
-                py: 0.25,
+                fontSize: "var(--fontSizeSmaller)",
+                py: 0.5,
                 px: 1,
                 minWidth: 0,
                 color: isCompareMode ? undefined : "text.secondary"
@@ -358,7 +358,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               density="compact"
               variant="text"
               onClick={handleClearComparison}
-              sx={{ fontSize: "0.7rem", py: 0.25, px: 0.5, minWidth: 0 }}
+              sx={{ fontSize: "var(--fontSizeSmaller)", py: 0.5, px: 0.5, minWidth: 0 }}
             >
               Clear
             </EditorButton>
@@ -471,7 +471,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             </FlexColumn>
           ) : selectedVersion ? (
             <FlexColumn gap={2}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
                 <Text size="bigger" weight={600}>
                   v{selectedVersion.version}
                 </Text>
@@ -517,7 +517,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 style={{
                   border: "1px solid var(--palette-divider)",
                   borderRadius: "var(--rounded-md)",
-                  padding: 12,
+                  padding: 8,
                   backgroundColor: "var(--palette-background-default)"
                 }}
               >

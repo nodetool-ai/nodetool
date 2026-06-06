@@ -59,7 +59,7 @@ FrontendToolRegistry.register({
             id: z.string(),
             type: z.string().optional(),
             node_type: z.string().optional(),
-            data: z.record(z.string(), z.any()).optional(),
+            data: z.record(z.string(), z.unknown()).optional(),
             position: z
               .object({
                 x: z.number(),
@@ -73,7 +73,7 @@ FrontendToolRegistry.register({
             id: z.string(),
             type: z.string().optional(),
             node_type: z.string().optional(),
-            data: z.record(z.string(), z.any()).optional(),
+            data: z.record(z.string(), z.unknown()).optional(),
             position: z
               .object({
                 x: z.number(),

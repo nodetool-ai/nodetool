@@ -19,6 +19,7 @@ import { Video, ResizeMode, Audio } from 'expo-av';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { apiService, type Asset } from '../services/api';
+import { trpc } from '../trpc/client';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -63,9 +64,6 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [asset, setAsset] = useState<Asset | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [isSavingRename, setIsSavingRename] = useState(false);
@@ -74,22 +72,25 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   const [audioDuration, setAudioDuration] = useState(0);
   const soundRef = useRef<Audio.Sound | null>(null);
 
-  const loadAsset = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const data = await apiService.getAsset(assetId);
-      setAsset(data);
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Failed to load asset';
-      setLoadError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [assetId]);
+  const utils = trpc.useUtils();
+  const assetQuery = trpc.assets.get.useQuery({ id: assetId });
+  const asset = (assetQuery.data ?? null) as Asset | null;
+  const isLoading = assetQuery.isLoading;
+  const loadError = assetQuery.error
+    ? assetQuery.error.message || 'Failed to load asset'
+    : null;
+  const refetch = assetQuery.refetch;
 
-  useEffect(() => {
-    loadAsset();
-  }, [loadAsset]);
+  const updateAsset = trpc.assets.update.useMutation({
+    onSuccess: () => { utils.assets.get.invalidate({ id: assetId }); },
+  });
+  const deleteAsset = trpc.assets.delete.useMutation({
+    onSuccess: () => {
+      utils.assets.list.invalidate();
+      navigation.goBack();
+    },
+    onError: (e) => { Alert.alert('Error', e.message); },
+  });
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -171,12 +172,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
     }
     try {
       setIsSavingRename(true);
-      const updated = await apiService.updateAsset(asset.id, {
-        name: newName,
-        parent_id: null,
-        content_type: null,
-      });
-      setAsset(updated);
+      await updateAsset.mutateAsync({ id: asset.id, name: newName });
       setIsRenaming(false);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Failed to rename';
@@ -184,7 +180,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
     } finally {
       setIsSavingRename(false);
     }
-  }, [asset, renameValue]);
+  }, [asset, renameValue, updateAsset]);
 
   const handleDelete = useCallback(() => {
     if (!asset) {return;}
@@ -196,19 +192,11 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiService.deleteAsset(asset.id);
-              navigation.goBack();
-            } catch (error: unknown) {
-              const msg = error instanceof Error ? error.message : 'Failed to delete';
-              Alert.alert('Error', msg);
-            }
-          },
+          onPress: () => { deleteAsset.mutate({ id: asset.id }); },
         },
       ]
     );
-  }, [asset, navigation]);
+  }, [asset, deleteAsset]);
 
   const handleShare = useCallback(async () => {
     if (!asset?.get_url) {return;}
@@ -247,7 +235,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
         ) : null}
         <TouchableOpacity
           style={[styles.actionButton, shadows.small, { backgroundColor: colors.primary }]}
-          onPress={loadAsset}
+          onPress={() => { refetch(); }}
           accessibilityRole="button"
           accessibilityLabel="Retry"
         >

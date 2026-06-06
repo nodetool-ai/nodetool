@@ -79,7 +79,6 @@ const HandleOnlyFieldImpl: React.FC<HandleOnlyFieldProps> = ({
         paramName={property.name}
         className={classConnectable}
         handlePosition="left"
-        isCollectInput={isCollectHandle}
         enableHover={true}
       >
         <Handle

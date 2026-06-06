@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { buildSceneTree, flattenTree, disposeObject } from "../sceneTree";
+import { buildSceneTree, disposeObject } from "../sceneTree";
 
 const makeMesh = (name: string) => {
   const mesh = new THREE.Mesh(
@@ -35,23 +35,6 @@ describe("buildSceneTree", () => {
     root.add(new THREE.Group());
     const tree = buildSceneTree(root);
     expect(tree[0].name).toBe("Group");
-  });
-});
-
-describe("flattenTree", () => {
-  it("returns nodes depth-first", () => {
-    const root = new THREE.Group();
-    const a = new THREE.Group();
-    a.name = "A";
-    const b = makeMesh("B");
-    a.add(b);
-    const c = new THREE.Group();
-    c.name = "C";
-    root.add(a);
-    root.add(c);
-
-    const flat = flattenTree(buildSceneTree(root));
-    expect(flat.map((n) => n.name)).toEqual(["A", "B", "C"]);
   });
 });
 

@@ -61,7 +61,7 @@ const parseThinkSections = (input: string): Section[] => {
   return sections;
 };
 
-const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
+const ThinkBlock: React.FC<{ content: string }> = memo(({ content }) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const handleToggle = useCallback(() => {
@@ -99,7 +99,7 @@ const ThinkBlock: React.FC<{ content: string }> = ({ content }) => {
       </Collapse>
     </Box>
   );
-};
+});
 
 export const TextRenderer: React.FC<Props> = memo(({ text, showActions = true }) => {
   const theme = useTheme();

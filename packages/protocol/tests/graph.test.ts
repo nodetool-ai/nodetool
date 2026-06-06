@@ -70,7 +70,7 @@ describe("NodeDescriptor", () => {
       is_streaming_output: true,
       sync_mode: "zip_all",
       is_controlled: false,
-      is_dynamic: false,
+      supports_dynamic_inputs: false,
       ui_properties: { x: 1 },
       dynamic_properties: { mode: "fast" },
       dynamic_outputs: { extra: { type: "string" } as any }

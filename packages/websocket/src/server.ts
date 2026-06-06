@@ -25,8 +25,9 @@ import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-pro
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   initTelemetry,
-  PythonStdioBridge,
-  logPythonWorkerStderr
+  createPythonBridge,
+  logPythonWorkerStderr,
+  type PythonBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import {
@@ -35,7 +36,6 @@ import {
   migrateSqliteDb,
   runSeeds
 } from "@nodetool-ai/models";
-import { Tool, BUILTIN_TOOL_CLASSES } from "@nodetool-ai/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { handleMcpHttpRequest } from "./mcp-server.js";
@@ -163,7 +163,7 @@ async function broadcastResourceChange(
 
 async function notifyPythonBridgeResourceChanges(
   app: FastifyInstance,
-  pythonBridge: PythonStdioBridge
+  pythonBridge: PythonBridge
 ): Promise<void> {
   await broadcastResourceChange(app, {
     event: "updated",
@@ -385,7 +385,7 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 // Python bridge
 // ---------------------------------------------------------------------------
 
-const pythonBridge = new PythonStdioBridge({
+const pythonBridge = createPythonBridge({
   workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
     ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
     : []
@@ -433,37 +433,6 @@ pythonBridge.on("error", (err: Error) => {
 pythonBridge.on("exit", (code: number) => {
   log.warn(`Python worker exited with code ${code}`);
   pythonBridgeReady = false;
-});
-
-// ---------------------------------------------------------------------------
-// Tool registry — sourced from @nodetool-ai/agents BUILTIN_TOOL_CLASSES
-// ---------------------------------------------------------------------------
-
-// Lazy tool class map — defers instantiation until first access.
-let _toolClassMap: Map<string, new () => Tool> | null = null;
-function getToolClassMap(): Map<string, new () => Tool> {
-  if (!_toolClassMap) {
-    _toolClassMap = new Map();
-    for (const cls of BUILTIN_TOOL_CLASSES) {
-      const instance = new cls();
-      _toolClassMap.set(instance.name, cls);
-    }
-    log.info(
-      `Tool class map built (${_toolClassMap.size} tools) [${startupMs()}]`
-    );
-  }
-  return _toolClassMap;
-}
-// Expose as a getter-backed object so existing code using toolClassMap works unchanged.
-const toolClassMap = new Proxy(new Map<string, new () => Tool>(), {
-  get(_target, prop, _receiver) {
-    const map = getToolClassMap();
-    const value = (map as unknown as Record<string | symbol, unknown>)[prop];
-    if (typeof value === "function") {
-      return value.bind(map);
-    }
-    return value;
-  }
 });
 
 // ---------------------------------------------------------------------------
@@ -769,9 +738,10 @@ await app.register(websocketPlugin, {
         layout: "default",
         recommended_models: nodeMeta.recommended_models ?? [],
         required_settings: nodeMeta.required_settings ?? [],
-        is_dynamic: nodeMeta.is_dynamic ?? false,
+        // Python worker still emits `is_dynamic` on the stdio wire; map it to
+        // the protocol's `supports_dynamic_inputs`.
+        supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
         is_streaming_output: nodeMeta.is_streaming_output ?? false,
-        expose_as_tool: false,
         supports_dynamic_outputs: false
       });
     }
@@ -819,8 +789,7 @@ await app.register(websocketPlugin, {
         err instanceof Error ? err : new Error(String(err))
       );
     });
-  },
-  toolClassMap
+  }
 });
 
 await app.register(healthRoute);
@@ -1013,8 +982,8 @@ if (process.platform === "win32") {
   process.on("SIGBREAK", () => void shutdown("SIGBREAK"));
 }
 
-// Start Python bridge eagerly if Python is installed.
-if (pythonBridge.hasPython()) {
+// Start Python bridge eagerly if a worker is available.
+if (pythonBridge.isAvailable()) {
   log.info(`Starting Python bridge eagerly [${startupMs()}]`);
   pythonBridge
     .ensureConnected()
@@ -1033,9 +1002,10 @@ if (pythonBridge.hasPython()) {
           layout: "default",
           recommended_models: nodeMeta.recommended_models ?? [],
           required_settings: nodeMeta.required_settings ?? [],
-          is_dynamic: nodeMeta.is_dynamic ?? false,
+          // Python worker still emits `is_dynamic` on the stdio wire; map it to
+          // the protocol's `supports_dynamic_inputs`.
+          supports_dynamic_inputs: nodeMeta.is_dynamic ?? false,
           is_streaming_output: nodeMeta.is_streaming_output ?? false,
-          expose_as_tool: false,
           supports_dynamic_outputs: false
         });
       }

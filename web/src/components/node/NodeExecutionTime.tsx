@@ -2,7 +2,7 @@
 import React, { memo, useMemo } from "react";
 import { Text, FlexRow, Box } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
-import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
+import { useNodeExecutionDuration } from "../../hooks/nodes/useNodeExecState";
 
 interface NodeExecutionTimeProps {
   nodeId: string;
@@ -35,9 +35,7 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
   workflowId,
   status
 }) => {
-  const duration = useExecutionTimeStore((state) =>
-    state.getDuration(workflowId, nodeId)
-  );
+  const duration = useNodeExecutionDuration(workflowId, nodeId);
 
   const shouldShow = useMemo(
     () => status === "completed" || status === "error",

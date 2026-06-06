@@ -139,12 +139,23 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     set({ metadataLoading: true, metadataError: null });
     try {
       const data = await apiService.getNodeMetadata();
+      // The REST metadata schema still exposes `is_dynamic`; map it onto the
+      // protocol type's `supports_dynamic_inputs` at this boundary (the server
+      // may send either field depending on backend version).
+      const metadata: NodeMetadata[] = data.map((m) => ({
+        ...m,
+        supports_dynamic_inputs:
+          (m as { supports_dynamic_inputs?: boolean })
+            .supports_dynamic_inputs ??
+          m.is_dynamic ??
+          false,
+      }));
       const byType = new Map<string, NodeMetadata>();
-      for (const m of data) {
+      for (const m of metadata) {
         byType.set(m.node_type, m);
       }
       set({
-        allMetadata: data,
+        allMetadata: metadata,
         metadataByType: byType,
         metadataLoading: false,
       });
@@ -328,7 +339,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
   addDynamicInput: (nodeId, inputName) => {
     set((state) => {
       const chain = state.chain.map((n) => {
-        if (n.id !== nodeId || !n.metadata.is_dynamic) {return n;}
+        if (n.id !== nodeId || !n.metadata.supports_dynamic_inputs) {return n;}
         return {
           ...n,
           dynamicProperties: { ...n.dynamicProperties, [inputName]: null },

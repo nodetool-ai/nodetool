@@ -79,7 +79,7 @@ describe("classifyFields", () => {
       { name: "table", propType: "dataframe" },
       { name: "data", propType: "tensor" },
       { name: "mesh", propType: "model_3d" },
-      { name: "vids", propType: "video_clip_list" },
+      { name: "vids", propType: "list[video]" },
     ];
     const result = classifyFields(fields);
     expect(result.inputFields).toEqual(["doc", "table", "data", "mesh", "vids"]);

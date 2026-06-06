@@ -68,6 +68,7 @@ import {
   GlobTool,
   GrepTool
 } from "./claude-code-tools.js";
+import { TodoWriteTool } from "./todo-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Search
@@ -112,6 +113,9 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   GeometryTool,
   TrigonometryTool,
   ConversionTool,
+
+  // Task tracking
+  TodoWriteTool,
 
   // Documents
   ExtractPDFTextTool,

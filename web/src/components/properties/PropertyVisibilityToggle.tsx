@@ -54,7 +54,7 @@ const styles = (
 
       "& svg": {
 
-        fontSize: "0.9375rem",
+        fontSize: "var(--fontSizeNormal)",
 
         transform:
 

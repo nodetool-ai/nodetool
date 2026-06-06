@@ -149,7 +149,7 @@ const DownloadManagerDialog: React.FC = () => {
           component="div"
           sx={{
             padding: "0 1.5em .5em 1em",
-            fontWeight: "200",
+            fontWeight: 400,
             color: "inherit",
             display: "flex",
             alignItems: "center",

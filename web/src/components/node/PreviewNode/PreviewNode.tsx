@@ -9,7 +9,7 @@ import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeResultValue } from "../../../hooks/nodes/useNodeExecState";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
@@ -183,7 +183,7 @@ const styles = (theme: Theme) =>
         left: "50%",
         width: "80%",
         fontSize: "var(--fontSizeSmaller)",
-        fontWeight: "300",
+        fontWeight: 400,
         transform: "translate(-50%, -50%)",
         zIndex: 0,
         color: theme.vars.palette.grey[200],
@@ -311,16 +311,11 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   // The connected source node's accumulated output is the single source.
   // PreviewNode no longer emits a redundant `preview_update` for itself —
   // the runner's `output_update` for the source already carries the value.
-  const sourceNodeValue = useResultsStore((state) => {
-    const sourceNodeId = incomingValueEdge?.source;
-    if (!sourceNodeId) {
-      return undefined;
-    }
-    return (
-      state.getOutputResult(props.data.workflow_id, sourceNodeId) ??
-      state.getResult(props.data.workflow_id, sourceNodeId)
-    );
-  });
+  const rawSourceNodeValue = useNodeResultValue(
+    props.data.workflow_id,
+    incomingValueEdge?.source ?? ""
+  );
+  const sourceNodeValue = incomingValueEdge?.source ? rawSourceNodeValue : undefined;
 
   // The kernel intentionally skips `output_update` for `nodetool.input.*`
   // and `nodetool.constant.*` nodes (runner.ts) since the client already
@@ -526,6 +521,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           className={`content ${
             isScrollable ? "scrollable nowheel" : "noscroll"
           } nodrag`}
+          role="region"
+          aria-label="Preview output"
           style={{ width: "100%", height: "100%" }}
           tabIndex={0}
           onFocus={handleContentFocus}

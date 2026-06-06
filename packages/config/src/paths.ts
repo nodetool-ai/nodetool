@@ -5,11 +5,35 @@
  * re-implement OS detection or XDG logic.
  *
  * Priority: explicit env var > platform default.
+ *
+ * The `node:path` / `node:os` / `node:url` imports are loaded lazily via
+ * top-level dynamic import so this module loads on non-Node runtimes
+ * (browser, Edge). All exported functions throw if invoked off-Node.
  */
 
-import { join } from "node:path";
-import { homedir } from "node:os";
-import { fileURLToPath } from "node:url";
+import { IS_NODE, importNodeBuiltin } from "./node-import.js";
+
+type PathApi = {
+  join: (...parts: string[]) => string;
+};
+type OsApi = { homedir: () => string };
+type UrlApi = { fileURLToPath: (url: string | URL) => string };
+
+const pathLib = await importNodeBuiltin<PathApi>("node:path");
+const osLib = await importNodeBuiltin<OsApi>("node:os");
+const urlLib = await importNodeBuiltin<UrlApi>("node:url");
+
+function notOnNode(name: string): never {
+  throw new Error(
+    `paths.${name}() is Node-only and not available in this runtime`
+  );
+}
+
+const join = (...parts: string[]): string =>
+  pathLib ? pathLib.join(...parts) : notOnNode("join");
+const homedir = (): string => (osLib ? osLib.homedir() : notOnNode("homedir"));
+const fileURLToPath = (url: string | URL): string =>
+  urlLib ? urlLib.fileURLToPath(url) : notOnNode("fileURLToPath");
 
 /**
  * Base directory for all Nodetool user data.
@@ -21,6 +45,7 @@ import { fileURLToPath } from "node:url";
  * - macOS/Linux: $XDG_DATA_HOME/nodetool  (fallback: ~/.local/share/nodetool)
  */
 export function getNodetoolDataDir(): string {
+  if (!IS_NODE) return notOnNode("getNodetoolDataDir");
   if (process.platform === "win32") {
     return join(
       process.env["APPDATA"] ?? join(homedir(), "AppData", "Roaming"),

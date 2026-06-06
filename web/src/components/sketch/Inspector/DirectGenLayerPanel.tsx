@@ -9,7 +9,7 @@
  * live on the binding itself.
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Layer } from "../types";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
@@ -22,11 +22,17 @@ import {
   TextInput
 } from "../../ui_primitives";
 import { EditorButton } from "../../editor_ui";
+import {
+  SketchModeToggle,
+  SketchModeOption
+} from "../tool-settings-panels/SketchModeToggle";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../../stores/ApiTypes";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
+
+const SIZE_PRESETS = [512, 1024, 1536, 2048] as const;
 
 export interface DirectGenLayerPanelProps {
   layer: Layer;
@@ -53,9 +59,16 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   const isRunning =
     binding.status === "queued" || binding.status === "generating";
 
-  const sourceLayerOptions = layers
-    .filter((l) => l.id !== layer.id && l.type === "raster" && l.data !== null)
-    .map((l) => ({ value: l.id, label: l.name }));
+  const currentSize =
+    binding.width && binding.width === binding.height ? binding.width : null;
+
+  const sourceLayerOptions = useMemo(
+    () =>
+      layers
+        .filter((l) => l.id !== layer.id && l.type === "raster" && l.data !== null)
+        .map((l) => ({ value: l.id, label: l.name })),
+    [layers, layer.id]
+  );
 
   const canGenerate =
     !!binding.provider &&
@@ -90,10 +103,35 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           compact
         />
 
+        <FlexColumn gap={0.5}>
+          <Caption color="secondary">Size</Caption>
+          <SketchModeToggle
+            value={currentSize}
+            exclusive
+            onChange={(_e, v: number | null) => {
+              if (v != null) {
+                patchBinding(layer.id, { width: v, height: v });
+              }
+            }}
+            sx={{ flexWrap: "wrap" }}
+            aria-label="Output size"
+          >
+            {SIZE_PRESETS.map((s) => (
+              <SketchModeOption
+                key={s}
+                value={s}
+                data-testid={`direct-gen-size-${s}`}
+              >
+                {s}²
+              </SketchModeOption>
+            ))}
+          </SketchModeToggle>
+        </FlexColumn>
+
         {isImageToImage &&
           (sourceLayerOptions.length === 0 ? (
             <Caption color="secondary">
-              No source layers available — paint something on a layer first.
+              No source layers available - paint something on a layer first.
             </Caption>
           ) : (
             <SelectField

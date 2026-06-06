@@ -25,6 +25,8 @@ import {
   Thread,
   Message,
   Asset,
+  ImageDocument,
+  TimelineSequence,
   secrets
 } from "@nodetool-ai/models";
 import { initMasterKey, encryptFernet, getMasterKey } from "@nodetool-ai/security";
@@ -391,7 +393,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-14T09:30:00Z",
     model: null,
     provider: null,
-    agent_mode: false
   },
   {
     id: "msg-story-2",
@@ -402,7 +403,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-14T09:31:00Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
-    agent_mode: false
   },
   {
     id: "msg-story-3",
@@ -413,7 +413,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-14T09:42:00Z",
     model: null,
     provider: null,
-    agent_mode: false
   },
   {
     id: "msg-story-4",
@@ -430,7 +429,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-14T09:43:30Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
-    agent_mode: false
   },
   {
     id: "msg-code-1",
@@ -442,7 +440,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-13T14:00:00Z",
     model: null,
     provider: null,
-    agent_mode: false
   },
   {
     id: "msg-code-2",
@@ -459,7 +456,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-13T14:01:30Z",
     model: "gpt-4o",
     provider: "openai",
-    agent_mode: false
   },
   {
     id: "msg-recipe-1",
@@ -470,7 +466,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-12T18:15:00Z",
     model: null,
     provider: null,
-    agent_mode: false
   },
   {
     id: "msg-recipe-2",
@@ -487,7 +482,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-12T18:16:00Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
-    agent_mode: false
   },
   {
     id: "msg-launch-1",
@@ -498,7 +492,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-09T08:45:00Z",
     model: null,
     provider: null,
-    agent_mode: true
   },
   {
     id: "msg-launch-2",
@@ -515,7 +508,6 @@ const MOCK_MESSAGES = [
     created_at: "2024-12-09T08:47:30Z",
     model: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
-    agent_mode: true
   }
 ];
 
@@ -667,6 +659,294 @@ const MOCK_ASSETS = [
   )
 ];
 
+// ── Sketch (Image Editor) document ──────────────────────────────────────────────
+// A multi-layer raster document so the standalone Image Editor at
+// /sketch/:documentId renders its toolbar, layers panel, and canvas with real
+// content. Layers carry no pixel data (drawn at runtime) — the documentation
+// screenshot showcases the editor chrome, not a specific drawing.
+
+const SKETCH_DOCUMENT_ID = "sk-demo-portrait";
+
+function makeSketchLayer(
+  id: string,
+  name: string,
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    id,
+    name,
+    type: "raster",
+    visible: true,
+    opacity: 1,
+    locked: false,
+    alphaLock: false,
+    blendMode: "normal",
+    data: null,
+    transform: { x: 0, y: 0 },
+    contentBounds: { x: 0, y: 0, width: 1024, height: 1024 },
+    effects: [],
+    ...overrides
+  };
+}
+
+const SKETCH_DOCUMENT_DATA = {
+  sketch: {
+    version: 3,
+    canvas: { width: 1024, height: 1024, backgroundColor: "#11131a" },
+    layers: [
+      makeSketchLayer("sk-layer-bg", "Background"),
+      makeSketchLayer("sk-layer-lineart", "Line Art"),
+      makeSketchLayer("sk-layer-color", "Color", {
+        opacity: 0.9,
+        blendMode: "multiply"
+      })
+    ],
+    activeLayerId: "sk-layer-lineart",
+    maskLayerId: null,
+    activeTool: "brush",
+    viewport: { zoom: 1, pan: { x: 0, y: 0 } },
+    history: [],
+    historyIndex: -1,
+    metadata: {
+      createdAt: "2024-12-01T10:00:00Z",
+      updatedAt: "2024-12-16T12:30:00Z"
+    }
+  },
+  layerBindings: []
+};
+
+// ── Timeline sequence ────────────────────────────────────────────────────────
+// A short promo edit with a video track (three clips) and a music track so the
+// Timeline editor at /timeline/:sequenceId renders a populated tracks region,
+// preview, and inspector.
+
+const TIMELINE_SEQUENCE_ID = "tl-demo-promo";
+const TIMELINE_VIDEO_TRACK_ID = "tl-track-video";
+const TIMELINE_AUDIO_TRACK_ID = "tl-track-music";
+
+function makeTimelineClip(
+  id: string,
+  name: string,
+  trackId: string,
+  startMs: number,
+  durationMs: number,
+  mediaType: "image" | "video" | "audio" | "overlay",
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    id,
+    trackId,
+    name,
+    startMs,
+    durationMs,
+    mediaType,
+    sourceType: "generated",
+    status: "generated",
+    locked: false,
+    versions: [],
+    ...overrides
+  };
+}
+
+const TIMELINE_DOCUMENT = {
+  tracks: [
+    {
+      id: TIMELINE_VIDEO_TRACK_ID,
+      name: "Video",
+      type: "video",
+      index: 0,
+      visible: true,
+      locked: false
+    },
+    {
+      id: TIMELINE_AUDIO_TRACK_ID,
+      name: "Music",
+      type: "audio",
+      index: 1,
+      visible: true,
+      locked: false
+    }
+  ],
+  clips: [
+    makeTimelineClip(
+      "tl-clip-intro",
+      "Intro Shot",
+      TIMELINE_VIDEO_TRACK_ID,
+      0,
+      4000,
+      "video"
+    ),
+    makeTimelineClip(
+      "tl-clip-product",
+      "Product Reveal",
+      TIMELINE_VIDEO_TRACK_ID,
+      4000,
+      5000,
+      "video"
+    ),
+    makeTimelineClip(
+      "tl-clip-outro",
+      "Logo Outro",
+      TIMELINE_VIDEO_TRACK_ID,
+      9000,
+      3000,
+      "image",
+      { status: "draft" }
+    ),
+    makeTimelineClip(
+      "tl-clip-music",
+      "Background Music",
+      TIMELINE_AUDIO_TRACK_ID,
+      0,
+      12000,
+      "audio",
+      { sourceType: "imported" }
+    )
+  ],
+  markers: [{ id: "tl-marker-reveal", timeMs: 4000, label: "Reveal" }]
+};
+
+// ── Studio transcript sequence ───────────────────────────────────────────────
+// A vertical (9:16) short-form edit driven by a script. Each transcript line
+// owns a voiceover (audio) clip and a caption clip with word-level timing, so
+// the Studio TranscriptPanel renders populated beats and the preview shows
+// captions. Backs /timeline/tl-studio-demo.
+
+const STUDIO_SEQUENCE_ID = "tl-studio-demo";
+const STUDIO_BG_TRACK_ID = "st-track-bg";
+const STUDIO_VOICE_TRACK_ID = "st-track-voice";
+const STUDIO_CAPTION_TRACK_ID = "st-track-caption";
+
+interface StudioBeatSpec {
+  id: string;
+  text: string;
+  startMs: number;
+  durationMs: number;
+  /** Caption words, timed relative to the beat (clip-local). */
+  words: Array<{ word: string; startMs: number; endMs: number }>;
+}
+
+const STUDIO_BEATS: StudioBeatSpec[] = [
+  {
+    id: "b1",
+    text: "Meet the all-new Aurora headphones.",
+    startMs: 0,
+    durationMs: 2600,
+    words: [
+      { word: "Meet", startMs: 0, endMs: 360 },
+      { word: "the", startMs: 360, endMs: 560 },
+      { word: "all-new", startMs: 560, endMs: 1100 },
+      { word: "Aurora", startMs: 1100, endMs: 1800 },
+      { word: "headphones.", startMs: 1800, endMs: 2600 }
+    ]
+  },
+  {
+    id: "b2",
+    text: "Studio sound, anywhere you go.",
+    startMs: 2600,
+    durationMs: 2300,
+    words: [
+      { word: "Studio", startMs: 0, endMs: 700 },
+      { word: "sound,", startMs: 700, endMs: 1300 },
+      { word: "anywhere", startMs: 1300, endMs: 1850 },
+      { word: "you", startMs: 1850, endMs: 2050 },
+      { word: "go.", startMs: 2050, endMs: 2300 }
+    ]
+  },
+  {
+    id: "b3",
+    text: "Pre-order today and save twenty percent.",
+    startMs: 4900,
+    durationMs: 3000,
+    words: [
+      { word: "Pre-order", startMs: 0, endMs: 700 },
+      { word: "today", startMs: 700, endMs: 1200 },
+      { word: "and", startMs: 1200, endMs: 1450 },
+      { word: "save", startMs: 1450, endMs: 1850 },
+      { word: "twenty", startMs: 1850, endMs: 2400 },
+      { word: "percent.", startMs: 2400, endMs: 3000 }
+    ]
+  }
+];
+
+const STUDIO_DURATION_MS = STUDIO_BEATS.reduce(
+  (max, b) => Math.max(max, b.startMs + b.durationMs),
+  0
+);
+
+const STUDIO_DOCUMENT = {
+  tracks: [
+    {
+      id: STUDIO_CAPTION_TRACK_ID,
+      name: "Captions",
+      type: "subtitle",
+      index: 0,
+      visible: true,
+      locked: false
+    },
+    {
+      id: STUDIO_BG_TRACK_ID,
+      name: "B-roll",
+      type: "video",
+      index: 1,
+      visible: true,
+      locked: false
+    },
+    {
+      id: STUDIO_VOICE_TRACK_ID,
+      name: "Voiceover",
+      type: "audio",
+      index: 2,
+      visible: true,
+      locked: false
+    }
+  ],
+  clips: [
+    makeTimelineClip(
+      "st-bg",
+      "B-roll",
+      STUDIO_BG_TRACK_ID,
+      0,
+      STUDIO_DURATION_MS,
+      "video",
+      { status: "draft" }
+    ),
+    ...STUDIO_BEATS.flatMap((beat) => [
+      makeTimelineClip(
+        `st-vo-${beat.id}`,
+        `Beat ${beat.id}: voiceover`,
+        STUDIO_VOICE_TRACK_ID,
+        beat.startMs,
+        beat.durationMs,
+        "audio",
+        {
+          bindingKind: "text-to-audio",
+          prompt: beat.text,
+          provider: "openai",
+          model: "tts-1",
+          voice: "alloy"
+        }
+      ),
+      makeTimelineClip(
+        `st-cap-${beat.id}`,
+        "Caption",
+        STUDIO_CAPTION_TRACK_ID,
+        beat.startMs,
+        beat.durationMs,
+        "overlay",
+        { caption: { words: beat.words } }
+      )
+    ])
+  ],
+  markers: [],
+  transcript: STUDIO_BEATS.map((beat) => ({
+    id: beat.id,
+    text: beat.text,
+    beatStartMs: beat.startMs,
+    clipIds: [`st-vo-${beat.id}`, `st-cap-${beat.id}`]
+  }))
+};
+
 // ── Seed database ─────────────────────────────────────────────────────────────
 
 async function seedDatabase(): Promise<void> {
@@ -689,6 +969,53 @@ async function seedDatabase(): Promise<void> {
   for (const asset of MOCK_ASSETS) {
     await Asset.create(asset);
   }
+
+  // Sketch (Image Editor) document — backs /sketch/:documentId
+  const sketchDoc = new ImageDocument({
+    id: SKETCH_DOCUMENT_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Character Concept",
+    width: 1024,
+    height: 1024,
+    background_color: "#11131a",
+    document: JSON.stringify(SKETCH_DOCUMENT_DATA),
+    created_at: "2024-12-01T10:00:00Z",
+    updated_at: "2024-12-16T12:30:00Z"
+  });
+  await sketchDoc.save();
+
+  // Timeline sequence — backs /timeline/:sequenceId
+  const timelineSeq = new TimelineSequence({
+    id: TIMELINE_SEQUENCE_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Product Promo",
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    duration_ms: 12000,
+    document: JSON.stringify(TIMELINE_DOCUMENT),
+    created_at: "2024-12-05T09:00:00Z",
+    updated_at: "2024-12-16T15:45:00Z"
+  });
+  await timelineSeq.save();
+
+  // Studio transcript sequence (vertical 9:16) — backs /timeline/tl-studio-demo
+  const studioSeq = new TimelineSequence({
+    id: STUDIO_SEQUENCE_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Aurora Promo (Studio)",
+    fps: 30,
+    width: 1080,
+    height: 1920,
+    duration_ms: STUDIO_DURATION_MS,
+    document: JSON.stringify(STUDIO_DOCUMENT),
+    created_at: "2024-12-10T09:00:00Z",
+    updated_at: "2024-12-16T16:00:00Z"
+  });
+  await studioSeq.save();
 
   // Secrets — stored encrypted so the settings API shows them as configured.
   // Cover the providers the UI checks for "configured" status so the dashboard
@@ -722,7 +1049,7 @@ async function seedDatabase(): Promise<void> {
   }
 
   console.log(
-    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, ${demoSecrets.length} secrets`
+    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 1 timeline sequence, ${demoSecrets.length} secrets`
   );
 }
 

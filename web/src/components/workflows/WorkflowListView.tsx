@@ -327,7 +327,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
                   className="date-header"
                   size="small"
                   color="secondary"
-                  weight={300}
+                  weight={400}
                   sx={{ lineHeight: 1.1, textTransform: "uppercase", textAlign: "right", width: "100%" }}
                 >
                   {item.label}

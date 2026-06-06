@@ -6,6 +6,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { Tooltip, Text, Divider } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
+import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
@@ -58,7 +59,7 @@ const nodeInfoStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".replicate-status": {
-      fontWeight: "400",
+      fontWeight: 400,
       width: "fit-content",
       color: theme.vars.palette.grey[0],
       display: "inline-flex",
@@ -107,7 +108,7 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".node-usecases": {
       fontSize: theme.fontSizeSmaller,
-      fontWeight: "300",
+      fontWeight: 400,
       color: theme.vars.palette.text.secondary,
       lineHeight: "1.3em",
       ul: {
@@ -132,7 +133,7 @@ const nodeInfoStyles = (theme: Theme) =>
     },
     ".inputs-outputs h4": {
       fontFamily: theme.fontFamily2,
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: "2em",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
@@ -206,10 +207,19 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   const renderTags = (tags: string = "") => {
     return tags?.split(",").map((tag) => {
       const trimmedTag = tag.trim();
+      const handler = handleTagClick(trimmedTag);
       return (
         <span
-          onClick={handleTagClick(trimmedTag)}
+          onClick={handler}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handler();
+            }
+          }}
           key={trimmedTag}
+          role="button"
+          tabIndex={0}
           className="tag"
         >
           {trimmedTag}
@@ -332,7 +342,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                   <Text
                     className="type"
                     style={{
-                      borderColor: colorForType(property.type.type)
+                      borderColor: hexToRgba(colorForType(property.type.type), 0.4)
                     }}
                   >
                     {property.type.type}
@@ -354,7 +364,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
                   <Text
                     className="type"
                     style={{
-                      borderColor: colorForType(property.type.type)
+                      borderColor: hexToRgba(colorForType(property.type.type), 0.4)
                     }}
                   >
                     {property.type.type}

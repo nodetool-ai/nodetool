@@ -92,9 +92,9 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="run-from-here"
       onClick={handlers.handleRunFromHere}
-      label={conditions.isWorkflowRunning ? "Running..." : "Run From Here"}
+      label={conditions.isWorkflowRunning ? "Running..." : "Run Node"}
       IconComponent={<PlayArrowIcon />}
-      tooltip="Run the workflow from this node onwards, using previous results as inputs"
+      tooltip="Run this node as its own job, using previous results as inputs"
       addButtonClassName={conditions.isWorkflowRunning ? "disabled" : ""}
     />,
     <ContextMenuItem

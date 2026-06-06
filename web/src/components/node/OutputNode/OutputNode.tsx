@@ -9,7 +9,7 @@ import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeArtifacts } from "../../../hooks/nodes/useNodeExecState";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
@@ -160,7 +160,7 @@ const styles = (theme: Theme) =>
         left: "50%",
         width: "80%",
         fontSize: "var(--fontSizeSmaller)",
-        fontWeight: "300",
+        fontWeight: 400,
         transform: "translate(-50%, -50%)",
         zIndex: 0,
         color: theme.vars.palette.grey[200],
@@ -307,9 +307,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const nodeMetadata = getMetadata(props.type);
 
   // Use getOutputResult instead of getPreview - this gets accumulated streaming outputs
-  const result = useResultsStore((state) =>
-    state.getOutputResult(props.data.workflow_id, props.id)
-  );
+  const result = useNodeArtifacts(props.data.workflow_id, props.id).output;
 
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
 
@@ -481,6 +479,8 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         <div
           className={`content ${isScrollable ? "scrollable nowheel" : "noscroll"
             }`}
+          role="region"
+          aria-label="Node output"
           style={CONTENT_DIV_STYLE}
           tabIndex={0}
           onFocus={handleContentFocus}

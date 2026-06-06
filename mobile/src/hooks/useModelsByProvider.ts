@@ -1,15 +1,16 @@
 /**
  * Hooks for fetching models by provider, mirroring the web's useModelsByProvider.
  *
- * Each hook fetches providers with the relevant capability, then fetches models
- * from each provider in parallel. Results are flattened into a single array.
+ * Fetches providers with the relevant capability, then fans out to one
+ * `*ByProvider` query per provider via `trpc.useQueries`. Results are flattened
+ * and sorted into a single array. All requests go through tRPC + React Query so
+ * results are cached and shared across the app.
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { apiService } from "../services/api";
-import type {
-  ProviderInfo,
-} from "../types/ApiTypes";
+import { useCallback, useMemo } from "react";
+import { trpc } from "../trpc/client";
+import { normalizeModels } from "../services/api";
+import type { ProviderInfo } from "../types/ApiTypes";
 
 // ── Generic model type ──────────────────────────────────────────────
 
@@ -39,91 +40,71 @@ const CAPABILITY_MAP: Record<string, string> = {
   video_model: "text_to_video",
 };
 
-// ── Generic hook ────────────────────────────────────────────────────
-
-function useModelsByProvider<T extends BaseModel>(
-  capability: string,
-  fetchModels: (provider: string) => Promise<T[]>
-): UseModelsResult<T> {
-  const [models, setModels] = useState<T[]>([]);
-  const [providers, setProviders] = useState<ProviderInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-
-  const fetchAll = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const allProviders = await apiService.getProvidersByCapability(capability);
-      if (!mountedRef.current) {return;}
-      setProviders(allProviders);
-
-      const results = await Promise.allSettled(
-        allProviders.map((p) => fetchModels(p.provider))
-      );
-      if (!mountedRef.current) {return;}
-
-      const allModels: T[] = [];
-      for (const result of results) {
-        if (result.status === "fulfilled") {
-          allModels.push(...result.value);
-        }
-      }
-      // Sort alphabetically by name
-      allModels.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
-      setModels(allModels);
-    } catch (e) {
-      if (mountedRef.current) {
-        setError((e as Error).message);
-      }
-    } finally {
-      if (mountedRef.current) {
-        setIsLoading(false);
-      }
-    }
-  }, [capability, fetchModels]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    fetchAll();
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [fetchAll]);
-
-  return { models, providers, isLoading, error, refetch: fetchAll };
-}
-
 /**
  * Returns the right hook result for a given model type string.
  * Used by the generic ModelSelector to fetch models of any type.
  */
 export function useModelsForType(modelType: string): UseModelsResult<BaseModel> {
-  // Map model type to capability
-  const capability = CAPABILITY_MAP[modelType];
+  const capability = CAPABILITY_MAP[modelType] ?? "generate_message";
 
-  // Determine fetch function — cast to BaseModel[] since all model types
-  // share the same {type, id, name, provider} shape.
-  const fetchFn = useCallback(
-    async (provider: string): Promise<BaseModel[]> => {
-      switch (modelType) {
-        case "language_model":
-          return apiService.getLanguageModels(provider) as Promise<BaseModel[]>;
-        case "image_model":
-          return apiService.getImageModels(provider) as Promise<BaseModel[]>;
-        case "tts_model":
-          return apiService.getTTSModels(provider) as Promise<BaseModel[]>;
-        case "asr_model":
-          return apiService.getASRModels(provider) as Promise<BaseModel[]>;
-        case "video_model":
-          return apiService.getVideoModels(provider) as Promise<BaseModel[]>;
-        default:
-          return apiService.getLanguageModels(provider) as Promise<BaseModel[]>;
-      }
-    },
-    [modelType]
+  const providersQuery = trpc.models.providers.useQuery(undefined, {
+    select: (all) =>
+      (all as ProviderInfo[]).filter((p) =>
+        p.capabilities?.includes(capability)
+      ),
+  });
+  const providers = useMemo(
+    () => providersQuery.data ?? [],
+    [providersQuery.data]
   );
 
-  return useModelsByProvider(capability ?? "generate_message", fetchFn);
+  const modelQueries = trpc.useQueries((t) =>
+    providers.map((p) => {
+      const input = { provider: p.provider };
+      switch (modelType) {
+        case "image_model":
+          return t.models.imageByProvider(input);
+        case "tts_model":
+          return t.models.ttsByProvider(input);
+        case "asr_model":
+          return t.models.asrByProvider(input);
+        case "video_model":
+          return t.models.videoByProvider(input);
+        case "language_model":
+        default:
+          return t.models.llmByProvider(input);
+      }
+    })
+  );
+
+  const models = useMemo(() => {
+    const all: BaseModel[] = [];
+    modelQueries.forEach((query, index) => {
+      if (query.data) {
+        const provider = providers[index]?.provider ?? "";
+        all.push(
+          ...normalizeModels<BaseModel>(
+            query.data as unknown as Array<Record<string, unknown>>,
+            provider
+          )
+        );
+      }
+    });
+    all.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+    return all;
+  }, [modelQueries, providers]);
+
+  const isLoading =
+    providersQuery.isLoading || modelQueries.some((query) => query.isLoading);
+  const error =
+    providersQuery.error?.message ??
+    modelQueries.find((query) => query.error)?.error?.message ??
+    null;
+
+  const refetch = useCallback(() => {
+    providersQuery.refetch();
+    modelQueries.forEach((query) => query.refetch());
+  }, [providersQuery, modelQueries]);
+
+  return { models, providers, isLoading, error, refetch };
 }

@@ -25,6 +25,7 @@ import {
   DRAG_DATA_MIME
 } from "../../lib/dragdrop/serialization";
 import { useSketchStore } from "./state";
+import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import type {
   SketchDocument,
   SketchTool,
@@ -83,7 +84,15 @@ export interface SketchCanvasRef {
     contrast: number,
     saturation: number
   ) => void;
-  invertLayerColors: (selection?: { width: number; height: number; data: Uint8ClampedArray; originX?: number; originY?: number } | null) => void;
+  invertLayerColors: (
+    selection?: {
+      width: number;
+      height: number;
+      data: Uint8ClampedArray;
+      originX?: number;
+      originY?: number;
+    } | null
+  ) => void;
   fillLayerWithColor: (layerId: string, color: string) => void;
   fillLayerRect: (
     layerId: string,
@@ -400,6 +409,14 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     // ─── Document-space cursor tracking ─────────────────────────────────
 
     const [cursorDocPos, setCursorDocPos] = useState<Point | null>(null);
+    // Mirror the document-space cursor into the store so the (standalone)
+    // status bar can read it without prop-drilling. Local state still drives
+    // the floating info pill used by the in-node modal.
+    const setStoreCursorDocPos = useSketchStore((s) => s.setCursorDocPos);
+    // The standalone editor (bound document) shows the full-width status bar,
+    // which subsumes the floating info pill — hide the pill there. The in-node
+    // modal (no documentId) keeps the pill.
+    const standaloneDocumentId = useSketchSessionStore((s) => s.documentId);
 
     const updateCursorDocPosFromClient = useCallback(
       (clientX: number, clientY: number) => {
@@ -411,7 +428,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               x: ((clientX - rect.left) / rect.width) * doc.canvas.width,
               y: ((clientY - rect.top) / rect.height) * doc.canvas.height
             };
-            setCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
+            const next = { x: Math.floor(p.x), y: Math.floor(p.y) };
+            setCursorDocPos(next);
+            setStoreCursorDocPos(next);
             return;
           }
         }
@@ -428,7 +447,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             doc.canvas.width,
             doc.canvas.height
           );
-          setCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
+          const next = { x: Math.floor(p.x), y: Math.floor(p.y) };
+          setCursorDocPos(next);
+          setStoreCursorDocPos(next);
         }
       },
       [
@@ -437,7 +458,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         doc.canvas.height,
         containerRef,
         zoom,
-        pan
+        pan,
+        setStoreCursorDocPos
       ]
     );
 
@@ -461,7 +483,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
     const handleMouseLeaveWithCoords = useCallback(() => {
       pointerHandlers.handleMouseLeave();
       setCursorDocPos(null);
-    }, [pointerHandlers]);
+      setStoreCursorDocPos(null);
+    }, [pointerHandlers, setStoreCursorDocPos]);
 
     // ─── Render ──────────────────────────────────────────────────────────
 
@@ -492,6 +515,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         bootstrapPhaseActive={compositing.bootstrapPhaseActive}
         backend={compositing.backend}
         cursorDocPos={cursorDocPos}
+        showInfoBar={!standaloneDocumentId}
         containerCursor={pointerHandlers.containerCursor}
         onPointerDown={handlePointerDownWithClient}
         onPointerMove={handlePointerMoveWithCoords}

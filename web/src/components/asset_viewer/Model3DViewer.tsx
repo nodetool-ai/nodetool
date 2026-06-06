@@ -177,7 +177,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       "& .MuiSelect-select": {
         color: theme.vars.palette.grey[100],
         padding: "4px 8px",
-        fontSize: "0.75rem"
+        fontSize: "var(--fontSizeSmall)"
       },
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.action.disabled
@@ -700,7 +700,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               <LoadingSpinner size={compact ? "small" : "medium"} />
               {!compact && (
                 <Text size="small" color="secondary">
-                  Loading model...
+                  Loading model…
                 </Text>
               )}
             </FlexColumn>
@@ -709,7 +709,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <FlexColumn className="error-overlay" align="flex-start" gap={0.5}>
               {loadError.split("\n").map((line, i) => (
                 <Text
-                  key={i}
+                  key={`${i}:${line}`}
                   size="small"
                   color={i === 0 ? "error" : "secondary"}
                   sx={{

@@ -61,13 +61,11 @@ type ChatPipelineFn = (
 ) => Promise<PipelineOutput[]>;
 
 function warnIfTools(args: ChatArgs): void {
-  if ((args.tools && args.tools.length > 0) || args.tools === undefined) {
-    if (args.tools && args.tools.length > 0) {
-      log.warn(
-        "transformers_js: tool calls are not supported; ignoring tools",
-        { count: args.tools.length, model: args.model }
-      );
-    }
+  if (args.tools && args.tools.length > 0) {
+    log.warn("transformers_js: tool calls are not supported; ignoring tools", {
+      count: args.tools.length,
+      model: args.model
+    });
   }
 }
 
@@ -101,14 +99,21 @@ export async function generateMessage(args: ChatArgs): Promise<Message> {
   warnIfTools(args);
   if (args.signal?.aborted) throw makeAbortError();
 
+  const transformers = await loadTransformers();
   const pipeline = await getChatPipeline(args.model);
   const messages = normalizeMessages(args.messages);
   const opts = buildPipelineOpts(args);
 
-  const out = await pipeline(messages, opts);
-  if (args.signal?.aborted) throw makeAbortError();
+  const stopper = makeStopper(transformers, args.signal);
+  if (stopper.criteria) opts.stopping_criteria = stopper.criteria;
 
-  return { role: "assistant", content: extractAssistantText(out) };
+  try {
+    const out = await pipeline(messages, opts);
+    if (args.signal?.aborted) throw makeAbortError();
+    return { role: "assistant", content: extractAssistantText(out) };
+  } finally {
+    stopper.cleanup();
+  }
 }
 
 export async function* generateMessages(
@@ -137,7 +142,6 @@ export async function* generateMessages(
   const messages = normalizeMessages(args.messages);
   const opts = buildPipelineOpts(args);
 
-  const tokens: string[] = [];
   let resolveToken: ((value: string | null) => void) | null = null;
   const pending: Array<string | null> = [];
 
@@ -169,17 +173,17 @@ export async function* generateMessages(
   const streamer = new TextStreamerCtor(tokenizer, {
     skip_prompt: true,
     skip_special_tokens: true,
-    callback_function: (text: string) => {
-      tokens.push(text);
-      enqueue(text);
-    }
+    callback_function: (text: string) => enqueue(text)
   });
 
+  // Cooperative cancellation: interrupt the model loop when the signal aborts
+  // so an aborted stream stops generating instead of running to completion.
+  const stopper = makeStopper(transformers, args.signal);
+  const genOpts: Record<string, unknown> = { ...opts, streamer };
+  if (stopper.criteria) genOpts.stopping_criteria = stopper.criteria;
+
   // Kick off generation; resolve the iterator when complete.
-  const generation = pipeline(messages, {
-    ...opts,
-    streamer
-  })
+  const generation = pipeline(messages, genOpts)
     .then(() => enqueue(null))
     .catch((err) => {
       enqueue(null);
@@ -207,10 +211,17 @@ export async function* generateMessages(
       yield chunk;
     }
   } finally {
-    // Surface generation errors after the loop ends (or rethrow on abort).
-    await generation.catch((err) => {
-      throw err;
-    });
+    stopper.cleanup();
+    if (args.signal?.aborted) {
+      // Unwinding due to abort: the interrupt makes `generation` settle
+      // promptly; swallow its (expected) error so the AbortError surfaces.
+      await generation.catch(() => {});
+    } else {
+      // Surface any generation error after the loop ends.
+      await generation.catch((err) => {
+        throw err;
+      });
+    }
   }
 
   const final: Chunk = {
@@ -220,6 +231,39 @@ export async function* generateMessages(
     done: true
   };
   yield final;
+}
+
+type TransformersModule = Awaited<ReturnType<typeof loadTransformers>>;
+
+interface Stopper {
+  criteria?: { interrupt(): void };
+  cleanup(): void;
+}
+
+/**
+ * Build an `InterruptableStoppingCriteria` (when the runtime exposes one) and
+ * interrupt the model's generation loop the moment `signal` aborts. Without
+ * this, transformers.js runs the full generation regardless of the abort and
+ * the caller blocks until it finishes. Returns a no-op stopper when either the
+ * criteria class or the signal is unavailable.
+ */
+function makeStopper(
+  transformers: TransformersModule,
+  signal: AbortSignal | undefined
+): Stopper {
+  const Ctor = transformers.InterruptableStoppingCriteria;
+  if (!Ctor || !signal) return { cleanup: () => {} };
+  const criteria = new Ctor();
+  if (signal.aborted) {
+    criteria.interrupt();
+    return { criteria, cleanup: () => {} };
+  }
+  const onAbort = () => criteria.interrupt();
+  signal.addEventListener("abort", onAbort, { once: true });
+  return {
+    criteria,
+    cleanup: () => signal.removeEventListener("abort", onAbort)
+  };
 }
 
 function makeAbortError(): Error {

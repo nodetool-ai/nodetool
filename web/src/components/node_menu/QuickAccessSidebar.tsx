@@ -8,6 +8,8 @@ import type { LeftPanelView } from "../../stores/PanelStore";
 interface QuickAccessSidebarProps {
   activeCategory: LeftPanelView | "";
   onCategoryClick: (id: LeftPanelView) => void;
+  /** Top-level views to omit from the rail (e.g. hide "agent" on /chat). */
+  hiddenViews?: readonly LeftPanelView[];
 }
 
 /**
@@ -15,9 +17,11 @@ interface QuickAccessSidebarProps {
  * buttons — the parent provides container styling via `.vertical-toolbar`.
  */
 const QuickAccessSidebar = memo<QuickAccessSidebarProps>(
-  ({ activeCategory, onCategoryClick }) => (
+  ({ activeCategory, onCategoryClick, hiddenViews }) => (
     <>
-      {LEFT_PANEL_TOP_LEVEL.map((cat) => (
+      {LEFT_PANEL_TOP_LEVEL.filter(
+        (cat) => !hiddenViews?.includes(cat.id)
+      ).map((cat) => (
         <Tooltip
           key={cat.id}
           title={cat.label}

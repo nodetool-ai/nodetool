@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
         padding: "4px 6px",
         fontSize: theme.fontSizeSmall
       },
-      ".MuiSvgIcon-root": { fontSize: "1rem" }
+      ".MuiSvgIcon-root": { fontSize: "var(--fontSizeNormal)" }
     },
     ".empty": { padding: "16px 8px" }
   });
@@ -166,7 +166,7 @@ interface NumberRowProps {
 // Bounded params (both min and max defined) render as a slider with a compact
 // numeric readout; unbounded ones (dimensions, segments, intensity) stay as a
 // plain number field.
-const NumberRow = ({ label, value, onCommit, step, min, max, integer }: NumberRowProps) => {
+const NumberRow = memo(({ label, value, onCommit, step, min, max, integer }: NumberRowProps) => {
   const isSlider = min !== undefined && max !== undefined;
   return (
     <FlexRow className="field-row" fullWidth>
@@ -195,7 +195,7 @@ const NumberRow = ({ label, value, onCommit, step, min, max, integer }: NumberRo
       </div>
     </FlexRow>
   );
-};
+});
 
 interface CheckboxRowProps {
   label: string;

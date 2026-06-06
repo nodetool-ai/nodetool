@@ -45,7 +45,6 @@ export const BINDING_CATALOG: readonly BindingEntry[] = [
   { key: "i", modifiers: { ctrl: true, shift: true }, actionId: "invert-selection", scope: "global" },
 
   // ── Global: Canvas ────────────────────────────────────────────────────────
-  { key: "s", modifiers: { ctrl: true }, actionId: "export-png", scope: "global" },
   { key: "0", modifiers: { ctrl: true }, actionId: "zoom-reset", scope: "global" },
   { key: "1", modifiers: { ctrl: true }, actionId: "zoom-100", scope: "global" },
   { key: "+", modifiers: {}, actionId: "zoom-in", scope: "global" },

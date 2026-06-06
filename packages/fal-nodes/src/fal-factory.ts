@@ -13,16 +13,23 @@ import {
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  ProcessingContext,
+  PromptAssetTextField,
+  PromptAssetInputField
+} from "@nodetool-ai/runtime";
+import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import {
   getFalApiKey,
-  falSubmit,
+  falSubmitWithMeta,
   falImageToRef,
   removeNulls,
   isRefSet,
   assetToFalUrl,
   imageToDataUrl
 } from "./fal-base.js";
+import type { FalImageResult } from "./fal-base.js";
+import { reportFalCost } from "./fal-cost.js";
 
 export interface FalManifestEntry {
   endpointId: string;
@@ -135,6 +142,45 @@ function computeFieldClassification(
   );
 }
 
+/**
+ * Route `asset://` media mentioned inline in a node's text inputs onto its
+ * empty image/audio/video inputs (and strip the mentions from the text).
+ * Shared with KIE / Replicate / image-to-image via `mapPromptAssetsToInputs`.
+ */
+async function promptAssetOverrides(
+  instance: BaseNode,
+  spec: FalManifestEntry,
+  context?: ProcessingContext
+): Promise<Record<string, unknown>> {
+  const values = instance as unknown as Record<string, unknown>;
+  const textFields: PromptAssetTextField[] = [];
+  const assetFields: PromptAssetInputField[] = [];
+  for (const field of spec.inputFields) {
+    if (field.parentField) continue;
+    const kind = assetKind(field.propType);
+    if (kind === "image" || kind === "audio" || kind === "video") {
+      const list = isListAsset(field.propType);
+      const value = values[field.name];
+      const hasSource = list
+        ? Array.isArray(value) && value.some(isRefSet)
+        : isRefSet(value);
+      assetFields.push({
+        name: field.name,
+        label: field.apiParamName ?? field.name,
+        kind,
+        list,
+        hasSource
+      });
+    } else if (field.propType.toLowerCase() === "str") {
+      textFields.push({
+        name: field.name,
+        value: String(values[field.name] ?? "")
+      });
+    }
+  }
+  return mapPromptAssetsToInputs(textFields, assetFields, context);
+}
+
 async function buildArgs(
   instance: BaseNode,
   spec: FalManifestEntry,
@@ -142,6 +188,7 @@ async function buildArgs(
   context?: ProcessingContext
 ): Promise<Record<string, unknown>> {
   const args: Record<string, unknown> = {};
+  const overrides = await promptAssetOverrides(instance, spec, context);
 
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
@@ -154,7 +201,10 @@ async function buildArgs(
       continue;
     }
 
-    const value = (instance as unknown as Record<string, unknown>)[field.name];
+    const value =
+      field.name in overrides
+        ? overrides[field.name]
+        : (instance as unknown as Record<string, unknown>)[field.name];
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
 
@@ -169,7 +219,14 @@ async function buildArgs(
               if (u) urls.push(u);
             }
           }
-          if (urls.length) args[apiName] = urls;
+          if (urls.length) {
+            // Asset-wrapper lists (e.g. list[ImageInput] collapsed to
+            // list[image]) carry a nestedAssetKey; the API expects an array of
+            // objects like [{ image_url: url }], not bare URL strings.
+            args[apiName] = field.nestedAssetKey
+              ? urls.map((u) => ({ [field.nestedAssetKey!]: u }))
+              : urls;
+          }
         }
       } else if (field.nestedAssetKey) {
         const ref = value as Record<string, unknown> | undefined;
@@ -224,6 +281,57 @@ function coerceAssetRef(
   return value;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * Pull a usable asset URL out of a FAL response value. FAL endpoints return the
+ * asset variously as a File object (`{ url }`), a bare URL string, or an array
+ * of either, so handle all three uniformly.
+ */
+function extractAssetUri(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const u = extractAssetUri(item);
+      if (u) return u;
+    }
+    return "";
+  }
+  const rec = asRecord(value);
+  if (rec && typeof rec.url === "string") return rec.url;
+  return "";
+}
+
+/**
+ * Resolve the URL for a single-asset output. Checks well-known response keys
+ * first (e.g. `video`, `video_url`), then falls back to whatever asset field
+ * the endpoint's schema declared — covering endpoints that return `video_url`,
+ * `audio_file`, etc. instead of the canonical singular key.
+ */
+function resolveAssetUri(
+  spec: FalManifestEntry,
+  res: Record<string, unknown>,
+  preferredKeys: string[]
+): string {
+  for (const key of preferredKeys) {
+    if (key in res) {
+      const u = extractAssetUri(res[key]);
+      if (u) return u;
+    }
+  }
+  for (const f of spec.outputFields) {
+    if (f.name in res) {
+      const u = extractAssetUri(res[f.name]);
+      if (u) return u;
+    }
+  }
+  return "";
+}
+
 function mapOutput(
   spec: FalManifestEntry,
   res: Record<string, unknown>
@@ -233,29 +341,45 @@ function mapOutput(
       return {
         output: {
           type: "video",
-          uri: (res.video as Record<string, unknown>)?.url ?? ""
+          uri: resolveAssetUri(spec, res, [
+            "video",
+            "videos",
+            "video_url",
+            "video_file"
+          ])
         }
       };
     case "audio":
       return {
         output: {
           type: "audio",
-          uri: (res.audio as Record<string, unknown>)?.url ?? ""
+          uri: resolveAssetUri(spec, res, [
+            "audio",
+            "audios",
+            "audio_url",
+            "audio_file"
+          ])
         }
       };
-    case "model_3d": {
-      const ref =
-        (res as Record<string, unknown>).model_glb ??
-        (res as Record<string, unknown>).model_mesh;
+    case "model_3d":
       return {
         output: {
           type: "model_3d",
-          uri: (ref as Record<string, unknown>)?.url ?? ""
+          uri: resolveAssetUri(spec, res, [
+            "model_glb",
+            "model_mesh",
+            "model",
+            "model_url"
+          ])
         }
       };
+    case "str": {
+      // The text lives under the endpoint's declared field name (e.g.
+      // `results`, `voice_id`), which is not always `output`.
+      const name = spec.outputFields[0]?.name;
+      const value = name && name in res ? res[name] : res.output;
+      return { output: value ?? "" };
     }
-    case "str":
-      return { output: (res as Record<string, unknown>).output ?? "" };
     default:
       if (spec.outputFields.length > 0) {
         const out: Record<string, unknown> = {};
@@ -301,7 +425,12 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     ): Promise<Record<string, unknown>> {
       const apiKey = getFalApiKey(this._secrets);
       const args = await buildArgs(this, specRef, apiKey, context);
-      const res = await falSubmit(apiKey, endpointId, args);
+      const { data: res, requestId } = await falSubmitWithMeta(
+        apiKey,
+        endpointId,
+        args
+      );
+      reportFalCost(context, nodeType, res, args, requestId);
       if (isImageOutput) {
         const images = res.images as
           | Array<{
@@ -313,6 +442,15 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
           | undefined;
         if (images?.length) {
           return { output: falImageToRef(images[0]) };
+        }
+        // Many endpoints return a single `image` object instead of an `images`
+        // array; map it onto the canonical `output` slot too.
+        const single = res.image;
+        if (asRecord(single)?.url) {
+          return { output: falImageToRef(single as FalImageResult) };
+        }
+        if (typeof single === "string" && single) {
+          return { output: { type: "image", uri: single } };
         }
         return mapOutput(specRef, res);
       }
@@ -344,6 +482,13 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
   if (isGenerativeOutput) {
     Object.defineProperty(FalNodeClass, "autoSaveAsset", {
       value: true,
+      configurable: true
+    });
+    // Media generators render as a content card (image/video/audio/3D body).
+    // This is the metadata-driven equivalent of the frontend's old
+    // "fal.* namespace + media output" heuristic.
+    Object.defineProperty(FalNodeClass, "body", {
+      value: "content_card",
       configurable: true
     });
   }

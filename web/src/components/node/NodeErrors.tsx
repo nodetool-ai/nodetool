@@ -8,8 +8,8 @@ import {
   nodeErrorToDisplayString,
   hasNodeError,
 } from "../../stores/ErrorStore";
-import useErrorStore from "../../stores/ErrorStore";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
+import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 import isEqual from "fast-deep-equal";
 import { CopyButton, ExternalLink, Tooltip } from "../ui_primitives";
 import { VERSION } from "../../config/constants";
@@ -150,9 +150,7 @@ export const NodeErrors: React.FC<{
 }> = ({ id, workflow_id, nodeType = "unknown" }) => {
   const theme = useTheme();
   const memoizedErrorStyles = useMemo(() => errorStyles(theme), [theme]);
-  const error = useErrorStore((state) =>
-    workflow_id !== undefined ? state.getError(workflow_id, id) : undefined
-  );
+  const error = useNodeError(workflow_id, id);
 
   const logs = useLogsStore(
     (state) => state.logsByNode[nodeLogKey(workflow_id, id)]
@@ -189,6 +187,7 @@ export const NodeErrors: React.FC<{
       <div className="error-actions">
         <Tooltip title="Report this issue on GitHub">
           <button
+            type="button"
             className="report-button nodrag"
             onClick={handleReport}
             tabIndex={-1}

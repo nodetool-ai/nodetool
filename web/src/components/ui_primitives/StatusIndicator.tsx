@@ -21,7 +21,7 @@ const styles = (theme: Theme, pulse: boolean) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: theme.spacing(0.75),
+    gap: theme.spacing(1),
     ".status-icon": {
       fontSize: 12,
       animation: pulse ? `${pulseAnimation} 2s infinite` : "none"

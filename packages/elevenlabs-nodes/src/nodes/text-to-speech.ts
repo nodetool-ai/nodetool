@@ -1,13 +1,10 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import {
-  getElevenLabsApiKey,
-  VOICE_ID_MAP,
-  VOICE_NAMES
-} from "../elevenlabs-base.js";
+import { getElevenLabsApiKey, VOICE_ID_MAP } from "../elevenlabs-base.js";
 
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "elevenlabs.TextToSpeech";
+  static readonly body = "content_card";
   static readonly title = "Text to Speech";
   static readonly description =
     "Generate natural-sounding speech using ElevenLabs text-to-speech.\n" +
@@ -19,18 +16,18 @@ export class TextToSpeechNode extends BaseNode {
     "- Create audiobooks";
   static readonly metadataOutputTypes = { output: "audio" };
   static readonly inlineFields: string[] = ["text"];
-  static readonly inputFields: string[] = [];
+  static readonly inputFields: string[] = ["voice_id"];
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
   static readonly autoSaveAsset = true;
 
   @prop({
-    type: "enum",
-    default: "Aria",
-    title: "Voice",
-    description: "Voice to use for generation.",
-    values: VOICE_NAMES
+    type: "str",
+    default: VOICE_ID_MAP.Aria,
+    title: "Voice ID",
+    description:
+      "ElevenLabs voice ID to use for generation. Connect a Standard Voice node or provide a custom voice ID."
   })
-  declare voice: any;
+  declare voice_id: any;
 
   @prop({
     type: "str",
@@ -46,6 +43,7 @@ export class TextToSpeechNode extends BaseNode {
     title: "Model",
     description: "The TTS model to use.",
     values: [
+      "eleven_v3",
       "eleven_multilingual_v2",
       "eleven_turbo_v2_5",
       "eleven_flash_v2_5",
@@ -173,11 +171,10 @@ export class TextToSpeechNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getElevenLabsApiKey(this._secrets);
 
-    const voice = String(this.voice ?? this.voice ?? "Aria");
-    const voiceId = VOICE_ID_MAP[voice];
-    if (!voiceId) throw new Error(`Unknown voice: ${voice}`);
+    const voiceId = String(this.voice_id ?? VOICE_ID_MAP.Aria);
+    if (!voiceId) throw new Error("voice_id is required");
 
-    const text = String(this.text ?? this.text ?? "");
+    const text = String(this.text ?? "");
     if (!text) throw new Error("Text is required");
 
     const modelId = String(

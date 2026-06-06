@@ -22,7 +22,7 @@ import { computeSearchResults } from "../../utils/nodeSearch";
 import {
   QUICK_ACTION_BUTTONS,
   type QuickActionDefinition,
-} from "../node_menu/QuickActionTiles";
+} from "../node_menu/QuickActionTiles.constants";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 
 interface NodePickerDialogProps {
@@ -62,7 +62,7 @@ const quickTileStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       marginBottom: theme.spacing(0.5),
-      "& svg": { fontSize: "1.5rem" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
     },
     ".tile-label": {
       fontSize: theme.fontSizeSmaller,
@@ -173,7 +173,10 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                   <div
                     key={action.key}
                     className="quick-tile"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleQuickAction(action)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleQuickAction(action); }}
                   >
                     <div
                       className="tile-icon"
@@ -237,7 +240,10 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                           whiteSpace: "nowrap",
                           borderRadius: "var(--rounded-sm)",
                         }}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleSelect(node)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSelect(node); }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = theme.vars
                             .palette.action.hover as string;

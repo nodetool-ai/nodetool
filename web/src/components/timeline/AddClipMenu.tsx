@@ -99,7 +99,7 @@ const menuStyles = (theme: Theme) =>
 
 const workflowItemStyles = (theme: Theme) =>
   css({
-    padding: `${theme.spacing(0.75)} ${theme.spacing(1)}`,
+    padding: `${theme.spacing(1)} ${theme.spacing(1)}`,
     borderRadius: theme.rounded.xs,
     cursor: "pointer",
     "&:hover": {
@@ -226,7 +226,7 @@ const OutputSelectPanel: React.FC<OutputSelectPanelProps> = memo(
             aria-label="Back to workflow list"
           />
           <Text size="small" weight={500} sx={{ flex: 1 }}>
-            Select output — {workflowName}
+            Select output - {workflowName}
           </Text>
         </FlexRow>
         <Caption sx={{ color: "text.secondary" }}>
@@ -635,7 +635,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       fontSize: 10
                     }}
                   >
-                    — or use a workflow —
+                    - or use a workflow -
                   </Caption>
                 </>
               )}

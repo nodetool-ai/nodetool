@@ -66,7 +66,7 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
     node_type: "nodetool.text.Prompt",
     properties: [],
     outputs: [{ name: "output", type: { type: "str" } }],
-    is_dynamic: true
+    supports_dynamic_inputs: true
   } as unknown as Parameters<typeof PromptComposerBody>[0]["nodeMetadata"],
   data: {
     properties: { prompt: "Describe {{ subject }} in detail" },
@@ -121,6 +121,25 @@ describe("PromptComposerBody", () => {
       expect(chip).not.toBeNull();
       expect(chip?.textContent).toContain("subject");
     });
+  });
+
+  it("shows the Variables label when the prompt references a variable", () => {
+    renderWithTheme(<PromptComposerBody {...makeProps()} />);
+    expect(screen.getByText("Variables")).toBeInTheDocument();
+  });
+
+  it("hides the Variables label when the prompt references none", () => {
+    renderWithTheme(
+      <PromptComposerBody
+        {...makeProps({
+          data: {
+            properties: { prompt: "what is this?" },
+            dynamic_properties: {}
+          }
+        })}
+      />
+    );
+    expect(screen.queryByText("Variables")).not.toBeInTheDocument();
   });
 
   it("renders an inline image preview for an asset URN in the prompt", async () => {

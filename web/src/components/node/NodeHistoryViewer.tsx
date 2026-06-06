@@ -145,10 +145,11 @@ const styles = (theme: Theme) =>
         borderColor: theme.vars.palette.primary.main
       }
     },
-    ".thumb img": {
+    ".thumb img, .thumb video": {
       width: "100%",
       height: "100%",
-      objectFit: "cover"
+      objectFit: "cover",
+      display: "block"
     },
     ".thumb-label": {
       position: "absolute",
@@ -252,9 +253,17 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   }, []);
 
   const handleOpenViewer = useCallback(() => {
-    if (!currentAsset) return;
+    if (!currentAsset || showingLive) return;
     setViewerOpen(true);
-  }, [currentAsset]);
+  }, [currentAsset, showingLive]);
+
+  // Children (ImageView) render under this context: it suppresses their own
+  // overlay/viewer and routes "open" here, so the viewer's gallery reflects the
+  // node's full generation history.
+  const overlayValue = useMemo(
+    () => ({ suppressed: true, onRequestOpenViewer: handleOpenViewer }),
+    [handleOpenViewer]
+  );
 
   const handleCloseViewer = useCallback(() => {
     setViewerOpen(false);
@@ -319,7 +328,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     <div css={styles(theme)} className="node-history-viewer">
       <div className="body">
         {mode === "single" ? (
-          <MediaOverlaySuppressProvider value={{ suppressed: true }}>
+          <MediaOverlaySuppressProvider value={overlayValue}>
             <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
               {renderSingle(valueToRender)}
             </div>
@@ -328,7 +337,9 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           <div className="grid nodrag nopan" role="list" aria-label="Output history">
             {mediaAssets.map((asset, i) => {
               const isImage = asset.content_type?.startsWith("image/");
-              const thumbUrl = asset.thumb_url || asset.get_url || "";
+              const isVideo = asset.content_type?.startsWith("video/");
+              const imgUrl = asset.thumb_url || asset.get_url || "";
+              const videoUrl = asset.get_url || "";
               return (
                 <div
                   key={asset.id}
@@ -336,8 +347,20 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                   role="listitem"
                   onClick={() => handleSelectThumb(i)}
                 >
-                  {isImage && thumbUrl ? (
-                    <img src={thumbUrl} alt={asset.name || asset.id} />
+                  {isImage && imgUrl ? (
+                    <img src={imgUrl} alt={asset.name || asset.id} />
+                  ) : isVideo && (asset.thumb_url || videoUrl) ? (
+                    asset.thumb_url ? (
+                      <img src={asset.thumb_url} alt={asset.name || asset.id} />
+                    ) : (
+                      <video
+                        src={`${videoUrl}#t=0.1`}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        aria-label={asset.name || asset.id}
+                      />
+                    )
                   ) : (
                     <div style={{
                       width: "100%",
@@ -440,6 +463,8 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
 
       {currentAsset && currentAsset.get_url ? (
         <AssetViewer
+          asset={currentAsset}
+          sortedAssets={mediaAssets}
           contentType={currentAsset.content_type ?? undefined}
           url={currentAsset.get_url}
           open={viewerOpen}

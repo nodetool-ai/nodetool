@@ -12,7 +12,6 @@ import type { MediaGenerationRequest } from "../types/media.types";
 export type ComposerSendHandler = (
   content: MessageContent[],
   prompt: string,
-  agentMode: boolean,
   mediaGeneration?: MediaGenerationRequest
 ) => void | Promise<void>;
 

@@ -222,7 +222,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       if (workflow) {
         resetWorkflowState(workflow.id);
       }
-      await runWorkflowFromStore(params, workflow, nodes, edges);
+      return runWorkflowFromStore(params, workflow, nodes, edges);
     },
     [runWorkflowFromStore, resetWorkflowState]
   );

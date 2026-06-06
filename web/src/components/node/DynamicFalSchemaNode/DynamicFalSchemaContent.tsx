@@ -132,7 +132,7 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
               flexShrink: 0,
               mt: 0.5,
               px: 1,
-              py: 0.25,
+              py: 0.5,
               borderTop: 1,
               borderColor: "divider"
             }}

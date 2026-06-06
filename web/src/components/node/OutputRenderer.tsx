@@ -549,6 +549,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <video
             ref={videoRef}
             controls
+            aria-label="Video output"
             style={{ width: "100%", height: "100%" }}
           />
         );
@@ -729,7 +730,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                             primaryTypographyProps={{
                               sx: {
                                 fontFamily: "monospace",
-                                fontSize: "0.85rem"
+                                fontSize: "var(--fontSizeNormal)"
                               }
                             }}
                             secondaryTypographyProps={{

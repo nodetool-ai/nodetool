@@ -36,7 +36,7 @@ import {
   LanguageModel,
   LlamaModel,
   LogUpdate,
-  Message,
+  Message as ProtocolMessage,
   MessageAudioContent,
   MessageCreateRequest,
   MessageDocumentContent,
@@ -60,6 +60,8 @@ import {
   Property,
   PropertyTypeMetadata,
   Provider,
+  ProviderId,
+  PROVIDER_IDS,
   ProviderInfo,
   RepoPath,
   RunJobRequest,
@@ -74,6 +76,9 @@ import {
   Task,
   TaskPlan,
   TaskUpdate,
+  TodoItem,
+  TodoStatus,
+  TodoUpdate,
   TextRef,
   Thread,
   ThreadCreateRequest,
@@ -136,7 +141,21 @@ export type { JobUpdate };
 export type { LanguageModel };
 export type { LlamaModel };
 export type { LogUpdate };
-export type { Message };
+/**
+ * Chat permission mode (per-thread). Sent on every outgoing chat message.
+ * - `plan`: read & propose only; actionable tools are blocked.
+ * - `default`: reads run; actionable tools ask for approval first.
+ * - `auto`: everything runs, no prompts.
+ */
+export type PermissionMode = "plan" | "default" | "auto";
+
+/**
+ * Frontend `Message` extends the protocol message with `permission_mode`,
+ * which governs how the agent's gated tool calls are handled for the thread.
+ */
+export interface Message extends ProtocolMessage {
+  permission_mode?: PermissionMode | null;
+}
 export type { MessageAudioContent };
 export type { MessageCreateRequest };
 export type { MessageDocumentContent };
@@ -158,6 +177,8 @@ export type { Prediction };
 export type { Property };
 export type { PropertyTypeMetadata };
 export type { Provider };
+export type { ProviderId };
+export { PROVIDER_IDS };
 export type { ProviderCost };
 export type { ProviderInfo };
 export type { RepoPath };
@@ -173,6 +194,9 @@ export type { SystemStats };
 export type { Task };
 export type { TaskPlan };
 export type { TaskUpdate };
+export type { TodoItem };
+export type { TodoStatus };
+export type { TodoUpdate };
 export type { TextRef };
 export type { Thread };
 export type { ThreadCreateRequest };

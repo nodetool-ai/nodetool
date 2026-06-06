@@ -113,7 +113,7 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
           align="center"
           wrap
           sx={{
-            columnGap: 12,
+            columnGap: 8,
             rowGap: 4
           }}
         >

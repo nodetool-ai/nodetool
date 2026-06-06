@@ -90,7 +90,7 @@ describe("createKieNodeClass omni chaining", () => {
       ...videoSpec,
       fields: [
         ...videoSpec.fields,
-        { name: "video_list", type: "video_clip_list", default: [] }
+        { name: "video_list", type: "list[video]", default: [] }
       ],
       uploads: [
         {
@@ -220,7 +220,12 @@ describe("createKieNodeClass omni chaining", () => {
 
     await node.process({ setProviderCost } as never);
 
-    expect(setProviderCost).toHaveBeenCalledWith("kie", 9, "credits");
+    expect(setProviderCost).toHaveBeenCalledWith("kie", 0.045, "USD", {
+      billing_unit: "credits",
+      quantity: 9,
+      unit_price: 0.005,
+      currency: "USD"
+    });
   });
 });
 

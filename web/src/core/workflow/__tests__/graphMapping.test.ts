@@ -39,9 +39,8 @@ const baseMetadata: NodeMetadata = {
     }
   ],
   recommended_models: [],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   is_streaming_output: false,
-  expose_as_tool: false,
   supports_dynamic_outputs: false,
   required_settings: []
 } as NodeMetadata;
@@ -111,7 +110,7 @@ describe("graphMapping helpers", () => {
     const dynamicMeta: NodeMetadata = {
       ...baseMetadata,
       node_type: "test.dynamic",
-      is_dynamic: true
+      supports_dynamic_inputs: true
     } as NodeMetadata;
 
     const dynamicOutputsMeta: NodeMetadata = {
@@ -120,7 +119,7 @@ describe("graphMapping helpers", () => {
       supports_dynamic_outputs: true
     } as NodeMetadata;
 
-    it("adds missing dynamic_properties entry for edges to is_dynamic target", () => {
+    it("adds missing dynamic_properties entry for edges to supports_dynamic_inputs target", () => {
       const nodes = [
         makeNode("a", "test"),
         makeNode("b", "test.dynamic")
@@ -191,6 +190,19 @@ describe("graphMapping helpers", () => {
       const target = sanitizedNodes.find((n) => n.id === "b");
       expect(target?.data.dynamic_properties).toEqual({});
       expect(sanitizedEdges).toHaveLength(0);
+    });
+
+    it("keeps edges to existing dynamic_properties on non-dynamic target nodes (Agent template inputs)", () => {
+      const target = makeNode("b", "test");
+      target.data.dynamic_properties = { brief: "" };
+      const nodes = [makeNode("a", "test"), target];
+      const edges = [makeEdge("e1", "a", "b", "output", "brief")];
+
+      const { edges: sanitizedEdges } = sanitizeGraph(nodes, edges, {
+        test: baseMetadata
+      });
+
+      expect(sanitizedEdges).toHaveLength(1);
     });
   });
 

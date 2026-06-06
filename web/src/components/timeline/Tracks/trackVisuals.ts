@@ -13,11 +13,10 @@ import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
-import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 
 export type TrackTypeKey = TimelineTrack["type"];
-export type ClipMediaKey = TimelineClip["mediaType"];
+type ClipMediaKey = TimelineClip["mediaType"];
 
 interface TrackTypeMeta {
   /** Single-letter prefix used in the index chip: V1, A1, T1, O1. */
@@ -34,19 +33,8 @@ const TRACK_TYPES: Record<TrackTypeKey, TrackTypeMeta> = {
   subtitle: { prefix: "T", label: "Text", Icon: SubtitlesOutlinedIcon }
 };
 
-const CLIP_MEDIA_ICONS: Record<ClipMediaKey, SvgIconComponent> = {
-  video: VideocamOutlinedIcon,
-  audio: AudiotrackOutlinedIcon,
-  image: ImageOutlinedIcon,
-  overlay: LayersOutlinedIcon
-};
-
 export function trackTypeMeta(type: TrackTypeKey): TrackTypeMeta {
   return TRACK_TYPES[type] ?? TRACK_TYPES.video;
-}
-
-export function clipMediaIcon(media: ClipMediaKey): SvgIconComponent {
-  return CLIP_MEDIA_ICONS[media] ?? VideocamOutlinedIcon;
 }
 
 /** The dot/border/text accent for a track row. */
@@ -96,26 +84,8 @@ export function clipBorderTint(theme: Theme, type: ClipMediaKey): string {
   }
 }
 
-/** Per-track-type index across the track list (1-based). */
-export function trackIndexWithinType(
-  tracks: readonly TimelineTrack[],
-  trackId: string
-): number {
-  const target = tracks.find((t) => t.id === trackId);
-  if (!target) return 1;
-  let i = 0;
-  for (const t of tracks) {
-    if (t.type === target.type) {
-      i += 1;
-      if (t.id === trackId) return i;
-    }
-  }
-  return i || 1;
-}
-
 /**
  * Precompute a map from trackId → per-type index (1-based) in a single O(n) pass.
- * Avoids calling trackIndexWithinType per-header which results in O(n²).
  */
 export function buildTypedIndexMap(
   tracks: readonly TimelineTrack[]

@@ -298,6 +298,15 @@ export class WebGPUCompositor {
     device.queue.submit([encoder.finish()]);
   }
 
+  /**
+   * Resolve once all submitted GPU work has completed. The offline renderer
+   * awaits this after {@link render} so the canvas pixels are final before a
+   * frame is captured for encoding.
+   */
+  async flush(): Promise<void> {
+    await this.device?.queue.onSubmittedWorkDone();
+  }
+
   dispose(): void {
     for (const entry of this.sourceTextures.values()) {
       entry.texture.destroy();

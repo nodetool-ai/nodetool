@@ -66,7 +66,7 @@ const compareByDisplayName = (
   return an.localeCompare(bn);
 };
 
-export interface ModelRankOptions {
+interface ModelRankOptions {
   selectedProvider?: string | null;
   enabledProviders?: EnabledProvidersMap;
   /** Keys (`${provider}:${id}`) of recently used models, most-recent first. */

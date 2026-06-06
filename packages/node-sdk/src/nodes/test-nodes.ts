@@ -18,7 +18,7 @@ export class Add extends BaseNode {
   static readonly nodeType = "nodetool.test.Add";
   static readonly title = "Add";
   static readonly description = "Adds two numbers";
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   @prop({ type: "int", default: 0 })
   declare a: any;
 
@@ -67,7 +67,7 @@ export class StringConcat extends BaseNode {
   static readonly nodeType = "nodetool.test.StringConcat";
   static readonly title = "String Concat";
   static readonly description = "Concatenates strings";
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   @prop({ type: "str", default: "" })
   declare a: any;
 

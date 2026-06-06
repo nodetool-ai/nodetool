@@ -83,8 +83,7 @@ export function setLlmAgentGraphPlannerRegistry(registry: NodeRegistry): void {
 
 /**
  * Marker stored on every persisted LLM-agent message so we can list /
- * disambiguate these threads from regular chat threads (which may also
- * carry `agent_mode = true` from the unified-websocket-runner path).
+ * disambiguate LLM-agent workflow-node threads from regular chat threads.
  */
 const LLM_AGENT_MARKER = "llm-agent";
 
@@ -520,7 +519,6 @@ class LlmAgentSession implements AgentQuerySession {
           tool_call_id: m.toolCallId ?? null,
           provider: this.chatProviderId,
           model: this.model,
-          agent_mode: true,
           agent_execution_id: LLM_AGENT_MARKER,
         });
       } catch (err) {

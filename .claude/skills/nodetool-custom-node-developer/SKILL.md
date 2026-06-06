@@ -159,7 +159,6 @@ finalize(): void { }      // after all processing
 # Optional Static Properties
 
 ```typescript
-static readonly exposeAsTool = true;         // usable as Agent tool
 static readonly isDynamic = true;            // dynamic schema
 static readonly supportsDynamicOutputs = true;
 static readonly isStreamingInput = true;

@@ -12,6 +12,8 @@ import { persist } from "zustand/middleware";
  */
 export type LeftPanelView =
   | "workflows"
+  | "sketches"
+  | "timelines"
   | "settings"
   | "history"
   | "favorites"
@@ -63,6 +65,8 @@ const MAX_PANEL_SIZE = 800;
 
 const VALID_VIEWS: LeftPanelView[] = [
   "workflows",
+  "sketches",
+  "timelines",
   "settings",
   "history",
   "favorites",
@@ -82,6 +86,14 @@ const VALID_NODE_CATEGORIES: NodeCategoryId[] = [
   "agents",
   "control-flow"
 ];
+
+function isLeftPanelView(value: string): value is LeftPanelView {
+  return (VALID_VIEWS as readonly string[]).includes(value);
+}
+
+function isNodeCategoryId(value: string): value is NodeCategoryId {
+  return (VALID_NODE_CATEGORIES as readonly string[]).includes(value);
+}
 
 const createInitialState = (): PanelState => {
   return {
@@ -226,19 +238,19 @@ export const usePanelStore = create<ResizePanelState>()(
         } else if (raw === "search") {
           migratedView = "nodes";
           migratedSubcategory = "all";
-        } else if (raw && VALID_NODE_CATEGORIES.includes(raw as NodeCategoryId)) {
+        } else if (raw && isNodeCategoryId(raw)) {
           migratedView = "nodes";
-          migratedSubcategory = raw as NodeCategoryId;
-        } else if (raw && VALID_VIEWS.includes(raw as LeftPanelView)) {
-          migratedView = raw as LeftPanelView;
+          migratedSubcategory = raw;
+        } else if (raw && isLeftPanelView(raw)) {
+          migratedView = raw;
         }
 
         const persistedSubcategory = persistedPanel.activeNodeCategory;
         if (
           typeof persistedSubcategory === "string" &&
-          VALID_NODE_CATEGORIES.includes(persistedSubcategory as NodeCategoryId)
+          isNodeCategoryId(persistedSubcategory)
         ) {
-          migratedSubcategory = persistedSubcategory as NodeCategoryId;
+          migratedSubcategory = persistedSubcategory;
         }
 
         return {

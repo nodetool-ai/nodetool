@@ -71,7 +71,7 @@ const listStyles = (theme: Theme) =>
 
 const rowStyles = (theme: Theme, selected: boolean) =>
   css({
-    padding: theme.spacing(1, 1.25),
+    padding: theme.spacing(1, 1),
     borderRadius: theme.shape.borderRadius,
     cursor: "pointer",
     backgroundColor: selected

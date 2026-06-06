@@ -42,7 +42,7 @@ const WorkflowProperty = (props: PropertyProps) => {
         value={value?.id || ""}
         onChange={handleChange}
       >
-        {isLoading && <NodeMenuItem disabled>Loading...</NodeMenuItem>}
+        {isLoading && <NodeMenuItem disabled>Loading…</NodeMenuItem>}
         {error && <NodeMenuItem disabled>Error: {error.message}</NodeMenuItem>}
         {data?.workflows &&
           data.workflows.map((workflow) => (

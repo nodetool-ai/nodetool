@@ -4,7 +4,7 @@
  * app backend to avoid CORS; backend returns dynamic_properties and dynamic_outputs.
  */
 
-export interface DynamicInputMetadata {
+interface DynamicInputMetadata {
   type: string;
   type_args?: unknown[];
   optional?: boolean;
@@ -13,7 +13,7 @@ export interface DynamicInputMetadata {
   type_name?: string | null;
 }
 
-export interface ResolvedFalSchema {
+interface ResolvedFalSchema {
   dynamic_properties: Record<string, unknown>;
   dynamic_inputs?: Record<string, DynamicInputMetadata>;
   dynamic_outputs: Record<
@@ -21,49 +21,6 @@ export interface ResolvedFalSchema {
     { type: string; type_args?: unknown[]; optional?: boolean }
   >;
   endpoint_id?: string;
-}
-
-function sanitizeEndpointId(value: string): string {
-  return value
-    .trim()
-    .replace(/[)\]}>.,;:]+$/, "") // Removed unnecessary escape
-    .trim();
-}
-
-/**
- * Normalize user input (URL, endpoint id, or path) to a fal.ai endpoint id
- * suitable for the OpenAPI URL.
- */
-export function modelInfoToEndpointId(modelInfo: string): string | null {
-  const raw = (modelInfo ?? "").trim();
-  if (!raw) {return null;}
-
-  // Already looks like endpoint id (e.g. "fal-ai/flux-2/klein/4b/base/edit")
-  if (raw.includes("/") && !raw.includes(" ") && !raw.startsWith("http")) {
-    return sanitizeEndpointId(raw);
-  }
-
-  // fal.ai model URL -> extract path after /models/
-  if (
-    raw.startsWith("http") &&
-    raw.includes("fal.ai") &&
-    raw.includes("/models/")
-  ) {
-    try {
-      const u = new URL(raw);
-      if (u.pathname.startsWith("/models/")) {
-        const path = u.pathname
-          .replace(/^\/models\/?,?/, "")
-          .replace(/\/?$/, "");
-        const id = path || u.pathname.replace("/models/", "");
-        return sanitizeEndpointId(id);
-      }
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
 }
 
 /**

@@ -288,7 +288,9 @@ async function main() {
   let NodeRegistry;
   let registerBaseNodes;
   let registerElevenLabsNodes;
+  let registerMinimaxNodes;
   let registerFalNodes;
+  let registerHuggingFaceNodes;
   let ProcessingContext;
   let OpenAIProvider;
   let AnthropicProvider;
@@ -305,14 +307,21 @@ async function main() {
     const nodeSdkPath = path.resolve(tsRoot, "packages/node-sdk/dist/index.js");
     const baseNodesPath = path.resolve(tsRoot, "packages/base-nodes/dist/index.js");
     const elevenLabsNodesPath = path.resolve(tsRoot, "packages/elevenlabs-nodes/dist/index.js");
+    const minimaxNodesPath = path.resolve(tsRoot, "packages/minimax-nodes/dist/index.js");
     const runtimePath = path.resolve(tsRoot, "packages/runtime/dist/index.js");
     const falNodesPath = path.resolve(tsRoot, "packages/fal-nodes/dist/index.js");
+    const huggingfaceNodesPath = path.resolve(tsRoot, "packages/huggingface-nodes/dist/index.js");
     const modelsPath = path.resolve(tsRoot, "packages/models/dist/index.js");
 
     ({ WorkflowRunner } = await import(pathToFileURL(kernelPath).href));
     ({ NodeRegistry } = await import(pathToFileURL(nodeSdkPath).href));
     ({ registerBaseNodes } = await import(pathToFileURL(baseNodesPath).href));
     ({ registerElevenLabsNodes } = await import(pathToFileURL(elevenLabsNodesPath).href));
+    try {
+      ({ registerMinimaxNodes } = await import(pathToFileURL(minimaxNodesPath).href));
+    } catch {
+      // MiniMax nodes package not built — skip
+    }
     ({
       ProcessingContext,
       OpenAIProvider,
@@ -327,6 +336,11 @@ async function main() {
       ({ registerFalNodes } = await import(pathToFileURL(falNodesPath).href));
     } catch {
       // FAL nodes package not built — skip
+    }
+    try {
+      ({ registerHuggingFaceNodes } = await import(pathToFileURL(huggingfaceNodesPath).href));
+    } catch {
+      // Hugging Face nodes package not built — skip
     }
   } catch (err) {
     throw new Error(
@@ -349,7 +363,9 @@ async function main() {
   const registry = new NodeRegistry();
   registerBaseNodes(registry);
   registerElevenLabsNodes(registry);
+  if (registerMinimaxNodes) registerMinimaxNodes(registry);
   if (registerFalNodes) registerFalNodes(registry);
+  if (registerHuggingFaceNodes) registerHuggingFaceNodes(registry);
 
   // Check if any node in the graph needs Python execution
   const allNodeTypes = new Set(graph.nodes.map((n) => n.type));

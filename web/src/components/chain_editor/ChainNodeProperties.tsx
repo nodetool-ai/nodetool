@@ -11,7 +11,7 @@ import { Chip } from "../ui_primitives/Chip";
 import { NodeContext } from "../../contexts/NodeContext";
 import { createNodeStore } from "../../stores/NodeStore";
 import { EditorUiProvider } from "../editor_ui";
-import { getComponentForProperty } from "../node/PropertyInput";
+import { getComponentForProperty } from "../node/PropertyInput.resolver";
 import type { Property } from "../../stores/ApiTypes";
 
 interface ChainNodePropertiesProps {
@@ -45,7 +45,7 @@ const chainPropertyStyles = (theme: Theme) =>
 
     /* Labels */
     "& .property-label": {
-      marginBottom: theme.spacing(0.75),
+      marginBottom: theme.spacing(1),
     },
     "& .property-label label": {
       fontSize: theme.fontSizeSmall,
@@ -59,7 +59,7 @@ const chainPropertyStyles = (theme: Theme) =>
       width: "100%",
       borderRadius: theme.shape.borderRadius,
       backgroundColor: theme.vars.palette.action.hover,
-      padding: theme.spacing(0.75, 1),
+      padding: theme.spacing(1, 1),
       cursor: "ew-resize",
     },
     "& .number-input .value": {

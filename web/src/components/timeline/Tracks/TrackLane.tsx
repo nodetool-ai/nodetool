@@ -23,7 +23,10 @@ import { MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -106,8 +109,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const theme = useTheme();
 
   // Get only the clip IDs for this track (stable list of ids)
+  const timelineStore = useTimelineStoreApi();
   const clipIds = useStoreWithEqualityFn(
-    useTimelineStore,
+    timelineStore,
     (s) =>
       s.clips
         .filter((c) => c.trackId === track.id)
@@ -412,6 +416,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       onDrop={handleAssetDrop}
       onContextMenu={handleLaneContextMenu}
       role="listbox"
+      tabIndex={0}
       aria-label={`Track: ${track.name}`}
       aria-multiselectable="true"
     >

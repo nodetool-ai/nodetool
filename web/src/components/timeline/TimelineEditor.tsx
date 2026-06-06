@@ -23,19 +23,18 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   Caption,
+  Dialog,
   EditorButton,
   EmptyState,
   FlexColumn,
   FlexRow,
-  LoadingSpinner
+  LoadingSpinner,
+  ProgressBar,
+  Text
 } from "../ui_primitives";
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
-import {
-  TimelineAssetPanel,
-  TimelineAssetPanelRail
-} from "./TimelineAssetPanel";
 import {
   useCreateTimeline,
   useTimeline,
@@ -43,8 +42,10 @@ import {
 } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
+import { TranscriptPanel } from "./TranscriptPanel";
 import { ActivityIndicator } from "./ActivityIndicator";
 import {
   useGeneratingCount,
@@ -54,6 +55,8 @@ import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFresh
 import { useTimelineGenerationSubscriptions } from "../../hooks/timeline/useGenerateClip";
 import { useLoadTimelineIntoStore } from "../../hooks/timeline/useLoadTimelineIntoStore";
 import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
+import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
+import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 
 // ── Drag-handle constants ──────────────────────────────────────────────────
 
@@ -85,18 +88,6 @@ const middleAreaStyles = (theme: Theme) =>
     borderBottom: `1px solid ${theme.vars.palette.divider}`
   });
 
-const assetPanelRegionStyles = css({
-  flex: "0 0 280px",
-  minWidth: 240,
-  maxWidth: 360,
-  overflow: "hidden"
-});
-
-const assetPanelRailRegionStyles = css({
-  flex: "0 0 auto",
-  overflow: "hidden"
-});
-
 const previewRegionStyles = (theme: Theme) =>
   css({
     overflow: "hidden",
@@ -109,9 +100,10 @@ const previewRegionStyles = (theme: Theme) =>
 const inspectorRegionStyles = (theme: Theme) =>
   css({
     overflow: "hidden",
+    minHeight: 0,
     backgroundColor: theme.vars.palette.background.default,
-    alignItems: "center",
-    justifyContent: "center"
+    alignItems: "stretch",
+    justifyContent: "flex-start"
   });
 
 const dragHandleStyles = (theme: Theme) =>
@@ -130,6 +122,23 @@ const dragHandleStyles = (theme: Theme) =>
       boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
     }
   });
+
+/** Human-readable label for the current export phase. */
+function exportPhaseLabel(
+  progress: { phase: string; frame: number; totalFrames: number } | null
+): string {
+  if (!progress) return "Preparing…";
+  switch (progress.phase) {
+    case "audio":
+      return "Mixing audio…";
+    case "video":
+      return `Encoding frame ${progress.frame} / ${progress.totalFrames}`;
+    case "finalizing":
+      return "Finalizing…";
+    default:
+      return "Preparing…";
+  }
+}
 
 // ── Sub-region placeholder components ─────────────────────────────────────
 
@@ -155,7 +164,7 @@ const PreviewRegion: React.FC<{
     <FlexColumn
       css={previewRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "0 1 55%", minWidth: 0, width: 0 }}
+      sx={{ flex: "0 1 55%", minWidth: 0, minHeight: 0, width: 0 }}
     >
       {isLoading ? (
         <LoadingSpinner text="Loading sequence…" />
@@ -219,17 +228,50 @@ const InspectorRegion: React.FC = () => {
     <FlexColumn
       css={inspectorRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "0 1 45%", minWidth: 0, width: 0 }}
+      sx={{ flex: "0 1 45%", minWidth: 0, minHeight: 0, width: 0 }}
     >
       <TimelineInspector />
     </FlexColumn>
   );
 };
 
+const TranscriptRegion: React.FC = () => {
+  const theme = useTheme();
+
+  return (
+    <FlexColumn
+      css={inspectorRegionStyles(theme)}
+      fullHeight
+      sx={{ flex: "0 0 320px", minWidth: 0, minHeight: 0 }}
+    >
+      <TranscriptPanel />
+    </FlexColumn>
+  );
+};
+
 // ── Main component ─────────────────────────────────────────────────────────
 
-export const TimelineEditor: React.FC = memo(() => {
-  const { sequenceId } = useParams<{ sequenceId: string }>();
+interface TimelineEditorProps {
+  /**
+   * Sequence id to load. When omitted, falls back to the `:sequenceId`
+   * route param so existing `/timeline/:sequenceId` routes keep working.
+   * The workspace shell passes this explicitly (tab.ref) so the editor can
+   * run outside the router.
+   */
+  sequenceId?: string;
+  /**
+   * Whether this editor is the focused/visible surface. Drives which instance
+   * receives imperative undo/redo and save actions. Defaults to `true` for the
+   * standalone route; the workspace tab passes its active flag.
+   */
+  active?: boolean;
+}
+
+const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo(({
+  sequenceId: sequenceIdProp
+}) => {
+  const { sequenceId: sequenceIdParam } = useParams<{ sequenceId: string }>();
+  const sequenceId = sequenceIdProp ?? sequenceIdParam;
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -245,6 +287,9 @@ export const TimelineEditor: React.FC = memo(() => {
   // Persist subsequent edits back via trpc.timeline.update (debounced).
   useTimelineAutosave();
 
+  // Imperative save for the Save button (forces an immediate PATCH).
+  const { save: handleSave, isSaving } = useTimelineSave();
+
   // Reconcile clips against current workflow state on mount.
   useWorkflowFreshnessCheck(sequenceId ?? null);
   useTimelineGenerationSubscriptions();
@@ -252,7 +297,6 @@ export const TimelineEditor: React.FC = memo(() => {
   // Zoom ← wired to TimelineUIStore so TracksRegion + BottomStatusBar stay in sync
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const setZoom = useTimelineUIStore((s) => s.setZoom);
-  const assetPanelVisible = useTimelineUIStore((s) => s.assetPanelVisible);
   // Convert msPerPx to a dimensionless ratio for ZoomControls (1 = default zoom)
   const zoom = DEFAULT_MS_PER_PX / msPerPx;
   const handleZoomChange = useCallback(
@@ -263,6 +307,19 @@ export const TimelineEditor: React.FC = memo(() => {
   // Activity counts for BottomStatusBar
   const generatingCount = useGeneratingCount();
   const failedCount = useFailedCount();
+
+  // Offline video export (frame-by-frame, 1:1 with the live preview).
+  const {
+    exportVideo,
+    cancel: cancelExport,
+    clearError: clearExportError,
+    isExporting,
+    progress: exportProgress,
+    error: exportError
+  } = useTimelineExport();
+  const handleExportVideo = useCallback(() => {
+    void exportVideo(sequence?.name);
+  }, [exportVideo, sequence?.name]);
 
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
@@ -392,6 +449,10 @@ export const TimelineEditor: React.FC = memo(() => {
           sequence?.name ??
           (sequenceUnavailable ? sequenceId : undefined)
         }
+        onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
+        isExporting={isExporting}
+        onSave={sequenceUnavailable ? undefined : handleSave}
+        isSaving={isSaving}
         activitySlot={<ActivityIndicator />}
       />
 
@@ -399,17 +460,9 @@ export const TimelineEditor: React.FC = memo(() => {
       <FlexRow
         fullWidth
         css={middleAreaStyles(theme)}
-        sx={{ flex: "1 1 auto", overflow: "hidden" }}
+        sx={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden" }}
       >
-        {assetPanelVisible ? (
-          <div css={assetPanelRegionStyles}>
-            <TimelineAssetPanel />
-          </div>
-        ) : (
-          <div css={assetPanelRailRegionStyles}>
-            <TimelineAssetPanelRail />
-          </div>
-        )}
+        <TranscriptRegion />
         <PreviewRegion
           isLoading={isLoading}
           sequence={sequence}
@@ -451,9 +504,60 @@ export const TimelineEditor: React.FC = memo(() => {
         failedCount={failedCount}
       />
 
+      {/* ── Export progress / error dialog ────────────────────────── */}
+      <Dialog
+        open={isExporting || exportError != null}
+        onClose={isExporting ? undefined : clearExportError}
+        title={exportError != null ? "Export failed" : "Exporting video"}
+        actions={
+          <EditorButton
+            variant={isExporting ? "outlined" : "contained"}
+            size="small"
+            onClick={isExporting ? cancelExport : clearExportError}
+          >
+            {isExporting ? "Cancel" : "Close"}
+          </EditorButton>
+        }
+      >
+        {exportError != null ? (
+          <Text size="small" sx={{ color: "error.main" }}>
+            {exportError}
+          </Text>
+        ) : (
+          <FlexColumn gap={1} sx={{ minWidth: 360, py: 1 }}>
+            <ProgressBar
+              value={Math.round((exportProgress?.ratio ?? 0) * 100)}
+              progressVariant={
+                exportProgress && exportProgress.totalFrames > 0
+                  ? "determinate"
+                  : "indeterminate"
+              }
+              label={exportPhaseLabel(exportProgress)}
+            />
+          </FlexColumn>
+        )}
+      </Dialog>
+
     </FlexColumn>
   );
 });
+
+TimelineEditorBody.displayName = "TimelineEditorBody";
+
+/**
+ * Wraps the editor body in a {@link TimelineProvider} so each tab / page gets
+ * its own isolated timeline stores (document, UI, playback). The load and
+ * autosave hooks run inside the body, under the provider, so they bind to this
+ * instance's stores rather than a shared singleton.
+ */
+export const TimelineEditor: React.FC<TimelineEditorProps> = ({
+  active = true,
+  ...bodyProps
+}) => (
+  <TimelineProvider active={active}>
+    <TimelineEditorBody {...bodyProps} />
+  </TimelineProvider>
+);
 
 TimelineEditor.displayName = "TimelineEditor";
 

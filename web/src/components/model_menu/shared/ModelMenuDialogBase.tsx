@@ -269,12 +269,12 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           align="center"
           sx={{
             px: 2,
-            py: 0.75,
+            py: 1,
             borderBottom: `1px solid ${theme.vars.palette.divider}`,
             bgcolor: providerErrors && providerErrors.length > 0
               ? theme.vars.palette.warning.main + "15"
               : theme.vars.palette.action.hover,
-            fontSize: "0.8rem"
+            fontSize: "var(--fontSizeSmall)"
           }}
         >
           {(isLoading || isFetching) && (
@@ -368,7 +368,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                     <StarIcon
                       fontSize="small"
                       sx={{
-                        fontSize: "1.25rem",
+                        fontSize: "var(--fontSizeBig)",
                         color:
                           customView === "favorites"
                             ? "primary.contrastText"
@@ -393,7 +393,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                       <StarIcon
                         fontSize="small"
                         sx={{
-                          fontSize: "1.2rem",
+                          fontSize: "var(--fontSizeBig)",
                           color:
                             customView === "favorites"
                               ? "primary.main"
@@ -405,7 +405,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                   <ListItemText
                     primary="Favorites"
                     primaryTypographyProps={{
-                      fontSize: "0.85rem",
+                      fontSize: "var(--fontSizeNormal)",
                       fontWeight: customView === "favorites" ? 600 : 400
                     }}
                   />
@@ -444,7 +444,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                     <HistoryIcon
                       fontSize="small"
                       sx={{
-                        fontSize: "1.25rem",
+                        fontSize: "var(--fontSizeBig)",
                         color:
                           customView === "recent"
                             ? "primary.contrastText"
@@ -469,7 +469,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                       <HistoryIcon
                         fontSize="small"
                         sx={{
-                          fontSize: "1.2rem",
+                          fontSize: "var(--fontSizeBig)",
                           color:
                             customView === "recent"
                               ? "primary.main"
@@ -481,7 +481,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                   <ListItemText
                     primary="Recent"
                     primaryTypographyProps={{
-                      fontSize: "0.85rem",
+                      fontSize: "var(--fontSizeNormal)",
                       fontWeight: customView === "recent" ? 600 : 400
                     }}
                   />
@@ -522,7 +522,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                       <DownloadIcon
                         fontSize="small"
                         sx={{
-                          fontSize: "1.25rem",
+                          fontSize: "var(--fontSizeBig)",
                           color:
                             customView === "downloads"
                               ? "primary.contrastText"
@@ -547,7 +547,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                         <DownloadIcon
                           fontSize="small"
                           sx={{
-                            fontSize: "1.2rem",
+                            fontSize: "var(--fontSizeBig)",
                             color:
                               customView === "downloads"
                                 ? "primary.main"
@@ -559,7 +559,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                     <ListItemText
                       primary="Downloads"
                       primaryTypographyProps={{
-                        fontSize: "0.85rem",
+                        fontSize: "var(--fontSizeNormal)",
                         fontWeight: customView === "downloads" ? 600 : 400
                       }}
                     />
@@ -576,7 +576,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               sx={{
                 px: 2,
                 pb: 0.5,
-                fontSize: "0.75rem",
+                fontSize: "var(--fontSizeSmall)",
                 fontWeight: 600,
                 color: "text.secondary",
                 textTransform: "uppercase",

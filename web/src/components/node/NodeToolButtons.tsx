@@ -133,7 +133,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       >
         {/* Primary Actions - Always Visible */}
         <ToolbarIconButton
-          title={isWorkflowRunning ? "Running..." : "Run From Here"}
+          title={isWorkflowRunning ? "Running..." : "Run Node"}
           delay={TOOLTIP_ENTER_DELAY}
           className="nodrag"
           onClick={runFromHere}

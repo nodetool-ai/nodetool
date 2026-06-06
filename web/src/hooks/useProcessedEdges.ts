@@ -4,6 +4,8 @@ import { DataType } from "../config/data_types";
 import { NodeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { NodeData } from "../stores/NodeData";
+import { REROUTE_NODE_TYPE } from "../constants/nodeTypes";
+import { nodeKey, edgeKey } from "../stores/nodeKey";
 
 /**
  * Options for processing edges in the workflow graph.
@@ -20,6 +22,12 @@ interface ProcessedEdgesOptions {
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
   /** Optional workflow ID for status tracking */
   workflowId?: string;
+  /**
+   * Focused run for the workflow. Edge-status and node-status keys are
+   * `${workflowId}:${focusedJobId}:${id}` (id = edge.id or edge.source); when
+   * undefined, both are treated as empty (no focused run to display).
+   */
+  focusedJobId?: string;
   /** Optional edge status map for execution visualization */
   edgeStatuses?: Record<string, { status: string; counter?: number }>;
   /** Optional node status map - used to animate edges when source node is running */
@@ -96,7 +104,6 @@ function useStructurallyProcessedEdges({
 
     const activeGradientKeys = new Set<string>();
 
-    const REROUTE_TYPE = "nodetool.control.Reroute";
     const REROUTE_INPUT = "input_value";
     const REROUTE_OUTPUT = "output";
 
@@ -139,7 +146,7 @@ function useStructurallyProcessedEdges({
 
       while (
         currentNode &&
-        currentNode.type === REROUTE_TYPE &&
+        currentNode.type === REROUTE_NODE_TYPE &&
         currentHandle === REROUTE_OUTPUT
       ) {
         if (visited.has(currentNode.id)) {break;}
@@ -230,7 +237,7 @@ function useStructurallyProcessedEdges({
 
       if (targetNode && normalizedTargetHandle) {
         if (
-          targetNode.type === REROUTE_TYPE &&
+          targetNode.type === REROUTE_NODE_TYPE &&
           normalizedTargetHandle === REROUTE_INPUT
         ) {
           targetTypeSlug = sourceTypeSlug;
@@ -345,6 +352,7 @@ export function useProcessedEdges({
   dataTypes,
   getMetadata,
   workflowId,
+  focusedJobId,
   edgeStatuses,
   nodeStatuses,
   isSelecting
@@ -374,14 +382,23 @@ export function useProcessedEdges({
         return edge;
       }
 
+      // Edge statuses are keyed by the focused run; without one there's no run
+      // to visualize.
       const statusKey =
-        workflowId && edge.id ? `${workflowId}:${edge.id}` : undefined;
+        workflowId && focusedJobId && edge.id
+          ? edgeKey(workflowId, focusedJobId, edge.id)
+          : undefined;
       const statusObj = statusKey ? edgeStatuses?.[statusKey] : undefined;
       const status = statusObj?.status;
       const counter = statusObj?.counter;
 
-      // Check if source node is running - animate edges from running nodes
-      const sourceNodeStatusKey = workflowId ? `${workflowId}:${edge.source}` : undefined;
+      // Check if source node is running - animate edges from running nodes.
+      // Node statuses are keyed by the focused run; without one there's no
+      // run to visualize.
+      const sourceNodeStatusKey =
+        workflowId && focusedJobId
+          ? nodeKey(workflowId, focusedJobId, edge.source)
+          : undefined;
       const sourceNodeStatus = sourceNodeStatusKey ? nodeStatuses?.[sourceNodeStatusKey] : undefined;
       const isSourceRunning = sourceNodeStatus === "running" || sourceNodeStatus === "starting" || sourceNodeStatus === "booting";
       
@@ -415,5 +432,5 @@ export function useProcessedEdges({
     });
 
     return { processedEdges, activeGradientKeys };
-  }, [structuralResult, workflowId, edgeStatuses, nodeStatuses]);
+  }, [structuralResult, workflowId, focusedJobId, edgeStatuses, nodeStatuses]);
 }

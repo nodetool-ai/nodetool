@@ -26,7 +26,7 @@
   position: absolute;
   top: 1px;
   right: 4px;
-  font-size: 9px;
+  font-size: var(--fontSizeSmaller);
   line-height: 1;
   color: color-mix(in srgb, var(--palette-primary-main) 60%, transparent);
   opacity: 0.7;
@@ -110,7 +110,7 @@
 
 .node-editor .node-output {
   padding: 0 1em;
-  margin: 1px 0 0;
+  margin: 0px 0 0;
 }
 
 /* Code display */

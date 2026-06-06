@@ -26,8 +26,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
-
-const HSL_ADJUST_NODE_TYPE = "lib.image.color_grading.HSLAdjust";
+import { HSL_ADJUST_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const COLOR_RANGES = [
   "all",
@@ -68,7 +67,7 @@ const styles = (theme: Theme) =>
     "& > .handle-column": {
       top: theme.spacing(1),
       bottom: theme.spacing(1),
-      left: `calc(${theme.spacing(-0.5)})`
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -94,7 +93,7 @@ const styles = (theme: Theme) =>
       columnGap: theme.spacing(1),
       rowGap: theme.spacing(0.5),
       alignItems: "center",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)} ${theme.spacing(0.25)}`
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
     },
     ".ctrl-label": {
       fontSize: theme.fontSizeSmaller,
@@ -117,7 +116,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       textTransform: "capitalize",
       ".MuiSelect-select": {
-        padding: `${theme.spacing(0.25)} ${theme.spacing(1)} ${theme.spacing(0.25)} 0`
+        padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)} 0`
       }
     },
     ".outputs-row": {

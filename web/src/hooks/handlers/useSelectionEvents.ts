@@ -9,6 +9,7 @@ import {
 } from "../../utils/selectionBounds";
 import { NodeData } from "../../stores/NodeData";
 import { shallow } from "zustand/shallow";
+import { GROUP_NODE_TYPE } from "../../constants/nodeTypes";
 
 interface UseSelectionEventsProps {
   reactFlowInstance: ReturnType<typeof useReactFlow>;
@@ -19,8 +20,6 @@ interface UseSelectionEventsProps {
   /** When true, the pane effect does not auto-select edges from selected nodes (node-only marquee). */
   setSuppressNodeDrivenEdgeSelection: (suppress: boolean) => void;
 }
-
-const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
 
 export function useSelectionEvents({
   reactFlowInstance,

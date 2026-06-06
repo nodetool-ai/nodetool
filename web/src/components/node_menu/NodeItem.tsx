@@ -7,7 +7,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import { HighlightText } from "../ui_primitives/HighlightText";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -84,7 +84,7 @@ const NodeItem = memo(
         }
         return (
           <Box sx={{ maxWidth: 300 }}>
-            <Text sx={{ fontSize: "0.85rem", fontWeight: 500, mb: 0.5 }}>
+            <Text sx={{ fontSize: "var(--fontSizeNormal)", fontWeight: 500, mb: 0.5 }}>
               {parsedDescription.description}
             </Text>
             {parsedDescription.tags.length > 0 && (
@@ -94,13 +94,13 @@ const NodeItem = memo(
                     key={tag}
                     component="span"
                     sx={{
-                      fontSize: "0.65rem",
+                      fontSize: "var(--fontSizeSmaller)",
                       fontWeight: 500,
                       textTransform: "uppercase",
                       bgcolor: "grey.700",
                       color: "grey.300",
-                      px: 0.75,
-                      py: 0.25,
+                      px: 1,
+                      py: 0.5,
                       borderRadius: "3px"
                     }}
                   >
@@ -111,10 +111,10 @@ const NodeItem = memo(
             )}
             {parsedDescription.useCases.raw && (
               <Box sx={{ mt: 1 }}>
-                <Text sx={{ fontSize: "0.7rem", fontWeight: 600, color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
+                <Text sx={{ fontSize: "var(--fontSizeSmaller)", fontWeight: 600, color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
                   Use cases
                 </Text>
-                <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "0.75rem", color: "grey.300" }}>
+                <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "var(--fontSizeSmall)", color: "grey.300" }}>
                   {parsedDescription.useCases.raw.split("\n").map((useCase, index) => (
                     <li key={`${useCase}-${index}`}>{useCase}</li>
                   ))}
@@ -284,7 +284,19 @@ const NodeItem = memo(
         >
           <div
             className="node-button"
+            role="button"
+            tabIndex={0}
             onClick={handleClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (showCheckbox && onToggleSelection) {
+                  onToggleSelection(node.node_type);
+                } else {
+                  onClick(node);
+                }
+              }
+            }}
             style={nodeButtonStyle}
           >
             {showCheckbox && (
@@ -292,7 +304,7 @@ const NodeItem = memo(
                 {isSelected && (
                   <CheckIcon
                     sx={{
-                      fontSize: "1.25rem",
+                      fontSize: "var(--fontSizeBig)",
                       color: theme.vars.palette.primary.main,
                       padding: "2px"
                     }}
@@ -326,19 +338,19 @@ const NodeItem = memo(
                 delay={TOOLTIP_ENTER_DELAY}
                 slotProps={{
                   popper: { sx: { zIndex: 2000 } },
-                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", fontSize: "0.7rem" } }
+                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", fontSize: "var(--fontSizeSmaller)" } }
                 }}
               >
                 <Box
                   component="span"
                   sx={{
-                    fontSize: "0.55rem",
+                    fontSize: "var(--fontSizeSmaller)",
                     fontWeight: 600,
                     textTransform: "uppercase",
                     bgcolor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 20%, transparent)`,
                     color: theme.vars.palette.warning.main,
                     px: 0.5,
-                    py: 0.15,
+                    py: 0.5,
                     borderRadius: "3px",
                     whiteSpace: "nowrap",
                     flexShrink: 0,
@@ -352,14 +364,14 @@ const NodeItem = memo(
               <Box
                 component="span"
                 sx={{
-                  fontSize: "0.55rem",
-                  fontWeight: 700,
+                  fontSize: "var(--fontSizeSmaller)",
+                  fontWeight: 600,
                   fontFamily: "monospace",
                   letterSpacing: "0.03em",
                   bgcolor: `color-mix(in srgb, ${theme.vars.palette.info.main} 18%, transparent)`,
                   color: theme.vars.palette.info.main,
                   px: 0.5,
-                  py: 0.15,
+                  py: 0.5,
                   borderRadius: "3px",
                   whiteSpace: "nowrap",
                   flexShrink: 0,

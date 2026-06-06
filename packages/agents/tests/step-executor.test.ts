@@ -315,7 +315,10 @@ describe("StepExecutor", () => {
     }
 
     expect(step.completed).toBe(true);
-    expect(mockTool.process).toHaveBeenCalledWith(context, { input: "test" });
+    expect(mockTool.process).toHaveBeenCalledWith(
+      context,
+      expect.objectContaining({ input: "test" })
+    );
 
     // Should have tool_call_update messages for my_tool and finish_step
     const toolUpdates = messages.filter((m) => m.type === "tool_call_update");
@@ -897,7 +900,7 @@ describe("StepExecutor", () => {
     }
 
     expect(step.completed).toBe(true);
-    // The tool should have been called with {} when args is undefined
+    // No `needsToolCallId` opt-in and args were undefined → cleanArgs is {}.
     expect(simpleTool.process).toHaveBeenCalledWith(context, {});
   });
 

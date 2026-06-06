@@ -90,26 +90,26 @@ describe("BrowserTool", () => {
     expect((tool.inputSchema as any).required).toContain("url");
   });
 
-  it("returns error when url is missing", async () => {
+  it("returns error string when url is missing", async () => {
     const result = await tool.process(mockContext, {});
-    expect(result).toEqual({ error: "URL is required" });
+    expect(result).toBe("Error: url is required");
   });
 
-  it("returns error for invalid URL", async () => {
+  it("returns error string for invalid URL", async () => {
     const result = (await tool.process(mockContext, {
       url: "not-a-url"
-    })) as any;
-    expect(result.error).toMatch(/Invalid URL/);
+    })) as string;
+    expect(result).toMatch(/^Error: Invalid URL/);
   });
 
   it("blocks search engine URLs", async () => {
     const result = (await tool.process(mockContext, {
       url: "https://www.google.com/search?q=test"
-    })) as any;
-    expect(result.error).toMatch(/search engine/i);
+    })) as string;
+    expect(result).toMatch(/^Error:.*search engine/i);
   });
 
-  it("fetches and converts HTML to text", async () => {
+  it("returns plain text content on success", async () => {
     const html = "<html><body><h1>Title</h1><p>Content here</p></body></html>";
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: true,
@@ -119,16 +119,16 @@ describe("BrowserTool", () => {
 
     const result = (await tool.process(mockContext, {
       url: "https://example.com"
-    })) as any;
+    })) as string;
 
-    expect(result.success).toBe(true);
-    expect(result.url).toBe("https://example.com");
-    expect(result.content).toContain("Title");
-    expect(result.content).toContain("Content here");
-    expect(result.content).not.toContain("<h1>");
+    expect(typeof result).toBe("string");
+    expect(result).toContain("Title");
+    expect(result).toContain("Content here");
+    expect(result).not.toContain("<h1>");
+    expect(result.startsWith("Error:")).toBe(false);
   });
 
-  it("returns error for non-OK HTTP responses", async () => {
+  it("returns error string for non-OK HTTP responses", async () => {
     (globalThis.fetch as any).mockResolvedValueOnce({
       ok: false,
       status: 404,
@@ -137,41 +137,41 @@ describe("BrowserTool", () => {
 
     const result = (await tool.process(mockContext, {
       url: "https://example.com/missing"
-    })) as any;
+    })) as string;
 
-    expect(result.error).toMatch(/404/);
+    expect(result).toMatch(/^Error: HTTP 404/);
   });
 
-  it("returns error on fetch failure", async () => {
+  it("returns error string on fetch failure", async () => {
     (globalThis.fetch as any).mockRejectedValueOnce(new Error("Network error"));
 
     const result = (await tool.process(mockContext, {
       url: "https://example.com"
-    })) as any;
+    })) as string;
 
-    expect(result.error).toMatch(/Network error/);
+    expect(result).toMatch(/^Error:.*Network error/);
   });
 
-  it("returns error on fetch failure with non-Error thrown", async () => {
+  it("returns error string on fetch failure with non-Error thrown", async () => {
     (globalThis.fetch as any).mockRejectedValueOnce("string error");
 
     const result = (await tool.process(mockContext, {
       url: "https://example.com"
-    })) as any;
+    })) as string;
 
-    expect(result.error).toMatch(/Error fetching page/);
+    expect(result).toMatch(/^Error:/);
   });
 
   it("userMessage formats correctly", () => {
     expect(tool.userMessage({ url: "https://example.com" })).toBe(
-      "Browsing https://example.com..."
+      "Fetching https://example.com"
     );
   });
 
   it("userMessage truncates long URLs", () => {
     const longUrl = "https://example.com/" + "a".repeat(200);
     const msg = tool.userMessage({ url: longUrl });
-    expect(msg).toBe("Browsing a specified URL...");
+    expect(msg).toBe("Fetching a URL");
   });
 
   it("produces valid provider tool shape", () => {

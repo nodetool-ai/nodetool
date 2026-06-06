@@ -199,8 +199,8 @@ describe("FalDynamicNode static metadata", () => {
     expect(FalDynamicNode.nodeType).toBe("fal.dynamic.FalDynamic");
   });
 
-  it("has isDynamic = true", () => {
-    expect(FalDynamicNode.isDynamic).toBe(true);
+  it("has supportsDynamicInputs = true", () => {
+    expect(FalDynamicNode.supportsDynamicInputs).toBe(true);
   });
 
   it("has supportsDynamicOutputs = true", () => {
@@ -521,6 +521,79 @@ describe("FalDynamicNode.process — asset ref coercion", () => {
     // Should be converted to a data URI string
     expect(typeof opts.input.image_url).toBe("string");
     expect((opts.input.image_url as string).startsWith("data:")).toBe(true);
+  });
+
+  it("uploads a video data ref with a video MIME type (not as image)", async () => {
+    const openApiWithVideo = {
+      info: { "x-fal-metadata": { endpointId: "fal-ai/vid" } },
+      paths: {
+        "/fal-ai/vid": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: { video_url: { type: "string" } },
+                    required: ["video_url"]
+                  }
+                }
+              }
+            }
+          },
+          get: {
+            responses: {
+              "200": {
+                content: {
+                  "application/json": {
+                    schema: { type: "object", properties: {} }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    mockFetch.mockImplementation((url: string) => {
+      if (String(url).endsWith("llms.txt")) {
+        return Promise.resolve({
+          ok: true,
+          text: () =>
+            Promise.resolve(
+              `**Model ID**: \`fal-ai/vid\`\n` +
+                `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/vid`
+            )
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(openApiWithVideo)
+      });
+    });
+
+    mockStorageUpload.mockResolvedValue("https://fal.media/uploaded.mp4");
+    mockSubscribe.mockResolvedValue({ data: { result: "done" } });
+
+    const node = new FalDynamicNode();
+    const executor = node.toExecutor();
+    await executor.process({
+      _secrets: { FAL_API_KEY: "k" },
+      model_info: "fal-ai/vid",
+      video_url: { type: "video", data: "aGVsbG8=" } // no uri → must upload
+    });
+
+    // The uploaded blob must carry a video content type, never image/*.
+    expect(mockStorageUpload).toHaveBeenCalledOnce();
+    const blob = mockStorageUpload.mock.calls[0][0] as Blob;
+    expect(blob.type).toBe("video/mp4");
+
+    const [, opts] = mockSubscribe.mock.calls[0] as [
+      string,
+      { input: Record<string, unknown> }
+    ];
+    expect(opts.input.video_url).toBe("https://fal.media/uploaded.mp4");
   });
 });
 

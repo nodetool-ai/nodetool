@@ -8,8 +8,7 @@
  *   - **inputs** seeded by the caller
  *   - **step_result** entries written by {@link StepExecutor}
  *   - **task_result** entries written by {@link StepExecutor} for finish-task
- *     steps and by {@link ParallelTaskExecutor} / {@link TeamExecutor} when
- *     a task completes
+ *     steps and by {@link ParallelTaskExecutor} when a task completes
  *   - **shared** entries written by tools or by the user for cross-agent
  *     communication
  *
@@ -25,8 +24,7 @@
  *     prior results via the same calls.
  *   - **Structured**: entries carry kind, source, title and description so
  *     prompts render consistently.
- *   - **Reactive**: subscribers can react to writes (used by TeamExecutor to
- *     mirror task-board completions into shared memory).
+ *   - **Reactive**: subscribers can react to writes.
  */
 
 export type MemoryKind = "task_result" | "step_result" | "input" | "shared";

@@ -12,10 +12,21 @@
  * never force the selection panel to re-render and vice versa.
  */
 
-import { create } from "zustand";
-import { useShallow } from "zustand/react/shallow";
+import { create, type StoreApi, type UseBoundStore } from "zustand";
 
 export type TimelineTool = "select" | "cut";
+
+/** A reference to one transcript word: its clip and the word index within it. */
+export interface WordRef {
+  clipId: string;
+  wordIndex: number;
+}
+
+/** A transcript word selection — an inclusive range between two endpoints. */
+export interface WordSelection {
+  anchor: WordRef;
+  focus: WordRef;
+}
 
 export interface TimelineUIState {
   /** Set of selected clip IDs. */
@@ -42,8 +53,6 @@ export interface TimelineUIState {
    * shown at a time to keep vertical layout tractable.
    */
   expandedFxTrackId: string | null;
-  /** Whether the left-side asset panel is visible. Collapses to a thin rail when false. */
-  assetPanelVisible: boolean;
 
   // ── Selection ────────────────────────────────────────────────────────────
 
@@ -59,6 +68,17 @@ export interface TimelineUIState {
   clearSelection: () => void;
   /** Replace the selection with a new set of IDs (rubber-band). */
   setSelection: (ids: string[]) => void;
+
+  // ── Transcript word selection ──────────────────────────────────────────────
+
+  /** Selected transcript word range, or null when nothing is selected. */
+  wordSelection: WordSelection | null;
+  /** Start a word selection collapsed at `ref` (anchor === focus). */
+  beginWordSelection: (ref: WordRef) => void;
+  /** Move the selection's focus to `ref` (drag / shift-click). */
+  extendWordSelection: (ref: WordRef) => void;
+  /** Clear the word selection. */
+  clearWordSelection: () => void;
 
   // ── Hover ────────────────────────────────────────────────────────────────
 
@@ -87,17 +107,16 @@ export interface TimelineUIState {
   setExpandedFxTrackId: (trackId: string | null) => void;
   /** Toggle the inline DSP chain editor for the given track. */
   toggleExpandedFx: (trackId: string) => void;
-
-  // ── Asset panel ──────────────────────────────────────────────────────────
-
-  setAssetPanelVisible: (visible: boolean) => void;
-  toggleAssetPanel: () => void;
 }
 
 const MIN_MS_PER_PX = 0.5;
 const MAX_MS_PER_PX = 500;
 
-export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
+export type TimelineUIStoreApi = UseBoundStore<StoreApi<TimelineUIState>>;
+
+/** Create an isolated UI store for one timeline-editor instance. */
+export const createTimelineUIStore = (): TimelineUIStoreApi =>
+  create<TimelineUIState>((set, get) => ({
   selectedClipIds: new Set(),
   hoveredClipId: null,
   activeTool: "select",
@@ -105,8 +124,6 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
   scrollLeftPx: 0,
   fullscreen: false,
   expandedFxTrackId: null,
-  assetPanelVisible: true,
-
   selectClip: (id) => set({ selectedClipIds: new Set([id]) }),
 
   addToSelection: (id) =>
@@ -134,6 +151,20 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
 
   setSelection: (ids) => set({ selectedClipIds: new Set(ids) }),
 
+  wordSelection: null,
+
+  beginWordSelection: (ref) => set({ wordSelection: { anchor: ref, focus: ref } }),
+
+  extendWordSelection: (ref) =>
+    set((state) => ({
+      wordSelection: {
+        anchor: state.wordSelection?.anchor ?? ref,
+        focus: ref
+      }
+    })),
+
+  clearWordSelection: () => set({ wordSelection: null }),
+
   setHoveredClipId: (id) => set({ hoveredClipId: id }),
 
   setZoom: (msPerPx) =>
@@ -153,29 +184,14 @@ export const useTimelineUIStore = create<TimelineUIState>((set, get) => ({
     set((state) => ({
       expandedFxTrackId:
         state.expandedFxTrackId === trackId ? null : trackId
-    })),
-
-  setAssetPanelVisible: (visible) => set({ assetPanelVisible: visible }),
-
-  toggleAssetPanel: () =>
-    set((state) => ({ assetPanelVisible: !state.assetPanelVisible }))
-}));
-
-// ── Convenience selectors ──────────────────────────────────────────────────
-
-/** Returns true when the given clip ID is selected. */
-export const useIsClipSelected = (id: string): boolean =>
-  useTimelineUIStore((state) => state.selectedClipIds.has(id));
-
-/** Returns selection state and actions with shallow equality. */
-export const useSelectionActions = () =>
-  useTimelineUIStore(
-    useShallow((state) => ({
-      selectedClipIds: state.selectedClipIds,
-      selectClip: state.selectClip,
-      addToSelection: state.addToSelection,
-      clearSelection: state.clearSelection,
-      toggleSelection: state.toggleSelection,
-      setSelection: state.setSelection
     }))
-  );
+  }));
+
+// Context-bound hooks are defined against the active instance in the instance
+// module and re-exported so existing imports keep resolving from this path.
+export {
+  useTimelineUIStore,
+  useTimelineUIStoreApi,
+  useIsClipSelected
+} from "./TimelineInstance";
+

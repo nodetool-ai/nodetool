@@ -4,11 +4,8 @@ import {
   addExposedInput,
   applyExposedPlacementTarget,
   canConfigureExposedPlacement,
-  canPromotePropertyToInputHandle,
   getEffectiveExposedPlacement,
-  getExposedInputPlacement,
   nextExposedInputPlacement,
-  removeExposedInput,
   resolveExposedInputLabeledNames,
   resolveExposedInputNames,
   resolveInlineFieldNames
@@ -28,12 +25,11 @@ const baseMetadata = (
   basic_fields: [],
   inline_fields: [],
   input_fields: [],
-  is_dynamic: false,
+  supports_dynamic_inputs: false,
   is_streaming_input: false,
   is_streaming_output: false,
   is_streaming: false,
   supports_dynamic_outputs: false,
-  expose_as_tool: false,
   layout: "default",
   ...overrides
 } as NodeMetadata);
@@ -178,22 +174,6 @@ describe("exposedInputs utility", () => {
     });
   });
 
-  describe("canPromotePropertyToInputHandle", () => {
-    it("returns false for metadata input_fields and inline_fields", () => {
-      const md = baseMetadata({
-        input_fields: ["prompt"],
-        inline_fields: ["preview"]
-      });
-      expect(canPromotePropertyToInputHandle(md, "prompt")).toBe(false);
-      expect(canPromotePropertyToInputHandle(md, "preview")).toBe(false);
-      expect(canPromotePropertyToInputHandle(md, "input_text")).toBe(true);
-    });
-
-    it("returns false when metadata is missing", () => {
-      expect(canPromotePropertyToInputHandle(undefined, "x")).toBe(false);
-    });
-  });
-
   describe("resolveExposedInputLabeledNames", () => {
     it("returns exposedInputsLabeled in order", () => {
       const data = baseData({ exposedInputsLabeled: ["prompt", "seed"] });
@@ -213,30 +193,4 @@ describe("exposedInputs utility", () => {
     });
   });
 
-  describe("getExposedInputPlacement", () => {
-    it("returns handle or labeled or null", () => {
-      const data = baseData({
-        exposedInputs: ["a"],
-        exposedInputsLabeled: ["b"]
-      });
-      expect(getExposedInputPlacement(data, "a")).toBe("handle");
-      expect(getExposedInputPlacement(data, "b")).toBe("labeled");
-      expect(getExposedInputPlacement(data, "c")).toBeNull();
-    });
-  });
-
-  describe("removeExposedInput", () => {
-    it("removes a matching entry", () => {
-      expect(removeExposedInput(["a", "b"], "a")).toEqual(["b"]);
-    });
-
-    it("returns the same reference when entry is missing", () => {
-      const list = ["a"];
-      expect(removeExposedInput(list, "missing")).toBe(list);
-    });
-
-    it("handles undefined current list", () => {
-      expect(removeExposedInput(undefined, "x")).toEqual([]);
-    });
-  });
 });

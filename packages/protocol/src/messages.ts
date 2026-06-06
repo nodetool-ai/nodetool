@@ -119,6 +119,13 @@ export interface JobUpdate {
   run_state?: RunStateInfo | null;
   duration?: number | null;
   /**
+   * 1-based position in the server's pending-run queue. Present when
+   * `status === "queued"` because the client already has
+   * `MAX_CONCURRENT_JOBS` runs in flight. The run starts automatically
+   * (a `running` update follows) once an earlier run finishes.
+   */
+  queue_position?: number | null;
+  /**
    * Per-property issues from pre-flight graph validation. Present when
    * `status === "failed"` and the failure was caused by a validation error
    * (not a runtime exception). Frontend uses this to highlight specific
@@ -138,6 +145,22 @@ export interface ProviderCost {
   provider: string;
   amount: number;
   unit: string;
+  /** Provider model / endpoint the charge applies to (e.g. a FAL endpoint id). */
+  model?: string | null;
+  /** Billing unit the provider prices by (e.g. "megapixels", "seconds", "images"). */
+  billing_unit?: string | null;
+  /** Number of billing units consumed. */
+  quantity?: number | null;
+  /** Price per billing unit, in `unit`/currency terms. */
+  unit_price?: number | null;
+  /** ISO 4217 currency of `amount`/`unit_price` (e.g. "USD"). */
+  currency?: string | null;
+  /**
+   * Provider-side request identifier (e.g. a FAL queue request id). Lets the
+   * runner reconcile the initial estimate against the provider's actual billed
+   * cost after the fact. `amount` is an estimate until reconciled.
+   */
+  provider_request_id?: string | null;
 }
 
 export interface NodeUpdate {
@@ -233,6 +256,17 @@ export interface ToolCallUpdate {
   message?: string | null;
   step_id?: string | null;
   agent_execution_id?: string | null;
+  /**
+   * The tool_call_id of an enclosing `run_subtask` call, if this event was
+   * emitted from inside a subtask. Null/undefined at the root level. Used by
+   * the renderer to nest tool-call cards.
+   */
+  parent_tool_call_id?: string | null;
+  /**
+   * Recursion depth: 0 at the chat root, 1 inside a top-level run_subtask, etc.
+   * Optional — renderers that don't care can ignore it.
+   */
+  subtask_depth?: number | null;
 }
 
 export interface ToolResultUpdate {
@@ -241,6 +275,11 @@ export interface ToolResultUpdate {
   thread_id?: string | null;
   workflow_id?: string | null;
   result: Record<string, unknown>;
+  tool_call_id?: string | null;
+  name?: string | null;
+  is_error?: boolean;
+  parent_tool_call_id?: string | null;
+  subtask_depth?: number | null;
 }
 
 export interface TaskUpdate {
@@ -283,6 +322,28 @@ export interface Chunk {
   content_metadata?: Record<string, unknown>;
   done?: boolean;
   thinking?: boolean;
+  /**
+   * The tool_call_id of an enclosing `run_subtask` call when this chunk was
+   * emitted from inside a subtask. Null/undefined at the root.
+   */
+  parent_tool_call_id?: string | null;
+  /** Recursion depth: 0 at the chat root, 1 inside run_subtask, etc. */
+  subtask_depth?: number | null;
+}
+
+export type TodoStatus = "pending" | "in_progress" | "completed";
+
+export interface TodoItem {
+  content: string;
+  status: TodoStatus;
+}
+
+export interface TodoUpdate {
+  type: "todo_update";
+  thread_id?: string | null;
+  workflow_id?: string | null;
+  node_id?: string | null;
+  todos: TodoItem[];
 }
 
 export interface Prediction {
@@ -350,7 +411,8 @@ export type UnifiedCommandType =
   | "get_asset"
   | "list_nodes"
   | "get_node"
-  | "generate_media";
+  | "generate_media"
+  | "transcribe_audio";
 
 /**
  * Read-only RPC commands that require a `request_id` and return a single
@@ -359,6 +421,7 @@ export type UnifiedCommandType =
  *
  * `generate_media` is included here because the sketch editor and other
  * non-chat callers want a single asset id back, not a streamed Message row.
+ * `transcribe_audio` likewise returns word-level caption timing in one shot.
  */
 export type RpcCommandType =
   | "list_workflows"
@@ -367,7 +430,8 @@ export type RpcCommandType =
   | "get_asset"
   | "list_nodes"
   | "get_node"
-  | "generate_media";
+  | "generate_media"
+  | "transcribe_audio";
 
 export interface WebSocketCommandEnvelope<
   C extends UnifiedCommandType = UnifiedCommandType,
@@ -547,7 +611,8 @@ export type ProcessingMessage =
   | PlanningUpdate
   | Chunk
   | Prediction
-  | LLMCallUpdate;
+  | LLMCallUpdate
+  | TodoUpdate;
 
 /**
  * Literal union of every `type` discriminator value.

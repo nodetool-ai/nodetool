@@ -215,18 +215,31 @@ export type { CaptionProps } from "./Caption";
 // Spacing utilities
 export {
   SPACING,
+  SPACING_PX,
+  SPACING_STEPS,
   GAP,
   PADDING,
   MARGIN,
   getSpacingPx,
   createPadding,
   createMargin,
-  resolveSpacing
+  resolveSpacing,
+  snapSpacing
 } from "./spacing";
 export type { SpacingValue } from "./spacing";
 
 // Design tokens
-export { MOTION, Z_INDEX, BORDER_RADIUS, scrollbarStyles, thinScrollbarStyles } from "./tokens";
+export {
+  MOTION,
+  Z_INDEX,
+  BORDER_RADIUS,
+  TYPOGRAPHY,
+  FONT_WEIGHT,
+  FONT_SIZE_SANS,
+  FONT_SIZE_MONO,
+  scrollbarStyles,
+  thinScrollbarStyles
+} from "./tokens";
 
 // Keyboard shortcuts display
 export { KeyboardShortcutCard } from "./KeyboardShortcutCard";
@@ -277,6 +290,9 @@ export type { PopoverProps, PopoverPlacement } from "./Popover";
 
 export { CollapsibleSection } from "./CollapsibleSection";
 export type { CollapsibleSectionProps } from "./CollapsibleSection";
+
+export { Collapse } from "./Collapse";
+export type { CollapseProps } from "./Collapse";
 
 export { ListGroup, ListItemRow } from "./ListGroup";
 export type { ListGroupProps, ListItemRowProps } from "./ListGroup";

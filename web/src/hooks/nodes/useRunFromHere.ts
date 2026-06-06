@@ -1,40 +1,47 @@
 import { useCallback } from "react";
-import { Node } from "@xyflow/react";
+import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useResultsStore from "../../stores/ResultsStore";
-import { useWebsocketRunner } from "../../stores/WorkflowRunner";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import useMetadataStore from "../../stores/MetadataStore";
-import { subgraph } from "../../core/graph";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
+import { runInlineGraphJob } from "../../lib/workflow/runInlineGraphJob";
+import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 
 interface UseRunFromHereReturn {
+  /** Run just this node as its own job (the "Run Node" action). */
   runFromHere: () => void;
+  /**
+   * Always false: each "Run Node" click dispatches an independent job, so the
+   * button is never disabled — the backend caps how many jobs run concurrently
+   * (MAX_CONCURRENT_JOBS) and queues the rest. Kept for the consumers that read
+   * it (NodeToolButtons, the context menu label).
+   */
   isWorkflowRunning: boolean;
 }
 
 /**
- * Hook to run a workflow starting from a specific node.
- * Extracts the downstream subgraph and injects cached values from upstream nodes.
+ * Run a single node as its own job (the "Run Node" action). Inbound edges from
+ * upstream nodes are resolved to their last cached result, so the node executes
+ * with realistic inputs even though only this one node is sent.
  *
- * @param node - The node to start execution from
- * @returns Object with runFromHere handler and workflow running state
+ * The run is dispatched as an independent job (not the shared per-workflow
+ * runner), so different nodes run in tandem. The backend caps concurrency per
+ * client (MAX_CONCURRENT_JOBS) and queues runs beyond that limit.
  */
 export function useRunFromHere(
   node: Node<NodeData> | null | undefined
 ): UseRunFromHereReturn {
-  const { nodes, edges, workflow, findNode } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-    workflow: state.workflow,
-    findNode: state.findNode
-  }), shallow);
-
-  const run = useWebsocketRunner((state) => state.run);
-  const isWorkflowRunning = useWebsocketRunner(
-    (state) => state.state === "running"
+  const { edges, workflow, findNode } = useNodes(
+    (state) => ({
+      edges: state.edges,
+      workflow: state.workflow,
+      findNode: state.findNode
+    }),
+    shallow
   );
   const getResult = useResultsStore((state) => state.getResult);
   const metadata = useMetadataStore((state) =>
@@ -45,123 +52,74 @@ export function useRunFromHere(
   );
 
   const runFromHere = useCallback(() => {
-    if (!node || isWorkflowRunning) {
+    if (!node || !workflow) {
       return;
     }
 
-    const nodeId = node.id;
-    const downstream = subgraph(edges, nodes, node);
-    const subgraphNodeIds = new Set(downstream.nodes.map((n) => n.id));
-
-    const externalInputEdges = edges.filter(
-      (edge) =>
-        subgraphNodeIds.has(edge.target) && !subgraphNodeIds.has(edge.source)
+    // Seed inputs from the workflow's focused run; if nothing has run there's
+    // no focused job and the store read yields undefined (literal-source
+    // fallback still applies).
+    const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
+      workflow.id
     );
+    const getResultForFocusedJob = (wf: string, src: string): unknown =>
+      focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
 
-    const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
-
-    for (const edge of externalInputEdges) {
-      const sourceNodeId = edge.source;
-      const sourceHandle = edge.sourceHandle;
-      const targetNodeId = edge.target;
-      const targetHandle = edge.targetHandle;
-
-      if (!targetHandle) {
+    const inbound = edges.filter((edge: Edge) => edge.target === node.id);
+    const overrides: Record<string, unknown> = {};
+    for (const edge of inbound) {
+      if (!edge.targetHandle) {
         continue;
       }
-
-      const { value, hasValue, isFallback } = resolveExternalEdgeValue(
+      const { value, hasValue } = resolveExternalEdgeValue(
         edge,
         workflow.id,
-        getResult,
+        getResultForFocusedJob,
         findNode
       );
-      if (!hasValue) {
-        continue;
+      if (hasValue) {
+        overrides[edge.targetHandle] = value;
       }
-
-      const existing = nodePropertyOverrides.get(targetNodeId) || {};
-      existing[targetHandle] = value;
-      nodePropertyOverrides.set(targetNodeId, existing);
-
-      console.info(
-        `Run from here: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
-        {
-          sourceHandle,
-          valueSource: isFallback ? "node" : "cached_result"
-        }
-      );
     }
 
-    const nodesWithCachedValues = downstream.nodes.map((n) => {
-      const overrides = nodePropertyOverrides.get(n.id);
-      if (overrides && Object.keys(overrides).length > 0) {
-        const dynamicProps = n.data?.dynamic_properties || {};
-        const staticProps = n.data?.properties || {};
-        const updatedDynamicProps = { ...dynamicProps };
-        const updatedStaticProps = { ...staticProps };
-
-        for (const [key, value] of Object.entries(overrides)) {
-          if (Object.prototype.hasOwnProperty.call(dynamicProps, key)) {
-            updatedDynamicProps[key] = value;
-          } else {
-            updatedStaticProps[key] = value;
-          }
-        }
-
-        return {
-          ...n,
-          data: {
-            ...n.data,
-            properties: {
-              ...updatedStaticProps
-            },
-            dynamic_properties: {
-              ...updatedDynamicProps
-            }
-          }
-        };
+    const dynamicProps = node.data?.dynamic_properties || {};
+    const staticProps = node.data?.properties || {};
+    const updatedDynamic = { ...dynamicProps };
+    const updatedStatic = { ...staticProps };
+    for (const [key, value] of Object.entries(overrides)) {
+      if (Object.prototype.hasOwnProperty.call(dynamicProps, key)) {
+        updatedDynamic[key] = value;
+      } else {
+        updatedStatic[key] = value;
       }
-      return n;
-    });
+    }
 
-    const nodesWithOverrides = nodePropertyOverrides.size;
-    const totalPropertiesInjected = Array.from(
-      nodePropertyOverrides.values()
-    ).reduce((sum, props) => sum + Object.keys(props).length, 0);
+    const nodeWithOverrides: Node<NodeData> = {
+      ...node,
+      data: {
+        ...node.data,
+        properties: updatedStatic,
+        dynamic_properties: updatedDynamic
+      }
+    };
 
-    console.info("Running downstream subgraph from node", {
-      startNodeId: nodeId,
-      nodeCount: nodesWithCachedValues.length,
-      edgeCount: downstream.edges.length,
-      nodesWithCachedDependencies: nodesWithOverrides,
-      totalCachedPropertiesInjected: totalPropertiesInjected
-    });
+    const graph = {
+      nodes: [reactFlowNodeToGraphNode(nodeWithOverrides)],
+      edges: []
+    };
 
-    run({}, workflow, nodesWithCachedValues, downstream.edges, undefined, subgraphNodeIds);
+    // Independent job; the backend runs it immediately when under the
+    // per-client concurrency cap (MAX_CONCURRENT_JOBS), otherwise queues it.
+    const jobName =
+      node.data?.title?.trim() || metadata?.title || node.type || undefined;
+    void runInlineGraphJob({ graph, workflowId: workflow.id, jobName });
 
     addNotification({
       type: "info",
       alert: false,
-      content: `Running workflow from ${
-        metadata?.title || node?.type || "node"
-      }`
+      content: `Running ${metadata?.title || node.type || "node"}`
     });
-  }, [
-    node,
-    isWorkflowRunning,
-    edges,
-    nodes,
-    workflow,
-    getResult,
-    run,
-    addNotification,
-    metadata,
-    findNode
-  ]);
+  }, [node, edges, workflow, getResult, findNode, metadata, addNotification]);
 
-  return {
-    runFromHere,
-    isWorkflowRunning
-  };
+  return { runFromHere, isWorkflowRunning: false };
 }

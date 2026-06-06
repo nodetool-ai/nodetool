@@ -38,7 +38,7 @@ import {
   MemoryListTool,
   MemoryReadTool
 } from "./tools/memory-tools.js";
-import type { Tool } from "./tools/base-tool.js";
+import { Tool } from "./tools/base-tool.js";
 import type { TaskPlan } from "./types.js";
 
 const log = createLogger("nodetool.agents.compiler-agent");
@@ -68,7 +68,10 @@ job is to synthesize the gathered results into the final deliverable.
 - If the gathered information is insufficient, still produce the best
   schema-conformant result you can from what is available. Do not invent
   facts that are not in memory.
-- Do not reveal chain-of-thought or internal reasoning.`;
+- Do not reveal chain-of-thought or internal reasoning.
+
+# User-Facing Status
+- Every tool's input schema includes a \`_message\` string field. Set it on EVERY call to a short (5-12 words), present-continuous status describing what you're doing (e.g. "Listing available task results", "Reading research summaries", "Compiling final answer"). This is shown live in the UI.`;
 
 const COMPILER_SYSTEM_PROMPT_PROSE = `# Role
 You are the Compiler. The plan has finished gathering information; your only
@@ -87,7 +90,10 @@ user.
 - Preserve every concrete artifact (URLs, asset IDs, file paths, tables,
   key facts). Never paraphrase them away.
 - Do not mention task IDs or internal plan structure to the user.
-- Do not reveal chain-of-thought or internal reasoning.`;
+- Do not reveal chain-of-thought or internal reasoning.
+
+# User-Facing Status
+- Every tool's input schema includes a \`_message\` string field. Set it on EVERY call to a short (5-12 words), present-continuous status describing what you're doing (e.g. "Listing available task results", "Reading research summaries"). This is shown live in the UI.`;
 
 export interface CompilerAgentOptions {
   objective: string;
@@ -308,7 +314,7 @@ export class CompilerAgent {
           node_id: "compiler",
           name: finishCall.name,
           args: finishCall.args,
-          message: "Finalizing result"
+          message: Tool.extractMessage(finishCall.args) ?? "Finalizing result"
         } satisfies ToolCallUpdate;
 
         const resultPayload =
@@ -351,10 +357,13 @@ export class CompilerAgent {
             node_id: "compiler",
             name: tc.name,
             args: tc.args,
-            message: tool.userMessage(tc.args ?? {})
+            message: Tool.resolveMessage(tool, tc.args)
           } satisfies ToolCallUpdate;
           try {
-            const result = await tool.process(this.context, tc.args ?? {});
+            const result = await tool.process(
+              this.context,
+              Tool.stripMessage(tc.args)
+            );
             serialized =
               typeof result === "string" ? result : JSON.stringify(result);
             if (serialized.length > MAX_TOOL_RESULT_CHARS) {

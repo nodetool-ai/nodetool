@@ -39,7 +39,7 @@ export interface RankConfig<T> {
   tieBreak?: (a: T, b: T) => number;
 }
 
-export interface Scored<T> {
+interface Scored<T> {
   item: T;
   score: number;
 }

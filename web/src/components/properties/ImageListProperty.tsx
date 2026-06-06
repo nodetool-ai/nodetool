@@ -88,7 +88,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".remove-button .MuiSvgIcon-root": {
-      fontSize: "14px"
+      fontSize: "var(--fontSizeNormal)"
     },
     ".dropzone": {
       position: "relative",
@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       textTransform: "uppercase",
       letterSpacing: "1px",
-      fontSize: "10px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       margin: "1em",
       lineHeight: "1.1em"
@@ -488,7 +488,7 @@ const ImageListProperty = (props: PropertyProps) => {
                     }
                   }}
                   src={image.uri}
-                  alt={`Image ${index + 1}`}
+                  alt={`Item ${index + 1}`}
                   draggable={false}
                   onLoad={loadHandlers[image.uri]}
                 />
@@ -513,8 +513,11 @@ const ImageListProperty = (props: PropertyProps) => {
       {/* Dropzone */}
       <Tooltip title="Click to select images or drag and drop">
         <div
+          role="button"
+          tabIndex={0}
           className={`dropzone ${isDragOver ? "drag-over" : ""}`}
           onClick={handleDropzoneClick}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleDropzoneClick(); } }}
           onDragOver={onDragOver}
           onDragLeave={handleDragLeave}
           onDrop={onDrop}

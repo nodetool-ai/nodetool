@@ -9,24 +9,28 @@ import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useEffect, useMemo } from "react";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
-import AgentPanel from "./AgentPanel";
+import TimelineListPanel, { CreateTimelineButton } from "../timeline/TimelineListPanel";
+import SketchListPanel, { CreateSketchButton } from "../sketch/SketchListPanel";
+import PanelChat from "../chat/containers/PanelChat";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
-import QuickAccessGrid from "../node_menu/QuickAccessGrid";
+import NodeLibrary from "../node_menu/NodeLibrary";
+import RailAppMenu from "./RailAppMenu";
 
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import {
   LeftPanelView,
   NodeCategoryId,
   usePanelStore
 } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import {
   LEFT_PANEL_TOP_LEVEL,
   getTopLevelCategory
@@ -42,10 +46,26 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
 
-import { Fullscreen } from "@mui/icons-material";
+import { Fullscreen, OpenInFull } from "@mui/icons-material";
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;
+
+// On the global chat route the rail only offers Assets — everything else is
+// hidden (stable reference for memo).
+const CHAT_ROUTE_HIDDEN_VIEWS: readonly LeftPanelView[] = LEFT_PANEL_TOP_LEVEL.filter(
+  (cat) => cat.id !== "assets"
+).map((cat) => cat.id);
+
+const WORKFLOW_EDIT_ONLY_VIEWS: readonly LeftPanelView[] = [
+  "nodes",
+  "settings",
+  "history",
+  "favorites"
+];
+
+const isWorkflowEditOnlyView = (view: string): view is LeftPanelView =>
+  (WORKFLOW_EDIT_ONLY_VIEWS as readonly string[]).includes(view);
 
 const styles = (
   theme: Theme,
@@ -60,14 +80,17 @@ const styles = (
   return css({
     position: "fixed",
     left: 0,
-    top: `${headerHeight}px`,
-    height: `calc(100vh - ${headerHeight}px)`,
+    // In the workspace shell the rail runs full-height (top 0) with the top
+    // bar inset to its right. Legacy layouts have no var and keep their offset.
+    top: `var(--workspace-rail-top, ${headerHeight}px)`,
+    height: `calc(100vh - var(--workspace-rail-top, ${headerHeight}px))`,
     display: "flex",
     flexDirection: "row",
     zIndex: 1100,
 
     ".drawer-content": {
-      height: "100%",
+      marginTop: "40px",
+      height: "calc(100% - 40px)",
       backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "4px 0 8px rgba(0, 0, 0, 0.05)",
@@ -127,7 +150,7 @@ const styles = (
           "background-color 140ms ease-out, color 140ms ease-out",
 
         "& svg": {
-          fontSize: "1.125rem",
+          fontSize: "var(--fontSizeBig)",
           color: theme.vars.palette.text.secondary,
           transition: "color 140ms ease-out"
         },
@@ -159,6 +182,11 @@ const styles = (
       height: "100%",
       overflow: "hidden",
       padding: isMobile ? 0 : "0 0.75em"
+    },
+    // The node library manages its own internal spacing and its info strip
+    // bleeds to the panel borders, so it forgoes the shared horizontal padding.
+    "&.is-nodes .panel-inner-content": {
+      padding: 0
     }
   });
 };
@@ -166,11 +194,15 @@ const styles = (
 const VerticalToolbar = memo(function VerticalToolbar({
   activeView,
   onViewChange,
-  handlePanelToggle
+  handlePanelToggle,
+  showAppMenu = false,
+  hiddenViews
 }: {
   activeView: string;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: () => void;
+  showAppMenu?: boolean;
+  hiddenViews?: readonly LeftPanelView[];
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
@@ -183,9 +215,16 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
   return (
     <div className="vertical-toolbar">
+      {showAppMenu && (
+        <>
+          <RailAppMenu />
+          <div className="toolbar-divider" aria-hidden />
+        </>
+      )}
       <QuickAccessSidebar
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
+        hiddenViews={hiddenViews}
       />
       <div style={{ flexGrow: 1 }} />
       <div className="toolbar-divider" aria-hidden />
@@ -231,22 +270,17 @@ const PanelContent = memo(function PanelContent({
     handlePanelToggle("assets");
   }, [navigate, handlePanelToggle]);
 
+  const handleOpenChatRoute = useCallback(() => {
+    navigate("/chat");
+  }, [navigate]);
+
   if (activeView === "nodes") {
     return (
-      <FlexColumn
-        fullWidth
-        fullHeight
-        sx={{
-          overflow: "hidden",
-          margin: isMobile ? "0" : "0 0.5em"
-        }}
-      >
-        {!isMobile && <PanelHeadline title="Nodes" />}
-        <QuickAccessGrid
-          activeSubcategory={activeNodeCategory}
-          onSubcategoryChange={setActiveNodeCategory}
-        />
-      </FlexColumn>
+      <NodeLibrary
+        activeSubcategory={activeNodeCategory}
+        onSubcategoryChange={setActiveNodeCategory}
+        isMobile={isMobile}
+      />
     );
   }
 
@@ -317,7 +351,6 @@ const PanelContent = memo(function PanelContent({
           fullWidth
           fullHeight
           sx={{
-            margin: isMobile ? "0" : "0 1em",
             overflow: "hidden"
           }}
         >
@@ -330,6 +363,42 @@ const PanelContent = memo(function PanelContent({
           <ScrollArea fullHeight>
             <WorkflowList />
           </ScrollArea>
+        </FlexColumn>
+      )}
+      {activeView === "sketches" && (
+        <FlexColumn
+          className="sketch-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Sketches"
+              actions={<CreateSketchButton />}
+            />
+          )}
+          <SketchListPanel />
+        </FlexColumn>
+      )}
+      {activeView === "timelines" && (
+        <FlexColumn
+          className="timeline-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Timelines"
+              actions={<CreateTimelineButton />}
+            />
+          )}
+          <TimelineListPanel />
         </FlexColumn>
       )}
       {activeView === "settings" && currentWorkflow && (
@@ -354,8 +423,22 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          {!isMobile && <PanelHeadline title="Agent" />}
-          <AgentPanel />
+          {!isMobile && (
+            <PanelHeadline
+              title="Agent"
+              actions={
+                <Tooltip title="Open in full chat" placement="right-start">
+                  <ToolbarIconButton
+                    onClick={handleOpenChatRoute}
+                    tabIndex={-1}
+                    ariaLabel="Open in full chat"
+                    icon={<OpenInFull />}
+                  />
+                </Tooltip>
+              }
+            />
+          )}
+          <PanelChat />
         </FlexColumn>
       )}
     </>
@@ -392,7 +475,7 @@ const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
       }
     },
     "& svg": {
-      fontSize: "1.25rem"
+      fontSize: "var(--fontSizeBig)"
     }
   });
 
@@ -415,7 +498,7 @@ const mobileHeaderExtrasStyles = (theme: Theme) =>
         boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}44 inset`
       },
       "& svg": {
-        fontSize: "1.1rem"
+        fontSize: "var(--fontSizeBig)"
       }
     }
   });
@@ -459,7 +542,7 @@ const MobilePanelLeft: React.FC<{
         className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
         css={mobileLauncherStyles(theme, hasHeader)}
         onClick={isVisible ? onClose : onOpen}
-        ariaLabel={isVisible ? "Close panel" : "Open workflows panel"}
+        ariaLabel={isVisible ? "Close panel" : "Open left panel"}
         aria-expanded={isVisible}
         tabIndex={-1}
         icon={<MenuIcon />}
@@ -469,7 +552,7 @@ const MobilePanelLeft: React.FC<{
         open={isVisible}
         onClose={onClose}
         title={launcherTitle}
-        ariaLabel="Workflows and assets panel"
+        ariaLabel="Workflows, sketches, timelines, and assets panel"
         headerExtras={
           <div css={mobileHeaderExtrasStyles(theme)}>
             <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
@@ -479,6 +562,24 @@ const MobilePanelLeft: React.FC<{
                 ariaLabel="Show workflows"
                 tabIndex={-1}
                 icon={<GridViewIcon />}
+              />
+            </Tooltip>
+            <Tooltip title="Sketches" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+              <ToolbarIconButton
+                className={`tab-button ${activeView === "sketches" ? "active" : ""}`}
+                onClick={() => handleSheetViewChange("sketches")}
+                ariaLabel="Show sketches"
+                tabIndex={-1}
+                icon={<IconForType iconName="image" showTooltip={false} iconSize="small" />}
+              />
+            </Tooltip>
+            <Tooltip title="Timelines" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+              <ToolbarIconButton
+                className={`tab-button ${activeView === "timelines" ? "active" : ""}`}
+                onClick={() => handleSheetViewChange("timelines")}
+                ariaLabel="Show timelines"
+                tabIndex={-1}
+                icon={<IconForType iconName="video" showTooltip={false} iconSize="small" />}
               />
             </Tooltip>
             <Tooltip title="Assets" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
@@ -493,6 +594,8 @@ const MobilePanelLeft: React.FC<{
 
             <Box sx={{ flex: 1 }} />
             {activeView === "workflows" && <CreateWorkflowButton />}
+            {activeView === "sketches" && <CreateSketchButton />}
+            {activeView === "timelines" && <CreateTimelineButton />}
           </div>
         }
       >
@@ -524,11 +627,27 @@ const PanelLeft: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
+  const activeWorkspaceTab = useWorkspaceTabsStore((state) => {
+    const activeTabId = state.activeTabId;
+    return state.tabs.find((tab) => tab.id === activeTabId) ?? null;
+  });
 
   const isStandaloneMode =
     location.pathname.startsWith("/standalone-chat") ||
     location.pathname.startsWith("/miniapp");
-  const hasHeader = !isStandaloneMode;
+  // The rail owns the app menu (logo) only in the unified workspace shell;
+  // legacy routes still carry it in AppHeader.
+  const isWorkspace = location.pathname.startsWith("/workspace");
+  // On the global chat route the chat owns the screen and renders its own
+  // conversation sidebar, so the rail's "Agent" entry is redundant. The chat
+  // route also drops the AppHeader, so the rail runs full-height there.
+  const isChatRoute = location.pathname.startsWith("/chat");
+  const isWorkflowEditActive =
+    location.pathname.startsWith("/editor/") ||
+    (location.pathname.startsWith("/workspace") &&
+      activeWorkspaceTab?.type === "workflow" &&
+      activeWorkspaceTab.mode === "edit");
+  const hasHeader = !isStandaloneMode && !isChatRoute;
 
   const {
     ref: panelRef,
@@ -550,27 +669,57 @@ const PanelLeft: React.FC = () => {
     (state) => state.setActiveNodeCategory
   );
   const setVisibility = usePanelStore((state) => state.setVisibility);
+  const setActiveView = usePanelStore((state) => state.setActiveView);
+
+  const displayActiveView: LeftPanelView =
+    isWorkflowEditOnlyView(activeView) && !isWorkflowEditActive
+      ? "workflows"
+      : (activeView as LeftPanelView);
+
+  const hiddenViews = useMemo<readonly LeftPanelView[] | undefined>(() => {
+    if (isChatRoute) {
+      return CHAT_ROUTE_HIDDEN_VIEWS;
+    }
+    return isWorkflowEditActive ? undefined : WORKFLOW_EDIT_ONLY_VIEWS;
+  }, [isChatRoute, isWorkflowEditActive]);
 
   const onViewChange = useCallback(
     (view: LeftPanelView) => {
+      if (isWorkflowEditOnlyView(view) && !isWorkflowEditActive) {
+        return;
+      }
       handlePanelToggle(view);
     },
-    [handlePanelToggle]
+    [handlePanelToggle, isWorkflowEditActive]
   );
 
   const handlePanelToggleClick = useCallback(() => {
-    handlePanelToggle(activeView);
-  }, [handlePanelToggle, activeView]);
+    handlePanelToggle(displayActiveView);
+  }, [handlePanelToggle, displayActiveView]);
 
   const handleMobileOpen = useCallback(() => {
-    handlePanelToggle(activeView);
-  }, [handlePanelToggle, activeView]);
+    handlePanelToggle(displayActiveView);
+  }, [handlePanelToggle, displayActiveView]);
 
   const handleMobileClose = useCallback(() => {
     setVisibility(false);
   }, [setVisibility]);
 
-  const isChatRoute = location.pathname.startsWith("/chat");
+  // Entering the chat route collapses the rail — the chat takes the full
+  // screen there and provides its own conversation sidebar. Runs once per
+  // route entry, so manually re-opening the panel afterwards is respected.
+  useEffect(() => {
+    if (isChatRoute) {
+      setVisibility(false);
+    }
+  }, [isChatRoute, setVisibility]);
+
+  useEffect(() => {
+    if (!isWorkflowEditActive && isWorkflowEditOnlyView(activeView)) {
+      setActiveView("workflows");
+    }
+  }, [activeView, isWorkflowEditActive, setActiveView]);
+
   if (isMobile && isChatRoute) {
     return null;
   }
@@ -578,7 +727,7 @@ const PanelLeft: React.FC = () => {
   if (isMobile) {
     return (
       <MobilePanelLeft
-        activeView={activeView as LeftPanelView}
+        activeView={displayActiveView}
         activeNodeCategory={activeNodeCategory}
         setActiveNodeCategory={setActiveNodeCategory}
         isVisible={isVisible}
@@ -592,19 +741,28 @@ const PanelLeft: React.FC = () => {
   }
 
   return (
-    <div css={styles(theme, hasHeader, false)} className="panel-left-container">
+    <div
+      css={styles(theme, hasHeader, false)}
+      className={`panel-left-container ${
+        displayActiveView === "nodes" ? "is-nodes" : ""
+      }`}
+    >
       <ContextMenuProvider>
         <ContextMenus />
         <VerticalToolbar
-          activeView={activeView}
+          activeView={displayActiveView}
           onViewChange={onViewChange}
           handlePanelToggle={handlePanelToggleClick}
+          showAppMenu={isWorkspace || isChatRoute}
+          hiddenViews={hiddenViews}
         />
 
         {isVisible && (
           <div
             ref={panelRef}
             className={`drawer-content ${isDragging ? "dragging" : ""}`}
+            role="region"
+            aria-label="Left panel"
             style={{
               width: `${Math.max(panelSize - TOOLBAR_WIDTH, 250)}px`,
               minWidth: "250px"
@@ -612,7 +770,10 @@ const PanelLeft: React.FC = () => {
             onKeyDown={(e) => {
               if (
                 e.key === "Escape" &&
-                (activeView === "nodes" || activeView === "workflows")
+                (displayActiveView === "nodes" ||
+                  displayActiveView === "workflows" ||
+                  displayActiveView === "sketches" ||
+                  displayActiveView === "timelines")
               ) {
                 e.stopPropagation();
                 setVisibility(false);
@@ -624,11 +785,14 @@ const PanelLeft: React.FC = () => {
               onMouseDown={handleMouseDown}
               role="slider"
               aria-label="Resize panel"
+              aria-valuenow={panelSize}
+              aria-valuemin={60}
+              aria-valuemax={800}
               tabIndex={-1}
             />
             <div className="panel-inner-content">
               <PanelContent
-                activeView={activeView}
+                activeView={displayActiveView}
                 activeNodeCategory={activeNodeCategory}
                 setActiveNodeCategory={setActiveNodeCategory}
                 handlePanelToggle={handlePanelToggle}

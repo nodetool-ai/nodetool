@@ -34,7 +34,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-start",
-      gap: theme.spacing(0.25)
+      gap: theme.spacing(0.5)
     },
     ".handle-only": {
       position: "relative",

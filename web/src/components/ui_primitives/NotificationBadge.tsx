@@ -36,7 +36,7 @@ export interface NotificationBadgeProps {
 const styles = (theme: Theme, animate: boolean) => css`
   .notification-badge {
     .MuiBadge-badge {
-      font-size: 11px;
+      font-size: var(--fontSizeSmaller);
       font-weight: 600;
       min-width: 18px;
       height: 18px;

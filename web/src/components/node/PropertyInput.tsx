@@ -3,41 +3,11 @@ import { css } from "@emotion/react";
 import React, { useCallback, createElement, memo, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
-import PropertyLabel from "./PropertyLabel";
 import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
-import { isCollectType } from "../../utils/TypeHandler";
 import useContextMenu from "../../stores/ContextMenuStore";
-import reduceUnionType from "../../hooks/reduceUnionType";
 import StringProperty from "../properties/StringProperty";
-import TextProperty from "../properties/TextProperty";
-import ImageProperty from "../properties/ImageProperty";
-import AudioProperty from "../properties/AudioProperty";
-import VideoProperty from "../properties/VideoProperty";
-import Model3DProperty from "../properties/Model3DProperty";
-import IntegerProperty from "../properties/IntegerProperty";
-import FloatProperty from "../properties/FloatProperty";
-import EnumProperty from "../properties/EnumProperty";
-import BoolProperty from "../properties/BoolProperty";
-import ListProperty from "../properties/ListProperty";
-import FileProperty from "../properties/FileProperty";
-import AssetProperty from "../properties/AssetProperty";
-import FolderProperty from "../properties/FolderProperty";
-import WorkflowProperty from "../properties/WorkflowProperty";
-import WorkflowListProperty from "../properties/WorkflowListProperty";
-import ToolsListProperty from "../properties/ToolsListProperty";
 import DataframeProperty from "../properties/DataframeProperty";
-import DictProperty from "../properties/DictProperty";
-import RecordTypeProperty from "../properties/RecordTypeProperty";
-import ModelProperty from "../properties/ModelProperty";
 import isEqual from "fast-deep-equal";
-import ColorProperty from "../properties/ColorProperty";
-import FilePathProperty from "../properties/FilePathProperty";
-import CollectionProperty from "../properties/CollectionProperty";
-import FolderPathProperty from "../properties/FolderPathProperty";
-import DocumentProperty from "../properties/DocumentProperty";
-import FontProperty from "../properties/FontProperty";
-import SelectProperty from "../properties/SelectProperty";
-import ImageSizeProperty from "../properties/ImageSizeProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
@@ -46,27 +16,13 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
-import StringListProperty from "../properties/StringListProperty";
-import ImageListProperty from "../properties/ImageListProperty";
-import VideoListProperty from "../properties/VideoListProperty";
-import VideoClipListProperty from "../properties/VideoClipListProperty";
-import AudioListProperty from "../properties/AudioListProperty";
-import TextListProperty from "../properties/TextListProperty";
 import useMetadataStore from "../../stores/MetadataStore";
-import InferenceProviderModelSelect from "../properties/InferenceProviderModelSelect";
-import {
-  MediaAspectRatioImageProperty,
-  MediaAspectRatioVideoProperty,
-  MediaResolutionImageProperty,
-  MediaResolutionVideoProperty,
-  MediaDurationProperty,
-  MediaStrengthProperty
-} from "../properties/MediaPickerProperties";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
 import { useInputNodeAutoRun } from "../../hooks/nodes/useInputNodeAutoRun";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../../utils/codeOutputInference";
 import { InspectorHeaderResetProvider } from "../../contexts/InspectorPropertyHeaderContext";
+import { getComponentForProperty } from "./PropertyInput.resolver";
 import type { PropertyProps } from "./PropertyInput.types";
 
 export type { PropertyProps } from "./PropertyInput.types";
@@ -80,6 +36,12 @@ const propertyInputContainerStyles = (theme: Theme) =>
     "&.property-input-container": {
       position: "relative",
       minHeight: 0
+    },
+    // Editor is driven by a connected input edge — dim it and block
+    // interaction (the inner `inert` subtree removes it from the tab order).
+    ".property-connected-disabled": {
+      opacity: 0.5,
+      cursor: "not-allowed"
     },
     // Changed-value bar is painted on `.node-property` in properties.css
     // (class kept for :has() + numberInputStyles).
@@ -124,7 +86,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
     },
 
     ".action-icon": {
-      fontSize: "1.25rem",
+      fontSize: "var(--fontSizeBig)",
       cursor: "pointer",
       padding: 4,
       borderRadius: "var(--rounded-sm)",
@@ -160,7 +122,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
         color: theme.vars.palette.primary.main,
       },
       "& svg": {
-        fontSize: "0.85rem",
+        fontSize: "var(--fontSizeNormal)",
       },
     },
 
@@ -178,228 +140,6 @@ const propertyInputContainerStyles = (theme: Theme) =>
       fontSize: "inherit"
     }
   });
-
-function InputProperty(props: PropertyProps) {
-  const id = `edge-${props.property.name}-${props.propertyIndex}`;
-
-  return (
-    <>
-      <PropertyLabel
-        name={props.property.name}
-        description={props.property.description}
-        id={id}
-        handleTooltipType={props.property.type}
-        handleTooltipPosition="left"
-        isCollectInput={isCollectType(props.property.type)}
-      />
-    </>
-  );
-}
-
-export function getComponentForProperty(
-  property: Property
-): React.ComponentType<PropertyProps> {
-  // Dynamic schemas (e.g. FalAI) may attach `values` or `enum` directly to the
-  // property object rather than inside `property.type`.
-  const propertyWithExtras = property as Property & {
-    values?: (string | number)[];
-    enum?: (string | number)[];
-  };
-
-  // Explicit `json_schema_extra.type` opts into a custom renderer regardless
-  // of base type or attached enum values (e.g. media_aspect_ratio_image
-  // wants the chip-style picker even though `values` is set).
-  if (property.json_schema_extra?.type) {
-    const overrideComponent = customComponentForType(
-      property.json_schema_extra.type as string
-    );
-    if (overrideComponent) {
-      return overrideComponent;
-    }
-  }
-
-  // If property has predefined values, treat it as an enum/select
-  // regardless of base type (often comes as 'str' from dynamic schemas)
-  const hasValues = (property.type.values && property.type.values.length > 0) ||
-                    (property.type.type_args?.[0]?.values && property.type.type_args[0].values.length > 0) ||
-                    (propertyWithExtras.values && propertyWithExtras.values.length > 0) ||
-                    (propertyWithExtras.enum && propertyWithExtras.enum.length > 0);
-
-  if (hasValues) {
-    return EnumProperty;
-  }
-
-  if (property.json_schema_extra?.type) {
-    return componentForType(property.json_schema_extra.type as string);
-  }
-
-  switch (property.type.type) {
-    case "union":
-      return handleUnionType(property);
-    case "list":
-      return handleListType(property);
-    default:
-      return componentForType(property.type.type);
-  }
-}
-
-function customComponentForType(
-  type: string
-): React.ComponentType<PropertyProps> | null {
-  switch (type) {
-    case "media_aspect_ratio_image":
-      return MediaAspectRatioImageProperty;
-    case "media_aspect_ratio_video":
-      return MediaAspectRatioVideoProperty;
-    case "media_resolution_image":
-      return MediaResolutionImageProperty;
-    case "media_resolution_video":
-      return MediaResolutionVideoProperty;
-    case "media_duration":
-      return MediaDurationProperty;
-    case "media_strength":
-      return MediaStrengthProperty;
-    default:
-      return null;
-  }
-}
-
-function componentForType(type: string): React.ComponentType<PropertyProps> {
-  switch (type) {
-    case "str":
-      return StringProperty;
-    case "text":
-      return TextProperty;
-    case "int":
-      return IntegerProperty;
-    case "float":
-      return FloatProperty;
-    case "bool":
-      return BoolProperty;
-    case "dict":
-      return DictProperty;
-    case "color":
-      return ColorProperty;
-    case "image":
-      return ImageProperty;
-    case "image_size":
-      return ImageSizeProperty;
-    case "image_list":
-      return ImageListProperty;
-    case "video_list":
-      return VideoListProperty;
-    case "video_clip_list":
-      return VideoClipListProperty;
-    case "audio_list":
-      return AudioListProperty;
-    case "text_list":
-      return TextListProperty;
-    case "audio":
-      return AudioProperty;
-    case "video":
-      return VideoProperty;
-    case "model_3d":
-      return Model3DProperty;
-    case "collection":
-      return CollectionProperty;
-    case "json":
-      return JSONProperty;
-    case "document":
-      return DocumentProperty;
-    case "enum":
-      return EnumProperty;
-    case "file":
-      return FileProperty;
-    case "file_path":
-      return FilePathProperty;
-    case "folder_path":
-      return FolderPathProperty;
-    case "folder":
-      return FolderProperty;
-    case "asset":
-      return AssetProperty;
-    case "select":
-      return SelectProperty;
-    case "workflow":
-      return WorkflowProperty;
-    case "dataframe":
-      return DataframeProperty;
-    case "record_type":
-      return RecordTypeProperty;
-    case "font":
-      return FontProperty;
-    case "inference_provider_automatic_speech_recognition_model":
-    case "inference_provider_audio_classification_model":
-    case "inference_provider_image_classification_model":
-    case "inference_provider_text_classification_model":
-    case "inference_provider_summarization_model":
-    case "inference_provider_text_to_image_model":
-    case "inference_provider_translation_model":
-    case "inference_provider_text_to_text_model":
-    case "inference_provider_text_to_speech_model":
-    case "inference_provider_text_to_audio_model":
-    case "inference_provider_text_generation_model":
-    case "inference_provider_image_to_image_model":
-    case "inference_provider_image_segmentation_model":
-      return InferenceProviderModelSelect;
-    default:
-      return handleModelTypes(type);
-  }
-}
-
-function handleUnionType(
-  property: Property
-): React.ComponentType<PropertyProps> {
-  const reducedType = reduceUnionType(property.type);
-  return getComponentForProperty({
-    ...property,
-    type: {
-      ...property.type,
-      type: reducedType,
-    }
-  });
-}
-
-function handleListType(
-  property: Property
-): React.ComponentType<PropertyProps> {
-  const type_args = property.type?.type_args;
-  if (type_args && type_args.length > 0) {
-    switch (type_args[0].type) {
-      case "workflow":
-        return WorkflowListProperty;
-      case "tool_name":
-        return ToolsListProperty;
-      case "str":
-        return StringListProperty;
-      case "image":
-        return ImageListProperty;
-      case "video":
-        return VideoListProperty;
-      case "audio":
-        return AudioListProperty;
-      case "text":
-        return TextListProperty;
-    }
-  }
-  return ListProperty;
-}
-
-function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
-  const modelPrefixes = ["comfy.", "hf.", "tjs."];
-
-  if (type.endsWith("_model")) {
-    return ModelProperty;
-  }
-
-  for (const prefix of modelPrefixes) {
-    if (type.startsWith(prefix)) {
-      return ModelProperty;
-    }
-  }
-
-  return InputProperty;
-}
 
 /**
  * Get the component for the property.
@@ -432,6 +172,8 @@ export type PropertyInputProps = {
   tabIndex?: number;
   isDynamicProperty?: boolean;
   hideActionIcons?: boolean;
+  /** True when an edge is connected to this property's target handle. */
+  isConnected?: boolean;
   onValueChange?: (value: any) => void;
 };
 
@@ -448,6 +190,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   hideActionIcons,
   isInspector,
   inspectorBatchNodeIds,
+  isConnected,
   onValueChange
 }: PropertyInputProps) => {
   const theme = useTheme();
@@ -702,6 +445,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       inputField = (
         <form onSubmit={handleNameSubmit} className="property-input-form">
           <input
+            aria-label="Property name"
             value={editedName}
             onChange={handleNameChange}
             onBlur={handleNameSubmit}
@@ -754,7 +498,10 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         <span className="property-reset-anchor">
           <div
             className={`reset-button${isChanged ? " is-active" : ""}`}
+            role={isChanged ? "button" : undefined}
+            tabIndex={isChanged ? 0 : undefined}
             onClick={isChanged ? handleResetToDefault : undefined}
+            onKeyDown={isChanged ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleResetToDefault(); } } : undefined}
             aria-hidden={!isChanged}
           >
             <SettingsBackupRestoreIcon />
@@ -800,7 +547,16 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       onDoubleClick={handleDoubleClick}
     >
       <PropertyHandleTooltipContext.Provider value={property.type}>
-        {inputField}
+        {isConnected ? (
+          <div
+            className="property-connected-disabled"
+            title="Driven by a connected input — disconnect the edge to edit"
+          >
+            <div inert>{inputField}</div>
+          </div>
+        ) : (
+          inputField
+        )}
       </PropertyHandleTooltipContext.Provider>
       {canvasResetButton}
       {isDynamicProperty && !hideActionIcons && (

@@ -13,7 +13,7 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import TuneIcon from "@mui/icons-material/Tune";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import PsychologyIcon from "@mui/icons-material/Psychology";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import {
   Caption,
@@ -22,26 +22,23 @@ import {
   Text
 } from "../../ui_primitives";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
-import type { AgentPlanner } from "./AgentModeSelector";
 
 interface MediaModeMenuProps {
   anchorEl: HTMLElement | null;
   open: boolean;
   onClose: () => void;
   value: MediaMode;
-  agentMode: boolean;
-  agentPlanner?: AgentPlanner;
-  onChange: (
-    mode: MediaMode,
-    agentMode: boolean,
-    agentPlanner?: AgentPlanner
-  ) => void;
+  onChange: (mode: MediaMode) => void;
+  /** Show the workspace-aware Pi agent as a selectable mode. */
+  showPi?: boolean;
+  /** Whether Pi is the active mode (so media `value` is not highlighted). */
+  piSelected?: boolean;
+  /** Called when the user picks Pi. */
+  onSelectPi?: () => void;
 }
 
-type ModeItemId = MediaMode | "agent_multi";
-
 interface ModeItem {
-  id: ModeItemId;
+  id: MediaMode;
   label: string;
   description?: string;
   icon: React.ReactNode;
@@ -53,13 +50,6 @@ const MODES: ModeItem[] = [
     id: "chat",
     label: "Chat",
     icon: <ChatBubbleOutlineIcon fontSize="small" />,
-    enabled: true
-  },
-  {
-    id: "agent_multi",
-    label: "Agent (Multi-task)",
-    description: "Plan and run parallel LLM tasks",
-    icon: <PsychologyIcon fontSize="small" />,
     enabled: true
   },
   {
@@ -131,7 +121,7 @@ const styles = (theme: Theme) =>
     ".mode-menu-item": {
       display: "flex",
       alignItems: "center",
-      gap: 12,
+      gap: 8,
       padding: "10px 16px",
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
@@ -160,16 +150,19 @@ const styles = (theme: Theme) =>
 
 /**
  * Popover menu shown when the user clicks the "Mode" chip in the media
- * composer. Mirrors the MODE popover from the reference screenshots.
+ * composer. Lists the media-generation modes (chat, image, video, …).
+ * Agent mode is no longer a media-menu option — the chat agent always runs
+ * the unified LLM-with-tools loop and decomposes via `run_subtask` on its own.
  */
 const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
   anchorEl,
   open,
   onClose,
   value,
-  agentMode,
-  agentPlanner = "multi",
-  onChange
+  onChange,
+  showPi = false,
+  piSelected = false,
+  onSelectPi
 }) => {
   const theme = useTheme();
   return (
@@ -190,33 +183,31 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
           Mode
         </Caption>
         {MODES.map((m) => {
-          // Graph planner is hidden; treat persisted "graph" as "multi" so
-          // existing users with that value see the multi-task row selected.
-          const effectivePlanner =
-            agentPlanner === "graph" ? "multi" : agentPlanner;
-          const selected =
-            m.id === "agent_multi"
-              ? value === "chat" && agentMode && effectivePlanner === "multi"
-              : m.id === "chat"
-                ? value === "chat" && !agentMode
-                : m.id === value;
+          const selected = !piSelected && m.id === value;
           return (
             <div
               key={m.id}
               role="menuitemradio"
               aria-checked={selected}
               aria-disabled={!m.enabled || undefined}
+              tabIndex={0}
               className={`mode-menu-item${selected ? " selected" : ""}${m.enabled ? "" : " disabled"}`}
               onClick={() => {
                 if (!m.enabled) {
                   return;
                 }
-                if (m.id === "agent_multi") {
-                  onChange("chat", true, "multi");
-                } else {
-                  onChange(m.id as MediaMode, false);
-                }
+                onChange(m.id);
                 onClose();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  if (!m.enabled) {
+                    return;
+                  }
+                  onChange(m.id);
+                  onClose();
+                }
               }}
             >
               <span className="mode-menu-icon">{m.icon}</span>
@@ -247,6 +238,48 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
             </div>
           );
         })}
+
+        {showPi && onSelectPi && (
+          <>
+            <Caption className="mode-menu-header" size="small">
+              Agent
+            </Caption>
+            <div
+              role="menuitemradio"
+              aria-checked={piSelected}
+              tabIndex={0}
+              className={`mode-menu-item${piSelected ? " selected" : ""}`}
+              onClick={() => {
+                onSelectPi();
+                onClose();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectPi();
+                  onClose();
+                }
+              }}
+            >
+              <span className="mode-menu-icon">
+                <SmartToyOutlinedIcon fontSize="small" />
+              </span>
+              <FlexRow gap={0.5} align="center" sx={{ flex: 1, minWidth: 0 }}>
+                <Text size="normal" weight={500} sx={{ color: "inherit" }}>
+                  Pi Agent
+                </Text>
+                <Caption size="tiny" color="secondary">
+                  workspace
+                </Caption>
+              </FlexRow>
+              {piSelected && (
+                <span className="mode-menu-check">
+                  <CheckIcon fontSize="small" />
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </Popover>
   );

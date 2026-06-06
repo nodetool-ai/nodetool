@@ -26,12 +26,12 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
       letterSpacing: 1,
-      marginBottom: 12
+      marginBottom: 8
     },
     ".aspect-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(6, minmax(70px, 1fr))",
-      gap: 10
+      gap: 8
     },
     ".aspect-option": {
       display: "flex",

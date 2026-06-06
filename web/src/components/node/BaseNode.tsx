@@ -24,11 +24,12 @@ import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import NodeDependencyWarning from "./NodeDependencyWarning";
-import useStatusStore from "../../stores/StatusStore";
-import useResultsStore, { hashKey } from "../../stores/ResultsStore";
-import { useShallow } from "zustand/react/shallow";
-import { hasNodeError } from "../../stores/ErrorStore";
-import useErrorStore from "../../stores/ErrorStore";
+import {
+  useNodeStatus,
+  useNodeHasError,
+  useNodeArtifacts,
+  useNodeActiveRunCount
+} from "../../hooks/nodes/useNodeExecState";
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
@@ -75,6 +76,7 @@ const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
 /** Shared floor for initial layout and user resizing. */
 const MIN_NODE_HEIGHT = 150;
+const SPECIAL_NAMESPACES = ["nodetool.constant", "nodetool.input", "nodetool.output"];
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
@@ -164,6 +166,52 @@ const gradientAnimationKeyframes = keyframes`
     --gradient-angle: 450deg;
   }
 `;
+
+// Ambient-liveness ring: a breathing halo shown when a node is executing in one
+// or more runs the user is NOT currently focused on. Visually distinct from the
+// primary running ring (a tight, rotating type-color conic gradient): this one
+// is a single-hue halo that pulses opacity/scale, so "running in my focused run"
+// and "also running elsewhere" read as different signals.
+const ambientPulseKeyframes = keyframes`
+  0% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.015); }
+  100% { opacity: 0.9; transform: scale(1); }
+`;
+
+const getAmbientRingCss = (color: string) =>
+  css({
+    position: "absolute",
+    inset: 0,
+    borderRadius: "var(--rounded-node)",
+    pointerEvents: "none",
+    // Pure box-shadow halo (no fill), so it only paints outside the node body
+    // regardless of stacking order — robust to whether the container is a
+    // positioned ancestor.
+    zIndex: 0,
+    boxShadow: `0 0 0 2px ${color}, 0 0 16px 2px color-mix(in srgb, ${color} 55%, transparent)`,
+    animation: `${ambientPulseKeyframes} 1.6s ease-in-out infinite`
+  });
+
+const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
+  position: "absolute",
+  top: -8,
+  right: -8,
+  minWidth: 16,
+  height: 16,
+  boxSizing: "border-box",
+  padding: "0 4px",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: 8,
+  backgroundColor: theme.vars.palette.secondary.main,
+  color: theme.vars.palette.secondary.contrastText,
+  border: `1px solid ${theme.vars.palette.c_node_bg}`,
+  fontSize: "10px",
+  fontWeight: 700,
+  lineHeight: 1,
+  zIndex: 20,
+  pointerEvents: "none"
+});
 
 const getNodeStyles = (colors: string[]) =>
   css({
@@ -363,8 +411,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       color: theme.vars.palette.warning.contrastText,
       padding: "2px 8px",
       borderRadius: 4,
-      fontSize: "0.7rem",
-      fontWeight: "bold",
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
       zIndex: 1000
     }),
     [theme.vars.palette.warning.main, theme.vars.palette.warning.contrastText]
@@ -381,26 +429,40 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
       isInputNode: type.startsWith("nodetool.input"),
-      isOutputNode:
-        type.startsWith("nodetool.output") ||
-        type === "comfy.image.SaveImage" ||
-        type === "comfy.image.PreviewImage",
+      isOutputNode: type.startsWith("nodetool.output"),
       isAgentNode: isAgentNodeType(type)
     }),
     [type]
   );
   // Status
-  const statusValue = useStatusStore((state) =>
-    state.getStatus(workflow_id, id)
-  );
+  const statusValue = useNodeStatus(workflow_id, id);
   const status =
-    statusValue && statusValue !== null && typeof statusValue !== "object"
+    statusValue && typeof statusValue !== "object"
       ? statusValue
       : undefined;
   const isLoading = useMemo(
     () => status === "running" || status === "starting" || status === "booting",
     [status]
   );
+
+  // Ambient liveness: how many *other* (non-focused) runs are executing this
+  // node right now. Drives a secondary ring + count badge so the canvas signals
+  // work happening in runs the user is not currently focused on.
+  const otherActiveRunCount = useNodeActiveRunCount(workflow_id, id);
+  // Total runs executing this node right now: the non-focused active runs plus
+  // the focused run when it's the one driving the primary animation.
+  const concurrentRunCount = otherActiveRunCount + (isLoading ? 1 : 0);
+  // Badge shows the concurrency count, but only once ≥2 runs hit this node — a
+  // lone run needs no number (the ring/animation already says "running").
+  const showConcurrencyBadge = concurrentRunCount >= 2;
+  // Ambient ring marks a node active in a non-focused run when the primary
+  // (focused-run) ring isn't already drawn, so two rings never stack.
+  const showAmbientRing = otherActiveRunCount > 0 && !isLoading;
+  const ambientRingCss = useMemo(
+    () => getAmbientRingCss(theme.vars.palette.secondary.main),
+    [theme.vars.palette.secondary.main]
+  );
+  const ambientBadgeStyle = useMemo(() => getAmbientBadgeStyle(theme), [theme]);
 
   // Metadata
   const metadata = useMetadataStore((state) => state.getMetadata(type));
@@ -414,17 +476,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       : hexToRgba("#ccc", GROUP_COLOR_OPACITY)
     : null;
 
-  const specialNamespaces = useMemo(
-    () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
-    []
-  );
-
   const meta = useMemo(() => {
     return {
       nodeNamespace: metadata.namespace || "",
-      showFooter: !specialNamespaces.includes(metadata.namespace || "")
+      showFooter: !SPECIAL_NAMESPACES.includes(metadata.namespace || "")
     };
-  }, [metadata.namespace, specialNamespaces]);
+  }, [metadata.namespace]);
 
   const displayTitle = useMemo(
     () => resolveCodeNodeTitle(type, data.title, metadata.title),
@@ -448,16 +505,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
-  const resultsKey = hashKey(workflow_id, id);
-  const { result, chunk, toolCall, planningUpdate, task } = useResultsStore(
-    useShallow((state) => ({
-      result: state.outputResults[resultsKey] ?? state.results[resultsKey],
-      chunk: state.chunks[resultsKey] as string | undefined,
-      toolCall: state.toolCalls[resultsKey],
-      planningUpdate: state.planningUpdates[resultsKey],
-      task: state.tasks[resultsKey]
-    }))
-  );
+  const { result, chunk, toolCall, planningUpdate, task } = useNodeArtifacts(workflow_id, id);
 
   // Optimize: Use memoized selectors that only perform O(E) filter operations when the
   // state.edges array reference actually changes (e.g. adding/removing edges), rather than
@@ -634,6 +682,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         selected,
         isFocused,
         isLoading,
+        hasAmbientRing: showAmbientRing,
         hasParent,
         hasToggleableResult: Boolean(hasToggleableResult),
         baseColor,
@@ -646,6 +695,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       selected,
       isFocused,
       isLoading,
+      showAmbientRing,
       hasParent,
       hasToggleableResult,
       baseColor,
@@ -665,11 +715,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Track error state for node dimension management
-  const hasError = useErrorStore((state) =>
-    workflow_id !== undefined
-      ? hasNodeError(state.getError(workflow_id, id))
-      : false
-  );
+  const hasError = useNodeHasError(workflow_id, id);
 
   // Hover-reveal of all handle tooltips. The user can hover the node body
   // to see every input/output port's name without hovering each handle one
@@ -824,6 +870,16 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {isFocused && (
         <div style={focusedIndicatorStyle}>
           FOCUSED
+        </div>
+      )}
+
+      {showAmbientRing && <div css={ambientRingCss} aria-hidden="true" />}
+      {showConcurrencyBadge && (
+        <div
+          style={ambientBadgeStyle}
+          title={`Running in ${concurrentRunCount} runs at once`}
+        >
+          {concurrentRunCount}
         </div>
       )}
 

@@ -28,7 +28,7 @@ const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
             component="span"
             className={isLast ? "namespace-part-last" : undefined}
             sx={{
-              fontWeight: isLast ? 500 : 300,
+              fontWeight: isLast ? 500 : 400,
               color: isLast ? "var(--palette-grey-400)" : "inherit"
             }}
           >
@@ -85,14 +85,14 @@ const styles = (theme: Theme) =>
       padding: "12px 16px"
     },
     "& .node-name": {
-      fontSize: "16px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       wordBreak: "break-word",
       marginBottom: "4px"
     },
     "& .node-description": {
-      fontSize: "13px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.5,
       marginTop: "8px"
@@ -105,7 +105,7 @@ const styles = (theme: Theme) =>
     },
     "& .node-tags span": {
       fontWeight: 500,
-      fontSize: "10px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -121,12 +121,12 @@ const styles = (theme: Theme) =>
       }
     },
     "& .node-use-cases": {
-      fontSize: "12px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.5,
       marginTop: "8px",
       "& h5": {
-        fontSize: "11px",
+        fontSize: "var(--fontSizeSmaller)",
         fontWeight: 600,
         color: theme.vars.palette.text.primary,
         marginBottom: "4px",
@@ -148,12 +148,12 @@ const styles = (theme: Theme) =>
       borderLeft: `3px solid ${theme.vars.palette.error.main}`
     },
     "& .error-text": {
-      fontSize: "12px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.error.main,
       lineHeight: 1.4
     },
     "& .position-text": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       fontFamily: "monospace",
       marginTop: "8px"
@@ -165,7 +165,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-sm)",
       backgroundColor: "transparent",
       color: "var(--palette-grey-400)",
-      fontSize: "9px",
+      fontSize: "var(--fontSizeSmaller)",
       textTransform: "uppercase",
       textAlign: "left",
       flexGrow: 1,
@@ -185,7 +185,7 @@ const styles = (theme: Theme) =>
     "& .action-button": {
       flex: 1,
       minWidth: "80px",
-      fontSize: "12px",
+      fontSize: "var(--fontSizeSmall)",
       padding: "6px 10px",
       borderRadius: "var(--rounded-md)",
       marginTop: "12px",
@@ -373,7 +373,7 @@ const NodeInfoPanel: React.FC = memo(() => {
           delay={TOOLTIP_ENTER_DELAY}
         >
           <EditorButton
-            tabIndex={1}
+            tabIndex={0}
             className="namespace-button"
             onClick={handleNamespaceClick}
           >
@@ -392,7 +392,19 @@ const NodeInfoPanel: React.FC = memo(() => {
                   <span
                     key={tag}
                     data-tag={tag}
+                    role="button"
+                    tabIndex={0}
                     onClick={handleTagClick}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        const t = (e.currentTarget as HTMLElement).dataset.tag;
+                        if (t) {
+                          useNodeMenuStore.getState().openNodeMenu({ x: 500, y: 200 });
+                          useNodeMenuStore.getState().setSearchTerm(t.trim());
+                        }
+                      }
+                    }}
                   >
                     {tag}
                   </span>

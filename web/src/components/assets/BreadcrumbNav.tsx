@@ -41,11 +41,11 @@ const styles = (theme: Theme) =>
     },
     ".breadcrumb-separator": {
       color: theme.vars.palette.grey[600],
-      fontSize: "1rem",
+      fontSize: "var(--fontSizeNormal)",
       flexShrink: 0
     },
     ".breadcrumb-home": {
-      fontSize: "1rem",
+      fontSize: "var(--fontSizeNormal)",
       verticalAlign: "middle"
     }
   });

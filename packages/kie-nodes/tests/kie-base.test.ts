@@ -201,10 +201,15 @@ describe("parseCreditsConsumed", () => {
 });
 
 describe("reportKieProviderCost", () => {
-  it("calls setProviderCost when credits are present", () => {
+  it("converts kie credits to USD when present", () => {
     const setProviderCost = vi.fn();
     reportKieProviderCost({ setProviderCost }, 7);
-    expect(setProviderCost).toHaveBeenCalledWith("kie", 7, "credits");
+    expect(setProviderCost).toHaveBeenCalledWith("kie", 0.035, "USD", {
+      billing_unit: "credits",
+      quantity: 7,
+      unit_price: 0.005,
+      currency: "USD"
+    });
   });
 
   it("skips when credits are undefined", () => {

@@ -7,15 +7,25 @@
  * maintain hardcoded model lists.
  */
 
-import { createRequire } from "node:module";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
 import type { ImageModel, VideoModel } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.manifest-models");
 
+const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
+  "node:module"
+);
+
 // ---------------------------------------------------------------------------
 // Manifest entry shapes — union of Kie / FAL / Replicate conventions
 // ---------------------------------------------------------------------------
+
+interface ManifestInputField {
+  name: string;
+  apiParamName?: string;
+  propType: string;
+  enumValues?: string[];
+}
 
 interface ManifestNode {
   /** Kie uses modelId */
@@ -28,6 +38,37 @@ interface ManifestNode {
   className?: string;
   /** "image" | "video" | "audio" | ... */
   outputType?: string;
+  /** FAL ships per-endpoint input schemas; used to derive option constraints. */
+  inputFields?: ManifestInputField[];
+}
+
+/** Enum values declared for a manifest input field, by canonical API name. */
+function enumValuesFor(
+  n: ManifestNode,
+  apiName: string
+): string[] | undefined {
+  const field = (n.inputFields ?? []).find(
+    (f) => (f.apiParamName ?? f.name) === apiName
+  );
+  const values = field?.enumValues;
+  return values && values.length > 0 ? values : undefined;
+}
+
+/** Option constraints (duration/resolution/aspect) for a video endpoint. */
+function videoConstraints(n: ManifestNode): {
+  durations?: number[];
+  resolutions?: string[];
+  aspectRatios?: string[];
+} {
+  const durationEnum = enumValuesFor(n, "duration");
+  const durations = durationEnum
+    ?.map((v) => Number(v))
+    .filter((v) => Number.isFinite(v));
+  return {
+    durations: durations && durations.length > 0 ? durations : undefined,
+    resolutions: enumValuesFor(n, "resolution"),
+    aspectRatios: enumValuesFor(n, "aspect_ratio")
+  };
 }
 
 function nodeId(n: ManifestNode): string {
@@ -109,8 +150,12 @@ function loadManifest(packageName: string, exportPath: string): ManifestNode[] {
   const key = `${packageName}/${exportPath}`;
   if (_cache.has(key)) return _cache.get(key)!;
 
+  if (!_nodeModule) {
+    _cache.set(key, []);
+    return [];
+  }
   try {
-    const req = createRequire(import.meta.url);
+    const req = _nodeModule.createRequire(import.meta.url);
     const data = req(`${packageName}/${exportPath}`) as ManifestNode[];
     _cache.set(key, data);
     return data;
@@ -144,8 +189,20 @@ export function loadVideoModels(
     if (existing) {
       const merged = new Set([...(existing.supportedTasks ?? []), ...tasks]);
       existing.supportedTasks = [...merged];
+      // Prefer the first entry that actually declares constraints (image- and
+      // text-to-video variants of one model can share an id).
+      const c = videoConstraints(n);
+      existing.durations ??= c.durations;
+      existing.resolutions ??= c.resolutions;
+      existing.aspectRatios ??= c.aspectRatios;
     } else {
-      seen.set(id, { id, name, provider, supportedTasks: tasks });
+      seen.set(id, {
+        id,
+        name,
+        provider,
+        supportedTasks: tasks,
+        ...videoConstraints(n)
+      });
     }
   }
 

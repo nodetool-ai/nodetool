@@ -38,13 +38,13 @@ export interface GeneratedLayerPanelProps {
 
 const inputsSectionStyles = (theme: Theme) =>
   css({
-    padding: theme.spacing(2, 1.25),
+    padding: theme.spacing(2, 1),
     borderTop: `1px solid ${theme.vars.palette.grey[700]}`
   });
 
 const actionsSectionStyles = (theme: Theme) =>
   css({
-    padding: theme.spacing(0.75, 0.5),
+    padding: theme.spacing(1, 0.5),
     borderTop: `1px solid ${theme.vars.palette.grey[700]}`
   });
 
@@ -61,7 +61,7 @@ const inputsContainerStyles = (theme: Theme) =>
     ".inputs-shell": {
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(2.5)
+      gap: theme.spacing(3)
     },
     ".input-field": {
       display: "flex",
@@ -80,7 +80,7 @@ const inputsContainerStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.disabled,
       lineHeight: 1.35,
-      marginTop: theme.spacing(0.25)
+      marginTop: theme.spacing(0.5)
     }
   });
 
@@ -175,7 +175,7 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
           <GeneratedLayerHeader layer={layer} binding={binding} />
 
           {jobErrorMessage && (
-            <Box sx={{ px: 1.25, pb: 1 }}>
+            <Box sx={{ px: 1, pb: 1 }}>
               <AlertBanner
                 severity="error"
                 compact

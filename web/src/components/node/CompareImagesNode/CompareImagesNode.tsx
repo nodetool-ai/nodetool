@@ -9,7 +9,7 @@ import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeArtifacts } from "../../../hooks/nodes/useNodeExecState";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeResizer from "../NodeResizer";
@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
       left: "50%",
       width: "80%",
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: "300",
+      fontWeight: 400,
       transform: "translate(-50%, -50%)",
       zIndex: 1,
       color: theme.vars.palette.grey[400],
@@ -116,10 +116,9 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
   // flows through the same channel as score/equal. Reads the final
   // node_update record first (keyed by output name), then falls back to
   // any streamed output_update for the same handle.
-  const result = useResultsStore((state) =>
-    state.getResult(props.data.workflow_id, props.id) ??
-    state.getOutputResult(props.data.workflow_id, props.id)
-  );
+  // NOTE: order is result ?? output (REVERSED from useNodeResultValue).
+  const { result: _result, output: _output } = useNodeArtifacts(props.data.workflow_id, props.id);
+  const result = _result ?? _output;
 
   const comparisonData = useMemo(() => {
     const pickComparison = (value: unknown): unknown => {

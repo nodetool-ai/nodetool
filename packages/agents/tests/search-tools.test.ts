@@ -39,7 +39,7 @@ describe("GoogleSearchTool", () => {
     delete process.env.SERPAPI_API_KEY;
   });
 
-  it("parses organic results from SerpAPI response", async () => {
+  it("returns organic results as formatted text", async () => {
     const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
     fetchSpy = stubFetch({
       organic_results: [
@@ -49,78 +49,81 @@ describe("GoogleSearchTool", () => {
     });
 
     const result = (await tool.process(ctx, {
-      keyword: "test query"
-    })) as Record<string, unknown>;
+      query: "test query"
+    })) as string;
 
-    expect(result.success).toBe(true);
-    expect(result.results).toEqual([
-      { title: "Result 1", link: "https://a.com", snippet: "Snippet 1" },
-      { title: "Result 2", link: "https://b.com", snippet: "Snippet 2" }
-    ]);
+    expect(typeof result).toBe("string");
+    expect(result).toContain("1. Result 1");
+    expect(result).toContain("https://a.com");
+    expect(result).toContain("Snippet 1");
+    expect(result).toContain("2. Result 2");
 
-    // Verify the URL contains the correct engine and query
     const calledUrl = fetchSpy.mock.calls[0][0] as string;
     expect(calledUrl).toContain("engine=google");
     expect(calledUrl).toContain("q=test+query");
     expect(calledUrl).toContain("api_key=test-key");
   });
 
-  it("returns error when query is missing", async () => {
+  it("accepts the legacy `keyword` arg for backwards compat", async () => {
     const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
-    const result = (await tool.process(ctx, {})) as Record<string, unknown>;
-    expect(result.error).toBeDefined();
+    fetchSpy = stubFetch({
+      organic_results: [{ title: "X", link: "https://x.com", snippet: "S" }]
+    });
+    const result = (await tool.process(ctx, {
+      keyword: "still works"
+    })) as string;
+    expect(result).toContain("1. X");
+  });
+
+  it("returns error string when query is missing", async () => {
+    const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
+    const result = await tool.process(ctx, {});
+    expect(result).toBe("Error: query is required");
   });
 
   it("throws when API key is missing", async () => {
     const ctx = makeContext({});
-    await expect(tool.process(ctx, { keyword: "test" })).rejects.toThrow(
+    await expect(tool.process(ctx, { query: "test" })).rejects.toThrow(
       "SERPAPI_API_KEY"
     );
   });
 
   it("falls back to process.env for API key", async () => {
     process.env.SERPAPI_API_KEY = "env-key";
-    const ctx = makeContext({}); // no secret resolver value
+    const ctx = makeContext({});
     fetchSpy = stubFetch({ organic_results: [] });
 
-    const result = (await tool.process(ctx, {
-      keyword: "test"
-    })) as Record<string, unknown>;
-    expect(result.success).toBe(true);
+    const result = (await tool.process(ctx, { query: "test" })) as string;
+    expect(result).toBe("No results.");
 
     const calledUrl = fetchSpy.mock.calls[0][0] as string;
     expect(calledUrl).toContain("api_key=env-key");
   });
 
-  it("handles empty organic_results", async () => {
+  it("renders empty organic_results as 'No results.'", async () => {
     const ctx = makeContext({ SERPAPI_API_KEY: "k" });
     fetchSpy = stubFetch({ organic_results: [] });
 
-    const result = (await tool.process(ctx, {
-      keyword: "nothing"
-    })) as Record<string, unknown>;
-    expect(result.success).toBe(true);
-    expect(result.results).toEqual([]);
+    const result = (await tool.process(ctx, { query: "nothing" })) as string;
+    expect(result).toBe("No results.");
   });
 
   it("userMessage returns search description", () => {
-    expect(tool.userMessage({ keyword: "cats" })).toBe(
-      "Searching Google for 'cats'..."
+    expect(tool.userMessage({ query: "cats" })).toBe(
+      "Searching Google for 'cats'"
     );
   });
 
   it("userMessage truncates long queries", () => {
     const longQuery = "a".repeat(200);
-    expect(tool.userMessage({ keyword: longQuery })).toBe(
-      "Searching Google..."
-    );
+    expect(tool.userMessage({ query: longQuery })).toBe("Searching Google");
   });
 
   it("throws when SerpAPI returns non-OK response", async () => {
     const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
     fetchSpy = stubFetch({ error: "bad request" }, 400);
 
-    await expect(tool.process(ctx, { keyword: "test" })).rejects.toThrow(
+    await expect(tool.process(ctx, { query: "test" })).rejects.toThrow(
       "SerpAPI request failed (400)"
     );
   });

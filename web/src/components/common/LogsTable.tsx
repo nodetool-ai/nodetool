@@ -73,7 +73,7 @@ const tableStyles = (theme: Theme) =>
       padding: "0 12px",
       fontWeight: 500,
       color: theme.vars.palette.grey[400],
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       textTransform: "uppercase",
       letterSpacing: "0.05em"
     },
@@ -133,7 +133,7 @@ const tableStyles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary
     },
 
@@ -158,7 +158,7 @@ const tableStyles = (theme: Theme) =>
 
     ".timestamp": {
       fontFamily: theme.fontFamily2,
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       opacity: 0,
       transition: "opacity 0.2s ease"
@@ -167,7 +167,7 @@ const tableStyles = (theme: Theme) =>
     ".empty": {
       height: "100%",
       color: theme.vars.palette.grey[500],
-      fontSize: "0.85rem"
+      fontSize: "var(--fontSizeNormal)"
     },
 
     ".scroll-to-bottom": {
@@ -267,6 +267,16 @@ const RowItem = memo(({
     onToggle(rowKey);
   }, [onToggle, rowKey]);
 
+  const handleRowKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onToggle(rowKey);
+      }
+    },
+    [onToggle, rowKey]
+  );
+
   const handleActionsClick = useCallback((event: React.MouseEvent) => {
     event.stopPropagation();
   }, []);
@@ -278,8 +288,11 @@ const RowItem = memo(({
     <div role="listitem" style={wrapperStyle}>
       <div
         className={`row row-${row.severity}${isExpanded ? " expanded" : ""}`}
+        role="button"
+        tabIndex={0}
         style={rowStyle}
         onClick={handleRowClick}
+        onKeyDown={handleRowKeyDown}
       >
         <Tooltip
           title={timeTooltip}
@@ -320,7 +333,7 @@ const RowItem = memo(({
                 maxHeight={300}
               >
                 <FlexColumn gap={0} sx={{ p: 2 }}>
-                  <pre style={{ margin: 0, fontSize: "0.75rem", fontFamily: "monospace" }}>
+                  <pre style={{ margin: 0, fontSize: "var(--fontSizeSmall)", fontFamily: "monospace" }}>
                     {JSON.stringify(row.data, null, 2)}
                   </pre>
                   <FlexRow justify="flex-end" sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}>

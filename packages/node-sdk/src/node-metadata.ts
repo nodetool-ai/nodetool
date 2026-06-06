@@ -14,6 +14,7 @@ import type {
   PropertyMetadata,
   TypeMetadata
 } from "./metadata.js";
+import { normalizePlatforms } from "@nodetool-ai/protocol";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
 import {
   CorrelationMetadataError,
@@ -156,6 +157,13 @@ function mergeMetadata(
         : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
     // Backfill optional fields from Python when TS doesn't set them
     layout: tsMetadata.layout ?? pyMetadata.layout,
+    // `getNodeMetadata` emits the "default" sentinel when the TS class does not
+    // opt in, so treat it as unset — otherwise it would clobber a Python
+    // `body` (e.g. "content_card") and break the documented backfill path.
+    body:
+      tsMetadata.body && tsMetadata.body !== "default"
+        ? tsMetadata.body
+        : (pyMetadata.body ?? tsMetadata.body),
     model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
     input_mode: tsMetadata.input_mode ?? pyMetadata.input_mode,
     output_correlation:
@@ -251,6 +259,7 @@ export function getNodeMetadata(
     namespace,
     node_type: nodeType,
     layout: nodeClass.layout ?? "default",
+    body: nodeClass.body ?? "default",
     properties,
     outputs,
 
@@ -265,11 +274,11 @@ export function getNodeMetadata(
     output_correlation: nodeClass.outputCorrelation,
     is_controlled: nodeClass.isControlled || false,
     is_join_node: nodeClass.isJoinNode || undefined,
-    is_dynamic: nodeClass.isDynamic || false,
-    expose_as_tool: nodeClass.exposeAsTool,
+    supports_dynamic_inputs: nodeClass.supportsDynamicInputs || false,
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,
-    model_packs: nodeClass.modelPacks
+    model_packs: nodeClass.modelPacks,
+    platforms: normalizePlatforms(nodeClass.platforms)
   };
 
   if (!options.mergePythonBackfill) {

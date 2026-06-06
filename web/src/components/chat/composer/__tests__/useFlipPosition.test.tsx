@@ -16,9 +16,9 @@ function makeRect(x: number, y: number, w = 100, h = 40): DOMRect {
   } as DOMRect;
 }
 
-function Harness({ trigger }: { trigger: number }) {
+function Harness({ trigger, flipKey }: { trigger: number; flipKey?: unknown }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  useFlipPosition(ref, [trigger]);
+  useFlipPosition(ref, [trigger], flipKey);
   return <div ref={ref} data-testid="box" />;
 }
 
@@ -58,8 +58,8 @@ describe("useFlipPosition", () => {
       .spyOn(Element.prototype, "getBoundingClientRect")
       .mockImplementation(() => rects[Math.min(call++, rects.length - 1)]);
 
-    const { rerender } = render(<Harness trigger={1} />);
-    rerender(<Harness trigger={2} />);
+    const { rerender } = render(<Harness trigger={1} flipKey={1} />);
+    rerender(<Harness trigger={2} flipKey={2} />);
 
     expect(animateSpy).toHaveBeenCalledTimes(1);
     const keyframes = animateSpy.mock.calls[0][0] as Keyframe[];
@@ -74,8 +74,8 @@ describe("useFlipPosition", () => {
       .spyOn(Element.prototype, "getBoundingClientRect")
       .mockImplementation(() => rects[Math.min(call++, rects.length - 1)]);
 
-    const { rerender } = render(<Harness trigger={1} />);
-    rerender(<Harness trigger={2} />);
+    const { rerender } = render(<Harness trigger={1} flipKey={1} />);
+    rerender(<Harness trigger={2} flipKey={2} />);
     expect(animateSpy).not.toHaveBeenCalled();
   });
 });

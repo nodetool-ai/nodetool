@@ -61,6 +61,24 @@ describe("ProcessingContext – message queue", () => {
     expect(received[0].type).toBe("job_update");
   });
 
+  it("supports multiple message listeners", () => {
+    const first: ProcessingMessage[] = [];
+    const second: ProcessingMessage[] = [];
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const unsubscribeFirst = ctx.addMessageListener((msg) => first.push(msg));
+    ctx.addMessageListener((msg) => second.push(msg));
+
+    ctx.emit({ type: "job_update", status: "running" });
+    unsubscribeFirst();
+    ctx.emit({ type: "job_update", status: "completed" });
+
+    expect(first.map((msg) => msg.type)).toEqual(["job_update"]);
+    expect(second.map((msg) => msg.type)).toEqual([
+      "job_update",
+      "job_update"
+    ]);
+  });
+
   it("clearMessages empties the queue", () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     ctx.emit({ type: "job_update", status: "running" });
@@ -872,6 +890,29 @@ describe("ProcessingContext – asset helper methods", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+
+  it("resolveMessageMediaUris inlines asset:// text documents into text parts", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store(
+      "brief.md",
+      new TextEncoder().encode("# Brief\nMake it cinematic."),
+      "text/markdown"
+    );
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const resolved = await ctx.resolveMessageMediaUris([
+      {
+        role: "user",
+        content: [{ type: "text", text: "follow asset://brief.md exactly" }]
+      }
+    ]);
+
+    const parts = resolved[0].content as Array<Record<string, any>>;
+    expect(parts[0]).toEqual({
+      type: "text",
+      text: "follow # Brief\nMake it cinematic. exactly"
+    });
   });
 });
 

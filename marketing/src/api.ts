@@ -4010,12 +4010,6 @@ export interface components {
        */
       is_streaming_output?: boolean;
       /**
-       * Expose As Tool
-       * @description Whether the node is exposed as a tool
-       * @default false
-       */
-      expose_as_tool?: boolean;
-      /**
        * Supports Dynamic Outputs
        * @description Whether the node can declare outputs dynamically at runtime (only for dynamic nodes)
        * @default false
@@ -4097,12 +4091,6 @@ export interface components {
        * @default false
        */
       is_streaming_output?: boolean;
-      /**
-       * Expose As Tool
-       * @description Whether the node is exposed as a tool
-       * @default false
-       */
-      expose_as_tool?: boolean;
       /**
        * Supports Dynamic Outputs
        * @description Whether the node can declare outputs dynamically at runtime (only for dynamic nodes)

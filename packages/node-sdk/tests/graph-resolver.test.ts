@@ -58,7 +58,7 @@ describe("createGraphNodeTypeResolver", () => {
       nodeType: "test.StrictNode",
       propertyTypes: { value: "int" },
       outputs: { output: "list[string]" },
-      isDynamic: false,
+      supportsDynamicInputs: false,
       descriptorDefaults: {
         name: "Strict Node",
         is_streaming_output: true,

@@ -44,11 +44,13 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
-  InspectorToggleRow,
+  InspectorToggleRow
+} from "./InspectorPrimitives";
+import {
   formatTimecode,
   parseSeconds,
   parseTimecode
-} from "./InspectorPrimitives";
+} from "./InspectorPrimitives.helpers";
 import { ClipActions } from "./ClipActions";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";
@@ -70,6 +72,14 @@ const sectionContentStyles = css({
   gap: 2,
   padding: "4px 0 10px"
 });
+
+const inspectorPanelSx = {
+  height: "100%",
+  maxHeight: "100%",
+  minHeight: 0,
+  overflow: "auto",
+  boxSizing: "border-box"
+};
 
 // ── Effect IDs ─────────────────────────────────────────────────────────────
 
@@ -208,7 +218,7 @@ export const TimelineInspector: React.FC = memo(() => {
 
   if (selectedCount === 0) {
     return (
-      <Panel css={containerStyles}>
+      <Panel css={containerStyles} sx={inspectorPanelSx}>
         <InspectorHeader eyebrow="Inspector" />
         <EmptyState
           variant="empty"
@@ -222,7 +232,7 @@ export const TimelineInspector: React.FC = memo(() => {
 
   if (selectedCount > 1) {
     return (
-      <Panel css={containerStyles}>
+      <Panel css={containerStyles} sx={inspectorPanelSx}>
         <InspectorHeader
           eyebrow={`${selectedCount} Clips`}
           actions={[
@@ -259,7 +269,7 @@ export const TimelineInspector: React.FC = memo(() => {
   // ── Imported-clip inspector ─────────────────────────────────────────────
 
   return (
-    <Panel css={containerStyles}>
+    <Panel css={containerStyles} sx={inspectorPanelSx}>
       <InspectorHeader
         eyebrow="Clip"
         actions={[

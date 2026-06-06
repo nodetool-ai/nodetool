@@ -1,4 +1,4 @@
-export interface ElectronDetectionDetails {
+interface ElectronDetectionDetails {
   isElectron: boolean;
   isRendererProcess: boolean; // from window.process.type === 'renderer'
   hasElectronVersionInWindowProcess: boolean; // from window.process.versions.electron
@@ -59,7 +59,7 @@ export const isElectron = getIsElectronDetails().isElectron;
  */
 export const isEditableElement = (
   node: Element | null | undefined
-): boolean => {
+): node is HTMLElement => {
   if (!(node instanceof HTMLElement)) {
     return false;
   }

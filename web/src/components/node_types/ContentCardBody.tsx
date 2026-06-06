@@ -2,8 +2,9 @@
 /**
  * ContentCardBody
  *
- * Content-forward node body for nodes registered in `CONTENT_CARD_REGISTRY`
- * (image / video / text / etc. generators and "thin" image-edit nodes).
+ * Content-forward node body for nodes whose metadata declares
+ * `body: "content_card"` (image / video / text / etc. generators and "thin"
+ * image-edit nodes). See `isContentCardNode` in `contentCardRegistry`.
  * Three regions per plan §6.1:
  *
  *   1. Header           — already rendered by `NodeHeader` in `BaseNode`
@@ -48,7 +49,7 @@ import AudioPlayer from "../audio/AudioPlayer";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
-import useResultsStore from "../../stores/ResultsStore";
+import { useNodeResultValue } from "../../hooks/nodes/useNodeExecState";
 import {
   assetsToPreviewValue,
   useNodeResultHistory
@@ -106,21 +107,21 @@ const styles = (theme: Theme) =>
       "& > .handle-column": {
         top: 0,
         bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
+        left: `calc(${theme.spacing(0)})`
       },
       ".image-grid-preview": {
         width: "100%",
         height: "100%",
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
-        gap: theme.spacing(0.75),
-        padding: theme.spacing(0.75),
+        gap: theme.spacing(1),
+        padding: theme.spacing(1),
         overflow: "auto",
         alignContent: "start"
       },
       ".image-grid-tile": {
         aspectRatio: "1 / 1",
-        minHeight: theme.spacing(10),
+        minHeight: theme.spacing(8),
         borderRadius: "var(--rounded-sm)",
         overflow: "hidden"
       },
@@ -568,6 +569,8 @@ const PreviewArea: React.FC<{
   }
 };
 
+const MEDIA_VARIANTS: ContentCardVariant[] = ["image", "image_mask", "video", "audio", "model_3d"];
+
 const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   id,
   nodeType,
@@ -589,9 +592,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [primaryOutput]
   );
 
-  const result = useResultsStore((state) =>
-    state.getOutputResult(workflowId, id) ?? state.getResult(workflowId, id)
-  );
+  const result = useNodeResultValue(workflowId, id);
   const { lastJobAssets } = useNodeResultHistory(workflowId, id);
 
   // Resolved live (in-memory) result for the primary output. NodeHistoryViewer
@@ -610,10 +611,9 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     return assetsToPreviewValue(lastJobAssets);
   }, [result, liveResolvedResult, lastJobAssets]);
 
-  const MEDIA_VARIANTS = ["image", "image_mask", "video", "audio", "model_3d"];
   const isMediaVariant = MEDIA_VARIANTS.includes(variant);
 
-  const isDynamic = !!nodeMetadata.is_dynamic;
+  const isDynamic = !!nodeMetadata.supports_dynamic_inputs;
 
   // Two-pass field classification per field-classification.md:
   // 1. inlineFields: rendered as full editors in normal flow
@@ -661,7 +661,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   // landed in earlier work (NodeInputs / NodePropertyForm). For PR 4 we
   // expose a placeholder onAdd that delegates to the same store flow used
   // by NodePropertyForm — but we only render the button when the node opts
-  // into `is_dynamic`. If no add handler is wired, the button is disabled.
+  // into `supports_dynamic_inputs`. If no add handler is wired, the button is disabled.
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const handleAddDynamicInput = useCallback(() => {
     const existing = data.dynamic_properties ?? {};
@@ -673,6 +673,11 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       dynamic_properties: { ...existing, [`input_${i}`]: "" }
     });
   }, [data.dynamic_properties, id, updateNodeData]);
+
+  const renderSingle = useCallback(
+    (value: unknown) => <PreviewArea variant={variant} value={value} />,
+    [variant]
+  );
 
   return (
     <div
@@ -686,9 +691,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             workflowId={workflowId}
             nodeId={id}
             liveResult={liveResolvedResult}
-            renderSingle={(value) => (
-              <PreviewArea variant={variant} value={value} />
-            )}
+            renderSingle={renderSingle}
           />
         ) : (
           <PreviewArea variant={variant} value={fallbackPreviewValue} />

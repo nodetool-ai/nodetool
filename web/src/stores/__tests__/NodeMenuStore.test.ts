@@ -1,7 +1,6 @@
 import { NodeMetadata } from "../ApiTypes";
 import { useNodeMenuStore } from "../NodeMenuStore";
 import useMetadataStore from "../MetadataStore";
-import { useComfyUIStore } from "../ComfyUIStore";
 
 const createMockNodeMetadata = (overrides: Partial<NodeMetadata> = {}): NodeMetadata => ({
   title: "Test Node",
@@ -18,7 +17,6 @@ const createMockNodeMetadata = (overrides: Partial<NodeMetadata> = {}): NodeMeta
 describe("NodeMenuStore", () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    useComfyUIStore.setState({ isConnected: false });
     useMetadataStore.setState({ metadata: {} });
     useNodeMenuStore.setState({
       isMenuOpen: false,
@@ -355,52 +353,5 @@ describe("NodeMenuStore", () => {
       expect(useNodeMenuStore.getState().currentSearchId).toBe(5);
     });
 
-    it("hides Comfy nodes when ComfyUI is not connected", () => {
-      useMetadataStore.setState({
-        metadata: {
-          "comfy.node": createMockNodeMetadata({
-            node_type: "comfy.test.Node",
-            namespace: "comfy.test"
-          }),
-          "regular.node": createMockNodeMetadata({
-            node_type: "nodetool.test.Node",
-            namespace: "nodetool.test"
-          })
-        }
-      });
-      useComfyUIStore.setState({ isConnected: false });
-
-      useNodeMenuStore.getState().performSearch("");
-
-      const resultNodeTypes = useNodeMenuStore
-        .getState()
-        .searchResults.map((node) => node.node_type);
-      expect(resultNodeTypes).toContain("nodetool.test.Node");
-      expect(resultNodeTypes).not.toContain("comfy.test.Node");
-    });
-
-    it("shows Comfy nodes when ComfyUI is connected", () => {
-      useMetadataStore.setState({
-        metadata: {
-          "comfy.node": createMockNodeMetadata({
-            node_type: "comfy.test.Node",
-            namespace: "comfy.test"
-          }),
-          "regular.node": createMockNodeMetadata({
-            node_type: "nodetool.test.Node",
-            namespace: "nodetool.test"
-          })
-        }
-      });
-      useComfyUIStore.setState({ isConnected: true });
-
-      useNodeMenuStore.getState().performSearch("");
-
-      const resultNodeTypes = useNodeMenuStore
-        .getState()
-        .searchResults.map((node) => node.node_type);
-      expect(resultNodeTypes).toContain("nodetool.test.Node");
-      expect(resultNodeTypes).toContain("comfy.test.Node");
-    });
   });
 });

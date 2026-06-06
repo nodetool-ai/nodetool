@@ -60,7 +60,7 @@ const ColorModeSelector: React.FC<ColorModeSelectorProps> = memo(({
             minWidth: "auto",
             minHeight: "36px",
             padding: "6px 12px",
-            fontSize: "11px",
+            fontSize: "var(--fontSizeSmaller)",
             fontWeight: 600,
             textTransform: "uppercase",
             color: theme.vars.palette.grey[400],

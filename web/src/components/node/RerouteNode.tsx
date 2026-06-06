@@ -52,7 +52,7 @@ const titleStyles = (theme: Theme) =>
     width: "max-content",
     whiteSpace: "normal",
     wordBreak: "break-word",
-    fontSize: "10px",
+    fontSize: "var(--fontSizeSmaller)",
     lineHeight: 1.3,
     color: theme.vars.palette.text.secondary,
     background: hexToRgba(theme.vars.palette.c_node_bg as string, 0.85),
@@ -72,7 +72,7 @@ const titleStyles = (theme: Theme) =>
       outline: "none",
       background: "transparent",
       color: theme.vars.palette.text.primary,
-      fontSize: "10px",
+      fontSize: "var(--fontSizeSmaller)",
       lineHeight: 1.3,
       fontFamily: "inherit",
       padding: 0,
@@ -233,6 +233,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
                 ref={inputRef}
                 defaultValue={title}
                 autoFocus
+                aria-label="Reroute label"
                 placeholder="label"
                 onKeyDown={handleKeyDown}
                 onBlur={handleBlur}

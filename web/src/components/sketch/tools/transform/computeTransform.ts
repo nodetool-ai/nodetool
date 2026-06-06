@@ -41,10 +41,6 @@ import {
 type GestureTransformMode = TransformMode;
 type PerspectiveQuad = [Point, Point, Point, Point];
 
-function asQuad(q: PerspectiveQuad): Quad {
-  return q;
-}
-
 const CORNER_INDEX_BY_HANDLE: Record<
   Extract<
     TransformHandle,

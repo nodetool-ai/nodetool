@@ -300,6 +300,119 @@ describe("jsonTypeToTs", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Array of asset-wrapper structs → list[image]/list[video]/list[audio]
+// ---------------------------------------------------------------------------
+
+describe("array of single-asset wrapper structs", () => {
+  function schemaWith(properties: Record<string, unknown>, schemas: Record<string, unknown>) {
+    return {
+      paths: {
+        "/fal-ai/test": {
+          post: {
+            requestBody: {
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/TestInput" }
+                }
+              }
+            }
+          }
+        }
+      },
+      components: {
+        schemas: {
+          TestInput: { type: "object", properties },
+          ...schemas
+        }
+      }
+    };
+  }
+
+  it("collapses a list of pure {image_url} wrappers to list[image] with a nestedAssetKey hint", () => {
+    const p = new SchemaParser();
+    const spec = p.parse(
+      schemaWith(
+        {
+          ref_images: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ImageInput" },
+            description: "Reference images",
+            maxItems: 7
+          }
+        },
+        {
+          ImageInput: {
+            type: "object",
+            title: "ImageInput",
+            properties: { image_url: { type: "string" } }
+          }
+        }
+      )
+    );
+    const field = spec.inputFields.find((f) => f.name === "ref_images");
+    expect(field).toMatchObject({
+      name: "ref_images",
+      propType: "list[image]",
+      tsType: "image[]",
+      nestedAssetKey: "image_url",
+      max: 7
+    });
+  });
+
+  it("collapses a list of pure {video_url} wrappers to list[video]", () => {
+    const p = new SchemaParser();
+    const spec = p.parse(
+      schemaWith(
+        {
+          clips: {
+            type: "array",
+            items: { $ref: "#/components/schemas/VideoInput" }
+          }
+        },
+        {
+          VideoInput: {
+            type: "object",
+            title: "VideoInput",
+            properties: { video_url: { type: "string" } }
+          }
+        }
+      )
+    );
+    expect(spec.inputFields.find((f) => f.name === "clips")).toMatchObject({
+      propType: "list[video]",
+      nestedAssetKey: "video_url"
+    });
+  });
+
+  it("does NOT collapse a wrapper carrying extra fields — keeps list[Struct]", () => {
+    const p = new SchemaParser();
+    const spec = p.parse(
+      schemaWith(
+        {
+          conditioned: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ImageConditioningInput" }
+          }
+        },
+        {
+          ImageConditioningInput: {
+            type: "object",
+            title: "ImageConditioningInput",
+            properties: {
+              image_url: { type: "string" },
+              conditioning_scale: { type: "number" }
+            }
+          }
+        }
+      )
+    );
+    const field = spec.inputFields.find((f) => f.name === "conditioned");
+    expect(field?.propType).toBe("list[ImageConditioningInput]");
+    expect(field?.nestedAssetKey).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // normalizeAssetUrlFields
 // ---------------------------------------------------------------------------
 
