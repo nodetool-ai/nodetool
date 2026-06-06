@@ -8,7 +8,8 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
-  loadNodePath
+  loadNodePath,
+  loadNodeOs
 } from "@nodetool-ai/nodes-utils";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
@@ -43,9 +44,29 @@ function toFilePath(uriOrPath: string): string {
   return uriOrPath;
 }
 
+async function expandHome(p: string): Promise<string> {
+  if (p !== "~" && !p.startsWith("~/")) return p;
+  const os = await loadNodeOs();
+  const home = os.homedir();
+  return p === "~" ? home : `${home}/${p.slice(2)}`;
+}
+
+/** Apply strftime-style date codes (%Y %m %d %H %M %S) to a filename template. */
+function formatStrftime(template: string): string {
+  const now = new Date();
+  return template
+    .replace(/%Y/g, String(now.getFullYear()))
+    .replace(/%m/g, String(now.getMonth() + 1).padStart(2, "0"))
+    .replace(/%d/g, String(now.getDate()).padStart(2, "0"))
+    .replace(/%H/g, String(now.getHours()).padStart(2, "0"))
+    .replace(/%M/g, String(now.getMinutes()).padStart(2, "0"))
+    .replace(/%S/g, String(now.getSeconds()).padStart(2, "0"));
+}
+
 function wildcardToRegExp(pattern: string): RegExp {
   const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^${escaped.replaceAll("*", ".*")}$`);
+  const regex = escaped.replaceAll("*", ".*").replaceAll("?", ".");
+  return new RegExp(`^${regex}$`);
 }
 
 function textChunk(
@@ -128,8 +149,8 @@ export class LoadDocumentFileNode extends BaseNode {
   declare path: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const p = String(this.path ?? this.path ?? "");
-    const full = toFilePath(p);
+    const p = String(this.path ?? "");
+    const full = toFilePath(await expandHome(p));
     const fs = await loadNodeFsPromises();
     const bytes = new Uint8Array(await fs.readFile(full));
     return {
@@ -181,11 +202,13 @@ export class SaveDocumentFileNode extends BaseNode {
   declare filename: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const document = (this.document ?? this.document ?? {}) as DocumentRefLike;
-    const p = String((this as any).path ?? "");
-    const full = toFilePath(p);
+    const document = (this.document ?? {}) as DocumentRefLike;
+    const folder = await expandHome(String(this.folder ?? ""));
+    const filename = formatStrftime(String(this.filename ?? ""));
+    if (!filename.trim()) throw new Error("filename cannot be empty");
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
+    const full = toFilePath(folder ? path.join(folder, filename) : filename);
     await fs.mkdir(path.dirname(full), { recursive: true });
     if (document.data) {
       await fs.writeFile(full, asBytes(document.data));
@@ -255,9 +278,9 @@ export class ListDocumentsNode extends BaseNode {
   }
 
   private async *_listDocuments(): AsyncGenerator<{ document: { uri: string } }> {
-    const folder = String(this.folder ?? this.folder ?? ".");
-    const pattern = String(this.pattern ?? this.pattern ?? "*");
-    const recursive = Boolean(this.recursive ?? this.recursive ?? false);
+    const folder = await expandHome(String(this.folder ?? "."));
+    const pattern = String(this.pattern ?? "*");
+    const recursive = Boolean(this.recursive ?? false);
     const allowed = new Set([
       ".txt",
       ".md",
@@ -307,52 +330,15 @@ export class SplitDocumentNode extends BaseNode {
   static readonly nodeType = "nodetool.document.SplitDocument";
   static readonly title = "Split Document";
   static readonly description =
-    "Split text semantically.\n    chroma, embedding, collection, RAG, index, text, markdown, semantic";
-  static readonly inlineFields = ["buffer_size", "threshold"];
-  static readonly inputFields = ["embed_model", "document"];
+    "Split a document into fixed-size character chunks with overlap.\n    text, split, chunks, rag, index";
+  static readonly inlineFields = ["chunk_size", "chunk_overlap"];
+  static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     text: "str",
     source_id: "str",
     start_index: "int",
     chunks: "list"
   };
-  static readonly recommendedModels = [
-    {
-      id: "embeddinggemma",
-      type: "embedding_model",
-      name: "Embedding Gemma",
-      repo_id: "embeddinggemma",
-      description: "Embedding model for semantic splitting"
-    },
-    {
-      id: "nomic-embed-text",
-      type: "embedding_model",
-      name: "Nomic Embed Text",
-      repo_id: "nomic-embed-text",
-      description: "Embedding model for semantic splitting"
-    },
-    {
-      id: "mxbai-embed-large",
-      type: "embedding_model",
-      name: "MXBai Embed Large",
-      repo_id: "mxbai-embed-large",
-      description: "Embedding model for semantic splitting"
-    },
-    {
-      id: "bge-m3",
-      type: "embedding_model",
-      name: "BGE M3",
-      repo_id: "bge-m3",
-      description: "Embedding model for semantic splitting"
-    },
-    {
-      id: "all-minilm",
-      type: "embedding_model",
-      name: "All Minilm",
-      repo_id: "all-minilm",
-      description: "Embedding model for semantic splitting"
-    }
-  ];
 
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
@@ -361,21 +347,6 @@ export class SplitDocumentNode extends BaseNode {
     start_index: { kind: "iteration", source: "document", group: "items" },
     chunks: { kind: "single", source: "document" }
   };
-
-  @prop({
-    type: "language_model",
-    default: {
-      type: "language_model",
-      provider: "ollama",
-      id: "embeddinggemma",
-      name: "",
-      path: null,
-      supported_tasks: []
-    },
-    title: "Embed Model",
-    description: "Embedding model to use"
-  })
-  declare embed_model: any;
 
   @prop({
     type: "document",
@@ -393,23 +364,21 @@ export class SplitDocumentNode extends BaseNode {
 
   @prop({
     type: "int",
-    default: 1,
-    title: "Buffer Size",
-    description: "Buffer size for semantic splitting",
-    min: 1,
-    max: 100
+    default: 1200,
+    title: "Chunk Size",
+    description: "Maximum size of each chunk in characters",
+    min: 1
   })
-  declare buffer_size: any;
+  declare chunk_size: any;
 
   @prop({
     type: "int",
-    default: 95,
-    title: "Threshold",
-    description: "Breakpoint percentile threshold for semantic splitting",
-    min: 0,
-    max: 100
+    default: 100,
+    title: "Chunk Overlap",
+    description: "Number of characters to overlap between chunks",
+    min: 0
   })
-  declare threshold: any;
+  declare chunk_overlap: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
@@ -426,11 +395,11 @@ export class SplitDocumentNode extends BaseNode {
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
-    const document = this.document ?? this.document;
+    const document = this.document;
     const text = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
-    const chunkSize = Number((this as any).chunk_size ?? 1200);
-    const overlap = Number((this as any).chunk_overlap ?? 100);
+    const chunkSize = Number(this.chunk_size ?? 1200);
+    const overlap = Number(this.chunk_overlap ?? 100);
     const collected: Record<string, unknown>[] = [];
     let startIndex = 0;
     for (const chunk of splitByChunk(text, chunkSize, overlap)) {
@@ -450,7 +419,7 @@ export class SplitHTMLNode extends BaseNode {
   static readonly title = "Split HTML";
   static readonly description =
     "Split HTML content into semantic chunks based on HTML tags.\n    html, text, semantic, tags, parsing";
-  static readonly inlineFields = [];
+  static readonly inlineFields = ["chunk_size", "chunk_overlap"];
   static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     text: "str",
@@ -481,6 +450,24 @@ export class SplitHTMLNode extends BaseNode {
   })
   declare document: any;
 
+  @prop({
+    type: "int",
+    default: 1200,
+    title: "Chunk Size",
+    description: "Maximum size of each chunk in characters",
+    min: 1
+  })
+  declare chunk_size: any;
+
+  @prop({
+    type: "int",
+    default: 100,
+    title: "Chunk Overlap",
+    description: "Number of characters to overlap between chunks",
+    min: 0
+  })
+  declare chunk_overlap: any;
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
     for await (const item of this.genProcess(context)) {
@@ -496,11 +483,11 @@ export class SplitHTMLNode extends BaseNode {
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
-    const document = this.document ?? this.document;
+    const document = this.document;
     const html = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
-    const chunkSize = Number((this as any).chunk_size ?? 1200);
-    const overlap = Number((this as any).chunk_overlap ?? 100);
+    const chunkSize = Number(this.chunk_size ?? 1200);
+    const overlap = Number(this.chunk_overlap ?? 100);
 
     // Split on block-level HTML tags
     const blockTags = "p|div|h[1-6]|li|section|article|blockquote|tr|pre|header|footer|nav|main|aside";
@@ -592,7 +579,7 @@ export class SplitJSONNode extends BaseNode {
   static readonly title = "Split JSON";
   static readonly description =
     "Split JSON content into semantic chunks.\n    json, parsing, semantic, structured";
-  static readonly inlineFields = ["include_metadata", "include_prev_next_rel"];
+  static readonly inlineFields = ["chunk_size", "chunk_overlap"];
   static readonly inputFields = ["document"];
   static readonly metadataOutputTypes = {
     text: "str",
@@ -624,20 +611,22 @@ export class SplitJSONNode extends BaseNode {
   declare document: any;
 
   @prop({
-    type: "bool",
-    default: true,
-    title: "Include Metadata",
-    description: "Whether to include metadata in nodes"
+    type: "int",
+    default: 1200,
+    title: "Chunk Size",
+    description: "Maximum size of each chunk in characters",
+    min: 1
   })
-  declare include_metadata: any;
+  declare chunk_size: any;
 
   @prop({
-    type: "bool",
-    default: true,
-    title: "Include Prev Next Rel",
-    description: "Whether to include prev/next relationships"
+    type: "int",
+    default: 100,
+    title: "Chunk Overlap",
+    description: "Number of characters to overlap between chunks",
+    min: 0
   })
-  declare include_prev_next_rel: any;
+  declare chunk_overlap: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
@@ -654,11 +643,11 @@ export class SplitJSONNode extends BaseNode {
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
-    const document = this.document ?? this.document;
+    const document = this.document;
     const raw = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
-    const chunkSize = Number((this as any).chunk_size ?? 1200);
-    const overlap = Number((this as any).chunk_overlap ?? 100);
+    const chunkSize = Number(this.chunk_size ?? 1200);
+    const overlap = Number(this.chunk_overlap ?? 100);
     const collected: Record<string, unknown>[] = [];
 
     let parsed: unknown;
@@ -695,31 +684,31 @@ export class SplitJSONNode extends BaseNode {
 
     // Merge small elements and split large ones respecting chunk_size
     let chunkIdx = 0;
+    let startIndex = 0;
     let buffer = "";
+
+    const emit = (chunk: string) => {
+      const item = textChunk(chunk, `${sourceId}:${chunkIdx}`, startIndex);
+      collected.push(item);
+      chunkIdx++;
+      startIndex += chunk.length;
+      return item;
+    };
 
     for (const element of elements) {
       if (element.length > chunkSize) {
         // Emit buffer first if any
         if (buffer) {
-          const item = textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
-          collected.push(item);
-          yield item;
-          chunkIdx++;
+          yield emit(buffer);
           buffer = "";
         }
         // Split large element by characters
         for (const chunk of splitByChunk(element, chunkSize, overlap)) {
-          const item = textChunk(chunk, `${sourceId}:${chunkIdx}`, chunkIdx);
-          collected.push(item);
-          yield item;
-          chunkIdx++;
+          yield emit(chunk);
         }
       } else if (buffer && (buffer.length + 2 + element.length) > chunkSize) {
         // Buffer would exceed chunk_size, emit it
-        const item = textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
-        collected.push(item);
-        yield item;
-        chunkIdx++;
+        yield emit(buffer);
         buffer = element;
       } else {
         buffer = buffer ? buffer + ",\n" + element : element;
@@ -727,9 +716,7 @@ export class SplitJSONNode extends BaseNode {
     }
 
     if (buffer) {
-      const item = textChunk(buffer, `${sourceId}:${chunkIdx}`, chunkIdx);
-      collected.push(item);
-      yield item;
+      yield emit(buffer);
     }
 
     yield { chunks: collected };
@@ -811,19 +798,13 @@ export class SplitRecursivelyNode extends BaseNode {
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
-    const document = this.document ?? this.document;
+    const document = this.document;
     const text = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
-    const chunkSize = Number(
-      (this as any).chunk_size ?? (this as any).chunk_size ?? 1000
-    );
-    const overlap = Number(
-      (this as any).chunk_overlap ?? (this as any).chunk_overlap ?? 200
-    );
-    const separators = Array.isArray(this.separators ?? this.separators)
-      ? ((this.separators ?? this.separators) as unknown[]).map((s) =>
-          String(s)
-        )
+    const chunkSize = Number(this.chunk_size ?? 1000);
+    const overlap = Number(this.chunk_overlap ?? 200);
+    const separators = Array.isArray(this.separators)
+      ? (this.separators as unknown[]).map((s) => String(s))
       : ["\n\n", "\n", "."];
 
     // Truly recursive splitting: for each separator in order,
@@ -1003,21 +984,13 @@ export class SplitMarkdownNode extends BaseNode {
   }
 
   async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
-    const document = this.document ?? this.document;
+    const document = this.document;
     const markdown = await readDocumentText(document, context);
     const sourceId = documentSourceId(document);
-    const stripHeaders = Boolean(
-      this.strip_headers ?? this.strip_headers ?? true
-    );
-    const returnEachLine = Boolean(
-      this.return_each_line ?? this.return_each_line ?? false
-    );
-    const chunkSize = Number(
-      (this as any).chunk_size ?? (this as any).chunk_size ?? 1000
-    );
-    const overlap = Number(
-      (this as any).chunk_overlap ?? (this as any).chunk_overlap ?? 30
-    );
+    const stripHeaders = Boolean(this.strip_headers ?? true);
+    const returnEachLine = Boolean(this.return_each_line ?? false);
+    const chunkSize = Number(this.chunk_size ?? 1000);
+    const overlap = Number(this.chunk_overlap ?? 30);
 
     // Parse headers_to_split_on config
     const headersConfig = Array.isArray(this.headers_to_split_on)
@@ -1089,7 +1062,7 @@ export class SplitMarkdownNode extends BaseNode {
 
     // Yield sections
     const collected: Record<string, unknown>[] = [];
-    let chunkIdx = 0;
+    let startIndex = 0;
     for (const section of sections) {
       const sectionText = section.content.join("\n").trim();
       if (!sectionText) continue;
@@ -1098,28 +1071,27 @@ export class SplitMarkdownNode extends BaseNode {
         for (const line of section.content) {
           const trimmed = line.trim();
           if (trimmed) {
-            const result = textChunk(trimmed, sourceId, chunkIdx);
+            const result = textChunk(trimmed, sourceId, startIndex);
             result.metadata = section.metadata;
             collected.push(result);
             yield result;
-            chunkIdx++;
+            startIndex += trimmed.length;
           }
         }
       } else {
         const sectionChunks = splitByChunk(sectionText, chunkSize, overlap);
         for (const chunk of sectionChunks) {
-          const result = textChunk(chunk, sourceId, chunkIdx);
+          const result = textChunk(chunk, sourceId, startIndex);
           result.metadata = section.metadata;
           collected.push(result);
           yield result;
-          chunkIdx++;
+          startIndex += chunk.length;
         }
       }
     }
 
     // Fallback if no sections were created
     if (sections.length === 0) {
-      let startIndex = 0;
       for (const chunk of splitByChunk(markdown, chunkSize, overlap)) {
         const idx = markdown.indexOf(chunk, startIndex);
         const resolvedIndex = idx >= 0 ? idx : startIndex;

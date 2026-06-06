@@ -61,6 +61,10 @@ async function runCommand(
       resolve({ stdout, stderr, exitCode: code ?? 0 });
     });
 
+    // Swallow stdin errors (e.g. EPIPE): the child may exit before consuming
+    // all input. The exit code and stderr surfaced via 'close' are the source
+    // of truth; an unhandled 'error' here would otherwise crash the process.
+    child.stdin.on("error", () => {});
     if (stdin.length > 0) {
       child.stdin.write(stdin);
     }

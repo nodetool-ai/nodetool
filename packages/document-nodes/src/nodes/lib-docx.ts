@@ -131,7 +131,21 @@ export class LoadWordDocumentLibNode extends BaseNode {
     if (!filePath.trim()) throw new Error("path cannot be empty");
     const expanded = expandUser(filePath);
     const result = await mammoth.extractRawText({ path: expanded });
-    return { output: result.value };
+    // Return a DocState so the loaded document can be edited and saved by the
+    // other lib.docx nodes (all of which consume the `document` shape via
+    // getDocState). Each non-empty line becomes a paragraph element.
+    const elements: ElementDescriptor[] = result.value
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0)
+      .map((line) => ({
+        type: "paragraph",
+        text: line,
+        alignment: "LEFT",
+        bold: false,
+        italic: false,
+        font_size: 12
+      }));
+    return { output: { elements, properties: {} } as DocState };
   }
 }
 
@@ -609,6 +623,7 @@ export class SaveDocumentLibNode extends BaseNode {
 
     const filenameTemplate = String(this.filename ?? "");
     const filename = formatDate(filenameTemplate);
+    if (!filename.trim()) throw new Error("Filename is not set");
     const fullPath = expandUser(path.join(folderPath, filename));
 
     // Build document elements
