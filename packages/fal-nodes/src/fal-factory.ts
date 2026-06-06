@@ -181,6 +181,55 @@ async function promptAssetOverrides(
   return mapPromptAssetsToInputs(textFields, assetFields, context);
 }
 
+function resolveFieldValue(instance: BaseNode, fieldName: string): unknown {
+  const record = instance as unknown as Record<string, unknown>;
+  if (fieldName === "mask") {
+    const mask = record["mask"];
+    const legacy = record["mask_url"];
+    if (isRefSet(mask)) return mask;
+    if (legacy !== undefined) return legacy;
+    return mask;
+  }
+  if (fieldName in record && record[fieldName] !== undefined) {
+    return record[fieldName];
+  }
+  return undefined;
+}
+
+function fieldLabel(field: { name: string }): string {
+  if (field.name === "mask") return "Mask";
+  return field.name;
+}
+
+function validateRequiredAssetArgs(
+  instance: BaseNode,
+  spec: FalManifestEntry,
+  nodeTitle: string
+): void {
+  for (const field of spec.inputFields) {
+    if (field.parentField || !field.required) continue;
+    const kind = assetKind(field.propType);
+    if (kind === "none") continue;
+    const value = resolveFieldValue(instance, field.name);
+    const suffix =
+      field.name === "mask" ? " and match image dimensions" : "";
+    if (isListAsset(field.propType)) {
+      const list = value as Record<string, unknown>[] | undefined;
+      if (!list?.some((ref) => isRefSet(ref))) {
+        throw new Error(
+          `${nodeTitle}: ${fieldLabel(field)} must be connected${suffix}`
+        );
+      }
+      continue;
+    }
+    if (!isRefSet(value)) {
+      throw new Error(
+        `${nodeTitle}: ${fieldLabel(field)} must be connected${suffix}`
+      );
+    }
+  }
+}
+
 async function buildArgs(
   instance: BaseNode,
   spec: FalManifestEntry,
@@ -204,7 +253,7 @@ async function buildArgs(
     const value =
       field.name in overrides
         ? overrides[field.name]
-        : (instance as unknown as Record<string, unknown>)[field.name];
+        : resolveFieldValue(instance, field.name);
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
 
@@ -424,6 +473,7 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
       context?: ProcessingContext
     ): Promise<Record<string, unknown>> {
       const apiKey = getFalApiKey(this._secrets);
+      validateRequiredAssetArgs(this, specRef, title);
       const args = await buildArgs(this, specRef, apiKey, context);
       const { data: res, requestId } = await falSubmitWithMeta(
         apiKey,

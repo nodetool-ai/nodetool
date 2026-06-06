@@ -347,18 +347,6 @@ export const config: ModuleConfig = {
           description:
             "The mask defining areas to fill (white = fill, black = keep)"
         },
-        image_size: {
-          propType: "enum",
-          enumRef: "ImageSizePreset",
-          default: "landscape_4_3",
-          description: "The size of the generated image"
-        },
-        num_inference_steps: {
-          description: "The number of inference steps to perform"
-        },
-        guidance_scale: {
-          description: "How strictly to follow the prompt"
-        },
         seed: {
           propType: "int",
           default: -1,
