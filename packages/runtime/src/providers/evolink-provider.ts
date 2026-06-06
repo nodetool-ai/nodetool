@@ -36,6 +36,7 @@ export class EvolinkProvider extends OpenAIProvider {
     super(
       { OPENAI_API_KEY: apiKey },
       {
+        providerId: "evolink",
         client: options.client,
         clientFactory:
           options.clientFactory ??
@@ -48,16 +49,11 @@ export class EvolinkProvider extends OpenAIProvider {
       }
     );
 
-    (this as { provider: string }).provider = "evolink";
     this._evolinkFetch = fetchFn;
   }
 
   override getContainerEnv(): Record<string, string> {
     return { EVOLINK_API_KEY: this.apiKey };
-  }
-
-  override async hasToolSupport(_model: string): Promise<boolean> {
-    return true;
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {

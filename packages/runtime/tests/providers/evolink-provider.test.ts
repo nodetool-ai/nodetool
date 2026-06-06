@@ -44,12 +44,14 @@ describe("EvolinkProvider", () => {
     });
   });
 
-  it("has tool support for all models", async () => {
+  it("inherits OpenAI per-model tool support (excludes o1/o3 reasoning models)", async () => {
     const provider = new EvolinkProvider(
       { EVOLINK_API_KEY: "k" },
       { client: {} as any }
     );
     expect(await provider.hasToolSupport("gpt-5.2")).toBe(true);
+    expect(await provider.hasToolSupport("deepseek-v4-pro")).toBe(true);
+    expect(await provider.hasToolSupport("o1-preview")).toBe(false);
   });
 
   it("fetches available language models", async () => {

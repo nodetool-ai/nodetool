@@ -53,6 +53,7 @@ import minimaxColorIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg"
 import meshyColorIcon from "@lobehub/icons-static-svg/icons/meshy-color.svg";
 import githubIcon from "@lobehub/icons-static-svg/icons/github.svg";
 import googleColorIcon from "@lobehub/icons-static-svg/icons/google-color.svg";
+import evolinkIcon from "../../icons/evolink.svg";
 
 
 interface ProviderMeta {
@@ -127,7 +128,8 @@ const PROVIDER_META: ProviderMeta[] = [
     name: "Evolink",
     description: "GPT, Claude, Gemini, DeepSeek and more through one gateway.",
     category: "other",
-    docsUrl: "https://docs.evolink.ai"
+    docsUrl: "https://docs.evolink.ai",
+    icon: evolinkIcon
   },
   {
     key: "GROQ_API_KEY",
