@@ -47,12 +47,14 @@ describe("AnthropicProvider – convertMessage branches", () => {
     { client: {} as any }
   );
 
-  it("converts system message to assistant role", async () => {
+  it("folds a stray system message into a user message", async () => {
+    // Anthropic has no `system` role in the messages array; a system message
+    // reaching convertMessage is folded into a user message (not assistant).
     const result = await provider.convertMessage({
       role: "system",
       content: "You are helpful"
     });
-    expect(result).toEqual({ role: "assistant", content: "You are helpful" });
+    expect(result).toEqual({ role: "user", content: "You are helpful" });
   });
 
   it("handles system message with non-string content", async () => {
@@ -60,7 +62,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
       role: "system",
       content: null
     });
-    expect(result).toEqual({ role: "assistant", content: "" });
+    expect(result).toEqual({ role: "user", content: "" });
   });
 
   it("converts user text message", async () => {

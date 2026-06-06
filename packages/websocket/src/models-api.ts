@@ -21,7 +21,7 @@ import {
   type VideoModel
 } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
-import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 import {
   readCachedHfModels,
   searchCachedHfModels,
@@ -298,7 +298,7 @@ import { PythonProvider, registerProvider } from "@nodetool-ai/runtime";
  * via the Python stdio bridge. Call after the bridge has connected.
  */
 export async function registerPythonProviders(
-  bridge: PythonStdioBridge
+  bridge: PythonBridge
 ): Promise<string[]> {
   const providers = await bridge.listProviders();
   const registered: string[] = [];

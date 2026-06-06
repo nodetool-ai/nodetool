@@ -16,6 +16,13 @@ describe("buildSnapPoints", () => {
     ]);
   });
 
+  it("generates fractional tick intervals as exact multiples (no drift)", () => {
+    const points = buildSnapPoints({ tickIntervalMs: 0.5, maxTimeMs: 2 });
+    expect(points).toEqual([0, 0.5, 1, 1.5, 2]);
+    // Each point is exactly i * interval, so it dedupes against integer sources.
+    points.forEach((t, i) => expect(t).toBe(i * 0.5));
+  });
+
   it("ignores tickIntervalMs when it is zero or negative", () => {
     expect(buildSnapPoints({ tickIntervalMs: 0, maxTimeMs: 3000 })).toEqual([]);
     expect(buildSnapPoints({ tickIntervalMs: -100, maxTimeMs: 3000 })).toEqual(

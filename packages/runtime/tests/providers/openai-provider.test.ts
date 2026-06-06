@@ -159,9 +159,6 @@ describe("OpenAIProvider", () => {
             finish_reason: "tool_calls"
           }
         ]
-      },
-      {
-        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
       }
     ]);
 

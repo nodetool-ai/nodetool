@@ -7,6 +7,9 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { promisify } from "node:util";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 // Capture all execFile calls so we can inspect ffmpeg/ffprobe arguments
 let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
@@ -122,7 +125,10 @@ const {
   FpsNode,
   GetVideoInfoNode,
   TrimVideoNode,
-  AddAudioVideoNode
+  AddAudioVideoNode,
+  ChromaKeyVideoNode,
+  SaveVideoNode,
+  FrameToVideoNode
 } = await import("@nodetool-ai/video-nodes");
 
 function videoRef(bytes: number[]) {
@@ -674,5 +680,124 @@ describe("AddAudioVideoNode — uses volume and mix inputs", () => {
 
     const args = ffmpegArgString();
     expect(args).not.toContain("amix");
+  });
+
+  it("loads audio from a file:// URI (async), not just inline data", async () => {
+    // Audio supplied as a URI ref with no inline `data` — the node must load
+    // it via the async loader. With the old synchronous `audioBytes`, the
+    // bytes would be empty and the node would return early WITHOUT calling
+    // ffmpeg. A real temp file backs the URI so audioBytesAsync can read it.
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-aatest-"));
+    const wavPath = path.join(dir, "track.wav");
+    await fs.writeFile(wavPath, Buffer.from([10, 20, 30, 40, 50]));
+    try {
+      const node = new AddAudioVideoNode();
+      node.assign({
+        video: videoRef([1, 2, 3, 4]),
+        audio: { type: "audio", uri: `file://${wavPath}`, data: null },
+        volume: 1.0,
+        mix: false
+      });
+      await node.process();
+
+      // ffmpeg must have been invoked, proving the URI-backed audio loaded.
+      expect(ffmpegCalls().length).toBeGreaterThan(0);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ─── 11. ChromaKey ───────────────────────────────────────────────────────────
+
+describe("ChromaKeyVideoNode — uses the color ref value, not [object Object]", () => {
+  it("converts key_color.value (#RRGGBB) to ffmpeg's 0x form", async () => {
+    const node = new ChromaKeyVideoNode();
+    node.assign({
+      video: videoRef([1, 2, 3, 4]),
+      key_color: { type: "color", value: "#00FF00" },
+      similarity: 0.3,
+      blend: 0.1
+    });
+    await node.process();
+
+    const args = ffmpegArgString();
+    expect(args).toContain("colorkey=0x00FF00:0.3:0.1");
+    expect(args).not.toContain("[object Object]");
+  });
+
+  it("honors a non-default key color", async () => {
+    const node = new ChromaKeyVideoNode();
+    node.assign({
+      video: videoRef([1, 2, 3, 4]),
+      key_color: { type: "color", value: "#0000FF" },
+      similarity: 0.2,
+      blend: 0.05
+    });
+    await node.process();
+
+    const args = ffmpegArgString();
+    expect(args).toContain("colorkey=0x0000FF");
+  });
+});
+
+// ─── 12. SaveVideo (folder ref resolution) ───────────────────────────────────
+
+describe("SaveVideoNode — resolves a folder ref object to a path", () => {
+  it("writes under the folder ref's uri, not a [object Object] directory", async () => {
+    const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-savetest-"));
+    const writeSpy = vi.spyOn(fs, "writeFile").mockResolvedValue(undefined);
+    const mkdirSpy = vi
+      .spyOn(fs, "mkdir")
+      .mockResolvedValue(undefined as unknown as string);
+    try {
+      const node = new SaveVideoNode();
+      node.assign({
+        video: videoRef([1, 2, 3, 4]),
+        folder: { type: "folder", uri: `file://${targetDir}`, asset_id: null },
+        name: "clip.mp4"
+      });
+      await node.process();
+
+      expect(writeSpy).toHaveBeenCalled();
+      const writtenPath = String(writeSpy.mock.calls[0][0]);
+      expect(writtenPath).not.toContain("[object Object]");
+      expect(writtenPath).toBe(path.join(targetDir, "clip.mp4"));
+    } finally {
+      writeSpy.mockRestore();
+      mkdirSpy.mockRestore();
+      await fs.rm(targetDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ─── 13. FrameToVideo (contiguous numbering) ─────────────────────────────────
+
+describe("FrameToVideoNode — numbers frames contiguously despite gaps", () => {
+  it("skips empty frames without leaving holes in the PNG sequence", async () => {
+    const writeSpy = vi.spyOn(fs, "writeFile").mockResolvedValue(undefined);
+    try {
+      const img = (bytes: number[]) => ({
+        type: "image",
+        data: Buffer.from(new Uint8Array(bytes)).toString("base64")
+      });
+      const node = new FrameToVideoNode();
+      // Middle frame is empty (no data) and must be skipped, but the two valid
+      // frames should still be written as frame_000001 and frame_000002.
+      node.assign({
+        frame: [img([1, 2, 3]), { type: "image", data: "" }, img([4, 5, 6])],
+        fps: 24
+      });
+      await node.process();
+
+      const frameWrites = writeSpy.mock.calls
+        .map((c) => String(c[0]))
+        .filter((p) => p.includes("frame_"))
+        .map((p) => path.basename(p))
+        .sort();
+      expect(frameWrites).toEqual(["frame_000001.png", "frame_000002.png"]);
+    } finally {
+      writeSpy.mockRestore();
+    }
   });
 });

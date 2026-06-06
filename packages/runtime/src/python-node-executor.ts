@@ -92,8 +92,31 @@ export class PythonNodeExecutor {
     private nodeType: string,
     _properties: Record<string, unknown>,
     private outputTypes: Record<string, string>,
-    private requiredSettings: string[]
+    private requiredSettings: string[],
+    /** Graph node id, used to surface Python worker progress as node_progress. */
+    private nodeId?: string
   ) {}
+
+  /**
+   * Build an onProgress sink that forwards the Python worker's progress events
+   * to the context message stream as `node_progress`. Returns undefined when we
+   * lack the context or node id needed to address the message.
+   */
+  private progressHandler(
+    context?: ProcessingContext
+  ): ((event: ProgressEvent) => void) | undefined {
+    const nodeId = this.nodeId;
+    if (!context || !nodeId) return undefined;
+    return (event: ProgressEvent) => {
+      context.postMessage({
+        type: "node_progress",
+        node_id: nodeId,
+        progress: event.progress,
+        total: event.total,
+        workflow_id: context.workflowId
+      });
+    };
+  }
 
   private async prepareExecution(
     inputs: Record<string, unknown>,
@@ -185,6 +208,11 @@ export class PythonNodeExecutor {
           contentType
         );
         outputs[name] = { uri, type: mediaType };
+      } else if (mediaType) {
+        // No storage adapter available: keep the bytes inline but preserve the
+        // media kind so downstream nodes receive a typed ref (e.g. ImageRef),
+        // not a bare Uint8Array.
+        outputs[name] = { type: mediaType, data: blobData };
       } else {
         outputs[name] = blobData;
       }
@@ -203,7 +231,7 @@ export class PythonNodeExecutor {
       fields,
       secrets,
       blobs,
-      undefined
+      this.progressHandler(context)
     );
     return this.materializeOutputs(result, context);
   }
@@ -223,7 +251,7 @@ export class PythonNodeExecutor {
       fields,
       secrets,
       blobs,
-      undefined
+      this.progressHandler(context)
     )) {
       yield await this.materializeOutputs(partial, context);
     }
