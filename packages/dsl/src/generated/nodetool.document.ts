@@ -47,9 +47,10 @@ export function listDocuments(inputs: ListDocumentsInputs): DslNode<ListDocument
 
 // Split Document — nodetool.document.SplitDocument
 export interface SplitDocumentInputs {
+  embed_model?: Connectable<unknown>;
   document?: Connectable<unknown>;
-  chunk_size?: Connectable<number>;
-  chunk_overlap?: Connectable<number>;
+  buffer_size?: Connectable<number>;
+  threshold?: Connectable<number>;
 }
 
 export interface SplitDocumentOutputs {
@@ -66,8 +67,6 @@ export function splitDocument(inputs: SplitDocumentInputs): DslNode<SplitDocumen
 // Split HTML — nodetool.document.SplitHTML
 export interface SplitHTMLInputs {
   document?: Connectable<unknown>;
-  chunk_size?: Connectable<number>;
-  chunk_overlap?: Connectable<number>;
 }
 
 export interface SplitHTMLOutputs {
@@ -84,8 +83,8 @@ export function splitHTML(inputs: SplitHTMLInputs): DslNode<SplitHTMLOutputs> {
 // Split JSON — nodetool.document.SplitJSON
 export interface SplitJSONInputs {
   document?: Connectable<unknown>;
-  chunk_size?: Connectable<number>;
-  chunk_overlap?: Connectable<number>;
+  include_metadata?: Connectable<boolean>;
+  include_prev_next_rel?: Connectable<boolean>;
 }
 
 export interface SplitJSONOutputs {
