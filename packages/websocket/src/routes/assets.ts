@@ -47,18 +47,15 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   });
 
   app.get(
-    "/api/assets/packages/:packageName/:assetName",
+    "/api/assets/packages/:packageName/*",
     async (req, reply) => {
-      const { packageName, assetName } = req.params as {
-        packageName: string;
-        assetName: string;
-      };
+      const params = req.params as { packageName: string; "*": string };
       await bridge(req, reply, async (_request) => {
         let pkgName: string;
         let aName: string;
         try {
-          pkgName = decodeURIComponent(packageName);
-          aName = decodeURIComponent(assetName);
+          pkgName = decodeURIComponent(params.packageName);
+          aName = decodeURIComponent(params["*"] ?? "");
         } catch {
           return new Response(
             JSON.stringify(
@@ -70,15 +67,18 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
             }
           );
         }
+        // `aName` may be a nested path (e.g. `audio/loop.mp3`). Reject empty,
+        // backslash, and traversal segments; `..` is checked per-segment.
+        const segments = aName.split("/");
         if (
           !pkgName ||
           !aName ||
-          pkgName.includes("..") ||
-          aName.includes("..") ||
+          pkgName === "." ||
+          pkgName === ".." ||
           pkgName.includes("/") ||
-          aName.includes("/") ||
           pkgName.includes("\\") ||
-          aName.includes("\\")
+          aName.includes("\\") ||
+          segments.some((s) => s === "" || s === "." || s === "..")
         ) {
           return new Response(
             JSON.stringify(apiError(ApiErrorCode.ASSET_NOT_FOUND, "Not found")),
@@ -88,24 +88,10 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
             }
           );
         }
-        const loaded = loadPythonPackageMetadata({
-          roots: apiOptions.metadataRoots,
-          maxDepth: apiOptions.metadataMaxDepth
-        });
-        const pkg = loaded.packages.find((p) => p.name === pkgName);
-        if (!pkg || !pkg.sourceFolder) {
-          return new Response(
-            JSON.stringify(
-              apiError(ApiErrorCode.NOT_FOUND, `Package '${pkgName}' not found`)
-            ),
-            {
-              status: 404,
-              headers: { "content-type": "application/json" }
-            }
-          );
-        }
         const { createReadStream, statSync } = await import("node:fs");
-        const { extname, resolve } = await import("node:path");
+        const { extname, resolve, relative, isAbsolute } = await import(
+          "node:path"
+        );
         const mimeTypes: Record<string, string> = {
           ".jpg": "image/jpeg",
           ".jpeg": "image/jpeg",
@@ -114,29 +100,54 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
           ".webp": "image/webp",
           ".svg": "image/svg+xml",
           ".mp3": "audio/mpeg",
+          ".wav": "audio/wav",
           ".mp4": "video/mp4",
           ".webm": "video/webm",
           ".json": "application/json",
           ".txt": "text/plain"
         };
-        const baseDir = resolve(
-          `${pkg.sourceFolder}/nodetool/assets/${pkgName}`
-        );
-        const assetPath = resolve(baseDir, aName);
-        // Prevent path traversal.
-        if (!assetPath.startsWith(baseDir + "/") && assetPath !== baseDir) {
-          return new Response(
-            JSON.stringify(apiError(ApiErrorCode.ASSET_NOT_FOUND, "Not found")),
-            {
-              status: 404,
-              headers: { "content-type": "application/json" }
-            }
-          );
+
+        // Resolve `<baseDir>/<segments...>` with a separator-agnostic
+        // containment guard (works on Windows, where startsWith(baseDir + "/")
+        // would not).
+        const tryServe = (
+          baseDir: string
+        ): { path: string; size: number; mtimeMs: number } | null => {
+          const candidate = resolve(baseDir, ...segments);
+          const rel = relative(baseDir, candidate);
+          if (rel.startsWith("..") || isAbsolute(rel)) {
+            return null;
+          }
+          try {
+            const st = statSync(candidate);
+            if (!st.isFile()) return null;
+            return { path: candidate, size: st.size, mtimeMs: st.mtimeMs };
+          } catch {
+            return null;
+          }
+        };
+
+        // Configured bundled roots first (no Python needed). Only fall back to
+        // Python package metadata — which walks the filesystem — when the asset
+        // isn't found in a configured root, keeping the hot path cheap.
+        let hit: { path: string; size: number; mtimeMs: number } | null = null;
+        for (const root of apiOptions.packageAssetsRoots ?? []) {
+          hit = tryServe(resolve(root, pkgName));
+          if (hit) break;
         }
-        let fileStat: { size: number; mtimeMs: number };
-        try {
-          fileStat = statSync(assetPath);
-        } catch {
+        if (!hit) {
+          const loaded = loadPythonPackageMetadata({
+            roots: apiOptions.metadataRoots,
+            maxDepth: apiOptions.metadataMaxDepth
+          });
+          const pkg = loaded.packages.find((p) => p.name === pkgName);
+          if (pkg?.sourceFolder) {
+            hit = tryServe(
+              resolve(`${pkg.sourceFolder}/nodetool/assets/${pkgName}`)
+            );
+          }
+        }
+        if (!hit) {
           return new Response(
             JSON.stringify(
               apiError(
@@ -150,6 +161,8 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
             }
           );
         }
+        const assetPath = hit.path;
+        const fileStat = { size: hit.size, mtimeMs: hit.mtimeMs };
         const contentType =
           mimeTypes[extname(aName).toLowerCase()] ?? "application/octet-stream";
         const stream = createReadStream(assetPath);

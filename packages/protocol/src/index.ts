@@ -5,6 +5,7 @@
 export * from "./messages.js";
 export * from "./graph.js";
 export * from "./api-types.js";
+export * from "./package-assets.js";
 export { TypeMetadata } from "./type-metadata.js";
 export { validateType, type ValidationResult } from "./typecheck.js";
 export {

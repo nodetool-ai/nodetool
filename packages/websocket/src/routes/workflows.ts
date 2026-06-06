@@ -14,6 +14,9 @@ import { getUserId, type HttpApiOptions } from "../http-api.js";
 import {
   handleWorkflowById,
   handleWorkflowDslExport,
+  handleWorkflowExportBundle,
+  handleWorkflowsExportBundle,
+  handleWorkflowImportBundle,
   handleWorkflowExamples,
   handleWorkflowExamplesSearch,
   handleWorkflowGradioExport,
@@ -85,6 +88,20 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     );
   });
 
+  // Bundle export/import (.nodetool). Static paths registered before
+  // `/api/workflows/:id` so they aren't captured as a workflow id.
+  app.post("/api/workflows/export-bundle", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleWorkflowsExportBundle(request, apiOptions)
+    );
+  });
+
+  app.post("/api/workflows/import-bundle", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleWorkflowImportBundle(request, apiOptions)
+    );
+  });
+
   app.get("/api/workflows/public/:workflowId", async (req, reply) => {
     const { workflowId } = req.params as { workflowId: string };
     await bridge(req, reply, (request) =>
@@ -107,6 +124,13 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     const { id } = req.params as { id: string };
     await bridge(req, reply, (request) =>
       handleWorkflowDslExport(request, id, apiOptions)
+    );
+  });
+
+  app.get("/api/workflows/:id/export-bundle", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, (request) =>
+      handleWorkflowExportBundle(request, id, apiOptions)
     );
   });
 

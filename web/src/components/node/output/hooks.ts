@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { packageAssetHttpPath } from "@nodetool-ai/protocol";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { trpc } from "../../../trpc/client";
@@ -81,8 +82,8 @@ function extractStorageKey(uri: string | null | undefined): string | null {
 
 /**
  * Resolves asset URIs to their actual URLs.
- * Converts asset:// URIs to /api/storage/ URLs.
- * Passes through other URI schemes unchanged.
+ * Converts asset:// URIs to /api/storage/ URLs and package:// URIs to the
+ * /api/assets/packages/ route. Passes through other URI schemes unchanged.
  */
 export function resolveAssetUri(uri: string | undefined | null): string {
   if (!uri) {
@@ -93,6 +94,12 @@ export function resolveAssetUri(uri: string | undefined | null): string {
   if (uri.startsWith("asset://")) {
     const assetId = uri.slice("asset://".length);
     return `${BASE_URL}/api/storage/${assetId}`;
+  }
+
+  // Handle package:// scheme - constant assets shipped with a package
+  const pkgPath = packageAssetHttpPath(uri);
+  if (pkgPath) {
+    return `${BASE_URL}${pkgPath}`;
   }
 
   // Handle /api/storage/ relative URLs — prefix with BASE_URL for Electron

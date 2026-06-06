@@ -11,6 +11,7 @@
  */
 
 import type { AssetRef, ProcessingMessage, ProviderCost } from "@nodetool-ai/protocol";
+import { packageAssetHttpPath, parsePackageAssetUri } from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
 import { encodeRawImageRef } from "./image-codec.js";
 import { inlineTextAssetRefs } from "./prompt-asset-refs.js";
@@ -1728,6 +1729,60 @@ export class ProcessingContext {
       }
       return null;
     };
+
+    // Constant package assets (`package://<pkg>/<path>`) ship with the install
+    // — they have stable URIs and don't live in per-user storage. Resolve from
+    // the bundled package-assets dir when configured, else over HTTP from the
+    // server's package-asset route.
+    const packageRef = parsePackageAssetUri(trimmed);
+    if (packageRef) {
+      const root =
+        this.environment.NODETOOL_PACKAGE_ASSETS_DIR ??
+        process.env.NODETOOL_PACKAGE_ASSETS_DIR;
+      if (root) {
+        const segments = `${packageRef.packageName}/${packageRef.path}`
+          .split("/")
+          .filter((s) => s && s !== ".");
+        if (!segments.some((s) => s === "..")) {
+          const filePath = resolve(join(root, ...segments));
+          const within = !relative(resolve(root), filePath).startsWith("..");
+          if (within) {
+            try {
+              const bytes = (await readFile(filePath)) as Uint8Array;
+              attempts.push(`package asset: ${filePath}`);
+              return { bytes, attempts };
+            } catch (error) {
+              attempts.push(
+                `package asset miss: ${filePath} (${error instanceof Error ? error.message : String(error)})`
+              );
+            }
+          }
+        }
+      }
+      const httpPath = packageAssetHttpPath(trimmed);
+      if (httpPath) {
+        let pkgBaseUrl =
+          this.environment.NODETOOL_API_URL ??
+          process.env.NODETOOL_API_URL ??
+          "http://localhost:7777";
+        while (pkgBaseUrl.endsWith("/")) {
+          pkgBaseUrl = pkgBaseUrl.slice(0, -1);
+        }
+        const url = `${pkgBaseUrl}${httpPath}`;
+        try {
+          const bytes = await this.downloadFile(url, {
+            retry: { maxRetries: 1, backoffMs: 200 }
+          });
+          attempts.push(`downloaded: ${url}`);
+          return { bytes, attempts };
+        } catch (error) {
+          attempts.push(
+            `package asset http miss: ${url} (${error instanceof Error ? error.message : String(error)})`
+          );
+        }
+      }
+      return { bytes: null, attempts };
+    }
 
     // A concrete storage URI / http URL handed in directly.
     if (trimmed.includes("://") && !trimmed.startsWith("asset://")) {

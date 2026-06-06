@@ -55,6 +55,7 @@
     "@mariozechner/pi-coding-agent": "^0.72.1",
     "@sinclair/typebox": "^0.34.0",
     "fastify": "^5.8.5",
+    "fflate": "^0.8.2",
     "@trpc/server": "^11.0.0",
     "@hyzyla/pdfium": "^2.1.12",
     "msgpackr": "^1.11.2",

@@ -1,4 +1,4 @@
-import { isRawRgbaImage } from "@nodetool-ai/protocol";
+import { isPackageAssetUri, isRawRgbaImage } from "@nodetool-ai/protocol";
 import { importNodeBuiltin } from "@nodetool-ai/config";
 import type { ProcessingContext } from "./context.js";
 import { encodeRawRgbaToPng } from "./image-codec.js";
@@ -100,7 +100,7 @@ export async function loadMediaRefBytes(
     return null;
   }
 
-  if (uri.startsWith("asset://") && context) {
+  if ((uri.startsWith("asset://") || isPackageAssetUri(uri)) && context) {
     const { bytes } = await context.resolveAssetBytes(uri);
     if (bytes) {
       return bytes;
