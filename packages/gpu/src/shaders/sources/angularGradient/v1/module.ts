@@ -51,7 +51,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let delta = uv - vec2f(0.5, 0.5);
   let theta = atan2(delta.y, delta.x) - p.rotation;
   let t = fract(theta / (2.0 * 3.14159265359) + 1.0);
-  return mix(p.colorA, p.colorB, t);
+  // Straight colour params → premultiplied output: interpolate in premultiplied
+  // space so a translucent colour keeps rgb <= a.
+  let ca = vec4f(p.colorA.rgb * p.colorA.a, p.colorA.a);
+  let cb = vec4f(p.colorB.rgb * p.colorB.a, p.colorB.a);
+  return mix(ca, cb, t);
 }
 `,
   io: {

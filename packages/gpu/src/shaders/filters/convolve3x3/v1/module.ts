@@ -65,18 +65,29 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let px = 1.0 / vec2f(f32(dims.x), f32(dims.y));
   let p = layout.$.params;
 
-  // premul: ok TODO(invariant-fixes): see review §BUGS — convolve on premul rgb
-  // skews kernel weights against alpha; needs full unpremul/re-premul pass.
-  let s00 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x, -px.y)).rgb; // premul: ok
-  let s01 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(   0.0, -px.y)).rgb; // premul: ok
-  let s02 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x, -px.y)).rgb; // premul: ok
-  let s10 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x,    0.0)).rgb; // premul: ok
+  // Un-premultiply every tap so the kernel runs on straight colour. Convolving
+  // premultiplied rgb skews the weights against per-pixel alpha and can drive
+  // the result above the (preserved) centre alpha, breaking rgb <= a. The
+  // result is re-premultiplied by the centre alpha before output.
+  let c00 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x, -px.y));
+  let c01 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(   0.0, -px.y));
+  let c02 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x, -px.y));
+  let c10 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x,    0.0));
   let centerS = textureSample(layout.$.source, layout.$.samp, uv);
-  let s11 = centerS.rgb; // premul: ok
-  let s12 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x,    0.0)).rgb; // premul: ok
-  let s20 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x,  px.y)).rgb; // premul: ok
-  let s21 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(   0.0,  px.y)).rgb; // premul: ok
-  let s22 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x,  px.y)).rgb; // premul: ok
+  let c12 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x,    0.0));
+  let c20 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(-px.x,  px.y));
+  let c21 = textureSample(layout.$.source, layout.$.samp, uv + vec2f(   0.0,  px.y));
+  let c22 = textureSample(layout.$.source, layout.$.samp, uv + vec2f( px.x,  px.y));
+
+  let s00 = c00.rgb / max(c00.a, 1.0 / 255.0);
+  let s01 = c01.rgb / max(c01.a, 1.0 / 255.0);
+  let s02 = c02.rgb / max(c02.a, 1.0 / 255.0);
+  let s10 = c10.rgb / max(c10.a, 1.0 / 255.0);
+  let s11 = centerS.rgb / max(centerS.a, 1.0 / 255.0);
+  let s12 = c12.rgb / max(c12.a, 1.0 / 255.0);
+  let s20 = c20.rgb / max(c20.a, 1.0 / 255.0);
+  let s21 = c21.rgb / max(c21.a, 1.0 / 255.0);
+  let s22 = c22.rgb / max(c22.a, 1.0 / 255.0);
 
   var acc = s00 * p.row0.x + s01 * p.row0.y + s02 * p.row0.z
           + s10 * p.row1.x + s11 * p.row1.y + s12 * p.row1.z
@@ -89,11 +100,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let divisor = select(declared, select(1.0, kSum, kSum != 0.0), declared == 0.0);
 
   acc = acc / divisor + vec3f(p.row0.w);
-  let out = clamp(acc, vec3f(0.0), vec3f(1.0));
+  let outStraight = clamp(acc, vec3f(0.0), vec3f(1.0));
 
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
-  let mixed = mix(centerS.rgb, out, coverage); // premul: ok TODO(invariant-fixes): see review §BUGS
-  return vec4f(mixed, centerS.a);
+  let mixedStraight = mix(s11, outStraight, coverage);
+  return vec4f(mixedStraight * centerS.a, centerS.a);
 }
 `,
   io: {
