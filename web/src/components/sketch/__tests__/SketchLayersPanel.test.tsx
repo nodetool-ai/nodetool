@@ -61,16 +61,12 @@ function buildPanelProps({
     onClearLayer: jest.fn(),
     onFlipHorizontal: jest.fn(),
     onFlipVertical: jest.fn(),
+    onRotate180: jest.fn(),
     onMergeDown: jest.fn(),
     onFlattenVisible: jest.fn(),
     onTrimLayerToBounds: jest.fn(),
     onCropCanvasToActiveLayerVisiblePixels: jest.fn(),
     onCropCanvasToActiveLayerExtents: jest.fn(),
-    canvasWidth: 64,
-    canvasHeight: 64,
-    onCanvasResize: jest.fn(),
-    canvasResizeHandlesEnabled: false,
-    onCanvasResizeHandlesEnabledChange: jest.fn(),
     onAddGroup: jest.fn(),
     onToggleGroupCollapsed: jest.fn(),
     onMoveLayerToGroup: jest.fn(),
@@ -144,7 +140,7 @@ describe("SketchLayersPanel blend mode quick cycling", () => {
 });
 
 describe("SketchLayersPanel merge selected affordances", () => {
-  it("shows a merge-selected footer action for valid multi-layer selections", async () => {
+  it("invokes merge-selected from the layer context menu for valid multi-layer selections", async () => {
     const user = userEvent.setup();
     const { theme, layers, props } = buildPanelProps({ layerCount: 3 });
     const selectedIds = layers.map((layer) => layer.id);
@@ -159,11 +155,10 @@ describe("SketchLayersPanel merge selected affordances", () => {
       </ThemeProvider>
     );
 
-    await user.click(
-      screen.getByRole("button", {
-        name: "Merge Selected Layers"
-      })
-    );
+    // Merge actions now live in the layer right-click context menu (the bottom
+    // toolbar was trimmed to a single-row essential set).
+    fireEvent.contextMenu(screen.getByText("Layer 3"));
+    await user.click(screen.getByRole("menuitem", { name: "Merge Selected" }));
 
     expect(props.onMergeSelectedLayers).toHaveBeenCalledTimes(1);
   });

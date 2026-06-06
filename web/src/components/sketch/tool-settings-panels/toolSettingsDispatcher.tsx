@@ -67,7 +67,7 @@ export interface ToolSettingsPanelProps {
   onCropCanvasToSelection?: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
-  onStrokeSelectionBorder: () => void;
+  onConvertSelectionToBorder: () => void;
   onAdjustBrightnessChange?: (value: number) => void;
   onAdjustContrastChange?: (value: number) => void;
   onAdjustSaturationChange?: (value: number) => void;
@@ -128,7 +128,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
-  onStrokeSelectionBorder,
+  onConvertSelectionToBorder,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -261,7 +261,7 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         onCropCanvasToSelection={onCropCanvasToSelection}
         onFeatherSelection={onFeatherSelection}
         onSmoothSelectionBorders={onSmoothSelectionBorders}
-        onStrokeSelectionBorder={onStrokeSelectionBorder}
+        onConvertSelectionToBorder={onConvertSelectionToBorder}
       />
     );
   }

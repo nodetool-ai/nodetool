@@ -59,6 +59,23 @@
   isolation: isolate;
 }
 
+.react-flow__node .node-body.base-node {
+  --node-body-padding: 8px;
+  padding: var(--node-body-padding);
+}
+
+/* Resized nodes: clip overflowing params at the bottom (y) while side handles
+   can still protrude horizontally (x). Collapsed nodes override in collapsed.css. */
+.react-flow__node .node-content-container {
+  overflow: visible clip;
+}
+
+@supports not (overflow: clip) {
+  .react-flow__node .node-content-container {
+    overflow: visible hidden;
+  }
+}
+
 .react-flow__node .node-body::after {
   content: "";
   position: absolute;
@@ -100,25 +117,13 @@
   width: calc(100% + 10px);
   height: 20px;
   padding: 0px 2px;
-  margin: 5px -5px 0;
+  margin: 4px -5px 0;
   background: var(--c_node_menu);
 }
 
 /* --------------------------------------------- */
 /* Handle styles                                  */
 /* --------------------------------------------- */
-.output-handle-container {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  overflow: visible;
-  pointer-events: none;
-}
-
 .output-handle-container .react-flow__handle {
   pointer-events: auto;
 }

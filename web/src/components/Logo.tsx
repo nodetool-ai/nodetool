@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useEffect, useState, useCallback, memo } from "react";
+import React, { useEffect, useState, useCallback, memo } from "react";
 import { DATA_TYPES } from "../config/data_types";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -48,14 +48,7 @@ const logoStyles = (
       fontSize: fontSize,
       lineHeight: "1em",
       padding: "0px",
-      color: (() => {
-        // Type-safe theme color access with fallback
-        const themeRecord = theme as unknown as Record<string, unknown>;
-        const vars = themeRecord.vars as Record<string, unknown> | undefined;
-        const palette = vars?.palette as Record<string, unknown> | undefined;
-        const grey = palette?.grey as Record<string, string> | undefined;
-        return grey?.[0] ?? grey?.["50"] ?? "#000000";
-      })(),
+      color: theme.vars?.palette?.grey?.[50] ?? "#000000",
       borderRadius: ".1em",
       cursor: "pointer",
       boxSizing: "border-box",
@@ -116,6 +109,16 @@ const Logo = memo(function Logo({
   const theme = useTheme();
   const { mode } = useColorScheme();
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (onClick && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        onClick();
+      }
+    },
+    [onClick]
+  );
+
   return (
     <div
       className="nodetool-logo"
@@ -132,6 +135,9 @@ const Logo = memo(function Logo({
         mode === "light"
       )}
       onClick={onClick}
+      onKeyDown={onClick ? handleKeyDown : undefined}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       style={onClick ? { cursor: "pointer" } : undefined}
     >
       {small && (

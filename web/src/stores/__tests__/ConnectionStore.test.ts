@@ -57,9 +57,8 @@ describe("ConnectionStore", () => {
     layout: "default",
     properties: [],
     outputs: [],
-    is_dynamic: false,
+    supports_dynamic_inputs: false,
     supports_dynamic_outputs: false,
-    expose_as_tool: false,
     recommended_models: [],
     is_streaming_output: false,
             required_settings: []

@@ -1,4 +1,9 @@
-import type { NodeDescriptor, SyncMode } from "@nodetool-ai/protocol";
+import type {
+  InputMode,
+  NodeDescriptor,
+  OutputCorrelation,
+  Platform
+} from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
   ProcessingContext,
@@ -53,6 +58,7 @@ export type NodeClass = {
   title: string;
   description: string;
   layout?: string;
+  body?: string;
 
   recommendedModels?: unknown[];
   inlineFields?: string[];
@@ -61,13 +67,19 @@ export type NodeClass = {
   requiredRuntimes?: string[];
   isStreamingInput: boolean;
   isStreamingOutput: boolean;
-  isDynamic: boolean;
-  syncMode: SyncMode;
+  inputMode?: InputMode;
+  outputCorrelation?: Record<string, OutputCorrelation>;
+  supportsDynamicInputs: boolean;
   isControlled: boolean;
-  exposeAsTool?: boolean;
+  isJoinNode: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
   modelPacks?: unknown[];
+  /**
+   * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
+   * Platform type. Unset is treated as ["node"].
+   */
+  platforms?: readonly Platform[];
   metadataOutputTypes?: DeclaredOutputTypes;
   outputTypes: DeclaredOutputTypes;
   getDeclaredProperties(): Array<{
@@ -108,11 +120,54 @@ export type NodeProps<T extends BaseNode> = Partial<
   Pick<T, Exclude<keyof T, BaseNodeKey | `__${string}` | `_${string}`>>
 >;
 
+/**
+ * True if a class is a streaming-output node. Resolution order:
+ *
+ *   1. Explicit static `isStreamingOutput` flag wins (rare opt-in/out).
+ *   2. Subclass overrides `genProcess` → it yields multiple values.
+ *   3. Any output handle declares `forward`, `iteration`, or `chunk`
+ *      correlation → the node emits per-input or per-iteration. `single`
+ *      and `aggregate` correlations indicate one value per execution.
+ *
+ * This lets pure-`process()` filter/reroute/forward nodes (IfNode, Output,
+ * FilterNone, etc.) declare streaming via correlation alone — no flag, no
+ * generator needed.
+ */
+export const hasStreamingOutput = (cls: NodeClass): boolean => {
+  if (cls.isStreamingOutput) {
+    return true;
+  }
+  const proto = (cls as unknown as { prototype?: { genProcess?: unknown } })
+    .prototype;
+  if (
+    !!proto?.genProcess &&
+    proto.genProcess !== BaseNode.prototype.genProcess
+  ) {
+    return true;
+  }
+  const corr = cls.outputCorrelation;
+  if (corr) {
+    for (const c of Object.values(corr)) {
+      if (c.kind === "forward" || c.kind === "iteration" || c.kind === "chunk") {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 export abstract class BaseNode {
   static readonly nodeType: string = "";
   static readonly title: string = "";
   static readonly description: string = "";
   static readonly layout: string | undefined = undefined;
+  /**
+   * Node body renderer key. Set to "content_card" to render a media/text-forward
+   * content card instead of the generic input/output body. Generator packages
+   * typically derive this from the primary output type on a shared base class
+   * (mirrors the Python `_body`/`body()` convention).
+   */
+  static readonly body: string | undefined = undefined;
 
   static readonly recommendedModels: unknown[] | undefined = undefined;
   static readonly inlineFields: string[] | undefined = undefined;
@@ -121,13 +176,27 @@ export abstract class BaseNode {
   static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;
   static readonly isStreamingOutput: boolean = false;
-  static readonly isDynamic: boolean = false;
-  static readonly syncMode: SyncMode = "zip_all";
+  static readonly inputMode: InputMode | undefined = undefined;
+  static readonly outputCorrelation:
+    | Record<string, OutputCorrelation>
+    | undefined = undefined;
+  static readonly supportsDynamicInputs: boolean = false;
   static readonly isControlled: boolean = false;
-  static readonly exposeAsTool: boolean | undefined = undefined;
+  /**
+   * `Zip` and `Cross` set this to true so static correlation analysis allows
+   * incomparable input scopes on these nodes only. See
+   * docs/correlation-design.md §7.
+   */
+  static readonly isJoinNode: boolean = false;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
   static readonly modelPacks: unknown[] | undefined = undefined;
+  /**
+   * Deployment platforms this node supports. Defaults to ["node"]; nodes
+   * that work in V8 isolates should claim "workers" and/or "edge"
+   * explicitly. See `@nodetool-ai/protocol`'s Platform type.
+   */
+  static readonly platforms: readonly Platform[] | undefined = undefined;
   static readonly metadataOutputTypes: DeclaredOutputTypes | undefined =
     undefined;
   static readonly outputTypes: DeclaredOutputTypes = {};
@@ -207,7 +276,7 @@ export abstract class BaseNode {
       }
     }
     // For dynamic nodes, store undeclared properties in dynamicProps
-    if (ctor.isDynamic) {
+    if (ctor.supportsDynamicInputs) {
       const skip = new Set(["__node_id", "__node_name", "_secrets"]);
       for (const [key, value] of Object.entries(properties)) {
         if (!declaredNames.has(key) && !skip.has(key)) {
@@ -226,7 +295,7 @@ export abstract class BaseNode {
     }
 
     // Include dynamic properties so round-trip serialization is lossless
-    if (ctor.isDynamic) {
+    if (ctor.supportsDynamicInputs) {
       for (const [key, value] of this.dynamicProps) {
         result[key] = value;
       }
@@ -387,9 +456,11 @@ export abstract class BaseNode {
       type: cls.nodeType,
       name: cls.title,
       is_streaming_input: cls.isStreamingInput,
-      is_streaming_output: cls.isStreamingOutput,
-      sync_mode: cls.syncMode,
-      is_controlled: cls.isControlled
+      is_streaming_output: hasStreamingOutput(cls as unknown as NodeClass),
+      input_mode: cls.inputMode,
+      output_correlation: cls.outputCorrelation,
+      is_controlled: cls.isControlled,
+      is_join_node: cls.isJoinNode || undefined
     };
     if (Object.keys(propertyTypes).length > 0) {
       desc.propertyTypes = propertyTypes;

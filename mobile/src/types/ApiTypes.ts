@@ -40,7 +40,6 @@ import type {
   // Thread & Message types
   Thread,
   ThreadList,
-  ThreadUpdateRequest,
   Message,
   MessageContent,
   // Node Metadata types
@@ -113,10 +112,9 @@ export type { Asset, AssetList, AssetUpdateRequest };
 export type { Workflow, WorkflowGraph };
 
 // Thread & Message
-export type { Thread, ThreadList, ThreadUpdateRequest, Message, MessageContent };
+export type { Thread, ThreadList, Message, MessageContent };
 
-// Node Metadata — use protocol names; keep legacy aliases for backward compat
-export type TypeMetadata = PropertyTypeMetadata;
+// Node Metadata
 export type { Property, OutputSlot, IndexResponse };
 export type { PropertyTypeMetadata };
 

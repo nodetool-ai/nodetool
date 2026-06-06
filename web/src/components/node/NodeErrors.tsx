@@ -8,11 +8,12 @@ import {
   nodeErrorToDisplayString,
   hasNodeError,
 } from "../../stores/ErrorStore";
-import useErrorStore from "../../stores/ErrorStore";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
+import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 import isEqual from "fast-deep-equal";
-import { CopyButton, Tooltip } from "../ui_primitives";
+import { CopyButton, ExternalLink, Tooltip } from "../ui_primitives";
 import { VERSION } from "../../config/constants";
+import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";
 
 const GITHUB_ISSUE_URL =
   "https://github.com/nodetool-ai/nodetool/issues/new";
@@ -111,6 +112,10 @@ const errorStyles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.grey[0]
       }
     },
+    ".error-task-link": {
+      marginTop: "6px",
+      paddingRight: "72px",
+    },
     ".error-actions": {
       display: "flex",
       alignItems: "center",
@@ -145,9 +150,7 @@ export const NodeErrors: React.FC<{
 }> = ({ id, workflow_id, nodeType = "unknown" }) => {
   const theme = useTheme();
   const memoizedErrorStyles = useMemo(() => errorStyles(theme), [theme]);
-  const error = useErrorStore((state) =>
-    workflow_id !== undefined ? state.getError(workflow_id, id) : undefined
-  );
+  const error = useNodeError(workflow_id, id);
 
   const logs = useLogsStore(
     (state) => state.logsByNode[nodeLogKey(workflow_id, id)]
@@ -167,17 +170,24 @@ export const NodeErrors: React.FC<{
     window.open(url, "_blank", "noopener,noreferrer");
   }, [error, logs, nodeType]);
 
+  // Computed before the early return so the hook order stays stable
+  // (rules-of-hooks). `nodeErrorToDisplayString` tolerates an absent error.
+  const errorDisplay = nodeErrorToDisplayString(error);
+  const kieTaskId = useMemo(
+    () => extractKieTaskId(errorDisplay),
+    [errorDisplay]
+  );
+
   if (!hasNodeError(error)) {
     return null;
   }
-
-  const errorDisplay = nodeErrorToDisplayString(error);
 
   return (
     <div css={memoizedErrorStyles} className="node-error nodrag nowheel">
       <div className="error-actions">
         <Tooltip title="Report this issue on GitHub">
           <button
+            type="button"
             className="report-button nodrag"
             onClick={handleReport}
             tabIndex={-1}
@@ -194,6 +204,18 @@ export const NodeErrors: React.FC<{
         />
       </div>
       <div className="error-text">{errorDisplay}</div>
+      {kieTaskId ? (
+        <div className="error-task-link">
+          <ExternalLink
+            href={KIE_LOGS_URL}
+            size="small"
+            iconVariant="open"
+            tooltip={`Open KIE logs and search for task ${kieTaskId}`}
+          >
+            {kieTaskId}
+          </ExternalLink>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -26,9 +26,14 @@ function adjustSize(params: UseEditorKeyboardShortcutsParams, delta: number): vo
 function adjustHardness(params: UseEditorKeyboardShortcutsParams, delta: number): void {
   const store = useSketchStore.getState();
   const tool = store.activeTool;
+  // Eraser shares the brush hardness setting (eraser uses brush.hardness for
+  // its soft-edge falloff). Clone stamp has its own hardness field.
   if (tool === "brush" || tool === "eraser") {
     const next = Math.min(1, Math.max(0, store.toolSettings.brush.hardness + delta * 0.1));
     params.setBrushSettings({ hardness: Math.round(next * 100) / 100 });
+  } else if (tool === "clone_stamp") {
+    const next = Math.min(1, Math.max(0, store.toolSettings.cloneStamp.hardness + delta * 0.1));
+    params.setCloneStampSettings({ hardness: Math.round(next * 100) / 100 });
   }
 }
 
@@ -40,17 +45,14 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   "redo": (_e, p) => p.handleRedo(),
   "copy": (_e, p) => p.handleCopy(),
   "cut": (_e, p) => p.handleCut(),
-  "paste": (_e, p) => { void p.handlePaste(false); },
+  // Ctrl+V — Photoshop-style: paste into a NEW layer centered on the cursor.
+  "paste": (_e, p) => { void p.handlePasteAsNewLayer(); },
+  // Ctrl+Shift+V — paste in place into the active layer (keeps the
+  // masked-alpha-first internal-buffer behavior).
   "paste-masked": (_e, p) => { void p.handlePaste(true); },
-  "free-transform": (_e, p) => {
-    if (p.handleFreeTransform) {
-      p.handleFreeTransform();
-    } else {
-      p.setActiveTool("transform");
-    }
-  },
-  "repeat-transform": (_e, p) => p.handleRepeatLastTransform?.(),
-  "repeat-transform-on-copy": (_e, p) => p.handleRepeatLastTransformOnCopy?.(),
+  "free-transform": (_e, p) => p.handleFreeTransform(),
+  "repeat-transform": (_e, p) => p.handleRepeatLastTransform(),
+  "repeat-transform-on-copy": (_e, p) => p.handleRepeatLastTransformOnCopy(),
   "clear-layer": (_e, p) => p.handleClearLayer(),
   "fill-background": (_e, p) => {
     const { backgroundColor } = useSketchStore.getState();
@@ -62,7 +64,7 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   },
   "invert-colors": (_e, p) => p.handleInvertLayerColors(),
   "cancel-or-deselect": (_e, p) => {
-    p.cancelActiveTool?.();
+    p.cancelActiveTool();
     useSketchStore.getState().setSelection(null);
   },
 
@@ -88,8 +90,8 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   "reset-colors": (_e, p) => p.resetColors(),
 
   // Layers
-  "layer-via-copy": (_e, p) => p.handleLayerViaCopy?.(),
-  "layer-via-cut": (_e, p) => p.handleLayerViaCut?.(),
+  "layer-via-copy": (_e, p) => p.handleLayerViaCopy(),
+  "layer-via-cut": (_e, p) => p.handleLayerViaCut(),
 
   // Paint settings
   "tool-size-decrease": (_e, p) => adjustSize(p, -1),
@@ -146,24 +148,18 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   },
 
   // Mode: transform (fired by dispatcher when activeTool === "transform")
-  "transform-undo": (_e, p) => p.handleTransformUndo?.(),
-  "transform-redo": (_e, p) => p.handleTransformRedo?.(),
+  "transform-undo": (_e, p) => p.handleTransformUndo(),
+  "transform-redo": (_e, p) => p.handleTransformRedo(),
   // Stay on the Transform tool after commit/cancel so a follow-up gesture (or
   // another ENTER/ESC) is harmless. Affinity-style: tool only changes via the
   // toolbar or an explicit shortcut.
-  "transform-commit": (_e, p) => {
-    p.handleTransformCommit?.();
-  },
-  "transform-cancel": (_e, p) => {
-    p.handleTransformCancel?.();
-  },
-  "transform-reset": (_e, p) => {
-    p.handleTransformReset?.();
-  },
+  "transform-commit": (_e, p) => p.handleTransformCommit(),
+  "transform-cancel": (_e, p) => p.handleTransformCancel(),
+  "transform-reset": (_e, p) => p.handleTransformReset(),
 
   // Mode: crop
-  "crop-commit": (_e, p) => p.handleCropCommit?.(),
-  "crop-cancel": (_e, p) => p.cancelActiveTool?.(),
+  "crop-commit": (_e, p) => p.handleCropCommit(),
+  "crop-cancel": (_e, p) => p.cancelActiveTool(),
 
   // Panel:layers — dispatched by panel components; absent here intentionally.
 };

@@ -63,6 +63,26 @@ export function paintPressureForEngine(
 export const SKETCH_FULL_OPACITY_THRESHOLD = 0.999;
 
 /**
+ * Pixel-perfect pencil dab footprint: integer N×N square centered on the
+ * pixel under the cursor. Centering rule: offset = floor((N − 1) / 2), so
+ * odd N is symmetric and even N puts the cursor in the top-left of the
+ * 2×2 (resp. 4×4 …) core — the most common pixel-art convention.
+ */
+export function pixelPerfectPencilDabFootprint(
+  x: number,
+  y: number,
+  effectiveSize: number
+): { ix: number; iy: number; n: number } {
+  const n = Math.max(1, Math.round(effectiveSize));
+  const offset = Math.floor((n - 1) / 2);
+  return {
+    ix: Math.floor(x) - offset,
+    iy: Math.floor(y) - offset,
+    n
+  };
+}
+
+/**
  * Document-space dab center matching `drawPencilStroke` / pencil-mode eraser `dabAt`.
  * Maps continuous pointer `(x, y)` to where ink is centered so brush/pencil previews
  * match stamped pixels (integer arc centers or half-integer crisp-cell centers).
@@ -71,17 +91,24 @@ export function snapStrokeDabCenterDoc(
   x: number,
   y: number,
   effectiveSize: number,
-  effectiveOpacity: number
+  effectiveOpacity: number,
+  pixelPerfect = false
 ): Point {
   const snapDabs = effectiveOpacity >= SKETCH_FULL_OPACITY_THRESHOLD;
+  if (pixelPerfect && snapDabs) {
+    const { ix, iy, n } = pixelPerfectPencilDabFootprint(x, y, effectiveSize);
+    return { x: ix + n / 2, y: iy + n / 2 };
+  }
   const usePixelCrispDab = snapDabs && effectiveSize <= 1.25;
   if (usePixelCrispDab) {
-    const ix = Math.round(x - 0.5);
-    const iy = Math.round(y - 0.5);
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
     return { x: ix + 0.5, y: iy + 0.5 };
   }
   if (snapDabs) {
-    return { x: Math.round(x), y: Math.round(y) };
+    // Pixel center under the cursor — matches `drawPencilStroke.dabAt`
+    // (stabilize floors to cell origin, dabAt adds 0.5).
+    return { x: Math.floor(x) + 0.5, y: Math.floor(y) + 0.5 };
   }
   return { x, y };
 }
@@ -561,11 +588,14 @@ export function drawPencilStroke(
   }
 
   const snapDabs = effectiveOpacity >= SKETCH_FULL_OPACITY_THRESHOLD;
-  /** Single-pixel (or tiny block) dabs — avoids sub-pixel circle blur at size 1. */
-  const usePixelCrispDab = snapDabs && effectiveSize <= 1.25;
+  /** Pixel-art mode: every dab is a crisp N×N square centered on the pixel under the cursor. */
+  const pixelPerfect = (settings.pixelPerfect ?? true) && snapDabs;
+  /** Legacy single-pixel crisp branch (only when pixel-perfect is off and size is tiny). */
+  const usePixelCrispDab = !pixelPerfect && snapDabs && effectiveSize <= 1.25;
+  const useCrispFill = pixelPerfect || usePixelCrispDab;
 
-  const spacing = usePixelCrispDab
-    ? 0.5
+  const spacing = useCrispFill
+    ? Math.max(0.5, effectiveSize * 0.3)
     : Math.max(0.35, effectiveSize * 0.3);
   const radius =
     effectiveSize <= 1.5
@@ -580,22 +610,31 @@ export function drawPencilStroke(
   ctx.globalAlpha = Math.min(1, effectiveOpacity);
   ctx.globalCompositeOperation = "source-over";
   ctx.fillStyle = settings.color;
-  ctx.imageSmoothingEnabled = !usePixelCrispDab;
+  ctx.imageSmoothingEnabled = !useCrispFill;
 
   const dabAt = (x: number, y: number) => {
+    if (pixelPerfect) {
+      const { ix, iy, n } = pixelPerfectPencilDabFootprint(x, y, effectiveSize);
+      ctx.fillRect(ix, iy, n, n);
+      markDab(ix + n / 2, iy + n / 2, n / 2 + 0.5);
+      return;
+    }
     if (usePixelCrispDab) {
-      // Cursor hotspot is the pointer (x, y). fillRect(i, j, 1, 1) covers
-      // [i, i+1)×[j, j+1) with center (i+0.5, j+0.5); pick i = round(x - 0.5)
-      // so that center is nearest to (x, y) (not top-left at round(x), which
-      // shifts ink +0.5 vs the centered brush preview).
+      // Legacy 1×1 crisp branch — only reached when pixelPerfect is off.
+      // fillRect(i, j, 1, 1) covers [i, i+1)×[j, j+1); pick i = round(x − 0.5)
+      // so the cell center is nearest to (x, y).
       const ix = Math.round(x - 0.5);
       const iy = Math.round(y - 0.5);
       ctx.fillRect(ix, iy, 1, 1);
       markDab(ix + 0.5, iy + 0.5, 0.5);
       return;
     }
-    const px = snapDabs ? Math.round(x) : x;
-    const py = snapDabs ? Math.round(y) : y;
+    // `x`/`y` have already been floor-snapped to the cell origin by
+    // `PencilEngine.stabilize` for opaque strokes. Add half a pixel so
+    // circular dabs sit at the CENTER of the pixel under the cursor,
+    // matching the crisp 1×1 branch and the cursor preview anchor.
+    const px = snapDabs ? x + 0.5 : x;
+    const py = snapDabs ? y + 0.5 : y;
     ctx.beginPath();
     ctx.arc(px, py, radius, 0, Math.PI * 2);
     ctx.fill();

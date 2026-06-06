@@ -47,10 +47,6 @@ export function useChatIntegration(params: {
   const setSelectedModel = useGlobalChatStore(
     (state) => state.setSelectedModel
   );
-  const selectedTools = useGlobalChatStore((state) => state.selectedTools);
-  const selectedCollections = useGlobalChatStore(
-    (state) => state.selectedCollections
-  );
   const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
 
@@ -283,10 +279,6 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
           provider: selectedModel?.provider,
           model: selectedModel?.id,
           content,
-          tools: selectedTools.length > 0 ? selectedTools : undefined,
-          collections:
-            selectedCollections.length > 0 ? selectedCollections : undefined,
-          agent_mode: false,
           help_mode: false,
           workflow_assistant: true
         } as Message);
@@ -301,8 +293,6 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
       currentText,
       sendMessage,
       selectedModel,
-      selectedTools,
-      selectedCollections,
       getCurrentMessagesSync
     ]
   );
@@ -392,8 +382,6 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
     sendMessage,
     selectedModel: (selectedModel as LanguageModel) || null,
     setSelectedModel,
-    selectedTools,
-    selectedCollections,
     stopGeneration,
     createNewThread
   } as const;

@@ -2,8 +2,8 @@
 
 import { css } from "@emotion/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { InputAdornment, TextField } from "@mui/material";
-import { Tooltip, Chip } from "../ui_primitives";
+import { InputAdornment } from "@mui/material";
+import { Tooltip, Chip, NodeTextField } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
@@ -43,8 +43,8 @@ const styles = (theme: Theme) =>
     },
 
     ".sidebar-title": {
-      fontSize: "0.7rem",
-      fontWeight: 700,
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
       color: theme.vars.palette.text.secondary,
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
 
     ".snippet-search": {
       "& .MuiInputBase-root": {
-        fontSize: "0.78rem",
+        fontSize: "var(--fontSizeSmall)",
         backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.5)`,
       },
     },
@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
     },
 
     ".snippet-title": {
-      fontSize: "0.78rem",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       lineHeight: 1.3,
@@ -104,7 +104,7 @@ const styles = (theme: Theme) =>
     },
 
     ".snippet-desc": {
-      fontSize: "0.68rem",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.3,
       marginTop: "2px",
@@ -112,7 +112,7 @@ const styles = (theme: Theme) =>
     },
 
     ".snippet-preview": {
-      fontSize: "0.65rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace",
       color: `rgba(${theme.vars.palette.primary.mainChannel} / 0.7)`,
       marginTop: "4px",
@@ -153,13 +153,13 @@ const styles = (theme: Theme) =>
       padding: "24px 12px",
       textAlign: "center",
       color: theme.vars.palette.text.secondary,
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       opacity: 0.6,
     },
 
     ".snippet-count": {
       padding: "4px 12px 6px",
-      fontSize: "0.65rem",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       opacity: 0.5,
       flexShrink: 0,
@@ -274,10 +274,9 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
     <div css={styles(theme)} onKeyDown={handleKeyDown}>
       <div className="sidebar-header">
         <div className="sidebar-title">Snippets</div>
-        <TextField
+        <NodeTextField
           inputRef={searchRef}
           className="snippet-search"
-          size="small"
           fullWidth
           placeholder="Search…"
           value={search}
@@ -286,13 +285,13 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ opacity: 0.4, fontSize: "0.9rem" }} />
+                  <SearchIcon fontSize="small" sx={{ opacity: 0.4, fontSize: "var(--fontSizeNormal)" }} />
                 </InputAdornment>
               ),
             },
           }}
           sx={{
-            "& .MuiInputBase-input": { fontSize: "0.78rem", padding: "5px 8px" },
+            "& .MuiInputBase-input": { fontSize: "var(--fontSizeSmall)", padding: "5px 8px" },
           }}
         />
       </div>
@@ -305,7 +304,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
           variant={category === null ? "filled" : "outlined"}
           color={category === null ? "primary" : "default"}
           onClick={() => setCategory(null)}
-          sx={{ fontSize: "0.62rem", height: 20 }}
+          sx={{ fontSize: "var(--fontSizeSmaller)", height: 20 }}
         />
         {SNIPPET_CATEGORIES.map((cat) => (
           <Chip
@@ -315,7 +314,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
             variant={category === cat ? "filled" : "outlined"}
             color={category === cat ? "primary" : "default"}
             onClick={() => setCategory(cat)}
-            sx={{ fontSize: "0.62rem", height: 20, whiteSpace: "nowrap" }}
+            sx={{ fontSize: "var(--fontSizeSmaller)", height: 20, whiteSpace: "nowrap" }}
           />
         ))}
       </div>
@@ -328,8 +327,11 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
           filtered.map((snippet, index) => (
             <div
               key={snippet.id}
+              role="button"
+              tabIndex={0}
               className={`snippet-item ${index === focusedIndex ? "focused" : ""}`}
               onClick={() => insertSnippet(snippet)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); insertSnippet(snippet); } }}
               onMouseEnter={() => setFocusedIndex(index)}
             >
               <div className="snippet-title">{snippet.title}</div>
@@ -340,6 +342,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
               <div className="snippet-actions">
                 <Tooltip title="Copy" placement="left" delay={400}>
                   <button
+                    type="button"
                     className="snippet-action-btn"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -348,12 +351,13 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
                     aria-label="Copy snippet"
                   >
                     <ContentCopyIcon
-                      sx={{ fontSize: "0.75rem", color: copied === snippet.id ? "success.main" : undefined }}
+                      sx={{ fontSize: "var(--fontSizeSmall)", color: copied === snippet.id ? "success.main" : undefined }}
                     />
                   </button>
                 </Tooltip>
                 <Tooltip title="Insert" placement="left" delay={400}>
                   <button
+                    type="button"
                     className="snippet-action-btn"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -361,7 +365,7 @@ const SnippetSidebar = ({ monacoRef, visible }: SnippetSidebarProps) => {
                     }}
                     aria-label="Insert snippet"
                   >
-                    <AddIcon sx={{ fontSize: "0.75rem" }} />
+                    <AddIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
                   </button>
                 </Tooltip>
               </div>

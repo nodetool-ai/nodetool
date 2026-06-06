@@ -7,6 +7,8 @@ import {
   listRegisteredProviderIds,
   providerCapabilities,
   RECOMMENDED_MODELS,
+  OLLAMA_DEFAULT_URL,
+  LMSTUDIO_DEFAULT_URL,
   type ProviderId,
   type RecommendedUnifiedModel
 } from "@nodetool-ai/runtime";
@@ -74,7 +76,10 @@ const unifiedModelSchema = z.object({
   trending_score: z.number().nullish(),
   image: z.string().nullish(),
   supports_tools: z.boolean().nullish(),
-  voices: z.array(z.string()).nullish()
+  voices: z.array(z.string()).nullish(),
+  durations: z.array(z.number()).nullish(),
+  resolutions: z.array(z.string()).nullish(),
+  aspect_ratios: z.array(z.string()).nullish()
 });
 
 const modelsListOutput = z.array(unifiedModelSchema);
@@ -310,12 +315,12 @@ async function repoFileInCache(
   relativePath: string
 ): Promise<boolean> {
   const snapshotDirs = await listSnapshotDirs(repoId);
-  for (const snapshotDir of snapshotDirs) {
-    if (await pathExists(join(snapshotDir, relativePath))) {
-      return true;
-    }
-  }
-  return false;
+  const checks = await Promise.all(
+    snapshotDirs.map((snapshotDir) =>
+      pathExists(join(snapshotDir, relativePath))
+    )
+  );
+  return checks.some((exists) => exists);
 }
 
 async function listRepoCachedFiles(repoId: string): Promise<string[]> {
@@ -490,21 +495,36 @@ async function isServerReachable(url: string): Promise<boolean> {
 }
 
 async function getServerAvailability(): Promise<Record<string, boolean>> {
-  if (isProduction()) return { ollama: false, llama_cpp: false };
+  if (isProduction()) {
+    return { ollama: false, llama_cpp: false, lmstudio: false, vllm: false };
+  }
 
-  const ollamaUrl = (
-    process.env.OLLAMA_API_URL ?? "http://127.0.0.1:11434"
-  ).replace(/\/+$/, "");
-  const llamaUrl = process.env.LLAMA_CPP_URL?.replace(/\/+$/, "") ?? "";
+  // Resolve URLs the same way getProvider() does: secret store → env →
+  // default. Otherwise a user-set URL in Settings → API Keys wouldn't filter
+  // the recommended-models list correctly.
+  const getSecret = secretResolverFor("1");
+  const resolve = async (key: string, fallback: string): Promise<string> => {
+    const fromStore = await getSecret(key);
+    return (fromStore || process.env[key] || fallback).replace(/\/+$/, "");
+  };
 
-  const [ollama, llama] = await Promise.all([
+  const [ollamaUrl, llamaUrl, lmstudioUrl, vllmUrl] = await Promise.all([
+    resolve("OLLAMA_API_URL", OLLAMA_DEFAULT_URL),
+    resolve("LLAMA_CPP_URL", ""),
+    resolve("LMSTUDIO_API_URL", LMSTUDIO_DEFAULT_URL),
+    resolve("VLLM_BASE_URL", "")
+  ]);
+
+  const [ollama, llama, lmstudio, vllm] = await Promise.all([
     isServerReachable(`${ollamaUrl}/api/tags`),
     llamaUrl
       ? isServerReachable(`${llamaUrl}/v1/models`)
-      : Promise.resolve(false)
+      : Promise.resolve(false),
+    isServerReachable(`${lmstudioUrl}/v1/models`),
+    vllmUrl ? isServerReachable(`${vllmUrl}/v1/models`) : Promise.resolve(false)
   ]);
 
-  return { ollama, llama_cpp: llama };
+  return { ollama, llama_cpp: llama, lmstudio, vllm };
 }
 
 async function serverAllowsModel(
@@ -600,7 +620,16 @@ function toUnifiedLanguageModel(
 }
 
 function toUnifiedModel(
-  model: { id: string; name: string; provider: string; voices?: string[] },
+  model: {
+    id: string;
+    name: string;
+    provider: string;
+    voices?: string[];
+    supportedTasks?: string[];
+    durations?: number[];
+    resolutions?: string[];
+    aspectRatios?: string[];
+  },
   type: string
 ): UnifiedModel {
   return {
@@ -612,7 +641,11 @@ function toUnifiedModel(
     path: model.id,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
     tags: [model.provider],
-    voices: model.voices ?? null
+    voices: model.voices ?? null,
+    supported_tasks: model.supportedTasks ?? null,
+    durations: model.durations ?? null,
+    resolutions: model.resolutions ?? null,
+    aspect_ratios: model.aspectRatios ?? null
   };
 }
 
@@ -634,10 +667,10 @@ async function getAllModels(userId: string): Promise<UnifiedModel[]> {
   all.push(...RECOMMENDED_MODELS);
 
   const availableIds = await getAvailableProviderIds(userId);
-  for (const providerId of availableIds) {
+  const providerModelsPromises = availableIds.map(async (providerId) => {
     try {
       const instance = await instantiateProvider(providerId, userId);
-      if (!instance) continue;
+      if (!instance) return [];
       const models = await instance.getAvailableLanguageModels();
       const toolFlags = await Promise.all(
         models.map((m) =>
@@ -646,12 +679,16 @@ async function getAllModels(userId: string): Promise<UnifiedModel[]> {
             .catch(() => null as boolean | null)
         )
       );
-      models.forEach((m, i) => {
-        all.push(toUnifiedLanguageModel(m, toolFlags[i]));
-      });
+      return models.map((m, i) => toUnifiedLanguageModel(m, toolFlags[i]));
     } catch {
       // Provider unavailable — skip
+      return [];
     }
+  });
+
+  const providerModelsArrays = await Promise.all(providerModelsPromises);
+  for (const models of providerModelsArrays) {
+    all.push(...models);
   }
 
   if (!isProduction()) {

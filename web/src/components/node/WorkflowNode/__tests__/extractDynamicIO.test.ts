@@ -1,9 +1,9 @@
 import {
   extractDynamicIO,
   INPUT_TYPE_MAP,
-  OUTPUT_TYPE_MAP,
-  WORKFLOW_NODE_TYPE
-} from "../WorkflowLoader";
+  OUTPUT_TYPE_MAP
+} from "../WorkflowLoader.helpers";
+import { WORKFLOW_NODE_TYPE } from "../WorkflowLoader";
 import { Workflow } from "../../../../stores/ApiTypes";
 
 // Helper to create a minimal Workflow object for testing

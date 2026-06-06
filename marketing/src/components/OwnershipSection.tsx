@@ -57,10 +57,11 @@ export default function OwnershipSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Creative tools shouldn&apos;t lock you into someone else&apos;s
-            pricing, model roster, or roadmap. NodeTool calls whatever models
-            you choose, charges you what the providers charge, and outlives
-            whoever built it.
+            Every closed AI tool ends the same way: a price hike, a worse
+            roster, or an acquisition that quietly rewrites the roadmap.
+            NodeTool calls whatever models you choose, charges you what the
+            providers charge, and ships under a license that outlives whoever
+            built it.
           </motion.p>
         </div>
 

@@ -4,12 +4,9 @@ import React, { memo, useCallback } from "react";
 import {
   FormControl,
   Select,
-  MenuItem,
-  CircularProgress,
-  Box,
-  Divider
+  MenuItem
 } from "@mui/material";
-import { Text, Caption, FlexRow } from "../ui_primitives";
+import { Text, Caption, FlexRow, Box, Divider, LoadingSpinner } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
@@ -54,7 +51,7 @@ const styles = (theme: Theme) =>
     },
     ".workspace-icon": {
       color: theme.vars.palette.text.secondary,
-      fontSize: "1.25rem",
+      fontSize: "var(--fontSizeBig)",
       flexShrink: 0,
       opacity: 0.7
     },
@@ -64,7 +61,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     },
     ".workspace-name": {
-      fontSize: "0.875rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 400,
       color: theme.vars.palette.text.secondary,
       whiteSpace: "nowrap",
@@ -72,29 +69,34 @@ const styles = (theme: Theme) =>
       textOverflow: "ellipsis"
     },
     ".workspace-path": {
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
       fontFamily: "monospace"
     },
+    ".workspace-path-inline": {
+      color: theme.vars.palette.text.disabled,
+      fontFamily: "monospace",
+      fontSize: "var(--fontSizeSmall)"
+    },
     ".none-option": {
       color: theme.vars.palette.text.disabled,
       fontStyle: "italic",
-      fontSize: "0.875rem"
+      fontSize: "var(--fontSizeNormal)"
     },
     ".create-option": {
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
       color: theme.vars.palette.text.secondary,
-      fontSize: "0.875rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 400
     },
     ".default-badge": {
       color: theme.vars.palette.text.disabled,
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       marginLeft: theme.spacing(0.5),
       verticalAlign: "middle",
       opacity: 0.6
@@ -143,7 +145,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
       (event: { target: { value: string } }) => {
         const newValue = event.target.value;
         if (newValue === CREATE_NEW_VALUE) {
-          navigate("/settings?tab=4");
+          navigate("/settings?tab=5");
           return;
         }
         onChange(newValue === "" ? undefined : newValue);
@@ -157,9 +159,9 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     if (isLoading) {
       return (
         <FlexRow css={styles(theme)} gap={1} align="center" sx={{ py: 1 }}>
-          <CircularProgress size={18} />
+          <LoadingSpinner size="small" />
           <Text size="small" color="secondary">
-            Loading...
+            Loading…
           </Text>
         </FlexRow>
       );
@@ -188,6 +190,12 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
           <div className="workspace-details">
             <span className="workspace-name">
               {selectedWorkspace.name}
+              {compact && selectedWorkspace.path && (
+                <span className="workspace-path-inline">
+                  {" · "}
+                  {selectedWorkspace.path}
+                </span>
+              )}
               {selectedWorkspace.is_default && (
                 <StarIcon className="default-badge" />
               )}
@@ -226,7 +234,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 },
                 "& .workspace-icon": {
                   color: theme.vars.palette.text.secondary,
-                  fontSize: "1.25rem",
+                  fontSize: "var(--fontSizeBig)",
                   flexShrink: 0,
                   opacity: 0.7
                 },
@@ -236,31 +244,31 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   overflow: "hidden"
                 },
                 "& .workspace-name": {
-                  fontSize: "0.875rem",
+                  fontSize: "var(--fontSizeNormal)",
                   fontWeight: 400,
                   color: theme.vars.palette.text.secondary
                 },
                 "& .workspace-path": {
-                  fontSize: "0.7rem",
+                  fontSize: "var(--fontSizeSmaller)",
                   color: theme.vars.palette.text.disabled,
                   fontFamily: "monospace"
                 },
                 "& .none-option": {
                   color: theme.vars.palette.text.disabled,
                   fontStyle: "italic",
-                  fontSize: "0.875rem"
+                  fontSize: "var(--fontSizeNormal)"
                 },
                 "& .create-option": {
                   display: "flex",
                   alignItems: "center",
                   gap: "8px",
                   color: theme.vars.palette.text.secondary,
-                  fontSize: "0.875rem",
+                  fontSize: "var(--fontSizeNormal)",
                   fontWeight: 400
                 },
                 "& .default-badge": {
                   color: theme.vars.palette.text.disabled,
-                  fontSize: "0.85rem",
+                  fontSize: "var(--fontSizeNormal)",
                   marginLeft: "4px",
                   verticalAlign: "middle",
                   opacity: 0.6
@@ -286,8 +294,8 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
           <Box
             role="note"
             sx={{
-              px: 1.75,
-              pt: 1.25,
+              px: 2,
+              pt: 1,
               pb: 1,
               pointerEvents: "none"
             }}
@@ -302,7 +310,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 wordBreak: "break-word"
               }}
             >
-              Agents read and write files here during execution — saved images,
+              Agents read and write files here during execution - saved images,
               text, data, and other outputs. Browse the results in the Workspace
               panel. Agents can only access files inside this folder.
             </Caption>

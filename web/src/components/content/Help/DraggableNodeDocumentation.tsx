@@ -90,7 +90,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   }), shallow);
   const reactFlowInstance = useReactFlow();
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
-  const panel = usePanelStore((state) => state.panel);
+  const panelSize = usePanelStore((state) => state.panel.panelSize);
   const theme = useTheme();
   const handleAddNode = useCallback(() => {
     if (nodeMetadata && nodeRef.current) {
@@ -111,11 +111,11 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
     if (nodeType) {
       const _searchTerm = nodeType.replace(/\./g, " ");
       openNodeMenu({
-        x: panel.panelSize,
+        x: panelSize,
         y: 100
       });
     }
-  }, [nodeType, openNodeMenu, panel.panelSize]);
+  }, [nodeType, openNodeMenu, panelSize]);
 
   const content = useMemo(() => {
     if (!nodeMetadata)
@@ -161,7 +161,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
     <Draggable handle=".handle" defaultPosition={position} nodeRef={nodeRef}>
       <div css={styles(theme)} ref={nodeRef}>
         <div className="handle"></div>
-        <button className="close-button" onClick={onClose}>
+        <button type="button" className="close-button" onClick={onClose}>
           ×
         </button>
         <div className="content">{content}</div>

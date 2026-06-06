@@ -12,8 +12,8 @@ export interface PageCountOutputs {
   output: number;
 }
 
-export function pageCount(inputs: PageCountInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PageCountOutputs, "output"> {
-  return createNode("lib.pdf.PageCount", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function pageCount(inputs: PageCountInputs): DslNode<PageCountOutputs, "output"> {
+  return createNode("lib.pdf.PageCount", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF Extract Text — lib.pdf.ExtractText
@@ -27,8 +27,8 @@ export interface ExtractTextOutputs {
   output: string;
 }
 
-export function extractText(inputs: ExtractTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractTextOutputs, "output"> {
-  return createNode("lib.pdf.ExtractText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractText(inputs: ExtractTextInputs): DslNode<ExtractTextOutputs, "output"> {
+  return createNode("lib.pdf.ExtractText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF to Markdown — lib.pdf.ExtractMarkdown
@@ -42,8 +42,8 @@ export interface ExtractMarkdownOutputs {
   output: string;
 }
 
-export function extractMarkdown(inputs: ExtractMarkdownInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractMarkdownOutputs, "output"> {
-  return createNode("lib.pdf.ExtractMarkdown", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractMarkdown(inputs: ExtractMarkdownInputs): DslNode<ExtractMarkdownOutputs, "output"> {
+  return createNode("lib.pdf.ExtractMarkdown", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF Extract Tables — lib.pdf.ExtractTables
@@ -58,8 +58,8 @@ export interface ExtractTablesOutputs {
   output: Record<string, unknown>[];
 }
 
-export function extractTables(inputs: ExtractTablesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractTablesOutputs, "output"> {
-  return createNode("lib.pdf.ExtractTables", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractTables(inputs: ExtractTablesInputs): DslNode<ExtractTablesOutputs, "output"> {
+  return createNode("lib.pdf.ExtractTables", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF Extract Text Blocks — lib.pdf.ExtractTextBlocks
@@ -73,8 +73,8 @@ export interface ExtractTextBlocksOutputs {
   output: Record<string, unknown>[];
 }
 
-export function extractTextBlocks(inputs: ExtractTextBlocksInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractTextBlocksOutputs, "output"> {
-  return createNode("lib.pdf.ExtractTextBlocks", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractTextBlocks(inputs: ExtractTextBlocksInputs): DslNode<ExtractTextBlocksOutputs, "output"> {
+  return createNode("lib.pdf.ExtractTextBlocks", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF Extract Styled Text — lib.pdf.ExtractStyledText
@@ -88,8 +88,8 @@ export interface ExtractStyledTextOutputs {
   output: Record<string, unknown>[];
 }
 
-export function extractStyledText(inputs: ExtractStyledTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractStyledTextOutputs, "output"> {
-  return createNode("lib.pdf.ExtractStyledText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractStyledText(inputs: ExtractStyledTextInputs): DslNode<ExtractStyledTextOutputs, "output"> {
+  return createNode("lib.pdf.ExtractStyledText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF Page Metadata — lib.pdf.PageMetadata
@@ -103,8 +103,8 @@ export interface PageMetadataOutputs {
   output: Record<string, unknown>[];
 }
 
-export function pageMetadata(inputs: PageMetadataInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PageMetadataOutputs, "output"> {
-  return createNode("lib.pdf.PageMetadata", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function pageMetadata(inputs: PageMetadataInputs): DslNode<PageMetadataOutputs, "output"> {
+  return createNode("lib.pdf.PageMetadata", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF Page Screenshot — lib.pdf.Screenshot
@@ -119,8 +119,8 @@ export interface ScreenshotOutputs {
   output: ImageRef[];
 }
 
-export function screenshot(inputs: ScreenshotInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ScreenshotOutputs, "output"> {
-  return createNode("lib.pdf.Screenshot", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function screenshot(inputs: ScreenshotInputs): DslNode<ScreenshotOutputs, "output"> {
+  return createNode("lib.pdf.Screenshot", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF Rasterize (pdftoppm) — lib.pdf.Pdftoppm
@@ -137,8 +137,8 @@ export interface PdftoppmOutputs {
   output: ImageRef[];
 }
 
-export function pdftoppm(inputs: PdftoppmInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<PdftoppmOutputs, "output"> {
-  return createNode("lib.pdf.Pdftoppm", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function pdftoppm(inputs: PdftoppmInputs): DslNode<PdftoppmOutputs, "output"> {
+  return createNode("lib.pdf.Pdftoppm", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF Search Text — lib.pdf.SearchText
@@ -154,8 +154,8 @@ export interface SearchTextOutputs {
   output: Record<string, unknown>[];
 }
 
-export function searchText(inputs: SearchTextInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SearchTextOutputs, "output"> {
-  return createNode("lib.pdf.SearchText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function searchText(inputs: SearchTextInputs): DslNode<SearchTextOutputs, "output"> {
+  return createNode("lib.pdf.SearchText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // PDF Extract Text (OCR) — lib.pdf.ExtractOcr
@@ -171,6 +171,6 @@ export interface ExtractOcrOutputs {
   output: string;
 }
 
-export function extractOcr(inputs: ExtractOcrInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ExtractOcrOutputs, "output"> {
-  return createNode("lib.pdf.ExtractOcr", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function extractOcr(inputs: ExtractOcrInputs): DslNode<ExtractOcrOutputs, "output"> {
+  return createNode("lib.pdf.ExtractOcr", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

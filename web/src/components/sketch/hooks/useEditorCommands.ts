@@ -28,6 +28,9 @@ import { useEditorKeyboardShortcuts } from "../useEditorKeyboardShortcuts";
 import { getToolHandler } from "../tools";
 import type { SegmentTool } from "../tools/SegmentTool";
 import { useSketchStore } from "../state";
+import { buildSelectionOutsideStrokeMask } from "../selection";
+import { useMenuHandler } from "../../../hooks/useIpcRenderer";
+import type { MenuEventData } from "../../../window";
 import type { useCanvasActions } from "./useCanvasActions";
 import type { useLayerActions } from "./useLayerActions";
 import type { useColorActions } from "./useColorActions";
@@ -61,6 +64,7 @@ export interface EditorCommandsResult {
   handleRunSegmentation: () => void;
   handleClearSegmentPrompts: () => void;
   handleFillSelectionWithForeground: () => void;
+  handleStrokeSelectionWithForeground: () => void;
   handleNewLayerFromContextMenu: (
     type?: Extract<LayerType, "raster" | "mask">
   ) => void;
@@ -110,34 +114,130 @@ export function useEditorCommands({
     canvasActions.handleFillLayerWithColor(fg);
   }, [canvasActions]);
 
+  /**
+   * Stroke the current selection: paint a `borderWidth`-wide ring of
+   * pixels OUTSIDE the selection with the foreground color, leaving the
+   * selection interior untouched. Pairs naturally with "Fill" to produce
+   * a filled shape with an outer outline.
+   *
+   * Falls back to filling the whole layer when there is no active
+   * selection (mirrors `handleFillSelectionWithForeground`).
+   */
+  const handleStrokeSelectionWithForeground = useCallback(() => {
+    const state = useSketchStore.getState();
+    const sel = state.selection;
+    const fg = state.foregroundColor;
+    if (!sel) {
+      canvasActions.handleFillLayerWithColor(fg);
+      return;
+    }
+    const ring = buildSelectionOutsideStrokeMask(
+      sel,
+      state.document.toolSettings.select.borderWidth
+    );
+    if (!ring) {
+      return;
+    }
+    // Temporarily swap the selection to the outside-ring mask so the
+    // existing `fillLayerBySelectionMask` path inside
+    // `handleFillLayerWithColor` paints only the ring pixels. Restore
+    // the original selection immediately so the rubberband/ants don't
+    // visibly jump.
+    state.setSelection(ring);
+    try {
+      canvasActions.handleFillLayerWithColor(fg);
+    } finally {
+      useSketchStore.getState().setSelection(sel);
+    }
+  }, [canvasActions]);
+
   const handleNewLayerFromContextMenu = useCallback((
     type: Extract<LayerType, "raster" | "mask"> = "raster"
   ) => {
     layerActions.handleAddLayer({ type });
   }, [layerActions]);
 
+  /**
+   * Materialize a layer canvas in the rendering runtime so the very next
+   * `snapshotLayerCanvas` / paste call finds it. Without this, a layer
+   * that was added in this same tick exists only in the Zustand store —
+   * the runtime won't create its backing canvas until the next render
+   * cycle reconciles the document, and `snapshotLayerCanvas` returns
+   * `null` (the paste then silently bails and the new layer stays
+   * empty). `setLayerData(id, null)` takes the synchronous
+   * "no decoded image" branch in the runtime and creates a blank
+   * doc-sized canvas immediately.
+   */
+  const ensureLayerCanvasMaterialized = useCallback(
+    (layerId: string) => {
+      canvasRef.current?.setLayerData(layerId, null);
+    },
+    [canvasRef]
+  );
+
+  /**
+   * Photoshop-style Ctrl+V: paste the clipboard image into a new layer
+   * centered on the cursor. Lives at the editor-commands level because it
+   * needs both the clipboard plumbing (`canvasActions`) and the
+   * add-layer action (`layerActions`).
+   */
+  const handlePasteAsNewLayer = useCallback(async () => {
+    return canvasActions.handlePasteAsNewLayer(() =>
+      layerActions.handleAddLayer()
+    );
+  }, [canvasActions, layerActions]);
+
   const handleLayerViaCopy = useCallback(async () => {
     canvasActions.handleCopy();
     const newLayerId = layerActions.handleAddLayer();
+    ensureLayerCanvasMaterialized(newLayerId);
     await canvasActions.handlePaste(true, {
       targetLayerId: newLayerId,
       pasteAnchorDocument: null
     });
-  }, [canvasActions, layerActions]);
+  }, [canvasActions, layerActions, ensureLayerCanvasMaterialized]);
 
   const handleLayerViaCut = useCallback(async () => {
     canvasActions.handleCut();
     const newLayerId = layerActions.handleAddLayer();
+    ensureLayerCanvasMaterialized(newLayerId);
     await canvasActions.handlePaste(true, {
       targetLayerId: newLayerId,
       pasteAnchorDocument: null
     });
-  }, [canvasActions, layerActions]);
+  }, [canvasActions, layerActions, ensureLayerCanvasMaterialized]);
 
   const handleFreeTransform = useCallback(() => {
     canvasActions.prepareSelectionFreeTransform?.();
     sessionStore.setActiveTool("transform" as SketchTool);
   }, [canvasActions, sessionStore]);
+
+  // ─── Electron menu IPC interception ────────────────────────────────
+  // Native menu accelerators (CmdOrCtrl+A, CmdOrCtrl+D) are consumed by the
+  // OS before reaching the renderer's keydown handlers. When the sketch
+  // editor is mounted, we route those menu events to sketch actions
+  // (select-all / deselect) instead of the node-editor defaults.
+  const handleSketchMenuEvent = useCallback(
+    (data: MenuEventData) => {
+      if (suspendKeyboardShortcuts) {
+        return;
+      }
+      switch (data.type) {
+        case "selectAll":
+          useSketchStore.getState().selectAll();
+          break;
+        case "duplicate":
+          // In sketch, Ctrl+D = deselect (Photoshop convention) rather
+          // than the node-editor "duplicate".
+          useSketchStore.getState().setSelection(null);
+          break;
+        default:
+          break;
+      }
+    },
+    [suspendKeyboardShortcuts]
+  );
+  useMenuHandler(handleSketchMenuEvent);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({
@@ -152,6 +252,7 @@ export function useEditorCommands({
     handleCopy: canvasActions.handleCopy,
     handleCut: canvasActions.handleCut,
     handlePaste: canvasActions.handlePaste,
+    handlePasteAsNewLayer,
     handleNudgeLayer: canvasActions.handleNudgeLayer,
     syncSketchOutputsNow: canvasActions.syncSketchOutputsNow,
     setActiveTool: sessionStore.setActiveTool,
@@ -216,6 +317,7 @@ export function useEditorCommands({
     handleRunSegmentation,
     handleClearSegmentPrompts,
     handleFillSelectionWithForeground,
+    handleStrokeSelectionWithForeground,
     handleNewLayerFromContextMenu,
     handleLayerViaCopy,
     handleLayerViaCut,

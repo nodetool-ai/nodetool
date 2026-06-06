@@ -15,10 +15,12 @@ export default function SeoHeroContent() {
         </h1>
         <p className="text-lg text-slate-300 mb-8 leading-relaxed">
           NodeTool is the open-source creative AI workspace — every major model
-          from every major provider, called with your own keys, wired into one
-          node-based canvas you run on your machine. Bring your own keys to FAL,
-          KIE, OpenAI, Anthropic, Gemini, Replicate, and more. Pay providers
-          directly at provider prices. Swap models the day they launch.
+          from every major provider, wired into one node-based canvas you run
+          on your own machine. Bring your own keys to FAL, KIE, OpenAI,
+          Anthropic, Gemini, Replicate, and the rest. Pay providers what they
+          charge — no credits, no markup, no curated roster. When the next
+          state-of-the-art model ships, you swap one node and you&apos;re on it
+          the same day.
         </p>
       </section>
 
@@ -28,12 +30,13 @@ export default function SeoHeroContent() {
           What Problem Does NodeTool Solve?
         </h2>
         <p className="text-slate-300 leading-relaxed">
-          Creative pros working with AI are stuck choosing between ComfyUI&apos;s
-          engineer-first UX, closed SaaS canvases that lock you into a credit
-          system and a curated model roster, or a dozen browser tabs across
-          Midjourney, Runway, and Photoshop. NodeTool is the open alternative:
-          one canvas, every provider, your keys, no credit markup, no vendor
-          lock-in.
+          A new state-of-the-art model ships every other week. Reaching it
+          today means juggling Midjourney, Runway, ElevenLabs, and Photoshop
+          across a dozen tabs — or paying a closed SaaS canvas to mark up its
+          curated, lagging roster — or wrestling ComfyUI&apos;s
+          engineer-first UX. NodeTool is the open alternative: one canvas,
+          every provider, your keys, provider prices. The roster updates the
+          same day the model does.
         </p>
       </section>
 
@@ -57,11 +60,12 @@ export default function SeoHeroContent() {
           What Vendor Neutrality Actually Buys You
         </h2>
         <p className="text-slate-300 leading-relaxed">
-          Seedance is the best video model right now. It&apos;s available on
-          FAL, Replicate, and KIE at different price points. NodeTool lets you
-          pick the cheapest. When Veo 4 ships, you swap one node and you&apos;re
-          on it the same day. The best model for the job changes every month —
-          your tool shouldn&apos;t slow that down.
+          Seedance is the best video model right now. It runs on FAL, Replicate,
+          and KIE at three different prices — NodeTool lets you pick the
+          cheapest, no contract, no markup. When Veo 4 ships next month, the
+          same canvas runs it the day the endpoint goes live. The best model
+          for the job changes every few weeks. Your tool shouldn&apos;t be the
+          thing that slows that down.
         </p>
       </section>
 
@@ -73,10 +77,9 @@ export default function SeoHeroContent() {
         <div className="space-y-3 text-slate-300">
           <div>
             <strong className="text-white">vs ComfyUI:</strong> ComfyUI is a
-            Stable Diffusion power tool with engineer-first UX. NodeTool is a
-            full creative workspace — image, video, audio, and text on one
-            canvas — with the editing tools you rely on: masks, inpaint,
-            outpaint, relight, upscale, layers, compositing.
+            node editor for diffusion models. NodeTool is the studio around it:
+            image, video, music, and words on one canvas, every major model a
+            click away.
           </div>
           <div>
             <strong className="text-white">vs Weavy / closed SaaS canvases:</strong>{" "}

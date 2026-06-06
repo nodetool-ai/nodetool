@@ -76,7 +76,7 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
   const renderShortcutItem = (item: ShortcutItem, index: number) => {
     return (
       <Box
-        key={`${item.action}-${index}`}
+        key={item.action}
         sx={{
           display: "flex",
           alignItems: layout === "vertical" ? "flex-start" : "center",
@@ -154,7 +154,7 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
             mb: 1.5,
             textTransform: "uppercase",
             letterSpacing: "0.5px",
-            fontSize: "0.75rem",
+            fontSize: "var(--fontSizeSmall)",
           }}
         >
           {title}
@@ -175,7 +175,7 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
           
           return (
             <Box
-              key={`${item.action}-${index}`}
+              key={item.action}
               sx={{
                 ...(layout === "vertical" && {
                   width: "100%",

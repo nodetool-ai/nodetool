@@ -14,7 +14,6 @@ import type { Theme } from "@mui/material/styles";
 import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import ImageIcon from "@mui/icons-material/Image";
-import { shallow } from "zustand/shallow";
 
 import { CheckerDropzone, FlexRow, StateIconButton } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
@@ -25,10 +24,9 @@ import NumberInput from "../../inputs/NumberInput";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
-
-const RESIZE_NODE_TYPE = "nodetool.image.Resize";
+import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
+import { RESIZE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
   css({
@@ -55,7 +53,7 @@ const styles = (theme: Theme) =>
       "& > .handle-column": {
         top: 0,
         bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
+        left: `calc(${theme.spacing(0)})`
       },
       "& img": {
         display: "block",
@@ -67,7 +65,7 @@ const styles = (theme: Theme) =>
         position: "absolute",
         bottom: theme.spacing(0.5),
         right: theme.spacing(0.5),
-        padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
         background: "rgba(0,0,0,0.6)",
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,
@@ -165,20 +163,7 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
   const widthValue = Number(data.properties?.width ?? widthProperty?.default ?? 512);
   const heightValue = Number(data.properties?.height ?? heightProperty?.default ?? 512);
 
-  const result = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
-  // Resize emits a single named output "output" — extract it for preview.
-  const previewValue = useMemo(() => {
-    if (result && typeof result === "object" && !Array.isArray(result)) {
-      const r = result as Record<string, unknown>;
-      if ("output" in r) {
-        return r.output;
-      }
-    }
-    return result;
-  }, [result]);
+  const previewValue = useNodeOutput(workflowId, id);
   const previewDims = useMemo(() => extractDims(previewValue), [previewValue]);
 
   const { setProperties, setPropertyComplete } = useBespokePropertyWriter({
@@ -301,7 +286,6 @@ const ResizeBodyInner: React.FC<ResizeBodyProps> = ({
           <NodeOutputs
             id={id}
             outputs={nodeMetadata.outputs}
-            isStreamingOutput={nodeMetadata.is_streaming_output}
           />
         </div>
       )}

@@ -15,41 +15,46 @@ Creating custom nodes in TypeScript:
 ```ts
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
-export class MyCustomNode extends BaseNode {
+export class UppercaseTextNode extends BaseNode {
   static readonly nodeType = "mypackage.text.Upper";
   static readonly title = "Uppercase Text";
-  static readonly description =
-    "A simple custom node that converts text to uppercase.\n" +
-    "    text, processing, custom";
+  static readonly description = "Convert text to uppercase.";
+  static readonly metadataOutputTypes = { output: "str" };
 
-  static readonly metadataOutputTypes = {
-    output: "str",
-  };
+  @prop({ type: "str", default: "", title: "Input Text" })
+  declare inputText: string;
 
-  @prop({ type: "str", default: "", title: "Input Text", description: "Text to process" })
-  declare input_text: any;
-
-  async process(inputs: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const text = String(inputs.input_text ?? this.input_text ?? "");
-    return { output: text.toUpperCase() };
+  async process(): Promise<Record<string, unknown>> {
+    return { output: String(this.inputText ?? "").toUpperCase() };
   }
 }
 ```
 
-Register this class in your package's index file and NodeTool discovers the node automatically.
+Export a `register(registry)` function from your package and NodeTool discovers the node automatically.
 
-**-> [Full Custom Node Tutorial](node-reference.md)** -- Templates, patterns, and detailed examples
+**-> [Full Custom Nodes Guide (TypeScript)](custom-nodes-guide.md)** -- End-to-end walkthrough: packaging, governance, streaming, testing, distribution.
 
 ---
 
 ## Guides
 
-### Custom Node Development
+### Custom Node Development (TypeScript)
 
-- **[Node Implementation Quick Reference](node-reference.md)** -- **Start here!** Templates and common `@prop` / `process()` patterns
-- [Node Implementation Patterns](node-patterns.md) -- Architectural patterns: multi-output, streaming, stateful, secrets
-- [Node Implementation Examples](node-examples.md) -- Real-world examples from the codebase
-- [Suspendable Nodes](suspendable-nodes.md) -- Build nodes that can pause and resume workflows
+- **[Custom Nodes Guide](custom-nodes-guide.md)** -- **Start here!** End-to-end guide for authoring, packaging, and distributing TypeScript node packs.
+- [TypeScript DSL Guide](ts-dsl-guide.md) -- Type-safe workflow definitions with auto-generated factory functions.
+
+### Custom Node Reference (TypeScript)
+
+- [Node Implementation Quick Reference](node-reference.md) -- Templates and common `@prop` / `process()` patterns.
+- [Node Implementation Patterns](node-patterns.md) -- Architectural patterns: multi-output, streaming, stateful, secrets.
+
+### Python Nodes
+
+- [Node Implementation Examples](node-examples.md) -- Python node examples for the Python bridge.
+
+### Advanced
+
+- [Suspendable Nodes](suspendable-nodes.md) -- Build nodes that can pause and resume workflows.
 
 ### Programmatic Workflows
 

@@ -1,6 +1,5 @@
 import {
   contentTypeToNodeType,
-  inputForType,
   constantForType,
   constantToInputType,
   inputToConstantType
@@ -25,20 +24,6 @@ describe('NodeTypeMapping utilities', () => {
     test('returns null for unknown content type', () => {
       expect(contentTypeToNodeType('application/unknown')).toBeNull();
       expect(contentTypeToNodeType('application/octet-stream', 'archive.bin')).toBeNull();
-    });
-  });
-
-  describe('inputForType', () => {
-    test('maps type names to input node types', () => {
-      expect(inputForType('str')).toBe('nodetool.input.StringInput');
-      expect(inputForType('dataframe')).toBe('nodetool.input.DataFrameInput');
-      expect(inputForType('audio')).toBe('nodetool.input.AudioInput');
-      expect(inputForType('document')).toBe('nodetool.input.DocumentInput');
-      expect(inputForType('model_3d')).toBe('nodetool.input.Model3DInput');
-    });
-
-    test('returns null for unknown type', () => {
-      expect(inputForType('unknown')).toBeNull();
     });
   });
 

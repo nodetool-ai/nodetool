@@ -29,7 +29,6 @@ import {
   MergeDataframeNode,
   AppendDataframeNode,
   JoinDataframeNode,
-  RowIteratorNode,
   FindRowNode,
   SortByColumnNode,
   DropDuplicatesNode,
@@ -1003,20 +1002,6 @@ describe("data FillNANode", () => {
 });
 
 describe("data streaming nodes", () => {
-  it("RowIteratorNode yields rows", async () => {
-    const node = new RowIteratorNode();
-    const rows: any[] = [];
-    node.assign({
-      dataframe: { rows: [{ a: 1 }, { a: 2 }] }
-    });
-    for await (const item of node.genProcess()) {
-      rows.push(item);
-    }
-    expect(rows.length).toBe(2);
-    expect(rows[0].dict).toEqual({ a: 1 });
-    expect(rows[0].index).toBe(0);
-  });
-
   it("ForEachRowNode yields rows", async () => {
     const node = new ForEachRowNode();
     const rows: any[] = [];
@@ -1168,5 +1153,25 @@ describe("data asRows edge cases", () => {
     });
     const res = await __n403.process();
     expect(res.output).toEqual([{ x: 1 }, { x: 2 }]);
+  });
+
+  it("handles UI dataframe columns + matrix data", async () => {
+    const __n404 = new ExtractColumnNode();
+    __n404.assign({
+      dataframe: {
+        type: "dataframe",
+        columns: [
+          { name: "name", data_type: "string" },
+          { name: "prompt", data_type: "string" }
+        ],
+        data: [
+          ["alpha", "first prompt"],
+          ["beta", "second prompt"]
+        ]
+      },
+      column_name: "prompt"
+    });
+    const res = await __n404.process();
+    expect(res.output).toEqual(["first prompt", "second prompt"]);
   });
 });

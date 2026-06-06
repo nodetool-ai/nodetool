@@ -553,6 +553,12 @@ export const createDocumentSlice: StateCreator<
           l.id === lower.id
             ? {
                 ...l,
+                // The runtime has baked both layers into a doc-sized raster
+                // on the lower canvas. Always reveal the surviving layer:
+                // hiding the only remaining record of merged pixels (because
+                // the lower layer happened to be invisible going in) makes
+                // the operation look destructive even though the data is fine.
+                visible: true,
                 transform: { ...IDENTITY_AFFINE },
                 contentBounds: {
                   x: 0,
@@ -722,14 +728,24 @@ export const createDocumentSlice: StateCreator<
 
   groupLayers: (layerIds: string[]) =>
     set((state) => {
-      const unique = [...new Set(layerIds)];
-      if (unique.length < 2) {
+      const uniqueSet = new Set(layerIds);
+      if (uniqueSet.size < 2) {
         return state;
       }
       const { layers } = state.document;
-      const selected = unique
-        .map((id) => layers.find((l) => l.id === id))
-        .filter((l): l is Layer => !!l && l.type !== "group");
+
+      const selected: Layer[] = [];
+      const indices: number[] = [];
+      for (let i = 0; i < layers.length; i++) {
+        const l = layers[i];
+        if (uniqueSet.has(l.id)) {
+          if (l.type !== "group") {
+            selected.push(l);
+            indices.push(i);
+          }
+        }
+      }
+
       if (selected.length < 2) {
         return state;
       }
@@ -737,9 +753,7 @@ export const createDocumentSlice: StateCreator<
       if (!selected.every((l) => (l.parentId ?? null) === parentKey)) {
         return state;
       }
-      const indices = selected
-        .map((l) => layers.indexOf(l))
-        .sort((a, b) => a - b);
+
       for (let i = 1; i < indices.length; i++) {
         if (indices[i] !== indices[i - 1] + 1) {
           return state;
@@ -753,8 +767,9 @@ export const createDocumentSlice: StateCreator<
         parentId: parentKey ?? undefined
       };
       const before = layers.slice(0, minI);
+      const selectedSet = new Set(selected.map((l) => l.id));
       const middle = layers.slice(minI, maxI + 1).map((l) =>
-        selected.some((s) => s.id === l.id)
+        selectedSet.has(l.id)
           ? { ...l, parentId: group.id }
           : l
       );

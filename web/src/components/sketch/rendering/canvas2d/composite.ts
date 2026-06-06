@@ -128,7 +128,7 @@ export interface RenderDocumentCompositeOptions {
 /**
  * Render document pixels only: visibility, opacity, blend modes, transforms,
  * effects, and optional active-stroke preview. This excludes display-only
- * chrome such as the checkerboard background and canvas border.
+ * chrome such as the checkerboard background.
  */
 export function renderDocumentComposite(
   ctx: CanvasRenderingContext2D,
@@ -232,7 +232,7 @@ export function renderDocumentComposite(
 
 /**
  * Composite all visible layers onto the target canvas including display chrome
- * (checkerboard, border).
+ * (checkerboard only).
  */
 export function compositeToDisplayCanvas(
   targetCanvas: HTMLCanvasElement,
@@ -284,15 +284,6 @@ export function compositeToDisplayCanvas(
   );
 
   if (useClip) {
-    ctx.restore();
-  }
-
-  // Draw a subtle border around the canvas to show its boundaries
-  if (!useClip && typeof ctx.strokeRect === "function") {
-    ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, fullW - 1, fullH - 1);
     ctx.restore();
   }
 

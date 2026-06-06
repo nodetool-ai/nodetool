@@ -3,35 +3,48 @@ import { isLocalhost } from "../env";
 import { supabase } from "../supabaseClient";
 import { uuidv4 } from "../../stores/uuidv4";
 import { BASE_URL } from "../../stores/BASE_URL";
+import useMetadataStore from "../../stores/MetadataStore";
 import type { Edge, Node, WorkflowGraph } from "../../stores/ApiTypes";
 
 export type GraphNode = Node;
 export type GraphEdge = Edge;
 export type InlineGraph = WorkflowGraph;
 
-export interface InlineGraphJobOptions {
+interface InlineGraphJobOptions {
   graph: InlineGraph;
   params?: Record<string, unknown>;
   signal?: AbortSignal;
   workflowId: string;
+  /** Run title shown in the queue. Defaults to a single-node graph's name. */
+  jobName?: string;
 }
 
+/**
+ * Title for a single-node inline run: the node's custom title, else its
+ * metadata title (same precedence as NodeHeader), else the type segment.
+ */
+const deriveInlineJobName = (graph: InlineGraph): string => {
+  const nodes = (graph?.nodes ?? []) as Array<{
+    type?: string;
+    data?: { title?: unknown };
+  }>;
+  if (nodes.length !== 1) {
+    return "";
+  }
+  const node = nodes[0];
+  const custom =
+    typeof node.data?.title === "string" ? node.data.title.trim() : "";
+  const metadataTitle = node.type
+    ? useMetadataStore.getState().getMetadata(node.type)?.title
+    : undefined;
+  return custom || metadataTitle || node.type?.split(".").pop() || "";
+};
+
 /** Result shape consumed by sketch `WebSocketNodeExecutor`. */
-export interface InlineGraphJobResult {
+interface InlineGraphJobResult {
   success: boolean;
   outputs: Record<string, unknown>;
   error?: string;
-}
-
-function normalizeGraph(graph: InlineGraph): WorkflowGraph {
-  return {
-    nodes: graph.nodes.map((node) => ({
-      ...node,
-      sync_mode:
-        typeof node.sync_mode === "string" ? node.sync_mode : "on_any"
-    })),
-    edges: graph.edges
-  };
 }
 
 function mergeOutputsRecord(
@@ -67,7 +80,6 @@ export async function runInlineGraphJob(
     user_id = session?.user?.id ?? "";
   }
 
-  const normalized = normalizeGraph(graph);
   const outputs: Record<string, unknown> = {};
   let settled = false;
 
@@ -96,22 +108,25 @@ export async function runInlineGraphJob(
     finish({ success: false, outputs, error: "Aborted" });
   };
 
+  const str = (v: unknown): string | undefined =>
+    typeof v === "string" ? v : undefined;
+
   const handler = (message: Record<string, unknown>): void => {
-    const msgWorkflow = message.workflow_id as string | null | undefined;
-    const msgJob = message.job_id as string | null | undefined;
+    const msgWorkflow = str(message.workflow_id);
+    const msgJob = str(message.job_id);
 
     if (msgWorkflow != null && msgWorkflow !== workflowId) {
       return;
     }
-    if (typeof msgJob === "string" && msgJob.length > 0 && msgJob !== jobId) {
+    if (msgJob != null && msgJob.length > 0 && msgJob !== jobId) {
       return;
     }
 
-    const type = message.type as string | undefined;
+    const type = str(message.type);
 
     if (type === "node_update") {
-      const status = message.status as string | undefined;
-      const nodeId = message.node_id as string | undefined;
+      const status = str(message.status);
+      const nodeId = str(message.node_id);
       const resultPayload = message.result;
 
       if (status === "completed" && nodeId != null) {
@@ -121,11 +136,12 @@ export async function runInlineGraphJob(
           outputs[nodeId] = resultPayload;
         }
       } else if (status === "error") {
-        const errMsg =
-          typeof message.error === "string" && message.error.length > 0
-            ? message.error
-            : "Node error";
-        finish({ success: false, outputs, error: errMsg });
+        const errMsg = str(message.error);
+        finish({
+          success: false,
+          outputs,
+          error: errMsg && errMsg.length > 0 ? errMsg : "Node error"
+        });
       }
       return;
     }
@@ -134,33 +150,38 @@ export async function runInlineGraphJob(
       return;
     }
 
-    const status = message.status as string | undefined;
-    const resultField = message.result as
-      | { outputs?: Record<string, unknown> }
-      | null
-      | undefined;
+    const status = str(message.status);
+    const resultField = message.result;
 
-    if (resultField != null && resultField.outputs != null) {
-      mergeOutputsRecord(outputs, resultField.outputs);
+    if (
+      resultField != null &&
+      typeof resultField === "object" &&
+      "outputs" in resultField &&
+      resultField.outputs != null &&
+      typeof resultField.outputs === "object"
+    ) {
+      mergeOutputsRecord(
+        outputs,
+        resultField.outputs as Record<string, unknown>
+      );
     }
 
     if (status === "failed") {
-      const errMsg =
-        typeof message.error === "string" && message.error.length > 0
-          ? message.error
-          : "Job failed";
-      finish({ success: false, outputs, error: errMsg });
+      const errMsg = str(message.error);
+      finish({
+        success: false,
+        outputs,
+        error: errMsg && errMsg.length > 0 ? errMsg : "Job failed"
+      });
       return;
     }
 
     if (status === "cancelled") {
+      const cancelMsg = str(message.message);
       finish({
         success: false,
         outputs,
-        error:
-          typeof message.message === "string" && message.message.length > 0
-            ? message.message
-            : "Cancelled"
+        error: cancelMsg && cancelMsg.length > 0 ? cancelMsg : "Cancelled"
       });
       return;
     }
@@ -185,6 +206,7 @@ export async function runInlineGraphJob(
       data: {
         type: "run_job_request",
         job_id: jobId,
+        job_name: options.jobName ?? deriveInlineJobName(graph),
         job_type: "workflow",
         execution_strategy: "threaded",
         workflow_id: workflowId,
@@ -193,7 +215,10 @@ export async function runInlineGraphJob(
         api_url: BASE_URL,
         params,
         explicit_types: false,
-        graph: normalized
+        // Explicit single-node / run-from-here runs are concurrent like the
+        // other canvas run paths, so they don't serialize behind one another.
+        concurrent: true,
+        graph
       }
     });
   } catch (err) {

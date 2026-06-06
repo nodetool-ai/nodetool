@@ -4,8 +4,16 @@ import OpenAI, { toFile } from "openai";
 // notably the Electron main bundle, where Vite/Rollup can't resolve sharp's
 // dynamic require for `@img/sharp-*.node` and the app crashes at launch.
 import type { Chunk } from "@nodetool-ai/protocol";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importHidden } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+
+type SharpFn = typeof import("sharp");
+type SharpModule = SharpFn | { default: SharpFn };
+async function loadSharp(): Promise<SharpFn> {
+  const mod = await importHidden<SharpModule>("sharp");
+  if (!mod) throw new Error("sharp requires Node");
+  return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+}
 
 const log = createLogger("nodetool.runtime.providers.openai");
 import type {
@@ -783,6 +791,16 @@ export class OpenAIProvider extends BaseProvider {
           }
           deltaToolCalls.clear();
         }
+
+        // Always emit a terminal `done: true` chunk when the completion
+        // finishes, regardless of reason. "stop" already emits one above; for
+        // every other terminal reason (tool_calls, length, content_filter)
+        // emit one here so consumers get a consistent end-of-stream marker
+        // (matching the Anthropic and Gemini providers).
+        if (choice.finish_reason && choice.finish_reason !== "stop") {
+          const doneChunk: Chunk = { type: "chunk", content: "", done: true };
+          yield doneChunk;
+        }
       }
     } finally {
       if (typeof stream.close === "function") {
@@ -1232,7 +1250,7 @@ export class OpenAIProvider extends BaseProvider {
       width === targetW && height === targetH
         ? image
         : new Uint8Array(
-            await (await import("sharp")).default(image)
+            await (await loadSharp())(image)
               .resize(targetW, targetH, { fit: "cover", position: "centre" })
               .png()
               .toBuffer()

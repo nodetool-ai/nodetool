@@ -1,0 +1,52 @@
+{
+  "name": "@nodetool-ai/video-nodes",
+  "version": "0.7.0-rc.23",
+  "description": "NodeTool video + 3D model nodes",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "^4.3.0",
+    "@gltf-transform/functions": "^4.3.0",
+    "@nodetool-ai/audio-nodes": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/nodes-utils": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "manifold-3d": "^3.4.1",
+    "meshoptimizer": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./nodes/*": {
+      "types": "./dist/nodes/*.d.ts",
+      "import": "./dist/nodes/*.js",
+      "default": "./dist/nodes/*.js"
+    },
+    "./lib/*": {
+      "types": "./dist/lib/*.d.ts",
+      "import": "./dist/lib/*.js",
+      "default": "./dist/lib/*.js"
+    }
+  },
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

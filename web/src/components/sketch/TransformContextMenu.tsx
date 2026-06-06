@@ -95,15 +95,15 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
         sx={{
           gap: 1,
           px: 2,
-          py: 0.75,
-          mb: 0.25
+          py: 1,
+          mb: 0.5
         }}
       >
         <TransformIcon sx={{ fontSize: 16, color: "primary.light" }} />
         <Text
           sx={{
             fontSize: SKETCH_FONT.section,
-            fontWeight: 700,
+            fontWeight: 600,
             color: "text.primary"
           }}
         >

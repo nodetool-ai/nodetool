@@ -17,16 +17,19 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
-import { Tooltip, EditorButton, Container } from "../ui_primitives";
+import { Container } from "../ui_primitives";
+import FalPricingFooter from "./FalPricingFooter";
+import KieCreditsFooter from "./KieCreditsFooter";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import NodeDependencyWarning from "./NodeDependencyWarning";
-import useStatusStore from "../../stores/StatusStore";
-import useResultsStore, { hashKey } from "../../stores/ResultsStore";
-import { shallow } from "zustand/shallow";
-import { hasNodeError } from "../../stores/ErrorStore";
-import useErrorStore from "../../stores/ErrorStore";
+import {
+  useNodeStatus,
+  useNodeHasError,
+  useNodeArtifacts,
+  useNodeActiveRunCount
+} from "../../hooks/nodes/useNodeExecState";
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
@@ -37,6 +40,7 @@ import { getBaseNodeSelectionStyles } from "./selectionStyles";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
+import { resolveExposedInputNames } from "../../utils/exposedInputs";
 import useMetadataStore from "../../stores/MetadataStore";
 import useSelect from "../../hooks/nodes/useSelect";
 import EditableTitle from "./EditableTitle";
@@ -49,8 +53,6 @@ import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import {
   CONTROL_HANDLE_ID,
   isAgentNodeType
@@ -63,47 +65,26 @@ import {
   isCodeNodeTitleEditable,
   resolveCodeNodeTitle
 } from "./codeNodeUi";
+import { isContentCardNode } from "../node_types/contentCardRegistry";
 
 // CONSTANTS
-const BASE_HEIGHT = 0; // Minimum height for the node
-const INCREMENT_PER_OUTPUT = 25; // Height increase per output in the node
-/** Cap metadata-driven minHeight so many-output types do not force huge boxes (collapse snapshot / RF measure). */
-const MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX = 320;
+const BASE_HEIGHT = 0;
+const INCREMENT_PER_HANDLE = 25;
+/** Cap metadata-driven minHeight so many-handle types do not force huge boxes (collapse snapshot / RF measure). */
+const MAX_HANDLE_DRIVEN_MIN_HEIGHT_PX = 320;
 const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
-const MIN_NODE_HEIGHT = 100;
+/** Shared floor for initial layout and user resizing. */
+const MIN_NODE_HEIGHT = 150;
+const SPECIAL_NAMESPACES = ["nodetool.constant", "nodetool.input", "nodetool.output"];
 
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
 
-const NAMESPACE_BUTTON_SX = {
-  position: "absolute",
-  bottom: -25,
-  left: "50%",
-  transform: "translateX(-50%)",
-  bgcolor: "background.paper",
-  color: "text.secondary",
-  px: 1,
-  py: 0.25,
-  borderRadius: 1,
-  fontSize: "0.65rem",
-  fontWeight: 400,
-  zIndex: 1000,
-  border: "1px solid",
-  borderColor: "divider",
-  whiteSpace: "nowrap",
-  cursor: "pointer",
-  "&:hover": {
-    bgcolor: "action.hover"
-  }
-} as const;
-
 const NODE_CONTENT_CONTAINER_STYLE: React.CSSProperties = {
   flex: "1 1 auto",
   minHeight: 0,
-  width: "100%",
-  overflow: "visible",
-  clipPath: "inset(0 -60px)"
+  width: "100%"
 };
 
 /** Collapsed: no side clip-path — clipping a zero-height box can hide sockets and confuse RF measurements */
@@ -114,25 +95,30 @@ const NODE_CONTENT_CONTAINER_COLLAPSED_STYLE: React.CSSProperties = {
   overflow: "visible"
 };
 
-const resizer = (
-  <div className="node-resizer">
-    <div className="resizer">
-      <NodeResizer
-        shouldResize={(
-          event,
-          params: ResizeParams & { direction: number[] }
-        ) => {
-          const [dirX, dirY] = params.direction;
-          // Allow both horizontal and vertical resizing
-          return dirX !== 0 || dirY !== 0;
-        }}
-        minWidth={200}
-        maxWidth={MAX_NODE_WIDTH}
-        minHeight={MIN_NODE_HEIGHT}
-      />
+const ResizeOverlay = memo(function ResizeOverlay({
+  minHeight
+}: {
+  minHeight: number;
+}) {
+  return (
+    <div className="node-resizer">
+      <div className="resizer">
+        <NodeResizer
+          shouldResize={(
+            _event,
+            params: ResizeParams & { direction: number[] }
+          ) => {
+            const [dirX, dirY] = params.direction;
+            return dirX !== 0 || dirY !== 0;
+          }}
+          minWidth={200}
+          maxWidth={MAX_NODE_WIDTH}
+          minHeight={minHeight}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+});
 
 const TOOLBAR_SHOW_DELAY = 200; // ms delay before showing toolbar after selection
 
@@ -180,6 +166,52 @@ const gradientAnimationKeyframes = keyframes`
     --gradient-angle: 450deg;
   }
 `;
+
+// Ambient-liveness ring: a breathing halo shown when a node is executing in one
+// or more runs the user is NOT currently focused on. Visually distinct from the
+// primary running ring (a tight, rotating type-color conic gradient): this one
+// is a single-hue halo that pulses opacity/scale, so "running in my focused run"
+// and "also running elsewhere" read as different signals.
+const ambientPulseKeyframes = keyframes`
+  0% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.015); }
+  100% { opacity: 0.9; transform: scale(1); }
+`;
+
+const getAmbientRingCss = (color: string) =>
+  css({
+    position: "absolute",
+    inset: 0,
+    borderRadius: "var(--rounded-node)",
+    pointerEvents: "none",
+    // Pure box-shadow halo (no fill), so it only paints outside the node body
+    // regardless of stacking order — robust to whether the container is a
+    // positioned ancestor.
+    zIndex: 0,
+    boxShadow: `0 0 0 2px ${color}, 0 0 16px 2px color-mix(in srgb, ${color} 55%, transparent)`,
+    animation: `${ambientPulseKeyframes} 1.6s ease-in-out infinite`
+  });
+
+const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
+  position: "absolute",
+  top: -8,
+  right: -8,
+  minWidth: 16,
+  height: 16,
+  boxSizing: "border-box",
+  padding: "0 4px",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: 8,
+  backgroundColor: theme.vars.palette.secondary.main,
+  color: theme.vars.palette.secondary.contrastText,
+  border: `1px solid ${theme.vars.palette.c_node_bg}`,
+  fontSize: "10px",
+  fontWeight: 700,
+  lineHeight: 1,
+  zIndex: 20,
+  pointerEvents: "none"
+});
 
 const getNodeStyles = (colors: string[]) =>
   css({
@@ -230,6 +262,35 @@ const getNodeStyles = (colors: string[]) =>
     }
   });
 
+const getVisibleInputHandleCount = (
+  metadata: NodeMetadata | undefined,
+  data: NodeData
+): number => {
+  if (!metadata) {
+    return 0;
+  }
+  const propertyNames = new Set(
+    (metadata.properties ?? []).map((property) => property.name)
+  );
+  return resolveExposedInputNames(metadata, data).filter((name) =>
+    propertyNames.has(name)
+  ).length;
+};
+
+const getVisibleOutputHandleCount = (
+  metadata: NodeMetadata | undefined,
+  data: NodeData,
+  isOutputNode: boolean
+): number => {
+  if (!metadata || isOutputNode) {
+    return 0;
+  }
+  return (
+    (metadata.outputs?.length ?? 0) +
+    Object.keys(data.dynamic_outputs ?? {}).length
+  );
+};
+
 const getStyleProps = (
   parentId: string | undefined,
   nodeType: {
@@ -239,19 +300,21 @@ const getStyleProps = (
   },
   isLoading: boolean,
   metadata: NodeMetadata | undefined,
+  data: NodeData,
   collapsed: boolean | undefined
 ) => {
   const hasParent = Boolean(parentId);
-  const outputCountMin = metadata
-    ? BASE_HEIGHT + (metadata.outputs?.length ?? 0) * INCREMENT_PER_OUTPUT
-    : BASE_HEIGHT;
-  /**
-   * Agent: many logical outputs — use a sane floor only.
-   * Other nodes: same formula but capped so `min-height` cannot dominate measured height on collapse.
-   */
-  const minHeight = nodeType.isAgentNode
-    ? MIN_NODE_HEIGHT
-    : Math.min(outputCountMin, MAX_OUTPUT_DRIVEN_MIN_HEIGHT_PX);
+  const handleCount = Math.max(
+    getVisibleInputHandleCount(metadata, data),
+    getVisibleOutputHandleCount(metadata, data, nodeType.isOutputNode)
+  );
+  const handleCountMin = BASE_HEIGHT + handleCount * INCREMENT_PER_HANDLE;
+  // Cap metadata-driven minHeight so many-handle types do not force huge
+  // boxes (collapse snapshot / RF measure).
+  const minHeight = Math.max(
+    MIN_NODE_HEIGHT,
+    Math.min(handleCountMin, MAX_HANDLE_DRIVEN_MIN_HEIGHT_PX)
+  );
   return {
     className: `base-node node-body
       ${hasParent ? "has-parent" : ""}
@@ -348,8 +411,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       color: theme.vars.palette.warning.contrastText,
       padding: "2px 8px",
       borderRadius: 4,
-      fontSize: "0.7rem",
-      fontWeight: "bold",
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
       zIndex: 1000
     }),
     [theme.vars.palette.warning.main, theme.vars.palette.warning.contrastText]
@@ -366,26 +429,40 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
       isInputNode: type.startsWith("nodetool.input"),
-      isOutputNode:
-        type.startsWith("nodetool.output") ||
-        type === "comfy.image.SaveImage" ||
-        type === "comfy.image.PreviewImage",
+      isOutputNode: type.startsWith("nodetool.output"),
       isAgentNode: isAgentNodeType(type)
     }),
     [type]
   );
   // Status
-  const statusValue = useStatusStore((state) =>
-    state.getStatus(workflow_id, id)
-  );
+  const statusValue = useNodeStatus(workflow_id, id);
   const status =
-    statusValue && statusValue !== null && typeof statusValue !== "object"
+    statusValue && typeof statusValue !== "object"
       ? statusValue
       : undefined;
   const isLoading = useMemo(
     () => status === "running" || status === "starting" || status === "booting",
     [status]
   );
+
+  // Ambient liveness: how many *other* (non-focused) runs are executing this
+  // node right now. Drives a secondary ring + count badge so the canvas signals
+  // work happening in runs the user is not currently focused on.
+  const otherActiveRunCount = useNodeActiveRunCount(workflow_id, id);
+  // Total runs executing this node right now: the non-focused active runs plus
+  // the focused run when it's the one driving the primary animation.
+  const concurrentRunCount = otherActiveRunCount + (isLoading ? 1 : 0);
+  // Badge shows the concurrency count, but only once ≥2 runs hit this node — a
+  // lone run needs no number (the ring/animation already says "running").
+  const showConcurrencyBadge = concurrentRunCount >= 2;
+  // Ambient ring marks a node active in a non-focused run when the primary
+  // (focused-run) ring isn't already drawn, so two rings never stack.
+  const showAmbientRing = otherActiveRunCount > 0 && !isLoading;
+  const ambientRingCss = useMemo(
+    () => getAmbientRingCss(theme.vars.palette.secondary.main),
+    [theme.vars.palette.secondary.main]
+  );
+  const ambientBadgeStyle = useMemo(() => getAmbientBadgeStyle(theme), [theme]);
 
   // Metadata
   const metadata = useMetadataStore((state) => state.getMetadata(type));
@@ -399,17 +476,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       : hexToRgba("#ccc", GROUP_COLOR_OPACITY)
     : null;
 
-  const specialNamespaces = useMemo(
-    () => ["nodetool.constant", "nodetool.input", "nodetool.output"],
-    []
-  );
-
   const meta = useMemo(() => {
     return {
       nodeNamespace: metadata.namespace || "",
-      showFooter: !specialNamespaces.includes(metadata.namespace || "")
+      showFooter: !SPECIAL_NAMESPACES.includes(metadata.namespace || "")
     };
-  }, [metadata.namespace, specialNamespaces]);
+  }, [metadata.namespace]);
 
   const displayTitle = useMemo(
     () => resolveCodeNodeTitle(type, data.title, metadata.title),
@@ -421,22 +493,19 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Style
   const styleProps = useMemo(
     () =>
-      getStyleProps(parentId, nodeType, isLoading, metadata, data.collapsed),
-    [parentId, nodeType, isLoading, metadata, data.collapsed]
+      getStyleProps(
+        parentId,
+        nodeType,
+        isLoading,
+        metadata,
+        data,
+        data.collapsed
+      ),
+    [parentId, nodeType, isLoading, metadata, data]
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
-  const resultsKey = hashKey(workflow_id, id);
-  const { result, chunk, toolCall, planningUpdate, task } = useResultsStore(
-    (state) => ({
-      result: state.outputResults[resultsKey] || state.results[resultsKey],
-      chunk: state.chunks[resultsKey] as string | undefined,
-      toolCall: state.toolCalls[resultsKey],
-      planningUpdate: state.planningUpdates[resultsKey],
-      task: state.tasks[resultsKey]
-    }),
-    shallow
-  );
+  const { result, chunk, toolCall, planningUpdate, task } = useNodeArtifacts(workflow_id, id);
 
   // Optimize: Use memoized selectors that only perform O(E) filter operations when the
   // state.edges array reference actually changes (e.g. adding/removing edges), rather than
@@ -485,6 +554,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
 
+  const usesContentCardBody = isContentCardNode(metadata);
+
   // Only auto-switch to result view for generative nodes (marked via
   // `auto_save_asset` by providers like fal, kie, replicate, elevenlabs,
   // gemini/openai image+audio, etc.). Non-generative nodes with visual
@@ -521,6 +592,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     else if (
       result &&
       isGenerativeNode &&
+      !usesContentCardBody &&
       !nodeType.isOutputNode &&
       !nodeType.isConstantNode &&
       status === "completed"
@@ -533,6 +605,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     result,
     isConstantInputLockedResult,
     isGenerativeNode,
+    usesContentCardBody,
     nodeType.isOutputNode,
     nodeType.isConstantNode,
     status,
@@ -559,14 +632,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [id, suppressResultOverlay, updateNodeData]);
 
   const shouldAlwaysShowResult =
+    !usesContentCardBody &&
     !suppressResultOverlay &&
     (nodeType.isOutputNode || isConstantInputLockedResult);
-  const isOverlayVisible = suppressResultOverlay
-    ? false
-    : shouldAlwaysShowResult
-    ? Boolean(result && !isEmptyResult(result))
-    : Boolean(showResultOverlay && result && !isEmptyResult(result));
+  const isOverlayVisible =
+    suppressResultOverlay || usesContentCardBody
+      ? false
+      : shouldAlwaysShowResult
+      ? Boolean(result && !isEmptyResult(result))
+      : Boolean(showResultOverlay && result && !isEmptyResult(result));
   const hasToggleableResult =
+    !usesContentCardBody &&
     !suppressResultOverlay &&
     !shouldAlwaysShowResult &&
     result &&
@@ -606,6 +682,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         selected,
         isFocused,
         isLoading,
+        hasAmbientRing: showAmbientRing,
         hasParent,
         hasToggleableResult: Boolean(hasToggleableResult),
         baseColor,
@@ -618,6 +695,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       selected,
       isFocused,
       isLoading,
+      showAmbientRing,
       hasParent,
       hasToggleableResult,
       baseColor,
@@ -636,27 +714,41 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [data.collapsed]
   );
 
-  const handleNamespaceClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      e.preventDefault();
-      // Open nodeMenu at that namespace
-      const namespacePath = metadata.namespace?.split(".") || [];
-      useNodeMenuStore.getState().openNodeMenu({
-        x: e.clientX,
-        y: e.clientY,
-        selectedPath: namespacePath
-      });
-    },
-    [metadata.namespace]
-  );
-
   // Track error state for node dimension management
-  const hasError = useErrorStore((state) =>
-    workflow_id !== undefined
-      ? hasNodeError(state.getError(workflow_id, id))
-      : false
-  );
+  const hasError = useNodeHasError(workflow_id, id);
+
+  // Hover-reveal of all handle tooltips. The user can hover the node body
+  // to see every input/output port's name without hovering each handle one
+  // by one. A short delay filters out incidental mouse-passes during pan.
+  const [isNodeHovered, setIsNodeHovered] = useState(false);
+  const hoverTimerRef = useRef<number | null>(null);
+  const HOVER_REVEAL_DELAY = 180;
+
+  const handleNodeMouseEnter = useCallback(() => {
+    if (hoverTimerRef.current !== null) {
+      window.clearTimeout(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = window.setTimeout(() => {
+      setIsNodeHovered(true);
+      hoverTimerRef.current = null;
+    }, HOVER_REVEAL_DELAY);
+  }, []);
+
+  const handleNodeMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current !== null) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setIsNodeHovered(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current !== null) {
+        window.clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
 
   // Force node re-measurement when content that affects height changes
   // (error messages appearing/disappearing, result overlay toggling).
@@ -677,11 +769,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [hasError, isOverlayVisible, id, updateNode]);
 
   return (
-    <NodeSelectionContext.Provider value={selected}>
+    <NodeSelectionContext.Provider value={selected || isNodeHovered}>
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
       className={styleProps.className}
       sx={containerSx}
+      onMouseEnter={handleNodeMouseEnter}
+      onMouseLeave={handleNodeMouseLeave}
     >
       <Handle
         type="target"
@@ -691,7 +785,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         isConnectable={true}
       />
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
-      <NodeResizeHandle minWidth={150} minHeight={150} />
+      <NodeResizeHandle minWidth={150} minHeight={styleProps.minHeight} />
       <NodeHeader
         id={id}
         selected={selected}
@@ -750,7 +844,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
       {/* Default behavior: width-only resize for regular nodes.
           If a node has toggleable result rendering, it uses the Preview-style corner handle instead. */}
-      {selected && !hasToggleableResult && resizer}
+      {selected && !hasToggleableResult && (
+        <ResizeOverlay minHeight={styleProps.minHeight} />
+      )}
       {toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
@@ -777,27 +873,27 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </div>
       )}
 
+      {showAmbientRing && <div css={ambientRingCss} aria-hidden="true" />}
+      {showConcurrencyBadge && (
+        <div
+          style={ambientBadgeStyle}
+          title={`Running in ${concurrentRunCount} runs at once`}
+        >
+          {concurrentRunCount}
+        </div>
+      )}
+
       {title && type !== CODE_NODE_TYPE && (
         <EditableTitle nodeId={id} title={title} />
       )}
 
-      {selected && metadata.namespace && (
-        <Tooltip
-          delay={TOOLTIP_ENTER_DELAY * 2}
-          title="Open Node Menu here"
-          placement="bottom"
-          arrow
-        >
-          <EditorButton
-            variant="text"
-            className="node-namespace nodrag nopan"
-            onClick={handleNamespaceClick}
-            sx={NAMESPACE_BUTTON_SX}
-          >
-            {metadata.namespace}
-          </EditorButton>
-        </Tooltip>
-      )}
+      <FalPricingFooter metadata={metadata} selected={!!selected} />
+      <KieCreditsFooter
+        metadata={metadata}
+        selected={!!selected}
+        nodeId={id}
+        workflowId={workflow_id}
+      />
     </Container>
     </NodeSelectionContext.Provider>
   );

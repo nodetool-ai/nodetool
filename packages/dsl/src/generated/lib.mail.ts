@@ -18,8 +18,8 @@ export interface SendEmailOutputs {
   output: boolean;
 }
 
-export function sendEmail(inputs: SendEmailInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SendEmailOutputs, "output"> {
-  return createNode("lib.mail.SendEmail", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function sendEmail(inputs: SendEmailInputs): DslNode<SendEmailOutputs, "output"> {
+  return createNode("lib.mail.SendEmail", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Gmail Search — lib.mail.GmailSearch
@@ -38,12 +38,16 @@ export interface GmailSearchInputs {
 export interface GmailSearchOutputs {
   email: Record<string, unknown>;
   message_id: string;
+  subject: string;
+  sender: string;
+  date: string;
+  body: string;
   emails: unknown[];
   message_ids: unknown[];
 }
 
-export function gmailSearch(inputs: GmailSearchInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GmailSearchOutputs> {
-  return createNode("lib.mail.GmailSearch", inputs as Record<string, unknown>, { outputNames: ["email", "message_id", "emails", "message_ids"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function gmailSearch(inputs: GmailSearchInputs): DslNode<GmailSearchOutputs> {
+  return createNode("lib.mail.GmailSearch", inputs as Record<string, unknown>, { outputNames: ["email", "message_id", "subject", "sender", "date", "body", "emails", "message_ids"], streaming: true });
 }
 
 // Add Label — lib.mail.AddLabel
@@ -56,8 +60,8 @@ export interface AddLabelOutputs {
   output: boolean;
 }
 
-export function addLabel(inputs: AddLabelInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<AddLabelOutputs, "output"> {
-  return createNode("lib.mail.AddLabel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function addLabel(inputs: AddLabelInputs): DslNode<AddLabelOutputs, "output"> {
+  return createNode("lib.mail.AddLabel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Move To Archive — lib.mail.MoveToArchive
@@ -69,6 +73,6 @@ export interface MoveToArchiveOutputs {
   output: boolean;
 }
 
-export function moveToArchive(inputs: MoveToArchiveInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MoveToArchiveOutputs, "output"> {
-  return createNode("lib.mail.MoveToArchive", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function moveToArchive(inputs: MoveToArchiveInputs): DslNode<MoveToArchiveOutputs, "output"> {
+  return createNode("lib.mail.MoveToArchive", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

@@ -8,7 +8,6 @@ const workflowSearchOptions = {
   includeMatches: true,
   threshold: 0.1,
   distance: 100,
-  tokenize: false,
   minMatchCharLength: 2,
   ignoreLocation: true,
   useExtendedSearch: false,
@@ -76,20 +75,3 @@ export const searchWorkflowsWithFuse = (
   return finalResults;
 };
 
-/**
- * Search workflows (legacy function for backward compatibility).
- * NOTE: This creates a new Fuse instance on every call and is less efficient.
- * Use useWorkflowSearch + searchWorkflowsWithFuse for better performance.
- *
- * @deprecated Use useWorkflowSearch hook instead for optimal performance
- * @param workflows - The array of workflows to search through
- * @param query - The search query string
- * @returns Array of search results with workflow, score, and matches
- */
-export const searchWorkflows = (
-  workflows: Workflow[],
-  query: string
-): SearchResult[] => {
-  const fuse = new Fuse(workflows, workflowSearchOptions);
-  return searchWorkflowsWithFuse(fuse, workflows, query);
-};

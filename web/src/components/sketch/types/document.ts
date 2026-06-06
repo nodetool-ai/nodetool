@@ -5,6 +5,7 @@
  * presets, normalization logic, and layer-tree helpers.
  */
 
+import { type BlendMode, coerceBlendMode } from "@nodetool-ai/gpu";
 import type {
   ToolSettings,
   EraserSettings,
@@ -123,44 +124,11 @@ export const SYMMETRY_DEFAULT_RAYS = 6;
 
 export type LayerType = "raster" | "mask" | "group";
 
-export type BlendMode =
-  | "normal"
-  | "multiply"
-  | "screen"
-  | "overlay"
-  | "darken"
-  | "lighten"
-  | "color-dodge"
-  | "color-burn"
-  | "hard-light"
-  | "soft-light"
-  | "difference"
-  | "exclusion";
-
-const BLEND_MODE_VALUES = [
-  "normal",
-  "multiply",
-  "screen",
-  "overlay",
-  "darken",
-  "lighten",
-  "color-dodge",
-  "color-burn",
-  "hard-light",
-  "soft-light",
-  "difference",
-  "exclusion"
-] as const satisfies readonly BlendMode[];
-
-const BLEND_MODE_SET: ReadonlySet<string> = new Set(BLEND_MODE_VALUES);
-
-/** Ensures UI (e.g. layer blend Select) never receives garbage strings like data URLs. */
-export function coerceBlendMode(value: unknown): BlendMode {
-  if (typeof value === "string" && BLEND_MODE_SET.has(value)) {
-    return value as BlendMode;
-  }
-  return "normal";
-}
+// Blend modes are defined once in @nodetool-ai/gpu and shared by the
+// sketch editor, the timeline preview compositor, and the Compositor node.
+// (imported at the top of this module; re-exported here for sketch consumers)
+export { coerceBlendMode };
+export type { BlendMode };
 
 /**
  * How the (optionally cropped) source image is mapped into the layer's
@@ -378,6 +346,24 @@ export const DEFAULT_SWATCHES: string[] = [
   "#000033", "#000066", "#000099", "#0000cc", "#0000ff", "#4d4dff", "#9999ff",
   // Row 7 — Purple / Pink
   "#330033", "#660066", "#990099", "#cc00cc", "#ff00ff", "#ff66ff", "#ff99ff"
+];
+
+/**
+ * Compact single-row preset palette for the inline COLOR panel swatch row
+ * (distinct from the 7×7 {@link DEFAULT_SWATCHES} grid used by the picker
+ * popover). One representative per hue family, matching the editor design.
+ */
+export const SKETCH_PRESET_SWATCHES: string[] = [
+  "#ffffff", // white
+  "#9ca3af", // grey
+  "#000000", // black
+  "#6366f1", // blue
+  "#e879f9", // magenta
+  "#14b8a6", // teal
+  "#ef4444", // red
+  "#f59e0b", // orange
+  "#22c55e", // green
+  "#06b6d4" // cyan
 ];
 
 // ─── Sketch Document ──────────────────────────────────────────────────────────
@@ -922,6 +908,42 @@ export function getLayerDepth(layers: Layer[], layerId: string): number {
   return depth;
 }
 
+/**
+ * Returns the index of the layer that "Merge Down" should merge `activeId` into,
+ * or `-1` when no valid target exists.
+ *
+ * Merge Down is only valid when the immediately-preceding entry in the flat
+ * layer array is a **sibling** (same `parentId`), a **raster** (not a group),
+ * and **not locked**. This prevents two classes of bugs:
+ *
+ * 1. Merging into the parent group — the previous entry of the first child of
+ *    a group is the group itself, which has no canvas; the active raster would
+ *    silently vanish.
+ * 2. Merging across parent boundaries — the previous entry of a root-level
+ *    layer can be the last child of an unrelated group above it.
+ *
+ * Callers who want "merge with group as a whole" should flatten the group first.
+ */
+export function findMergeDownTargetIndex(
+  layers: Layer[],
+  activeId: string
+): number {
+  const idx = layers.findIndex((l) => l.id === activeId);
+  if (idx <= 0) {
+    return -1;
+  }
+  const active = layers[idx];
+  if (active.type === "group") {
+    return -1;
+  }
+  const prev = layers[idx - 1];
+  const sameParent = (prev.parentId ?? null) === (active.parentId ?? null);
+  if (!sameParent || prev.type === "group" || prev.locked) {
+    return -1;
+  }
+  return idx - 1;
+}
+
 /** Recursively collect all descendant IDs of a group (children, grandchildren, etc.) */
 export function getDescendantIds(layers: Layer[], groupId: string): string[] {
   const ids: string[] = [];
@@ -940,19 +962,20 @@ export function getDescendantIds(layers: Layer[], groupId: string): string[] {
  * visible and every ancestor group is visible. Hiding a group therefore hides
  * all descendant pixels without changing child `visible` flags.
  *
- * When `isolatedLayerId` matches this layer, ancestor visibility is ignored so
- * solo/isolate still shows that layer's pixels.
+ * When `isolatedLayerId` matches this layer, ancestor visibility — and this
+ * layer's own visibility flag — are ignored so solo/isolate still shows
+ * that layer's pixels (edit hidden layer in isolation).
  */
 export function isLayerCompositeVisible(
   layers: Layer[],
   layer: Layer,
   isolatedLayerId: string | null | undefined
 ): boolean {
-  if (!layer.visible) {
-    return false;
-  }
   if (isolatedLayerId && layer.id === isolatedLayerId) {
     return true;
+  }
+  if (!layer.visible) {
+    return false;
   }
   let current: Layer | undefined = layer;
   let depth = 0;

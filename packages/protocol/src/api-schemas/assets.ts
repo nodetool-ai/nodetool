@@ -13,12 +13,14 @@ export const assetResponse = z.object({
   content_type: z.string(),
   size: z.number().nullable(),
   metadata: z.record(z.string(), z.unknown()).nullable(),
+  sketch_document_id: z.string().nullable(),
   created_at: z.string(),
   get_url: z.string().nullable(),
   thumb_url: z.string().nullable(),
   duration: z.number().nullable(),
   node_id: z.string().nullable(),
-  job_id: z.string().nullable()
+  job_id: z.string().nullable(),
+  timeline_id: z.string().nullable().optional()
 });
 export type AssetResponse = z.infer<typeof assetResponse>;
 
@@ -31,6 +33,7 @@ export const listInput = z.object({
   workflow_id: z.string().optional(),
   node_id: z.string().optional(),
   job_id: z.string().optional(),
+  timeline_id: z.string().optional(),
   page_size: z.number().int().min(1).max(10000).default(10000)
 });
 export type ListInput = z.infer<typeof listInput>;
@@ -57,7 +60,9 @@ export const createInput = z.object({
   workflow_id: z.string().nullable().optional(),
   node_id: z.string().nullable().optional(),
   job_id: z.string().nullable().optional(),
+  timeline_id: z.string().nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  sketch_document_id: z.string().nullable().optional(),
   size: z.number().nullable().optional()
 });
 export type CreateInput = z.infer<typeof createInput>;
@@ -72,6 +77,7 @@ export const updateInput = z.object({
   content_type: z.string().optional(),
   parent_id: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  sketch_document_id: z.string().nullable().optional(),
   size: z.number().optional(),
   data: z.string().nullable().optional(),
   data_encoding: z.enum(["base64", "utf-8"]).nullable().optional()
@@ -125,9 +131,10 @@ export const recursiveOutput = z.object({
 export type RecursiveOutput = z.infer<typeof recursiveOutput>;
 
 // ── search (GET /api/assets/search) ──────────────────────────────
-// Minimum query length of 2 characters; matches by name substring.
+// Matches by name substring. An empty query matches everything, which lets
+// the `@`-mention typeahead show a list of assets before the user narrows it.
 export const searchInput = z.object({
-  query: z.string().min(2),
+  query: z.string(),
   content_type: z.string().optional(),
   page_size: z.number().int().min(1).max(10000).default(200),
   cursor: z.string().optional(),

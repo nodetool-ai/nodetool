@@ -43,7 +43,9 @@ export function constrainEnd(
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const angle = Math.atan2(dy, dx);
-    const snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+    // Shift snaps lines/arrows to 30° increments (0, 30, 60, 90, …).
+    const step = Math.PI / 6;
+    const snapped = Math.round(angle / step) * step;
     const dist = Math.sqrt(dx * dx + dy * dy);
     return {
       x: start.x + dist * Math.cos(snapped),
@@ -143,24 +145,77 @@ export function drawShapeOnCtx(
       break;
     }
     case "arrow": {
+      // Designers Republic-style chevron arrow.
+      //
+      // The head is a "wing + tip" silhouette: from the shaft edges the
+      // outline steps perpendicular OUT to the wing, runs PARALLEL to
+      // the shaft along the wing's outer edge, then cuts in at 45° to
+      // the apex. Mirrored on the underside.
+      //
+      // Counting the head vertices including the shaft-junction points:
+      //   1 shaft-top-end → 2 wing back-outer → 3 wing front-outer
+      //   → 4 apex → 5 wing front-outer (lower) → 6 wing back-outer
+      //   (lower) → 7 shaft-bottom-end. That's the 7-vertex head the
+      // designer-republic posters use.
+      const dx = constrained.x - s.x;
+      const dy = constrained.y - s.y;
+      const L = Math.hypot(dx, dy);
+      if (L < 0.5) {
+        break;
+      }
+      const angle = Math.atan2(dy, dx);
+      const sw = Math.max(1, settings.strokeWidth);
+      // Narrow shaft, wings that clearly outstep it, 45° tip.
+      const T = Math.max(3, sw * 1.6);
+      const W = Math.max(T * 3, sw * 6);
+      // Clean 45° symmetry: tip slope and barb slope are mirrored so
+      // the apex angle equals the rear-barb angle and the head reads
+      // as a regular chevron with a small flat wing tip on top/bottom.
+      const halfSpan = W / 2 - T / 2;
+      // Head height (from apex down to where the shaft enters) equals
+      // the stem width T. The apex sits T above the wing fronts, and
+      // the wing fronts sit level with the shaft junction so all three
+      // "top" points are within T of the shaft top edge.
+      // 90° apex angle: each tip diagonal sits at 45° from the arrow
+      // axis, which requires tipLen == W/2.
+      const tipLen = W / 2;
+      const headLen = tipLen;
+      const barb = halfSpan;
+      const apexX = L;
+      const wingFront = Math.max(0, apexX - tipLen);
+      const wingShaftJunction = Math.max(0, apexX - headLen);
+      const wingBack = Math.max(0, wingShaftJunction - barb);
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const local = (lx: number, ly: number): [number, number] => [
+        s.x + lx * cos - ly * sin,
+        s.y + lx * sin + ly * cos
+      ];
+      const pts: Array<[number, number]> = [
+        local(0, -T / 2),
+        local(wingShaftJunction, -T / 2),
+        local(wingBack, -W / 2),
+        local(wingFront, -W / 2),
+        local(apexX, 0),
+        local(wingFront, W / 2),
+        local(wingBack, W / 2),
+        local(wingShaftJunction, T / 2),
+        local(0, T / 2)
+      ];
+      ctx.save();
+      ctx.lineJoin = "miter";
+      ctx.miterLimit = 10;
       ctx.beginPath();
-      ctx.moveTo(s.x, s.y);
-      ctx.lineTo(constrained.x, constrained.y);
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i += 1) {
+        ctx.lineTo(pts[i][0], pts[i][1]);
+      }
+      ctx.closePath();
+      ctx.fillStyle = settings.strokeColor;
+      ctx.fill();
+      ctx.lineWidth = Math.max(1, sw * 0.5);
       ctx.stroke();
-      const angle = Math.atan2(constrained.y - s.y, constrained.x - s.x);
-      const headLen = Math.max(settings.strokeWidth * 3, 10);
-      ctx.beginPath();
-      ctx.moveTo(constrained.x, constrained.y);
-      ctx.lineTo(
-        constrained.x - headLen * Math.cos(angle - Math.PI / 6),
-        constrained.y - headLen * Math.sin(angle - Math.PI / 6)
-      );
-      ctx.moveTo(constrained.x, constrained.y);
-      ctx.lineTo(
-        constrained.x - headLen * Math.cos(angle + Math.PI / 6),
-        constrained.y - headLen * Math.sin(angle + Math.PI / 6)
-      );
-      ctx.stroke();
+      ctx.restore();
       break;
     }
   }
@@ -171,6 +226,45 @@ export class ShapeTool implements ToolHandler {
   readonly toolId = "shape" as const;
 
   private shapeStart: Point | null = null;
+  private lastEnd: Point | null = null;
+  private activeCtx: ToolContext | null = null;
+  private modifierKeyListener: ((e: KeyboardEvent) => void) | null = null;
+
+  private redrawPreview(): void {
+    if (!this.activeCtx || !this.shapeStart || !this.lastEnd) {
+      return;
+    }
+    this.activeCtx.drawOverlayShape(this.shapeStart, this.lastEnd);
+  }
+
+  private installModifierListener(ctx: ToolContext): void {
+    if (this.modifierKeyListener) {
+      return;
+    }
+    const listener = (e: KeyboardEvent) => {
+      if (e.key !== "Shift" && e.key !== "Alt") {
+        return;
+      }
+      // Update modifier refs and re-render the preview so snap reacts
+      // immediately when the user presses/releases Shift or Alt mid-drag,
+      // even without a pointer move.
+      ctx.shiftHeldRef.current = e.shiftKey;
+      ctx.altHeldRef.current = e.altKey;
+      this.redrawPreview();
+    };
+    window.addEventListener("keydown", listener, true);
+    window.addEventListener("keyup", listener, true);
+    this.modifierKeyListener = listener;
+  }
+
+  private removeModifierListener(): void {
+    if (!this.modifierKeyListener) {
+      return;
+    }
+    window.removeEventListener("keydown", this.modifierKeyListener, true);
+    window.removeEventListener("keyup", this.modifierKeyListener, true);
+    this.modifierKeyListener = null;
+  }
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
     const activeLayer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
@@ -180,12 +274,15 @@ export class ShapeTool implements ToolHandler {
     }
 
     this.shapeStart = event.point;
+    this.lastEnd = event.point;
+    this.activeCtx = ctx;
     ctx.onStrokeStart();
     ensureLayerRasterBounds(
       ctx,
       activeLayer,
       getDocumentViewportInLayerSpace(activeLayer, ctx.doc)
     );
+    this.installModifierListener(ctx);
 
     return true;
   }
@@ -194,6 +291,9 @@ export class ShapeTool implements ToolHandler {
     if (!this.shapeStart) {
       return;
     }
+    ctx.shiftHeldRef.current = event.nativeEvent.shiftKey;
+    ctx.altHeldRef.current = event.nativeEvent.altKey;
+    this.lastEnd = event.point;
     ctx.drawOverlayShape(this.shapeStart, event.point);
   }
 
@@ -209,6 +309,10 @@ export class ShapeTool implements ToolHandler {
     }
 
     const endDoc = event?.point ?? this.shapeStart;
+    if (event) {
+      ctx.shiftHeldRef.current = event.nativeEvent.shiftKey;
+      ctx.altHeldRef.current = event.nativeEvent.altKey;
+    }
 
     const layerCanvas = ctx.getOrCreateLayerCanvas(activeLayer.id);
     const layerCtx = layerCanvas.getContext("2d");
@@ -245,17 +349,24 @@ export class ShapeTool implements ToolHandler {
       endDoc
     );
 
-    ctx.onStrokeEnd(activeLayer.id, null);
+    // Pair the new bounds with the deferred pixel sync — passing
+    // committedBounds into onStrokeEnd lets flushPendingStrokeFinalization
+    // update layer.data and contentBounds together. If we instead pushed
+    // new contentBounds *now* (via onLayerContentBoundsChange) while
+    // layer.data is still the pre-stroke snapshot, useLayerHydration would
+    // re-fire setLayerData with stale pixels + new bounds and wipe the
+    // just-drawn shape (and adjacent pixels).
     const committedBounds = getCanvasRasterBounds(layerCanvas);
-    if (committedBounds) {
-      ctx.onLayerContentBoundsChange?.(activeLayer.id, committedBounds);
-    }
+    ctx.onStrokeEnd(activeLayer.id, null, committedBounds ?? undefined);
     ctx.invalidateLayer?.(activeLayer.id);
     ctx.clearOverlay();
     ctx.drawSelectionOverlay();
     ctx.redraw();
 
     this.shapeStart = null;
+    this.lastEnd = null;
+    this.activeCtx = null;
+    this.removeModifierListener();
   }
 }
 

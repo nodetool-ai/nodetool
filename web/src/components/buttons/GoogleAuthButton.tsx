@@ -21,7 +21,7 @@ const GoogleAuthButton = memo(function GoogleAuthButton() {
   const theme = useTheme();
   return (
     <div css={styles(theme)}>
-      <button className="gsi-material-button" onClick={handleClick}>
+      <button type="button" className="gsi-material-button" onClick={handleClick}>
         <div className="gsi-material-button-state"></div>
         <div className="gsi-material-button-content-wrapper">
           <div className="gsi-material-button-icon">

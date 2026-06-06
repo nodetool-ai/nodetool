@@ -23,9 +23,13 @@ import { MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
 import { ContextMenu, WarningBanner } from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
@@ -57,14 +61,15 @@ const laneStyles = (
     width: "100%",
     height: heightPx,
     flexShrink: 0,
-    backgroundColor: visible
-      ? theme.vars.palette.background.default
-      : theme.vars.palette.action.disabledBackground,
-    borderBottom: `1px solid ${isDragReject
-      ? theme.vars.palette.error.main
-      : isDragOver
-        ? theme.vars.palette.primary.main
-        : theme.vars.palette.divider}`,
+    backgroundColor: theme.vars.palette.background.default,
+    opacity: visible ? 1 : 0.55,
+    borderBottom: `1px solid ${
+      isDragReject
+        ? theme.vars.palette.error.main
+        : isDragOver
+          ? theme.vars.palette.primary.main
+          : theme.vars.palette.divider
+    }`,
     outline: isDragOver
       ? `2px solid ${theme.vars.palette.primary.main}`
       : isDragReject
@@ -73,19 +78,14 @@ const laneStyles = (
     outlineOffset: "-2px",
     overflow: "hidden",
     cursor: isRubberBanding ? "crosshair" : "default",
-    // Subtle alternating stripe
-    "&:nth-of-type(even)": {
-      backgroundColor: visible
-        ? theme.vars.palette.background.paper
-        : theme.vars.palette.action.disabledBackground
-    }
+    transition: "opacity 120ms"
   });
 
 const rubberBandStyles = (theme: Theme) =>
   css({
     position: "absolute",
-    border: `1px solid ${theme.vars.palette.primary.main}`,
-    backgroundColor: `${theme.vars.palette.primary.main}22`,
+    border: `1px solid ${theme.vars.palette.secondary.main}`,
+    backgroundColor: `${theme.vars.palette.secondary.main}22`,
     pointerEvents: "none",
     zIndex: 20
   });
@@ -109,13 +109,16 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const theme = useTheme();
 
   // Get only the clip IDs for this track (stable list of ids)
-  const clipIds = useTimelineStore(
+  const timelineStore = useTimelineStoreApi();
+  const clipIds = useStoreWithEqualityFn(
+    timelineStore,
     (s) =>
       s.clips
         .filter((c) => c.trackId === track.id)
         .map((c) => c.id),
     // Shallow-compare the resulting string array
-    (a, b) => a.length === b.length && a.every((id, i) => id === b[i])
+    (a: string[], b: string[]) =>
+      a.length === b.length && a.every((id, i) => id === b[i])
   );
 
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
@@ -333,8 +336,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       setRubberBand({ left, top, width, height });
 
-      // Compute which clips overlap the rubber-band
-      const rbStartMs = (left + e.currentTarget.scrollLeft) * msPerPx;
+      // Compute which clips overlap the rubber-band. The lane itself is not
+      // the scroll container — TracksRegion is — so e.currentTarget.scrollLeft
+      // is always 0. Use the UI store's tracked scroll offset instead.
+      const rbStartMs = (left + scrollLeftPx) * msPerPx;
       const rbEndMs = rbStartMs + width * msPerPx;
 
       // Read clips lazily to avoid subscribing to the full array in render
@@ -351,7 +356,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       setSelection(selected);
     },
-    [msPerPx, track.id, setSelection]
+    [msPerPx, scrollLeftPx, track.id, setSelection]
   );
 
   const handleLanePointerUp = useCallback(() => {
@@ -411,6 +416,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       onDrop={handleAssetDrop}
       onContextMenu={handleLaneContextMenu}
       role="listbox"
+      tabIndex={0}
       aria-label={`Track: ${track.name}`}
       aria-multiselectable="true"
     >
@@ -470,7 +476,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         <AddClipMenu
           trackId={track.id}
           startMs={addClipState.startMs}
-          mediaTypeOverride={track.type === "overlay" ? "overlay" : undefined}
+          trackType={track.type}
           anchorEl={addClipAnchorEl}
           onClose={handleAddClipClose}
         />

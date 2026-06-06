@@ -19,7 +19,7 @@
  */
 import { useEffect, useRef } from "react";
 
-import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
 
@@ -33,6 +33,7 @@ interface DocumentSnapshot {
   tracks: TimelineStoreState["tracks"];
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];
+  transcript: TimelineStoreState["transcript"];
   durationMs: number;
 }
 
@@ -42,6 +43,7 @@ const pickSnapshot = (state: TimelineStoreState): DocumentSnapshot => ({
   tracks: state.tracks,
   clips: state.clips,
   markers: state.markers,
+  transcript: state.transcript,
   durationMs: state.durationMs
 });
 
@@ -53,6 +55,7 @@ export function useTimelineAutosave(
   options: UseTimelineAutosaveOptions = {}
 ): void {
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
+  const store = useTimelineStoreApi();
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<DocumentSnapshot | null>(null);
@@ -60,6 +63,11 @@ export function useTimelineAutosave(
 
   useEffect(() => {
     let scheduleFn: () => void = () => {};
+    // When the host component unmounts while a save is in flight, the
+    // post-completion handler should bypass the debounce and flush the
+    // pending edit immediately so we don't lose work if the page closes
+    // shortly after.
+    let flushImmediatelyOnComplete = false;
 
     const runSave = async (snapshot: DocumentSnapshot) => {
       if (!snapshot.sequenceId) return;
@@ -71,13 +79,14 @@ export function useTimelineAutosave(
           document: {
             tracks: snapshot.tracks,
             clips: snapshot.clips,
-            markers: snapshot.markers
+            markers: snapshot.markers,
+            transcript: snapshot.transcript
           }
         });
         const updatedAt = (response as { updatedAt?: unknown } | undefined)
           ?.updatedAt;
         if (typeof updatedAt === "string") {
-          useTimelineStore.getState().setBaseUpdatedAt(updatedAt);
+          store.getState().setBaseUpdatedAt(updatedAt);
         }
       } catch (error) {
         console.error("Timeline autosave failed:", error);
@@ -93,7 +102,11 @@ export function useTimelineAutosave(
       } finally {
         inFlightRef.current = false;
         if (pendingRef.current) {
-          scheduleFn();
+          if (flushImmediatelyOnComplete) {
+            flush();
+          } else {
+            scheduleFn();
+          }
         }
       }
     };
@@ -125,21 +138,24 @@ export function useTimelineAutosave(
     let lastTracks: TimelineStoreState["tracks"] | null = null;
     let lastClips: TimelineStoreState["clips"] | null = null;
     let lastMarkers: TimelineStoreState["markers"] | null = null;
+    let lastTranscript: TimelineStoreState["transcript"] | null = null;
     let lastDurationMs: number | null = null;
 
-    const unsubscribe = useTimelineStore.subscribe((state) => {
+    const unsubscribe = store.subscribe((state) => {
       if (!state.sequenceId) return;
       const docUnchanged =
         state.sequenceId === lastSequenceId &&
         state.tracks === lastTracks &&
         state.clips === lastClips &&
         state.markers === lastMarkers &&
+        state.transcript === lastTranscript &&
         state.durationMs === lastDurationMs;
       if (docUnchanged) return;
       lastSequenceId = state.sequenceId;
       lastTracks = state.tracks;
       lastClips = state.clips;
       lastMarkers = state.markers;
+      lastTranscript = state.transcript;
       lastDurationMs = state.durationMs;
       pendingRef.current = pickSnapshot(state);
       schedule();
@@ -147,7 +163,15 @@ export function useTimelineAutosave(
 
     return () => {
       unsubscribe();
-      flush();
+      if (inFlightRef.current) {
+        // A save is already running. Setting this flag tells its `finally`
+        // handler to flush the still-pending snapshot immediately rather
+        // than re-debouncing — protects the last edit when the page closes
+        // shortly after unmount.
+        flushImmediatelyOnComplete = true;
+      } else {
+        flush();
+      }
     };
-  }, [debounceMs]);
+  }, [debounceMs, store]);
 }

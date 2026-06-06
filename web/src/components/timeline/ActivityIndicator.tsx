@@ -12,7 +12,7 @@
  *  - Zero counts are hidden.
  */
 
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -37,7 +37,7 @@ const badgeButtonStyles = (theme: Theme) =>
   css({
     cursor: "pointer",
     borderRadius: theme.rounded.xs,
-    padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+    padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
     border: "none",
     background: "transparent",
     display: "inline-flex",
@@ -91,7 +91,10 @@ const ClipListPopover: React.FC<ClipListPopoverProps> = memo(
       [selectClip, onClose]
     );
 
-    const affectedClips = clips.filter((c) => clipIds.includes(c.id));
+    const affectedClips = useMemo(
+      () => clips.filter((c) => clipIds.includes(c.id)),
+      [clips, clipIds]
+    );
 
     return (
       <Popover
@@ -120,6 +123,7 @@ const ClipListPopover: React.FC<ClipListPopoverProps> = memo(
                 aria-label={`Select clip: ${clip.name}`}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
                     handleSelectClip(clip.id);
                   }
                 }}
@@ -180,6 +184,7 @@ export const ActivityIndicator: React.FC = memo(() => {
       {generatingCount > 0 && (
         <>
           <button
+            type="button"
             ref={generatingAnchorRef}
             css={badgeButtonStyles(theme)}
             onClick={handleGeneratingClick}
@@ -209,6 +214,7 @@ export const ActivityIndicator: React.FC = memo(() => {
       {failedCount > 0 && (
         <>
           <button
+            type="button"
             ref={failedAnchorRef}
             css={badgeButtonStyles(theme)}
             onClick={handleFailedClick}

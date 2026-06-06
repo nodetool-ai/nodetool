@@ -22,38 +22,27 @@ import readline from "node:readline";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
-import { MultiModeAgent } from "@nodetool-ai/agents";
+import { RunSubtaskTool } from "@nodetool-ai/agents";
 import type { Tool } from "@nodetool-ai/agents/tool";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { createProvider, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient, type JobEvent } from "./websocket-client.js";
 import { getSecret } from "@nodetool-ai/models";
-import type { AgentMode } from "./settings.js";
 
 export interface StdinModeOptions {
   provider: string;
   model: string;
   workspaceDir: string;
-  /**
-   * Agent mode for stdin lines.
-   * - `"off"`         — plain chat.
-   * - `"loop"`        — iterative tool-calling loop.
-   * - `"plan"`        — TaskPlanner builds a parallel task DAG of LLM steps.
-   * - `"graph"`       — GraphPlanner builds a workflow DAG (needs a registry).
-   * - `"multi-agent"` — sub-agent team via TeamExecutor.
-   */
-  agentMode?: AgentMode;
   wsUrl?: string;
-  /** Pre-built tools (e.g. from --sandbox) appended to the Agent's tool list. */
-  extraTools?: Tool[];
   /**
-   * NodeRegistry for graph-native agent mode. When supplied AND the planner
-   * is "graph", agent mode uses MultiModeAgent + GraphPlanner so the agent
-   * can build workflows with the curated `nodetool.*` core nodes and the
-   * `find_model` tool.
+   * Extra tools (e.g. from --sandbox) appended to the unified loop's tool
+   * list. `run_subtask` is always available; the agent decides when to use it.
    */
+  extraTools?: Tool[];
+  /** NodeRegistry — currently unused by the unified loop, kept for parity. */
   registry?: NodeRegistry;
-  /** Configured BaseProvider instances by id, exposed via `find_model`. */
+  /** Configured BaseProvider instances by id (passed through to subtasks). */
   agentProviders?: Record<string, BaseProvider>;
 }
 
@@ -219,6 +208,30 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   // Direct mode: create provider once for the session
   const directProvider = wsClient ? null : await createProvider(opts.provider);
 
+  // Build the unified-loop toolset for direct mode. `run_subtask` lets the
+  // agent decompose work recursively without any flag — the same primitive
+  // the websocket server exposes.
+  const buildDirectTools = (
+    prov: BaseProvider | null,
+    extras: Tool[]
+  ): Tool[] => {
+    if (!prov) return extras;
+    const baseTools = extras.slice();
+    const subtaskTool = new RunSubtaskTool({
+      provider: prov,
+      model: opts.model,
+      parentTools: () => baseTools,
+      forwardMessage: (msg: ProcessingMessage) => {
+        if (msg.type === "chunk") {
+          process.stdout.write((msg as { content?: string }).content ?? "");
+        } else if (msg.type === "tool_call_update") {
+          process.stderr.write(`[tool] ${(msg as { name: string }).name}\n`);
+        }
+      }
+    });
+    return [subtaskTool, ...baseTools];
+  };
+
   const threadId = crypto.randomUUID();
   const chatHistory: Message[] = [];
 
@@ -244,99 +257,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       continue;
     }
 
-    if (opts.agentMode && opts.agentMode !== "off") {
-      // --- Agent mode: each line is an objective ---
-      const prov = wsClient
-        ? new WebSocketProvider(wsClient, opts.model, opts.provider)
-        : directProvider!;
-
-      // Map chat-cli agent mode → MultiModeAgent options.
-      // "graph" needs a registry; without one we silently downgrade to plan mode.
-      const wantsGraph = opts.agentMode === "graph" && !!opts.registry;
-      const mmaMode =
-        opts.agentMode === "loop"
-          ? "loop"
-          : opts.agentMode === "multi-agent"
-            ? "multi-agent"
-            : "plan";
-      const markdownOutputSchema = {
-        type: "object",
-        properties: {
-          markdown: {
-            type: "string",
-            description: "The markdown content of the response"
-          }
-        },
-        required: ["markdown"]
-      } as const;
-      const agent = new MultiModeAgent({
-        name: "stdin-agent",
-        objective: trimmed,
-        provider: prov,
-        model: opts.model,
-        mode: mmaMode,
-        tools: opts.extraTools ?? [],
-        useGraphPlanner: wantsGraph,
-        registry: wantsGraph ? opts.registry : undefined,
-        providers: wantsGraph ? opts.agentProviders : undefined,
-        maxStepIterations: 20,
-        outputSchema: markdownOutputSchema
-      });
-
-      const ctx = new ProcessingContext({
-        jobId: crypto.randomUUID(),
-        userId: "1",
-        workspaceDir: opts.workspaceDir,
-        secretResolver: getSecret
-      });
-      let taskResult: string | null = null;
-
-      for await (const msg of agent.execute(ctx)) {
-        if (msg.type === "chunk") {
-          if (taskResult === null) {
-            process.stdout.write((msg as { content?: string }).content ?? "");
-          }
-        } else if (msg.type === "step_result") {
-          const sr = msg as { result: unknown; is_task_result: boolean };
-          if (sr.is_task_result) {
-            taskResult =
-              typeof sr.result === "string"
-                ? sr.result
-                : JSON.stringify(sr.result, null, 2);
-          }
-        } else if (msg.type === "planning_update") {
-          const pu = msg as { phase?: string; content?: string };
-          const tag = pu.phase === "compile" ? "[compile]" : "[planning]";
-          process.stderr.write(
-            `${tag} ${(pu.content ?? "").slice(0, 80)}\n`
-          );
-        } else if (msg.type === "task_update") {
-          process.stderr.write(`[task] ${(msg as { event: string }).event}\n`);
-        } else if (msg.type === "tool_call_update") {
-          process.stderr.write(`[tool] ${(msg as { name: string }).name}\n`);
-        }
-      }
-
-      if (taskResult !== null) {
-        process.stdout.write(taskResult);
-      } else {
-        // Plan-mode agents return their structured result via getResults().
-        const finalResults = agent.getResults();
-        const finalText =
-          typeof finalResults === "string"
-            ? finalResults
-            : finalResults &&
-                typeof finalResults === "object" &&
-                "markdown" in (finalResults as Record<string, unknown>) &&
-                typeof (finalResults as Record<string, unknown>).markdown ===
-                  "string"
-              ? ((finalResults as Record<string, unknown>).markdown as string)
-              : finalResults != null
-                ? JSON.stringify(finalResults, null, 2)
-                : "";
-        if (finalText) process.stdout.write(finalText);
-      }
-    } else if (wsClient && !opts.extraTools?.length) {
+    if (wsClient && !opts.extraTools?.length) {
       // --- Regular chat via WebSocket (server handles everything) ---
       for await (const event of wsClient.chat(
         trimmed,
@@ -385,7 +306,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           workspaceDir: opts.workspaceDir,
           secretResolver: getSecret
         }),
-        tools: opts.extraTools,
+        tools: buildDirectTools(prov, opts.extraTools),
         callbacks: {
           onChunk: (text) => {
             process.stdout.write(text);
@@ -405,7 +326,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           workspaceDir: opts.workspaceDir,
           secretResolver: getSecret
         }),
-        tools: opts.extraTools ?? [],
+        tools: buildDirectTools(directProvider, opts.extraTools ?? []),
         callbacks: {
           onChunk: (text) => {
             process.stdout.write(text);

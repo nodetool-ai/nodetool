@@ -704,7 +704,7 @@ describe("GeminiProvider – textToImage", () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.textToImage({
       model: {
-        id: "gemini-2.0-flash-preview-image-generation",
+        id: "gemini-3.1-flash-image-preview",
         name: "test",
         provider: "gemini"
       },
@@ -728,7 +728,7 @@ describe("GeminiProvider – textToImage", () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.textToImage({
       model: {
-        id: "imagen-3.0-generate-002",
+        id: "imagen-4.0-generate-001",
         name: "test",
         provider: "gemini"
       },
@@ -800,7 +800,7 @@ describe("GeminiProvider – imageToImage", () => {
     const input = new Uint8Array([1, 2, 3]);
     const result = await provider.imageToImage(input, {
       model: {
-        id: "gemini-2.0-flash-preview-image-generation",
+        id: "gemini-3.1-flash-image-preview",
         name: "test",
         provider: "gemini"
       },

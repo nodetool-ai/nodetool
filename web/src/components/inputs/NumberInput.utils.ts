@@ -65,16 +65,6 @@ export const calculateSpeedFactor = (
   return speedFactor;
 };
 
-export const getEffectiveSliderWidth = (
-  zoomEnabled: boolean,
-  zoom: number,
-  actualSliderWidth: number
-): number => {
-  // The visible width of the slider on-screen is its layout width multiplied by the current canvas zoom.
-  // If zoom adjustments are disabled, we simply return the layout width so horizontal dragging maps 1-to-1.
-  return zoomEnabled && zoom > 0 ? actualSliderWidth * zoom : actualSliderWidth;
-};
-
 export const formatFloat = (value: number, minDecimalPlaces: number = 1): string => {
   const s = value.toString();
   const dotIndex = s.indexOf(".");

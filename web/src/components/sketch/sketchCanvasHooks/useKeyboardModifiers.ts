@@ -19,13 +19,32 @@ export function useKeyboardModifiers(params: {
   isSizeDraggingRef: React.MutableRefObject<boolean>;
   /** Fires once when Space becomes held / released (not on key-repeat). */
   onSpaceHeldChange?: (held: boolean) => void;
+  /** Fires when Alt becomes held / released (keyboard path). */
+  onAltHeldChange?: (held: boolean) => void;
+  /**
+   * Optional refs shared with overlay preview (e.g. `useOverlayRenderer`).
+   * When omitted, internal refs are used. Tools update these on pointer
+   * events; keyboard listeners must target the same objects for Shift/Alt
+   * mid-drag to repaint shape previews.
+   */
+  shiftHeldRef?: React.MutableRefObject<boolean>;
+  altHeldRef?: React.MutableRefObject<boolean>;
 }): UseKeyboardModifiersResult {
-  const { isSpacePanningRef, isSizeDraggingRef, onSpaceHeldChange } = params;
+  const {
+    isSpacePanningRef,
+    isSizeDraggingRef,
+    onSpaceHeldChange,
+    onAltHeldChange,
+    shiftHeldRef: shiftHeldRefOpt,
+    altHeldRef: altHeldRefOpt
+  } = params;
 
-  const shiftHeldRef = useRef(false);
+  const internalShiftRef = useRef(false);
+  const internalAltRef = useRef(false);
+  const shiftHeldRef = shiftHeldRefOpt ?? internalShiftRef;
+  const altHeldRef = altHeldRefOpt ?? internalAltRef;
   const spaceHeldRef = useRef(false);
   const sKeyHeldRef = useRef(false);
-  const altHeldRef = useRef(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -43,7 +62,11 @@ export function useKeyboardModifiers(params: {
         sKeyHeldRef.current = true;
       }
       if (e.key === "Alt") {
+        const wasHeld = altHeldRef.current;
         altHeldRef.current = true;
+        if (!wasHeld) {
+          onAltHeldChange?.(true);
+        }
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -63,6 +86,7 @@ export function useKeyboardModifiers(params: {
       }
       if (e.key === "Alt") {
         altHeldRef.current = false;
+        onAltHeldChange?.(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown, true);
@@ -71,7 +95,14 @@ export function useKeyboardModifiers(params: {
       window.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("keyup", handleKeyUp, true);
     };
-  }, [isSpacePanningRef, isSizeDraggingRef, onSpaceHeldChange]);
+  }, [
+    isSpacePanningRef,
+    isSizeDraggingRef,
+    onSpaceHeldChange,
+    onAltHeldChange,
+    shiftHeldRef,
+    altHeldRef
+  ]);
 
   return { shiftHeldRef, altHeldRef, spaceHeldRef, sKeyHeldRef };
 }

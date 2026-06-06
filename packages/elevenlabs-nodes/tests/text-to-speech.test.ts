@@ -36,13 +36,16 @@ describe("TextToSpeechNode", () => {
   });
 
   it("calls ElevenLabs API with correct URL and headers", async () => {
-    const node = makeNode({ voice: "Aria", text: "Hello world" });
+    const node = makeNode({
+      voice_id: "9BWtsMINqrJLrRacOk9x",
+      text: "Hello world"
+    });
     const result = await node.process();
 
     expect(mockFetch).toHaveBeenCalledOnce();
     const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit];
 
-    // Aria's voice ID
+    // The provided voice ID is used in the request URL
     expect(url).toContain("9BWtsMINqrJLrRacOk9x");
     expect(options.method).toBe("POST");
     expect((options.headers as Record<string, string>)["xi-api-key"]).toBe(
@@ -60,7 +63,7 @@ describe("TextToSpeechNode", () => {
 
   it("uses API key from _secrets context", async () => {
     delete process.env.ELEVENLABS_API_KEY;
-    const node = makeNode({ voice: "Aria", text: "Hello" });
+    const node = makeNode({ voice_id: "9BWtsMINqrJLrRacOk9x", text: "Hello" });
     node.setDynamic("_secrets", { ELEVENLABS_API_KEY: "from-secrets" });
     await node.process();
 
@@ -72,22 +75,42 @@ describe("TextToSpeechNode", () => {
 
   it("throws when API key is missing", async () => {
     delete process.env.ELEVENLABS_API_KEY;
-    const node = makeNode({ voice: "Aria", text: "Hello" });
+    const node = makeNode({ voice_id: "9BWtsMINqrJLrRacOk9x", text: "Hello" });
     await expect(node.process()).rejects.toThrow("ELEVENLABS_API_KEY");
   });
 
-  it("throws when voice is unknown", async () => {
-    const node = makeNode({ voice: "UnknownVoice", text: "Hello" });
-    await expect(node.process()).rejects.toThrow("Unknown voice");
+  it("throws when voice_id is empty", async () => {
+    const node = makeNode({ voice_id: "", text: "Hello" });
+    await expect(node.process()).rejects.toThrow("voice_id is required");
+  });
+
+  it("uses a custom voice_id directly in the request URL", async () => {
+    const node = makeNode({ voice_id: "customVoiceId123", text: "Hello" });
+    await node.process();
+
+    const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("customVoiceId123");
+  });
+
+  it("defaults to Aria's voice ID when voice_id is unset", async () => {
+    const node = makeNode({ text: "Hello" });
+    await node.process();
+
+    const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("9BWtsMINqrJLrRacOk9x");
   });
 
   it("throws when text is empty", async () => {
-    const node = makeNode({ voice: "Aria", text: "" });
+    const node = makeNode({ voice_id: "9BWtsMINqrJLrRacOk9x", text: "" });
     await expect(node.process()).rejects.toThrow("Text is required");
   });
 
   it("includes voice_settings when stability is non-default", async () => {
-    const node = makeNode({ voice: "Aria", text: "Hello", stability: 0.8 });
+    const node = makeNode({
+      voice_id: "9BWtsMINqrJLrRacOk9x",
+      text: "Hello",
+      stability: 0.8
+    });
     await node.process();
 
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
@@ -99,7 +122,7 @@ describe("TextToSpeechNode", () => {
 
   it("includes language_code when not 'none'", async () => {
     const node = makeNode({
-      voice: "Aria",
+      voice_id: "9BWtsMINqrJLrRacOk9x",
       text: "Hello",
       language_code: "en"
     });
@@ -112,7 +135,7 @@ describe("TextToSpeechNode", () => {
 
   it("omits language_code when set to 'none'", async () => {
     const node = makeNode({
-      voice: "Aria",
+      voice_id: "9BWtsMINqrJLrRacOk9x",
       text: "Hello",
       language_code: "none"
     });
@@ -124,7 +147,11 @@ describe("TextToSpeechNode", () => {
   });
 
   it("includes seed when not -1", async () => {
-    const node = makeNode({ voice: "Aria", text: "Hello", seed: 42 });
+    const node = makeNode({
+      voice_id: "9BWtsMINqrJLrRacOk9x",
+      text: "Hello",
+      seed: 42
+    });
     await node.process();
 
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
@@ -137,7 +164,27 @@ describe("TextToSpeechNode", () => {
       ok: false,
       text: async () => "Unauthorized"
     });
-    const node = makeNode({ voice: "Aria", text: "Hello" });
+    const node = makeNode({ voice_id: "9BWtsMINqrJLrRacOk9x", text: "Hello" });
     await expect(node.process()).rejects.toThrow("ElevenLabs API error");
+  });
+
+  it("offers eleven_v3 as a model option", () => {
+    const modelProp = TextToSpeechNode.getDeclaredProperties().find(
+      (p) => p.name === "model_id"
+    );
+    expect(modelProp?.options.values).toContain("eleven_v3");
+  });
+
+  it("sends the selected model_id in the payload", async () => {
+    const node = makeNode({
+      voice_id: "9BWtsMINqrJLrRacOk9x",
+      text: "Hello",
+      model_id: "eleven_v3"
+    });
+    await node.process();
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(options.body as string) as Record<string, unknown>;
+    expect(body.model_id).toBe("eleven_v3");
   });
 });

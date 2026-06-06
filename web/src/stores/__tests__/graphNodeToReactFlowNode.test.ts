@@ -134,14 +134,6 @@ describe("graphNodeToReactFlowNode", () => {
       expect(result.data.dynamic_outputs).toEqual({ output1: { type: "text" } });
     });
 
-    it("maps sync_mode to result", () => {
-      const workflow = createMockWorkflow();
-      const node = createMockGraphNode({ sync_mode: "on_change" });
-
-      const result = graphNodeToReactFlowNode(workflow, node);
-
-      expect(result.data.sync_mode).toBe("on_change");
-    });
 
     it("sets workflow_id in result data", () => {
       const workflow = createMockWorkflow({ id: "my-workflow-id" });
@@ -296,8 +288,8 @@ describe("graphNodeToReactFlowNode", () => {
 
       const result = graphNodeToReactFlowNode(workflow, graphNode);
 
-      expect(result.height).toBe(45);
-      expect(result.style?.height).toBe(45);
+      expect(result.height).toBe(40);
+      expect(result.style?.height).toBe(40);
       expect(result.data.expandedHeightPx).toBe(220);
     });
   });

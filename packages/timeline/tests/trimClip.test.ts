@@ -68,11 +68,41 @@ describe("trimClip", () => {
     expect(() => trimClip(clip, "end", 500, 900)).toThrow(/beyond source out-point/);
   });
 
+  it("throws when the start edge would move before zero on the timeline", () => {
+    const clip: TimelineClip = { ...makeBaseClip(), startMs: 50, inPointMs: 200 };
+    expect(() => trimClip(clip, "start", 100, 1000)).toThrow(
+      /before zero on the timeline/
+    );
+  });
+
   it("preserves generation hash fields", () => {
     const clip = makeBaseClip();
     const trimmed = trimClip(clip, "end", -50, 1000);
 
     expect(trimmed.dependencyHash).toBe(clip.dependencyHash);
     expect(trimmed.lastGeneratedHash).toBe(clip.lastGeneratedHash);
+  });
+
+  it("scales the source in/out points by playback rate for unbaked speed", () => {
+    // 2x speed, not baked: each timeline-ms of trim hides/reveals 2ms of source.
+    const clip: TimelineClip = { ...makeBaseClip(), speedMultiplier: 2 };
+
+    const grownEnd = trimClip(clip, "end", 100, 2000);
+    expect(grownEnd.durationMs).toBe(500); // timeline duration uses the raw delta
+    expect(grownEnd.outPointMs).toBe(800); // 600 + 100 * 2 source-ms
+
+    const grownStart = trimClip(clip, "start", 50, 2000);
+    expect(grownStart.startMs).toBe(950); // timeline start uses the raw delta
+    expect(grownStart.inPointMs).toBe(100); // 200 - 50 * 2 source-ms
+  });
+
+  it("ignores the multiplier once speed is baked into the asset", () => {
+    const clip: TimelineClip = {
+      ...makeBaseClip(),
+      speedMultiplier: 2,
+      speedBaked: true
+    };
+    const grownEnd = trimClip(clip, "end", 100, 2000);
+    expect(grownEnd.outPointMs).toBe(700); // baked → 1:1, 600 + 100
   });
 });

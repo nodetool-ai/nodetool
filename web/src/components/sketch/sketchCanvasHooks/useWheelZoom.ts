@@ -22,18 +22,60 @@ interface PendingWheel {
   clientY: number;
 }
 
-// macOS trackpad pinch arrives as a wheel event with ctrlKey=true synthesized by the browser.
-// cmd/ctrl + wheel also zooms for mouse users. Plain wheel/two-finger swipe pans.
-type WheelInput = Pick<
+export type WheelSrc = Pick<
   WheelEvent,
-  "deltaX"
+  | "deltaX"
   | "deltaY"
+  | "deltaMode"
   | "clientX"
   | "clientY"
   | "ctrlKey"
   | "metaKey"
+  | "shiftKey"
   | "preventDefault"
 >;
+
+/** Match ReactFlow's platform gate (see node/ReactFlowWrapper.tsx). */
+const IS_MAC =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+
+/**
+ * Split one wheel gesture into zoom (vertical Δ) vs 2-D pan vectors, mirroring
+ * ReactFlow's gesture model. The zoom-vs-pan discriminator is `ctrlKey` alone:
+ * macOS reports a trackpad pinch as a synthetic ctrlKey wheel event, so ctrlKey
+ * (pinch or a real Ctrl+wheel) always zooms — no fragile magnitude heuristic,
+ * which is what previously misrouted fast pinches into a pan. Platform gates
+ * match ReactFlowWrapper: on Mac a plain two-finger scroll pans (panOnScroll);
+ * elsewhere the mouse wheel zooms (zoomOnScroll). `isMac` is a parameter so the
+ * routing is testable without stubbing `navigator`.
+ *
+ * Exported for tests.
+ */
+export function partitionWheelViewportMotion(
+  event: WheelSrc,
+  isMac: boolean = IS_MAC
+): {
+  zoomDelta: number;
+  panX: number;
+  panY: number;
+} {
+  // Pinch / Ctrl+wheel / Cmd+wheel → zoom.
+  if (event.ctrlKey || event.metaKey) {
+    return { zoomDelta: event.deltaY, panX: 0, panY: 0 };
+  }
+
+  // Mac trackpad two-finger scroll → 2-D pan.
+  if (isMac) {
+    return { zoomDelta: 0, panX: event.deltaX, panY: event.deltaY };
+  }
+
+  // Off Mac: Shift+wheel pans horizontally, otherwise the wheel zooms.
+  if (event.shiftKey) {
+    const primary = event.deltaY !== 0 ? event.deltaY : event.deltaX;
+    return { zoomDelta: 0, panX: primary, panY: 0 };
+  }
+  return { zoomDelta: event.deltaY, panX: 0, panY: 0 };
+}
 
 export function useWheelZoom({
   zoom,
@@ -47,10 +89,11 @@ export function useWheelZoom({
   const pendingRef = useRef<PendingWheel | null>(null);
 
   const handleZoomWheel = useCallback(
-    (event: WheelInput) => {
+    (event: WheelSrc) => {
       event.preventDefault();
 
-      const isZoom = event.ctrlKey || event.metaKey;
+      const { zoomDelta: zd, panX: xd, panY: yd } = partitionWheelViewportMotion(event);
+
       const pending = pendingRef.current ?? {
         zoomDelta: 0,
         panX: 0,
@@ -60,12 +103,10 @@ export function useWheelZoom({
       };
       pending.clientX = event.clientX;
       pending.clientY = event.clientY;
-      if (isZoom) {
-        pending.zoomDelta += event.deltaY;
-      } else {
-        pending.panX += event.deltaX;
-        pending.panY += event.deltaY;
-      }
+      pending.zoomDelta += zd;
+      pending.panX += xd;
+      pending.panY += yd;
+
       pendingRef.current = pending;
 
       if (rafRef.current !== null) {

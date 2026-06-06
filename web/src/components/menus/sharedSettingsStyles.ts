@@ -62,9 +62,11 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
 
     .description {
       margin-top: 0.25em;
-      opacity: 0.5;
-      font-size: 0.85em;
-      line-height: 1.4;
+      opacity: 0.85;
+      color: ${theme.vars.palette.grey[100]};
+      font-size: ${theme.fontSizeSmall};
+      line-height: 1.5;
+      max-width: 60ch;
     }
 
     a {
@@ -97,22 +99,38 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
     .settings-item {
       display: flex;
       flex-direction: column;
-      gap: 0.4em;
-      padding: 0.5em 0;
-      border-bottom: 1px solid ${theme.vars.palette.divider};
+      gap: 0.5em;
+      padding: 0.9em 0;
 
-      &:last-child {
-        border-bottom: none;
+      /* Block-style label sitting above the field, matching the General tab. */
+      .MuiInputLabel-root {
+        position: relative;
+        transform: none;
+        margin-bottom: 0.4em;
+        font-size: ${theme.fontSizeNormal};
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: ${theme.vars.palette.grey[0]};
       }
 
       .MuiTextField-root {
         width: 100%;
+        max-width: 34em;
       }
 
       .MuiInputBase-root {
+        max-width: 34em;
+        background-color: ${theme.vars.palette.background.paper};
         border: 1px solid ${theme.vars.palette.divider};
         border-radius: 0.3em;
+        padding: 0.3em 1em;
+        font-size: ${theme.fontSizeNormal};
         transition: border-color 0.2s ease;
+
+        &::before,
+        &::after {
+          content: none;
+        }
 
         &:hover {
           border-color: ${theme.vars.palette.grey[300]};
@@ -125,7 +143,7 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
     }
 
     .settings-item.large {
-      padding: 0.6em 0;
+      padding: 0.9em 0;
     }
 
     .settings-main-content {

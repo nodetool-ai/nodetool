@@ -10,6 +10,7 @@
   min-height: var(--node-collapsed-min-height) !important;
   max-height: var(--node-collapsed-max-height) !important;
   overflow: var(--node-collapsed-overflow) !important;
+  padding: 0 !important;
 }
 
 .react-flow__node.collapsed {
@@ -58,8 +59,10 @@
   pointer-events: auto !important;
 }
 
-/* Inputs: hide PropertyField siblings of the socket column (.handle-popup wraps Handle + tooltip). */
-.node-body.collapsed .node-property > *:not(.handle-popup) {
+/* Inputs: hide PropertyField siblings of the socket column (.handle-popup wraps Handle + tooltip).
+   `.handle-only` (HandleOnlyField) is also a `.node-property` but wraps the Handle in
+   `.handle-tooltip-wrapper`, not `.handle-popup` — exempt it so its handle survives. */
+.node-body.collapsed .node-property:not(.handle-only) > *:not(.handle-popup) {
   display: none !important;
 }
 
@@ -68,26 +71,104 @@
   display: none !important;
 }
 
-/* Outputs: label/actions live beside .output-handle-container (DynamicOutputItem + NodeOutputs wrapper). */
-.node-body.collapsed
-  .node-outputs-shell
-  ul.multi-outputs
-  > li
-  > *:not(.output-handle-container) {
+/* Collapsed strip stacks every handle at the same midpoint — the per-handle
+   hover tooltips and hover-reveal labels would pile up on top of each other
+   and obscure the strip. Suppress them; the user can expand to see names. */
+.react-flow__node.collapsed .handle-tooltip {
   display: none !important;
 }
 
-.node-body.collapsed
-  .node-outputs-shell
-  > *:not(ul.multi-outputs):not(.output-handle-container) {
+/* Exception: if a side has exactly one handle there's no pile-up, so let
+   its tooltip show. Covers homogeneous wrappers — `.handle-column` for
+   exposed-input handles, `.output-handle-column` for outputs. Mixed cases
+   (e.g. a lone `.handle-popup` from an inline PropertyField) still
+   suppress; that's a known trade-off, not a bug. */
+.react-flow__node.collapsed .handle-column:has(> .handle-only:only-child) .handle-tooltip,
+.react-flow__node.collapsed .output-handle-column:has(> .output-handle-container:only-child) .handle-tooltip {
+  display: revert !important;
+}
+
+/* ContentCardBody renders <HandleColumn> *inside* `.preview-area`. When
+   collapsed, hide the preview's visual children but keep the slot itself so
+   the handle column stays mounted and its absolute positioning resolves
+   against the collapsed strip. */
+.react-flow__node.collapsed .preview-area,
+.node-body.collapsed .preview-area {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  flex: none !important;
+}
+.react-flow__node.collapsed .preview-area > *:not(.handle-column),
+.node-body.collapsed .preview-area > *:not(.handle-column) {
   display: none !important;
+}
+
+/* Bespoke / content-card bodies: shrink root and hide chrome. Match both
+   `.node-body.collapsed` and `.react-flow__node.collapsed` (RF shell + inner
+   body). Emotion min-heights on `.preview-area` lose to !important here, but
+   some bodies also ship co-located `.node-body.collapsed &.…-body` rules. */
+.react-flow__node.collapsed [data-bespoke-body],
+.node-body.collapsed [data-bespoke-body] {
+  padding: 0 !important;
+  gap: 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: visible !important;
+}
+.react-flow__node.collapsed [data-bespoke-body] > *:not(.handle-column):not(.preview-area):not(.outputs-row):not(.paint-row),
+.node-body.collapsed [data-bespoke-body] > *:not(.handle-column):not(.preview-area):not(.outputs-row):not(.paint-row) {
+  display: none !important;
+}
+.react-flow__node.collapsed [data-bespoke-body] > .preview-tab-bar,
+.react-flow__node.collapsed [data-bespoke-body] > .controls,
+.node-body.collapsed [data-bespoke-body] > .preview-tab-bar,
+.node-body.collapsed [data-bespoke-body] > .controls {
+  display: none !important;
+}
+.react-flow__node.collapsed .content-card-body > *:not(.preview-area):not(.outputs-row),
+.node-body.collapsed .content-card-body > *:not(.preview-area):not(.outputs-row) {
+  display: none !important;
+}
+
+/* PainterBody: input handles live inside `.paint-row`, not `.preview-area`. */
+.react-flow__node.collapsed .paint-row,
+.node-body.collapsed .paint-row {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  flex: none !important;
+}
+.react-flow__node.collapsed .paint-row > *:not(.handle-column),
+.node-body.collapsed .paint-row > *:not(.handle-column) {
+  display: none !important;
+}
+
+/* Output socket column — zero height slot; handles stay absolutely positioned. */
+.react-flow__node.collapsed [data-bespoke-body] > .outputs-row,
+.react-flow__node.collapsed .content-card-body > .outputs-row,
+.node-body.collapsed [data-bespoke-body] > .outputs-row,
+.node-body.collapsed .content-card-body > .outputs-row {
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  flex: none !important;
 }
 
 /*
  * Input rows: no position:relative — it would make .handle-popup's position:absolute
  * anchor to each row instead of the node strip (handles vanish or sit wrong).
+ * Exempt `.handle-only` — it's both `.node-property` and the wrapper itself, and
+ * needs `position: absolute` from its own collapsed rule to sit at the strip mid-y.
  */
-.node-body.collapsed .node-property:has(.react-flow__handle) {
+.node-body.collapsed .node-property:not(.handle-only):has(.react-flow__handle) {
   position: static !important;
   overflow: visible !important;
   height: auto !important;
@@ -159,6 +240,39 @@
 }
 
 /*
+ * Handle column wrappers (HandleColumn for inputs, NodeOutputs for outputs):
+ * normally offset by `theme.spacing(4)` from the top of the node body. When
+ * collapsed, pin them to the strip top so their absolute-positioned children
+ * (handles, output-handle-containers) compute `top: mid-y` against the strip.
+ */
+.react-flow__node.collapsed .handle-column,
+.react-flow__node.collapsed .output-handle-column {
+  top: 0 !important;
+  height: 0 !important;
+  gap: 0 !important;
+  overflow: visible !important;
+}
+
+/* New input handles (HandleOnlyField rows inside .handle-column). Mirror
+   .output-handle-container so left and right handles sit on the same baseline. */
+.react-flow__node.collapsed .handle-only {
+  position: absolute !important;
+  top: var(--node-collapsed-handle-mid-y) !important;
+  bottom: auto !important;
+  left: 0 !important;
+  right: auto !important;
+  transform: translateY(calc(-50% - var(--node-collapsed-handle-y-nudge))) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: fit-content !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/*
  * Vertical alignment: anchors must sit under .react-flow__node (collapsed height),
  * not tiny wrappers (.handle-popup, 0-high overlays). Center wrappers on the strip midline,
  * then place handles at top:0 of that anchor (scale-only transforms).
@@ -190,19 +304,6 @@
   justify-content: flex-end;
 }
 
-.react-flow__node.collapsed ul.multi-outputs {
-  margin: 0 !important;
-  width: auto !important;
-  /* Default ul is position:relative — abs output handles then use list top, not header strip */
-  position: static !important;
-}
-
-.react-flow__node.collapsed ul.multi-outputs li {
-  padding: 0 !important;
-  margin: 0 !important;
-  position: static !important;
-}
-
 .react-flow__node.collapsed .react-flow__handle:not(.control-handle) {
   position: absolute !important;
   /* Midpoint of collapsed strip (.react-flow__node height === --node-collapsed-height) */
@@ -212,9 +313,10 @@
 }
 
 .react-flow__node.collapsed .handle-popup .react-flow__handle:not(.control-handle),
+.react-flow__node.collapsed .handle-only .react-flow__handle:not(.control-handle),
 .react-flow__node.collapsed .output-handle-container .react-flow__handle:not(.control-handle) {
   /* Parent wrappers are already centred on the strip midline */
-  top: 0 !important;
+  top: 50% !important;
 }
 
 .react-flow__node.collapsed .react-flow__handle-left:not(.control-handle),
@@ -223,6 +325,7 @@
 }
 
 .react-flow__node.collapsed .handle-popup .react-flow__handle-left:not(.control-handle),
+.react-flow__node.collapsed .handle-only .react-flow__handle-left:not(.control-handle),
 .react-flow__node.collapsed .output-handle-container .react-flow__handle-left:not(.control-handle),
 .react-flow__node.collapsed .handle-popup .react-flow__handle-right:not(.control-handle),
 .react-flow__node.collapsed .output-handle-container .react-flow__handle-right:not(.control-handle) {
@@ -248,6 +351,7 @@
 }
 
 .react-flow__node.collapsed .handle-popup .react-flow__handle-left:not(.control-handle):hover,
+.react-flow__node.collapsed .handle-only .react-flow__handle-left:not(.control-handle):hover,
 .react-flow__node.collapsed .output-handle-container .react-flow__handle-left:not(.control-handle):hover,
 .react-flow__node.collapsed .handle-popup .react-flow__handle-right:not(.control-handle):hover,
 .react-flow__node.collapsed .output-handle-container .react-flow__handle-right:not(.control-handle):hover {
@@ -360,6 +464,25 @@
   .input-handle-wrapper {
   top: var(--node-collapsed-handle-mid-y) !important;
   transform: translateY(calc(-50% - var(--node-collapsed-handle-y-nudge))) !important;
+}
+
+/* Wrapper owns strip alignment — reset generic collapsed handle offsets (mirror .handle-popup). */
+.react-flow__node-nodetool\.constant\.String
+  .constant-string-node.node-body.collapsed
+  .header-wrapper
+  .input-handle-wrapper
+  .react-flow__handle-left:not(.control-handle) {
+  top: 50% !important;
+  left: 0 !important;
+  transform: none !important;
+}
+
+.react-flow__node-nodetool\.constant\.String
+  .constant-string-node.node-body.collapsed
+  .header-wrapper
+  .input-handle-wrapper
+  .react-flow__handle-left:not(.control-handle):hover {
+  transform: scale(1.75, 1.5) !important;
 }
 
 .react-flow__node-nodetool\.group\.Loop .loop-node.collapsed {

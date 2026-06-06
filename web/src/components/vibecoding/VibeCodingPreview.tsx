@@ -2,12 +2,9 @@
 import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import {
-  Box
-} from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CodeIcon from "@mui/icons-material/Code";
-import { RefreshButton, LoadingSpinner, Text, ToolbarIconButton } from "../ui_primitives";
+import { RefreshButton, LoadingSpinner, Text, ToolbarIconButton, Box } from "../ui_primitives";
 import { BASE_URL, UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { injectRuntimeConfig } from "./utils/extractHtml";
 import type { Theme } from "@mui/material/styles";
@@ -31,7 +28,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.palette.background.paper
     },
     ".preview-title": {
-      fontSize: "14px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       color: theme.palette.text.primary
     },
@@ -60,7 +57,7 @@ const createStyles = (theme: Theme) =>
       padding: "24px"
     },
     ".preview-empty-icon": {
-      fontSize: "48px",
+      fontSize: "var(--fontSizeBig)",
       marginBottom: "16px",
       opacity: 0.5
     },

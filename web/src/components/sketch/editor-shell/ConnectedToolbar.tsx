@@ -16,7 +16,15 @@ export const ConnectedToolbar = memo(function ConnectedToolbar() {
   const setBackgroundColor = useSketchStore((s) => s.setBackgroundColor);
   const swapColors = useSketchStore((s) => s.swapColors);
   const resetColors = useSketchStore((s) => s.resetColors);
+  const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const handleFgColorChange = useColorIntentRouter();
+
+  // Tab hides ALL chrome — the left tools column too, not just the right
+  // layers panel. Without this gate the toolbar's column would still
+  // occupy its width and the canvas wouldn't grow into the freed space.
+  if (panelsHidden) {
+    return null;
+  }
 
   return (
     <SketchToolbar

@@ -3,9 +3,8 @@
  * RotateAndFlipBody — bespoke body for `nodetool.image.RotateAndFlip`
  * (plan §9.E7, PR 10).
  *
- * Image preview at top with the current transform applied via CSS for
- * instant visual feedback. Bottom: free-rotate slider (0/90/180/270 snap
- * marks), Flip H and Flip V toggles, Reset.
+ * Top: preview of the server output. Bottom: free-rotate slider
+ * (0/90/180/270 snap marks), Flip H and Flip V toggles, Reset.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -15,7 +14,6 @@ import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 import FlipIcon from "@mui/icons-material/Flip";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import { shallow } from "zustand/shallow";
 
 import {
   CheckerDropzone,
@@ -31,10 +29,9 @@ import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
-
-const ROTATE_AND_FLIP_NODE_TYPE = "nodetool.image.RotateAndFlip";
+import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
+import { ROTATE_AND_FLIP_NODE_TYPE } from "../../../constants/nodeTypes";
 
 // 90° snap marks across the slider's full -360..360 range. Material UI's
 // `Slider` shows ticks for `marks`; the user can still drag freely between.
@@ -62,6 +59,11 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0.5),
       minHeight: 0
     },
+    "& > .handle-column": {
+      top: theme.spacing(1),
+      bottom: theme.spacing(1),
+      left: `calc(${theme.spacing(0)})`
+    },
     ".preview-area": {
       position: "relative",
       flex: "1 1 auto",
@@ -72,20 +74,6 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      "& > .handle-column": {
-        top: 0,
-        bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
-      },
-      ".transform-wrap": {
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "transform 60ms linear",
-        willChange: "transform"
-      },
       "& img": {
         display: "block",
         maxWidth: "100%",
@@ -95,7 +83,7 @@ const styles = (theme: Theme) =>
     },
     ".controls": {
       flex: "0 0 auto",
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".angle-row": {
       paddingLeft: theme.spacing(0.5),
@@ -110,7 +98,7 @@ const styles = (theme: Theme) =>
       textAlign: "right"
     },
     ".action-row": {
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".outputs-row": {
       flex: "0 0 auto"
@@ -185,28 +173,7 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
   const flipH = !!props.flip_horizontal;
   const flipV = !!props.flip_vertical;
 
-  // Live preview transform — applies the current params to whatever image
-  // the upstream most recently produced. Snaps to integer degrees.
-  const transform = useMemo(() => {
-    const a = Number.isFinite(angle) ? Math.round(angle) : 0;
-    const sx = flipH ? -1 : 1;
-    const sy = flipV ? -1 : 1;
-    return `rotate(${a}deg) scale(${sx}, ${sy})`;
-  }, [angle, flipH, flipV]);
-
-  const result = useResultsStore(
-    (state) => state.getResult(workflowId, id),
-    shallow
-  );
-  const previewValue = useMemo(() => {
-    if (result && typeof result === "object" && !Array.isArray(result)) {
-      const r = result as Record<string, unknown>;
-      if ("output" in r) {
-        return r.output;
-      }
-    }
-    return result;
-  }, [result]);
+  const previewValue = useNodeOutput(workflowId, id);
 
   const { setProperty, setProperties, setPropertyComplete } =
     useBespokePropertyWriter({ nodeId: id, nodeType });
@@ -244,11 +211,9 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
       className="rotate-flip-body"
       data-bespoke-body="RotateAndFlip"
     >
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
-        <div className="transform-wrap" style={{ transform }}>
-          <ImagePreview value={previewValue} />
-        </div>
-        <HandleColumn id={id} properties={imageProperty} />
+        <ImagePreview value={previewValue} />
       </div>
 
       <FlexColumn className="controls" gap={0.5}>
@@ -311,7 +276,6 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
           <NodeOutputs
             id={id}
             outputs={nodeMetadata.outputs}
-            isStreamingOutput={nodeMetadata.is_streaming_output}
           />
         </div>
       )}

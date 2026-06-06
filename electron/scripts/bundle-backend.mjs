@@ -38,6 +38,7 @@ const REQUIRED_EXTERNAL_PACKAGES = [
   "sharp",
   "better-sqlite3",
   "@jitl/quickjs-ng-wasmfile-release-sync",
+  "webgpu",
 ];
 
 const EXTERNAL_PACKAGES = [
@@ -49,6 +50,7 @@ const EXTERNAL_PACKAGES = [
   "node-web-audio-api",
   "keytar",
   "onnxruntime-node",
+  "webgpu",
 
   // Native optional deps (loaded by bundleable packages)
   "msgpackr",
@@ -383,24 +385,51 @@ async function main() {
   console.log("\nCopying external packages to staged backend modules...");
   const copiedCount = await copyExternalPackages();
 
-  // --- Copy manifest JSON files next to server.mjs ---
-  // These packages use `dirname(fileURLToPath(import.meta.url))` at runtime,
-  // which resolves to the bundle directory when bundled, so the manifests
-  // must live alongside server.mjs.
-  const manifests = [
-    ["kie-nodes", "kie-manifest.json"],
-    ["replicate-nodes", "replicate-manifest.json"],
-    ["fal-nodes", "fal-manifest.json"],
-  ];
-  for (const [pkg, file] of manifests) {
-    const src = path.join(ROOT_DIR, "packages", pkg, "dist", file);
-    const dest = path.join(BUNDLE_DIR, file);
-    if (fs.existsSync(src)) {
-      await fsp.copyFile(src, dest);
-    } else {
-      console.warn(`  Warning: manifest not found, skipping: ${src}`);
+  // --- Auto-discover and copy *-manifest.json files next to server.mjs ---
+  // Packages that load `*-manifest.json` relative to their compiled JS (via
+  // `import.meta.url`) need the file staged at the bundle root, because
+  // esbuild flattens all sources into one directory. Walk every package's
+  // dist/ and copy any `*-manifest.json` to BUNDLE_DIR by basename.
+  console.log("\nStaging manifest JSON files next to server.mjs...");
+  const stagedManifests = new Map();
+  const packagesDir = path.join(ROOT_DIR, "packages");
+
+  async function findManifests(dir, out) {
+    let entries;
+    try {
+      entries = await fsp.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name === "node_modules") continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await findManifests(full, out);
+      } else if (entry.isFile() && entry.name.endsWith("-manifest.json")) {
+        out.push(full);
+      }
     }
   }
+
+  const discovered = [];
+  for (const pkg of await fsp.readdir(packagesDir)) {
+    await findManifests(path.join(packagesDir, pkg, "dist"), discovered);
+  }
+  for (const src of discovered) {
+    const basename = path.basename(src);
+    const existing = stagedManifests.get(basename);
+    if (existing && existing !== src) {
+      throw new Error(
+        `Manifest basename collision: ${basename} in both ${existing} and ${src}. ` +
+        `Bundle root staging requires unique basenames.`
+      );
+    }
+    await fsp.copyFile(src, path.join(BUNDLE_DIR, basename));
+    stagedManifests.set(basename, src);
+    console.log(`  Staged ${basename} (from ${path.relative(ROOT_DIR, src)})`);
+  }
+  console.log(`  Total: ${stagedManifests.size} manifest(s) staged`);
 
   // --- Copy example workflows and thumbnail assets ---
   // server.ts resolves examples relative to import.meta.url, so in the

@@ -2,7 +2,7 @@
  * `nodetool agent` — load YAML agent configs and run them with full trace output.
  *
  * Subcommands:
- *   nodetool agent run <yaml-file> [--objective "..."] [--mode loop|plan|multi-agent]
+ *   nodetool agent run <yaml-file> [--objective "..."]
  *   nodetool agent test <yaml-file>     # validate config + dry list of tools/provider
  *   nodetool agent list <dir>           # list YAML configs in a directory
  */
@@ -16,7 +16,7 @@ import chalk from "chalk";
 
 import { ProcessingContext, type BaseProvider } from "@nodetool-ai/runtime";
 import {
-  MultiModeAgent,
+  Agent,
   FindModelTool,
   GenerateImageTool,
   EditImageTool,
@@ -54,8 +54,7 @@ import {
   SearchEmailTool,
   ArchiveEmailTool,
   getAllMcpTools,
-  type Tool,
-  type AgentMode
+  type Tool
 } from "@nodetool-ai/agents";
 import { initDb, getSecret } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
@@ -79,7 +78,6 @@ interface AgentYaml {
   model?: ModelBlock;
   planning_agent?: { enabled?: boolean; model?: ModelBlock };
   tools?: string[];
-  mode?: AgentMode;
   max_tokens?: number;
   max_iterations?: number;
   max_steps?: number;
@@ -348,7 +346,6 @@ async function readObjectiveFromStdin(): Promise<string | null> {
 
 interface RunOptions {
   objective?: string;
-  mode?: string;
   json?: boolean;
   verbose?: boolean;
   workspace?: string;
@@ -433,12 +430,6 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     }
   }
 
-  // Mode
-  const modeArg = (opts.mode ?? cfg.mode ?? "plan") as AgentMode;
-  if (!["loop", "plan", "multi-agent"].includes(modeArg)) {
-    throw new Error(`Invalid mode: ${modeArg}. Use loop|plan|multi-agent.`);
-  }
-
   const provider = await createProvider(providerId);
 
   // Header
@@ -446,7 +437,7 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     process.stderr.write(
       chalk.bold(`\n▸ ${cfg.name ?? path.basename(file)}\n`) +
         chalk.gray(
-          `  provider=${providerId} model=${modelId} mode=${modeArg} tools=${tools.length}\n`
+          `  provider=${providerId} model=${modelId} tools=${tools.length}\n`
         ) +
         chalk.gray(`  objective: ${shorten(objective, 200)}\n\n`)
     );
@@ -472,16 +463,14 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
       ? `${cfg.system_prompt ?? ""}\n\n# Model Preferences\n${prefLines.join("\n")}\nUse these when calling find_model unless they cannot satisfy the request.`.trim()
       : cfg.system_prompt;
 
-  const agent = new MultiModeAgent({
+  const agent = new Agent({
     name: cfg.name ?? "yaml-agent",
     objective,
     provider,
     model: modelId,
-    mode: modeArg,
     tools,
     systemPrompt: effectiveSystemPrompt,
     maxTokenLimit: cfg.max_tokens,
-    maxIterations: cfg.max_iterations,
     maxSteps: cfg.max_steps,
     planningModel
   });
@@ -565,7 +554,6 @@ async function testAgentCommand(file: string): Promise<void> {
   if (!cfg.model?.id) issues.push("missing model.id");
   else okLines.push(`model: ${cfg.model.id}`);
 
-  okLines.push(`mode: ${cfg.mode ?? "plan (default)"}`);
   okLines.push(`system_prompt: ${cfg.system_prompt ? `${cfg.system_prompt.length} chars` : "(none)"}`);
 
   const { tools, unknown } = resolveTools(cfg.tools);
@@ -633,7 +621,6 @@ export function registerAgentCommands(program: Command): void {
     .command("run <yaml-file>")
     .description("Run an agent from a YAML config (objective via --objective or stdin)")
     .option("-o, --objective <text>", "Objective for the agent (overrides stdin/yaml default)")
-    .option("--mode <mode>", "Override mode: loop|plan|multi-agent")
     .option("-p, --provider <id>", "Override provider")
     .option("-m, --model <id>", "Override model")
     .option("-w, --workspace <path>", "Override workspace dir")

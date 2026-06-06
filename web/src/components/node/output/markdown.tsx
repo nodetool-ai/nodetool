@@ -1,30 +1,12 @@
 import React, { memo } from "react";
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
+import { isLikelyMarkdown } from "./markdown.helpers";
 
 // Memoize the style object to prevent recreation on every render
 const MARKDOWN_TEXT_STYLE = {
   padding: "0 0.5em",
   whiteSpace: "pre-wrap" as const,
-  fontWeight: "300" as const
-};
-
-export const isLikelyMarkdown = (text: string): boolean => {
-  if (!text) {return false;}
-  if (text.length < 6) {return false;}
-  const patterns = [
-    /(^|\n)\s{0,3}#{1,6}\s+\S/,
-    /(^|\n)```/,
-    /(^|\n)\s{0,3}[-*+]\s+\S/,
-    /(^|\n)\s{0,3}\d+\.\s+\S/,
-    /\[[^\]]+\]\([^)]+\)/,
-    /!\[[^\]]*\]\([^)]+\)/,
-    /(^|\n)\s{0,3}>\s+\S/,
-    /(^|\n)\|[^\n]*\|/,
-    /`[^`]+`/,
-    /(^|\n)\s*([-*_]\s*){3,}\s*(\n|$)/,
-    /\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_/
-  ];
-  return patterns.some((re) => re.test(text));
+  fontWeight: 400 as const
 };
 
 type MaybeMarkdownProps = {

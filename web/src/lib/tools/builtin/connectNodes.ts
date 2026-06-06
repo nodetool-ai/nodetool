@@ -38,10 +38,12 @@ FrontendToolRegistry.register({
     const tgt = nodeStore.findNode(target_node_id);
     if (!src) throw new Error(`Source node not found: ${source_node_id}`);
     if (!tgt) throw new Error(`Target node not found: ${target_node_id}`);
+    if (!src.type) throw new Error(`Source node has no type: ${source_node_id}`);
+    if (!tgt.type) throw new Error(`Target node has no type: ${target_node_id}`);
 
     const metadataStore = useMetadataStore.getState();
-    const srcMetadata = metadataStore.getMetadata(src.type as string);
-    const tgtMetadata = metadataStore.getMetadata(tgt.type as string);
+    const srcMetadata = metadataStore.getMetadata(src.type);
+    const tgtMetadata = metadataStore.getMetadata(tgt.type);
     if (!srcMetadata) {
       throw new Error(`Source node has no metadata: ${src.type}`);
     }

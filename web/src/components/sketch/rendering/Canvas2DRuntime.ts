@@ -9,7 +9,12 @@
  * directly via ref during the migration.
  */
 
-import type { SketchRuntime, ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "./types";
+import type {
+  SketchRuntime,
+  ActiveStrokeInfo,
+  DirtyRect,
+  ResolvedLayerBitmap
+} from "./types";
 import type {
   LayerContentBounds,
   LayerEffect,
@@ -24,7 +29,8 @@ import {
 import {
   getDefaultRasterBounds,
   deserializeLayerData,
-  getLayerDataFromCanvas
+  getLayerDataFromCanvas,
+  getCanvasSerializedData
 } from "./canvas2d/layerIO";
 import { resolveAssetUri } from "../../node/output/hooks";
 import {
@@ -43,6 +49,7 @@ import {
   reconcileLayerToDocumentSpace as reconcileLayerFn,
   cropLayers as cropLayersFn,
   flipLayer as flipLayerFn,
+  rotateLayer180 as rotateLayer180Fn,
   nudgeLayer as nudgeLayerFn,
   applyAdjustments as applyAdjustmentsFn,
   invertLayerColors as invertLayerColorsFn
@@ -221,7 +228,7 @@ export class Canvas2DRuntime implements SketchRuntime {
   /**
    * Render document pixels only: visibility, opacity, blend modes, transforms,
    * effects, and optional active-stroke preview. This excludes display-only
-   * chrome such as the checkerboard background and canvas border.
+   * chrome such as the checkerboard background.
    */
   private renderDocumentCompositeToContext(
     ctx: CanvasRenderingContext2D,
@@ -290,6 +297,20 @@ export class Canvas2DRuntime implements SketchRuntime {
     bounds: LayerContentBounds,
     onComplete?: () => void
   ): void {
+    // Short-circuit: if the data we're being asked to hydrate from is the
+    // SAME string we just serialized off of this layer's live canvas, the
+    // canvas is already pixel-identical. Re-decoding and redrawing would
+    // race with any stroke painted onto the live canvas between the
+    // serialize and this call, intermittently wiping just-drawn pixels.
+    const existing = this.layerCanvases.get(layerId);
+    if (
+      existing &&
+      data != null &&
+      getCanvasSerializedData(existing) === data
+    ) {
+      onComplete?.();
+      return;
+    }
     const defaultBounds = getDefaultRasterBounds(bounds);
     const decoded = deserializeLayerData(data, defaultBounds);
     const desiredWidth = decoded.bounds.width;
@@ -464,6 +485,10 @@ export class Canvas2DRuntime implements SketchRuntime {
 
   flipLayer(layerId: string, direction: "horizontal" | "vertical"): void {
     flipLayerFn(this.layerCanvases, layerId, direction);
+  }
+
+  rotateLayer180(layerId: string): void {
+    rotateLayer180Fn(this.layerCanvases, layerId);
   }
 
   fillLayerWithColor(layerId: string, color: string): void {

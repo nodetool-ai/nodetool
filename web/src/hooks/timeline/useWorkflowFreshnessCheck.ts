@@ -156,8 +156,29 @@ export function useWorkflowFreshnessCheck(
   ]);
 
   useEffect(() => {
-    if (!sequenceId || lastCheckedSequenceId.current === sequenceId) return;
-    lastCheckedSequenceId.current = sequenceId;
-    void runCheck();
+    if (!sequenceId) return;
+
+    // The check reads clips from the store, but `useLoadTimelineIntoStore`
+    // populates them asynchronously. Defer until the store carries clips for
+    // this sequence so we don't permanently skip the check by tripping
+    // `lastCheckedSequenceId` against an empty store.
+    const tryRun = (): boolean => {
+      if (lastCheckedSequenceId.current === sequenceId) return true;
+      const state = useTimelineStore.getState();
+      if (state.sequenceId !== sequenceId) return false;
+      if (state.clips.length === 0) return false;
+      lastCheckedSequenceId.current = sequenceId;
+      void runCheck();
+      return true;
+    };
+
+    if (tryRun()) return;
+
+    const unsubscribe = useTimelineStore.subscribe(() => {
+      if (tryRun()) {
+        unsubscribe();
+      }
+    });
+    return unsubscribe;
   }, [sequenceId, runCheck]);
 }

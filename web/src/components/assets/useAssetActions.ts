@@ -3,7 +3,7 @@ import { Asset } from "../../stores/ApiTypes";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import {
   serializeDragData,
   deserializeDragData,
@@ -22,14 +22,13 @@ export const useAssetActions = (asset: Asset) => {
     setDeleteDialogOpen,
     setMoveToFolderDialogOpen
   } = useAssetGridStore(
-    (state) => ({
+    useShallow((state) => ({
       selectedAssetIds: state.selectedAssetIds,
       setSelectedAssetIds: state.setSelectedAssetIds,
       setSelectedAssets: state.setSelectedAssets,
       setDeleteDialogOpen: state.setDeleteDialogOpen,
       setMoveToFolderDialogOpen: state.setMoveToFolderDialogOpen
-    }),
-    shallow
+    }))
   );
 
   const { mutation: updateAssetMutation } = useAssetUpdate();

@@ -1,5 +1,4 @@
 import React, { useCallback } from "react";
-import { Box } from "@mui/material";
 import {
   Text,
   FlexRow,
@@ -8,7 +7,8 @@ import {
   ToolbarIconButton,
   NodeSlider,
   NodeSelect,
-  NodeMenuItem
+  NodeMenuItem,
+  Box
 } from "../../ui_primitives";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -20,6 +20,7 @@ import {
 } from "../../../stores/ModelManagerStore";
 import type { ModelSortField } from "../../../stores/ModelManagerStore";
 import { useTheme } from "@mui/material/styles";
+import { useShallow } from "zustand/react/shallow";
 
 interface ModelListHeaderProps {
   totalCount: number;
@@ -37,16 +38,31 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   totalCount,
   filteredCount
 }) => {
-  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
-  const setModelSearchTerm = useModelManagerStore((state) => state.setModelSearchTerm);
-  const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
-  const setMaxModelSizeGB = useModelManagerStore((state) => state.setMaxModelSizeGB);
-  const filterStatus = useModelManagerStore((state) => state.filterStatus);
-  const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
-  const sortField = useModelManagerStore((state) => state.sortField);
-  const setSortField = useModelManagerStore((state) => state.setSortField);
-  const sortDirection = useModelManagerStore((state) => state.sortDirection);
-  const toggleSortDirection = useModelManagerStore((state) => state.toggleSortDirection);
+  const {
+    modelSearchTerm,
+    setModelSearchTerm,
+    maxModelSizeGB,
+    setMaxModelSizeGB,
+    filterStatus,
+    setFilterStatus,
+    sortField,
+    setSortField,
+    sortDirection,
+    toggleSortDirection
+  } = useModelManagerStore(
+    useShallow((state) => ({
+      modelSearchTerm: state.modelSearchTerm,
+      setModelSearchTerm: state.setModelSearchTerm,
+      maxModelSizeGB: state.maxModelSizeGB,
+      setMaxModelSizeGB: state.setMaxModelSizeGB,
+      filterStatus: state.filterStatus,
+      setFilterStatus: state.setFilterStatus,
+      sortField: state.sortField,
+      setSortField: state.setSortField,
+      sortDirection: state.sortDirection,
+      toggleSortDirection: state.toggleSortDirection
+    }))
+  );
   const theme = useTheme();
 
   const handleSliderChange = (_: Event, value: number | number[]) => {
@@ -170,7 +186,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             sx={{
               height: "32px",
               minWidth: 120,
-              fontSize: "0.875rem",
+              fontSize: "var(--fontSizeNormal)",
               background: theme.vars.palette.action.hover,
               borderRadius: "var(--rounded-lg)",
               "& .MuiOutlinedInput-notchedOutline": {

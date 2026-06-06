@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
-import { Box } from "@mui/material";
-import { EditorButton, Text, Tooltip } from "../ui_primitives";
+import { EditorButton, Text, Tooltip, Box } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   NavigateNext as NavigateIcon
@@ -12,7 +11,7 @@ import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import { getAssetCategory } from "./assetGridUtils";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
@@ -375,7 +374,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
             </Text>
             <Text className="global-search-results-count search-results-count">
               {isSearching
-                ? `Searching for "${globalSearchQuery}"...`
+                ? `Searching for "${globalSearchQuery}"…`
                 : `No results for "${globalSearchQuery}"`}
             </Text>
           </div>
@@ -391,7 +390,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                   className="search-spinner"
                   style={spinnerStyle}
                 ></div>
-                <Text>Searching...</Text>
+                <Text>Searching…</Text>
               </div>
             ) : (
               <Text>No assets found matching your search.</Text>

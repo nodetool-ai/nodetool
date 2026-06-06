@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { Box } from "@mui/material";
-import { LoadingSpinner, ScrollArea, Text } from "../ui_primitives";
+import { LoadingSpinner, ScrollArea, Text, Box } from "../ui_primitives";
 import { useCallback, useMemo, useState, useEffect, useRef, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -16,6 +15,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import {
+  examplePackageName,
+  exampleSeedRef
+} from "../../utils/exampleWorkflow";
 import SearchBar from "./SearchBar";
 import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
@@ -112,10 +115,10 @@ const styles = (theme: Theme) =>
         background: theme.vars.palette.action.selected,
         color: theme.vars.palette.text.primary
       },
-      fontSize: "0.8rem",
+      fontSize: "var(--fontSizeSmall)",
       padding: "6px 16px",
       "@media (max-width: 600px)": {
-        fontSize: "0.75rem",
+        fontSize: "var(--fontSizeSmall)",
         padding: "4px 12px"
       }
     },
@@ -161,7 +164,7 @@ const styles = (theme: Theme) =>
     ".search-debug": {
       padding: "0 20px",
       marginBottom: "10px",
-      fontSize: "0.8rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       maxHeight: "100px",
       overflowY: "auto"
@@ -372,8 +375,8 @@ const TemplateGrid = memo(function TemplateGrid() {
       // Call createWorkflow with the example parameters
       const newWorkflow = await createWorkflow(
         req,
-        workflow.package_name || undefined,
-        workflow.name
+        examplePackageName(workflow),
+        exampleSeedRef(workflow)
       );
       return newWorkflow;
     },
@@ -475,7 +478,7 @@ const TemplateGrid = memo(function TemplateGrid() {
     count: rowCount,
     getScrollElement: () => gridScrollRef.current,
     estimateSize: () => CARD_HEIGHT + GAP,
-    overscan: 2,
+    overscan: theme.virtualScroll.overscan.gridRow,
   });
 
   // Show loading state

@@ -127,7 +127,7 @@ describe("display vs flattenToDataUrl pixel-parity", () => {
       ]
     });
 
-    // Composite to a "display" canvas — this adds checkerboard + border
+    // Composite to a "display" canvas — this adds checkerboard under transparent pixels
     const displayCanvas = document.createElement("canvas");
     displayCanvas.width = 64;
     displayCanvas.height = 64;

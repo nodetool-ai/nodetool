@@ -7,14 +7,14 @@ import {
   MiniAppResult
 } from "../components/miniapps/types";
 
-export type MiniAppWorkflowState = {
+type MiniAppWorkflowState = {
   inputValues: MiniAppInputValues;
   results: MiniAppResult[];
   progress: MiniAppProgress | null;
   lastRunDuration: number | null;
 };
 
-export interface MiniAppsState {
+interface MiniAppsState {
   apps: Record<string, MiniAppWorkflowState>;
   initializeInputDefaults: (
     workflowId: string,

@@ -1,10 +1,10 @@
 ---
 layout: page
-title: "Getting Started"
-description: "Run your first NodeTool workflow."
+title: "Quick Start"
+description: "Install NodeTool, run a template, ship a Mini-App."
 ---
 
-Install NodeTool, open a template, run it, edit it, ship it as a Mini-App.
+Install, open a template, run it, edit it, ship it.
 
 ## Step 1 — Install
 
@@ -17,27 +17,27 @@ Install NodeTool, open a template, run it, edit it, ship it as a Mini-App.
 | **GPU** | None | 8 GB+ VRAM for local inference |
 | **OS** | macOS 13+, Windows 10+, Ubuntu 22+ | Latest |
 
-No GPU? Use cloud providers with your own keys. See [hardware notes](installation.md#what-different-tasks-need).
+No GPU? Use cloud providers with your keys. See [hardware notes](installation.md#what-different-tasks-need).
 
 ### Install
 
-1. Download from [nodetool.ai](https://nodetool.ai)
-2. Run the installer
-3. Launch — no setup wizard
+1. Download from [nodetool.ai](https://nodetool.ai).
+2. Run the installer.
+3. Launch. No setup wizard.
 
 ![Dashboard](assets/screenshots/dashboard-overview.png)
 
-Python and inference engines install on demand the first time you use local models. See the [installation guide](installation.md) for platform notes.
+Python and inference engines install on first use. [Installation guide](installation.md) for platform notes.
 
 ### Local models (optional)
 
-1. Open **Models** in the sidebar
+1. Open **Models** in the sidebar.
 2. Pick:
    - **Flux** or **Qwen Image** for images (8–12 GB VRAM)
    - **Llama** or **Qwen** for text
-3. Wait for downloads (~20 GB)
+3. Wait for downloads (~20 GB).
 
-Cloud-only: open **Settings → Providers**, paste your key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). Skip the local download.
+Cloud-only: open **Settings → Providers** and paste a key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). Skip the download.
 
 ---
 
@@ -49,43 +49,43 @@ Open a template from the Dashboard.
 
 ### Movie Posters
 
-1. Dashboard → Templates → **Movie Posters**
-2. The graph opens: inputs on the left, an agent in the middle, image generator on the right, preview at the end.
-3. Type into the inputs:
+1. Dashboard → Templates → **Movie Posters**.
+2. The graph opens: inputs left, agent middle, image generator right, preview last.
+3. Fill the inputs:
    - **Title**: Ocean Depths
    - **Genre**: Sci-Fi Thriller
    - **Audience**: Adults who love mystery
-4. Press <kbd>Ctrl/⌘ + Enter</kbd> to run.
+4. Press <kbd>Ctrl/⌘ + Enter</kbd>.
 
 ### Creative Story Ideas
 
 ![Editor](assets/screenshots/editor-empty-state.png)
 
-1. Dashboard → Templates → **Creative Story Ideas**
+1. Dashboard → Templates → **Creative Story Ideas**.
 2. Set inputs:
    - **Genre**: Cyberpunk
    - **Character**: Rogue AI detective
    - **Setting**: Neon-lit underwater city
-3. Run it.
+3. Run.
 
 ---
 
 ## Step 3 — Edit
 
 1. Save with <kbd>Ctrl/⌘ + S</kbd>.
-2. Change inputs and re-run.
-3. Click a node to see its settings on the right. Hover a connection to see the data flowing through it. Press `Space` and search "Preview" to drop a preview node anywhere on the canvas.
+2. Change inputs, re-run.
+3. Click a node to inspect it. Hover an edge to see the data flowing through. Press `Space`, search "Preview", drop one anywhere on the canvas.
 
 ---
 
 ## Step 4 — Ship as a Mini-App
 
-A Mini-App hides the graph and exposes only the inputs and outputs.
+A Mini-App hides the graph and exposes inputs and outputs only.
 
 1. Open the workflow.
 2. Click **Mini-App** in the toolbar.
 
-For a custom UI, see [VibeCoding](vibecoding.md).
+Custom UI? See [VibeCoding](vibecoding.md).
 
 ---
 

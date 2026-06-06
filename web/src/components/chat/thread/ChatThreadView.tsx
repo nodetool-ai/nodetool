@@ -20,10 +20,12 @@ import {
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
+import ToolApprovalCard from "../message/ToolApprovalCard";
 import { ScrollToBottomButton } from "../controls/ScrollToBottomButton";
 import { createStyles } from "./ChatThreadView.styles";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
+import useGlobalChatStore from "../../../stores/GlobalChatStore";
 
 interface ChatThreadViewProps {
   messages: Message[];
@@ -46,6 +48,8 @@ interface ChatThreadViewProps {
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
   onInsertCode?: (text: string, language?: string) => void;
+  /** Render per-message avatar + header meta (full-page chat only). */
+  showMessageMeta?: boolean;
 }
 
 const SCROLL_THRESHOLD = 50;
@@ -132,7 +136,7 @@ const StatusFooter = memo<StatusFooterProps>(
               ) : null}
               <span
                 style={{
-                  fontSize: "0.85rem",
+                  fontSize: "var(--fontSizeNormal)",
                   color: theme.vars.palette.text.secondary,
                   fontStyle: "italic"
                 }}
@@ -145,7 +149,7 @@ const StatusFooter = memo<StatusFooterProps>(
               </span>
               <span
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.text.disabled,
                   fontVariantNumeric: "tabular-nums",
                   marginLeft: "auto"
@@ -202,7 +206,7 @@ const StatusFooter = memo<StatusFooterProps>(
               <div
                 className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`}
                 style={{
-                  fontSize: "0.8rem",
+                  fontSize: "var(--fontSizeSmall)",
                   padding: "0.5rem 0.75rem",
                   borderRadius: "var(--rounded-lg)",
                   backgroundColor: "rgba(30, 35, 40, 0.4)",
@@ -237,9 +241,24 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
-  onInsertCode
+  onInsertCode,
+  showMessageMeta = false
 }) => {
   const theme = useTheme();
+
+  // Pending tool-approval prompts for the active thread, rendered inline at the
+  // bottom of the thread. Resolving one sends the decision and removes it.
+  const pendingApprovals = useGlobalChatStore((s) => s.pendingApprovals);
+  const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
+  const resolveApproval = useGlobalChatStore((s) => s.resolveApproval);
+  const threadApprovals = useMemo(
+    () =>
+      Object.entries(pendingApprovals).filter(
+        ([, approval]) => approval.thread_id === currentThreadId
+      ),
+    [pendingApprovals, currentThreadId]
+  );
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
   const [expandedThoughts, setExpandedThoughts] = useState<
@@ -271,12 +290,16 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   }, [messages]);
 
   const toolResultsByCallId = useMemo(() => {
-    const map: Record<string, { name?: string | null; content: Message["content"] }> = {};
+    const map: Record<
+      string,
+      { name?: string | null; content: Message["content"]; createdAt?: string | null }
+    > = {};
     for (const m of messages) {
       if (m.role === "tool" && m.tool_call_id) {
         map[String(m.tool_call_id)] = {
           name: m.name ?? undefined,
-          content: m.content
+          content: m.content,
+          createdAt: m.created_at ?? null
         };
       }
     }
@@ -339,7 +362,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     count: filteredMessages.length,
     getScrollElement: () => scrollHost,
     estimateSize: () => ESTIMATED_MESSAGE_HEIGHT,
-    overscan: 6,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => filteredMessages[index].id ?? `msg-${index}`,
     initialRect: { width: 0, height: 800 }
   });
@@ -523,6 +546,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                     toolResultsByCallId={toolResultsByCallId}
                     componentStyles={componentStyles}
                     executionMessagesById={executionMessagesById}
+                    showMeta={showMessageMeta}
                   />
                 </div>
               );
@@ -539,6 +563,30 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                 flexShrink: 0
               }}
             />
+          )}
+
+          {threadApprovals.length > 0 && (
+            <div className="chat-message-list-item">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px"
+                }}
+              >
+                {threadApprovals.map(([approvalId, approval]) => (
+                  <ToolApprovalCard
+                    key={approvalId}
+                    approvalId={approvalId}
+                    toolName={approval.tool_name}
+                    category={approval.category}
+                    message={approval.message}
+                    args={approval.args}
+                    onResolve={resolveApproval}
+                  />
+                ))}
+              </div>
+            </div>
           )}
 
           <StatusFooter

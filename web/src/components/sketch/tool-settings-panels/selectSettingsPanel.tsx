@@ -1,13 +1,5 @@
-import React, { memo, useState } from "react";
-import {
-  Box,
-  Button,
-  Divider,
-  IconButton,
-  Slider,
-  Tooltip,
-  Typography
-} from "@mui/material";
+import React, { memo, useRef, useState } from "react";
+import { Slider } from "@mui/material";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CropIcon from "@mui/icons-material/Crop";
@@ -15,14 +7,26 @@ import GestureOutlinedIcon from "@mui/icons-material/GestureOutlined";
 import PentagonOutlinedIcon from "@mui/icons-material/PentagonOutlined";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import RectangleOutlinedIcon from "@mui/icons-material/RectangleOutlined";
+import TuneIcon from "@mui/icons-material/Tune";
+import OpacityIcon from "@mui/icons-material/Opacity";
+import BorderStyleIcon from "@mui/icons-material/BorderStyle";
 import {
   iconButtonCompactSx,
   sketchButtonSmallSx,
   sketchSliderSx,
   SKETCH_COLORS
 } from "../sketchStyles";
-import { MAX_SELECTION_FEATHER_RADIUS } from "../selection";
 import { SelectSettings, SelectToolMode } from "../types";
+import {
+  Divider,
+  EditorButton,
+  FlexRow,
+  Text,
+  ToolbarIconButton,
+  Tooltip,
+  Box
+} from "../../ui_primitives";
+import { RefineSelectionPopover } from "./refine-selection";
 import { useSketchStore } from "../state";
 
 interface SelectSettingsPanelProps {
@@ -33,7 +37,7 @@ interface SelectSettingsPanelProps {
   onCropCanvasToSelection?: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
-  onStrokeSelectionBorder: () => void;
+  onConvertSelectionToBorder: () => void;
 }
 
 export const SelectSettingsPanel = memo(function SelectSettingsPanel({
@@ -44,13 +48,16 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
   onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
-  onStrokeSelectionBorder
+  onConvertSelectionToBorder
 }: SelectSettingsPanelProps) {
-  const [modifyPx, setModifyPx] = useState(1);
-  const expandCurrentSelection = useSketchStore((s) => s.expandCurrentSelection);
-  const contractCurrentSelection = useSketchStore(
-    (s) => s.contractCurrentSelection
+  const refineAnchorRef = useRef<HTMLButtonElement | null>(null);
+  const [refineOpen, setRefineOpen] = useState(false);
+  const selectionPreviewMode = useSketchStore((s) => s.selectionPreviewMode);
+  const setSelectionPreviewMode = useSketchStore(
+    (s) => s.setSelectionPreviewMode
   );
+  const showAsMask = selectionPreviewMode === "mask";
+
   return (
     <>
       <SketchModeToggle
@@ -102,10 +109,11 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           <AutoAwesomeOutlinedIcon fontSize="inherit" />
         </SketchModeOption>
       </SketchModeToggle>
+
       {settings.mode === "magic_wand" ? (
         <>
           <Box className="setting-row">
-            <Typography className="setting-label">Tol.</Typography>
+            <Text className="setting-label">Tol.</Text>
             <Slider
               sx={sketchSliderSx}
               size="small"
@@ -114,9 +122,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
               value={settings.magicWandTolerance}
               onChange={(_, v) => onChange({ magicWandTolerance: v as number })}
             />
-            <Typography className="setting-value">
-              {settings.magicWandTolerance}
-            </Typography>
+            <Text className="setting-value">{settings.magicWandTolerance}</Text>
           </Box>
           <SketchModeToggle
             exclusive={false}
@@ -137,139 +143,111 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
           </SketchModeToggle>
         </>
       ) : null}
-      <Box className="setting-row">
-        <Typography className="setting-label">Feather</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={0}
-          max={MAX_SELECTION_FEATHER_RADIUS}
-          value={settings.featherRadius}
-          onChange={(_, v) => onChange({ featherRadius: v as number })}
-        />
-        <Typography className="setting-value">
-          {settings.featherRadius}
-        </Typography>
-      </Box>
-      <Box className="setting-row">
-        <Typography className="setting-label">Border</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={1}
-          max={64}
-          value={settings.borderWidth}
-          onChange={(_, v) => onChange({ borderWidth: v as number })}
-        />
-        <Typography className="setting-value">
-          {settings.borderWidth}
-        </Typography>
-      </Box>
-      <Box className="setting-row">
-        <Typography className="setting-label">Modify</Typography>
-        <Slider
-          sx={sketchSliderSx}
-          size="small"
-          min={1}
-          max={64}
-          value={modifyPx}
-          onChange={(_, v) => setModifyPx(v as number)}
-        />
-        <Typography className="setting-value">{modifyPx}</Typography>
-      </Box>
-      <Box
+
+      <FlexRow
+        align="center"
+        wrap
+        gap={0.5}
+        fullWidth
         sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          gap: 0.5,
-          rowGap: 0.75,
-          width: "100%"
+          rowGap: 1
         }}
       >
-        <Box
+        <FlexRow
+          align="center"
+          wrap
+          gap={1}
           sx={{
-            display: "flex",
-            gap: 0.5,
-            flexWrap: "wrap",
             flex: 1,
             minWidth: 0
           }}
         >
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={!hasActiveSelection}
-            onClick={() => expandCurrentSelection(modifyPx)}
-            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
-          >
-            Grow
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={!hasActiveSelection}
-            onClick={() => contractCurrentSelection(modifyPx)}
-            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
-          >
-            Shrink
-          </Button>
-          <Button
-            size="small"
+          <EditorButton
             variant="outlined"
             onClick={onInvertSelection}
-            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+            sx={{
+              ...sketchButtonSmallSx,
+              minWidth: "60px",
+              height: 24,
+              lineHeight: 1
+            }}
           >
             Invert
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={!hasActiveSelection}
-            onClick={onFeatherSelection}
-            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
+          </EditorButton>
+          <Tooltip title="Refine selection (grow, shrink, feather, smooth, border)">
+            <span>
+              <EditorButton
+                ref={refineAnchorRef}
+                variant="outlined"
+                disabled={!hasActiveSelection}
+                onClick={() => setRefineOpen(true)}
+                startIcon={<TuneIcon sx={{ fontSize: 14 }} />}
+                sx={{
+                  ...sketchButtonSmallSx,
+                  minWidth: "76px",
+                  height: 24,
+                  lineHeight: 1,
+                  "& .MuiButton-startIcon": { mr: 0.5 }
+                }}
+              >
+                Refine…
+              </EditorButton>
+            </span>
+          </Tooltip>
+          <Tooltip
+            title={
+              showAsMask
+                ? "Showing selection as red overlay — click to switch to marching ants"
+                : "Showing selection as marching ants — click to switch to red overlay"
+            }
           >
-            Feather
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={!hasActiveSelection}
-            onClick={onSmoothSelectionBorders}
-            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
-          >
-            Smooth
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            disabled={!hasActiveSelection}
-            onClick={onStrokeSelectionBorder}
-            sx={{ ...sketchButtonSmallSx, minWidth: "52px" }}
-          >
-            Border
-          </Button>
-        </Box>
+            <span>
+              <ToolbarIconButton
+                onClick={() =>
+                  setSelectionPreviewMode(showAsMask ? "ants" : "mask")
+                }
+                aria-label={
+                  showAsMask
+                    ? "Switch to marching ants"
+                    : "Switch to mask overlay"
+                }
+                sx={{
+                  ...iconButtonCompactSx,
+                  border: `1px solid ${SKETCH_COLORS.border}`,
+                  borderRadius: 1,
+                  height: 24,
+                  width: 24,
+                  color: showAsMask
+                    ? "error.light"
+                    : SKETCH_COLORS.textSecondary
+                }}
+              >
+                {showAsMask ? (
+                  <OpacityIcon sx={{ fontSize: 16 }} />
+                ) : (
+                  <BorderStyleIcon sx={{ fontSize: 16 }} />
+                )}
+              </ToolbarIconButton>
+            </span>
+          </Tooltip>
+        </FlexRow>
         {onCropCanvasToSelection ? (
-          <Box
+          <FlexRow
+            align="center"
+            gap={0.75}
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.75,
               flexShrink: 0,
               ml: "auto"
             }}
           >
             <Divider
               orientation="vertical"
-              variant="middle"
               flexItem
               sx={{ alignSelf: "stretch", borderColor: "grey.700" }}
             />
-            <Tooltip title="Crop canvas to selection" placement="top">
+            <Tooltip title="Crop canvas to selection">
               <span>
-                <IconButton
-                  size="small"
+                <ToolbarIconButton
                   disabled={!hasActiveSelection}
                   onClick={onCropCanvasToSelection}
                   aria-label="Crop canvas to selection"
@@ -281,12 +259,23 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                   }}
                 >
                   <CropIcon sx={{ fontSize: 18 }} />
-                </IconButton>
+                </ToolbarIconButton>
               </span>
             </Tooltip>
-          </Box>
+          </FlexRow>
         ) : null}
-      </Box>
+      </FlexRow>
+
+      <RefineSelectionPopover
+        open={refineOpen}
+        anchorEl={refineAnchorRef.current}
+        onClose={() => setRefineOpen(false)}
+        settings={settings}
+        onChange={onChange}
+        onFeatherSelection={onFeatherSelection}
+        onSmoothSelectionBorders={onSmoothSelectionBorders}
+        onConvertSelectionToBorder={onConvertSelectionToBorder}
+      />
     </>
   );
 });

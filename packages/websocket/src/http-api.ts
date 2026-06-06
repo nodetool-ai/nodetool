@@ -7,7 +7,13 @@ import {
 import { gzipSync } from "node:zlib";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
+import { GZIP_THRESHOLD } from "./lib/compression.js";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
+import {
+  loadExampleGraph,
+  defaultExamplePackageName,
+  deriveExampleAssetsDir
+} from "./example-workflows.js";
 import {
   createLogger,
   loadAssetStorageConfig,
@@ -26,16 +32,13 @@ import {
   type NodeMetadata,
   NodeRegistry
 } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerKieNodes } from "@nodetool-ai/kie-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
-  PythonStdioBridge,
-  type NodeExecutor
+  createPythonBridge,
+  logPythonWorkerStderr,
+  type NodeExecutor,
+  type PythonBridge
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
@@ -80,8 +83,12 @@ export interface HttpApiOptions {
    * serve thumbnail images at both:
    *   - `/api/workflows/examples/thumbnails/<name>.jpg` (used by WorkflowTile)
    *   - `/api/assets/packages/<package-name>/<name>.jpg` (used by WorkflowCard)
+   *
+   * When examples are overridden (e.g. a Docker volume) but thumbnails remain
+   * bundled with the server, set `examplesAssetsFallbackDir` to that assets path.
    */
   examplesDir?: string;
+  examplesAssetsFallbackDir?: string;
 }
 
 // Lazily created storage handler — recreated if options change
@@ -102,7 +109,7 @@ function getStorageHandler(
 
 type WorkflowRuntimeEnvironment = {
   registry: NodeRegistry;
-  pythonBridge: PythonStdioBridge;
+  pythonBridge: PythonBridge;
   ensurePythonBridge: () => Promise<void>;
   resolveExecutor: (node: {
     id: string;
@@ -116,31 +123,17 @@ async function getWorkflowRuntimeEnvironment(
 ): Promise<WorkflowRuntimeEnvironment> {
   if (!workflowRuntimePromise) {
     workflowRuntimePromise = (async () => {
-      const registry = options.registry ?? new NodeRegistry();
-      if (!options.registry) {
-        registry.loadPythonMetadata({
-          roots: options.metadataRoots,
-          maxDepth: options.metadataMaxDepth ?? 8
-        });
-        registerBaseNodes(registry);
-        registerElevenLabsNodes(registry);
-        if (process.env["NODETOOL_ENV"] !== "production") {
-          registerTransformersJsNodes(registry);
-        }
-        registerFalNodes(registry);
-        registerKieNodes(registry);
-        registerReplicateNodes(registry);
-        if (process.env["NODETOOL_ENV"] === "production") {
-          const skippedPrefixes = ["lib.tensorflow.", "transformers."];
-          for (const nodeType of registry.list()) {
-            if (skippedPrefixes.some((p) => nodeType.startsWith(p))) {
-              registry.unregister(nodeType);
-            }
-          }
-        }
-      }
+      const registry =
+        options.registry ??
+        (await bootstrapNodeRegistry({
+          ...(options.metadataRoots
+            ? { metadataRoots: options.metadataRoots }
+            : {}),
+          metadataMaxDepth: options.metadataMaxDepth ?? 8,
+          log
+        }));
 
-      const pythonBridge = new PythonStdioBridge({
+      const pythonBridge = createPythonBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
           ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
           : []
@@ -168,8 +161,12 @@ async function getWorkflowRuntimeEnvironment(
       let pythonBridgeReady = false;
       pythonBridge.on("stderr", (msg: string) => {
         for (const line of msg.split("\n")) {
-          if (line.trim()) log.debug(`[python-worker] ${line}`);
+          logPythonWorkerStderr(line, log);
         }
+      });
+      pythonBridge.on("error", (err: Error) => {
+        log.error(`HTTP API Python bridge protocol error: ${err.message}`);
+        pythonBridgeReady = false;
       });
       pythonBridge.on("exit", (code: number) => {
         log.warn(`HTTP API Python worker exited with code ${code}`);
@@ -248,7 +245,8 @@ async function getWorkflowRuntimeEnvironment(
             Object.fromEntries(
               (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
             ),
-            meta?.required_settings ?? []
+            meta?.required_settings ?? [],
+            node.id
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
@@ -810,18 +808,6 @@ interface ExampleMetadata {
 }
 
 /**
- * Given an `examplesDir` (e.g. `.../nodetool/examples/nodetool-base`), return
- * the sibling assets directory (`.../nodetool/assets/nodetool-base`).
- */
-function deriveAssetsDir(examplesDir: string): string {
-  return nodePath.join(
-    nodePath.dirname(nodePath.dirname(examplesDir)),
-    "assets",
-    nodePath.basename(examplesDir)
-  );
-}
-
-/**
  * Read example workflow metadata from a directory of JSON files.
  * Returns lightweight objects (no graph data) suitable for the /examples list.
  *
@@ -830,10 +816,15 @@ function deriveAssetsDir(examplesDir: string): string {
  * pointing to `/api/workflows/examples/thumbnails/<name>` is set so the
  * frontend can display the pre-generated JPG thumbnails.
  */
-function buildExamplesFromDir(examplesDir: string): unknown[] {
+function buildExamplesFromDir(
+  examplesDir: string,
+  examplesAssetsFallbackDir?: string
+): unknown[] {
   if (!existsSync(examplesDir)) return [];
-  // Derive the assets directory from the examples directory.
-  const assetsDir = deriveAssetsDir(examplesDir);
+  const assetsDir = deriveExampleAssetsDir(
+    examplesDir,
+    examplesAssetsFallbackDir
+  );
   const now = new Date().toISOString();
   const workflows: unknown[] = [];
   let files: string[];
@@ -902,7 +893,10 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
 function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
   // If a static examples directory is configured, use it directly — no Python needed.
   if (options.examplesDir) {
-    return buildExamplesFromDir(options.examplesDir);
+    return buildExamplesFromDir(
+      options.examplesDir,
+      options.examplesAssetsFallbackDir
+    );
   }
   const loaded = loadPythonPackageMetadata({
     roots: options.metadataRoots,
@@ -941,32 +935,6 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
     }
   }
   return workflows;
-}
-
-function loadExampleGraph(
-  packageName: string,
-  exampleName: string,
-  options: HttpApiOptions
-): Record<string, unknown> | null {
-  const loaded = loadPythonPackageMetadata({
-    roots: options.metadataRoots,
-    maxDepth: options.metadataMaxDepth
-  });
-  const pkg = loaded.packages.find((p) => p.name === packageName);
-  if (!pkg?.sourceFolder) return null;
-  const examplePath = nodePath.join(
-    pkg.sourceFolder,
-    "nodetool",
-    "examples",
-    packageName,
-    `${exampleName}.json`
-  );
-  try {
-    const raw = readFileSync(examplePath, "utf8");
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
 }
 
 export async function handleWorkflowExamples(
@@ -1022,7 +990,10 @@ export async function handleWorkflowExamplesThumbnail(
     return errorResponse(404, "Examples not configured");
   }
   // Derive the assets directory from the examples directory.
-  const assetsDir = deriveAssetsDir(options.examplesDir);
+  const assetsDir = deriveExampleAssetsDir(
+    options.examplesDir,
+    options.examplesAssetsFallbackDir
+  );
   // Prevent path traversal — only allow a plain filename (no slashes).
   const safe = nodePath.basename(filename);
   const safeLower = safe.toLowerCase();
@@ -1352,12 +1323,12 @@ export async function handleWorkflowsRoot(
         url.searchParams.get("from_example_package")?.trim() ?? undefined;
       const fromName =
         url.searchParams.get("from_example_name")?.trim() ?? undefined;
-      if (
-        fromPkg &&
-        fromName &&
-        (!body.graph || body.graph.nodes?.length === 0)
-      ) {
-        const example = loadExampleGraph(fromPkg, fromName, options);
+      if (fromName && (!body.graph || body.graph.nodes?.length === 0)) {
+        const packageName =
+          fromPkg ??
+          defaultExamplePackageName(options) ??
+          "nodetool-base";
+        const example = loadExampleGraph(packageName, fromName, options);
         if (example?.graph) {
           body.graph = example.graph as WorkflowRequestBody["graph"];
         }
@@ -1461,7 +1432,7 @@ export function toJobResponse(job: Job): JsonObject {
     started_at: job.started_at ?? null,
     finished_at: job.finished_at ?? null,
     error: job.error ?? null,
-    cost: null
+    cost: job.cost ?? null
   };
 }
 
@@ -1570,12 +1541,14 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     content_type: asset.content_type,
     size: asset.size ?? null,
     metadata: asset.metadata ?? null,
+    sketch_document_id: asset.sketch_document_id ?? null,
     created_at: asset.created_at,
     get_url: getUrl,
     thumb_url: thumbUrl,
     duration: asset.duration ?? null,
     node_id: asset.node_id ?? null,
-    job_id: asset.job_id ?? null
+    job_id: asset.job_id ?? null,
+    timeline_id: asset.timeline_id ?? null
   };
 }
 
@@ -1929,7 +1902,6 @@ export async function handleNodeHttpRequest(
 
   // Gzip-compress large JSON responses for performance (e.g. /api/nodes/metadata
   // is ~5 MB uncompressed, ~550 KB compressed).
-  const GZIP_THRESHOLD = 256 * 1024;
   const acceptEncoding = req.headers["accept-encoding"] ?? "";
   if (bodyBuffer.length > GZIP_THRESHOLD && acceptEncoding.includes("gzip")) {
     const compressed = gzipSync(bodyBuffer);

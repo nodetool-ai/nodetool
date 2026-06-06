@@ -11,7 +11,9 @@ export {
   serializeLayerData,
   deserializeLayerData,
   findContentRect,
-  getLayerDataFromCanvas
+  getLayerDataFromCanvas,
+  getCanvasSerializedData,
+  clearCanvasSerializedData
 } from "./layerIO";
 export type { SerializedLayerData } from "./layerIO";
 
@@ -33,6 +35,7 @@ export {
   reconcileLayerToDocumentSpace,
   cropLayers,
   flipLayer,
+  rotateLayer180,
   nudgeLayer,
   applyAdjustments,
   invertLayerColors

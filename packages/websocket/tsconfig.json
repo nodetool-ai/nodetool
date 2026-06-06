@@ -27,6 +27,9 @@
       "path": "../elevenlabs-nodes"
     },
     {
+      "path": "../minimax-nodes"
+    },
+    {
       "path": "../transformers-js-nodes"
     },
     {
@@ -46,6 +49,9 @@
     },
     {
       "path": "../kie-nodes"
+    },
+    {
+      "path": "../topaz-nodes"
     },
     {
       "path": "../models"

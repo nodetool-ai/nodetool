@@ -271,6 +271,19 @@ export class GeminiProvider extends BaseProvider {
     let systemInstruction: string | undefined;
     const contents: GeminiContent[] = [];
 
+    // Gemini correlates a tool result to its call by the function *name*, not
+    // by id (and our tool-call ids are synthesized — never valid Gemini
+    // function names). Map each tool-call id back to its function name so the
+    // `functionResponse.name` below matches the earlier `functionCall.name`.
+    const toolCallNames = new Map<string, string>();
+    for (const m of messages) {
+      if (m.role === "assistant" && m.toolCalls) {
+        for (const tc of m.toolCalls) {
+          if (tc.id) toolCallNames.set(tc.id, tc.name);
+        }
+      }
+    }
+
     for (const msg of messages) {
       if (msg.role === "system") {
         systemInstruction =
@@ -290,12 +303,19 @@ export class GeminiProvider extends BaseProvider {
             ? msg.content
             : JSON.stringify(msg.content);
 
+        const functionName =
+          (msg.toolCallId
+            ? toolCallNames.get(msg.toolCallId)
+            : undefined) ??
+          msg.toolCallId ??
+          "unknown";
+
         contents.push({
           role: "user",
           parts: [
             {
               functionResponse: {
-                name: msg.toolCallId ?? "unknown",
+                name: functionName,
                 response: { result: responseText }
               }
             }
@@ -674,11 +694,11 @@ export class GeminiProvider extends BaseProvider {
   async getAvailableImageModels(): Promise<ImageModel[]> {
     return [
       {
-        id: "gemini-2.0-flash-preview-image-generation",
-        name: "Gemini 2.0 Flash Image Gen",
+        id: "gemini-3.1-flash-image-preview",
+        name: "Gemini 3.1 Flash Image Preview",
         provider: "gemini"
       },
-      { id: "imagen-3.0-generate-002", name: "Imagen 3.0", provider: "gemini" }
+      { id: "imagen-4.0-generate-001", name: "Imagen 4.0", provider: "gemini" }
     ];
   }
 

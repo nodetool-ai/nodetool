@@ -16,6 +16,7 @@ import {
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { LayerContentBounds, Point, Selection, SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
+import { useSketchStore } from "../state/useSketchStore";
 
 export interface UseCanvasImperativeHandleParams {
   ref: Ref<SketchCanvasRef>;
@@ -114,13 +115,25 @@ export function useCanvasImperativeHandle({
         runtime.flipLayer(layerId, direction);
         redraw();
       },
+      rotateLayer180: (layerId: string) => {
+        runtime.rotateLayer180(layerId);
+        redraw();
+      },
       mergeLayerDown: (upperLayerId: string, lowerLayerId: string) => {
-        const result = runtime.mergeLayerDown(upperLayerId, lowerLayerId, doc);
+        // Read the live document directly: when "Merge Selected" runs a
+        // synchronous chain of pairwise merges, each iteration mutates the
+        // store before the next call, but the imperative handle's `doc`
+        // closure is still the snapshot from the previous render — using it
+        // makes drawLayerToContext composite with stale contentBounds and
+        // visually drops or clips the in-between layers' pixels.
+        const liveDoc = useSketchStore.getState().document;
+        const result = runtime.mergeLayerDown(upperLayerId, lowerLayerId, liveDoc);
         redraw();
         return result;
       },
       flattenVisible: () => {
-        return runtime.flattenVisible(doc);
+        const liveDoc = useSketchStore.getState().document;
+        return runtime.flattenVisible(liveDoc);
       },
       cropCanvas: (x: number, y: number, width: number, height: number) => {
         runtime.cropLayers(x, y, width, height);

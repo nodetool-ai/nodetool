@@ -3,14 +3,13 @@ import { css } from "@emotion/react";
 
 import React, { memo, useMemo, useRef } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Box } from "@mui/material";
-import { Text } from "../../ui_primitives";
+import { Text, Box } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeArtifacts } from "../../../hooks/nodes/useNodeExecState";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeResizer from "../NodeResizer";
@@ -77,7 +76,7 @@ const styles = (theme: Theme) =>
       left: "50%",
       width: "80%",
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: "300",
+      fontWeight: 400,
       transform: "translate(-50%, -50%)",
       zIndex: 1,
       color: theme.vars.palette.grey[400],
@@ -113,20 +112,37 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
   const theme = useTheme();
   const hasParent = props.parentId !== undefined;
 
-  // Get the preview result for this node
-  const result = useResultsStore((state) =>
-    state.getPreview(props.data.workflow_id, props.id)
-  );
+  // The `comparison` snapshot is one of the node's regular outputs and
+  // flows through the same channel as score/equal. Reads the final
+  // node_update record first (keyed by output name), then falls back to
+  // any streamed output_update for the same handle.
+  // NOTE: order is result ?? output (REVERSED from useNodeResultValue).
+  const { result: _result, output: _output } = useNodeArtifacts(props.data.workflow_id, props.id);
+  const result = _result ?? _output;
 
-  // Extract comparison data from result
   const comparisonData = useMemo(() => {
-    if (!result || typeof result !== "object") {
+    const pickComparison = (value: unknown): unknown => {
+      if (!value || typeof value !== "object") return null;
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const found = pickComparison(item);
+          if (found) return found;
+        }
+        return null;
+      }
+      const record = value as Record<string, unknown>;
+      if ((record as { type?: string }).type === "image_comparison") {
+        return record;
+      }
+      if (record.comparison) {
+        return pickComparison(record.comparison);
+      }
       return null;
-    }
-    if ((result as { type?: string }).type !== "image_comparison") {
-      return null;
-    }
-    return result as {
+    };
+
+    const snapshot = pickComparison(result);
+    if (!snapshot) return null;
+    return snapshot as {
       type: string;
       image_a: { uri?: string; data?: ImageData; type?: string };
       image_b: { uri?: string; data?: ImageData; type?: string };

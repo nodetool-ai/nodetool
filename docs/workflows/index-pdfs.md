@@ -5,7 +5,7 @@ title: "Index PDFs"
 
 ## Overview
 
-Index PDFs from a folder into a Chroma collection for vector search.
+Index PDFs from a folder into a SQLite-vec collection for vector search.
 
 ## Tags
 

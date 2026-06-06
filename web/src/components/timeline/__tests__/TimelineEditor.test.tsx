@@ -58,9 +58,21 @@ jest.mock("../preview/PreviewArea", () => ({
   PreviewArea: () =>
     React.createElement("div", { "data-testid": "preview-area" }, "Preview")
 }));
-jest.mock("../TimelineAssetPanel", () => ({
-  TimelineAssetPanel: () =>
-    React.createElement("div", { "data-testid": "timeline-asset-panel" }, "Assets")
+
+// TopBarPrompt pulls in ImageModelSelect → useImageModelsByProvider, which
+// calls TanStack Query. The editor shell tests don't render a
+// QueryClientProvider, so swap it for a no-op.
+jest.mock("../TopBarPrompt", () => ({
+  TopBarPrompt: () =>
+    React.createElement("div", { "data-testid": "topbar-prompt" }, "Prompt")
+}));
+
+// TranscriptPanel's VoiceCard embeds TTSModelSelect, which queries the TTS
+// model list via TanStack Query. Same no-QueryClient constraint as above.
+jest.mock("../../properties/TTSModelSelect", () => ({
+  __esModule: true,
+  default: () =>
+    React.createElement("div", { "data-testid": "tts-model-select" }, "TTS")
 }));
 
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";

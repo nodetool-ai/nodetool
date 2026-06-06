@@ -4,17 +4,13 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Tilt3D from "../Tilt3D";
 import {
-  Bot,
   Brain,
-  Code2,
   Eye,
   GitFork,
-  Lock,
-  Puzzle,
-  RefreshCw,
+  Palette,
   Sparkles,
-  Workflow,
-  Zap,
+  Users,
+  Wand2,
 } from "lucide-react";
 
 interface AgentFeaturesSectionProps {
@@ -27,44 +23,44 @@ export default function AgentFeaturesSection({
   const features = [
     {
       icon: Brain,
-      title: "Three Execution Modes",
+      title: "Briefs become storyboards",
       description:
-        "Loop mode for simple tasks, Plan mode for automatic task decomposition with parallel DAG execution, and Multi-Agent mode for team collaboration.",
+        "Drop in a one-line prompt or a full mood board. The agent plans the shots, picks the model for each one, and lays out a board you can rearrange before a single render runs.",
       color: "teal",
     },
     {
       icon: GitFork,
-      title: "Task Planning & Parallel Execution",
+      title: "Batch variants in parallel",
       description:
-        "TaskPlanner decomposes objectives into dependency graphs. ParallelTaskExecutor runs independent tasks concurrently with automatic result passing.",
+        "Need ten alts of the hero frame in five aspect ratios? The agent fans the work out across providers, runs them at the same time, and brings the cuts back ranked for review.",
       color: "blue",
     },
     {
-      icon: RefreshCw,
-      title: "Multi-Agent Teams",
+      icon: Users,
+      title: "A crew, not a single model",
       description:
-        "Coordinator, autonomous, or hybrid strategies. Agents communicate via message bus, share a task board, and specialize with different models and tools.",
+        "Run a director, a stylist, and a colorist as separate agents that hand off via a shared board. Each one gets the model and prompt that fits its job.",
       color: "cyan",
     },
     {
-      icon: Puzzle,
-      title: "50+ Built-in Tools",
+      icon: Wand2,
+      title: "Image, video, music — one room",
       description:
-        "Web search, browser automation, code execution, PDF processing, image generation, math, file operations, HTTP requests, and more.",
+        "Agents can call Flux, Nano Banana, and Ideogram for stills, Seedance, Veo, Kling, and Runway for motion, Suno for score, and ElevenLabs for voice. All on one canvas.",
       color: "emerald",
     },
     {
       icon: Eye,
-      title: "Full Observability",
+      title: "See every decision",
       description:
-        "Real-time streaming of reasoning traces, tool calls, and task progress. OpenTelemetry tracing and structured logging built in.",
+        "Watch the agent reason about composition, swap models when a render misses, and log every prompt it tried. No black boxes when the deadline hits.",
       color: "pink",
     },
     {
       icon: Sparkles,
-      title: "Skill System",
+      title: "Bottle your art direction",
       description:
-        "Auto-discoverable SKILL.md files inject domain expertise into agent prompts. Match skills by keyword or select explicitly.",
+        "Lock down a style guide as a reusable skill — palette, lens, mood, prompt patterns — and every agent on your canvas picks it up automatically.",
       color: "amber",
     },
   ];
@@ -84,9 +80,9 @@ export default function AgentFeaturesSection({
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-teal-500/10 border border-teal-500/20 shadow-lg shadow-teal-500/10"
+            className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/20 shadow-lg shadow-rose-500/10"
           >
-            <Bot className="w-8 h-8 text-amber-400" />
+            <Palette className="w-8 h-8 text-rose-300" />
           </motion.div>
 
           <motion.h2
@@ -97,9 +93,9 @@ export default function AgentFeaturesSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Agent{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">
-              Superpowers
+            Built to{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400">
+              direct, not babysit.
             </span>
           </motion.h2>
 
@@ -110,8 +106,9 @@ export default function AgentFeaturesSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Agents are nodes. Use the same canvas you use for image, video, and text
-            workflows — just with a model that plans and acts.
+            Agents are nodes on the same canvas as your image, video, and audio
+            workflows — except these nodes have taste, a plan, and the ability to
+            self-correct when a render misses.
           </motion.p>
         </div>
 

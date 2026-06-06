@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo, useMemo } from "react";
 import AssetGrid from "./AssetGrid";
-import { Box } from "@mui/material";
+import { Box } from "../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAssets from "../../serverState/useAssets";

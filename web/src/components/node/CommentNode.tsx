@@ -60,13 +60,6 @@ function getContrastTextColor(hexColor: string): string {
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
-export type CustomText = {
-  text: string;
-  bold?: boolean;
-  italic?: boolean;
-  size?: "-" | "+";
-};
-
 const styles = (theme: Theme) =>
   css({
     width: "100%",
@@ -189,12 +182,13 @@ const initialConfigTemplate = {
 
 const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const { updateNodeData, updateNode } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode
   }), shallow);
-  const [color, setColor] = useState(
-    props.data.properties.comment_color ||
+  const [color, setColor] = useState<string>(
+    (props.data.properties.comment_color as string) ||
       theme.vars.palette.c_bg_comment ||
       "#ffffff"
   );
@@ -356,7 +350,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         className={`node-drag-handle comment-node ${
           props.selected ? "selected" : ""
         } ${isEditorFocused ? "focused" : ""}`.trim()}
-        css={styles(theme)}
+        css={cssStyles}
       >
         <div className="format-toolbar-container">
           <ToolbarPlugin />

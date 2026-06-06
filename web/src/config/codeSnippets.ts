@@ -240,14 +240,6 @@ return { output: Math.random() * (max - min) + min };`,
   // Text
   // ---------------------------------------------------------------------------
   {
-    id: "text-concat",
-    title: "Concatenate",
-    description: "Join two strings together",
-    category: "Text",
-    code: "return { output: a + b };",
-    tags: ["concat", "join", "append", "combine", "+"],
-  },
-  {
     id: "text-join",
     title: "Join Array",
     description: "Join array of strings with a separator",
@@ -841,40 +833,36 @@ return { output: rows };`,
   {
     id: "stream-collect",
     title: "Collect Items",
-    description: "Accumulate streaming items into a list (set sync_mode to on_any)",
+    description: "Accumulate streaming items into a list",
     category: "Streaming",
-    code: `// Set sync_mode to "on_any" for this to work
-state.items = [...(state.items || []), input];
+    code: `state.items = [...(state.items || []), input];
 return { output: [...state.items] };`,
     tags: ["collect", "accumulate", "gather", "aggregate", "stream"],
   },
   {
     id: "stream-filter",
     title: "Stream Filter",
-    description: "Filter a stream — return {} to drop an item (set sync_mode to on_any)",
+    description: "Filter a stream — return {} to drop an item",
     category: "Streaming",
-    code: `// Set sync_mode to "on_any" for stream filtering
-// Return {} to drop the item, or { output: value } to pass it through
+    code: `// Return {} to drop the item, or { output: value } to pass it through
 return value > threshold ? { output: value } : {};`,
     tags: ["stream", "filter", "drop", "pass", "gate"],
   },
   {
     id: "stream-counter",
     title: "Stream Counter",
-    description: "Count items passing through a stream (set sync_mode to on_any)",
+    description: "Count items passing through a stream",
     category: "Streaming",
-    code: `// Set sync_mode to "on_any"
-state.count = (state.count || 0) + 1;
+    code: `state.count = (state.count || 0) + 1;
 return { output: input, count: state.count };`,
     tags: ["count", "counter", "stream", "tally", "increment"],
   },
   {
     id: "stream-batch",
     title: "Stream Batch",
-    description: "Collect N items then emit as a batch (set sync_mode to on_any)",
+    description: "Collect N items then emit as a batch",
     category: "Streaming",
-    code: `// Set sync_mode to "on_any"
-const batchSize = 5;
+    code: `const batchSize = 5;
 state.items = [...(state.items || []), input];
 if (state.items.length >= batchSize) {
   const batch = [...state.items];

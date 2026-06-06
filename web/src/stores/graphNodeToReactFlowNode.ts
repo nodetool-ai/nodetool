@@ -6,6 +6,15 @@ import useMetadataStore from "./MetadataStore";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 import { NODE_COLLAPSED_STRIP_HEIGHT_PX } from "./collapseNodeLayout";
+import {
+  GROUP_NODE_TYPE,
+  COMMENT_NODE_TYPE,
+  PREVIEW_NODE_TYPE
+} from "../constants/nodeTypes";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 export function graphNodeToReactFlowNode(
   workflow: Workflow,
@@ -13,18 +22,17 @@ export function graphNodeToReactFlowNode(
 ): Node<NodeData> {
   const ui_properties = parseNodeUIProperties(node.ui_properties);
   const isCollapsed = ui_properties?.collapsed === true;
-  const isPreviewNode = node.type === "nodetool.workflows.base_node.Preview";
+  const isPreviewNode = node.type === PREVIEW_NODE_TYPE;
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
 
   // Debug: warn if node.data contains a stale workflow_id
   if (
-    node.data &&
-    typeof node.data === "object" &&
+    isRecord(node.data) &&
     "workflow_id" in node.data
   ) {
     console.warn(
       `[graphNodeToReactFlowNode] Node ${node.id} has stale workflow_id in data:`,
-      (node.data as Record<string, unknown>).workflow_id,
+      node.data.workflow_id,
       "will use:",
       workflow.id
     );
@@ -70,8 +78,8 @@ export function graphNodeToReactFlowNode(
     dragHandle: ".node-drag-handle",
     expandParent: !(
       node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Comment" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type === COMMENT_NODE_TYPE ||
+      node.type === GROUP_NODE_TYPE
     ),
     selectable,
     className: reactFlowNodeChromeClassName({
@@ -81,10 +89,7 @@ export function graphNodeToReactFlowNode(
     data: {
       properties: (() => {
         const raw = node.data;
-        const props: Record<string, unknown> =
-          raw && typeof raw === "object" && !Array.isArray(raw)
-            ? (raw as Record<string, unknown>)
-            : {};
+        const props: Record<string, unknown> = isRecord(raw) ? raw : {};
         const meta = useMetadataStore.getState().getMetadata(node.type);
         if (meta?.properties) {
           return applyDefaultModels(props, meta.properties);
@@ -93,7 +98,6 @@ export function graphNodeToReactFlowNode(
       })(),
       dynamic_properties: node.dynamic_properties ?? {},
       dynamic_outputs: node.dynamic_outputs || {},
-      sync_mode: node.sync_mode,
       selectable,
       collapsed: isCollapsed,
       bypassed: isBypassed,
@@ -118,7 +122,7 @@ export function graphNodeToReactFlowNode(
     },
     zIndex:
       node.type === "nodetool.group.Loop" ||
-      node.type === "nodetool.workflows.base_node.Group"
+      node.type === GROUP_NODE_TYPE
         ? -10
         : ui_properties?.zIndex
   };

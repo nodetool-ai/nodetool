@@ -255,27 +255,24 @@ describe("GoogleSearchTool with SerpProvider", () => {
     const ctx = makeContext();
 
     const result = (await tool.process(ctx, {
-      keyword: "test",
+      query: "test",
       num_results: 5
-    })) as {
-      success: boolean;
-      results: Array<Record<string, unknown>>;
-    };
+    })) as string;
 
-    expect(result.success).toBe(true);
-    expect(result.results).toHaveLength(1);
-    expect(result.results[0].title).toBe("Mock Result");
-    expect(result.results[0].link).toBe("https://mock.com");
+    expect(typeof result).toBe("string");
+    expect(result).toContain("1. Mock Result");
+    expect(result).toContain("https://mock.com");
+    expect(result).toContain("Mock snip");
     expect(provider.search).toHaveBeenCalledWith("test", { numResults: 5 });
   });
 
-  it("returns error when keyword is missing", async () => {
+  it("returns error string when query is missing", async () => {
     const provider = createMockProvider([]);
     const tool = new GoogleSearchTool(provider);
     const ctx = makeContext();
 
     const result = await tool.process(ctx, {});
-    expect(result).toEqual({ error: "keyword is required" });
+    expect(result).toBe("Error: query is required");
   });
 });
 
@@ -803,17 +800,14 @@ describe("GoogleSearchTool legacy path (no provider)", () => {
       const tool = new GoogleSearchTool(); // no provider
       const ctx = makeContext({ SERPAPI_API_KEY: "legacy-key" });
       const result = (await tool.process(ctx, {
-        keyword: "test",
+        query: "test",
         num_results: 3
-      })) as {
-        success: boolean;
-        results: Array<Record<string, unknown>>;
-      };
+      })) as string;
 
-      expect(result.success).toBe(true);
-      expect(result.results).toHaveLength(1);
-      expect(result.results[0].title).toBe("Result 1");
-      expect(result.results[0].link).toBe("https://example.com/1");
+      expect(typeof result).toBe("string");
+      expect(result).toContain("1. Result 1");
+      expect(result).toContain("https://example.com/1");
+      expect(result).toContain("First");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -825,19 +819,26 @@ describe("GoogleSearchTool legacy path (no provider)", () => {
 /* ------------------------------------------------------------------ */
 
 describe("GoogleSearchTool userMessage", () => {
-  it("truncates long keyword in userMessage", () => {
+  it("falls back to short form when the query is too long", () => {
     const tool = new GoogleSearchTool();
-    const longKeyword = "a".repeat(100);
-    const msg = tool.userMessage({ keyword: longKeyword });
-    // When the full message exceeds 80 chars, it falls back to short form
-    expect(msg).toBe("Searching Google...");
+    const longQuery = "a".repeat(100);
+    const msg = tool.userMessage({ query: longQuery });
+    expect(msg).toBe("Searching Google");
     expect(msg.length).toBeLessThanOrEqual(80);
   });
 
-  it("includes short keyword in userMessage", () => {
+  it("includes short query in userMessage", () => {
     const tool = new GoogleSearchTool();
-    const msg = tool.userMessage({ keyword: "cats" });
-    expect(msg).toBe("Searching Google for 'cats'...");
+    expect(tool.userMessage({ query: "cats" })).toBe(
+      "Searching Google for 'cats'"
+    );
+  });
+
+  it("accepts the legacy `keyword` arg in userMessage too", () => {
+    const tool = new GoogleSearchTool();
+    expect(tool.userMessage({ keyword: "cats" })).toBe(
+      "Searching Google for 'cats'"
+    );
   });
 });
 

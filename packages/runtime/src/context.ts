@@ -10,22 +10,77 @@
  *   - Asset handling with pluggable storage adapters.
  */
 
-import type { AssetRef, ProcessingMessage } from "@nodetool-ai/protocol";
+import type { AssetRef, ProcessingMessage, ProviderCost } from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
-import { randomUUID } from "node:crypto";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import {
-  basename,
-  dirname,
-  extname,
-  isAbsolute,
-  join,
-  normalize,
-  relative,
-  resolve,
-  sep
-} from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { encodeRawImageRef } from "./image-codec.js";
+import { inlineTextAssetRefs } from "./prompt-asset-refs.js";
+import { importNodeBuiltin } from "@nodetool-ai/config";
+
+// `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
+// lazily so this module loads in browser / Edge runtimes. The
+// `FileStorageAdapter`, `resolveWorkspacePath`, and `randomUUID`
+// fallback all degrade gracefully when these are unavailable.
+const nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+  "node:crypto"
+);
+const nodeFsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
+  "node:fs/promises"
+);
+const nodePath = await importNodeBuiltin<typeof import("node:path")>(
+  "node:path"
+);
+const nodeUrl = await importNodeBuiltin<typeof import("node:url")>("node:url");
+
+const randomUUID = nodeCrypto?.randomUUID
+  ? nodeCrypto.randomUUID
+  : (): string => {
+      const g = globalThis as { crypto?: { randomUUID?: () => string } };
+      if (g.crypto?.randomUUID) return g.crypto.randomUUID();
+      return `id_${Date.now().toString(36)}_${Math.random()
+        .toString(36)
+        .slice(2, 10)}`;
+    };
+
+// Eager local bindings; unavailable off-Node, throw at call time.
+function notOnNode(api: string): never {
+  throw new Error(
+    `${api} is unavailable in this runtime — configure a StorageAdapter instead`
+  );
+}
+const access = (...a: Parameters<typeof import("node:fs/promises").access>) =>
+  nodeFsP ? nodeFsP.access(...a) : notOnNode("node:fs/promises.access");
+const mkdir = (...a: Parameters<typeof import("node:fs/promises").mkdir>) =>
+  nodeFsP ? nodeFsP.mkdir(...a) : notOnNode("node:fs/promises.mkdir");
+const readFile = (
+  ...a: Parameters<typeof import("node:fs/promises").readFile>
+) => (nodeFsP ? nodeFsP.readFile(...a) : notOnNode("node:fs/promises.readFile"));
+const writeFile = (
+  ...a: Parameters<typeof import("node:fs/promises").writeFile>
+) =>
+  nodeFsP ? nodeFsP.writeFile(...a) : notOnNode("node:fs/promises.writeFile");
+
+const basename = (p: string, ext?: string): string =>
+  nodePath ? nodePath.basename(p, ext) : notOnNode("node:path.basename");
+const dirname = (p: string): string =>
+  nodePath ? nodePath.dirname(p) : notOnNode("node:path.dirname");
+const extname = (p: string): string =>
+  nodePath ? nodePath.extname(p) : notOnNode("node:path.extname");
+const isAbsolute = (p: string): boolean =>
+  nodePath ? nodePath.isAbsolute(p) : notOnNode("node:path.isAbsolute");
+const join = (...parts: string[]): string =>
+  nodePath ? nodePath.join(...parts) : notOnNode("node:path.join");
+const normalize = (p: string): string =>
+  nodePath ? nodePath.normalize(p) : notOnNode("node:path.normalize");
+const relative = (from: string, to: string): string =>
+  nodePath ? nodePath.relative(from, to) : notOnNode("node:path.relative");
+const resolve = (...parts: string[]): string =>
+  nodePath ? nodePath.resolve(...parts) : notOnNode("node:path.resolve");
+const sep = nodePath?.sep ?? "/";
+
+const fileURLToPath = (u: string | URL): string =>
+  nodeUrl ? nodeUrl.fileURLToPath(u) : notOnNode("node:url.fileURLToPath");
+const pathToFileURL = (p: string): URL =>
+  nodeUrl ? nodeUrl.pathToFileURL(p) : notOnNode("node:url.pathToFileURL");
 import type { BaseProvider } from "./providers/base-provider.js";
 import type {
   Message,
@@ -165,8 +220,14 @@ export type ProviderCapability =
   | "generate_messages"
   | "text_to_image"
   | "image_to_image"
+  | "upscale_image"
+  | "remove_background"
+  | "relight_image"
+  | "vectorize_image"
   | "text_to_video"
   | "image_to_video"
+  | "video_to_video"
+  | "lip_sync"
   | "text_to_speech"
   | "automatic_speech_recognition"
   | "generate_embedding";
@@ -224,9 +285,25 @@ export interface AssetCreateParamsLike {
   nodeId?: string | null;
 }
 
+/** A non-folder asset surfaced when listing a folder's contents. */
+export interface FolderAssetEntry {
+  id: string;
+  content_type: string;
+  name: string;
+}
+
 export interface ProcessingContextModelInterfaces {
   getJob?: (args: { userId: string; jobId: string }) => Promise<unknown | null>;
   createAsset?: (args: AssetCreateParamsLike) => Promise<unknown>;
+  /**
+   * Recursively list the non-folder assets contained in `folderId`. Returns
+   * `null` when the id is not a folder (or does not exist) so callers can tell
+   * "not a folder" apart from "empty folder" (`[]`).
+   */
+  listFolderAssets?: (args: {
+    userId: string;
+    folderId: string;
+  }) => Promise<FolderAssetEntry[] | null>;
   createMessage?: (args: {
     userId: string;
     req: MessageCreateRequestLike;
@@ -434,7 +511,7 @@ export class FileStorageAdapter implements StorageAdapter {
     const absolutePath = this.resolvePathFromUri(uri);
     if (!absolutePath) return null;
     try {
-      return await readFile(absolutePath);
+      return (await readFile(absolutePath)) as Uint8Array;
     } catch {
       // File not found or unreadable — caller handles null.
       return null;
@@ -467,7 +544,8 @@ export class FileStorageAdapter implements StorageAdapter {
     prefix: string,
     opts: { delimiter?: string } = {}
   ): Promise<StorageListResult> {
-    const { readdir: rd, stat: st } = await import("node:fs/promises");
+    if (!nodeFsP) throw new Error("LocalStorage.list requires Node");
+    const { readdir: rd, stat: st } = nodeFsP;
     const delimiter = opts.delimiter ?? null;
     const baseAbs = (() => {
       try {
@@ -522,7 +600,8 @@ export class FileStorageAdapter implements StorageAdapter {
   async delete(uri: string): Promise<boolean> {
     const absolutePath = this.resolvePathFromUri(uri);
     if (!absolutePath) return false;
-    const { unlink } = await import("node:fs/promises");
+    if (!nodeFsP) return false;
+    const { unlink } = nodeFsP;
     try {
       await unlink(absolutePath);
       return true;
@@ -534,7 +613,8 @@ export class FileStorageAdapter implements StorageAdapter {
   async stat(uri: string): Promise<StorageStat | null> {
     const absolutePath = this.resolvePathFromUri(uri);
     if (!absolutePath) return null;
-    const { stat: st } = await import("node:fs/promises");
+    if (!nodeFsP) return null;
+    const { stat: st } = nodeFsP;
     try {
       const s = await st(absolutePath);
       if (!s.isFile()) return null;
@@ -709,6 +789,8 @@ export function resolveWorkspacePath(
 export class ProcessingContext {
   readonly jobId: string;
   readonly workflowId: string | null;
+  /** Chat thread id, when this context is serving a chat-driven agent run. */
+  readonly threadId: string | null;
   readonly userId: string;
   readonly workspaceDir: string | null;
   readonly assetOutputMode: AssetOutputMode;
@@ -721,8 +803,8 @@ export class ProcessingContext {
   /** Latest edge status by edge id. */
   private _edgeStatuses = new Map<string, ProcessingMessage>();
 
-  /** Optional message listener (for real-time streaming). */
-  private _onMessage: ((msg: ProcessingMessage) => void) | null = null;
+  /** Message listeners (for real-time streaming). */
+  private _messageListeners = new Set<(msg: ProcessingMessage) => void>();
 
   /** Cache adapter. */
   readonly cache: CacheAdapter;
@@ -776,6 +858,8 @@ export class ProcessingContext {
         properties: Record<string, unknown>
       ) => Promise<Record<string, unknown>>)
     | null = null;
+  /** Provider charge (USD) reported by the current node execution (e.g. FAL/KIE generation). */
+  private _providerCost: ProviderCost | null = null;
   /** Optional executor resolver for sub-workflow execution. */
   private _resolveExecutor:
     | ((node: {
@@ -790,7 +874,7 @@ export class ProcessingContext {
         nodeType: string;
         propertyTypes?: Record<string, string>;
         outputs?: Record<string, string>;
-        isDynamic?: boolean;
+        supportsDynamicInputs?: boolean;
         descriptorDefaults?: Record<string, unknown>;
       } | null>)
     | null = null;
@@ -802,6 +886,7 @@ export class ProcessingContext {
   constructor(opts: {
     jobId: string;
     workflowId?: string | null;
+    threadId?: string | null;
     userId?: string;
     workspaceDir?: string | null;
     assetOutputMode?: AssetOutputMode;
@@ -821,13 +906,16 @@ export class ProcessingContext {
   }) {
     this.jobId = opts.jobId;
     this.workflowId = opts.workflowId ?? null;
+    this.threadId = opts.threadId ?? null;
     this.userId = opts.userId ?? "default";
     this.workspaceDir = opts.workspaceDir ?? null;
     this.assetOutputMode = opts.assetOutputMode ?? "native";
     this.cache = opts.cache ?? new MemoryCache();
     this.storage = opts.storage ?? null;
     this.workspaceStorage = opts.workspaceStorage ?? null;
-    this._onMessage = opts.onMessage ?? null;
+    if (opts.onMessage) {
+      this._messageListeners.add(opts.onMessage);
+    }
     this._variables = { ...(opts.variables ?? {}) };
     const env: Record<string, string> = {};
     for (const [k, v] of Object.entries(process.env)) {
@@ -846,19 +934,22 @@ export class ProcessingContext {
     const next = new ProcessingContext({
       jobId: this.jobId,
       workflowId: this.workflowId,
+      threadId: this.threadId,
       userId: this.userId,
       workspaceDir: this.workspaceDir,
       assetOutputMode: this.assetOutputMode,
       cache: this.cache,
       storage: this.storage,
       workspaceStorage: this.workspaceStorage,
-      onMessage: this._onMessage ?? undefined,
       variables: { ...this._variables },
       environment: { ...this.environment },
       fetchFn: this._fetch,
       secretResolver: this._secretResolver ?? undefined,
       tempUrlResolver: this._tempUrlResolver ?? undefined
     });
+    for (const listener of this._messageListeners) {
+      next.addMessageListener(listener);
+    }
     next._providerResolver = this._providerResolver;
     next._modelInterfaces = this._modelInterfaces;
     next._sendControlEvent = this._sendControlEvent;
@@ -941,7 +1032,7 @@ export class ProcessingContext {
       nodeType: string;
       propertyTypes?: Record<string, string>;
       outputs?: Record<string, string>;
-      isDynamic?: boolean;
+      supportsDynamicInputs?: boolean;
       descriptorDefaults?: Record<string, unknown>;
     } | null>
   ): void {
@@ -953,7 +1044,7 @@ export class ProcessingContext {
         nodeType: string;
         propertyTypes?: Record<string, string>;
         outputs?: Record<string, string>;
-        isDynamic?: boolean;
+        supportsDynamicInputs?: boolean;
         descriptorDefaults?: Record<string, unknown>;
       } | null>)
     | null {
@@ -1129,9 +1220,16 @@ export class ProcessingContext {
   // Message queue API
   // -----------------------------------------------------------------------
 
+  addMessageListener(listener: (msg: ProcessingMessage) => void): () => void {
+    this._messageListeners.add(listener);
+    return () => {
+      this._messageListeners.delete(listener);
+    };
+  }
+
   /**
    * Emit a processing message.
-   * Appended to the internal queue and forwarded to listener if set.
+   * Appended to the internal queue and forwarded to listeners if set.
    */
   emit(msg: ProcessingMessage): void {
     this._messages.push(msg);
@@ -1142,8 +1240,8 @@ export class ProcessingContext {
     if (msg.type === "edge_update" && msg.edge_id) {
       this._edgeStatuses.set(msg.edge_id, msg);
     }
-    if (this._onMessage) {
-      this._onMessage(msg);
+    for (const listener of this._messageListeners) {
+      listener(msg);
     }
   }
 
@@ -1153,6 +1251,32 @@ export class ProcessingContext {
 
   post_message(msg: ProcessingMessage): void {
     this.emit(msg);
+  }
+
+  /** Record actual provider charge for the current node run (attached to completed NodeUpdate). */
+  setProviderCost(
+    provider: string,
+    amount: number,
+    unit: string,
+    details?: Pick<
+      ProviderCost,
+      | "model"
+      | "billing_unit"
+      | "quantity"
+      | "unit_price"
+      | "currency"
+      | "provider_request_id"
+    >
+  ): void {
+    this._providerCost = { provider, amount, unit, ...details };
+  }
+
+  getProviderCost(): ProviderCost | null {
+    return this._providerCost;
+  }
+
+  clearProviderCost(): void {
+    this._providerCost = null;
   }
 
   /** Get all emitted messages. */
@@ -1482,6 +1606,25 @@ export class ProcessingContext {
     return this.createAsset(args);
   }
 
+  /**
+   * Recursively list the non-folder assets in `folderId`, or `null` when the id
+   * is not a folder. Backed by the optional `listFolderAssets` model interface;
+   * returns `null` when that interface is not configured.
+   */
+  async listFolderAssets(
+    folderId: string
+  ): Promise<FolderAssetEntry[] | null> {
+    const fn = this._modelInterfaces?.listFolderAssets;
+    if (!fn) {
+      return null;
+    }
+    try {
+      return await fn({ userId: this.userId, folderId });
+    } catch {
+      return null;
+    }
+  }
+
   private resolveSandboxFilePath(path: string): string {
     if (this.workspaceDir == null || this.workspaceDir === "") {
       throw new Error("workspaceDir is required for sandbox file operations");
@@ -1540,7 +1683,9 @@ export class ProcessingContext {
     }
     const raw =
       trimmed.startsWith("asset://") ? trimmed.slice("asset://".length) : trimmed;
-    const primary = raw.split(/[/?#]/)[0];
+    // Preserve sub-paths: `asset://user-1/image.png` -> primary `user-1/image.png`,
+    // so storage keys with hierarchical layouts still resolve.
+    const primary = raw.split(/[?#]/)[0];
     if (!primary) {
       return [];
     }
@@ -1548,90 +1693,181 @@ export class ProcessingContext {
     return Array.from(new Set([primary, withoutExt].filter(Boolean)));
   }
 
-  async assetToSandbox(assetId: string, path: string): Promise<string> {
-    const outputPath = this.resolveSandboxFilePath(path);
-    const uriCandidates = new Set<string>();
+  /**
+   * Resolve an `asset://<id>[.ext]` reference (or bare id / storage URI) to its
+   * raw bytes.
+   *
+   * Server-uploaded assets are stored under the key `<id>.<ext>` and served at
+   * `/api/storage/<id>.<ext>`; runtime-materialized refs live under `assets/`.
+   * Resolution order: the in-process storage adapter (file/s3/supabase/memory),
+   * a prefix listing that tolerates extension mismatches, then an HTTP download
+   * from the server's `/api/storage` route. Returns the bytes plus an `attempts`
+   * trail for callers that build detailed errors; `null` bytes means unresolved.
+   */
+  async resolveAssetBytes(
+    assetId: string
+  ): Promise<{ bytes: Uint8Array | null; attempts: string[] }> {
     const idCandidates = this.parseAssetIdCandidates(assetId);
     const trimmed = assetId.trim();
-    const resolutionAttempts: string[] = [];
+    const attempts: string[] = [];
 
+    const tryStorageUri = async (uri: string): Promise<Uint8Array | null> => {
+      if (!this.storage) {
+        return null;
+      }
+      try {
+        const retrieved = await this.storage.retrieve(uri);
+        if (retrieved) {
+          return retrieved;
+        }
+        attempts.push(`storage miss: ${uri}`);
+      } catch (error) {
+        attempts.push(
+          `storage error: ${uri} (${error instanceof Error ? error.message : String(error)})`
+        );
+      }
+      return null;
+    };
+
+    // A concrete storage URI / http URL handed in directly.
     if (trimmed.includes("://") && !trimmed.startsWith("asset://")) {
-      uriCandidates.add(trimmed);
+      const direct = await tryStorageUri(trimmed);
+      if (direct) {
+        return { bytes: direct, attempts };
+      }
+      if (/^https?:\/\//.test(trimmed)) {
+        try {
+          const bytes = await this.downloadFile(trimmed, {
+            retry: { maxRetries: 1, backoffMs: 200 }
+          });
+          attempts.push(`downloaded: ${trimmed}`);
+          return { bytes, attempts };
+        } catch (error) {
+          attempts.push(
+            `http error: ${trimmed} (${error instanceof Error ? error.message : String(error)})`
+          );
+        }
+      }
+    }
+
+    if (this.storage) {
+      // Keys assets are written under: `<id>.<ext>` (uploads, at root) and
+      // `assets/<id>` (runtime-materialized refs).
+      for (const candidate of idCandidates) {
+        for (const key of [candidate, `assets/${candidate}`]) {
+          const bytes = await tryStorageUri(this.storage.uriForKey(key));
+          if (bytes) {
+            return { bytes, attempts };
+          }
+        }
+      }
+      // Extension-tolerant fallback: locate the stored file whose name starts
+      // with the id, since the URN extension may differ from the one on disk
+      // (e.g. jpeg vs jpg). Only reached when the exact-key lookups all miss.
+      //
+      // Try a narrow prefix first (S3 treats `list(bareId)` as a raw-string
+      // prefix match — bounded to a handful of entries) before falling back to
+      // a root listing for adapters that treat the prefix as a folder path
+      // (memory/supabase). Avoids `list("")` becoming a multi-thousand-object
+      // scan on production S3 backends.
+      const bareId = idCandidates[idCandidates.length - 1];
+      if (bareId) {
+        const tryListing = async (prefix: string): Promise<Uint8Array | null> => {
+          try {
+            const listing = await this.storage!.list(prefix);
+            const match = listing.entries.find((entry) => {
+              const base = entry.key.split("/").pop() ?? "";
+              return base.startsWith(`${bareId}.`) && !base.includes("_thumb");
+            });
+            if (match) {
+              return await tryStorageUri(match.uri);
+            }
+          } catch (error) {
+            attempts.push(
+              `storage list error (${error instanceof Error ? error.message : String(error)})`
+            );
+          }
+          return null;
+        };
+        for (const prefix of [bareId, ""]) {
+          const bytes = await tryListing(prefix);
+          if (bytes) {
+            return { bytes, attempts };
+          }
+        }
+      }
+    }
+
+    // HTTP fallback: the server streams bytes at `/api/storage/<key>`.
+    let baseUrl =
+      this.environment.NODETOOL_API_URL ??
+      process.env.NODETOOL_API_URL ??
+      "http://localhost:7777";
+    while (baseUrl.endsWith("/")) {
+      baseUrl = baseUrl.slice(0, -1);
     }
     for (const candidate of idCandidates) {
-      for (const prefix of ["memory://", "file://", "s3://"]) {
-        uriCandidates.add(`${prefix}${candidate}`);
-        uriCandidates.add(`${prefix}assets/${candidate}`);
+      if (!candidate.includes(".")) {
+        continue; // the storage route is keyed by filename (`<id>.<ext>`)
+      }
+      const url = `${baseUrl}/api/storage/${encodeURIComponent(candidate)}`;
+      try {
+        const bytes = await this.downloadFile(url, {
+          retry: { maxRetries: 1, backoffMs: 200 }
+        });
+        attempts.push(`downloaded: ${url}`);
+        return { bytes, attempts };
+      } catch (error) {
+        attempts.push(
+          `http miss: ${url} (${error instanceof Error ? error.message : String(error)})`
+        );
       }
     }
 
-    let bytes: Uint8Array | null = null;
-    if (this.storage) {
-      for (const uri of uriCandidates) {
-        try {
-          const retrieved = await this.storage.retrieve(uri);
-          if (retrieved) {
-            bytes = retrieved;
-            break;
-          }
-          resolutionAttempts.push(`storage miss: ${uri}`);
-        } catch (error) {
-          resolutionAttempts.push(
-            `storage error: ${uri} (${error instanceof Error ? error.message : String(error)})`
-          );
+    // Last resort: ask the asset API for metadata and follow its `get_url`.
+    // Handles bare ids (no extension, so the storage route can't be addressed
+    // directly) and backends that expose a single-asset metadata endpoint.
+    for (const candidate of idCandidates) {
+      try {
+        const metaResponse = await this.httpGet(
+          `${baseUrl}/api/assets/${encodeURIComponent(candidate)}`
+        );
+        const metadata = (await metaResponse.json()) as Record<string, unknown>;
+        const getUrl = metadata.get_url;
+        if (typeof getUrl === "string" && getUrl) {
+          const downloadUrl = getUrl.startsWith("/")
+            ? `${baseUrl}${getUrl}`
+            : getUrl;
+          const bytes = await this.downloadFile(downloadUrl, {
+            retry: { maxRetries: 1, backoffMs: 200 }
+          });
+          attempts.push(`downloaded: ${downloadUrl}`);
+          return { bytes, attempts };
         }
+        const uri = metadata.uri;
+        if (typeof uri === "string") {
+          const bytes = await tryStorageUri(uri);
+          if (bytes) {
+            return { bytes, attempts };
+          }
+        }
+      } catch (error) {
+        attempts.push(
+          `api lookup error for ${candidate}: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
 
-    if (!bytes) {
-      let baseUrl = (
-        this.environment.NODETOOL_API_URL ??
-        process.env.NODETOOL_API_URL ??
-        "http://localhost:7777"
-      );
-      while (baseUrl.endsWith("/")) {
-        baseUrl = baseUrl.slice(0, -1);
-      }
-      for (const candidate of idCandidates) {
-        try {
-          const metaResponse = await this.httpGet(
-            `${baseUrl}/api/assets/${encodeURIComponent(candidate)}`
-          );
-          const metadata = (await metaResponse.json()) as Record<string, unknown>;
-          const getUrl = metadata.get_url;
-          const uri = metadata.uri;
-          if (typeof getUrl === "string" && getUrl) {
-            const downloadUrl = getUrl.startsWith("/")
-              ? `${baseUrl}${getUrl}`
-              : getUrl;
-            bytes = await this.downloadFile(downloadUrl, {
-              retry: { maxRetries: 1, backoffMs: 200 }
-            });
-            resolutionAttempts.push(`downloaded: ${downloadUrl}`);
-            break;
-          }
-          if (typeof uri === "string" && this.storage) {
-            const retrieved = await this.storage.retrieve(uri);
-            if (retrieved) {
-              bytes = retrieved;
-              resolutionAttempts.push(`storage hit via metadata: ${uri}`);
-              break;
-            }
-            resolutionAttempts.push(`storage miss via metadata: ${uri}`);
-          }
-        } catch (error) {
-          resolutionAttempts.push(
-            `api lookup error for ${candidate}: ${error instanceof Error ? error.message : String(error)}`
-          );
-        }
-      }
-    }
+    return { bytes: null, attempts };
+  }
+
+  async assetToSandbox(assetId: string, path: string): Promise<string> {
+    const outputPath = this.resolveSandboxFilePath(path);
+    const { bytes, attempts } = await this.resolveAssetBytes(assetId);
 
     if (!bytes) {
       const details =
-        resolutionAttempts.length > 0
-          ? ` Attempts: ${resolutionAttempts.join("; ")}`
-          : "";
+        attempts.length > 0 ? ` Attempts: ${attempts.join("; ")}` : "";
       throw new Error(
         `Unable to resolve asset '${assetId}' to sandbox bytes.${details}`
       );
@@ -1648,7 +1884,7 @@ export class ProcessingContext {
 
   async sandboxToAsset(path: string): Promise<AssetRef> {
     const filePath = this.resolveSandboxFilePath(path);
-    const bytes = await readFile(filePath);
+    const bytes = (await readFile(filePath)) as Uint8Array;
     const contentType = ProcessingContext.guessMimeFromPath(filePath);
     const created = (await this.createAsset({
       name: basename(filePath),
@@ -1758,13 +1994,25 @@ export class ProcessingContext {
   }
 
   /**
-   * Resolve /api/storage/ URIs in message content to data URIs so providers
-   * can fetch them without needing a base URL.
+   * Retrieve raw bytes for a media URI referenced in message content. Handles
+   * the `asset://<id>` reference scheme (via {@link resolveAssetBytes}) as well
+   * as opaque storage URIs (memory/file/s3) via the storage adapter.
    */
-  private async resolveMessageMediaUris(
-    messages: Message[]
-  ): Promise<Message[]> {
-    if (!this.storage) return messages;
+  private async retrieveMediaBytes(uri: string): Promise<Uint8Array | null> {
+    if (uri.startsWith("asset://")) {
+      const { bytes } = await this.resolveAssetBytes(uri);
+      return bytes;
+    }
+    return this.storage ? await this.storage.retrieve(uri) : null;
+  }
+
+  /**
+   * Resolve non-data, non-http media URIs in message content to data URIs so
+   * providers can consume them directly. Covers `/api/storage/` and other
+   * storage URIs as well as the `asset://<id>` reference scheme (assets
+   * mentioned inline in a prompt).
+   */
+  async resolveMessageMediaUris(messages: Message[]): Promise<Message[]> {
     const resolved: Message[] = [];
     for (const msg of messages) {
       if (!Array.isArray(msg.content)) {
@@ -1779,7 +2027,7 @@ export class ProcessingContext {
           !part.image.uri.startsWith("data:") &&
           !part.image.uri.startsWith("http")
         ) {
-          const bytes = await this.storage.retrieve(part.image.uri);
+          const bytes = await this.retrieveMediaBytes(part.image.uri);
           if (bytes) {
             const ext = part.image.uri.split(".").pop()?.toLowerCase() ?? "png";
             const mime: Record<string, string> = {
@@ -1804,7 +2052,7 @@ export class ProcessingContext {
           !part.audio.uri.startsWith("data:") &&
           !part.audio.uri.startsWith("http")
         ) {
-          const bytes = await this.storage.retrieve(part.audio.uri);
+          const bytes = await this.retrieveMediaBytes(part.audio.uri);
           if (bytes) {
             const ext = part.audio.uri.split(".").pop()?.toLowerCase() ?? "mp3";
             const mime: Record<string, string> = {
@@ -1822,6 +2070,14 @@ export class ProcessingContext {
             });
             continue;
           }
+        }
+        if (part.type === "text" && part.text.includes("asset://")) {
+          // Inline any plain-text document mention (asset://doc.md, .txt, .csv …)
+          // as its decoded contents. Resolved here, at call time, so the stored
+          // thread message keeps the compact asset:// URI like media does.
+          const inlined = await inlineTextAssetRefs(part.text, this);
+          parts.push(inlined === part.text ? part : { type: "text", text: inlined });
+          continue;
         }
         parts.push(part);
       }
@@ -1894,6 +2150,45 @@ export class ProcessingContext {
           durationSeconds: params.duration_seconds as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
           resolution: params.resolution as string | undefined
+        });
+      case "upscale_image":
+        return provider.upscaleImage(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          scale: params.scale as number | undefined,
+          prompt: params.prompt as string | undefined,
+          creativity: params.creativity as number | undefined,
+          seed: params.seed as number | undefined
+        });
+      case "remove_background":
+        return provider.removeBackground(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider }
+        });
+      case "relight_image":
+        return provider.relightImage(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: params.prompt as string | undefined,
+          negativePrompt: params.negative_prompt as string | undefined,
+          seed: params.seed as number | undefined
+        });
+      case "vectorize_image":
+        return provider.vectorizeImage(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider }
+        });
+      case "video_to_video":
+        return provider.videoToVideo(params.video as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          prompt: params.prompt as string | undefined,
+          negativePrompt: params.negative_prompt as string | undefined,
+          strength: params.strength as number | undefined,
+          durationSeconds: params.duration_seconds as number | undefined,
+          resolution: params.resolution as string | undefined,
+          seed: params.seed as number | undefined
+        });
+      case "lip_sync":
+        return provider.lipSync(params.video as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          audio: params.audio as Uint8Array,
+          seed: params.seed as number | undefined
         });
       case "automatic_speech_recognition":
         return provider.automaticSpeechRecognition({
@@ -2113,12 +2408,17 @@ export class ProcessingContext {
   }
 
   private async materializeAsset(
-    asset: Record<string, unknown>,
+    rawAsset: Record<string, unknown>,
     mode: AssetOutputMode
   ): Promise<Record<string, unknown>> {
     if (mode === "native" || mode === "raw") {
-      return asset;
+      // In-process consumers handle the raw asset as-is (incl. raw RGBA).
+      return rawAsset;
     }
+
+    // Raw in-flight RGBA → encode to PNG up front so every downstream mode
+    // treats it as an ordinary image (correct mime, extension, and bytes).
+    const asset = (await encodeRawImageRef(rawAsset)) as Record<string, unknown>;
 
     const bytes = await this.getAssetBytes(asset);
     if (!bytes) return asset;
@@ -2126,10 +2426,10 @@ export class ProcessingContext {
     const mime = ProcessingContext.guessAssetMime(asset);
 
     if (mode === "data_uri") {
-      const encoded = Buffer.from(bytes).toString("base64");
+      const base64 = Buffer.from(bytes).toString("base64");
       return {
         ...asset,
-        uri: `data:${mime};base64,${encoded}`
+        uri: `data:${mime};base64,${base64}`
       };
     }
 

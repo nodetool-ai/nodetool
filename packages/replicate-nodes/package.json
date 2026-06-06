@@ -7,13 +7,13 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').cpSync('src/replicate-manifest.json', 'dist/replicate-manifest.json')\"",
-    "extract-manifest": "tsx scripts/extract-manifest.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/runtime": "*",
     "replicate": "*"
   },
   "devDependencies": {

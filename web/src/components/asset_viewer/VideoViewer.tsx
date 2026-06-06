@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
-import { Box } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { Text, Box } from "../ui_primitives";
 interface VideoViewerProps {
   asset?: Asset;
   url?: string;
@@ -31,10 +30,10 @@ const styles = () =>
     }
   });
 
-const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asset }) {
+const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asset, url }) {
   return (
     <Box className="video-viewer" css={styles()}>
-      <video controls={true} src={asset?.get_url || ""}>
+      <video controls={true} src={asset?.get_url || url || ""}>
         Your browser does not support the video element.
       </video>
       <Text size="big" color="secondary">

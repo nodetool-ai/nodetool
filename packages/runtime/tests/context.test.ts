@@ -14,6 +14,7 @@ import {
   type MessageCreateRequestLike
 } from "../src/context.js";
 import type { ProcessingMessage, NodeUpdate } from "@nodetool-ai/protocol";
+import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
 import { BaseProvider } from "../src/providers/base-provider.js";
 import type {
   Message,
@@ -58,6 +59,24 @@ describe("ProcessingContext – message queue", () => {
 
     expect(received).toHaveLength(1);
     expect(received[0].type).toBe("job_update");
+  });
+
+  it("supports multiple message listeners", () => {
+    const first: ProcessingMessage[] = [];
+    const second: ProcessingMessage[] = [];
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const unsubscribeFirst = ctx.addMessageListener((msg) => first.push(msg));
+    ctx.addMessageListener((msg) => second.push(msg));
+
+    ctx.emit({ type: "job_update", status: "running" });
+    unsubscribeFirst();
+    ctx.emit({ type: "job_update", status: "completed" });
+
+    expect(first.map((msg) => msg.type)).toEqual(["job_update"]);
+    expect(second.map((msg) => msg.type)).toEqual([
+      "job_update",
+      "job_update"
+    ]);
   });
 
   it("clearMessages empties the queue", () => {
@@ -521,6 +540,58 @@ describe("output normalization", () => {
     expect(await storage.exists(normalized.image.uri)).toBe(true);
   });
 
+  const rawImage = (w: number, h: number) => ({
+    type: "image",
+    mimeType: RAW_RGBA_MIME,
+    width: w,
+    height: h,
+    data: new Uint8Array(w * h * 4).fill(128)
+  });
+
+  it("encodes a raw-RGBA image to a PNG data URI", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "data_uri" });
+    const normalized = (await ctx.normalizeOutputValue({
+      image: rawImage(2, 2)
+    })) as { image: { uri: string; mimeType: string; data?: unknown } };
+
+    expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(true);
+    expect(normalized.image.mimeType).toBe("image/png");
+    // The base64 payload decodes to a real PNG (magic bytes \x89PNG).
+    const b64 = normalized.image.uri.split(",")[1];
+    const bytes = Buffer.from(b64, "base64");
+    expect([...bytes.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+  });
+
+  it("encodes a raw-RGBA image to PNG bytes in storage and drops raw data", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "storage_url",
+      storage
+    });
+    const normalized = (await ctx.normalizeOutputValue({
+      image: rawImage(3, 3)
+    })) as { image: { uri: string; mimeType: string; data?: unknown } };
+
+    expect(normalized.image.uri.endsWith(".png")).toBe(true);
+    expect(normalized.image.data).toBeUndefined();
+    const stored = await storage.retrieve(normalized.image.uri);
+    expect(stored).not.toBeNull();
+    expect([...(stored as Uint8Array).subarray(0, 4)]).toEqual([
+      0x89, 0x50, 0x4e, 0x47
+    ]);
+  });
+
+  it("keeps raw-RGBA untouched in native mode (in-process handoff)", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "native" });
+    const img = rawImage(2, 2);
+    const normalized = (await ctx.normalizeOutputValue({ image: img })) as {
+      image: { mimeType: string; data: Uint8Array };
+    };
+    expect(normalized.image.mimeType).toBe(RAW_RGBA_MIME);
+    expect(normalized.image.data).toBe(img.data);
+  });
+
   it("materializes asset refs to temp URLs via resolver", async () => {
     const storage = new InMemoryStorageAdapter();
     const ctx = new ProcessingContext({
@@ -598,6 +669,58 @@ describe("FileStorageAdapter", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("ProcessingContext.resolveAssetBytes", () => {
+  it("resolves an asset:// URN against the storage adapter (key <id>.<ext>)", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("abc123.png", new Uint8Array([7, 8, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://abc123.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
+  });
+
+  it("tolerates an extension mismatch between the URN and the stored file", async () => {
+    const storage = new InMemoryStorageAdapter();
+    // Stored as .jpg, but the prompt references .jpeg.
+    await storage.store("def456.jpg", new Uint8Array([1, 2]), "image/jpeg");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://def456.jpeg");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 2]));
+  });
+
+  it("does not return the thumbnail when resolving by id prefix", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("ghi789_thumb.jpg", new Uint8Array([9, 9]), "image/jpeg");
+    await storage.store("ghi789.webp", new Uint8Array([4, 5, 6]), "image/webp");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    // URN extension mismatches the stored file, forcing the prefix listing.
+    const { bytes } = await ctx.resolveAssetBytes("asset://ghi789.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([4, 5, 6]));
+  });
+
+  it("falls back to the /api/storage route when no adapter is configured", async () => {
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      environment: { NODETOOL_API_URL: "http://server.test" }
+    });
+    const payload = new Uint8Array([42, 43]);
+    const fetchSpy = vi
+      .spyOn(ctx as unknown as { _fetch: typeof fetch }, "_fetch")
+      .mockResolvedValue(
+        new Response(payload, { status: 200 }) as unknown as Response
+      );
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://zzz000.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(payload);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://server.test/api/storage/zzz000.png",
+      expect.objectContaining({ method: "GET" })
+    );
   });
 });
 
@@ -717,6 +840,79 @@ describe("ProcessingContext – asset helper methods", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+
+  it("resolveMessageMediaUris dereferences asset:// image URIs to data URIs", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nodetool-resolve-asset-media-"));
+    try {
+      const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        userId: "u1",
+        workspaceDir: root,
+        fetchFn: async (input: string | URL | Request) => {
+          const url = String(input);
+          if (url.endsWith("/api/assets/abc.png")) {
+            return new Response(
+              JSON.stringify({ id: "abc", get_url: "/api/storage/abc.png" }),
+              { status: 200, headers: { "content-type": "application/json" } }
+            );
+          }
+          if (url.endsWith("/api/storage/abc.png")) {
+            return new Response(pngBytes, {
+              status: 200,
+              headers: { "content-type": "image/png" }
+            });
+          }
+          return new Response("not found", { status: 404 });
+        }
+      });
+
+      const resolved = await ctx.resolveMessageMediaUris([
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "describe " },
+            {
+              type: "image_url",
+              image: { uri: "asset://abc.png", mimeType: "image/png" }
+            }
+          ]
+        }
+      ]);
+
+      const parts = resolved[0].content as Array<Record<string, any>>;
+      expect(parts[0]).toEqual({ type: "text", text: "describe " });
+      expect(parts[1].type).toBe("image_url");
+      expect(parts[1].image.uri).toBe(
+        `data:image/png;base64,${Buffer.from(pngBytes).toString("base64")}`
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("resolveMessageMediaUris inlines asset:// text documents into text parts", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store(
+      "brief.md",
+      new TextEncoder().encode("# Brief\nMake it cinematic."),
+      "text/markdown"
+    );
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const resolved = await ctx.resolveMessageMediaUris([
+      {
+        role: "user",
+        content: [{ type: "text", text: "follow asset://brief.md exactly" }]
+      }
+    ]);
+
+    const parts = resolved[0].content as Array<Record<string, any>>;
+    expect(parts[0]).toEqual({
+      type: "text",
+      text: "follow # Brief\nMake it cinematic. exactly"
+    });
   });
 });
 

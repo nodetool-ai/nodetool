@@ -20,9 +20,9 @@ export interface NpmRuntimePackageOptions {
   description: string;
   category: RuntimeCategory;
   versionRange: string;
-  /** Full npm install specs, e.g. ["@anthropic-ai/claude-agent-sdk@0.2.126"] */
+  /** Full npm install specs, e.g. ["@huggingface/transformers@3.0.0"] */
   npmPackages: string[];
-  /** Bare package names used for status / uninstall, e.g. ["@anthropic-ai/claude-agent-sdk"] */
+  /** Bare package names used for status / uninstall, e.g. ["@huggingface/transformers"] */
   packageNames: string[];
   approxSizeMB?: number;
   homepage?: string;
@@ -287,6 +287,3 @@ export class NpmRuntimePackage implements RuntimePackage {
     };
   }
 }
-
-/** Exported for tests / callers that need to ensure npm exists. */
-export const _internal = { resolveNpmExecutable };

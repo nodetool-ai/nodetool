@@ -7,6 +7,7 @@
  */
 
 import type { ProcessingContext } from "./context.js";
+import type { CorrelationLineage } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Streaming I/O interfaces (implemented by NodeInputs / NodeOutputs in kernel)
@@ -15,23 +16,91 @@ import type { ProcessingContext } from "./context.js";
 /**
  * Read-side interface for streaming input nodes.
  * Nodes call stream() or any() to consume incoming data.
+ *
+ * The `*WithEnvelope` variants expose correlation lineage and source edge
+ * ids; explicit join nodes (Zip/Cross) and forwarding nodes use them to
+ * preserve §3 lineage downstream.
  */
 export interface StreamingInputs {
   /** Yield items for a single handle until EOS. */
   stream(name: string): AsyncGenerator<unknown>;
+  /** Yield MessageEnvelopes for a single handle until EOS. §5. */
+  streamWithEnvelope(name: string): AsyncGenerator<MessageEnvelopeLike>;
   /** Yield [handle, item] tuples in arrival order across all handles. */
   any(): AsyncGenerator<[string, unknown]>;
+  /** Yield [handle, MessageEnvelope] tuples in arrival order. */
+  anyWithEnvelope(): AsyncGenerator<[string, MessageEnvelopeLike]>;
   /** Return the first available item for a handle, or default if EOS. */
   first(name: string, defaultValue?: unknown): Promise<unknown>;
+
+  /**
+   * Static scope (ordered iteration roots, outermost first) for a connected
+   * input handle. Returns `[]` if the handle has no static scope (constant /
+   * config edge), or if correlation analysis was not run.
+   *
+   * Used by join nodes (§7) to identify each side's differing iteration root
+   * and project to the common parent prefix.
+   */
+  scopeFor(handle: string): ReadonlyArray<string>;
+
+  /**
+   * The node's invocation scope — the largest non-empty input scope under the
+   * legacy comparable-prefix rule, or the longest common parent prefix on
+   * join nodes (§7). `[]` when analysis is off or the node has no inputs.
+   */
+  invocationScope(): ReadonlyArray<string>;
+}
+
+/**
+ * Minimal MessageEnvelope shape visible to nodes. Mirrors
+ * `kernel/inbox.MessageEnvelope` without forcing runtime to import kernel
+ * (kernel depends on runtime, not the other way around).
+ */
+export interface MessageEnvelopeLike {
+  data: unknown;
+  metadata: Record<string, unknown>;
+  timestamp: number;
+  event_id: string;
+  // Reuse the protocol's `CorrelationLineage` (a `Readonly<Record<...>>`)
+  // so node-visible envelopes are typed consistently with the on-wire
+  // shape and mutation is discouraged at the type level.
+  correlation_lineage: CorrelationLineage;
+  source_edge_id: string;
 }
 
 /**
  * Write-side interface for streaming output from within a run() method.
  * Nodes call emit() to push partial results downstream immediately.
+ *
+ * `forward` copies an envelope's correlation lineage onto the emitted value
+ * — essential for stream nodes that act as filters/passthroughs. `drop`
+ * sends `lineage_done` for the source key so downstream joins do not wait
+ * on a key that was deliberately not emitted. §5.
  */
 export interface StreamingOutputs {
   /** Emit a value to a named output slot. */
-  emit(slot: string, value: unknown): Promise<void>;
+  emit(slot: string, value: unknown, opts?: { lineage?: CorrelationLineage }): Promise<void>;
+  /**
+   * Emit a frame of grouped values atomically. Every sibling handle that
+   * shares an iteration group (same root id) receives the **same** minted
+   * token, so a Zip pair (`{ left, right, index }`) is one logical item
+   * downstream — not three independent items with different tokens. §1.
+   *
+   * Non-iteration handles in `values` inherit the supplied `opts.lineage`
+   * (or the actor's ambient invocation lineage if omitted).
+   */
+  emitGroup(
+    values: Record<string, unknown>,
+    opts?: { lineage?: CorrelationLineage }
+  ): Promise<void>;
+  /** Forward an envelope's lineage to `slot`. §5. */
+  forward(
+    slot: string,
+    envelope: MessageEnvelopeLike,
+    ...overrideValue: [] | [unknown]
+  ): Promise<void>;
+  /** Send `lineage_done` for `slot` at the envelope's projected key. §5. */
+  drop(slot: string, envelope: MessageEnvelopeLike): Promise<void>;
   /** Signal early end-of-stream for a specific output slot. */
   complete(slot: string): void;
 }

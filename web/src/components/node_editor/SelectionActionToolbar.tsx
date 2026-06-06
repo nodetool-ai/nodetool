@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { Box } from "@mui/material";
-import { Divider } from "../ui_primitives";
+import { Divider, FlexRow, ToolbarIconButton } from "../ui_primitives";
 import {
   AlignHorizontalLeft,
   AlignHorizontalCenter,
@@ -20,7 +19,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import { ToolbarIconButton } from "../ui_primitives";
 
 interface SelectionActionToolbarProps {
   visible: boolean;
@@ -46,9 +44,17 @@ const isDividerButton = (button: ButtonItem): button is DividerButton => {
   return button.divider === true;
 };
 
-const renderButton = (button: ActionButton, index: number, active?: boolean): React.ReactNode => (
+const actionButtonSx = {
+  width: 32,
+  height: 32,
+  "&.Mui-disabled": {
+    opacity: 0.4
+  }
+} as const;
+
+const renderButton = (button: ActionButton, _index: number, active?: boolean): React.ReactNode => (
   <ToolbarIconButton
-    key={`${button.slug}-${index}`}
+    key={button.slug}
     icon={button.icon}
     tooltip={getShortcutTooltip(button.slug, "both", "full", true)}
     onClick={button.action}
@@ -58,13 +64,7 @@ const renderButton = (button: ActionButton, index: number, active?: boolean): Re
     size="small"
     nodrag={true}
     tooltipPlacement="top"
-    sx={{
-      width: 32,
-      height: 32,
-      "&.Mui-disabled": {
-        opacity: 0.4
-      }
-    }}
+    sx={actionButtonSx}
   />
 );
 
@@ -225,11 +225,13 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   }
 
   return (
-    <Box
+    <FlexRow
       className="selection-action-toolbar"
       role="region"
       aria-label="Selection Action Toolbar"
       onKeyDown={handleKeyDown}
+      gap={0.5}
+      align="center"
       sx={{
         position: "absolute",
         bottom: "auto",
@@ -237,9 +239,6 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        gap: 0.5,
         padding: "6px 10px",
         backgroundColor: 'var(--palette-grey-800)',
         borderRadius: 2,
@@ -254,7 +253,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         const actionButton = button as ActionButton;
         return renderButton(actionButton, index);
       })}
-    </Box>
+    </FlexRow>
   );
 });
 

@@ -8,6 +8,7 @@
 import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { BlendMode, PushHistoryOptions, SketchDocument } from "../types";
+import { findMergeDownTargetIndex } from "../types";
 import { useSketchStore } from "../state";
 import { getMergeSelectedLayersPlan } from "../layerMergeSelection";
 
@@ -101,8 +102,49 @@ export function useLayerActions({
 
   const handleDuplicateLayer = useCallback(
     (layerId: string) => {
-      duplicateLayer(layerId);
-      pushHistory("duplicate layer");
+      // When the target is part of an explicit multi-layer selection,
+      // duplicate every selected layer in document order. The store's
+      // duplicateLayer inserts each clone directly above its source and
+      // clears `selectedLayerIds` per call, so we snapshot the selection
+      // up front and re-select the newly created layers afterwards so
+      // the user can keep operating on the duplicates as a group.
+      const { selectedLayerIds } = useSketchStore.getState();
+      const isMultiTarget =
+        selectedLayerIds.length >= 2 && selectedLayerIds.includes(layerId);
+      if (!isMultiTarget) {
+        duplicateLayer(layerId);
+        pushHistory("duplicate layer");
+        return;
+      }
+      const selectedSet = new Set(selectedLayerIds);
+      // Iterate top → bottom: each insertion happens at sourceIdx+1, and
+      // walking top-down means earlier insertions never shift indices of
+      // sources we still need to read by id (we read by id anyway, but
+      // this also keeps the resulting clones in the same relative order
+      // as the originals).
+      const orderedSources = useSketchStore
+        .getState()
+        .document.layers.filter((l) => selectedSet.has(l.id))
+        .map((l) => l.id);
+      const newIds: string[] = [];
+      for (let i = orderedSources.length - 1; i >= 0; i -= 1) {
+        const beforeIds = new Set(
+          useSketchStore.getState().document.layers.map((l) => l.id)
+        );
+        duplicateLayer(orderedSources[i]);
+        const afterLayers = useSketchStore.getState().document.layers;
+        const created = afterLayers.find((l) => !beforeIds.has(l.id));
+        if (created) {
+          newIds.push(created.id);
+        }
+      }
+      if (newIds.length >= 2) {
+        useSketchStore.setState({
+          selectedLayerIds: newIds,
+          layerShiftRangeAnchorId: newIds[0]
+        });
+      }
+      pushHistory("duplicate layers");
     },
     [pushHistory, duplicateLayer]
   );
@@ -232,17 +274,41 @@ export function useLayerActions({
     [handleFlipLayer]
   );
 
+  const handleRotate180 = useCallback(() => {
+    const layerId = document.activeLayerId;
+    if (!layerId || !canvasRef.current) {
+      return;
+    }
+    const layer = document.layers.find((l) => l.id === layerId);
+    if (!layer || layer.locked) {
+      return;
+    }
+    pushHistory("rotate 180");
+    canvasRef.current.rotateLayer180(layerId);
+    syncLayerDataFromCanvas(layerId);
+  }, [
+    document.activeLayerId,
+    document.layers,
+    pushHistory,
+    syncLayerDataFromCanvas,
+    canvasRef
+  ]);
+
   const handleMergeDown = useCallback(() => {
     const layers = document.layers;
-    const idx = layers.findIndex((l) => l.id === document.activeLayerId);
-    if (idx <= 0 || !canvasRef.current) {
+    const activeId = document.activeLayerId;
+    if (!activeId || !canvasRef.current) {
       return;
     }
-    const upper = layers[idx];
-    const lower = layers[idx - 1];
-    if (lower.locked) {
+    // Sibling-aware target: never merges into a parent group or across parents,
+    // never targets a locked layer. Mirrors the panel's `canMergeDown` so the
+    // disabled state and the action stay in sync.
+    const lowerIdx = findMergeDownTargetIndex(layers, activeId);
+    if (lowerIdx === -1) {
       return;
     }
+    const upper = layers[lowerIdx + 1];
+    const lower = layers[lowerIdx];
     // Merge is an explicit destructive bake flow: runtime rebases both layers
     // into document-space pixels, then the store drops the upper layer and keeps
     // the lower layer at identity transform/full document bounds.
@@ -341,11 +407,14 @@ export function useLayerActions({
         return;
       }
     }
-    const sorted = [...toRemove].sort(
-      (a, b) =>
-        document.layers.findIndex((l) => l.id === b) -
-        document.layers.findIndex((l) => l.id === a)
-    );
+    const toRemoveSet = new Set(toRemove);
+    const sorted: string[] = [];
+    for (let i = document.layers.length - 1; i >= 0; i--) {
+      const l = document.layers[i];
+      if (toRemoveSet.has(l.id)) {
+        sorted.push(l.id);
+      }
+    }
     for (const id of sorted) {
       removeLayer(id);
     }
@@ -392,6 +461,7 @@ export function useLayerActions({
     handleToggleExposedOutput,
     handleFlipHorizontal,
     handleFlipVertical,
+    handleRotate180,
     handleMergeDown,
     handleFlattenVisible,
     handleAddGroup,

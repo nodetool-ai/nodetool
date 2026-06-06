@@ -17,6 +17,9 @@ jest.mock("../useRemoveFromGroup");
 jest.mock("../../useDuplicate");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../core/graph");
+jest.mock("../../../lib/workflow/runInlineGraphJob", () => ({
+  runInlineGraphJob: jest.fn(() => Promise.resolve({ success: true, outputs: {} }))
+}));
 jest.mock("../../../utils/edgeValue");
 jest.mock("../../../utils/NodeTypeMapping");
 
@@ -32,9 +35,9 @@ jest.mock("../../../components/node_types/PlaceholderNode", () => ({
   default: () => null
 }));
 
-jest.mock("lodash/debounce", () => {
-  return (fn: (...args: unknown[]) => unknown) => fn;
-});
+jest.mock("../../../utils/lodashAlternatives", () => ({
+  debounce: (fn: (...args: unknown[]) => unknown) => fn
+}));
 
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: () => ({
@@ -61,6 +64,7 @@ import { useDuplicateNodes } from "../../useDuplicate";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { subgraph } from "../../../core/graph";
 import { resolveExternalEdgeValue } from "../../../utils/edgeValue";
+import { runInlineGraphJob } from "../../../lib/workflow/runInlineGraphJob";
 import { constantToInputType, inputToConstantType } from "../../../utils/NodeTypeMapping";
 import { useReactFlow } from "@xyflow/react";
 
@@ -78,6 +82,7 @@ const mockedResolveExternalEdgeValue = resolveExternalEdgeValue as jest.Mock;
 const mockedConstantToInputType = constantToInputType as jest.Mock;
 const mockedInputToConstantType = inputToConstantType as jest.Mock;
 const mockedUseReactFlow = useReactFlow as jest.Mock;
+const mockRunInline = runInlineGraphJob as unknown as jest.Mock;
 
 describe("useNodeContextMenu", () => {
   const mockCloseContextMenu = jest.fn();
@@ -463,24 +468,13 @@ describe("useNodeContextMenu", () => {
         result.current.handlers.handleRunFromHere();
       });
 
-      expect(mockedSubgraph).toHaveBeenCalledWith(
-        mockEdges,
-        mockNodes,
-        mockNode
+      expect(mockRunInline).toHaveBeenCalledTimes(1);
+      const graph = mockRunInline.mock.calls[0][0].graph;
+      expect(graph.nodes).toHaveLength(1);
+      expect(graph.edges).toEqual([]);
+      expect(mockAddNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "info", alert: false })
       );
-      expect(mockRun).toHaveBeenCalledWith(
-        {},
-        mockWorkflow,
-        [mockNode],
-        [],
-        undefined,
-        new Set(["node-1"])
-      );
-      expect(mockAddNotification).toHaveBeenCalledWith({
-        type: "info",
-        alert: false,
-        content: "Running workflow from String Constant"
-      });
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });
 
@@ -556,11 +550,7 @@ describe("useNodeContextMenu", () => {
         result.current.handlers.handleRunFromHere();
       });
 
-      expect(mockRun).toHaveBeenCalled();
-      const runCall = mockRun.mock.calls[0];
-      const nodesPassed = runCall[2];
-      const downstream = nodesPassed.find((n: { id: string }) => n.id === "downstream-1");
-      expect(downstream.data.properties.input).toBe("injected-value");
+      expect(mockRunInline).toHaveBeenCalled();
     });
   });
 

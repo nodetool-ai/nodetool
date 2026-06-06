@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { Box } from "@mui/material";
-import { EditorButton } from "../../ui_primitives";
+import { EditorButton, FlexColumn, FlexRow, Box } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -15,7 +14,7 @@ import ModelListHeader from "./ModelListHeader";
 import ModelTypeSidebar from "./ModelTypeSidebar";
 import DeleteModelDialog from "./DeleteModelDialog";
 import { prettifyModelType } from "../../../utils/modelFormatting";
-import { IconForType } from "../../../config/data_types";
+import { IconForType } from "../../../config/IconForType";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
 import ModelsRightSidebar from "./ModelsRightSidebar";
@@ -79,7 +78,7 @@ const styles = (theme: Theme) =>
     },
     ".model-list-header button": {
       padding: ".4em 1em",
-      fontSize: "0.9rem"
+      fontSize: "var(--fontSizeNormal)"
     },
     "& .model-type-button": {
       padding: "0.25em 1em",
@@ -120,7 +119,7 @@ const styles = (theme: Theme) =>
       borderLeft: `1px solid ${theme.vars.palette.divider}`
     },
     ".model-list-section": {
-      marginBottom: theme.spacing(5)
+      marginBottom: theme.spacing(6)
     }
   });
 
@@ -209,7 +208,7 @@ const ModelListIndex: React.FC = () => {
     getScrollElement: () => scrollRef.current,
     estimateSize: (index) =>
       flattenedList[index]?.type === "header" ? 48 : 168,
-    overscan: 5,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => {
       const item = flattenedList[index];
       return item.type === "header"
@@ -312,17 +311,13 @@ const ModelListIndex: React.FC = () => {
     const isOllamaError = errorMessage.toLowerCase().includes("ollama");
 
     return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          gap: 2,
-          p: 4,
-          textAlign: "center"
-        }}
+      <FlexColumn
+        gap={2}
+        align="center"
+        justify="center"
+        fullHeight
+        padding={4}
+        sx={{ textAlign: "center" }}
       >
         <Text size="big" color="error">
           Could not load models
@@ -334,7 +329,7 @@ const ModelListIndex: React.FC = () => {
           {errorMessage}
         </Text>
         {isOllamaError && (
-          <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+          <FlexColumn gap={1} sx={{ mt: 1 }}>
             {isElectron ? (
               <Text size="small" color="warning">
                 Ollama should be running automatically. Please try restarting
@@ -352,9 +347,9 @@ const ModelListIndex: React.FC = () => {
                 Download Ollama →
               </Text>
             )}
-          </Box>
+          </FlexColumn>
         )}
-      </Box>
+      </FlexColumn>
     );
   }
 
@@ -384,13 +379,12 @@ const ModelListIndex: React.FC = () => {
             </Text>
           )}
           {selectedModelType !== "All" && (
-            <Box
+            <FlexRow
+              gap={2}
+              align="flex-start"
               sx={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 2,
                 pt: 1,
-                pb: 2.5,
+                pb: 3,
                 mb: 1,
                 borderBottom: `1px solid ${theme.vars.palette.divider}`
               }}
@@ -422,7 +416,7 @@ const ModelListIndex: React.FC = () => {
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Text size="bigger" weight={700} sx={{ fontSize: "1.5em", lineHeight: 1.2 }}>
+                <Text size="bigger" weight={600} sx={{ fontSize: "1.5em", lineHeight: 1.2 }}>
                   {prettifyModelType(selectedModelType)}
                 </Text>
                 <Text
@@ -434,7 +428,7 @@ const ModelListIndex: React.FC = () => {
                   {filteredModels.length === 1 ? "" : "s"} in this category
                 </Text>
               </Box>
-            </Box>
+            </FlexRow>
           )}
           {flattenedList.length > 0 ? (
             <div
@@ -519,14 +513,12 @@ const ModelListIndex: React.FC = () => {
               </div>
             </div>
           ) : (
-            <Box
+            <FlexColumn
+              gap={2}
+              align="center"
+              justify="center"
               sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
                 height: "50%",
-                gap: 2,
                 opacity: 0.7
               }}
             >
@@ -571,7 +563,7 @@ const ModelListIndex: React.FC = () => {
                   </Text>
                 </>
               )}
-            </Box>
+            </FlexColumn>
           )}
 
           <DeleteModelDialog

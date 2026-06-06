@@ -12,8 +12,8 @@ export interface GetWorkspaceDirOutputs {
   output: string;
 }
 
-export function getWorkspaceDir(inputs: GetWorkspaceDirInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetWorkspaceDirOutputs, "output"> {
-  return createNode("nodetool.workspace.GetWorkspaceDir", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function getWorkspaceDir(inputs: GetWorkspaceDirInputs): DslNode<GetWorkspaceDirOutputs, "output"> {
+  return createNode("nodetool.workspace.GetWorkspaceDir", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // List Workspace Files — nodetool.workspace.ListWorkspaceFiles
@@ -28,8 +28,8 @@ export interface ListWorkspaceFilesOutputs {
   files: unknown[];
 }
 
-export function listWorkspaceFiles(inputs: ListWorkspaceFilesInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ListWorkspaceFilesOutputs> {
-  return createNode("nodetool.workspace.ListWorkspaceFiles", inputs as Record<string, unknown>, { outputNames: ["file", "files"], streaming: true, ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function listWorkspaceFiles(inputs: ListWorkspaceFilesInputs): DslNode<ListWorkspaceFilesOutputs> {
+  return createNode("nodetool.workspace.ListWorkspaceFiles", inputs as Record<string, unknown>, { outputNames: ["file", "files"], streaming: true });
 }
 
 // Read Text File — nodetool.workspace.ReadTextFile
@@ -42,8 +42,8 @@ export interface ReadTextFileOutputs {
   output: string;
 }
 
-export function readTextFile(inputs: ReadTextFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ReadTextFileOutputs, "output"> {
-  return createNode("nodetool.workspace.ReadTextFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function readTextFile(inputs: ReadTextFileInputs): DslNode<ReadTextFileOutputs, "output"> {
+  return createNode("nodetool.workspace.ReadTextFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Write Text File — nodetool.workspace.WriteTextFile
@@ -58,8 +58,8 @@ export interface WriteTextFileOutputs {
   output: string;
 }
 
-export function writeTextFile(inputs: WriteTextFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<WriteTextFileOutputs, "output"> {
-  return createNode("nodetool.workspace.WriteTextFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function writeTextFile(inputs: WriteTextFileInputs): DslNode<WriteTextFileOutputs, "output"> {
+  return createNode("nodetool.workspace.WriteTextFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Read Binary File — nodetool.workspace.ReadBinaryFile
@@ -71,8 +71,8 @@ export interface ReadBinaryFileOutputs {
   output: string;
 }
 
-export function readBinaryFile(inputs: ReadBinaryFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<ReadBinaryFileOutputs, "output"> {
-  return createNode("nodetool.workspace.ReadBinaryFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function readBinaryFile(inputs: ReadBinaryFileInputs): DslNode<ReadBinaryFileOutputs, "output"> {
+  return createNode("nodetool.workspace.ReadBinaryFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Write Binary File — nodetool.workspace.WriteBinaryFile
@@ -85,8 +85,8 @@ export interface WriteBinaryFileOutputs {
   output: string;
 }
 
-export function writeBinaryFile(inputs: WriteBinaryFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<WriteBinaryFileOutputs, "output"> {
-  return createNode("nodetool.workspace.WriteBinaryFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function writeBinaryFile(inputs: WriteBinaryFileInputs): DslNode<WriteBinaryFileOutputs, "output"> {
+  return createNode("nodetool.workspace.WriteBinaryFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Delete Workspace File — nodetool.workspace.DeleteWorkspaceFile
@@ -99,8 +99,8 @@ export interface DeleteWorkspaceFileOutputs {
   output: unknown;
 }
 
-export function deleteWorkspaceFile(inputs: DeleteWorkspaceFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<DeleteWorkspaceFileOutputs, "output"> {
-  return createNode("nodetool.workspace.DeleteWorkspaceFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function deleteWorkspaceFile(inputs: DeleteWorkspaceFileInputs): DslNode<DeleteWorkspaceFileOutputs, "output"> {
+  return createNode("nodetool.workspace.DeleteWorkspaceFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Create Workspace Directory — nodetool.workspace.CreateWorkspaceDirectory
@@ -112,8 +112,8 @@ export interface CreateWorkspaceDirectoryOutputs {
   output: string;
 }
 
-export function createWorkspaceDirectory(inputs: CreateWorkspaceDirectoryInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CreateWorkspaceDirectoryOutputs, "output"> {
-  return createNode("nodetool.workspace.CreateWorkspaceDirectory", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function createWorkspaceDirectory(inputs: CreateWorkspaceDirectoryInputs): DslNode<CreateWorkspaceDirectoryOutputs, "output"> {
+  return createNode("nodetool.workspace.CreateWorkspaceDirectory", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Workspace File Exists — nodetool.workspace.WorkspaceFileExists
@@ -125,8 +125,8 @@ export interface WorkspaceFileExistsOutputs {
   output: boolean;
 }
 
-export function workspaceFileExists(inputs: WorkspaceFileExistsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<WorkspaceFileExistsOutputs, "output"> {
-  return createNode("nodetool.workspace.WorkspaceFileExists", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function workspaceFileExists(inputs: WorkspaceFileExistsInputs): DslNode<WorkspaceFileExistsOutputs, "output"> {
+  return createNode("nodetool.workspace.WorkspaceFileExists", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Get Workspace File Info — nodetool.workspace.GetWorkspaceFileInfo
@@ -138,8 +138,8 @@ export interface GetWorkspaceFileInfoOutputs {
   output: Record<string, unknown>;
 }
 
-export function getWorkspaceFileInfo(inputs: GetWorkspaceFileInfoInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetWorkspaceFileInfoOutputs, "output"> {
-  return createNode("nodetool.workspace.GetWorkspaceFileInfo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function getWorkspaceFileInfo(inputs: GetWorkspaceFileInfoInputs): DslNode<GetWorkspaceFileInfoOutputs, "output"> {
+  return createNode("nodetool.workspace.GetWorkspaceFileInfo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Copy Workspace File — nodetool.workspace.CopyWorkspaceFile
@@ -152,8 +152,8 @@ export interface CopyWorkspaceFileOutputs {
   output: string;
 }
 
-export function copyWorkspaceFile(inputs: CopyWorkspaceFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<CopyWorkspaceFileOutputs, "output"> {
-  return createNode("nodetool.workspace.CopyWorkspaceFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function copyWorkspaceFile(inputs: CopyWorkspaceFileInputs): DslNode<CopyWorkspaceFileOutputs, "output"> {
+  return createNode("nodetool.workspace.CopyWorkspaceFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Move Workspace File — nodetool.workspace.MoveWorkspaceFile
@@ -166,8 +166,8 @@ export interface MoveWorkspaceFileOutputs {
   output: string;
 }
 
-export function moveWorkspaceFile(inputs: MoveWorkspaceFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<MoveWorkspaceFileOutputs, "output"> {
-  return createNode("nodetool.workspace.MoveWorkspaceFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function moveWorkspaceFile(inputs: MoveWorkspaceFileInputs): DslNode<MoveWorkspaceFileOutputs, "output"> {
+  return createNode("nodetool.workspace.MoveWorkspaceFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Get Workspace File Size — nodetool.workspace.GetWorkspaceFileSize
@@ -179,8 +179,8 @@ export interface GetWorkspaceFileSizeOutputs {
   output: number;
 }
 
-export function getWorkspaceFileSize(inputs: GetWorkspaceFileSizeInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<GetWorkspaceFileSizeOutputs, "output"> {
-  return createNode("nodetool.workspace.GetWorkspaceFileSize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function getWorkspaceFileSize(inputs: GetWorkspaceFileSizeInputs): DslNode<GetWorkspaceFileSizeOutputs, "output"> {
+  return createNode("nodetool.workspace.GetWorkspaceFileSize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Is Workspace File — nodetool.workspace.IsWorkspaceFile
@@ -192,8 +192,8 @@ export interface IsWorkspaceFileOutputs {
   output: boolean;
 }
 
-export function isWorkspaceFile(inputs: IsWorkspaceFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IsWorkspaceFileOutputs, "output"> {
-  return createNode("nodetool.workspace.IsWorkspaceFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function isWorkspaceFile(inputs: IsWorkspaceFileInputs): DslNode<IsWorkspaceFileOutputs, "output"> {
+  return createNode("nodetool.workspace.IsWorkspaceFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Is Workspace Directory — nodetool.workspace.IsWorkspaceDirectory
@@ -205,8 +205,8 @@ export interface IsWorkspaceDirectoryOutputs {
   output: boolean;
 }
 
-export function isWorkspaceDirectory(inputs: IsWorkspaceDirectoryInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<IsWorkspaceDirectoryOutputs, "output"> {
-  return createNode("nodetool.workspace.IsWorkspaceDirectory", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function isWorkspaceDirectory(inputs: IsWorkspaceDirectoryInputs): DslNode<IsWorkspaceDirectoryOutputs, "output"> {
+  return createNode("nodetool.workspace.IsWorkspaceDirectory", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Join Workspace Paths — nodetool.workspace.JoinWorkspacePaths
@@ -218,8 +218,8 @@ export interface JoinWorkspacePathsOutputs {
   output: string;
 }
 
-export function joinWorkspacePaths(inputs: JoinWorkspacePathsInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<JoinWorkspacePathsOutputs, "output"> {
-  return createNode("nodetool.workspace.JoinWorkspacePaths", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function joinWorkspacePaths(inputs: JoinWorkspacePathsInputs): DslNode<JoinWorkspacePathsOutputs, "output"> {
+  return createNode("nodetool.workspace.JoinWorkspacePaths", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Image File — nodetool.workspace.SaveImageFile
@@ -234,8 +234,8 @@ export interface SaveImageFileOutputs {
   output: ImageRef;
 }
 
-export function saveImageFile(inputs: SaveImageFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SaveImageFileOutputs, "output"> {
-  return createNode("nodetool.workspace.SaveImageFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function saveImageFile(inputs: SaveImageFileInputs): DslNode<SaveImageFileOutputs, "output"> {
+  return createNode("nodetool.workspace.SaveImageFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Video File — nodetool.workspace.SaveVideoFile
@@ -250,6 +250,6 @@ export interface SaveVideoFileOutputs {
   output: VideoRef;
 }
 
-export function saveVideoFile(inputs: SaveVideoFileInputs, overrides?: { syncMode?: "zip_all" | "on_any" }): DslNode<SaveVideoFileOutputs, "output"> {
-  return createNode("nodetool.workspace.SaveVideoFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", ...(overrides?.syncMode ? { syncMode: overrides.syncMode } : {}) });
+export function saveVideoFile(inputs: SaveVideoFileInputs): DslNode<SaveVideoFileOutputs, "output"> {
+  return createNode("nodetool.workspace.SaveVideoFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

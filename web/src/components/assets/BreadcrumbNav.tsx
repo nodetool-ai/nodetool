@@ -41,11 +41,11 @@ const styles = (theme: Theme) =>
     },
     ".breadcrumb-separator": {
       color: theme.vars.palette.grey[600],
-      fontSize: "1rem",
+      fontSize: "var(--fontSizeNormal)",
       flexShrink: 0
     },
     ".breadcrumb-home": {
-      fontSize: "1rem",
+      fontSize: "var(--fontSizeNormal)",
       verticalAlign: "middle"
     }
   });
@@ -80,7 +80,7 @@ function buildBreadcrumbPath(
   };
 
   // folderTree values are root-level nodes
-  const rootNodes = Object.values(folderTree) as AssetTreeNode[];
+  const rootNodes = Object.values(folderTree);
   traverse(rootNodes, rootId);
 
   // Walk up from current folder to root

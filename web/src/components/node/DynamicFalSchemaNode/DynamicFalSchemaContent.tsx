@@ -1,6 +1,5 @@
 import React, { memo } from "react";
-import { Box } from "@mui/material";
-import { Text, Caption, FlexColumn } from "../../ui_primitives";
+import { Text, Caption, FlexColumn, Box } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
@@ -64,14 +63,12 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
               </Caption>
             </Box>
           )}
-          <Box
+          <FlexColumn
             className="dynamic-fal-schema-inputs"
             sx={{
               flex: "1 1 auto",
               minHeight: 80,
               overflow: "visible",
-              display: "flex",
-              flexDirection: "column",
               // Force properties, labels, handles and input controls visible (override zoom/other CSS)
               visibility: "visible",
               "& .node-inputs": {
@@ -117,13 +114,12 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
               data={data}
               showHandle={!isConstantNode}
             />
-          </Box>
+          </FlexColumn>
           {!isOutputNode && (
             <Box sx={{ flexShrink: 0 }}>
               <NodeOutputs
                 id={id}
                 outputs={nodeMetadata.outputs}
-                isStreamingOutput={nodeMetadata.is_streaming_output}
               />
             </Box>
           )}
@@ -136,7 +132,7 @@ export const DynamicFalSchemaContent: React.FC<DynamicFalSchemaContentProps> =
               flexShrink: 0,
               mt: 0.5,
               px: 1,
-              py: 0.25,
+              py: 0.5,
               borderTop: 1,
               borderColor: "divider"
             }}

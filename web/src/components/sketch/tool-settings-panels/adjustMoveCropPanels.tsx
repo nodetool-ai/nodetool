@@ -1,14 +1,12 @@
 import React, { memo } from "react";
 import {
-  Box,
   Button,
   Checkbox,
   FormControlLabel,
   Slider,
-  IconButton,
-  Tooltip,
-  Typography
+  IconButton
 } from "@mui/material";
+import { FlexRow, Box, Text, Tooltip } from "../../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -48,7 +46,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
   return (
     <>
       <Box className="setting-row">
-        <Typography className="setting-label">Bright</Typography>
+        <Text className="setting-label">Bright</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -57,10 +55,10 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
           value={brightness}
           onChange={(_, v) => onBrightnessChange(v as number)}
         />
-        <Typography className="setting-value">{brightness}</Typography>
+        <Text className="setting-value">{brightness}</Text>
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">Contrast</Typography>
+        <Text className="setting-label">Contrast</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -69,10 +67,10 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
           value={contrast}
           onChange={(_, v) => onContrastChange(v as number)}
         />
-        <Typography className="setting-value">{contrast}</Typography>
+        <Text className="setting-value">{contrast}</Text>
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">Satur.</Typography>
+        <Text className="setting-label">Satur.</Text>
         <Slider
           sx={sketchSliderSx}
           size="small"
@@ -81,9 +79,9 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
           value={saturation}
           onChange={(_, v) => onSaturationChange(v as number)}
         />
-        <Typography className="setting-value">{saturation}</Typography>
+        <Text className="setting-value">{saturation}</Text>
       </Box>
-      <Box sx={{ display: "flex", gap: 0.5 }}>
+      <FlexRow gap={0.5}>
         <Button
           size="small"
           variant="outlined"
@@ -103,7 +101,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
         >
           Cancel
         </Button>
-      </Box>
+      </FlexRow>
     </>
   );
 });
@@ -128,11 +126,11 @@ export const MoveSettingsPanel = memo(function MoveSettingsPanel({
         />
       }
       label={
-        <Typography
-          sx={{ ...SKETCH_FONT, fontSize: "0.75rem", userSelect: "none" }}
+        <Text
+          sx={{ ...SKETCH_FONT, fontSize: "var(--fontSizeSmall)", userSelect: "none" }}
         >
           Auto-Select
-        </Typography>
+        </Text>
       }
       sx={{ mr: 2, ml: 0 }}
     />
@@ -177,16 +175,16 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           />
         }
         label={
-          <Typography
-            sx={{ ...SKETCH_FONT, fontSize: "0.75rem", userSelect: "none" }}
+          <Text
+            sx={{ ...SKETCH_FONT, fontSize: "var(--fontSizeSmall)", userSelect: "none" }}
           >
             Auto-Select
-          </Typography>
+          </Text>
         }
         sx={{ mr: 2, ml: 0 }}
       />
       <Box className="setting-row">
-        <Typography className="setting-label">Mode</Typography>
+        <Text className="setting-label">Mode</Text>
         <SketchModeToggle
           value={mode}
           onChange={(_, nextMode: TransformMode | null) => {
@@ -212,22 +210,22 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         </SketchModeToggle>
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">Scale X</Typography>
-        <Typography className="setting-value">
+        <Text className="setting-label">Scale X</Text>
+        <Text className="setting-value">
           {(scaleX * 100).toFixed(0)}%
-        </Typography>
+        </Text>
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">Scale Y</Typography>
-        <Typography className="setting-value">
+        <Text className="setting-label">Scale Y</Text>
+        <Text className="setting-value">
           {(scaleY * 100).toFixed(0)}%
-        </Typography>
+        </Text>
       </Box>
       <Box className="setting-row">
-        <Typography className="setting-label">Rotation</Typography>
-        <Typography className="setting-value">{rotDeg}°</Typography>
+        <Text className="setting-label">Rotation</Text>
+        <Text className="setting-value">{rotDeg}°</Text>
       </Box>
-      <Box sx={{ display: "flex", gap: "2px", ml: 1 }}>
+      <FlexRow sx={{ gap: "2px", ml: 1 }}>
         <Tooltip title="Commit (Enter)" placement="bottom">
           <IconButton
             size="small"
@@ -260,16 +258,16 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
             <RestartAltIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
-      </Box>
+      </FlexRow>
     </>
   );
 });
 
 export const NoSettingsMessage = memo(function NoSettingsMessage() {
   return (
-    <Typography sx={{ ...sketchHintTextSx }}>
+    <Text sx={{ ...sketchHintTextSx }}>
       No settings for this tool.
-    </Typography>
+    </Text>
   );
 });
 
@@ -284,11 +282,11 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
 }) {
   return (
     <>
-      <Typography sx={{ ...sketchHintTextSx }}>
+      <Text sx={{ ...sketchHintTextSx }}>
         Drag to outline the crop. Drag edges or corners to adjust. Press Enter
         or Apply to crop the canvas.
-      </Typography>
-      <Box sx={{ display: "flex", gap: "2px", ml: 1 }}>
+      </Text>
+      <FlexRow sx={{ gap: "2px", ml: 1 }}>
         <Tooltip title="Apply crop (Enter)" placement="bottom">
           <IconButton
             size="small"
@@ -311,7 +309,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
             <CloseIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
-      </Box>
+      </FlexRow>
     </>
   );
 });

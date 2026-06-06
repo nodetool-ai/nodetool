@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
 import type {
   ImageModel,
   LanguageModel,
@@ -7,10 +8,10 @@ import type {
   ASRModel,
   VideoModel
 } from "./ApiTypes";
-import Fuse from "fuse.js";
 import useModelPreferencesStore from "./ModelPreferencesStore";
 import React from "react";
 import { useSecrets } from "../hooks/useSecrets";
+import { rankModels } from "../utils/modelRanking";
 
 type SidebarTab = "favorites" | "recent";
 
@@ -18,20 +19,12 @@ export type EnabledProvidersMap = Record<string, boolean>;
 
 export interface ModelSelectorModel {
   type: string;
-  provider: string;
+  provider: ProviderId;
   id: string;
   name: string;
   path?: string | null;
   supported_tasks?: string[];
 }
-
-export type ModelType =
-  | LanguageModel
-  | ImageModel
-  | TTSModel
-  | ASRModel
-  | VideoModel
-  | EmbeddingModel;
 
 interface ModelMenuState<
   TModel extends ModelSelectorModel = LanguageModel
@@ -65,28 +58,33 @@ const isAkiProviderIdentifier = (provider: string): boolean => {
   }
 };
 
-export const requiredSecretForProvider = (provider?: string): string | null => {
+export const requiredSecretForProvider = (
+  provider?: ProviderId
+): string | null => {
   const p = (provider || "").toLowerCase();
-  if (p.includes("openai")) {return "OPENAI_API_KEY";}
-  if (p.includes("anthropic")) {return "ANTHROPIC_API_KEY";}
-  if (p.includes("gemini") || p.includes("google")) {return "GEMINI_API_KEY";}
-  if (p.includes("meshy")) {return "MESHY_API_KEY";}
-  if (p.includes("rodin")) {return "RODIN_API_KEY";}
+  // Canonical IDs come from PROVIDER_IDS; the extra literals below ("google",
+  // "fal", "kimi", "hf_", 3D providers, …) are aliases / Python-side IDs that
+  // aren't part of the TS provider registry but still map to a secret.
+  if (p.includes(PROVIDER_IDS.OPENAI)) {return "OPENAI_API_KEY";}
+  if (p.includes(PROVIDER_IDS.ANTHROPIC)) {return "ANTHROPIC_API_KEY";}
+  if (p.includes(PROVIDER_IDS.GEMINI) || p.includes("google")) {return "GEMINI_API_KEY";}
+  if (p.includes(PROVIDER_IDS.MESHY)) {return "MESHY_API_KEY";}
+  if (p.includes(PROVIDER_IDS.RODIN)) {return "RODIN_API_KEY";}
   if (p.includes("trellis")) {return "TRELLIS_API_KEY";}
   if (p.includes("tripo")) {return "TRIPO_API_KEY";}
   if (p.includes("hunyuan3d")) {return "HUNYUAN3D_API_KEY";}
   if (p.includes("shap_e") || p.includes("shap-e")) {return "SHAP_E_API_KEY";}
   if (p.includes("point_e") || p.includes("point-e")) {return "POINT_E_API_KEY";}
-  if (p.includes("huggingface") || p.includes("hf_")) {return "HF_TOKEN";}
-  if (p.includes("replicate")) {return "REPLICATE_API_TOKEN";}
+  if (p.includes(PROVIDER_IDS.HUGGINGFACE) || p.includes("hf_")) {return "HF_TOKEN";}
+  if (p.includes(PROVIDER_IDS.REPLICATE)) {return "REPLICATE_API_TOKEN";}
   if (p.includes("fal")) {return "FAL_API_KEY";}
   if (p.includes("aime")) {return "AIME_API_KEY";}
-  if (p.includes("moonshot") || p.includes("kimi")) {return "KIMI_API_KEY";}
-  if (p.includes("minimax")) {return "MINIMAX_API_KEY";}
-  if (p.includes("together")) {return "TOGETHER_API_KEY";}
-  if (p === "cohere") {return "COHERE_API_KEY";}
-  if (p === "voyage" || p === "voyage-ai" || p === "voyageai") {return "VOYAGE_API_KEY";}
-  if (p === "jina" || p === "jina-ai" || p === "jinaai") {return "JINA_API_KEY";}
+  if (p.includes(PROVIDER_IDS.MOONSHOT) || p.includes("kimi")) {return "KIMI_API_KEY";}
+  if (p.includes(PROVIDER_IDS.MINIMAX)) {return "MINIMAX_API_KEY";}
+  if (p.includes(PROVIDER_IDS.TOGETHER)) {return "TOGETHER_API_KEY";}
+  if (p === PROVIDER_IDS.COHERE) {return "COHERE_API_KEY";}
+  if (p === PROVIDER_IDS.VOYAGE || p === "voyage-ai" || p === "voyageai") {return "VOYAGE_API_KEY";}
+  if (p === PROVIDER_IDS.JINA || p === "jina-ai" || p === "jinaai") {return "JINA_API_KEY";}
   if (isAkiProviderIdentifier(p)) {return "AKI_API_KEY";}
   return null;
 };
@@ -110,68 +108,23 @@ export const computeProvidersList = <TModel extends ModelSelectorModel>(
   return list;
 };
 
+export interface FilterModelsOptions {
+  recentKeys?: readonly string[];
+  favoriteKeys?: Iterable<string>;
+}
+
 export const filterModelsList = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
   selectedProvider: string | null,
   search: string,
-  enabledProviders: EnabledProvidersMap | undefined
+  enabledProviders: EnabledProvidersMap | undefined,
+  options: FilterModelsOptions = {}
 ): TModel[] => {
-  let list = models ?? [];
-
-  if (selectedProvider) {
-    if (/gemini|google/i.test(selectedProvider)) {
-      list = list.filter((m) => /gemini|google/i.test(m.provider || ""));
-    } else {
-      list = list.filter((m) => m.provider === selectedProvider);
-    }
-  }
-  if (!selectedProvider) {
-    // Filter by enabled providers: missing key means enabled (default true)
-    // Only filter out if explicitly set to false
-    list = list.filter((m) => {
-      const providerKey = String(m.provider || "");
-      const isEnabled = enabledProviders?.[providerKey] !== false;
-      return isEnabled;
-    });
-  }
-  const term = search.trim();
-  if (term.length > 0) {
-    list = list.filter((m) => enabledProviders?.[m.provider || ""] !== false);
-    const normalize = (s: string) =>
-      s
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, " ")
-        .trim();
-    const makeIndexText = (m: TModel) =>
-      normalize(`${m.name || ""} ${m.id || ""} ${m.provider || ""}`);
-    const tokens = normalize(term).split(/\s+/).filter(Boolean);
-
-    const tokenMatches = list.filter((m) => {
-      const text = makeIndexText(m);
-      return tokens.every((t) => text.includes(t));
-    });
-
-    const fuse = new Fuse(list, {
-      keys: ["name", "id", "provider"],
-      threshold: 0.3,
-      ignoreLocation: true,
-      distance: 1000,
-      minMatchCharLength: 1
-    });
-    const fuseItems = fuse.search(term).map((r) => r.item);
-
-    const merged: TModel[] = [...tokenMatches];
-    for (const it of fuseItems) {
-      if (!merged.includes(it)) {merged.push(it);}
-    }
-    return merged;
-  }
-
-  // Sort alphabetically by name (or id as fallback) when not searching
-  return [...list].sort((a, b) => {
-    const nameA = (a.path || a.name || a.id || "").toLowerCase();
-    const nameB = (b.path || b.name || b.id || "").toLowerCase();
-    return nameA.localeCompare(nameB);
+  return rankModels<TModel>(models, search, {
+    selectedProvider,
+    enabledProviders,
+    recentKeys: options.recentKeys,
+    favoriteKeys: options.favoriteKeys
   });
 };
 
@@ -180,10 +133,21 @@ export type ModelMenuStoreHook<TModel extends ModelSelectorModel> = <Selected>(
   equalityFn?: (left: Selected, right: Selected) => boolean
 ) => Selected;
 
+export interface ModelMenuData<TModel extends ModelSelectorModel> {
+  models: TModel[] | undefined;
+  providers: string[];
+  filteredModels: TModel[];
+  favoriteModels: TModel[];
+  recentModels: TModel[];
+  totalCount: number;
+  filteredCount: number;
+  totalActiveCount: number;
+}
+
 export const useModelMenuData = <TModel extends ModelSelectorModel>(
   models: TModel[] | undefined,
   storeHook: ModelMenuStoreHook<TModel>
-) => {
+): ModelMenuData<TModel> => {
   const { isApiKeySet } = useSecrets();
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const favoritesSet = useModelPreferencesStore((s) => s.favorites);
@@ -193,9 +157,25 @@ export const useModelMenuData = <TModel extends ModelSelectorModel>(
 
   const providers = React.useMemo(() => computeProvidersList(models), [models]);
 
+  const recentKeys = React.useMemo(
+    () => recentsList.map((r) => `${r.provider}:${r.id}`),
+    [recentsList]
+  );
+
   const filteredModels = React.useMemo(
-    () => filterModelsList(models, selectedProvider, search, enabledProviders),
-    [models, selectedProvider, search, enabledProviders]
+    () =>
+      filterModelsList(models, selectedProvider, search, enabledProviders, {
+        recentKeys,
+        favoriteKeys: favoritesSet
+      }),
+    [
+      models,
+      selectedProvider,
+      search,
+      enabledProviders,
+      recentKeys,
+      favoritesSet
+    ]
   );
 
   const recentModels = React.useMemo(() => {

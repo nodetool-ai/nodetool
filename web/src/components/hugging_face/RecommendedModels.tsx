@@ -1,11 +1,10 @@
 import React, { memo, useEffect, useMemo, useState } from "react";
 import {
   List,
-  Box,
   TextField,
   InputAdornment
 } from "@mui/material";
-import { EditorButton, Text } from "../ui_primitives";
+import { EditorButton, FlexRow, Text } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
@@ -81,19 +80,16 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
   }, [cacheStatuses, filteredModels]);
 
   if (!recommendedModels) {
-    return <div>Loading...</div>;
+    return <div>Loading…</div>;
   }
 
   return (
     <>
-      <Box
+      <FlexRow
         className="search-models-container"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          marginBottom: 2
-        }}
+        gap={2}
+        align="center"
+        sx={{ marginBottom: 2 }}
       >
         <TextField
           className="search-models-input"
@@ -127,11 +123,11 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
             }
           }}
         />
-      </Box>
+      </FlexRow>
 
       {displayModels.length === 0 ? (
         <Text
-          sx={{ color: "var(--palette-grey-200)", ml: 2, mt: 8, mb: 10 }}
+          sx={{ color: "var(--palette-grey-200)", ml: 2, mt: 8, mb: 8 }}
         >
           No models found{searchQuery ? ` for "${searchQuery}"` : ""}.
         </Text>
@@ -190,7 +186,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
 
       {/* Open folder buttons */}
       {isLocalhost && isFileExplorerAvailable() && (
-        <Box mt={2} sx={{ display: "flex", gap: 2 }}>
+        <FlexRow gap={2} mt={2}>
           <EditorButton
             variant="outlined"
             density="normal"
@@ -207,7 +203,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
             <FolderOutlined sx={{ mr: 0.5, fontSize: "1em" }} />
             Open Ollama folder
           </EditorButton>
-        </Box>
+        </FlexRow>
       )}
     </>
   );

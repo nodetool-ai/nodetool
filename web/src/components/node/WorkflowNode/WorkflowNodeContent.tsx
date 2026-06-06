@@ -1,6 +1,5 @@
 import React, { memo } from "react";
-import { Box } from "@mui/material";
-import { Caption, FlexColumn } from "../../ui_primitives";
+import { Caption, FlexColumn, Box } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
@@ -39,26 +38,22 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
     );
 
     return (
-      <Box
+      <FlexColumn
+        fullWidth
+        fullHeight
         sx={{
           position: "relative",
-          width: "100%",
-          height: "100%",
           minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
           paddingTop: 3,
         }}
       >
         <WorkflowLoader nodeId={id} data={data} />
-        <Box
+        <FlexColumn
           className="workflow-node-inputs"
           sx={{
             flex: "1 1 auto",
             minHeight: 40,
             overflow: "visible",
-            display: "flex",
-            flexDirection: "column",
             visibility: "visible",
             "& .node-inputs": {
               visibility: "visible"
@@ -100,12 +95,12 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             showHandle={true}
             editableDynamicInputs={false}
           />
-        </Box>
-        {(nodeMetadata.is_dynamic ||
+        </FlexColumn>
+        {(nodeMetadata.supports_dynamic_inputs ||
           nodeMetadata.supports_dynamic_outputs) && (
             <NodePropertyForm
               id={id}
-              isDynamic={nodeMetadata.is_dynamic}
+              isDynamic={nodeMetadata.supports_dynamic_inputs}
               supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
               dynamicOutputs={data.dynamic_outputs || {}}
               onAddProperty={handleAddProperty}
@@ -116,7 +111,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
           <NodeOutputs
             id={id}
             outputs={nodeMetadata.outputs}
-            isStreamingOutput={nodeMetadata.is_streaming_output}
           />
         </Box>
         {status === "running" && (
@@ -127,7 +121,7 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             flexShrink: 0,
             mt: 0.5,
             px: 1,
-            py: 0.25,
+            py: 0.5,
             borderTop: 1,
             borderColor: "divider"
           }}
@@ -136,7 +130,7 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
             {/* {subWorkflow?.name && <> · {subWorkflow.name}</>} */}
           </Caption>
         </Box>
-      </Box>
+      </FlexColumn>
     );
   }
 );

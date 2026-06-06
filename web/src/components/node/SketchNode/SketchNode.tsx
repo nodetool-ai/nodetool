@@ -22,7 +22,7 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box, Typography } from "@mui/material";
+import { Box, Text } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -40,6 +40,7 @@ import HandleTooltip from "../../HandleTooltip";
 import { Slugify } from "../../../utils/TypeHandler";
 import { SketchModal } from "../../sketch";
 import { useSketchStore } from "../../sketch";
+import { SketchProvider } from "../../../stores/sketch/SketchInstance";
 import {
   SketchDocument,
   createDefaultDocument,
@@ -53,9 +54,13 @@ import {
   loadImageWithDimensions
 } from "../../sketch";
 import { useNodes } from "../../../contexts/NodeContext";
+import type { NodeStoreState } from "../../../stores/NodeStore";
+import type { Edge } from "@xyflow/react";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import { useShallow } from "zustand/react/shallow";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import type { Node as FlowNode } from "@xyflow/react";
@@ -207,7 +212,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       transition: "opacity 0.2s"
     },
     ".edit-overlay-label": {
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
       color: "rgba(255,255,255,0.85)",
       letterSpacing: "0.02em"
@@ -219,7 +224,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       left: "50%",
       width: "80%",
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: "300",
+      fontWeight: 400,
       transform: "translate(-50%, -50%)",
       zIndex: 1,
       color: theme.vars.palette.grey[400],
@@ -332,7 +337,7 @@ function ensureEditableActiveLayer(doc: SketchDocument): SketchDocument {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-export const SKETCH_NODE_TYPE = "nodetool.image.ImageEditor";
+export { SKETCH_NODE_TYPE } from "../../../constants/nodeTypes";
 
 /** Composited `image` output from the editor (flattenToDataUrl); preferred over re-flattening sketch_data alone. */
 function getSketchOutputImageUri(
@@ -466,7 +471,21 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const pendingDocumentSyncRef = useRef<SketchDocument | null>(null);
   const pendingNodePropsRef = useRef<Record<string, unknown>>({});
   const nodeSyncTimeoutRef = useRef<number | null>(null);
-  const edges = useNodes((s) => s.edges);
+  const nodeEdgesSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastResult: Edge[] = [];
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) {
+        return lastResult;
+      }
+      lastEdges = state.edges;
+      lastResult = state.edges.filter(
+        (e) => e.target === props.id || e.source === props.id
+      );
+      return lastResult;
+    };
+  }, [props.id]);
+  const edges = useNodes(nodeEdgesSelector);
   const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
   const updateNodeData = useNodes((s) => s.updateNodeData);
   const updateEdgeHandle = useNodes((s) => s.updateEdgeHandle);
@@ -532,16 +551,33 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     return connections;
   }, [edges, props.id, exposedInputLayers]);
 
-  const layerInputResults = useResultsStore((state) => {
-    const out: Record<string, unknown> = {};
-    for (const [layerId, connection] of Object.entries(layerInputConnections)) {
-      out[layerId] =
-        state.getOutputResult(props.data.workflow_id, connection.sourceId) ??
-        state.getResult(props.data.workflow_id, connection.sourceId) ??
-        state.getPreview(props.data.workflow_id, connection.sourceId);
-    }
-    return out;
-  });
+  // Layer-source outputs are scoped to the workflow's focused run; subscribe so
+  // they re-resolve when focus switches between concurrent runs.
+  const focusedJobId = useWorkflowRunsStore(
+    (s) => s.focusedJob[props.data.workflow_id]
+  );
+  const layerInputResults = useResultsStore(
+    useShallow((state) => {
+      const out: Record<string, unknown> = {};
+      if (!focusedJobId) {
+        return out;
+      }
+      for (const [layerId, connection] of Object.entries(layerInputConnections)) {
+        out[layerId] =
+          state.getOutputResult(
+            props.data.workflow_id,
+            focusedJobId,
+            connection.sourceId
+          ) ??
+          state.getResult(
+            props.data.workflow_id,
+            focusedJobId,
+            connection.sourceId
+          );
+      }
+      return out;
+    })
+  );
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 
@@ -673,7 +709,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   ]);
 
   // Register `layer_in_*` on dynamic_properties / dynamic_inputs and
-  // `layer_out_*` on dynamic_outputs so metadata.is_dynamic
+  // `layer_out_*` on dynamic_outputs so metadata.supports_dynamic_inputs
   // and findInputHandle / findOutputHandle resolve per-layer handles
   // like other dynamic nodes.
   useEffect(() => {
@@ -1169,7 +1205,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           />
 
           <div className="sketch-main">
-            <div className="sketch-preview-wrap" onClick={handleOpenEditor}>
+            <div
+              className="sketch-preview-wrap"
+              role="button"
+              tabIndex={0}
+              onClick={handleOpenEditor}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleOpenEditor(); } }}
+            >
               <div className="content">
                 {displayPreviewUri ? (
                   <>
@@ -1184,9 +1226,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                     </div>
                   </>
                 ) : (
-                  <Typography className="hint">
+                  <Text className="hint">
                     Click to open image editor
-                  </Typography>
+                  </Text>
                 )}
               </div>
             </div>
@@ -1261,15 +1303,17 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         <EditableTitle nodeId={props.id} title={props.data.title} />
       ) : null}
 
-      <SketchModal
-        open={isModalOpen}
-        title="Image Editor"
-        initialDocument={editorDocument || sketchDoc}
-        onClose={handleCloseEditor}
-        onDocumentChange={handleDocumentChange}
-        onExportImage={handleExportImage}
-        onExportMask={handleExportMask}
-      />
+      <SketchProvider active={isModalOpen}>
+        <SketchModal
+          open={isModalOpen}
+          title="Image Editor"
+          initialDocument={editorDocument || sketchDoc}
+          onClose={handleCloseEditor}
+          onDocumentChange={handleDocumentChange}
+          onExportImage={handleExportImage}
+          onExportMask={handleExportMask}
+        />
+      </SketchProvider>
     </Box>
   );
 };

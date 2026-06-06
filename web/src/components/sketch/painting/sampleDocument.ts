@@ -24,8 +24,9 @@ import { getRasterBounds } from "../transform/geometry/layerGeometry";
 /**
  * Sample the composite document color at a document-space point.
  *
- * Always uses `readbackComposite` (via `getFullCompositeImageData`) so
- * display-only chrome (checkerboard, canvas border) never leaks into the
+ * Always uses `readbackComposite` via `getFullCompositeImageData` so sampling
+ * matches visible document pixels (visibility, isolation, active stroke preview).
+ * Display-only chrome (checkerboard background) never leaks into the
  * result. Returns a hex string such as "#ff0000" or null when sampling
  * fails or the point is out of bounds.
  */
@@ -37,6 +38,7 @@ export function sampleCompositeColor(
   const y = Math.round(docPoint.y);
 
   const id = ctx.getFullCompositeImageData?.();
+
   if (id && x >= 0 && y >= 0 && x < id.width && y < id.height) {
     const i = (y * id.width + x) * 4;
     return rgbToHex(id.data[i], id.data[i + 1], id.data[i + 2]);

@@ -1,6 +1,5 @@
 import {
-  Box,
-  List,
+  List
 } from "@mui/material";
 import { memo, useEffect, useCallback, useMemo } from "react";
 import CollectionForm from "./CollectionForm";
@@ -20,7 +19,8 @@ import {
   ListGroup,
   ListItemRow,
   Surface,
-  Text
+  Text,
+  Box
 } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 
@@ -127,7 +127,7 @@ const CollectionList = () => {
             }}
           >
             <Box>
-              <Text size="big" weight={700}>
+              <Text size="big" weight={600}>
                 Collections
               </Text>
               <Text size="small" color="secondary">
@@ -149,7 +149,7 @@ const CollectionList = () => {
             </Text>
           )}
           {isLoading ? (
-            <Text sx={{ mt: 2 }}>Loading collections...</Text>
+            <Text sx={{ mt: 2 }}>Loading collections…</Text>
           ) : !collections?.collections.length ? (
             <EmptyCollectionState />
           ) : (

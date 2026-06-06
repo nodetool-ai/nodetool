@@ -37,6 +37,11 @@ import { WorkflowRunner } from "@nodetool-ai/kernel";
 import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
+import {
+  loadExampleGraph,
+  defaultExamplePackageName,
+  deriveExampleAssetsDir
+} from "../../example-workflows.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -217,17 +222,15 @@ interface ExampleMetadata {
   tags?: string[];
 }
 
-function deriveAssetsDir(examplesDir: string): string {
-  return nodePath.join(
-    nodePath.dirname(nodePath.dirname(examplesDir)),
-    "assets",
-    nodePath.basename(examplesDir)
-  );
-}
-
-function buildExamplesFromDir(examplesDir: string): unknown[] {
+function buildExamplesFromDir(
+  examplesDir: string,
+  examplesAssetsFallbackDir?: string
+): unknown[] {
   if (!existsSync(examplesDir)) return [];
-  const assetsDir = deriveAssetsDir(examplesDir);
+  const assetsDir = deriveExampleAssetsDir(
+    examplesDir,
+    examplesAssetsFallbackDir
+  );
   const now = new Date().toISOString();
   const workflows: unknown[] = [];
   let files: string[];
@@ -292,10 +295,18 @@ function buildExamplesFromDir(examplesDir: string): unknown[] {
 }
 
 function buildExampleWorkflows(
-  apiOptions: { examplesDir?: string; metadataRoots?: string[]; metadataMaxDepth?: number }
+  apiOptions: {
+    examplesDir?: string;
+    examplesAssetsFallbackDir?: string;
+    metadataRoots?: string[];
+    metadataMaxDepth?: number;
+  }
 ): unknown[] {
   if (apiOptions.examplesDir) {
-    return buildExamplesFromDir(apiOptions.examplesDir);
+    return buildExamplesFromDir(
+      apiOptions.examplesDir,
+      apiOptions.examplesAssetsFallbackDir
+    );
   }
   const loaded = loadPythonPackageMetadata({
     roots: apiOptions.metadataRoots,
@@ -336,31 +347,6 @@ function buildExampleWorkflows(
   return workflows;
 }
 
-function loadExampleGraph(
-  packageName: string,
-  exampleName: string,
-  apiOptions: { metadataRoots?: string[]; metadataMaxDepth?: number }
-): Record<string, unknown> | null {
-  const loaded = loadPythonPackageMetadata({
-    roots: apiOptions.metadataRoots,
-    maxDepth: apiOptions.metadataMaxDepth
-  });
-  const pkg = loaded.packages.find((p) => p.name === packageName);
-  if (!pkg?.sourceFolder) return null;
-  const examplePath = nodePath.join(
-    pkg.sourceFolder,
-    "nodetool",
-    "examples",
-    packageName,
-    `${exampleName}.json`
-  );
-  try {
-    const raw = readFileSync(examplePath, "utf8");
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
 
 // ── deriveWorkflowName ─────────────────────────────────────────────────────
 
@@ -448,13 +434,13 @@ export const workflowsRouter = router({
       let graph = input.graph;
 
       // Optionally seed from example
-      if (
-        input.from_example_package &&
-        input.from_example_name &&
-        (!graph || graph.nodes?.length === 0)
-      ) {
+      if (input.from_example_name && (!graph || graph.nodes?.length === 0)) {
+        const examplePackage =
+          input.from_example_package ??
+          defaultExamplePackageName(ctx.apiOptions) ??
+          "nodetool-base";
         const example = loadExampleGraph(
-          input.from_example_package,
+          examplePackage,
           input.from_example_name,
           ctx.apiOptions
         );
@@ -648,7 +634,8 @@ export const workflowsRouter = router({
             Object.fromEntries(
               (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
             ),
-            meta?.required_settings ?? []
+            meta?.required_settings ?? [],
+            node.id
           );
         }
         return registry.resolve(node as Parameters<typeof registry.resolve>[0]);

@@ -10,7 +10,6 @@ import "./prismGlobal";
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useWorkflowManager } from "./contexts/WorkflowManagerContext";
 import ReactDOM from "react-dom/client";
 
 import {
@@ -24,7 +23,6 @@ import ErrorBoundary from "./ErrorBoundary";
 
 // Lazy-load panel components to reduce initial bundle size
 const PanelLeft = React.lazy(() => import("./components/panels/PanelLeft"));
-const PanelRight = React.lazy(() => import("./components/panels/PanelRight"));
 const PanelBottom = React.lazy(() => import("./components/panels/PanelBottom"));
 import { LoadingSpinner } from "./components/ui_primitives/LoadingSpinner";
 import { ThemeProvider } from "@mui/material/styles";
@@ -49,39 +47,30 @@ import Login from "./components/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
-import { useSettingsStore } from "./stores/SettingsStore";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import { HEADER_HEIGHT } from "./config/constants";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
-import useMetadataStore from "./stores/MetadataStore";
-import type { ComfyUIObjectInfo } from "./services/ComfyUIService";
-import { comfyObjectInfoToMetadataMap } from "./utils/comfySchemaConverter";
-import {
-  FetchCurrentWorkflow,
-  WorkflowManagerProvider
-} from "./contexts/WorkflowManagerContext";
+import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
 const DownloadManagerDialog = React.lazy(
   () => import("./components/hugging_face/DownloadManagerDialog")
 );
+const RunWarningDialog = React.lazy(
+  () => import("./components/dialogs/RunWarningDialog")
+);
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
-const Alert = React.lazy(() => import("./components/node_editor/Alert"));
 import MobileClassProvider from "./components/MobileClassProvider";
 const AppHeader = React.lazy(() => import("./components/panels/AppHeader"));
 import { SkipLinks } from "./components/ui_primitives/SkipLinks";
 
+import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
+
 // Lazy-loaded route components for code splitting
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
-);
-const StandaloneChat = React.lazy(
-  () => import("./components/chat/containers/StandaloneChat")
-);
-const MiniAppPage = React.lazy(
-  () => import("./components/miniapps/MiniAppPage")
 );
 const StandaloneMiniApp = React.lazy(
   () => import("./components/miniapps/StandaloneMiniApp")
@@ -92,13 +81,9 @@ const ModelListIndex = React.lazy(
 const WorkflowGraphView = React.lazy(
   () => import("./components/graph_view/WorkflowGraphView")
 );
-const TabsNodeEditor = React.lazy(
-  () => import("./components/editor/TabsNodeEditor")
-);
 const AssetExplorer = React.lazy(
   () => import("./components/assets/AssetExplorer")
 );
-const AssetEditor = React.lazy(() => import("./components/assets/AssetEditor"));
 const CollectionsExplorer = React.lazy(
   () => import("./components/collections/CollectionsExplorer")
 );
@@ -109,10 +94,10 @@ const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
 );
 const Portal = React.lazy(() => import("./components/portal/Portal"));
-const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
-const NodeTestPage = React.lazy(
-  () => import("./components/node_test/NodeTestPage")
+const CostsDashboard = React.lazy(
+  () => import("./components/costs/CostsDashboard")
 );
+const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const ChatMarkdownTest = React.lazy(
   () => import("./components/ChatMarkdownTest")
 );
@@ -131,12 +116,18 @@ const TimelineEditor = React.lazy(
 const SketchEditorPage = React.lazy(
   () => import("./components/sketch/SketchEditorPage")
 );
+const WorkspaceShell = React.lazy(
+  () => import("./components/workspace/WorkspaceShell")
+);
+import {
+  WorkflowEditorRedirect,
+  WorkflowAppRedirect
+} from "./components/workspace/RouteRedirects";
 
 // Defer frontend tool registrations until after initial render
 const registerFrontendTools = () => {
   Promise.all([
     import("./lib/tools/builtin/addNode"),
-    import("./lib/tools/builtin/setNodeSyncMode"),
     import("./lib/tools/builtin/connectNodes"),
     import("./lib/tools/builtin/updateNodeData"),
     import("./lib/tools/builtin/moveNode"),
@@ -152,8 +143,6 @@ const registerFrontendTools = () => {
   });
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
-import OnboardingRoot from "./components/onboarding/OnboardingRoot";
-import { useOnboardingStore } from "./stores/OnboardingStore";
 
 installIpcLogBridge();
 
@@ -166,91 +155,20 @@ if (isLocalhost) {
 
 const NavigateToStart = () => {
   const state = useAuth((auth) => auth.state);
-  const showWelcomeOnStartup = useSettingsStore(
-    (state) => state.settings.showWelcomeOnStartup
-  );
-  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
   const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Handle navigation based on settings
+  // The tabbed workspace is the app entry point. Previously-open workflows are
+  // restored as tabs from localStorage by the WorkspaceTabsStore.
   useEffect(() => {
-    const handleNavigation = async () => {
-      // Helper to get workflow to open (current > first open > null)
-      const getExistingWorkflowId = (): string | null => {
-        const currentWorkflowId = localStorage.getItem("currentWorkflowId");
-        if (currentWorkflowId) {
-          return currentWorkflowId;
-        }
-        const openWorkflows = JSON.parse(
-          localStorage.getItem("openWorkflows") || "[]"
-        ) as string[];
-        if (openWorkflows.length > 0) {
-          return openWorkflows[0];
-        }
-        return null;
-      };
-
-      const isNewcomer = (() => {
-        const onboarding = useOnboardingStore.getState();
-        const hasProgress = Object.values(onboarding.completed).some(Boolean);
-        return !onboarding.dismissed && !hasProgress;
-      })();
-
-      const navigateToEditor = async () => {
-        // Check for existing workflow first
-        const existingWorkflowId = getExistingWorkflowId();
-        if (existingWorkflowId) {
-          navigate(`/editor/${existingWorkflowId}`, { replace: true });
-          return;
-        }
-
-        // Brand-new users land on the chat homepage, which embeds the
-        // getting-started checklist in its empty state. The chat composer
-        // is right there waiting for their first message.
-        if (isNewcomer) {
-          navigate("/chat", { replace: true });
-          return;
-        }
-
-        // Only create new if no workflows are open
-        if (!isProcessing) {
-          setIsProcessing(true);
-          try {
-            const workflow = await createNewWorkflow();
-            navigate(`/editor/${workflow.id}`, { replace: true });
-          } catch (error) {
-            console.error("Failed to create workflow:", error);
-            navigate("/chat", { replace: true });
-          }
-        }
-      };
-
-      if (isLocalhost || state === "logged_in") {
-        // Newcomers always start on the chat homepage (which embeds the
-        // getting-started checklist), regardless of the
-        // showWelcomeOnStartup setting (which still controls the Portal
-        // for returning users).
-        if (isNewcomer) {
-          navigate("/chat", { replace: true });
-        } else if (!showWelcomeOnStartup) {
-          await navigateToEditor();
-        } else {
-          navigate("/dashboard", { replace: true });
-        }
-      } else if (state === "logged_out" || state === "error") {
-        navigate("/login", { replace: true });
-      }
-    };
-
-    if (state !== "init") {
-      void handleNavigation();
+    if (state === "init") {
+      return;
     }
-  }, [state, showWelcomeOnStartup, createNewWorkflow, navigate, isProcessing]);
-
-  if (state === "init") {
-    return null;
-  }
+    if (isLocalhost || state === "logged_in") {
+      navigate("/workspace", { replace: true });
+    } else if (state === "logged_out" || state === "error") {
+      navigate("/login", { replace: true });
+    }
+  }, [state, navigate]);
 
   return null;
 };
@@ -262,12 +180,49 @@ function getRoutes() {
       element: <NavigateToStart />
     },
     {
-      path: "/dashboard",
-      element: (
-        <ProtectedRoute>
-          <Portal />
-        </ProtectedRoute>
-      )
+      element: <ChatComposerLayout />,
+      children: [
+        {
+          path: "/dashboard",
+          element: (
+            <ProtectedRoute>
+              <Portal />
+            </ProtectedRoute>
+          )
+        },
+        {
+          path: "/chat/:thread_id?",
+          element: (
+            <ProtectedRoute>
+              <div
+                className="page-enter"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
+                  height: "100%"
+                }}
+              >
+                <SkipLinks />
+                {/* No AppHeader on chat — GlobalChat has its own
+                    "Back to editor" control. */}
+                <div
+                  id="main-content"
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    height: "100%"
+                  }}
+                >
+                  <PanelLeft />
+                  <GlobalChat />
+                  <PanelBottom />
+                </div>
+              </div>
+            </ProtectedRoute>
+          )
+        }
+      ]
     },
     {
       // Legacy route — the getting-started checklist now lives in the
@@ -295,15 +250,10 @@ function getRoutes() {
       )
     },
     {
-      path: "/login",
-      element: <Login />
-    },
-    {
-      path: "/chat/:thread_id?",
+      path: "/costs",
       element: (
         <ProtectedRoute>
           <div
-            className="page-enter"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -311,48 +261,22 @@ function getRoutes() {
               height: "100%"
             }}
           >
-            <SkipLinks />
-            {/* Fixed application header at the very top */}
-            <AppHeader />
-            {/* Main chat area beneath the header */}
-            <div
-              id="main-content"
-              style={{
-                display: "flex",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <PanelLeft />
-              <GlobalChat />
-              <PanelBottom />
-            </div>
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <CostsDashboard />
+            </React.Suspense>
           </div>
         </ProtectedRoute>
       )
     },
     {
+      path: "/login",
+      element: <Login />
+    },
+    {
       path: "/apps/:workflowId?",
       element: (
         <ProtectedRoute>
-          <>
-            <SkipLinks />
-            <AppHeader />
-            <div
-              id="main-content"
-              style={{
-                display: "flex",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <PanelLeft />
-              <div style={{ flex: 1, display: "flex" }}>
-                <MiniAppPage />
-              </div>
-              <PanelBottom />
-            </div>
-          </>
+          <WorkflowAppRedirect />
         </ProtectedRoute>
       )
     },
@@ -361,24 +285,6 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <StandaloneMiniApp />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "/standalone-chat/:thread_id?",
-      element: (
-        <ProtectedRoute>
-          <div
-            style={{
-              display: "flex",
-              width: "100%",
-              height: "100%"
-            }}
-          >
-            <PanelLeft />
-            <StandaloneChat />
-            <PanelBottom />
-          </div>
         </ProtectedRoute>
       )
     },
@@ -392,14 +298,6 @@ function getRoutes() {
         <ProtectedRoute>
           <PanelLeft />
           <AssetExplorer />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "assets/edit/:assetId",
-      element: (
-        <ProtectedRoute>
-          <AssetEditor />
         </ProtectedRoute>
       )
     },
@@ -424,36 +322,7 @@ function getRoutes() {
       path: "editor/:workflow",
       element: (
         <ProtectedRoute>
-          <FetchCurrentWorkflow>
-            <div
-              className="page-enter"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <SkipLinks />
-              {/* Fixed application header at the very top */}
-              <AppHeader />
-              {/* Main editor area beneath the header */}
-              <div
-                id="main-content"
-                style={{
-                  display: "flex",
-                  width: "100%",
-                  height: "100%"
-                }}
-              >
-                <PanelLeft />
-                <TabsNodeEditor />
-                <PanelRight />
-                <PanelBottom />
-                <Alert />
-              </div>
-            </div>
-          </FetchCurrentWorkflow>
+          <WorkflowEditorRedirect />
         </ProtectedRoute>
       )
     },
@@ -532,6 +401,30 @@ function getRoutes() {
           </div>
         </ProtectedRoute>
       )
+    },
+    {
+      // New tabbed-document workspace (in progress). Lives alongside the
+      // existing routes; will become the default once all document types
+      // are wired. See docs/superpowers/specs/2026-05-30-tabbed-workspace-modes-design.md
+      path: "/workspace",
+      element: (
+        <ProtectedRoute>
+          <div
+            className="page-enter"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <SkipLinks />
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <WorkspaceShell />
+            </React.Suspense>
+          </div>
+        </ProtectedRoute>
+      )
     }
   ];
 
@@ -556,29 +449,11 @@ function getRoutes() {
     });
   }
 
-  routes.push({
-    path: "/node-test",
-    element: (
-      <React.Suspense fallback={<div>Loading...</div>}>
-        <NodeTestPage />
-      </React.Suspense>
-    )
-  });
-
   routes.forEach((route) => {
     route.ErrorBoundary = ErrorBoundary;
   });
 
-  // Wrap all routes in a layout that mounts the onboarding overlay and
-  // detector subscriptions, so the guided tour can render on top of any
-  // page and record progress as the user explores the real product.
-  return [
-    {
-      element: <OnboardingRoot />,
-      children: routes,
-      ErrorBoundary
-    }
-  ] satisfies RouteObject[];
+  return routes satisfies RouteObject[];
 }
 
 useAssetStore.getState().setQueryClient(queryClient);
@@ -601,48 +476,6 @@ const router = createBrowserRouter(getRoutes());
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
-
-const preloadComfyMetadata = async (): Promise<void> => {
-  try {
-    // Load bundled ComfyUI schema snapshot (no network request)
-    const objectInfoModule =
-      await import("./data/comfy-object-info.json").catch(() => null);
-    if (!objectInfoModule) {
-      console.info("[startup] No bundled ComfyUI schema found, skipping preload");
-      return;
-    }
-    const objectInfo = (objectInfoModule.default ??
-      objectInfoModule) as unknown as ComfyUIObjectInfo;
-    const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
-    const comfyMetadataCount = Object.keys(comfyMetadata).length;
-    if (comfyMetadataCount === 0) {
-      return;
-    }
-
-    const metadataStore = useMetadataStore.getState();
-    metadataStore.setMetadata({
-      ...metadataStore.metadata,
-      ...comfyMetadata
-    });
-
-    const registeredNodeTypes = metadataStore.nodeTypes;
-    const baseNodeComponent =
-      registeredNodeTypes["nodetool.workflows.base_node.Preview"] ||
-      Object.values(registeredNodeTypes)[0];
-
-    if (baseNodeComponent) {
-      Object.keys(comfyMetadata).forEach((nodeType) => {
-        metadataStore.addNodeType(nodeType, baseNodeComponent);
-      });
-    }
-
-    console.info(
-      `[startup] Loaded ${comfyMetadataCount} ComfyUI node metadata entries from bundled schema`
-    );
-  } catch (error) {
-    console.warn("[startup] ComfyUI metadata preload skipped", error);
-  }
-};
 
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
@@ -673,11 +506,6 @@ const AppWrapper = () => {
     loadMetadata()
       .then((data) => {
         setStatus(data);
-        if (data === "success") {
-          // Load Comfy metadata in the background so imported comfy workflows
-          // are immediately recognized without manual connect steps.
-          void preloadComfyMetadata();
-        }
       })
       .catch((error) => {
         console.error("Failed to load metadata:", error);
@@ -715,10 +543,10 @@ const AppWrapper = () => {
                       <span
                         style={{
                           color: "var(--palette-text-secondary)",
-                          fontSize: "0.9rem"
+                          fontSize: "var(--fontSizeNormal)"
                         }}
                       >
-                        Loading NodeTool...
+                        Loading NodeTool…
                       </span>
                     </div>
                   )}
@@ -737,12 +565,13 @@ const AppWrapper = () => {
                       <span
                         style={{
                           color: "var(--palette-text-primary)",
-                          fontSize: "1rem"
+                          fontSize: "var(--fontSizeNormal)"
                         }}
                       >
                         Error loading application metadata.
                       </span>
                       <button
+                        type="button"
                         onClick={() => window.location.reload()}
                         style={{
                           padding: "8px 16px",
@@ -751,7 +580,7 @@ const AppWrapper = () => {
                           backgroundColor: "transparent",
                           color: "var(--palette-text-primary)",
                           cursor: "pointer",
-                          fontSize: "0.85rem"
+                          fontSize: "var(--fontSizeNormal)"
                         }}
                       >
                         Refresh Page
@@ -780,10 +609,10 @@ const AppWrapper = () => {
                             <span
                               style={{
                                 color: "var(--palette-text-secondary)",
-                                fontSize: "0.9rem"
+                                fontSize: "var(--fontSizeNormal)"
                               }}
                             >
-                              Preparing workspace...
+                              Preparing workspace…
                             </span>
                           </div>
                         }
@@ -791,6 +620,7 @@ const AppWrapper = () => {
                         <RouterProvider router={router} />
                       </Suspense>
                       <DownloadManagerDialog />
+                      <RunWarningDialog />
                     </>
                   )}
                 </KeyboardProvider>

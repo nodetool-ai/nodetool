@@ -63,24 +63,16 @@ jest.mock("../../../../components/chat/thread/ChatThreadView", () => ({
 // Mock ChatInputSection component
 jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
   __esModule: true,
-  default: function MockChatInputSection({
-    status,
-    onSendMessage,
-    selectedTools,
-    selectedCollections
-  }: any) {
+  default: function MockChatInputSection({ status, onSendMessage }: any) {
     return (
       <div data-testid="chat-input-section">
         <div>Status: {status}</div>
-        <div>Tools: {selectedTools?.length || 0}</div>
-        <div>Collections: {selectedCollections?.length || 0}</div>
         <button
           data-testid="send-message-btn"
           onClick={() =>
             onSendMessage(
               [{ type: "text", text: "Test message" }],
-              "Test message",
-              false
+              "Test message"
             )
           }
         >
@@ -112,8 +104,6 @@ describe("ChatView", () => {
     messages: [] as Message[],
     sendMessage: mockSendMessage,
     progressMessage: null,
-    selectedTools: [],
-    selectedCollections: [],
     model: mockModel,
     showToolbar: true
   };
@@ -134,8 +124,6 @@ describe("ChatView", () => {
 
       expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
       expect(screen.getByText("Status: connected")).toBeInTheDocument();
-      expect(screen.getByText("Tools: 0")).toBeInTheDocument();
-      expect(screen.getByText("Collections: 0")).toBeInTheDocument();
     });
   });
 
@@ -305,49 +293,12 @@ describe("ChatView", () => {
           provider: "openai",
           model: "gpt-4",
           content: [{ type: "text", text: "Test message" }],
-          tools: undefined,
-          collections: undefined,
-          agent_mode: false,
           help_mode: false,
           graph: undefined,
           workflow_id: undefined,
           workflow_target: undefined,
           media_generation: null
         });
-      });
-    });
-
-    it("includes selected tools in message when tools are selected", async () => {
-      renderWithProviders(
-        <ChatView {...baseProps} selectedTools={["tool1", "tool2"]} />
-      );
-
-      const sendButton = screen.getByTestId("send-message-btn");
-      fireEvent.click(sendButton);
-
-      await waitFor(() => {
-        expect(mockSendMessage).toHaveBeenCalledWith(
-          expect.objectContaining({
-            tools: ["tool1", "tool2"]
-          })
-        );
-      });
-    });
-
-    it("includes selected collections in message when collections are selected", async () => {
-      renderWithProviders(
-        <ChatView {...baseProps} selectedCollections={["collection1"]} />
-      );
-
-      const sendButton = screen.getByTestId("send-message-btn");
-      fireEvent.click(sendButton);
-
-      await waitFor(() => {
-        expect(mockSendMessage).toHaveBeenCalledWith(
-          expect.objectContaining({
-            collections: ["collection1"]
-          })
-        );
       });
     });
 
@@ -443,18 +394,6 @@ describe("ChatView", () => {
   describe("Toolbar and Controls", () => {
     it("passes showToolbar prop to ChatInputSection", () => {
       renderWithProviders(<ChatView {...baseProps} showToolbar={false} />);
-
-      expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
-    });
-
-    it("passes agent mode props to ChatInputSection", () => {
-      renderWithProviders(
-        <ChatView
-          {...baseProps}
-          agentMode={true}
-          onAgentModeToggle={jest.fn()}
-        />
-      );
 
       expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
     });

@@ -8,7 +8,6 @@ import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
-import PanelHeadline from "../ui/PanelHeadline";
 import { isProduction } from "../../lib/env";
 
 const workspacesEnabled = !isProduction;
@@ -16,7 +15,6 @@ const workspacesEnabled = !isProduction;
 const RUN_MODE_OPTIONS = [
   { value: "workflow", label: "Workflow" },
   { value: "chat", label: "Chat" },
-  { value: "comfy", label: "Comfy" },
   { value: "app", label: "App" },
   { value: "tool", label: "Tool" }
 ];
@@ -25,7 +23,6 @@ const DEFAULT_TAG_SUGGESTIONS = [
   "image",
   "audio",
   "video",
-  "comfy",
   "chat",
   "docs",
   "mail",
@@ -37,9 +34,10 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       margin: 0,
-      padding: theme.spacing(3),
-      minWidth: "420px",
-      maxWidth: "500px"
+      padding: 0,
+      width: "100%",
+      maxWidth: "500px",
+      boxSizing: "border-box"
     },
     
     // Section grouping
@@ -75,7 +73,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
       color: theme.vars.palette.grey[200],
-      marginBottom: theme.spacing(0.75),
+      marginBottom: theme.spacing(1),
       display: "block"
     },
     
@@ -104,7 +102,7 @@ const styles = (theme: Theme) =>
     },
     
     ".MuiFormHelperText-root": {
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[400],
       marginTop: theme.spacing(0.5),
       marginLeft: 0
@@ -199,9 +197,7 @@ interface WorkflowFormProps {
 
 const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
-  const { saveWorkflow } = useWorkflowManager((state) => ({
-    saveWorkflow: state.saveWorkflow
-  }));
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -262,8 +258,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
   return (
     <div css={styles(theme)} className="workflow-form">
-      <PanelHeadline title="Workflow Settings" />
-
       {/* Basic Information Section */}
       <div className="settings-section">
         <TextInput

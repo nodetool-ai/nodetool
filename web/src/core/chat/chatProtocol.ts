@@ -9,6 +9,8 @@
  * the store while message handling remains testable.
  */
 
+import { visibleToolArgs } from "./toolCallFields";
+
 /**
  * Chunk deduplication cache to prevent duplicate chunks from being processed
  * multiple times due to duplicate WebSocket handlers or message routing.
@@ -91,12 +93,11 @@ import {
   Prediction,
   StepResult,
   TaskUpdate,
+  TodoUpdate,
   ToolCallUpdate
 } from "../../stores/ApiTypes";
-import {
-  FrontendToolRegistry,
-  FrontendToolState
-} from "../../lib/tools/frontendTools";
+import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
+import { getFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 import type {
   GlobalChatState,
   StepToolCall
@@ -123,6 +124,21 @@ export interface GenerationStoppedUpdate {
   message: string;
 }
 
+/**
+ * Server → client request to approve a gated tool call. Routed to the
+ * GlobalChatStore as a pending approval; the user resolves it via the inline
+ * ToolApprovalCard, which sends a `tool_approval_response` back.
+ */
+export interface ToolApprovalRequestMessage {
+  type: "tool_approval_request";
+  thread_id: string;
+  approval_id: string;
+  tool_name: string;
+  category: "write" | "execute" | "external";
+  message: string;
+  args: Record<string, unknown>;
+}
+
 export interface ToolCallMessage {
   type: "tool_call";
   tool_call_id: string;
@@ -141,6 +157,7 @@ export type MsgpackData =
   | Message
   | ToolCallUpdate
   | TaskUpdate
+  | TodoUpdate
   | PlanningUpdate
   | OutputUpdate
   | StepResult
@@ -149,6 +166,7 @@ export type MsgpackData =
   | GenerationStoppedUpdate
   | ToolCallMessage
   | ToolResultMessage
+  | ToolApprovalRequestMessage
   | ErrorMessage;
 
 export interface ToolResultMessage {
@@ -244,9 +262,9 @@ const generateTitleFromFirstUserMessage = (
     contentText = firstUserMessage.content;
   } else if (Array.isArray(firstUserMessage.content)) {
     const firstText = firstUserMessage.content.find(
-      (c) => c?.type === "text" && typeof c.text === "string"
+      (c): c is MessageTextContent => c?.type === "text" && typeof c.text === "string"
     );
-    contentText = (firstText as MessageTextContent | undefined)?.text || "";
+    contentText = firstText?.text || "";
   }
 
   const titleBase = contentText || "New conversation";
@@ -283,16 +301,17 @@ const applyEdgeUpdate = (
   state: GlobalChatState,
   update: EdgeUpdate
 ): ReducerResult => {
-  // EdgeUpdate already has workflow_id in its type definition
-  const workflowId = "workflow_id" in update
-    ? (update as EdgeUpdate & { workflow_id?: string }).workflow_id
-    : undefined;
+  const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
-  if (effectiveWorkflowId) {
+  // Edges are scoped by the producing run's job_id so concurrent same-workflow
+  // runs stay isolated. Skip the write if job_id is absent.
+  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+  if (effectiveWorkflowId && jobId) {
     useResultsStore
       .getState()
       .setEdge(
         effectiveWorkflowId,
+        jobId,
         update.edge_id,
         update.status,
         update.counter ?? undefined
@@ -305,10 +324,7 @@ const applyNodeUpdate = (
   state: GlobalChatState,
   update: NodeUpdate
 ): ReducerResult => {
-  // NodeUpdate may have workflow_id as an optional field
-  const workflowId = "workflow_id" in update
-    ? (update as NodeUpdate & { workflow_id?: string }).workflow_id
-    : undefined;
+  const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
 
   if (effectiveWorkflowId) {
@@ -316,15 +332,19 @@ const applyNodeUpdate = (
     // If running, we might want to clear previous error or result?
     // For now, allow multiple updates.
 
-    // Sync status
-    useStatusStore
-      .getState()
-      .setStatus(effectiveWorkflowId, update.node_id, update.status);
+    // Sync status, scoped by the producing run's job_id so concurrent
+    // same-workflow runs stay isolated. Skip the write if job_id is absent.
+    const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+    if (jobId) {
+      useStatusStore
+        .getState()
+        .setStatus(effectiveWorkflowId, jobId, update.node_id, update.status);
+    }
 
-    if (update.result) {
+    if (update.result && jobId) {
       useResultsStore
         .getState()
-        .setResult(effectiveWorkflowId, update.node_id, update.result);
+        .setResult(effectiveWorkflowId, jobId, update.node_id, update.result);
     }
   }
 
@@ -485,23 +505,24 @@ const applyOutputUpdate = (
     return noopUpdate;
   }
 
-  // OutputUpdate may have workflow_id as an optional field
-  const workflowId = "workflow_id" in update
-    ? (update as OutputUpdate & { workflow_id?: string }).workflow_id
-    : undefined;
+  const workflowId = update.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[threadId];
-  if (effectiveWorkflowId) {
+  // Output results are scoped by the producing run's job_id so concurrent
+  // same-workflow runs stay isolated. Skip the write if job_id is absent.
+  const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+  if (effectiveWorkflowId && jobId) {
     useResultsStore
       .getState()
       .setOutputResult(
         effectiveWorkflowId,
+        jobId,
         update.node_id,
         update.value,
         true // append
       );
   }
 
-  if (update.output_type === "string") {
+  if (update.output_type === "string" && typeof update.value === "string") {
     const messages = state.messageCache[threadId] || [];
     const lastMessage = messages[messages.length - 1];
 
@@ -511,7 +532,7 @@ const applyOutputUpdate = (
       }
       const updatedMessage: Message = {
         ...lastMessage,
-        content: lastMessage.content + (update.value as string)
+        content: lastMessage.content + update.value
       };
       return {
         update: {
@@ -529,7 +550,7 @@ const applyOutputUpdate = (
     const message: Message = {
       role: "assistant",
       type: "message",
-      content: update.value as string
+      content: update.value
     };
     return {
       update: {
@@ -589,6 +610,11 @@ const applyToolCallUpdate = (
   const agentExecutionId = updateWithMeta.agent_execution_id ?? null;
   const stepId = updateWithMeta.step_id ?? null;
 
+  // The LLM-authored status lives in args._message and is mirrored onto
+  // `update.message`. Strip it from the args we display so the user doesn't
+  // see the status field duplicated under "Arguments".
+  const displayArgs = visibleToolArgs(update.args);
+
   let agentExecutionToolCalls:
     | GlobalChatState["agentExecutionToolCalls"]
     | undefined;
@@ -603,7 +629,7 @@ const applyToolCallUpdate = (
     const nextCall: StepToolCall = {
       id: toolCallId,
       name: update.name || "Tool",
-      args: update.args ?? null,
+      args: displayArgs ?? null,
       message: update.message ?? null,
       startedAt:
         existingIndex >= 0 ? existingCalls[existingIndex].startedAt : Date.now()
@@ -634,6 +660,40 @@ const applyToolCallUpdate = (
   };
 };
 
+interface AgentExecutionMessage extends Message {
+  execution_event_type?: string;
+}
+
+function isPlanningUpdateContent(content: unknown): content is PlanningUpdate {
+  return (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content) &&
+    "type" in content &&
+    content.type === "planning_update"
+  );
+}
+
+function isTaskUpdateContent(content: unknown): content is TaskUpdate {
+  return (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content) &&
+    "type" in content &&
+    content.type === "task_update"
+  );
+}
+
+function isLogUpdateContent(content: unknown): content is LogUpdate {
+  return (
+    typeof content === "object" &&
+    content !== null &&
+    !Array.isArray(content) &&
+    "type" in content &&
+    content.type === "log_update"
+  );
+}
+
 const applyAgentExecutionMessage = (
   state: GlobalChatState,
   threadId: string,
@@ -650,11 +710,7 @@ const applyAgentExecutionMessage = (
       : state.threads
   };
 
-  // Debug logging for agent execution messages
-  // These properties exist on agent_execution messages but aren't in the base Message type
-  const agentMsg = msg as Message & {
-    execution_event_type?: string;
-  };
+  const agentMsg = msg as AgentExecutionMessage;
   console.debug("applyAgentExecutionMessage:", {
     execution_event_type: agentMsg.execution_event_type,
     content_type: typeof agentMsg.content,
@@ -662,29 +718,28 @@ const applyAgentExecutionMessage = (
     has_content: !!agentMsg.content
   });
 
+  const content = agentMsg.content;
+
   if (agentMsg.execution_event_type === "planning_update") {
-    const content = agentMsg.content;
     console.debug("PlanningUpdate content:", content);
-    if (content && typeof content === "object" && !Array.isArray(content)) {
-      update.currentPlanningUpdate = content as unknown as PlanningUpdate;
+    if (isPlanningUpdateContent(content)) {
+      update.currentPlanningUpdate = content;
       console.info("Set currentPlanningUpdate:", content);
     } else {
       console.warn("PlanningUpdate content is invalid:", content);
     }
   } else if (agentMsg.execution_event_type === "task_update") {
-    const content = agentMsg.content;
-    if (content && typeof content === "object" && !Array.isArray(content)) {
-      update.currentTaskUpdate = content as unknown as TaskUpdate;
+    if (isTaskUpdateContent(content)) {
+      update.currentTaskUpdate = content;
       update.currentTaskUpdateThreadId = threadId;
       update.lastTaskUpdatesByThread = {
         ...state.lastTaskUpdatesByThread,
-        [threadId]: content as unknown as TaskUpdate
+        [threadId]: content
       };
     }
   } else if (agentMsg.execution_event_type === "log_update") {
-    const content = agentMsg.content;
-    if (content && typeof content === "object" && !Array.isArray(content)) {
-      update.currentLogUpdate = content as unknown as LogUpdate;
+    if (isLogUpdateContent(content)) {
+      update.currentLogUpdate = content;
     }
   }
 
@@ -737,7 +792,7 @@ const applyAssistantMessage = (
     }
     if (Array.isArray(message.content)) {
       return message.content
-        .map((c) => (c?.type === "text" ? (c as MessageTextContent).text : ""))
+        .map((c) => (c.type === "text" ? c.text : ""))
         .join("");
     }
     return "";
@@ -747,7 +802,7 @@ const applyAssistantMessage = (
     typeof msg.content === "string"
       ? msg.content
       : Array.isArray(msg.content)
-      ? msg.content.map((c) => (c?.type === "text" ? (c as MessageTextContent).text : "")).join("")
+      ? msg.content.map((c) => (c.type === "text" ? c.text : "")).join("")
       : "";
   const incomingNormalized = normalizeTextForComparison(incomingText);
 
@@ -755,9 +810,7 @@ const applyAssistantMessage = (
     for (let i = messages.length - 1; i >= 0; i--) {
       const candidate = messages[i];
       if (candidate?.role !== "assistant") {continue;}
-      // Messages may have an optional type field that isn't in the base type
-      const candidateWithType = candidate as Message & { type?: string };
-      if (candidateWithType.type !== "message") {continue;}
+      if (candidate.type !== "message") {continue;}
 
       const candidateId = candidate.id ?? null;
       const isLocalStream =
@@ -918,16 +971,17 @@ const applyNodeProgress = (
   state: GlobalChatState,
   progress: NodeProgress
 ): ReducerResult => {
-  // NodeProgress may have workflow_id as an optional field
-  const workflowId = "workflow_id" in progress
-    ? (progress as NodeProgress & { workflow_id?: string }).workflow_id
-    : undefined;
+  const workflowId = progress.workflow_id ?? undefined;
   const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
-  if (effectiveWorkflowId) {
+  // Progress is scoped by the producing run's job_id so concurrent same-workflow
+  // runs stay isolated. Skip the write if job_id is absent.
+  const jobId = (progress as { job_id?: string | null }).job_id ?? undefined;
+  if (effectiveWorkflowId && jobId) {
     useResultsStore
       .getState()
       .setProgress(
         effectiveWorkflowId,
+        jobId,
         progress.node_id,
         progress.progress,
         progress.total
@@ -1003,11 +1057,17 @@ async function executeToolCall(
 
   const startTime = Date.now();
   try {
+    // Resolve the canonical frontend-tool runtime state lazily — the same
+    // source the agent (`/ws/agent`) bridge uses, so `ui_*` tools behave
+    // identically in every chat mode. It is wired by the workflow editor
+    // (PanelRight); when no editor is mounted (e.g. the global /chat route
+    // with no open workflow) accessing it throws, which surfaces as a tool
+    // error instead of silently mutating a stub.
     const threadWorkflowId =
       get().threadWorkflowId?.[thread_id] ?? get().workflowId ?? null;
     if (threadWorkflowId) {
       try {
-        await get().frontendToolState.fetchWorkflow(threadWorkflowId);
+        await getFrontendToolRuntimeState().fetchWorkflow(threadWorkflowId);
       } catch (e) {
         console.warn("Failed to fetch workflow for tool call:", e);
       }
@@ -1027,12 +1087,14 @@ async function executeToolCall(
       effectiveArgs,
       tool_call_id,
       {
-        getState: () =>
-          ({
-            ...(get().frontendToolState as FrontendToolState),
+        getState: () => {
+          const runtimeState = getFrontendToolRuntimeState();
+          return {
+            ...runtimeState,
             currentWorkflowId:
-              threadWorkflowId ?? get().frontendToolState.currentWorkflowId
-          }) as FrontendToolState
+              threadWorkflowId ?? runtimeState.currentWorkflowId
+          };
+        }
       }
     );
 
@@ -1066,6 +1128,26 @@ async function executeToolCall(
     } catch (sendError) {
       console.error("Failed to send tool_result after error:", sendError);
     }
+  }
+}
+
+/**
+ * Send the user's decision on a gated tool call back to the server, resuming
+ * (or denying) the paused tool execution. Reuses the shared WebSocket
+ * connection — never opens a new socket.
+ */
+export async function sendToolApprovalResponse(
+  approvalId: string,
+  decision: "allow" | "allow_for_chat" | "deny"
+): Promise<void> {
+  try {
+    await globalWebSocketManager.send({
+      type: "tool_approval_response",
+      approval_id: approvalId,
+      decision
+    });
+  } catch (error) {
+    console.error("Failed to send tool_approval_response:", error);
   }
 }
 
@@ -1148,6 +1230,17 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyOutputUpdate, data as OutputUpdate);
   } else if (data.type === "tool_call_update") {
     applyReducer(applyToolCallUpdate, data as ToolCallUpdate);
+  } else if (data.type === "todo_update") {
+    const todoData = data as TodoUpdate;
+    const threadId = todoData.thread_id ?? get().currentThreadId;
+    if (threadId) {
+      set((state) => ({
+        todosByThread: {
+          ...state.todosByThread,
+          [threadId]: todoData.todos ?? []
+        }
+      }));
+    }
   } else if (data.type === "message") {
     const messageData = data as Message;
     const currentThreadId = get().currentThreadId;
@@ -1168,6 +1261,8 @@ export async function handleChatWebSocketMessage(
   } else if (data.type === "tool_call") {
     const toolCallData = data as ToolCallMessage;
     void executeToolCall(toolCallData, get, set, globalWebSocketManager);
+  } else if (data.type === "tool_approval_request") {
+    get().addPendingApproval(data as ToolApprovalRequestMessage);
   } else if (data.type === "generation_stopped") {
     // Clear the safety timeout when generation is stopped
     const timeoutId = get().sendMessageTimeoutId;

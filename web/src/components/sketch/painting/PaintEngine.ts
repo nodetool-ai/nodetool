@@ -30,6 +30,9 @@ export type EngineCompositeOp = "source-over" | "destination-out";
  */
 export type StrokeBufferMode = "buffered" | "direct";
 
+/** Effective stroke-assist mode active for the current stroke. */
+export type EngineAssistMode = "off" | "stabilizer" | "lazy";
+
 // ─── Engine interface ───────────────────────────────────────────────────────
 
 export interface PaintEngine {
@@ -87,4 +90,11 @@ export interface PaintEngine {
     maxX: number;
     maxY: number;
   } | null;
+
+  /**
+   * Report the effective stroke-assist mode for the current settings.
+   * Used by PaintSession to publish the lazy-brush leash for cursor overlay.
+   * Optional; if absent, callers should treat it as `"off"`.
+   */
+  getAssistMode?(): EngineAssistMode;
 }

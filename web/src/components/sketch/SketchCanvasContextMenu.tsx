@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect } from "react";
 import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
-  Box,
   ButtonBase,
   Divider,
   IconButton,
@@ -11,15 +10,13 @@ import {
   Stack,
   Typography
 } from "@mui/material";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import InvertColorsIcon from "@mui/icons-material/InvertColors";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import RestoreIcon from "@mui/icons-material/Restore";
 import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ContentCutIcon from "@mui/icons-material/ContentCut";
-import NoteAddIcon from "@mui/icons-material/NoteAdd";
-import TransformIcon from "@mui/icons-material/Transform";
 import HighlightAltIcon from "@mui/icons-material/HighlightAlt";
 import CropIcon from "@mui/icons-material/Crop";
 import {
@@ -29,7 +26,6 @@ import {
   EraserSettings,
   FillSettings,
   GradientSettings,
-  type LayerType,
   PencilSettings,
   SelectSettings,
   SegmentSettings,
@@ -47,15 +43,15 @@ import {
 } from "./toolDefinitions";
 import { displayCombo } from "./shortcuts";
 import SketchToolIconLabel from "./SketchToolIconLabel";
-import { ToolSettingsPanel, getToolSettingsLabel } from "./ToolSettingsPanels";
+import { ToolSettingsPanel } from "./ToolSettingsPanels";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <Typography
       sx={{
-        mb: 1.05,
+        mb: 1,
         fontSize: SKETCH_FONT.section,
-        fontWeight: 800,
+        fontWeight: 600,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
         color: "text.secondary"
@@ -79,7 +75,7 @@ function ColorPreview({ label, color }: { label: string; color: string }) {
           background: color
         }}
       />
-      <Typography sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 700, color: "text.secondary" }}>
+      <Typography sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 600, color: "text.secondary" }}>
         {label}
       </Typography>
     </Stack>
@@ -124,9 +120,9 @@ function SelectionMenuItem({
         }
       }}
     >
-      <Box sx={{ flex: "0 0 auto", display: "flex", color: "text.secondary" }}>
+      <FlexRow sx={{ flex: "0 0 auto", color: "text.secondary" }}>
         {icon}
-      </Box>
+      </FlexRow>
       <Typography sx={{ flex: 1, fontSize: SKETCH_FONT.md, fontWeight: 500, color: "text.primary" }}>
         {label}
       </Typography>
@@ -150,7 +146,7 @@ interface ToolGridButtonProps {
   compact?: boolean;
 }
 
-function ToolGridButton({
+const ToolGridButton = memo(function ToolGridButton({
   definition,
   selected,
   shortcut,
@@ -218,7 +214,7 @@ function ToolGridButton({
       />
     </ButtonBase>
   );
-}
+});
 
 export interface SketchCanvasContextMenuProps {
   /** Applied to the menu paper (e.g. `sketch-editor__context-menu`). */
@@ -256,15 +252,18 @@ export interface SketchCanvasContextMenuProps {
   onCropCanvasToSelection: () => void;
   onFeatherSelection: () => void;
   onSmoothSelectionBorders: () => void;
-  onStrokeSelectionBorder: () => void;
+  onConvertSelectionToBorder: () => void;
   onDeselectSelection: () => void;
   onReselectSelection: () => void;
   onFillSelectionWithForeground: () => void;
-  onNewLayer: (type?: Extract<LayerType, "raster" | "mask">) => void;
+  /**
+   * Paint a colored ring of pixels OUTSIDE the selection with the
+   * foreground color. Width comes from `selectSettings.borderWidth`.
+   * Pairs with Fill for a filled shape with an outer outline.
+   */
+  onStrokeSelectionWithForeground: () => void;
   onLayerViaCopy: () => void;
   onLayerViaCut: () => void;
-  onFreeTransform: () => void;
-  onTransformSelection?: () => void;
   onAdjustBrightnessChange?: (value: number) => void;
   onAdjustContrastChange?: (value: number) => void;
   onAdjustSaturationChange?: (value: number) => void;
@@ -326,15 +325,13 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   onCropCanvasToSelection,
   onFeatherSelection,
   onSmoothSelectionBorders,
-  onStrokeSelectionBorder,
+  onConvertSelectionToBorder,
   onDeselectSelection,
   onReselectSelection,
   onFillSelectionWithForeground,
-  onNewLayer,
+  onStrokeSelectionWithForeground,
   onLayerViaCopy,
   onLayerViaCut,
-  onFreeTransform,
-  onTransformSelection,
   onAdjustBrightnessChange,
   onAdjustContrastChange,
   onAdjustSaturationChange,
@@ -373,12 +370,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
     const actionId = getToolShortcutActionId(tool, selectSettings.mode);
     return actionId ? displayCombo(actionId) : "";
   };
-  const [newLayerMenuAnchor, setNewLayerMenuAnchor] =
-    useState<HTMLButtonElement | null>(null);
-
   useEffect(() => {
     if (!open) {
-      setNewLayerMenuAnchor(null);
       return undefined;
     }
 
@@ -471,21 +464,19 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
         }
       }}
     >
-      <Box
+      <FlexColumn
         className="sketch-context-menu__root"
-        sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}
+        gap={1.25}
       >
-        <Box
+        <FlexRow
           className="sketch-context-menu__header"
+          align="center"
+          gap={1}
           sx={{
             flex: "0 0 auto",
             minHeight: CONTEXT_MENU_HEADER_HEIGHT_PX,
             boxSizing: "border-box",
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 1,
-            px: 1.25,
+            px: 1,
             py: 0.5,
             borderRadius: "8px",
             // border: "1px solid",
@@ -514,13 +505,13 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               className="sketch-context-menu__header-shortcut"
               sx={{
                 flex: "0 0 auto",
-                px: 0.65,
-                py: 0.2,
+                px: 0.5,
+                py: 0.5,
                 borderRadius: "6px",
                 border: "1px solid",
                 borderColor: theme.vars.palette.grey[600],
                 fontSize: SKETCH_FONT.sm,
-                fontWeight: 700,
+                fontWeight: 600,
                 lineHeight: 1.2,
                 color: "text.secondary",
                 fontVariantNumeric: "tabular-nums"
@@ -535,16 +526,17 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             flexItem
             sx={{
               borderColor: alpha(theme.palette.primary.main, 0.22),
-              my: 0.75
+              my: 1
             }}
           />
-          <Box
+          <FlexRow
             className="sketch-context-menu__header-colors"
-            sx={{ flex: "0 0 auto", display: "flex", alignItems: "center" }}
+            align="center"
+            sx={{ flex: "0 0 auto" }}
           >
             {renderColorContext()}
-          </Box>
-        </Box>
+          </FlexRow>
+        </FlexRow>
 
         <Box
           className="sketch-context-menu__body"
@@ -577,8 +569,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               minHeight: 360,
               height: "100%",
               borderRadius: "8px",
-              px: 1.35,
-              py: 1.2
+              px: 1,
+              py: 1
             }}
           >
             <Box sx={{ minWidth: 0 }}>
@@ -610,7 +602,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   onInvertSelection={onInvertSelection}
                   onFeatherSelection={onFeatherSelection}
                   onSmoothSelectionBorders={onSmoothSelectionBorders}
-                  onStrokeSelectionBorder={onStrokeSelectionBorder}
+                  onConvertSelectionToBorder={onConvertSelectionToBorder}
                   onAdjustBrightnessChange={onAdjustBrightnessChange}
                   onAdjustContrastChange={onAdjustContrastChange}
                   onAdjustSaturationChange={onAdjustSaturationChange}
@@ -648,12 +640,6 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 <SectionLabel>Selection</SectionLabel>
                 <Stack spacing={0.3}>
                   <SelectionMenuItem
-                    icon={<InvertColorsIcon sx={{ fontSize: 16 }} />}
-                    label="Select Inverse"
-                    shortcut={displayCombo("invert-selection")}
-                    onClick={() => { onInvertSelection(); onClose(); }}
-                  />
-                  <SelectionMenuItem
                     icon={<DeselectIcon sx={{ fontSize: 16 }} />}
                     label="Deselect"
                     shortcut={displayCombo("deselect")}
@@ -687,38 +673,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     disabled={!hasActiveSelection}
                     onClick={() => { onLayerViaCut(); onClose(); }}
                   />
-                  <SelectionMenuItem
-                    icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
-                    label="New Layer..."
-                    endAdornment={
-                      <Typography
-                        aria-hidden="true"
-                        sx={{
-                          fontSize: SKETCH_FONT.md,
-                          fontWeight: 700,
-                          color: "text.secondary"
-                        }}
-                      >
-                        ›
-                      </Typography>
-                    }
-                    onClick={(event) => {
-                      setNewLayerMenuAnchor(event.currentTarget);
-                    }}
-                  />
                   <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
-                  <SelectionMenuItem
-                    icon={<TransformIcon sx={{ fontSize: 16 }} />}
-                    label="Free Transform"
-                    shortcut={displayCombo("free-transform")}
-                    onClick={() => { onFreeTransform(); onClose(); }}
-                  />
-                  <SelectionMenuItem
-                    icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
-                    label="Transform Selection"
-                    disabled={!hasActiveSelection || !onTransformSelection}
-                    onClick={() => { onTransformSelection?.(); onClose(); }}
-                  />
                   <SelectionMenuItem
                     icon={<FormatColorFillIcon sx={{ fontSize: 16 }} />}
                     label="Fill"
@@ -726,26 +681,24 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     onClick={() => { onFillSelectionWithForeground(); onClose(); }}
                   />
                   <SelectionMenuItem
-                    icon={<InvertColorsIcon sx={{ fontSize: 16, transform: "scaleX(-1)" }} />}
+                    icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
                     label="Stroke"
                     disabled={!hasActiveSelection}
-                    onClick={() => { onStrokeSelectionBorder(); onClose(); }}
+                    onClick={() => { onStrokeSelectionWithForeground(); onClose(); }}
                   />
                 </Stack>
               </Box>
             )}
           </Stack>
 
-          <Box
+          <FlexColumn
             className="sketch-context-menu__tools-column"
             sx={{
               minWidth: 0,
               alignSelf: "stretch",
               borderRadius: "8px",
-              px: 1.15,
-              py: 1.1,
-              display: "flex",
-              flexDirection: "column"
+              px: 1,
+              py: 1
             }}
           >
             <SectionLabel>Tools</SectionLabel>
@@ -763,7 +716,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     sx={{
                       display: "grid",
                       gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      gap: 0.65,
+                      gap: 0.5,
                       alignContent: "start"
                     }}
                   >
@@ -783,45 +736,14 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     ))}
                   </Box>
                   {groupIndex < CONTEXT_MENU_TOOL_GROUPS.length - 1 ? (
-                    <Divider sx={{ borderColor: surfaceSoft, my: 0.15 }} />
+                    <Divider sx={{ borderColor: surfaceSoft, my: 0.5 }} />
                   ) : null}
                 </React.Fragment>
               ))}
             </Stack>
-          </Box>
+          </FlexColumn>
         </Box>
-      </Box>
-      </Popover>
-      <Popover
-        open={Boolean(newLayerMenuAnchor)}
-        anchorEl={newLayerMenuAnchor}
-        onClose={() => setNewLayerMenuAnchor(null)}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
-        disableRestoreFocus
-      >
-        <Box sx={{ minWidth: 180, p: 0.8 }}>
-          <Stack spacing={0.3}>
-            <SelectionMenuItem
-              icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
-              label="Raster Layer"
-              onClick={() => {
-                setNewLayerMenuAnchor(null);
-                onNewLayer("raster");
-                onClose();
-              }}
-            />
-            <SelectionMenuItem
-              icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
-              label="Mask Layer"
-              onClick={() => {
-                setNewLayerMenuAnchor(null);
-                onNewLayer("mask");
-                onClose();
-              }}
-            />
-          </Stack>
-        </Box>
+      </FlexColumn>
       </Popover>
     </>
   );

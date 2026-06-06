@@ -16,7 +16,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-compose-card": {
       width: "100%",
       borderRadius: 28,
-      padding: `${theme.spacing(2.25)} ${theme.spacing(2)} ${theme.spacing(1.5)}`,
+      padding: `${theme.spacing(2)} ${theme.spacing(2)} ${theme.spacing(1.5)}`,
       background:
         theme.palette.mode === "light"
           ? theme.vars.palette.background.paper
@@ -33,7 +33,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
           : "0 10px 40px rgba(0,0,0,0.45)",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1.75),
+      gap: theme.spacing(2),
       transition: `${MOTION.border}, ${MOTION.shadow}`,
       "&:focus-within": {
         borderColor:
@@ -76,11 +76,27 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-chip-row": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.25),
+      gap: theme.spacing(1),
       width: "100%",
       padding: `0 ${theme.spacing(2)}`,
       boxSizing: "border-box",
       flexWrap: "wrap"
+    },
+
+    // Idle state: dim the border and footer controls while the composer is
+    // unfocused, brightening them back on focus. The textarea stays full
+    // opacity so the placeholder/prompt remains readable.
+    ".media-compose-card.dimmed": {
+      borderColor:
+        theme.palette.mode === "light"
+          ? theme.vars.palette.grey[800]
+          : theme.vars.palette.grey[900]
+    },
+    ".media-compose-card.dimmed .media-chip-row": {
+      opacity: 0.55
+    },
+    ".media-compose-card .media-chip-row": {
+      transition: "opacity 0.2s ease"
     },
 
     ".media-chip-row .divider-dot": {
@@ -88,7 +104,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       height: 4,
       borderRadius: BORDER_RADIUS.circle,
       background: theme.vars.palette.grey[700],
-      margin: `0 ${theme.spacing(0.25)}`
+      margin: `0 ${theme.spacing(0.5)}`
     },
 
     ".media-chip-row .tools-button": {
@@ -123,34 +139,12 @@ export const createMediaComposerStyles = (theme: Theme) =>
       flex: 1
     },
 
-    ".media-retake-btn": {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: 32,
-      height: 32,
-      borderRadius: BORDER_RADIUS.pill,
-      background: "transparent",
-      border: "none",
-      color: theme.vars.palette.grey[300],
-      cursor: "pointer",
-      transition: MOTION.background,
-      "&:hover:not(:disabled)": {
-        backgroundColor: theme.vars.palette.action.hover
-      },
-      "&:disabled": {
-        opacity: 0.4,
-        cursor: "not-allowed"
-      },
-      "& svg": { fontSize: 18 }
-    },
-
     ".media-generate-btn": {
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
       height: 36,
-      padding: `0 ${theme.spacing(2.5)}`,
+      padding: `0 ${theme.spacing(3)}`,
       borderRadius: BORDER_RADIUS.pill,
       background: `linear-gradient(135deg, ${theme.vars.palette.primary.main} 0%, ${theme.vars.palette.primary.light} 100%)`,
       color: theme.vars.palette.primary.contrastText,
@@ -195,7 +189,10 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-file-preview-row": {
       display: "flex",
       flexWrap: "wrap",
-      gap: theme.spacing(0.75)
+      alignItems: "center",
+      gap: theme.spacing(1),
+      padding: `0 ${theme.spacing(2)}`,
+      boxSizing: "border-box"
     },
 
     ".file-preview": {

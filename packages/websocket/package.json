@@ -30,11 +30,16 @@
     "@nodetool-ai/dsl": "*",
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/elevenlabs-nodes": "*",
+    "@nodetool-ai/minimax-nodes": "*",
     "@nodetool-ai/transformers-js-nodes": "*",
     "@nodetool-ai/transformers-js-provider": "*",
     "@nodetool-ai/fal-nodes": "*",
     "@nodetool-ai/kie-nodes": "*",
+    "@nodetool-ai/topaz-nodes": "*",
+    "@nodetool-ai/reve-nodes": "*",
+    "@nodetool-ai/atlascloud-nodes": "*",
     "@nodetool-ai/huggingface": "*",
+    "@nodetool-ai/huggingface-nodes": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/models": "*",
     "@nodetool-ai/node-sdk": "*",
@@ -47,7 +52,6 @@
     "@nodetool-ai/vectorstore": "*",
     "@mariozechner/pi-coding-agent": "^0.72.1",
     "@sinclair/typebox": "^0.34.0",
-    "@opencode-ai/sdk": "^1.3.15",
     "fastify": "^5.8.5",
     "@trpc/server": "^11.0.0",
     "@hyzyla/pdfium": "^2.1.12",
@@ -57,8 +61,6 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-agent-sdk": "latest",
-    "@openai/codex-sdk": "^0.118.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"

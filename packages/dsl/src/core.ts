@@ -82,15 +82,12 @@ export interface DslNode<
 // WorkflowNode / WorkflowEdge / Workflow
 // ---------------------------------------------------------------------------
 
-export type SyncMode = "zip_all" | "on_any";
-
 export interface WorkflowNode {
   readonly id: string;
   readonly type: string;
   readonly data: Record<string, unknown>;
   readonly streaming: boolean;
   readonly streamingInput: boolean;
-  readonly syncMode?: SyncMode;
 }
 
 export interface WorkflowEdge {
@@ -115,7 +112,6 @@ interface RegisteredNodeDescriptor {
   inputs: Record<string, unknown>;
   streaming: boolean;
   streamingInput: boolean;
-  syncMode?: SyncMode;
 }
 
 const nodeRegistry = new Map<string, RegisteredNodeDescriptor>();
@@ -134,7 +130,6 @@ export type CreateNodeOptions<
 > = {
   streaming?: boolean;
   streamingInput?: boolean;
-  syncMode?: SyncMode;
   outputNames?: readonly OutputSlot<TOutputs>[];
   defaultOutput?: TDefault;
   multiOutput?: boolean;
@@ -158,7 +153,6 @@ export function createNode<
   const nodeId = crypto.randomUUID();
   const streaming = opts?.streaming ?? false;
   const streamingInput = opts?.streamingInput ?? false;
-  const syncMode = opts?.syncMode;
   const outputNames = opts?.outputNames
     ? [...opts.outputNames]
     : opts?.multiOutput
@@ -175,8 +169,7 @@ export function createNode<
     nodeType,
     inputs,
     streaming,
-    streamingInput,
-    syncMode
+    streamingInput
   };
   nodeRegistry.set(nodeId, descriptor);
 
@@ -305,8 +298,7 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
       type: desc.nodeType,
       data,
       streaming: desc.streaming,
-      streamingInput: desc.streamingInput,
-      syncMode: desc.syncMode
+      streamingInput: desc.streamingInput
     };
   });
 
@@ -352,8 +344,7 @@ export async function run(
     type: n.type,
     properties: n.data,
     is_streaming_output: n.streaming,
-    is_streaming_input: n.streamingInput,
-    ...(n.syncMode ? { sync_mode: n.syncMode } : {})
+    is_streaming_input: n.streamingInput
   }));
 
   const edges = wf.edges.map((e) => ({
@@ -382,12 +373,32 @@ export async function run(
     // Some environments do not have the ElevenLabs node package in a runnable state.
   }
   try {
+    const { registerMinimaxNodes } = await import("@nodetool-ai/minimax-nodes");
+    registerMinimaxNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the MiniMax node package in a runnable state.
+  }
+  try {
     const { registerTransformersJsNodes } = await import(
       "@nodetool-ai/transformers-js-nodes"
     );
     registerTransformersJsNodes(builtinRegistry);
   } catch {
     // Some environments do not have the Transformers.js node package in a runnable state.
+  }
+  try {
+    const { registerHuggingFaceNodes } = await import(
+      "@nodetool-ai/huggingface-nodes"
+    );
+    registerHuggingFaceNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the Hugging Face node package in a runnable state.
+  }
+  try {
+    const { registerReveNodes } = await import("@nodetool-ai/reve-nodes");
+    registerReveNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the Reve node package in a runnable state.
   }
 
   const resolveExecutor = (node: { id: string; type: string }) => {

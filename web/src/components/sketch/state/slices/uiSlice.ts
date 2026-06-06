@@ -32,10 +32,23 @@ export interface UiSlice {
   toggleIsolateLayer: (layerId: string) => void;
 
   /** Document-space crop preview while the crop tool is active (not persisted). */
-  cropPreviewBounds: { x: number; y: number; width: number; height: number } | null;
+  cropPreviewBounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null;
   setCropPreviewBounds: (
     bounds: { x: number; y: number; width: number; height: number } | null
   ) => void;
+
+  /**
+   * Document-space cursor position for the status bar (not persisted). Written
+   * by the canvas on pointer move; only the status bar subscribes, so this
+   * never touches the canvas render hot path.
+   */
+  cursorDocPos: { x: number; y: number } | null;
+  setCursorDocPos: (pos: { x: number; y: number } | null) => void;
 }
 
 export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
@@ -125,5 +138,8 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
     })),
 
   cropPreviewBounds: null,
-  setCropPreviewBounds: (bounds) => set({ cropPreviewBounds: bounds })
+  setCropPreviewBounds: (bounds) => set({ cropPreviewBounds: bounds }),
+
+  cursorDocPos: null,
+  setCursorDocPos: (pos) => set({ cursorDocPos: pos })
 });

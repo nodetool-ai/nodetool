@@ -9,8 +9,59 @@
 
 import { act } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
-import { rectSelectionMask, getSelectionBounds } from "../selection";
+import {
+  cloneSelectionMask,
+  contractSelectionMask,
+  expandSelectionMask,
+  featherMaskAlpha,
+  rectSelectionMask,
+  getSelectionBounds,
+  smoothSelectionBorders
+} from "../selection";
 import type { Selection } from "../types";
+import type { SketchRuntime } from "../rendering/types";
+
+/**
+ * Minimal runtime stub that satisfies the duck-typed contract that
+ * `selectionSlice`'s GPU refine ops use. The slice calls `setSelection` (to
+ * upload the padded buffer) and then awaits the matching `*SelectionGpu`
+ * method; this stub records the buffer passed to `setSelection` and runs
+ * the CPU equivalent in place of the GPU kernel so the test exercises the
+ * slice's pad-then-trim ROI logic without needing a real WebGPU device.
+ */
+function createCpuRefineRuntimeStub(): SketchRuntime {
+  let pendingSel: Selection | null = null;
+  const stub: Partial<SketchRuntime> = {
+    setSelection: (sel: Selection | null) => {
+      pendingSel = sel;
+    },
+    featherSelectionGpu: async (radius: number) => {
+      if (!pendingSel) return null;
+      const copy = cloneSelectionMask(pendingSel);
+      featherMaskAlpha(copy, radius);
+      return copy;
+    },
+    expandSelectionGpu: async (radius: number) => {
+      if (!pendingSel) return null;
+      const copy = cloneSelectionMask(pendingSel);
+      expandSelectionMask(copy, radius);
+      return copy;
+    },
+    contractSelectionGpu: async (radius: number) => {
+      if (!pendingSel) return null;
+      const copy = cloneSelectionMask(pendingSel);
+      contractSelectionMask(copy, radius);
+      return copy;
+    },
+    smoothSelectionGpu: async (strength: number) => {
+      if (!pendingSel) return null;
+      const copy = cloneSelectionMask(pendingSel);
+      smoothSelectionBorders(copy, strength);
+      return copy;
+    }
+  };
+  return stub as SketchRuntime;
+}
 
 function makeSelectionWithRect(
   width: number,
@@ -281,11 +332,14 @@ describe("Reselect last selection", () => {
 });
 
 describe("Selection mutations stay ROI-bounded", () => {
-  it("expandCurrentSelection trims the result back to the changed ROI", () => {
+  it("expandCurrentSelection trims the result back to the changed ROI", async () => {
     const selection = makeSelectionWithRect(512, 512, 120, 140, 8, 6);
+    useSketchStore.getState().setRuntimeInstance(createCpuRefineRuntimeStub());
     act(() => {
       useSketchStore.getState().setSelection(selection);
-      useSketchStore.getState().expandCurrentSelection(4);
+    });
+    await act(async () => {
+      await useSketchStore.getState().expandCurrentSelection(4);
     });
 
     const expanded = useSketchStore.getState().selection;
@@ -302,12 +356,17 @@ describe("Selection mutations stay ROI-bounded", () => {
     });
   });
 
-  it("featherCurrentSelection no longer keeps a full-document buffer for small edits", () => {
+  it("featherCurrentSelection no longer keeps a full-document buffer for small edits", async () => {
     const selection = makeSelectionWithRect(512, 512, 80, 96, 10, 10);
+    // Inject a CPU-backed runtime stub: feather is GPU-only in production,
+    // but we still need to exercise the slice's pad-then-trim ROI logic.
+    useSketchStore.getState().setRuntimeInstance(createCpuRefineRuntimeStub());
     act(() => {
       useSketchStore.getState().setSelection(selection);
       useSketchStore.getState().setSelectSettings({ featherRadius: 6 });
-      useSketchStore.getState().featherCurrentSelection();
+    });
+    await act(async () => {
+      await useSketchStore.getState().featherCurrentSelection();
     });
 
     const feathered = useSketchStore.getState().selection;

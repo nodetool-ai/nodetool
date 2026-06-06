@@ -1,6 +1,7 @@
 import { useCallback, useRef, MouseEvent as ReactMouseEvent } from "react";
 import { useReactFlow, type Node } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useNodes } from "../../contexts/NodeContext";
 import {
   getSelectionRect,
@@ -8,6 +9,7 @@ import {
 } from "../../utils/selectionBounds";
 import { NodeData } from "../../stores/NodeData";
 import { shallow } from "zustand/shallow";
+import { GROUP_NODE_TYPE } from "../../constants/nodeTypes";
 
 interface UseSelectionEventsProps {
   reactFlowInstance: ReturnType<typeof useReactFlow>;
@@ -18,8 +20,6 @@ interface UseSelectionEventsProps {
   /** When true, the pane effect does not auto-select edges from selected nodes (node-only marquee). */
   setSuppressNodeDrivenEdgeSelection: (suppress: boolean) => void;
 }
-
-const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
 
 export function useSelectionEvents({
   reactFlowInstance,
@@ -33,6 +33,7 @@ export function useSelectionEvents({
   const selectionEndRef = useRef<{ x: number; y: number } | null>(null);
 
   const { openContextMenu } = useContextMenu();
+  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
   const { updateNode, setEdgeSelectionState } = useNodes((state) => ({
     updateNode: state.updateNode,
     setEdgeSelectionState: state.setEdgeSelectionState
@@ -178,6 +179,9 @@ export function useSelectionEvents({
         const hasSelectedNode = reactFlowInstance
           .getNodes()
           .some((n) => n.selected);
+        if (!hasSelectedNode) {
+          closeNodeMenu();
+        }
         if (hasSelectedNode && !includeMarqueeEdges) {
           setSuppressNodeDrivenEdgeSelection(true);
           const allEdges = reactFlowInstance.getEdges();
@@ -193,6 +197,7 @@ export function useSelectionEvents({
       });
     },
     [
+      closeNodeMenu,
       onSelectionEndBase,
       projectMouseEventToFlow,
       reactFlowInstance,

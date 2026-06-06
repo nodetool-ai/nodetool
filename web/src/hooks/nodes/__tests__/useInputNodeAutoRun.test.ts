@@ -1,7 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import {
-  useInputNodeAutoRun,
-  isAutoRunInputNode
+  useInputNodeAutoRun
 } from "../useInputNodeAutoRun";
 
 // Mock the dependencies
@@ -17,6 +16,12 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
 jest.mock("../../../stores/ResultsStore", () => ({
   __esModule: true,
   default: jest.fn()
+}));
+// Cached values are collected from the workflow's focused run; provide a stable
+// one so getResult is consulted (otherwise the read short-circuits to undefined).
+jest.mock("../../../stores/WorkflowRunsStore", () => ({
+  __esModule: true,
+  default: { getState: () => ({ getFocusedJob: () => "job-1" }) }
 }));
 
 jest.mock("../../../core/graph", () => ({
@@ -40,23 +45,6 @@ const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockSubgraph = subgraph as jest.Mock;
 const mockUseSettingsStore = useSettingsStore as unknown as jest.Mock;
-
-describe("isAutoRunInputNode", () => {
-  it("returns true for input node types", () => {
-    expect(isAutoRunInputNode("nodetool.input.StringInput")).toBe(true);
-    expect(isAutoRunInputNode("nodetool.input.IntegerInput")).toBe(true);
-    expect(isAutoRunInputNode("nodetool.input.FloatInput")).toBe(true);
-    expect(isAutoRunInputNode("nodetool.input.BooleanInput")).toBe(true);
-    expect(isAutoRunInputNode("nodetool.input.ImageInput")).toBe(true);
-  });
-
-  it("returns false for non-input node types", () => {
-    expect(isAutoRunInputNode("nodetool.constant.String")).toBe(false);
-    expect(isAutoRunInputNode("nodetool.output.ImageOutput")).toBe(false);
-    expect(isAutoRunInputNode("comfy.image.LoadImage")).toBe(false);
-    expect(isAutoRunInputNode("")).toBe(false);
-  });
-});
 
 describe("useInputNodeAutoRun", () => {
   const mockRun = jest.fn();
@@ -368,13 +356,16 @@ describe("useInputNodeAutoRun", () => {
       edges: [complexEdges[0], complexEdges[1], complexEdges[2]]
     });
 
-    // external-1 has a cached result
-    mockGetResult.mockImplementation((workflowId: string, nodeId: string) => {
-      if (nodeId === "external-1") {
-        return { output: "cached external value" };
+    // external-1 has a cached result. getResult is now keyed by job, so the
+    // node id is the third argument.
+    mockGetResult.mockImplementation(
+      (_workflowId: string, _jobId: string, nodeId: string) => {
+        if (nodeId === "external-1") {
+          return { output: "cached external value" };
+        }
+        return undefined;
       }
-      return undefined;
-    });
+    );
 
     // Enable instantUpdate
     mockUseSettingsStore.mockImplementation((selector) => {
@@ -483,16 +474,19 @@ describe("useInputNodeAutoRun", () => {
       edges: [multiExternalEdges[0], multiExternalEdges[2], multiExternalEdges[3]]
     });
 
-    // Both external nodes have cached results
-    mockGetResult.mockImplementation((workflowId: string, nodeId: string) => {
-      if (nodeId === "external-1") {
-        return { output: "cached from ext1" };
+    // Both external nodes have cached results. getResult is now keyed by job,
+    // so the node id is the third argument.
+    mockGetResult.mockImplementation(
+      (_workflowId: string, _jobId: string, nodeId: string) => {
+        if (nodeId === "external-1") {
+          return { output: "cached from ext1" };
+        }
+        if (nodeId === "external-2") {
+          return { output: 100 };
+        }
+        return undefined;
       }
-      if (nodeId === "external-2") {
-        return { output: 100 };
-      }
-      return undefined;
-    });
+    );
 
     // Enable instantUpdate
     mockUseSettingsStore.mockImplementation((selector) => {

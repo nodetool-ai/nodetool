@@ -42,6 +42,7 @@ import {
   selectionHasSoftEdges
 } from "../selection";
 import { restoreAlphaFromSnapshot } from "./alphaLock";
+import { clearLazyLeash, setLazyLeash } from "./lazyLeashState";
 
 // ─── Session state ──────────────────────────────────────────────────────────
 
@@ -218,6 +219,7 @@ export class PaintSession {
     this.active = true;
 
     this.engine.beginStroke();
+    clearLazyLeash();
 
     // ── Capture selection mask for selection-constrained painting ───
     if (ctx.selection && selectionHasAnyPixels(ctx.selection)) {
@@ -432,6 +434,24 @@ export class PaintSession {
       this.lastPoint = pt;
     }
 
+    // ── Publish lazy-brush leash for cursor overlay ────────────────
+    // When the engine runs in lazy mode the brush tip lags behind the
+    // raw pointer; the overlay draws a connecting line. We only set
+    // the leash while the stroke is active so the cursor renderer can
+    // safely treat its absence as "no lazy in progress".
+    if (
+      this.engine.getAssistMode?.() === "lazy" &&
+      this.lastSmoothedPoint &&
+      this.lastPoint
+    ) {
+      setLazyLeash({
+        rawDoc: this.lastPoint,
+        tipDoc: this.lastSmoothedPoint
+      });
+    } else {
+      clearLazyLeash();
+    }
+
     // For direct mode, notify runtime that layer pixels changed
     if (this.engine.bufferMode === "direct") {
       ctx.invalidateLayer?.(this.layer.id);
@@ -494,6 +514,7 @@ export class PaintSession {
     this.lastSmoothedPoint = null;
     this.hasMoved = false;
     this.active = false;
+    clearLazyLeash();
 
     // ── Shift-line continuation ─────────────────────────────────────
     // When Shift is held at the end of a buffered stroke, keep the

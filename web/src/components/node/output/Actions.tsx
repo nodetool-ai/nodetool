@@ -1,6 +1,5 @@
 import React, { memo } from "react";
-import { CopyButton } from "../../ui_primitives";
-import { Box } from "@mui/material";
+import { CopyButton, Box } from "../../ui_primitives";
 
 type ActionsProps = {
   copyValue?: unknown;

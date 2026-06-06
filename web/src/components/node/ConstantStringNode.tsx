@@ -35,7 +35,6 @@ import HandleTooltip from "../HandleTooltip";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import {
   NODE_COLLAPSED_BODY_HEIGHT_WIN,
-  NODE_COLLAPSED_HANDLE_CENTER,
   NODE_COLLAPSED_LAYOUT
 } from "../../styles/collapsedNodeTokens";
 
@@ -69,8 +68,14 @@ const styles = (theme: Theme) =>
     ".header-wrapper .input-handle-wrapper": {
       position: "absolute",
       left: "-8px",
-      ...NODE_COLLAPSED_HANDLE_CENTER,
+      top: "50%",
+      transform: "translateY(-50%)",
       zIndex: 11
+    },
+    ".header-wrapper .input-handle-wrapper .react-flow__handle-left": {
+      top: "50%",
+      left: 0,
+      transform: "translateY(-50%)"
     },
     ".header-actions": {
       position: "absolute",
@@ -86,7 +91,7 @@ const styles = (theme: Theme) =>
       padding: "4px"
     },
     ".header-actions .MuiIconButton-root svg": {
-      fontSize: "0.8rem"
+      fontSize: "var(--fontSizeSmall)"
     },
     ".constant-string-body": {
       position: "relative",
@@ -128,9 +133,6 @@ const styles = (theme: Theme) =>
       height: NODE_COLLAPSED_BODY_HEIGHT_WIN,
       "& > .constant-string-body": {
         display: "none !important"
-      },
-      "& .constant-string-collapsed-hide": {
-        display: "none !important"
       }
     }
   });
@@ -138,6 +140,7 @@ const styles = (theme: Theme) =>
 const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected } = props;
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastEmittedHeight = useRef<number>(0);
   const [isFocused, setIsFocused] = useState(false);
@@ -206,6 +209,9 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // non-textarea overhead (header, padding, outputs) measured from the
   // DOM, and set an explicit height on the React Flow node.
   useLayoutEffect(() => {
+    if (data.collapsed) {
+      return;
+    }
     const textarea = textareaRef.current;
     if (!textarea) {
       return;
@@ -235,7 +241,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       lastEmittedHeight.current = desiredNodeH;
       updateNode(id, { height: desiredNodeH });
     }
-  }, [localValue, id, updateNode]);
+  }, [localValue, id, updateNode, data.collapsed]);
 
   const headerColor = useMemo(() => {
     const firstOutputType = metadata?.outputs?.[0]?.type?.type as
@@ -273,7 +279,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <Container
-      css={styles(theme)}
+      css={cssStyles}
       className={`base-node constant-string-node node-body ${data.collapsed ? "collapsed " : ""}${selected ? "selected" : ""}`}
       style={
         {
@@ -334,6 +340,7 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <textarea
           ref={textareaRef}
           className="constant-string-textarea"
+          aria-label="String value"
           value={localValue}
           onChange={handleChange}
           readOnly={isConnected}
@@ -343,15 +350,11 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         />
       </div>
 
-      <div className="constant-string-collapsed-hide">
-        <NodeOutputs
-          id={id}
-          outputs={metadata.outputs}
-          isStreamingOutput={metadata.is_streaming_output}
-        />
-
-        <NodeResizeHandle minWidth={200} minHeight={100} />
+      <div className="node-content-container">
+        <NodeOutputs id={id} outputs={metadata.outputs} />
       </div>
+
+      <NodeResizeHandle minWidth={200} minHeight={100} />
 
       {isExpanded && (
         <TextEditorModal

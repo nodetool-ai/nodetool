@@ -13,8 +13,6 @@ import { useSketchStore } from "../state";
 import { useResolvedToolSettings, useToolChromeActions } from "../hooks";
 import { useTransformAdapter } from "../hooks/useTransformAdapter";
 import type { useSegmentation } from "../hooks/useSegmentation";
-import type { LayerType } from "../types";
-
 export interface ConnectedContextMenuProps {
   open: boolean;
   position: { x: number; y: number } | null;
@@ -35,11 +33,10 @@ export interface ConnectedContextMenuProps {
   onClearSegmentPrompts: () => void;
   onSwapColors: () => void;
   onFillSelectionWithForeground: () => void;
+  onStrokeSelectionWithForeground: () => void;
   onCropCanvasToSelection: () => void;
-  onNewLayer: (type?: Extract<LayerType, "raster" | "mask">) => void;
   onLayerViaCopy: () => void;
   onLayerViaCut: () => void;
-  onFreeTransform: () => void;
 }
 
 export const ConnectedContextMenu = memo(function ConnectedContextMenu(
@@ -117,14 +114,13 @@ export const ConnectedContextMenu = memo(function ConnectedContextMenu(
       onCropCanvasToSelection={props.onCropCanvasToSelection}
       onFeatherSelection={featherCurrentSelection}
       onSmoothSelectionBorders={smoothCurrentSelectionBorders}
-      onStrokeSelectionBorder={convertSelectionToBorderOutline}
+      onConvertSelectionToBorder={convertSelectionToBorderOutline}
       onDeselectSelection={deselectSelection}
       onReselectSelection={reselectSelection}
       onFillSelectionWithForeground={props.onFillSelectionWithForeground}
-      onNewLayer={props.onNewLayer}
+      onStrokeSelectionWithForeground={props.onStrokeSelectionWithForeground}
       onLayerViaCopy={props.onLayerViaCopy}
       onLayerViaCut={props.onLayerViaCut}
-      onFreeTransform={props.onFreeTransform}
       onAdjustBrightnessChange={props.onAdjustBrightnessChange}
       onAdjustContrastChange={props.onAdjustContrastChange}
       onAdjustSaturationChange={props.onAdjustSaturationChange}

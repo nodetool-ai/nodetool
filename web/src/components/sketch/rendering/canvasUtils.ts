@@ -5,6 +5,7 @@
  * checkerboard and pixel-grid drawing helpers used across the sketch editor.
  */
 
+import { blendModeToCanvasOp } from "@nodetool-ai/gpu";
 import type { BlendMode } from "../types";
 
 // ─── Dirty-rect types ────────────────────────────────────────────────────────
@@ -33,32 +34,7 @@ export interface BlurTempCanvases {
 export function blendModeToComposite(
   mode: BlendMode
 ): GlobalCompositeOperation {
-  switch (mode) {
-    case "multiply":
-      return "multiply";
-    case "screen":
-      return "screen";
-    case "overlay":
-      return "overlay";
-    case "darken":
-      return "darken";
-    case "lighten":
-      return "lighten";
-    case "color-dodge":
-      return "color-dodge";
-    case "color-burn":
-      return "color-burn";
-    case "hard-light":
-      return "hard-light";
-    case "soft-light":
-      return "soft-light";
-    case "difference":
-      return "difference";
-    case "exclusion":
-      return "exclusion";
-    default:
-      return "source-over";
-  }
+  return blendModeToCanvasOp(mode) as GlobalCompositeOperation;
 }
 
 // ─── Checkerboard ────────────────────────────────────────────────────────────
@@ -126,6 +102,9 @@ export const PIXEL_GRID_MIN_ZOOM = 20;
 /** Opacity ramp ends here (grid reaches full stroke alpha). */
 export const PIXEL_GRID_FULL_OPACITY_ZOOM = 28;
 
+/** Light gray (not pure white) for zoomed pixel grid lines on dark UI chrome. */
+const PIXEL_GRID_STROKE_RGB = { r: 200, g: 200, b: 200 } as const;
+
 /**
  * Pencil pixel-snap cursor: independent of {@link PIXEL_GRID_MIN_ZOOM} so the cell
  * cursor appears at modest zoom (e.g. 200%).
@@ -163,7 +142,7 @@ export function drawPixelGrid(
   const lw = 1 / zoom;
 
   ctx.save();
-  ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+  ctx.strokeStyle = `rgba(${PIXEL_GRID_STROKE_RGB.r}, ${PIXEL_GRID_STROKE_RGB.g}, ${PIXEL_GRID_STROKE_RGB.b}, ${opacity})`;
   ctx.lineWidth = lw;
 
   // Vertical lines

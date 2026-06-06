@@ -16,6 +16,9 @@ import {
 import { trpcClient } from "../trpc/client";
 import { debounce, omit } from "../utils/lodashAlternatives";
 import { createErrorMessage } from "../utils/errorHandling";
+import { fetchLiveFalPricing } from "../utils/fetchLiveFalPricing";
+import { fetchLiveKiePricing } from "../utils/fetchLiveKiePricing";
+import useMetadataStore from "./MetadataStore";
 import { uuidv4 } from "./uuidv4";
 import { QueryClient } from "@tanstack/react-query";
 import {
@@ -28,7 +31,6 @@ import useResultsStore from "./ResultsStore";
 import useErrorStore from "./ErrorStore";
 import useStatusStore from "./StatusStore";
 import useExecutionTimeStore from "./ExecutionTimeStore";
-import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
 import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
 import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
@@ -36,9 +38,24 @@ import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 const isWorkflowNotFoundError = (err: unknown): boolean => {
   if (!err || typeof err !== "object") return false;
-  const e = err as { data?: { code?: string }; message?: string };
-  if (e.data?.code === "NOT_FOUND") return true;
-  return typeof e.message === "string" && /not found/i.test(e.message);
+  if ("data" in err) {
+    const { data } = err as { data: unknown };
+    if (
+      data &&
+      typeof data === "object" &&
+      "code" in data &&
+      (data as { code: unknown }).code === "NOT_FOUND"
+    ) {
+      return true;
+    }
+  }
+  if ("message" in err) {
+    const { message } = err as { message: unknown };
+    if (typeof message === "string") {
+      return /not found/i.test(message);
+    }
+  }
+  return false;
 };
 
 // -----------------------------------------------------------------
@@ -62,7 +79,7 @@ const storage = {
 
   // Retrieve the list of open workflow IDs.
   getOpenWorkflows: (): string[] =>
-    JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]"),
+    JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[],
 
   // Debounced setter for the current workflow ID.
   setCurrentWorkflow: debounce((workflowId: string) => {
@@ -80,7 +97,7 @@ const storage = {
 
 // Export storage utility function for use in WorkflowManagerContext
 export const getOpenWorkflowsFromStorage = (): string[] =>
-  JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]");
+  JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[];
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -130,12 +147,10 @@ export const determineNextWorkflowId = (
 export type WorkflowManagerState = {
   nodeStores: Record<string, NodeStore>;
   currentWorkflowId: string | null;
-  loadingStates: Record<string, never>;
   openWorkflows: WorkflowAttributes[];
   queryClient: QueryClient;
   // Track notified autosave versions to prevent duplicate notifications
   notifiedAutosaveVersions: Record<string, Set<string>>;
-  getCurrentLoadingState: () => undefined;
   getWorkflow: (workflowId: string) => Workflow | undefined;
   addWorkflow: (workflow: Workflow) => void;
   removeWorkflow: (workflowId: string) => void;
@@ -146,7 +161,6 @@ export type WorkflowManagerState = {
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
   fetchWorkflow: (workflowId: string) => Promise<Workflow | undefined>;
-  getLoadingState: (workflowId: string) => undefined;
   newWorkflow: () => Workflow;
   createNew: () => Promise<Workflow>;
   create: (
@@ -185,7 +199,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       openWorkflows: [],
       notifiedAutosaveVersions: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
-      loadingStates: {},
       queryClient: queryClient,
 
       // ---------------------------------------------------------------------------------
@@ -403,7 +416,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const getWorkflow = get().getWorkflow;
         const promises = workflowIds.map((id) => getWorkflow(id));
         const workflows = await Promise.all(promises);
-        return workflows.filter((w) => w !== undefined) as Workflow[];
+        return workflows.filter((w): w is Workflow => w !== undefined);
       },
 
       // Loads public workflows available from the API.
@@ -520,9 +533,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       // Current Workflow (loading state handled via React Query)
       // ---------------------------------------------------------------------------------
 
-      // Deprecated: replaced by React Query; keep API for compatibility
-      getCurrentLoadingState: () => undefined,
-
       /**
        * Sets the current workflow ID and syncs it to localStorage.
        * @param {string} workflowId The ID of the workflow to set as current
@@ -573,6 +583,77 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         const runnerStore = getWorkflowRunnerStore(workflow.id);
         subscribeToWorkflowUpdates(workflow.id, workflow, runnerStore, get().getNodeStore);
+
+        // Refresh live FAL pricing for the FAL nodes in this workflow.
+        // Subscribes to MetadataStore so we still fire once metadata loads
+        // (workflows restored from localStorage open before metadata fetch).
+        const falNodeTypes = [
+          ...new Set(
+            (workflow.graph?.nodes ?? [])
+              .map((n) => n.type)
+              .filter((t): t is string => typeof t === "string")
+          )
+        ].filter((t) => t.startsWith("fal."));
+
+        if (falNodeTypes.length > 0) {
+          const doFetch = (): boolean => {
+            const meta = useMetadataStore.getState().metadata;
+            const endpointIds = falNodeTypes
+              .map((t) => meta[t]?.fal_unit_pricing?.endpoint_id)
+              .filter((id): id is string => Boolean(id));
+            if (endpointIds.length === 0) return false;
+            fetchLiveFalPricing(meta, endpointIds)
+              .then((updated) => {
+                if (updated) {
+                  useMetadataStore.getState().setMetadata({ ...meta });
+                }
+              })
+              .catch(() => {
+                // surfaced as console.error inside fetchLiveFalPricing
+              });
+            return true;
+          };
+
+          if (!doFetch()) {
+            const unsub = useMetadataStore.subscribe(() => {
+              if (doFetch()) unsub();
+            });
+          }
+        }
+
+        const kieNodeTypes = [
+          ...new Set(
+            (workflow.graph?.nodes ?? []).map((n) => n.type as string)
+          ),
+        ].filter((t) => t.startsWith("kie."));
+
+        if (kieNodeTypes.length > 0) {
+          const doFetchKie = (): boolean => {
+            const meta = useMetadataStore.getState().metadata;
+            const modelIds = kieNodeTypes
+              .map((t) => meta[t]?.kie_unit_pricing?.model_id)
+              .filter((id): id is string => Boolean(id));
+            if (modelIds.length === 0) {
+              return false;
+            }
+            fetchLiveKiePricing(meta, modelIds)
+              .then((updated) => {
+                if (updated) {
+                  useMetadataStore.getState().setMetadata({ ...meta });
+                }
+              })
+              .catch(() => {
+                // surfaced as console.error inside fetchLiveKiePricing
+              });
+            return true;
+          };
+
+          if (!doFetchKie()) {
+            const unsub = useMetadataStore.subscribe(() => {
+              if (doFetchKie()) unsub();
+            });
+          }
+        }
       },
 
        /**
@@ -609,12 +690,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          useResultsStore.getState().clearTasks(workflowId);
          useResultsStore.getState().clearToolCalls(workflowId);
          useResultsStore.getState().clearPlanningUpdates(workflowId);
-         useResultsStore.getState().clearPreviews(workflowId);
          useResultsStore.getState().clearEdges(workflowId);
          useErrorStore.getState().clearErrors(workflowId);
          useStatusStore.getState().clearStatuses(workflowId);
          useExecutionTimeStore.getState().clearTimings(workflowId);
-         useNodeResultHistoryStore.getState().clearWorkflowHistory(workflowId);
          usePropertyValidationStore.getState().clearWorkflow(workflowId);
 
          const newOpenWorkflows = openWorkflows.filter(
@@ -636,7 +715,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           nodeStores: newStores,
           openWorkflows: newOpenWorkflows,
           currentWorkflowId: newCurrentId,
-          loadingStates: {},
           notifiedAutosaveVersions: newNotified
         });
 
@@ -718,13 +796,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           return { openWorkflows: newWorkflows };
         });
       },
-
-      // ---------------------------------------------------------------------------------
-      // Loading States for Workflows (deprecated)
-      // ---------------------------------------------------------------------------------
-
-      // Deprecated: always undefined; use React Query hooks for loading/error
-      getLoadingState: (_workflowId: string) => undefined,
 
       // Fetches the workflow data by its ID, using QueryClient cache and adds the workflow store.
       fetchWorkflow: async (workflowId: string) => {

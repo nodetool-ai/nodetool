@@ -33,7 +33,7 @@ NodeTool is organized into distinct packages, each responsible for a specific la
 |---------|---------|
 | **@nodetool-ai/deploy** | Deployment automation for self-hosted, RunPod, and GCP Cloud Run |
 | **@nodetool-ai/storage** | Asset storage backends (local filesystem, S3, Supabase) |
-| **@nodetool-ai/vectorstore** | Vector database integration (Chroma) for RAG workflows |
+| **@nodetool-ai/vectorstore** | Vector database integration (SQLite-vec, Pinecone, Supabase pgvector) for RAG workflows |
 | **@nodetool-ai/cli** | Command-line interface for workflow execution, deployment, and package management |
 | **@nodetool-ai/base-nodes** | Core node implementations and dynamic node generation |
 
@@ -133,10 +133,11 @@ NodeTool includes a full agent execution framework for autonomous task completio
 
 ### Components
 
+- **Agent** -- Top-level entry point. Takes an objective (+ optional pre-built task) and orchestrates planning + execution.
 - **TaskPlanner** -- Breaks complex goals into ordered subtasks with dependencies
 - **TaskExecutor** -- Manages the execution of a complete task plan
 - **StepExecutor** -- Runs individual steps within a task, including tool calls
-- **MultiModeAgent** -- Supports both agent mode (autonomous planning) and direct chat mode
+- **CompilerAgent** -- Final synthesis pass that reads accumulated memory and produces the deliverable
 
 ### Available Tools (20+)
 

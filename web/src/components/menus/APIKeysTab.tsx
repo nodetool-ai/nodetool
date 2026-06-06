@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useState, useCallback, useMemo } from "react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -25,7 +24,8 @@ import {
   Dialog,
   TextInput,
   Card,
-  Chip
+  Chip,
+  Box
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -46,6 +46,13 @@ import replicateIcon from "@lobehub/icons-static-svg/icons/replicate.svg";
 import falColorIcon from "@lobehub/icons-static-svg/icons/fal-color.svg";
 import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
 import moonshotIcon from "@lobehub/icons-static-svg/icons/moonshot.svg";
+import topazlabsIcon from "@lobehub/icons-static-svg/icons/topazlabs.svg";
+import atlascloudIcon from "@lobehub/icons-static-svg/icons/atlascloud.svg";
+import zhipuColorIcon from "@lobehub/icons-static-svg/icons/zhipu-color.svg";
+import minimaxColorIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg";
+import meshyColorIcon from "@lobehub/icons-static-svg/icons/meshy-color.svg";
+import githubIcon from "@lobehub/icons-static-svg/icons/github.svg";
+import googleColorIcon from "@lobehub/icons-static-svg/icons/google-color.svg";
 
 
 interface ProviderMeta {
@@ -55,9 +62,11 @@ interface ProviderMeta {
   category: "recommended" | "other";
   tag?: string;
   docsUrl: string;
-  icon: string;
+  icon?: string;
   /** Mono (single-color black) icon — needs inversion in dark mode to be visible. */
   mono?: boolean;
+  /** Extra hint rendered under the description (e.g. required key scope). */
+  note?: string;
 }
 
 const PROVIDER_META: ProviderMeta[] = [
@@ -170,7 +179,8 @@ const PROVIDER_META: ProviderMeta[] = [
     description: "Serverless AI image and video generation.",
     category: "other",
     docsUrl: "https://fal.ai/docs",
-    icon: falColorIcon
+    icon: falColorIcon,
+    note: "For exact cost tracking, use an admin key (fal.ai dashboard → Keys → scope “Admin”). NodeTool reads each request's actual billing from FAL; a standard key only yields estimates."
   },
   {
     key: "ELEVENLABS_API_KEY",
@@ -182,6 +192,30 @@ const PROVIDER_META: ProviderMeta[] = [
     mono: true
   },
   {
+    key: "TOPAZ_API_KEY",
+    name: "Topaz",
+    description: "Topaz Labs image and video enhancement.",
+    category: "other",
+    docsUrl: "https://developer.topazlabs.com/",
+    icon: topazlabsIcon,
+    mono: true
+  },
+  {
+    key: "ATLASCLOUD_API_KEY",
+    name: "AtlasCloud",
+    description: "GPT Image 2, Nano Banana, and Seedance 2.0 video generation.",
+    category: "other",
+    docsUrl: "https://www.atlascloud.ai/",
+    icon: atlascloudIcon
+  },
+  {
+    key: "REVE_API_KEY",
+    name: "Reve",
+    description: "Image creation, editing, and remix with strong prompt adherence.",
+    category: "other",
+    docsUrl: "https://api.reve.com/"
+  },
+  {
     key: "KIMI_API_KEY",
     name: "Kimi",
     description: "Moonshot AI models via Kimi API.",
@@ -189,29 +223,167 @@ const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://platform.moonshot.cn/docs",
     icon: moonshotIcon,
     mono: true
+  },
+  {
+    key: "ZHIPU_API_KEY",
+    name: "Z.AI",
+    description: "GLM models via Z.AI's OpenAI-compatible API.",
+    category: "other",
+    docsUrl: "https://open.bigmodel.cn/",
+    icon: zhipuColorIcon
+  },
+  {
+    key: "MINIMAX_API_KEY",
+    name: "MiniMax",
+    description: "MiniMax AI models.",
+    category: "other",
+    docsUrl: "https://platform.minimax.chat/",
+    icon: minimaxColorIcon
+  },
+  {
+    key: "AKI_API_KEY",
+    name: "AKI",
+    description: "AKI.IO AI Model Hub.",
+    category: "other",
+    docsUrl: "https://aki.io/"
+  },
+  {
+    key: "AIME_API_KEY",
+    name: "Aime",
+    description: "Aime AI services.",
+    category: "other",
+    docsUrl: "https://aime.info/"
+  },
+  {
+    key: "LLAMA_API_KEY",
+    name: "llama.cpp",
+    description: "Bearer auth for a local llama-server instance.",
+    category: "other",
+    docsUrl: "https://github.com/ggml-org/llama.cpp"
+  },
+  {
+    key: "KIE_API_KEY",
+    name: "Kie.ai",
+    description: "Kie.ai unified model access.",
+    category: "other",
+    docsUrl: "https://kie.ai/"
+  },
+  {
+    key: "MESHY_API_KEY",
+    name: "Meshy",
+    description: "3D model generation.",
+    category: "other",
+    docsUrl: "https://docs.meshy.ai/",
+    icon: meshyColorIcon
+  },
+  {
+    key: "RODIN_API_KEY",
+    name: "Rodin",
+    description: "Rodin AI 3D model generation.",
+    category: "other",
+    docsUrl: "https://hyperhuman.deemos.com/"
+  },
+  {
+    key: "RUNPOD_API_KEY",
+    name: "RunPod",
+    description: "Serverless GPU endpoints on RunPod.",
+    category: "other",
+    docsUrl: "https://docs.runpod.io/"
+  },
+  {
+    key: "NODE_SUPABASE_KEY",
+    name: "NodeSupabase",
+    description: "Supabase service key for user-provided nodes.",
+    category: "other",
+    docsUrl: "https://supabase.com/docs"
+  },
+  {
+    key: "SERPAPI_API_KEY",
+    name: "SerpAPI",
+    description: "Web search via SerpAPI.",
+    category: "other",
+    docsUrl: "https://serpapi.com/"
+  },
+  {
+    key: "APIFY_API_KEY",
+    name: "Apify",
+    description: "Web search via Apify Google Search Scraper.",
+    category: "other",
+    docsUrl: "https://docs.apify.com/"
+  },
+  {
+    key: "BRAVE_API_KEY",
+    name: "Brave Search",
+    description: "Brave Search web API.",
+    category: "other",
+    docsUrl: "https://brave.com/search/api/"
+  },
+  {
+    key: "DATA_FOR_SEO_LOGIN",
+    name: "DataForSEO Login",
+    description: "DataForSEO login for web search.",
+    category: "other",
+    docsUrl: "https://docs.dataforseo.com/"
+  },
+  {
+    key: "DATA_FOR_SEO_PASSWORD",
+    name: "DataForSEO Password",
+    description: "DataForSEO password for web search.",
+    category: "other",
+    docsUrl: "https://docs.dataforseo.com/"
+  },
+  {
+    key: "TRACELOOP_API_KEY",
+    name: "Traceloop",
+    description: "OpenLLMetry trace export to Traceloop.",
+    category: "other",
+    docsUrl: "https://www.traceloop.com/docs"
+  },
+  {
+    key: "GOOGLE_MAIL_USER",
+    name: "Google Mail User",
+    description: "Email address for Google mail integration.",
+    category: "other",
+    docsUrl: "https://support.google.com/mail/",
+    icon: googleColorIcon
+  },
+  {
+    key: "GOOGLE_APP_PASSWORD",
+    name: "Google App Password",
+    description: "App password for Google services.",
+    category: "other",
+    docsUrl: "https://myaccount.google.com/apppasswords",
+    icon: googleColorIcon
+  },
+  {
+    key: "GITHUB_CLIENT_ID",
+    name: "GitHub Client ID",
+    description: "OAuth App Client ID for GitHub PKCE flow.",
+    category: "other",
+    docsUrl: "https://docs.github.com/en/apps/oauth-apps",
+    icon: githubIcon,
+    mono: true
+  },
+  {
+    key: "GITHUB_CLIENT_SECRET",
+    name: "GitHub Client Secret",
+    description: "OAuth App Client Secret for GitHub PKCE flow.",
+    category: "other",
+    docsUrl: "https://docs.github.com/en/apps/oauth-apps",
+    icon: githubIcon,
+    mono: true
+  },
+  {
+    key: "SERVER_AUTH_TOKEN",
+    name: "Server Auth Token",
+    description: "Bearer token to secure NodeTool server endpoints.",
+    category: "other",
+    docsUrl: "https://github.com/nodetool-ai/nodetool"
   }
 ];
 
 const getProviderMeta = (key: string): ProviderMeta | undefined =>
   PROVIDER_META.find((p) => p.key === key);
-
-const SETTING_LINKS: Record<string, string> = {
-  OPENAI_API_KEY: "https://platform.openai.com/api-keys",
-  ANTHROPIC_API_KEY: "https://console.anthropic.com/",
-  GEMINI_API_KEY: "https://aistudio.google.com/app/apikey",
-  OPENROUTER_API_KEY: "https://openrouter.ai/keys",
-  HF_TOKEN: "https://huggingface.co/settings/tokens",
-  REPLICATE_API_TOKEN: "https://replicate.com/account/api-tokens",
-  ELEVENLABS_API_KEY: "https://elevenlabs.io/subscription",
-  FAL_API_KEY: "https://fal.ai/dashboard/keys",
-  CEREBRAS_API_KEY: "https://cloud.cerebras.ai/",
-  TOGETHER_API_KEY: "https://api.together.ai/settings/api-keys",
-  DEEPSEEK_API_KEY: "https://platform.deepseek.com/api-keys",
-  GROQ_API_KEY: "https://console.groq.com/keys",
-  MISTRAL_API_KEY: "https://console.mistral.ai/api-keys",
-  XAI_API_KEY: "https://console.x.ai/",
-  KIMI_API_KEY: "https://platform.moonshot.cn/console/api-keys"
-};
 
 /* ------------------------------------------------------------------ */
 //  Provider card
@@ -279,19 +451,25 @@ const ProviderCard = memo(function ProviderCard({
           marginTop: "2px"
         }}
       >
-        <Box
-          component="img"
-          src={meta.icon}
-          alt={meta.name}
-          sx={{
-            width: 28,
-            height: 28,
-            objectFit: "contain",
-            ...(meta.mono && theme.applyStyles("dark", {
-              filter: "invert(1)"
-            }))
-          }}
-        />
+        {meta.icon ? (
+          <Box
+            component="img"
+            src={meta.icon}
+            alt={meta.name}
+            sx={{
+              width: 28,
+              height: 28,
+              objectFit: "contain",
+              ...(meta.mono && theme.applyStyles("dark", {
+                filter: "invert(1)"
+              }))
+            }}
+          />
+        ) : (
+          <Text size="big" weight={600}>
+            {meta.name.charAt(0)}
+          </Text>
+        )}
       </FlexRow>
 
       {/* Info */}
@@ -318,6 +496,17 @@ const ProviderCard = memo(function ProviderCard({
         <Caption sx={{ opacity: 0.55, lineHeight: 1.4 }}>
           {meta.description}
         </Caption>
+        {meta.note && (
+          <Caption
+            sx={{
+              opacity: 0.45,
+              lineHeight: 1.4,
+              fontSize: theme.fontSizeTiny
+            }}
+          >
+            {meta.note}
+          </Caption>
+        )}
       </FlexColumn>
 
       {/* Status + Actions — right-aligned, vertically distributed */}
@@ -568,8 +757,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     return results;
   }, [safeSecrets, lowerSearch]);
 
-  const recommended = matchedProviders.filter((p) => p.meta.category === "recommended");
-  const others = matchedProviders.filter((p) => p.meta.category === "other");
+  const recommended = useMemo(
+    () => matchedProviders.filter((p) => p.meta.category === "recommended"),
+    [matchedProviders]
+  );
+  const others = useMemo(
+    () => matchedProviders.filter((p) => p.meta.category === "other"),
+    [matchedProviders]
+  );
 
   // Also show unconfigured providers from our meta list that aren't in secrets
   const configuredKeys = useMemo(
@@ -586,8 +781,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     );
   }, [configuredKeys, lowerSearch]);
 
-  const unconfiguredRecommended = unconfiguredMeta.filter((p) => p.category === "recommended");
-  const unconfiguredOthers = unconfiguredMeta.filter((p) => p.category === "other");
+  const unconfiguredRecommended = useMemo(
+    () => unconfiguredMeta.filter((p) => p.category === "recommended"),
+    [unconfiguredMeta]
+  );
+  const unconfiguredOthers = useMemo(
+    () => unconfiguredMeta.filter((p) => p.category === "other"),
+    [unconfiguredMeta]
+  );
 
   const handleConnect = useCallback((secret: SecretResponse) => {
     setEditingSecret(secret);
@@ -665,29 +866,35 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     setSecretToDelete(null);
   }, []);
 
-  const allRecommended = [...recommended, ...unconfiguredRecommended.map((meta) => ({
-    secret: {
-      key: meta.key,
-      is_configured: false,
-      description: meta.description,
-      user_id: null,
-      created_at: null,
-      updated_at: null
-    } as SecretResponse,
-    meta
-  }))];
+  const allRecommended = useMemo(
+    () => [...recommended, ...unconfiguredRecommended.map((meta) => ({
+      secret: {
+        key: meta.key,
+        is_configured: false,
+        description: meta.description,
+        user_id: null,
+        created_at: null,
+        updated_at: null
+      } as SecretResponse,
+      meta
+    }))],
+    [recommended, unconfiguredRecommended]
+  );
 
-  const allOthers = [...others, ...unconfiguredOthers.map((meta) => ({
-    secret: {
-      key: meta.key,
-      is_configured: false,
-      description: meta.description,
-      user_id: null,
-      created_at: null,
-      updated_at: null
-    } as SecretResponse,
-    meta
-  }))];
+  const allOthers = useMemo(
+    () => [...others, ...unconfiguredOthers.map((meta) => ({
+      secret: {
+        key: meta.key,
+        is_configured: false,
+        description: meta.description,
+        user_id: null,
+        created_at: null,
+        updated_at: null
+      } as SecretResponse,
+      meta
+    }))],
+    [others, unconfiguredOthers]
+  );
 
   const hasContent = allRecommended.length > 0 || allOthers.length > 0;
 

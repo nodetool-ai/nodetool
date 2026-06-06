@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -107,7 +107,12 @@ const isAssetResult = (value: unknown): value is Asset => {
  * );
  * ```
  */
-export const useDropHandler = () => {
+export interface UseDropHandlerResult {
+  onDrop: (event: React.DragEvent<HTMLDivElement>) => Promise<void>;
+  onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
+}
+
+export const useDropHandler = (): UseDropHandlerResult => {
   const { handlePngFile, handleJsonFile, handleCsvFile, handleGenericFile } =
     useFileHandlers();
   const reactFlow = useReactFlow();

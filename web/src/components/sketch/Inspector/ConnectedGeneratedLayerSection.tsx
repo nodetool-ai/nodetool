@@ -10,9 +10,10 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 
-import { CollapsibleSection } from "../../ui_primitives";
+import { CollapsibleSection, Text } from "../../ui_primitives";
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
+import { SKETCH_FONT } from "../sketchStyles";
 import { SketchAIToolbar } from "./SketchAIToolbar";
 import { SketchInspector } from "./SketchInspector";
 
@@ -26,24 +27,37 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
   }
 
   const isWorkflowBound = !binding.kind || binding.kind === "workflow";
-  const title = isWorkflowBound
-    ? "Generated Layer"
-    : binding.kind === "text-to-image"
-      ? "Text-to-Image Layer"
-      : "Image-to-Image Layer";
+  // Direct-gen layers (text-to-image / image-to-image) share the "GENERATE"
+  // section of the mockup; workflow-bound layers keep their own label.
+  const titleText = isWorkflowBound ? "Generated Layer" : "GENERATE";
 
   return (
     <CollapsibleSection
-      title={title}
+      title={
+        // Match the other right-panel section headers (COLOR / LAYERS):
+        // small, bright, uppercase, letter-spaced — not the default body size.
+        <Text
+          size="small"
+          sx={{
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            fontWeight: 600,
+            color: "text.primary",
+            fontSize: SKETCH_FONT.section
+          }}
+        >
+          {titleText}
+        </Text>
+      }
       defaultOpen
       compact
       sx={{
         minHeight: 0,
         flex: 1,
         "& > [role='button']": {
-          padding: theme.spacing(0.75, 1),
-          backgroundColor: theme.vars.palette.grey[800],
-          borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+          padding: theme.spacing(1, 1),
+          backgroundColor: theme.vars.palette.background.paper,
+          borderBottom: `1px solid ${theme.vars.palette.divider}`
         }
       }}
     >

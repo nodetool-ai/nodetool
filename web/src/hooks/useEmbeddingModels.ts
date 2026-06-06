@@ -3,6 +3,7 @@ import { useQueries } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import type { EmbeddingModel } from "../stores/ApiTypes";
 import { useEmbeddingProviders } from "./useProviders";
+import type { ModelsByProviderResult } from "./useModelsByProvider";
 
 /**
  * Custom hook for fetching embedding models grouped by provider.
@@ -23,7 +24,7 @@ import { useEmbeddingProviders } from "./useProviders";
  */
 export const useEmbeddingModelsByProvider = (options?: {
   allowedProviders?: string[];
-}) => {
+}): ModelsByProviderResult<EmbeddingModel> => {
   const { providers: allProviders, isLoading: providersLoading } =
     useEmbeddingProviders();
 

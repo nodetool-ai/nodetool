@@ -1,19 +1,18 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, useRef, useState, useEffect, memo } from "react";
-import { Box } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { formatFileSize } from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ExpandCollapseButton, EmptyState, Text } from "../ui_primitives";
+import { ExpandCollapseButton, EmptyState, Text, Box } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface AssetListViewProps {
@@ -145,7 +144,7 @@ const styles = (theme: Theme) =>
       },
       "& svg": {
         color: theme.vars.palette.grey[200] + " !important",
-        fontSize: "1.2rem"
+        fontSize: "var(--fontSizeBig)"
       }
     },
     ".asset-item-thumbnail": {
@@ -354,7 +353,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
       virtualListItems[index]?.type === "header"
         ? TYPE_SECTION_HEIGHT
         : ROW_HEIGHT,
-    overscan: 8,
+    overscan: theme.virtualScroll.overscan.small,
     getItemKey: (index) => virtualListItems[index]?.key ?? index,
   });
 
@@ -376,11 +375,19 @@ const AssetListView: React.FC<AssetListViewProps> = ({
       return (
         <div
           key={key}
+          role="button"
+          tabIndex={0}
           style={style}
           className="asset-content-type-header"
           onClick={(e) => {
             e.stopPropagation();
             toggleExpanded(type);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleExpanded(type);
+            }
           }}
         >
           <IconForType
@@ -443,7 +450,7 @@ const AssetListView: React.FC<AssetListViewProps> = ({
               <FolderIcon
                 style={{
                   color: "var(--palette-grey-200)",
-                  fontSize: "1.2rem"
+                  fontSize: "var(--fontSizeBig)"
                 }}
               />
             ) : (

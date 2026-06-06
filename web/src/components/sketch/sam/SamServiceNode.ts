@@ -34,8 +34,8 @@ import type { GraphNode, GraphEdge } from "./NodeExecutor";
 import { resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
 import { normalizeSamMasks } from "./normalizeSamMasks";
 import { CoordinateMapper } from "../painting/CoordinateMapper";
+import { LOCAL_SAM3_NODE_TYPE } from "../../../constants/nodeTypes";
 
-const LOCAL_SAM3_NODE_TYPE = "huggingface.image_segmentation.MaskGeneration";
 const LOCAL_SAM3_DOWNLOAD_TYPE = "hf.model";
 const LOCAL_SAM3_REQUIRED_INPUTS = [
   "image",
@@ -341,7 +341,6 @@ export class SamServiceNode implements SamService {
         {
           id: "sam_node",
           type: this.config.nodeType,
-          sync_mode: "on_any",
           data: nodeData
         }
       ],
@@ -527,7 +526,6 @@ export class SamServiceNode implements SamService {
         {
           id: "sam_node",
           type: "fal.image_to_image.Sam3Image",
-          sync_mode: "on_any",
           data: {
             image: { type: "image", uri: "", data: base64Data },
             point_prompts: falPrompts,

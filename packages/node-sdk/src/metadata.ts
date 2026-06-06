@@ -1,7 +1,34 @@
-import fs from "node:fs";
-import path from "node:path";
-import crypto from "node:crypto";
-import os from "node:os";
+import type {
+  InputMode,
+  OutputCorrelation,
+  Platform
+} from "@nodetool-ai/protocol";
+import { IS_NODE, importNodeBuiltin } from "@nodetool-ai/config";
+
+// `node:fs`/`path`/`crypto`/`os` are loaded lazily so this module loads
+// in browser / Edge runtimes. Python metadata loading is Node-only;
+// every function that touches these is gated by IS_NODE.
+//
+// We resolve to the CJS `.default` export (not the namespace) so tests
+// that do `import fs from "node:fs"; vi.spyOn(fs, "readdirSync")` patch
+// the same object the function bodies below read from.
+type Ns<T> = T | { default: T };
+function asDefault<T>(mod: Ns<T> | null): T {
+  if (!mod) return undefined as T;
+  return (mod as { default?: T }).default ?? (mod as T);
+}
+const fs = asDefault(
+  await importNodeBuiltin<Ns<typeof import("node:fs")>>("node:fs")
+);
+const path = asDefault(
+  await importNodeBuiltin<Ns<typeof import("node:path")>>("node:path")
+);
+const crypto = asDefault(
+  await importNodeBuiltin<Ns<typeof import("node:crypto")>>("node:crypto")
+);
+const os = asDefault(
+  await importNodeBuiltin<Ns<typeof import("node:os")>>("node:os")
+);
 
 export interface TypeMetadata {
   type: string;
@@ -44,6 +71,13 @@ export interface NodeMetadata {
   namespace: string;
   node_type: string;
   layout?: string;
+  /**
+   * Node body renderer key. "content_card" makes the frontend render a
+   * media/text-forward content card instead of the generic input/output body.
+   * Node authors opt in via the class's `body` static (TS) or `_body`/`body()`
+   * (Python). Absent or "default" → generic body.
+   */
+  body?: string;
   properties: PropertyMetadata[];
   outputs: OutputSlotMetadata[];
 
@@ -56,14 +90,23 @@ export interface NodeMetadata {
    * The frontend uses this to show install prompts before execution.
    */
   required_runtimes?: string[];
-  is_dynamic?: boolean;
+  supports_dynamic_inputs?: boolean;
   is_streaming_input?: boolean;
   is_streaming_output?: boolean;
+  input_mode?: InputMode;
+  output_correlation?: Record<string, OutputCorrelation>;
   is_controlled?: boolean;
-  expose_as_tool?: boolean;
+  /** §7 — Zip/Cross nodes opt out of the incomparable-scope check. */
+  is_join_node?: boolean;
   supports_dynamic_outputs?: boolean;
   auto_save_asset?: boolean;
   model_packs?: unknown[];
+  /**
+   * Deployment platforms this node supports. Absent or empty values are
+   * treated as ["node"] (most restrictive). See `@nodetool-ai/protocol`'s
+   * Platform type for the closed set.
+   */
+  platforms?: readonly Platform[];
 }
 
 export interface PackageMetadata {
@@ -121,9 +164,13 @@ function walkForMetadataFiles(
     return;
   }
 
-  let entries: fs.Dirent[];
+  let entries: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
   try {
-    entries = fs.readdirSync(root, { withFileTypes: true });
+    entries = fs.readdirSync(root, { withFileTypes: true }) as Array<{
+      name: string;
+      isDirectory: () => boolean;
+      isFile: () => boolean;
+    }>;
   } catch (error) {
     warnings.push(`Failed to read directory ${root}: ${String(error)}`);
     return;
@@ -167,7 +214,9 @@ function walkForMetadataFiles(
 // when the underlying metadata files haven't changed.
 // ---------------------------------------------------------------------------
 
-const CACHE_DIR = path.join(os.tmpdir(), "nodetool-metadata-cache");
+const CACHE_DIR = IS_NODE
+  ? path.join(os.tmpdir(), "nodetool-metadata-cache")
+  : "/tmp/nodetool-metadata-cache";
 const CACHE_VERSION = 1;
 
 interface SerializedCacheEntry {

@@ -2,7 +2,7 @@
 import { memo, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
 import PropertyLabel from "./PropertyLabel";
@@ -65,12 +65,11 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   );
 
   const { connectType, connectDirection, connectNodeId } = useConnectionStore(
-    (state) => ({
+    useShallow((state) => ({
       connectType: state.connectType,
       connectDirection: state.connectDirection,
       connectNodeId: state.connectNodeId
-    }),
-    shallow
+    }))
   );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const validationError = usePropertyValidationStore((state) =>
@@ -104,7 +103,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
 
   const propertySpacerStyle = useMemo(
     () => ({
-      marginLeft: 20,
+      marginLeft: 8,
       minHeight: 20,
       display: "flex" as const,
       alignItems: "center" as const
@@ -145,7 +144,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   }${isConnected ? " is-connected" : ""}`;
 
   const inner = (
-    <div className={fieldClass}>
+    <div className={fieldClass} data-property={property.name}>
       {showHandle && (
         <div className="handle-popup" style={handlePopupStyle}>
           <HandleTooltip
@@ -153,8 +152,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             paramName={property.name}
             className={classConnectable}
             handlePosition="left"
-            isCollectInput={isCollectHandle}
-            enableHover={false}
+            enableHover={true}
           >
             <Handle
               type="target"
@@ -183,6 +181,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             hideActionIcons={hideActionIcons}
             data={data}
             inspectorBatchNodeIds={inspectorBatchNodeIds}
+            isConnected={isInspector ? isConnected : false}
             onValueChange={onValueChange}
           />
         </>
@@ -196,7 +195,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             density="compact"
             handleTooltipType={property.type}
             handleTooltipPosition="left"
-            isCollectInput={isCollectHandle}
           />
         </div>
       )}

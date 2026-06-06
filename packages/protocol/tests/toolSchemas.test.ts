@@ -18,7 +18,6 @@ import {
   uiDeleteEdgeParams,
   uiMoveNodeParams,
   uiSetNodeTitleParams,
-  uiSetNodeSyncModeParams,
   uiOpenWorkflowParams,
   uiRunWorkflowParams,
   uiSwitchTabParams,
@@ -236,25 +235,6 @@ describe("uiMoveNodeParams", () => {
   });
 });
 
-describe("uiSetNodeSyncModeParams", () => {
-  const schema = z.object(uiSetNodeSyncModeParams);
-
-  it("accepts on_any mode", () => {
-    const result = schema.safeParse({ node_id: "n1", mode: "on_any" });
-    expect(result.success).toBe(true);
-  });
-
-  it("accepts zip_all mode", () => {
-    const result = schema.safeParse({ node_id: "n1", mode: "zip_all" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects invalid mode", () => {
-    const result = schema.safeParse({ node_id: "n1", mode: "invalid" });
-    expect(result.success).toBe(false);
-  });
-});
-
 describe("uiSwitchTabParams", () => {
   const schema = z.object(uiSwitchTabParams);
 
@@ -339,7 +319,6 @@ describe("uiToolSchemas registry", () => {
     "ui_delete_edge",
     "ui_move_node",
     "ui_set_node_title",
-    "ui_set_node_sync_mode",
     "ui_open_workflow",
     "ui_run_workflow",
     "ui_switch_tab",
@@ -353,8 +332,8 @@ describe("uiToolSchemas registry", () => {
     );
   });
 
-  it("has exactly 16 tools registered", () => {
-    expect(Object.keys(uiToolSchemas)).toHaveLength(16);
+  it("has exactly 15 tools registered", () => {
+    expect(Object.keys(uiToolSchemas)).toHaveLength(15);
   });
 
   it("every registered tool has description and parameters", () => {

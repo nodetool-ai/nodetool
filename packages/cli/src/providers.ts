@@ -19,8 +19,9 @@ import {
   MoonshotProvider,
   AkiProvider,
   LMStudioProvider,
-  ClaudeAgentProvider,
-  BaseProvider as BaseProviderClass
+  BaseProvider as BaseProviderClass,
+  OLLAMA_DEFAULT_URL,
+  LMSTUDIO_DEFAULT_URL
 } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { getSecret } from "@nodetool-ai/models";
@@ -35,8 +36,7 @@ export const KNOWN_PROVIDERS = [
   "lmstudio",
   "groq",
   "moonshot",
-  "aki",
-  "claude_agent"
+  "aki"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
@@ -50,8 +50,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   lmstudio: "qwen/qwen3.5-9b",
   groq: "llama-3.3-70b-versatile",
   moonshot: "kimi-k2.5",
-  aki: "llama3_chat",
-  claude_agent: "claude-opus-4-6"
+  aki: "llama3_chat"
 };
 
 /** Resolve a secret: encrypted DB first (user "1"), then env var. */
@@ -74,14 +73,14 @@ export async function createProvider(
     case "ollama":
       return new OllamaProvider({
         OLLAMA_API_URL:
-          (await resolveKey("OLLAMA_API_URL")) ?? "http://127.0.0.1:11434"
+          (await resolveKey("OLLAMA_API_URL")) ?? OLLAMA_DEFAULT_URL
       });
     case "gemini":
       return new GeminiProvider({
         GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY")
       });
     case "lmstudio":
-      return new LMStudioProvider({}, { baseURL: "http://127.0.0.1:1234" })
+      return new LMStudioProvider({}, { baseURL: LMSTUDIO_DEFAULT_URL })
     case "mistral":
       return new MistralProvider({
         MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY")
@@ -98,12 +97,10 @@ export async function createProvider(
       return new AkiProvider({
         AKI_API_KEY: await resolveKey("AKI_API_KEY")
       });
-    case "claude_agent":
-      return new ClaudeAgentProvider();
     default:
       return new OllamaProvider({
         OLLAMA_API_URL:
-          (await resolveKey("OLLAMA_API_URL")) ?? "http://127.0.0.1:11434"
+          (await resolveKey("OLLAMA_API_URL")) ?? OLLAMA_DEFAULT_URL
       });
   }
 }

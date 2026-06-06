@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { Box } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
 import isEqual from "fast-deep-equal";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
@@ -11,7 +10,7 @@ import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
-import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox } from "../ui_primitives";
+import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box } from "../ui_primitives";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -236,6 +235,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       className={
         "workflow list" +
         (showGraphPreview ? " with-preview" : "") +
+        (hideDate ? " hide-date" : "") +
         (isSelected ? " selected" : "") +
         (isCurrent ? " current" : "") +
         (isAlternate ? " alternate" : "") +
@@ -265,6 +265,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             ref={inputRef}
             type="text"
             defaultValue={workflow.name}
+            aria-label="Workflow name"
             autoFocus
             onFocus={handleInputFocus}
             onBlur={handleNameBlur}
@@ -275,6 +276,9 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         ) : (
           <Text
             className="name"
+            size="small"
+            weight={400}
+            sx={{ lineHeight: 1.35 }}
             onDoubleClick={handleNameDoubleClick}
             title="Double-click to rename"
           >
@@ -291,7 +295,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             sx={{
               padding: "3px 10px",
               minWidth: "unset",
-              fontSize: "0.7rem",
+              fontSize: "var(--fontSizeSmaller)",
               fontWeight: 600,
               textTransform: "none",
               lineHeight: 1.4,
@@ -327,8 +331,17 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         </Box>
       </Box>
       <Box className="date-container">
-        {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "0.85rem", color: "warning.main" }} />}
-        {!hideDate && <Text className="date">{relativeTime(workflow.updated_at)}</Text>}
+        {isFavorite && <StarIcon className="favorite-indicator" sx={{ fontSize: "var(--fontSizeNormal)", color: "warning.main" }} />}
+        {!hideDate && (
+          <Text
+            className="date"
+            size="small"
+            color="secondary"
+            sx={{ lineHeight: 2.4, textTransform: "uppercase" }}
+          >
+            {relativeTime(workflow.updated_at)}
+          </Text>
+        )}
       </Box>
     </Box>
   );

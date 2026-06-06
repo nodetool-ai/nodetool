@@ -27,9 +27,8 @@ describe("PaneContextMenu favorites integration", () => {
             outputs: [],
             description: "",
             recommended_models: [],
-            is_dynamic: false,
+            supports_dynamic_inputs: false,
             is_streaming_output: false,
-            expose_as_tool: false,
             supports_dynamic_outputs: false,
             required_settings: []
           }
@@ -68,9 +67,8 @@ describe("PaneContextMenu favorites integration", () => {
             outputs: [],
             description: "",
             recommended_models: [],
-            is_dynamic: false,
+            supports_dynamic_inputs: false,
             is_streaming_output: false,
-            expose_as_tool: false,
             supports_dynamic_outputs: false,
             required_settings: []
           },
@@ -83,9 +81,8 @@ describe("PaneContextMenu favorites integration", () => {
             outputs: [],
             description: "",
             recommended_models: [],
-            is_dynamic: false,
+            supports_dynamic_inputs: false,
             is_streaming_output: false,
-            expose_as_tool: false,
             supports_dynamic_outputs: false,
             required_settings: []
           }
@@ -116,9 +113,8 @@ describe("PaneContextMenu favorites integration", () => {
             outputs: [],
             description: "",
             recommended_models: [],
-            is_dynamic: false,
+            supports_dynamic_inputs: false,
             is_streaming_output: false,
-            expose_as_tool: false,
             supports_dynamic_outputs: false,
             required_settings: []
           }

@@ -1,144 +1,50 @@
 /**
- * Content-Card Registry
+ * Content-Card predicate.
  *
- * Predicate that decides whether a node renders as a `ContentCardBody` (a
- * content-forward image/video/audio/3D/text body) instead of the generic
- * input/output layout.
+ * A node renders as a `ContentCardBody` (a content-forward
+ * image/video/audio/3D/text body) instead of the generic input/output layout
+ * iff its metadata declares `body: "content_card"`.
  *
- * Three matching strategies, in order:
+ * This is the single source of truth — there is no namespace, name-pattern, or
+ * allow-list matching. Node authors opt in from the backend:
+ *   - Python nodes: set `_body = "content_card"` or override `body()` (often
+ *     derived from the primary output type on a shared base class, e.g. the
+ *     HuggingFace pipeline / replicate node bases).
+ *   - TypeScript nodes: `static readonly body = "content_card"`, or set it on a
+ *     shared base / node factory (e.g. the fal / kie / replicate generators
+ *     derive it from the output type).
  *
- *   1. Explicit allow-set — hand-picked entries for provider/base nodes that
- *      should always render as content cards, regardless of namespace.
- *   2. Generator-pattern match — node_type names that follow the conventional
- *      `*.TextToImage`, `*.ImageToImage`, `*.TextToVideo`, ... shapes used by
- *      first-party generators.
- *   3. Provider-namespace + output match — any node under a generator-
- *      aggregator namespace (`fal.`, `replicate.`, `kie.`) whose primary
- *      output is a media type (image/video/audio/3D).
- *
- * Utility nodes (`If`, `Loop`, `Map`, constants, control-flow) never match
- * any of the three strategies and stay on the generic body forever.
+ * The concrete variant (image/audio/video/text/3D) is still derived from the
+ * primary output type by `getContentCardVariant` below.
  */
 
 import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
 
 /**
- * Hand-curated entries — provider/base nodes that should always render as a
- * content card. Anything outside the predicate's namespace/pattern reach.
- */
-export const CONTENT_CARD_REGISTRY: ReadonlySet<string> = new Set([
-  // First-party generators (base-nodes)
-  "nodetool.image.TextToImage",
-  "nodetool.image.ImageToImage",
-  "nodetool.video.TextToVideo",
-  "nodetool.video.ImageToVideo",
-  "nodetool.audio.TextToSpeech",
-  "nodetool.text.AutomaticSpeechRecognition",
-
-  // Provider image/video/audio nodes
-  "openai.image.CreateImage",
-  "openai.image.EditImage",
-  "openai.audio.TextToSpeech",
-  "openai.audio.Transcribe",
-  "openai.audio.Translate",
-  "gemini.image.ImageGeneration",
-  "gemini.video.TextToVideo",
-  "gemini.video.ImageToVideo",
-  "gemini.audio.TextToSpeech",
-  "gemini.audio.Transcribe",
-
-  // ElevenLabs
-  "elevenlabs.TextToSpeech",
-  "elevenlabs.SpeechToText",
-  "elevenlabs.RealtimeTextToSpeech",
-  "elevenlabs.RealtimeSpeechToText",
-
-  // Text-content nodes (LLM-style, prompt templating)
-  "nodetool.agents.Agent",
-  "nodetool.agents.Summarizer",
-  "nodetool.agents.Extractor",
-  "nodetool.agents.Classifier",
-  "nodetool.text.Concat",
-  "nodetool.data.Describe",
-  "anthropic.agents.ClaudeAgent",
-  "openai.agents.RealtimeAgent",
-  "mistral.text.ChatComplete"
-]);
-
-/**
- * Namespace prefixes whose nodes are wholesale content cards when their
- * primary output is a media type. These are auto-generated aggregator
- * packages (fal, replicate, kie) where hand-listing every entry would be
- * untenable and rot every time the manifest regenerates.
- */
-const PROVIDER_NAMESPACE_PREFIXES = ["fal.", "replicate.", "kie."] as const;
-
-/**
- * Conventional generator-shaped class names. Matches any namespace.
- * Tail-anchored: `\b` boundary prevents accidental matches against
- * "TextToImagePromptBuilder" or similar.
- */
-const GENERATOR_NAME_PATTERNS: readonly RegExp[] = [
-  /\.(TextTo|ImageTo)(Image|Video|Audio|Speech|3D|Model3D)\b/,
-  /\.(CreateImage|EditImage|ImageGeneration)\b/
-];
-
-const MEDIA_VARIANTS: ReadonlySet<ContentCardVariant> = new Set([
-  "image",
-  "image_mask",
-  "video",
-  "audio",
-  "model_3d"
-]);
-
-/**
  * Decide whether a node should render as a content card.
  *
- * The full metadata is needed because the namespace-prefix branch consults
- * the primary output's variant. Pass the metadata you already have — every
- * caller in the app has it.
+ * Driven entirely by `metadata.body`; there is no node_type matching.
  */
 export const isContentCardNode = (
   metadata: NodeMetadata | undefined
-): boolean => {
-  if (!metadata) {
-    return false;
-  }
-  const t = metadata.node_type;
-  if (!t) {
-    return false;
-  }
-  if (CONTENT_CARD_REGISTRY.has(t)) {
-    return true;
-  }
-  if (GENERATOR_NAME_PATTERNS.some((re) => re.test(t))) {
-    return true;
-  }
-  if (PROVIDER_NAMESPACE_PREFIXES.some((p) => t.startsWith(p))) {
-    const variant = getContentCardVariant(getPrimaryOutput(metadata));
-    if (MEDIA_VARIANTS.has(variant)) {
-      return true;
-    }
-  }
-  return false;
-};
+): boolean => metadata?.body === "content_card";
 
 /**
  * Per-variant default card dimensions applied at node creation time
  * (plan §6.3). Resolved from the node's primary output via
  * `getContentCardDefaultSize`. Single source of truth for content-card sizes.
  */
-// Heights include ~120 px of vertical space below the preview for the inline
-// prompt/parameter field(s) that most generator nodes expose. Users can resize
-// further; these are just the comfortable defaults.
+// Heights are sized for the preview area only; prompt/text inputs now render
+// as left-edge handles (see classifyFields), so we no longer pad for an inline
+// editor row. Users can resize further; these are just the comfortable defaults.
 export const CONTENT_CARD_SIZES = {
-  image: { width: 280, height: 400 },
-  image_mask: { width: 280, height: 400 },
-  video: { width: 320, height: 340 },
-  text: { width: 320, height: 320 },
-  audio: { width: 320, height: 240 },
-  model_3d: { width: 280, height: 400 },
-  generic: { width: 280, height: 400 }
+  image: { width: 280, height: 280 },
+  image_mask: { width: 280, height: 280 },
+  video: { width: 320, height: 220 },
+  text: { width: 320, height: 220 },
+  audio: { width: 320, height: 160 },
+  model_3d: { width: 280, height: 280 },
+  generic: { width: 280, height: 280 }
 } as const;
 
 /**
@@ -226,6 +132,21 @@ export const getContentCardDefaultSize = (
 };
 
 /**
+ * Prompt/template nodes that substitute `{{variables}}` — their dynamic-input
+ * button reads "+ Add variable" instead of a media-input label.
+ */
+const PROMPT_TEMPLATE_NODES = new Set<string>([
+  "nodetool.agents.Agent",
+  "nodetool.agents.Summarizer",
+  "nodetool.agents.Extractor",
+  "nodetool.agents.Classifier",
+  "nodetool.text.Concat",
+  "nodetool.data.Describe",
+  "openai.agents.RealtimeAgent",
+  "mistral.text.ChatComplete"
+]);
+
+/**
  * Human label for the `DynamicInputButton` shown in a content card.
  * Picked from primary-output variant — image generators say
  * "+ Add another image input", text/prompt nodes say "+ Add variable", etc.
@@ -237,14 +158,7 @@ export const getContentCardDefaultSize = (
 export const getDynamicInputLabel = (metadata: NodeMetadata): string => {
   const t = metadata.node_type ?? "";
   // Template-style nodes use {{variable}} substitution — say "variable".
-  // (Only nodes also matched by `isContentCardNode` show this button — keep
-  // this list in sync with the explicit allow-set above.)
-  if (
-    t === "nodetool.agents.Agent" ||
-    t === "anthropic.agents.ClaudeAgent" ||
-    t === "openai.agents.RealtimeAgent" ||
-    t === "nodetool.text.Concat"
-  ) {
+  if (PROMPT_TEMPLATE_NODES.has(t)) {
     return "variable";
   }
   const variant = getContentCardVariant(getPrimaryOutput(metadata));

@@ -18,8 +18,10 @@
  */
 
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { useTimelineStore } from "./TimelineStore";
 import useResultsStore from "../ResultsStore";
+import { extractAssetId } from "../outputAssetId";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -79,6 +81,7 @@ interface TimelineGenerationStoreState {
    */
   resolveOutputAssetId: (
     workflowId: string,
+    jobId: string,
     selectedOutputNodeId: string
   ) => string | undefined;
 }
@@ -87,6 +90,16 @@ const STORAGE_KEY = "timeline-generation-jobs:v1";
 
 const canUseSessionStorage = (): boolean =>
   typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
+
+function isClipJobEntry(value: unknown): value is ClipJobState {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "status" in value &&
+    "clipId" in value &&
+    "jobId" in value
+  );
+}
 
 const loadPersistedClipJobs = (): Record<string, ClipJobState> => {
   if (!canUseSessionStorage()) {
@@ -97,12 +110,20 @@ const loadPersistedClipJobs = (): Record<string, ClipJobState> => {
     if (!raw) {
       return {};
     }
-    const parsed = JSON.parse(raw) as Record<string, ClipJobState>;
-    return Object.fromEntries(
-      Object.entries(parsed).filter(([, value]) =>
-        value.status === "queued" || value.status === "running"
-      )
-    );
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return {};
+    const result: Record<string, ClipJobState> = {};
+    for (const [key, value] of Object.entries(
+      parsed as Record<string, unknown>
+    )) {
+      if (
+        isClipJobEntry(value) &&
+        (value.status === "queued" || value.status === "running")
+      ) {
+        result[key] = value;
+      }
+    }
+    return result;
   } catch {
     return {};
   }
@@ -232,30 +253,12 @@ export const useTimelineGenerationStore =
 
       getClipJobState: (clipId) => get().clipJobs[clipId],
 
-      resolveOutputAssetId: (workflowId, selectedOutputNodeId) => {
-        const result = useResultsStore
-          .getState()
-          .getOutputResult(workflowId, selectedOutputNodeId);
-
-        // The result may be an AssetRef ({ uri, asset_id }) or a plain string ID.
-        if (!result) {
-          return undefined;
-        }
-        if (typeof result === "string") {
-          return result;
-        }
-        if (typeof result === "object" && result !== null) {
-          const r = result as Record<string, unknown>;
-          if (typeof r.asset_id === "string") {
-            return r.asset_id;
-          }
-          // Some result types carry the ID under different keys.
-          if (typeof r.id === "string") {
-            return r.id;
-          }
-        }
-        return undefined;
-      }
+      resolveOutputAssetId: (workflowId, jobId, selectedOutputNodeId) =>
+        extractAssetId(
+          useResultsStore
+            .getState()
+            .getOutputResult(workflowId, jobId, selectedOutputNodeId)
+        )
     };
   });
 
@@ -294,11 +297,13 @@ export const useFailedCount = (): number =>
  * Returns an array of clip IDs with active (queued/running) jobs.
  */
 export const useGeneratingClipIds = (): string[] =>
-  useTimelineGenerationStore((state) =>
-    Object.keys(state.clipJobs).filter(
-      (id) =>
-        state.clipJobs[id].status === "queued" ||
-        state.clipJobs[id].status === "running"
+  useTimelineGenerationStore(
+    useShallow((state) =>
+      Object.keys(state.clipJobs).filter(
+        (id) =>
+          state.clipJobs[id].status === "queued" ||
+          state.clipJobs[id].status === "running"
+      )
     )
   );
 
@@ -306,8 +311,10 @@ export const useGeneratingClipIds = (): string[] =>
  * Returns an array of clip IDs with failed jobs.
  */
 export const useFailedClipIds = (): string[] =>
-  useTimelineGenerationStore((state) =>
-    Object.keys(state.clipJobs).filter(
-      (id) => state.clipJobs[id].status === "failed"
+  useTimelineGenerationStore(
+    useShallow((state) =>
+      Object.keys(state.clipJobs).filter(
+        (id) => state.clipJobs[id].status === "failed"
+      )
     )
   );

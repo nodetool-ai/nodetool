@@ -8,7 +8,7 @@
  */
 
 import type { ToolHandler, ToolContext, ToolDefinition } from "./types";
-import TuneIcon from "@mui/icons-material/Tune";
+import ContrastIcon from "@mui/icons-material/Contrast";
 
 export class AdjustTool implements ToolHandler {
   readonly toolId = "adjust" as const;
@@ -25,6 +25,6 @@ export class AdjustTool implements ToolHandler {
 export const definition: ToolDefinition = {
   tool: "adjust",
   label: "Adjustments",
-  Icon: TuneIcon,
+  Icon: ContrastIcon,
   group: "shape"
 };

@@ -26,14 +26,14 @@ export const createStyles = (theme: Theme) => {
       paddingRight: theme.spacing(8), // Make room for the side panel toggle
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(2.5),
+      gap: theme.spacing(3),
       flex: 1,
 
       [theme.breakpoints.down("md")]: {
-        padding: theme.spacing(2, 2.5),
+        padding: theme.spacing(2, 3),
         paddingTop: "65px",
         paddingBottom: theme.spacing(4),
-        paddingRight: theme.spacing(2.5) // Reset right padding on smaller screens
+        paddingRight: theme.spacing(3) // Reset right padding on smaller screens
       }
     },
 
@@ -49,7 +49,7 @@ export const createStyles = (theme: Theme) => {
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(0.5),
-      paddingRight: theme.spacing(5),
+      paddingRight: theme.spacing(6),
       marginBottom: theme.spacing(1)
     },
 
@@ -100,7 +100,7 @@ export const createStyles = (theme: Theme) => {
       isolation: "isolate",
 
       [theme.breakpoints.down("sm")]: {
-        padding: theme.spacing(2.5, 2, 2),
+        padding: theme.spacing(3, 2, 2),
         gap: theme.spacing(2)
       }
     },
@@ -121,7 +121,7 @@ export const createStyles = (theme: Theme) => {
       gap: theme.spacing(1),
 
       [theme.breakpoints.down("sm")]: {
-        gap: theme.spacing(0.75)
+        gap: theme.spacing(1)
       }
     },
 
@@ -129,7 +129,7 @@ export const createStyles = (theme: Theme) => {
       letterSpacing: "0.18em",
       textTransform: "uppercase",
       color: theme.vars.palette.text.secondary,
-      fontSize: "0.75rem"
+      fontSize: "var(--fontSizeSmall)"
     },
 
     ".hero-subtitle": {
@@ -204,7 +204,7 @@ export const createStyles = (theme: Theme) => {
 
     ".content-grid": {
       display: "grid",
-      gap: theme.spacing(2.5),
+      gap: theme.spacing(3),
       alignItems: "stretch",
       gridTemplateColumns: "minmax(0, 1fr)",
       minHeight: 0,
@@ -249,7 +249,7 @@ export const createStyles = (theme: Theme) => {
       gap: theme.spacing(2),
       overflowY: "auto",
       overflowX: "hidden",
-      paddingRight: theme.spacing(0.75),
+      paddingRight: theme.spacing(1),
       paddingBottom: theme.spacing(1.5),
       minHeight: 0
     },
@@ -338,7 +338,7 @@ export const createStyles = (theme: Theme) => {
     },
 
     ".result-placeholder-icon": {
-      fontSize: "4rem",
+      fontSize: "var(--fontSizeBig)",
       opacity: 0.4,
       marginBottom: theme.spacing(1)
     },
@@ -373,7 +373,7 @@ export const createStyles = (theme: Theme) => {
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(2),
-      padding: theme.spacing(2.5),
+      padding: theme.spacing(3),
       flex: "1 1 auto",
       minHeight: 0,
       overflow: "auto",
@@ -436,7 +436,7 @@ export const createStyles = (theme: Theme) => {
     },
 
     ".generate-button": {
-      padding: theme.spacing(1.25, 2.5),
+      padding: theme.spacing(1, 3),
       fontWeight: 500,
 
       [theme.breakpoints.down("sm")]: {

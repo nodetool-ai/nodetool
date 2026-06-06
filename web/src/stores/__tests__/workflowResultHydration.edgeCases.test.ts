@@ -1,7 +1,8 @@
 import { Asset } from "../ApiTypes";
 import {
   assetToResultValue,
-  groupWorkflowAssetsByNodeResult
+  groupWorkflowAssetsByNodeResult,
+  type AssetResultValue
 } from "../workflowResultHydration";
 
 const baseAsset = (overrides: Partial<Asset>): Asset => ({
@@ -323,7 +324,10 @@ describe("assetToResultValue edge cases", () => {
         })
       );
 
-      expect(result.duration).toBeUndefined();
+      expect(result.type).toBe("video");
+      if (result.type === "video") {
+        expect(result.duration).toBeUndefined();
+      }
     });
   });
 
@@ -378,7 +382,7 @@ describe("groupWorkflowAssetsByNodeResult edge cases", () => {
       })
     ]);
 
-    const nodeResults = grouped["node-1"] as Array<Record<string, unknown>>;
+    const nodeResults = grouped["node-1"] as AssetResultValue[];
     expect(nodeResults[0]).toMatchObject({ asset_id: "a-first" });
     expect(nodeResults[1]).toMatchObject({ asset_id: "b-second" });
   });

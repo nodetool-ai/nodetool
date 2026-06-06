@@ -255,6 +255,55 @@ describe("useWorkflowFreshnessCheck", () => {
     expect(updated?.paramOverrides?.keepMe).toBe("yes");
   });
 
+  it("defers the check until clips load into the store (avoids running with an empty clip set)", async () => {
+    // Mount the hook BEFORE seeding any clips — simulates the real flow where
+    // useLoadTimelineIntoStore populates the store asynchronously after the
+    // freshness hook is wired up.
+    useTimelineStore.setState({
+      sequenceId: null,
+      tracks: [],
+      clips: []
+    });
+
+    mockWorkflowsGet.mockResolvedValue(
+      buildWorkflow({ id: "wf-1", updatedAt: NEWER_UPDATED_AT })
+    );
+
+    renderHook(() => useWorkflowFreshnessCheck("seq-1"));
+
+    // Give any premature check a chance to run — none should fire while the
+    // store is still empty.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 30));
+    });
+    expect(mockWorkflowsGet).not.toHaveBeenCalled();
+
+    // Now load clips, mimicking the async tRPC populate.
+    const track = makeTrack({ type: "video" });
+    const clip = makeClip({
+      trackId: track.id,
+      workflowId: "wf-1",
+      sourceType: "generated",
+      status: "generated",
+      versions: [makeSuccessVersion(BASE_UPDATED_AT)]
+    });
+    act(() => {
+      useTimelineStore.setState({
+        sequenceId: "seq-1",
+        tracks: [track],
+        clips: [clip]
+      });
+    });
+
+    // The check fires once the store carries clips for this sequence.
+    await waitFor(() => {
+      const current = useTimelineStore
+        .getState()
+        .clips.find((c) => c.id === clip.id);
+      expect(current?.status).toBe("stale");
+    });
+  });
+
   it("auto-resolves a missing selectedOutputNodeId to the first available output and marks the clip stale", async () => {
     const track = makeTrack({ type: "video" });
     const clipA = makeClip({

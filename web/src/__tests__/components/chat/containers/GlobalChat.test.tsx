@@ -51,10 +51,6 @@ jest.mock("../../../../stores/GlobalChatStore", () => {
         threadsLoaded: true,
         selectedModel: { id: "gpt-4", name: "GPT-4" },
         setSelectedModel: jest.fn(),
-        selectedTools: [],
-        setSelectedTools: jest.fn(),
-        selectedCollections: [],
-        setSelectedCollections: jest.fn(),
         currentRunningToolCallId: null,
         currentToolMessage: null,
         deleteThread: jest.fn(),
@@ -93,10 +89,6 @@ jest.mock("../../../../stores/GlobalChatStore", () => {
         threadsLoaded: true,
         selectedModel: { id: "gpt-4", name: "GPT-4" },
         setSelectedModel: jest.fn(),
-        selectedTools: [],
-        setSelectedTools: jest.fn(),
-        selectedCollections: [],
-        setSelectedCollections: jest.fn(),
         currentRunningToolCallId: null,
         currentToolMessage: null,
         deleteThread: jest.fn(),
@@ -216,7 +208,7 @@ describe("GlobalChat", () => {
 
       renderWithProviders(<GlobalChat />);
 
-      expect(screen.getByText("Loading chat...")).toBeInTheDocument();
+      expect(screen.getByText("Loading chat…")).toBeInTheDocument();
     });
 
     it("shows error state when threads fail to load", async () => {
@@ -264,10 +256,6 @@ describe("GlobalChat", () => {
             threadsLoaded: true,
             selectedModel: { id: "gpt-4", name: "GPT-4" },
             setSelectedModel: jest.fn(),
-            selectedTools: [],
-            setSelectedTools: jest.fn(),
-            selectedCollections: [],
-            setSelectedCollections: jest.fn(),
             currentRunningToolCallId: null,
             currentToolMessage: null,
             deleteThread: jest.fn(),
@@ -301,10 +289,6 @@ describe("GlobalChat", () => {
           threadsLoaded: true,
           selectedModel: { id: "gpt-4", name: "GPT-4" },
           setSelectedModel: jest.fn(),
-          selectedTools: [],
-          setSelectedTools: jest.fn(),
-          selectedCollections: [],
-          setSelectedCollections: jest.fn(),
           currentRunningToolCallId: null,
           currentToolMessage: null,
           deleteThread: jest.fn(),
@@ -350,10 +334,6 @@ describe("GlobalChat", () => {
             threadsLoaded: true,
             selectedModel: { id: "gpt-4", name: "GPT-4" },
             setSelectedModel: jest.fn(),
-            selectedTools: [],
-            setSelectedTools: jest.fn(),
-            selectedCollections: [],
-            setSelectedCollections: jest.fn(),
             currentRunningToolCallId: null,
             currentToolMessage: null,
             deleteThread: jest.fn(),
@@ -387,10 +367,6 @@ describe("GlobalChat", () => {
           threadsLoaded: true,
           selectedModel: { id: "gpt-4", name: "GPT-4" },
           setSelectedModel: jest.fn(),
-          selectedTools: [],
-          setSelectedTools: jest.fn(),
-          selectedCollections: [],
-          setSelectedCollections: jest.fn(),
           currentRunningToolCallId: null,
           currentToolMessage: null,
           deleteThread: jest.fn(),

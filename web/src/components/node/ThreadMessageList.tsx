@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       letterSpacing: "0.08em",
       textTransform: "uppercase",
-      fontWeight: 700,
+      fontWeight: 600,
       color: theme.vars.palette.primary.main,
       backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.15)`,
       padding: "0.2em 0.55em",
@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
     ".messages li.chat-message p": {
       margin: "0.3em 0",
       lineHeight: "1.5em",
-      fontWeight: "400"
+      fontWeight: 400
     },
     ".messages li.user": {
       color: theme.vars.palette.grey[200],

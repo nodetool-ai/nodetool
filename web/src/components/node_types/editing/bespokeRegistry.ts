@@ -13,10 +13,29 @@
 import type React from "react";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
+import BlurBody, { BLUR_NODE_TYPE } from "./BlurBody";
+import ChannelsBody, { CHANNELS_NODE_TYPE } from "./ChannelsBody";
+import CompositorBody, { COMPOSITOR_NODE_TYPE } from "./CompositorBody";
+import CropBody, { CROP_NODE_TYPE } from "./CropBody";
+import CurvesBody, { CURVES_NODE_TYPE } from "./CurvesBody";
+import ExposureBody, { EXPOSURE_NODE_TYPE } from "./ExposureBody";
+import FitBody, { FIT_NODE_TYPE } from "./FitBody";
+import HSLAdjustBody, { HSL_ADJUST_NODE_TYPE } from "./HSLAdjustBody";
+import LevelsBody, { LEVELS_NODE_TYPE } from "./LevelsBody";
+import MaskBody, { MASK_NODE_TYPE } from "./MaskBody";
+import MasksExtractorBody, {
+  MASKS_EXTRACTOR_NODE_TYPES
+} from "./MasksExtractorBody";
+import PainterBody, { PAINTER_NODE_TYPE } from "./PainterBody";
+import PromptComposerBody, { PROMPT_NODE_TYPE } from "./PromptComposerBody";
+import PasteBody, { PASTE_NODE_TYPE } from "./PasteBody";
 import ResizeBody, { RESIZE_NODE_TYPE } from "./ResizeBody";
 import RotateAndFlipBody, {
   ROTATE_AND_FLIP_NODE_TYPE
 } from "./RotateAndFlipBody";
+import ScaleBody, { SCALE_NODE_TYPE } from "./ScaleBody";
+import SimpleFilterBody from "./SimpleFilterBody";
+import { SIMPLE_FILTER_NODE_TYPES } from "./SimpleFilterBody.constants";
 
 export interface BespokeBodyProps {
   id: string;
@@ -33,8 +52,28 @@ export type BespokeBodyComponent = React.ComponentType<BespokeBodyProps>;
 export const BESPOKE_BODY_REGISTRY: Readonly<
   Record<string, BespokeBodyComponent>
 > = {
+  [BLUR_NODE_TYPE]: BlurBody,
+  [CHANNELS_NODE_TYPE]: ChannelsBody,
+  [COMPOSITOR_NODE_TYPE]: CompositorBody,
+  [CROP_NODE_TYPE]: CropBody,
+  [CURVES_NODE_TYPE]: CurvesBody,
+  [EXPOSURE_NODE_TYPE]: ExposureBody,
+  [FIT_NODE_TYPE]: FitBody,
+  [HSL_ADJUST_NODE_TYPE]: HSLAdjustBody,
+  [LEVELS_NODE_TYPE]: LevelsBody,
+  [MASK_NODE_TYPE]: MaskBody,
+  [PAINTER_NODE_TYPE]: PainterBody,
+  [PASTE_NODE_TYPE]: PasteBody,
+  [PROMPT_NODE_TYPE]: PromptComposerBody,
   [RESIZE_NODE_TYPE]: ResizeBody,
-  [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody
+  [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody,
+  [SCALE_NODE_TYPE]: ScaleBody,
+  ...Object.fromEntries(
+    MASKS_EXTRACTOR_NODE_TYPES.map((t) => [t, MasksExtractorBody] as const)
+  ),
+  ...Object.fromEntries(
+    SIMPLE_FILTER_NODE_TYPES.map((t) => [t, SimpleFilterBody] as const)
+  )
 };
 
 export const isBespokeNode = (

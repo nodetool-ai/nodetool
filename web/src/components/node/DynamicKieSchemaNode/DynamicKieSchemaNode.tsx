@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { FlexColumn, Box } from "../../ui_primitives";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
 import { NodeErrors } from "../NodeErrors";
@@ -10,8 +10,7 @@ import NodeResizeHandle from "../NodeResizeHandle";
 import NodeToolButtons from "../NodeToolButtons";
 import NodeExecutionTime from "../NodeExecutionTime";
 import useMetadataStore from "../../../stores/MetadataStore";
-import useStatusStore from "../../../stores/StatusStore";
-import useResultsStore from "../../../stores/ResultsStore";
+import { useNodeStatus, useNodeResultValue } from "../../../hooks/nodes/useNodeExecState";
 import { useNodes } from "../../../contexts/NodeContext";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
@@ -55,15 +54,12 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const hasParent = Boolean(parentId);
 
   const metadata = useMetadataStore((state) => state.getMetadata(type));
-  const status = useStatusStore((state) => state.getStatus(workflow_id, id));
+  const statusRaw = useNodeStatus(workflow_id, id);
   const statusValue =
-    status && status !== null && typeof status !== "object"
-      ? status
+    statusRaw && typeof statusRaw !== "object"
+      ? statusRaw
       : undefined;
-  const result = useResultsStore(
-    (state) =>
-      state.getOutputResult(workflow_id, id) ?? state.getResult(workflow_id, id)
-  );
+  const result = useNodeResultValue(workflow_id, id);
 
   const nodeType = useMemo(
     () => ({
@@ -87,12 +83,10 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }
 
   return (
-    <Box
+    <FlexColumn
       className="dynamic-kie-schema-node"
+      fullHeight
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
         minHeight: 100,
         padding: "0 !important",
         border: `1px solid ${KIE_HEADER_COLOR}40`,
@@ -125,8 +119,6 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultButton={false}
           showInputsButton={false}
-          onShowResults={() => {}}
-          onShowInputs={() => {}}
         />
         <Box sx={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)" }}>
           <KieSchemaLoader nodeId={id} data={data} />
@@ -139,16 +131,12 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         workflowId={workflow_id}
         status={statusValue}
       />
-      <Box
+      <FlexColumn
         className="node-content-container"
+        fullWidth
         sx={{
           flex: "1 1 auto",
-          minHeight: 120,
-          width: "100%",
-          overflow: "visible",
-          display: "flex",
-          flexDirection: "column",
-          clipPath: "inset(0 -20px)"
+          minHeight: 120
         }}
       >
         <DynamicKieSchemaContent
@@ -162,10 +150,9 @@ const DynamicKieSchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           workflowId={workflow_id}
           showResultOverlay={false}
           result={result}
-          onShowInputs={() => {}}
         />
-      </Box>
-    </Box>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
 import { EditorButton } from "../editor_ui";
-import { ToolbarIconButton } from "../ui_primitives";
+import { ToolbarIconButton, Box } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 
@@ -27,7 +26,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
           py: 1.5,
           borderRadius: 2,
           fontSize: theme.fontSizeNormal,
-          fontWeight: 700,
+          fontWeight: 600,
           textTransform: "none",
         }}
       >
@@ -37,7 +36,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
   }
 
   return (
-    <FlexColumn align="center" sx={{ py: 0.25 }}>
+    <FlexColumn align="center" sx={{ py: 0.5 }}>
       <Box sx={{ width: 2, height: 8, backgroundColor: theme.vars.palette.divider }} />
       <ToolbarIconButton
         size="small"

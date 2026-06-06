@@ -2,18 +2,18 @@
 import React from "react";
 import { motion } from "framer-motion";
 import {
-  Globe,
-  Search,
-  Database,
-  Cloud,
-  FileText,
-  MessageCircle,
-  Calendar,
-  Mail,
-  Terminal,
   Braces,
-  Webhook,
+  Camera,
+  Cloud,
+  Film,
   Folder,
+  Image as ImageIcon,
+  Mic,
+  Music,
+  Palette,
+  Search,
+  Terminal,
+  Wand2,
 } from "lucide-react";
 
 interface AgentIntegrationsSectionProps {
@@ -22,64 +22,64 @@ interface AgentIntegrationsSectionProps {
 
 const integrations = [
   {
-    category: "LLM Providers",
+    category: "Image models",
     items: [
-      { name: "OpenAI", icon: "🤖" },
-      { name: "Anthropic", icon: "🧠" },
-      { name: "Gemini", icon: "💎" },
-      { name: "Ollama / Local", icon: "💻" },
+      { name: "Flux", icon: ImageIcon },
+      { name: "Nano Banana", icon: "🍌" },
+      { name: "Ideogram", icon: "🎨" },
+      { name: "gpt-image", icon: "🖼️" },
     ],
-    color: "teal",
+    color: "amber",
   },
   {
-    category: "Search & Web",
+    category: "Video models",
     items: [
-      { name: "Google Search", icon: Search },
-      { name: "Google News", icon: "📰" },
-      { name: "Browser Automation", icon: Globe },
-      { name: "HTTP Requests", icon: "🌐" },
-    ],
-    color: "blue",
-  },
-  {
-    category: "Data & Storage",
-    items: [
-      { name: "SQLite-vec (VectorDB)", icon: Database },
-      { name: "Files & Folders", icon: Folder },
-      { name: "Assets", icon: Cloud },
-      { name: "Downloads", icon: "📥" },
-    ],
-    color: "cyan",
-  },
-  {
-    category: "Documents & Media",
-    items: [
-      { name: "PDF Extract/Convert", icon: FileText },
-      { name: "Markdown", icon: "📝" },
-      { name: "Image Generation", icon: "🎨" },
-      { name: "Text-to-Speech", icon: "🔊" },
-    ],
-    color: "emerald",
-  },
-  {
-    category: "Code & Math",
-    items: [
-      { name: "JS/Python/Bash", icon: Terminal },
-      { name: "Calculator", icon: "🔢" },
-      { name: "Statistics", icon: "📊" },
-      { name: "Geometry", icon: "📐" },
+      { name: "Seedance", icon: Film },
+      { name: "Veo", icon: "🎬" },
+      { name: "Kling", icon: "📽️" },
+      { name: "Runway · Sora", icon: "🎞️" },
     ],
     color: "pink",
   },
   {
-    category: "Team Collaboration",
+    category: "Music & voice",
     items: [
-      { name: "Message Bus", icon: MessageCircle },
-      { name: "Task Board", icon: "📋" },
-      { name: "Email Search", icon: Mail },
-      { name: "Agent Handoff", icon: "🤝" },
+      { name: "Suno", icon: Music },
+      { name: "ElevenLabs", icon: Mic },
+      { name: "Whisper", icon: "🎙️" },
+      { name: "Stem split", icon: "🎚️" },
     ],
-    color: "amber",
+    color: "cyan",
+  },
+  {
+    category: "Retouch & edit",
+    items: [
+      { name: "Inpaint · Outpaint", icon: Wand2 },
+      { name: "Relight", icon: "💡" },
+      { name: "Upscale 4×", icon: Palette },
+      { name: "Color match", icon: Camera },
+    ],
+    color: "emerald",
+  },
+  {
+    category: "Brand & references",
+    items: [
+      { name: "Mood boards", icon: Folder },
+      { name: "Style guides", icon: "🎨" },
+      { name: "Reference images", icon: Cloud },
+      { name: "Web reference search", icon: Search },
+    ],
+    color: "blue",
+  },
+  {
+    category: "The model providers",
+    items: [
+      { name: "OpenAI", icon: "🤖" },
+      { name: "Anthropic", icon: "🧠" },
+      { name: "Gemini", icon: "💎" },
+      { name: "Local · Ollama", icon: "💻" },
+    ],
+    color: "teal",
   },
 ];
 
@@ -106,9 +106,9 @@ export default function AgentIntegrationsSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Connect to{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">
-              Everything
+            Every tool in the{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400">
+              creative kit.
             </span>
           </motion.h2>
           <motion.p
@@ -118,8 +118,9 @@ export default function AgentIntegrationsSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Agents can call any provider, browse the web, run code, query a vector
-            store, or hand off to another agent. Wire up what you need on the canvas.
+            The same models the studios use — wired into agents that know when to
+            reach for them. Hand your agent a brief and it picks the right tool for
+            the shot.
           </motion.p>
         </div>
 
@@ -190,11 +191,12 @@ export default function AgentIntegrationsSection({
           className="mt-16 rounded-2xl border border-white/10 bg-gradient-to-r from-teal-900/20 via-slate-900/50 to-blue-900/20 p-8 md:p-12 text-center"
         >
           <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-            Need a tool that isn&apos;t here yet?
+            Your favorite model isn&apos;t in the list yet?
           </h3>
           <p className="text-slate-400 mb-6 max-w-2xl mx-auto">
-            NodeTool is open source and extensible. Add your own node, plug in a proprietary
-            model, or drive the canvas from the TypeScript SDK — same code path as the built-ins.
+            NodeTool is open source. Wrap any provider as a node, plug in a private
+            checkpoint, or drive the canvas from the TypeScript SDK — agents pick it up
+            like a first-class tool the moment it lands on the canvas.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
@@ -206,10 +208,10 @@ export default function AgentIntegrationsSection({
             </a>
             <a
               href="https://github.com/nodetool-ai/nodetool"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-teal-600 text-white hover:bg-teal-500 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-rose-600 text-white hover:bg-rose-500 transition-all"
             >
               <Terminal className="w-5 h-5" />
-              Build a custom node
+              Wire up your own model
             </a>
           </div>
         </motion.div>

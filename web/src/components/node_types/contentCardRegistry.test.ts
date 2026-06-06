@@ -1,5 +1,4 @@
 import {
-  CONTENT_CARD_REGISTRY,
   getDynamicInputLabel,
   isContentCardNode
 } from "./contentCardRegistry";
@@ -13,12 +12,14 @@ const mediaOutput = (kind: string): OutputSlot =>
 
 const meta = (
   node_type: string,
-  outputKind: string = "any"
+  outputKind: string = "any",
+  body?: string
 ): NodeMetadata =>
   ({
     node_type,
     namespace: node_type.split(".").slice(0, -1).join("."),
-    outputs: [mediaOutput(outputKind)]
+    outputs: [mediaOutput(outputKind)],
+    ...(body ? { body } : {})
   }) as unknown as NodeMetadata;
 
 describe("isContentCardNode", () => {
@@ -26,59 +27,33 @@ describe("isContentCardNode", () => {
     expect(isContentCardNode(undefined)).toBe(false);
   });
 
-  it("returns false for utility nodes", () => {
-    expect(isContentCardNode(meta("nodetool.control.If"))).toBe(false);
-    expect(isContentCardNode(meta("nodetool.control.Loop"))).toBe(false);
-    expect(isContentCardNode(meta("nodetool.constant.String", "str"))).toBe(
-      false
-    );
-  });
-
-  it("matches explicit registry entries", () => {
-    for (const t of CONTENT_CARD_REGISTRY) {
-      expect(isContentCardNode(meta(t))).toBe(true);
-    }
-  });
-
-  it("matches conventional generator name patterns in any namespace", () => {
-    expect(isContentCardNode(meta("some.pkg.TextToImage"))).toBe(true);
-    expect(isContentCardNode(meta("some.pkg.ImageToImage"))).toBe(true);
-    expect(isContentCardNode(meta("some.pkg.TextToVideo"))).toBe(true);
-    expect(isContentCardNode(meta("some.pkg.ImageToVideo"))).toBe(true);
-    expect(isContentCardNode(meta("some.pkg.TextToAudio"))).toBe(true);
-    expect(isContentCardNode(meta("some.pkg.TextTo3D"))).toBe(true);
-    expect(isContentCardNode(meta("some.pkg.CreateImage"))).toBe(true);
-    expect(isContentCardNode(meta("some.pkg.ImageGeneration"))).toBe(true);
-  });
-
-  it("does not match generator-shaped names embedded in longer words", () => {
-    expect(isContentCardNode(meta("foo.TextToImagePromptBuilder"))).toBe(false);
-  });
-
-  it("matches fal.* / replicate.* / kie.* nodes with media output", () => {
-    expect(isContentCardNode(meta("fal.image_to_image.Ultrashape", "image"))).toBe(
-      true
-    );
+  it("is driven solely by metadata.body === 'content_card'", () => {
     expect(
-      isContentCardNode(meta("replicate.video.SomeModel", "video"))
+      isContentCardNode(
+        meta("nodetool.image.TextToImage", "image", "content_card")
+      )
     ).toBe(true);
-    expect(isContentCardNode(meta("kie.audio.SomeModel", "audio"))).toBe(true);
+    // Any namespace opts in via body — there is no name/namespace matching.
     expect(
-      isContentCardNode(meta("fal.threed.MeshyV5Retexture", "model_3d"))
+      isContentCardNode(meta("lib.image.SomeModel", "image", "content_card"))
+    ).toBe(true);
+    expect(
+      isContentCardNode(meta("some.pkg.Whatever", "dict", "content_card"))
     ).toBe(true);
   });
 
-  it("does not match fal/replicate/kie nodes with non-media outputs", () => {
-    expect(isContentCardNode(meta("fal.misc.SomeUtil", "dict"))).toBe(false);
-    expect(isContentCardNode(meta("replicate.text.Summarize", "str"))).toBe(
+  it("returns false when body is absent (no node_type matching)", () => {
+    // Node types the old heuristics matched no longer match without body.
+    expect(isContentCardNode(meta("nodetool.image.TextToImage", "image"))).toBe(
       false
     );
-    expect(isContentCardNode(meta("kie.misc.Util", "any"))).toBe(false);
+    expect(isContentCardNode(meta("some.pkg.TextToImage", "image"))).toBe(false);
+    expect(isContentCardNode(meta("fal.image_to_image.X", "image"))).toBe(false);
   });
 
-  it("does not match arbitrary third-party namespaces", () => {
+  it("ignores body values other than content_card", () => {
     expect(
-      isContentCardNode(meta("comfy.image.SomeModel", "image"))
+      isContentCardNode(meta("some.util.Node", "dict", "default"))
     ).toBe(false);
   });
 

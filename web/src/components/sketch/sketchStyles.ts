@@ -30,12 +30,18 @@ export const SKETCH_CHECKERBOARD = {
 
 // ─── Typography Scale ──────────────────────────────────────────────────────────
 
+/** Monospace stack — keep in sync with ThemeNodetool `fontFamily2`. */
+const SKETCH_FONT_FAMILY_MONO =
+  "'JetBrains Mono', 'Inter', Arial, sans-serif" as const;
+
 export const SKETCH_FONT = {
-  /** Channel labels (R/G/B, H/S/L) */  xxs: "0.45rem",
-  /** FG/BG labels, tiny readouts */     xs: "0.6rem",
-  /** Setting labels, value readouts */  sm: "0.65rem",
-  /** Layer names, general UI */         md: "0.7rem",
-  /** Panel section headings */          section: "0.72rem",
+  /** Monospace for coordinates, dimensions readouts, hex. Same as `theme.fontFamily2`. */
+  familyMono: SKETCH_FONT_FAMILY_MONO,
+  /** Channel labels (R/G/B, H/S/L) */ xxs: "0.45rem",
+  /** FG/BG labels, tiny readouts */ xs: "0.6rem",
+  /** Setting labels, value readouts */ sm: "0.65rem",
+  /** Layer names, general UI */ md: "0.7rem",
+  /** Panel section headings */ section: "0.72rem",
 } as const;
 
 // ─── Spacing / Size Scale ─────────────────────────────────────────────────────
@@ -49,8 +55,9 @@ export const SKETCH_SPACING = {
 } as const;
 
 export const SKETCH_SIZE = {
-  /** Row min-height; thumbnails sized to match (~40% larger than original 36/28). */
-  layerItemHeight: "50.4px",
+  /** Row min-height matches the thumbnail so the row background never shows
+   *  above or below the thumbnail (flush top/bottom). */
+  layerItemHeight: "39.2px",
   layerThumbnail: "39.2px",
   panelWidth: "260px",
   iconButtonPad: "3px",
@@ -77,30 +84,42 @@ export const SKETCH_Z_INDEX = {
  * Minimal, professional slider — thin 2px track, small 10px thumb, no shadows.
  * Apply directly: `<Slider sx={sketchSliderSx} />`
  */
-export const sketchSliderSx: SxProps<Theme> = (theme) => ({
-  padding: `${SKETCH_SPACING.lg} 0`,
-  "& .MuiSlider-rail": {
-    height: "2px",
-    opacity: 0.3,
-    backgroundColor: (theme as Theme).palette.grey[400]
-  },
-  "& .MuiSlider-track": {
-    height: "2px",
-    border: "none",
-    backgroundColor: (theme as Theme).palette.grey[300]
-  },
-  "& .MuiSlider-thumb": {
-    width: "10px",
-    height: "10px",
-    backgroundColor: (theme as Theme).palette.grey[200],
-    boxShadow: "none",
-    "&:hover, &.Mui-focusVisible": {
-      boxShadow: "none",
-      backgroundColor: "#fff"
+export const sketchSliderSx: SxProps<Theme> = (theme) => {
+  const t = theme as Theme;
+  return {
+    padding: `${SKETCH_SPACING.lg} 0`,
+    "& .MuiSlider-rail": {
+      height: "2px",
+      opacity: 0.3,
+      backgroundColor: t.vars.palette.grey[400]
     },
-    "&::before": { display: "none" }
-  }
-});
+    "& .MuiSlider-track": {
+      height: "2px",
+      border: "none",
+      backgroundColor: t.vars.palette.grey[300]
+    },
+    "& .MuiSlider-thumb": {
+      width: "10px",
+      height: "10px",
+      backgroundColor: t.vars.palette.grey[200],
+      boxShadow: "none",
+      transition: "box-shadow 0.15s ease",
+      // Brightest neutral on hover (#FCFCFC), never pure #fff.
+      "&:hover": {
+        boxShadow: "none",
+        backgroundColor: t.vars.palette.c_brightest
+      },
+      // Keyboard focus stays visibly distinct from hover: a Studio-Blue
+      // ring (WCAG 2.2 AA). Previously this shared the hover rule and set
+      // `boxShadow: none`, erasing the focus indicator entirely.
+      "&.Mui-focusVisible": {
+        boxShadow: `0 0 0 3px ${t.vars.palette.primary.main}`,
+        backgroundColor: t.vars.palette.c_brightest
+      },
+      "&::before": { display: "none" }
+    }
+  };
+};
 
 /**
  * Compact ToggleButton sizing used throughout tool settings panels.
@@ -147,27 +166,60 @@ export const settingRowChildrenSx = (t: Theme) => ({
   "& .setting-row": {
     display: "flex",
     alignItems: "center",
-    gap: SKETCH_SPACING.sm,
-    "& .MuiSlider-root": {
-      width: "80px",
-      minWidth: "60px",
+    // `md` rather than `sm` so neighbouring rows have visible breathing
+    // room — without it sliders, labels, and values from adjacent rows
+    // visually crowd each other on the top bar.
+    gap: SKETCH_SPACING.md,
+    // Reserve a fixed-width column for the numeric value so the row
+    // length never changes when digits flip (e.g. 100% → 99% → 100%).
+    // Previously `minWidth: 24px` allowed the value cell to grow with
+    // its content and shoved every following row a pixel or two to
+    // the right, which looked like the whole bar was "jumping".
+    "& .setting-value": {
+      fontSize: SKETCH_FONT.sm,
+      width: "36px",
+      flexShrink: 0,
+      textAlign: "right",
+      color: t.vars.palette.grey[100],
     },
     "& .setting-label": {
       fontSize: SKETCH_FONT.sm,
       whiteSpace: "nowrap",
       color: t.vars.palette.grey[200],
     },
-    "& .setting-value": {
-      fontSize: SKETCH_FONT.sm,
-      minWidth: "24px",
-      textAlign: "right",
-      color: t.vars.palette.grey[100],
+    "& .MuiSlider-root": {
+      width: "100px",
+      minWidth: "80px",
+      // Minimal clearance — the thumb may touch label/value at the
+      // extremes but the wider gap looked airy and disconnected.
+      marginLeft: "2px",
+      marginRight: "2px",
+    },
+  },
+  // Opt-in wider slider for the primary "Size" control. Doubling its
+  // width (relative to other sliders) gives the user finer control on
+  // the value most often tuned, without bloating every other row.
+  "& .setting-row--wide": {
+    "& .MuiSlider-root": {
+      width: "200px",
+      minWidth: "140px",
     },
   },
   "& .MuiToggleButtonGroup-root": {
     "& .MuiToggleButton-root": {
       padding: `${SKETCH_SPACING.xs} ${SKETCH_SPACING.md}`,
       fontSize: SKETCH_FONT.xs,
+      // Make the selected state pop against the dark toolbar — MUI's
+      // default selected background is barely a few percent lighter
+      // than the surrounding bar, so users couldn't tell which option
+      // was active in tool params.
+      "&.Mui-selected": {
+        backgroundColor: t.vars.palette.grey[600],
+        color: t.vars.palette.grey[50],
+        "&:hover": {
+          backgroundColor: t.vars.palette.grey[500],
+        },
+      },
     },
   },
 } as const);
@@ -199,13 +251,15 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
     "& .setting-row": {
       display: "flex",
       alignItems: "center",
-      gap: SKETCH_SPACING.lg,
-      flexWrap: "wrap",
+      gap: SKETCH_SPACING.md,
+      flexWrap: "nowrap",
       "& .MuiSlider-root": {
-        flex: "1 1 140px",
-        minWidth: "120px",
+        flex: "1 1 80px",
+        minWidth: "60px",
         width: "100%",
         maxWidth: "100%",
+        marginLeft: "2px",
+        marginRight: "2px",
       },
       "& .setting-label": {
         fontSize: SKETCH_FONT.sm,
@@ -214,7 +268,8 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
       },
       "& .setting-value": {
         fontSize: SKETCH_FONT.sm,
-        minWidth: "24px",
+        width: "36px",
+        flexShrink: 0,
         textAlign: "right",
         color: t.vars.palette.grey[100],
       },
@@ -225,6 +280,13 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
       "& .MuiToggleButton-root": {
         padding: `${SKETCH_SPACING.xs} ${SKETCH_SPACING.md}`,
         fontSize: SKETCH_FONT.xs,
+        "&.Mui-selected": {
+          backgroundColor: t.vars.palette.grey[600],
+          color: t.vars.palette.grey[50],
+          "&:hover": {
+            backgroundColor: t.vars.palette.grey[500],
+          },
+        },
       },
     },
     "& .MuiIconButton-root": {

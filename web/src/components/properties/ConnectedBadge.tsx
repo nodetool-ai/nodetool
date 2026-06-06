@@ -22,7 +22,7 @@ const ConnectedBadge: React.FC = () => {
         color: theme.vars.palette.text.secondary,
         userSelect: "none",
         "& svg": {
-          fontSize: "0.85rem",
+          fontSize: "var(--fontSizeNormal)",
         },
       })}
     >

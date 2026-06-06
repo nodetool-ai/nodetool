@@ -4,9 +4,7 @@
 
 import {
   agentMessageToNodeToolMessage,
-  nodeToolMessageToText,
 } from "../agentMessageAdapter";
-import type { Message } from "../../stores/ApiTypes";
 
 // Simplified AgentMessage interface for testing
 interface AgentMessage {
@@ -26,6 +24,9 @@ interface AgentMessage {
       arguments: string;
     };
   }>;
+  event?: unknown;
+  event_type?: string;
+  agent_execution_id?: string;
 }
 
 describe("agentMessageAdapter", () => {
@@ -54,7 +55,7 @@ describe("agentMessageAdapter", () => {
         expect(result?.role).toBe("assistant");
         expect(result?.thread_id).toBe("test-session-1");
         expect(result?.provider).toBe("anthropic");
-        expect(result?.model).toBe("claude-agent");
+        expect(result?.model).toBe("agent");
         expect(result?.content).toEqual([
           { type: "text", text: "Hello, world!" },
           { type: "text", text: " How are you?" },
@@ -356,7 +357,7 @@ describe("agentMessageAdapter", () => {
         expect(result).toBeNull();
       });
 
-      it("returns null for stream_event messages", () => {
+      it("returns null for stream_event messages without execution event data", () => {
         const msg: AgentMessage = {
           type: "stream_event",
           uuid: "test-uuid-11",
@@ -367,6 +368,30 @@ describe("agentMessageAdapter", () => {
         const result = agentMessageToNodeToolMessage(msg);
 
         expect(result).toBeNull();
+      });
+
+      it("converts stream_event execution updates", () => {
+        const msg: AgentMessage = {
+          type: "stream_event",
+          uuid: "test-uuid-12",
+          session_id: "test-session-12",
+          event_type: "planning_update",
+          agent_execution_id: "graph-planner-test",
+          event: {
+            type: "planning_update",
+            phase: "generation",
+            status: "running",
+            content: "Building workflow graph..."
+          }
+        };
+
+        const result = agentMessageToNodeToolMessage(msg);
+
+        expect(result).not.toBeNull();
+        expect(result?.role).toBe("agent_execution");
+        expect(result?.agent_execution_id).toBe("graph-planner-test");
+        expect(result?.execution_event_type).toBe("planning_update");
+        expect(result?.content).toEqual(msg.event);
       });
     });
 
@@ -395,121 +420,4 @@ describe("agentMessageAdapter", () => {
     });
   });
 
-  describe("nodeToolMessageToText", () => {
-    it("converts string content to text", () => {
-      const message: Message = {
-        type: "message",
-        id: "msg-1",
-        role: "user",
-        content: "Plain text content",
-        created_at: "2024-01-01T00:00:00Z",
-        thread_id: "thread-1",
-      };
-
-      const result = nodeToolMessageToText(message);
-
-      expect(result).toBe("Plain text content");
-    });
-
-    it("converts array content with text blocks to text", () => {
-      const message: Message = {
-        type: "message",
-        id: "msg-2",
-        role: "assistant",
-        content: [
-          { type: "text", text: "First line" },
-          { type: "text", text: "Second line" },
-          { type: "text", text: "Third line" },
-        ],
-        created_at: "2024-01-01T00:00:00Z",
-        thread_id: "thread-2",
-      };
-
-      const result = nodeToolMessageToText(message);
-
-      expect(result).toBe("First line\nSecond line\nThird line");
-    });
-
-    it("filters out non-text content blocks", () => {
-      const message: Message = {
-        type: "message",
-        id: "msg-3",
-        role: "assistant",
-        content: [
-          { type: "text", text: "Text content" },
-          {
-            type: "image_url",
-            image: {
-              type: "image",
-              uri: "http://example.com/image.png",
-            },
-          },
-          { type: "text", text: "More text" },
-        ],
-        created_at: "2024-01-01T00:00:00Z",
-        thread_id: "thread-3",
-      };
-
-      const result = nodeToolMessageToText(message);
-
-      expect(result).toBe("Text content\nMore text");
-    });
-
-    it("handles empty array content", () => {
-      const message: Message = {
-        type: "message",
-        id: "msg-4",
-        role: "assistant",
-        content: [],
-        created_at: "2024-01-01T00:00:00Z",
-        thread_id: "thread-4",
-      };
-
-      const result = nodeToolMessageToText(message);
-
-      expect(result).toBe("");
-    });
-
-    it("handles array with only non-text blocks", () => {
-      const message: Message = {
-        type: "message",
-        id: "msg-5",
-        role: "assistant",
-        content: [
-          {
-            type: "image_url",
-            image: {
-              type: "image",
-              uri: "http://example.com/image.png",
-            },
-          },
-        ],
-        created_at: "2024-01-01T00:00:00Z",
-        thread_id: "thread-5",
-      };
-
-      const result = nodeToolMessageToText(message);
-
-      expect(result).toBe("");
-    });
-
-    it("joins text blocks with newline", () => {
-      const message: Message = {
-        type: "message",
-        id: "msg-6",
-        role: "assistant",
-        content: [
-          { type: "text", text: "Line 1" },
-          { type: "text", text: "Line 2" },
-          { type: "text", text: "Line 3" },
-        ],
-        created_at: "2024-01-01T00:00:00Z",
-        thread_id: "thread-6",
-      };
-
-      const result = nodeToolMessageToText(message);
-
-      expect(result).toBe("Line 1\nLine 2\nLine 3");
-    });
-  });
 });

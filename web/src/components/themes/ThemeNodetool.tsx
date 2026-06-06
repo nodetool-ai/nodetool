@@ -30,14 +30,20 @@ const ThemeNodetool = createTheme({
       palette: paletteDark
     }
   },
-  fontSizeGiant: "2rem",
-  fontSizeBigger: "1.25rem",
-  fontSizeBig: "1.125rem",
-  fontSizeNormal: "15px",
-  fontSizeSmall: "0.875rem",
-  fontSizeSmaller: "0.75rem",
-  fontSizeTiny: "0.65rem",
-  fontSizeTinyer: "0.55rem",
+  // Canonical sans type scale — only four sizes exist (18 / 15 / 13 / 11px).
+  // These eight fields are the SINGLE SOURCE OF TRUTH: MUI emits them as the
+  // `--fontSize*` CSS custom properties that the rest of the app references via
+  // `var(--fontSize*)`. Legacy names collapse onto the four sizes. Change a size
+  // HERE and it propagates everywhere. See ui_primitives/tokens.ts (TYPOGRAPHY)
+  // for the size+weight combinations.
+  fontSizeGiant: "18px", // → title
+  fontSizeBigger: "18px", // → title
+  fontSizeBig: "18px", // → title
+  fontSizeNormal: "15px", // → body
+  fontSizeSmall: "13px", // → label
+  fontSizeSmaller: "11px", // → caption
+  fontSizeTiny: "11px", // → caption
+  fontSizeTinyer: "11px", // → caption
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
   // Canonical border-radius tokens. Prefer these over hardcoded values.
@@ -70,6 +76,15 @@ const ThemeNodetool = createTheme({
     controlRadius: "6px",
     menuRadius: "8px",
     menuShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
+  },
+  // TanStack Virtual overscan — extra item/row count rendered outside the viewport.
+  virtualScroll: {
+    overscan: {
+      small: 10,
+      normal: 25,
+      large: 50,
+      gridRow: 4
+    }
   },
   typography: {
     fontFamily: "'Inter', sans-serif",
@@ -123,39 +138,43 @@ const ThemeNodetool = createTheme({
     },
     MuiTypography: {
       styleOverrides: {
+        // Headings collapse onto two sanctioned sans combos: h1–h3 use the
+        // `title` style (18px/600); h4–h6 use the `label` style (13px/500).
+        // Hierarchy is conveyed by margin, letter-spacing, color and case —
+        // not by introducing extra font sizes.
         h1: ({ theme }) => ({
           cursor: "default",
-          fontSize: "1.75em",
-          fontWeight: 500,
+          fontSize: theme.fontSizeBig, // 18px — title
+          fontWeight: 600,
           letterSpacing: "-0.02em",
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily1,
-          lineHeight: 1.2
+          lineHeight: 1.3
         }),
         h2: ({ theme }) => ({
           cursor: "default",
-          fontSize: "1.375em",
-          fontWeight: 500,
+          fontSize: theme.fontSizeBig, // 18px — title
+          fontWeight: 600,
           letterSpacing: "-0.015em",
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily1,
-          lineHeight: 1.25
+          lineHeight: 1.3
         }),
         h3: ({ theme }) => ({
           cursor: "default",
-          fontSize: "1.125em",
-          fontWeight: 500,
+          fontSize: theme.fontSizeBig, // 18px — title
+          fontWeight: 600,
           letterSpacing: "-0.01em",
-          marginTop: theme.spacing(4),
+          marginTop: theme.spacing(3),
           marginBottom: theme.spacing(2),
           fontFamily: theme.fontFamily1,
           lineHeight: 1.3
         }),
         h4: ({ theme }) => ({
           cursor: "default",
-          fontSize: "0.9375em",
+          fontSize: theme.fontSizeSmall, // 13px — label
           fontWeight: 500,
           marginTop: theme.spacing(3),
           marginBottom: theme.spacing(1),
@@ -166,7 +185,7 @@ const ThemeNodetool = createTheme({
         }),
         h5: ({ theme }) => ({
           cursor: "default",
-          fontSize: "0.8125em",
+          fontSize: theme.fontSizeSmall, // 13px — label
           fontWeight: 500,
           letterSpacing: "0.02em",
           marginTop: theme.spacing(3),
@@ -177,7 +196,7 @@ const ThemeNodetool = createTheme({
         }),
         h6: ({ theme }) => ({
           cursor: "default",
-          fontSize: "0.75em",
+          fontSize: theme.fontSizeSmall, // 13px — label
           fontWeight: 500,
           letterSpacing: "0.04em",
           textTransform: "uppercase",
@@ -187,7 +206,7 @@ const ThemeNodetool = createTheme({
           color: theme.vars.palette.text.secondary
         }),
         body1: ({ theme }) => ({
-          fontSize: "1em",
+          fontSize: theme.fontSizeNormal, // 15px — body
           fontFamily: theme.fontFamily1,
           fontWeight: 400,
           wordSpacing: "0",
@@ -196,9 +215,9 @@ const ThemeNodetool = createTheme({
           marginBottom: theme.spacing(0)
         }),
         body2: ({ theme }) => ({
-          fontSize: "0.875em",
-          lineHeight: 1.45,
-          fontWeight: 400,
+          fontSize: theme.fontSizeSmall, // 13px — label combo
+          lineHeight: 1.4,
+          fontWeight: 500,
           color: theme.vars.palette.text.secondary,
           fontFamily: theme.fontFamily1
         })
@@ -223,8 +242,8 @@ const ThemeNodetool = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           textTransform: "capitalize",
-          fontSize: theme.fontSizeNormal,
-          fontWeight: "lighter",
+          fontSize: theme.fontSizeSmall, // 13px — label
+          fontWeight: 500,
           lineHeight: "1em",
           padding: theme.spacing(0, 0, 2, 0),
           color: theme.vars.palette.grey[0],
@@ -265,8 +284,8 @@ const ThemeNodetool = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           fontFamily: theme.fontFamily1,
-          fontSize: theme.fontSizeBig,
-          fontWeight: 500,
+          fontSize: theme.fontSizeBig, // 18px — title
+          fontWeight: 600,
           letterSpacing: "-0.01em"
         })
       }
@@ -279,10 +298,10 @@ const ThemeNodetool = createTheme({
           border: `1px solid ${theme.vars.palette.divider}`,
           color: theme.vars.palette.text.primary,
           maxWidth: 300,
-          fontSize: theme.fontSizeSmall,
-          fontWeight: 400,
+          fontSize: theme.fontSizeSmall, // 13px — label
+          fontWeight: 500,
           borderRadius: theme.rounded.md,
-          padding: "6px 10px",
+          padding: theme.spacing(1.5, 2), // 6px / 8px
           boxShadow:
             "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)"
         }),

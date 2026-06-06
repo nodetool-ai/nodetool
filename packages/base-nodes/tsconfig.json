@@ -4,33 +4,21 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
   "references": [
-    {
-      "path": "../agents"
-    },
-    {
-      "path": "../code-runners"
-    },
-    {
-      "path": "../config"
-    },
-    {
-      "path": "../kernel"
-    },
-    {
-      "path": "../kie-nodes"
-    },
-    {
-      "path": "../node-sdk"
-    },
-    {
-      "path": "../runtime"
-    },
-    {
-      "path": "../vectorstore"
-    }
+    { "path": "../node-sdk" },
+    { "path": "../nodes-utils" },
+    { "path": "../protocol" },
+    { "path": "../core-nodes" },
+    { "path": "../text-nodes" },
+    { "path": "../llm-nodes" },
+    { "path": "../data-nodes" },
+    { "path": "../document-nodes" },
+    { "path": "../image-nodes" },
+    { "path": "../audio-nodes" },
+    { "path": "../video-nodes" },
+    { "path": "../integration-nodes" },
+    { "path": "../code-nodes" },
+    { "path": "../automation-nodes" }
   ]
 }

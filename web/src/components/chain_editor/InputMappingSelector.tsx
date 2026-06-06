@@ -8,8 +8,8 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material";
-import { ToolbarIconButton } from "../ui_primitives";
+import { Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material";
+import { ToolbarIconButton, Box } from "../ui_primitives";
 import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -135,8 +135,8 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
-                px: 1.25,
-                py: 0.75,
+                px: 1,
+                py: 1,
                 borderRadius: 1,
                 border: `1px solid ${
                   mapping
@@ -227,7 +227,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
             primary={`Source for "${activeInput}"`}
             secondary="Pick which node output feeds this input"
             slotProps={{
-              primary: { sx: { fontWeight: 700 } },
+              primary: { sx: { fontWeight: 600 } },
             }}
           />
         </MenuItem>

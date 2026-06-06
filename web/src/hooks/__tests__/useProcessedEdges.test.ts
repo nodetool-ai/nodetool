@@ -84,7 +84,7 @@ describe("useProcessedEdges", () => {
 
       expect(result.current.processedEdges).toHaveLength(1);
       expect(result.current.processedEdges[0].style).toBeDefined();
-      expect(result.current.processedEdges[0].style?.strokeWidth).toBe(2);
+      expect(result.current.processedEdges[0].style?.strokeWidth).toBe(1.5);
     });
 
     it("preserves original edge properties", () => {
@@ -356,8 +356,13 @@ describe("useProcessedEdges", () => {
       ];
       const edges = [createMockEdge("edge1", "node1", "node2")];
       const workflowId = "workflow-1";
+      const focusedJobId = "job-1";
+      // Edge statuses are keyed by the focused run: `${wf}:${job}:${edge.id}`.
       const edgeStatuses = {
-        [`${workflowId}:edge1`]: { status: "message_sent", counter: 5 }
+        [`${workflowId}:${focusedJobId}:edge1`]: {
+          status: "message_sent",
+          counter: 5
+        }
       };
 
       const { result } = renderHook(() =>
@@ -367,6 +372,7 @@ describe("useProcessedEdges", () => {
           dataTypes: mockDataTypes,
           getMetadata: defaultGetMetadata,
           workflowId,
+          focusedJobId,
           edgeStatuses
         })
       );
@@ -383,8 +389,10 @@ describe("useProcessedEdges", () => {
       ];
       const edges = [createMockEdge("edge1", "node1", "node2")];
       const workflowId = "workflow-1";
+      const focusedJobId = "job-1";
+      // Node statuses are keyed by the focused run: `${wf}:${job}:${edge.source}`.
       const nodeStatuses = {
-        [`${workflowId}:node1`]: "running"
+        [`${workflowId}:${focusedJobId}:node1`]: "running"
       };
 
       const { result } = renderHook(() =>
@@ -394,6 +402,7 @@ describe("useProcessedEdges", () => {
           dataTypes: mockDataTypes,
           getMetadata: defaultGetMetadata,
           workflowId,
+          focusedJobId,
           nodeStatuses
         })
       );

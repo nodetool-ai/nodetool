@@ -22,7 +22,7 @@ import { ShapeTool } from "../tools/ShapeTool";
 import { GradientTool } from "../tools/GradientTool";
 import { CropTool } from "../tools/CropTool";
 import { SelectTool } from "../tools/SelectTool";
-import { EyedropperTool, sampleColorHex } from "../tools/EyedropperTool";
+import { ColorPickerTool, sampleColorHex } from "../tools/ColorPickerTool";
 import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { SegmentTool } from "../tools/SegmentTool";
@@ -244,7 +244,7 @@ describe("tool handler interface compliance", () => {
     GradientTool,
     CropTool,
     SelectTool,
-    EyedropperTool,
+    ColorPickerTool,
     BlurTool,
     CloneStampTool
   ];
@@ -815,9 +815,9 @@ describe("TransformTool", () => {
   });
 });
 
-describe("EyedropperTool", () => {
+describe("ColorPickerTool", () => {
   it("dispatches sketch-eyedropper custom event on pointer down", () => {
-    const tool = new EyedropperTool();
+    const tool = new ColorPickerTool();
     const canvas = window.document.createElement("canvas");
     canvas.width = 64;
     canvas.height = 64;
@@ -1134,7 +1134,7 @@ describe("ShapeTool", () => {
       tool.onDown(ctx, makePointerEvent());
       tool.onUp(ctx, makePointerEvent());
 
-      expect(ctx.onLayerContentBoundsChange).toHaveBeenCalledWith(layerId, {
+      expect(ctx.onStrokeEnd).toHaveBeenCalledWith(layerId, null, {
         x: -16,
         y: -8,
         width: 80,

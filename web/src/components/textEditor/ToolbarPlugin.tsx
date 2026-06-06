@@ -15,7 +15,7 @@ import {
 } from "@lexical/utils";
 import { $patchStyleText } from "@lexical/selection";
 import { copyAsMarkdown } from "./exportMarkdown";
-import { INSERT_HORIZONTAL_RULE_COMMAND } from "./HorizontalRulePlugin";
+import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
 
 const toolbarStyles = css`
   display: flex;
@@ -187,6 +187,7 @@ const ToolbarPlugin = () => {
   return (
     <div className="format-toolbar-actions" css={toolbarStyles}>
       <button
+        type="button"
         onClick={handleFormatBold}
         className={isBold ? "active" : ""}
         aria-label="Format Bold"
@@ -195,6 +196,7 @@ const ToolbarPlugin = () => {
         <b>B</b>
       </button>
       <button
+        type="button"
         onClick={handleFormatItalic}
         className={isItalic ? "active" : ""}
         aria-label="Format Italic"
@@ -203,6 +205,7 @@ const ToolbarPlugin = () => {
         <i>I</i>
       </button>
       <button
+        type="button"
         onClick={toggleFontSize}
         className={isLargeFont ? "active" : ""}
         aria-label="Toggle Large Font Size"
@@ -211,14 +214,16 @@ const ToolbarPlugin = () => {
         <FormatSizeIcon sx={{ fontSize: "1em" }} />
       </button>
       <button
+        type="button"
         onClick={handleInsertHR}
         aria-label="Insert Horizontal Rule"
         title="Insert Horizontal Rule"
-        style={{ fontSize: "16px", fontWeight: "bold" }}
+        style={{ fontSize: "var(--fontSizeNormal)", fontWeight: 600 }}
       >
         ─
       </button>
       <button
+        type="button"
         onClick={handleCopyAsMarkdown}
         aria-label="Copy as Markdown"
         title="Copy as Markdown"

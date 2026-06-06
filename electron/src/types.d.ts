@@ -346,7 +346,6 @@ export interface PackageNode {
   recommended_models?: unknown[];
   basic_fields?: string[];
   is_dynamic?: boolean;
-  expose_as_tool?: boolean;
   supports_dynamic_outputs?: boolean;
   // Augmented fields when fetched from registry
   package?: string; // repo_id like "owner/project"
@@ -525,6 +524,11 @@ export enum IpcChannels {
   PACKAGE_SEARCH_NODES = "package-search-nodes",
   PACKAGE_UPDATES_AVAILABLE = "package-updates-available",
   PACKAGE_VERSION_CHECK = "package-version-check",
+  // Node pack channels (third-party TypeScript node packs)
+  NODE_PACK_LIST_INSTALLED = "node-pack-list-installed",
+  NODE_PACK_INSTALL = "node-pack-install",
+  NODE_PACK_UNINSTALL = "node-pack-uninstall",
+  NODE_PACK_GET_INSTALL_DIR = "node-pack-get-install-dir",
   // Runtime package channels
   RUNTIME_PACKAGE_STATUSES = "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL = "runtime-package-install",
@@ -672,6 +676,10 @@ export interface IpcRequest {
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: string; // url
   [IpcChannels.PACKAGE_SEARCH_NODES]: string; // query
   [IpcChannels.PACKAGE_VERSION_CHECK]: void;
+  [IpcChannels.NODE_PACK_LIST_INSTALLED]: void;
+  [IpcChannels.NODE_PACK_INSTALL]: { spec: string };
+  [IpcChannels.NODE_PACK_UNINSTALL]: { name: string };
+  [IpcChannels.NODE_PACK_GET_INSTALL_DIR]: void;
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: void;
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { packageId: string; installLocation?: string };
   [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { packageId: string };
@@ -782,6 +790,10 @@ export interface IpcResponse {
   [IpcChannels.PACKAGE_OPEN_EXTERNAL]: void;
   [IpcChannels.PACKAGE_SEARCH_NODES]: PackageNode[];
   [IpcChannels.PACKAGE_VERSION_CHECK]: PackageVersionCheckResult[];
+  [IpcChannels.NODE_PACK_LIST_INSTALLED]: NodePackInfo[];
+  [IpcChannels.NODE_PACK_INSTALL]: NodePackActionResult;
+  [IpcChannels.NODE_PACK_UNINSTALL]: NodePackActionResult;
+  [IpcChannels.NODE_PACK_GET_INSTALL_DIR]: string;
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: RuntimePackageStatus[];
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { success: boolean; message: string };
   [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { success: boolean; message: string };
@@ -924,6 +936,18 @@ export interface PackageUninstallRequest {
   repo_id: string;
 }
 
+/** A third-party node pack discovered in the Electron-managed install dir. */
+export interface NodePackInfo {
+  name: string;
+  version?: string;
+}
+
+/** Result of a node-pack install or uninstall. `message` carries error text or success info. */
+export interface NodePackActionResult {
+  success: boolean;
+  message: string;
+}
+
 export type RuntimePackageId =
   | "python"
   | "nodejs"
@@ -934,8 +958,6 @@ export type RuntimePackageId =
   | "pandoc"
   | "pdftotext"
   | "yt-dlp"
-  | "claude-agent-sdk"
-  | "codex-sdk"
   | "transformers-js"
   | "tensorflow-js";
 

@@ -31,6 +31,32 @@ import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
+import { externalEdgeId, syntheticEdgeId } from "./edge-ids.js";
+import type { CorrelationLineage } from "@nodetool-ai/protocol";
+import {
+  analyzeCorrelation,
+  type CorrelationAnalysisResult
+} from "./correlation-analysis.js";
+
+/**
+ * Hints from the actor about how to route an invocation's outputs.
+ *
+ * Under PR 2 only `invocationLineage` is consumed, and only for outputs whose
+ * static correlation kind would inherit the invocation scope. PR 3 extends
+ * this with per-output explicit lineage from `outputs.forward()` calls.
+ */
+export interface OutputRoutingHints {
+  /** Lineage carried by the consumed envelope when the node had exactly one. */
+  invocationLineage?: CorrelationLineage;
+  /** Explicit per-slot lineage overrides (e.g. from outputs.forward). */
+  perSlotLineage?: Record<string, CorrelationLineage>;
+  /**
+   * Slots being dropped for the given lineage. The runner sends
+   * `signalLineageDone` to downstream inboxes for these slots instead of
+   * delivering a value. §5.
+   */
+  lineageDoneSlots?: Set<string>;
+}
 
 // ---------------------------------------------------------------------------
 // Node-level validation hook
@@ -165,6 +191,11 @@ export class WorkflowRunner {
   /** Per-edge streaming flag (true if on a streaming path). */
   private _streamingEdges = new Map<string, boolean>();
 
+  /**
+   * Static correlation analysis result. Always populated before actors run.
+   */
+  private _correlation: CorrelationAnalysisResult | undefined;
+
   /** Control edges that have routed at least one event (used for diagnostics). */
   private _controlEdgesRouted = new Set<string>();
 
@@ -191,6 +222,16 @@ export class WorkflowRunner {
       reject: (err: Error) => void;
     }
   >();
+
+  /**
+   * Nodes whose actor has finished running. A control event sent to such a
+   * node can never be answered (the actor's run loop is gone), so
+   * sendControlEvent rejects instead of registering a promise that hangs
+   * forever. This guards against an agent dispatching a burst of control
+   * tool calls where the controlled node errors (and terminates) partway
+   * through.
+   */
+  private _completedNodes = new Set<string>();
 
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
@@ -229,7 +270,9 @@ export class WorkflowRunner {
         }
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
-        await targetInbox.put(edge.targetHandle, value);
+        await targetInbox.put(edge.targetHandle, value, {
+          source_edge_id: externalEdgeId(inputName, edge.sourceHandle)
+        });
         this._incrementEdgeCounter(edge);
       }
     }
@@ -305,6 +348,27 @@ export class WorkflowRunner {
 
       // Analyze streaming paths (Python parity: _analyze_streaming)
       this._analyzeStreaming();
+
+      // Static correlation analysis is mandatory. Issues abort the run with
+      // a graph validation error before any actor is spawned.
+      this._correlation = analyzeCorrelation({
+        nodes: this._graph.nodes,
+        edges: this._graph.edges
+      });
+      if (this._correlation.issues.length > 0) {
+        const lines = this._correlation.issues.map((i) => `  - ${i.message}`);
+        throw new GraphValidationError(
+          `Correlation analysis failed:\n${lines.join("\n")}`,
+          this._correlation.issues
+            .filter((i): i is typeof i & { nodeId: string } => !!i.nodeId)
+            .map((i) => ({
+              nodeId: i.nodeId,
+              nodeType: i.nodeType,
+              property: i.handle ?? "",
+              message: i.message
+            }))
+        );
+      }
 
       // Validate
       this._graph.validate();
@@ -409,6 +473,7 @@ export class WorkflowRunner {
     this._messages = [];
     this._cancelled = false;
     this._pendingControlResponses = new Map();
+    this._correlation = undefined;
   }
 
   /**
@@ -648,7 +713,16 @@ export class WorkflowRunner {
       for (const edge of outgoing) {
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
-          await targetInbox.put(edge.targetHandle, value);
+          await targetInbox.put(edge.targetHandle, value, {
+            source_edge_id:
+              edge.id ??
+              syntheticEdgeId(
+                edge.source,
+                edge.sourceHandle,
+                edge.target,
+                edge.targetHandle
+              )
+          });
         }
         this._incrementEdgeCounter(edge);
       }
@@ -701,15 +775,6 @@ export class WorkflowRunner {
       const inbox = this._inboxes.get(node.id)!;
       const executor = this._options.resolveExecutor(node);
 
-      // Compute sticky handles: handles fed by non-streaming edges
-      // are sticky from the start (Python parity: _analyze_streaming).
-      const stickyHandles = new Set<string>();
-      for (const edge of incoming) {
-        if (!this.edgeStreams(edge)) {
-          stickyHandles.add(edge.targetHandle);
-        }
-      }
-
       // Build control context for controller nodes (Python parity:
       // _is_controller / _build_control_context). This tells the node
       // which downstream nodes it controls and their available properties.
@@ -719,16 +784,16 @@ export class WorkflowRunner {
         node,
         inbox,
         executor,
-        sendOutputs: async (nodeId, outputs) => {
-          await this._sendMessages(nodeId, outputs);
+        sendOutputs: async (nodeId, outputs, hints) => {
+          await this._sendMessages(nodeId, outputs, hints);
         },
         emitMessage: (msg) => {
           this._emit(msg as ProcessingMessage);
         },
         executionContext: this._options.executionContext,
-        stickyHandles,
         listInputHandles: this._multiEdgeListInputs.get(node.id),
-        controlContext
+        controlContext,
+        correlation: this._correlation?.nodes.get(node.id)
       });
 
       actorPromises.push(
@@ -736,13 +801,21 @@ export class WorkflowRunner {
           // After actor completes, send EOS to all downstream inboxes
           await this._sendEOS(node.id);
 
-          // Reject any pending sendControlEvent promise if the actor errored
-          if (result.error) {
-            const pending = this._pendingControlResponses.get(node.id);
-            if (pending) {
-              this._pendingControlResponses.delete(node.id);
-              pending.reject(new Error(result.error));
-            }
+          // The actor's run loop is gone — it can no longer answer control
+          // events. Mark it so future sendControlEvent calls reject fast
+          // rather than hang, and reject any response still waiting on it
+          // (the actor finished without producing the awaited output, e.g.
+          // it errored mid-burst).
+          this._completedNodes.add(node.id);
+          const pending = this._pendingControlResponses.get(node.id);
+          if (pending) {
+            this._pendingControlResponses.delete(node.id);
+            pending.reject(
+              new Error(
+                result.error ??
+                  `Controlled node ${node.id} completed without responding`
+              )
+            );
           }
 
           // If this is an output node, collect the result
@@ -787,7 +860,8 @@ export class WorkflowRunner {
    */
   private async _sendMessages(
     sourceNodeId: string,
-    outputs: Record<string, unknown>
+    outputs: Record<string, unknown>,
+    routingHints: OutputRoutingHints = {}
   ): Promise<void> {
     if (this._cancelled) return;
 
@@ -856,12 +930,54 @@ export class WorkflowRunner {
           continue; // skip non-object values
         }
 
-        await targetInbox.put("__control__", controlEvent);
-        // Track that this edge has routed at least one event
         const ctrlEdgeId =
           edge.id ??
-          `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+          syntheticEdgeId(
+            edge.source,
+            edge.sourceHandle,
+            edge.target,
+            edge.targetHandle
+          );
+        await targetInbox.put("__control__", controlEvent, {
+          source_edge_id: ctrlEdgeId
+        });
+        // Track that this edge has routed at least one event
         this._controlEdgesRouted.add(ctrlEdgeId);
+        continue;
+      }
+
+      // Drop signal: send `lineage_done` to the downstream inbox instead of
+      // delivering a value. §5. The actor sets `lineageDoneSlots` when a
+      // stream node calls `outputs.drop()`.
+      if (routingHints.lineageDoneSlots?.has(edge.sourceHandle)) {
+        const targetInboxDrop = this._inboxes.get(edge.target);
+        if (!targetInboxDrop) continue;
+        const lineage =
+          routingHints.perSlotLineage?.[edge.sourceHandle] ?? {};
+        const edgeId =
+          edge.id ??
+          syntheticEdgeId(
+            edge.source,
+            edge.sourceHandle,
+            edge.target,
+            edge.targetHandle
+          );
+        // Use the downstream input handle's static scope so the projection
+        // keys match the actor's bucket key on that handle.
+        const downstreamScope =
+          this._correlation?.nodes
+            .get(edge.target)
+            ?.inputs.get(edge.targetHandle)?.scope ?? [];
+        targetInboxDrop.signalLineageDone(
+          edge.targetHandle,
+          {
+            type: "lineage_done",
+            source_edge_id: edgeId,
+            output: edge.sourceHandle,
+            lineage
+          },
+          downstreamScope
+        );
         continue;
       }
 
@@ -889,7 +1005,21 @@ export class WorkflowRunner {
         target: edge.target,
         targetHandle: edge.targetHandle
       });
-      await targetInbox.put(edge.targetHandle, value);
+      const edgeId =
+        edge.id ??
+        syntheticEdgeId(
+          edge.source,
+          edge.sourceHandle,
+          edge.target,
+          edge.targetHandle
+        );
+      const lineage =
+        routingHints.perSlotLineage?.[edge.sourceHandle] ??
+        routingHints.invocationLineage;
+      await targetInbox.put(edge.targetHandle, value, {
+        source_edge_id: edgeId,
+        correlation_lineage: lineage
+      });
       this._incrementEdgeCounter(edge);
     }
 
@@ -956,6 +1086,31 @@ export class WorkflowRunner {
       const edgeId =
         edge.id ??
         `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+
+      // §6 — at source EOS, synthesize `lineage_scope_closed` for every
+      // possible child root the edge could have produced. Downstream
+      // aggregators rely on receiving a close even when zero child tokens
+      // were minted.
+      if (this._correlation && targetInbox) {
+        const nodeAnalysis = this._correlation.nodes.get(nodeId);
+        const outputAnalysis = nodeAnalysis?.outputs.get(edge.sourceHandle);
+        if (outputAnalysis) {
+          for (const root of outputAnalysis.possibleChildRoots) {
+            targetInbox.signalLineageScopeClosed(
+              edge.targetHandle,
+              {
+                type: "lineage_scope_closed",
+                source_edge_id: edgeId,
+                output: edge.sourceHandle,
+                parent_lineage: {},
+                closed_root: root
+              },
+              []
+            );
+          }
+        }
+      }
+
       this._emit({
         type: "edge_update",
         workflow_id: this.jobId,
@@ -1048,6 +1203,14 @@ export class WorkflowRunner {
     const inbox = this._inboxes.get(targetNodeId);
     if (!inbox) {
       throw new Error(`Target node not found or no inbox: ${targetNodeId}`);
+    }
+
+    // The target's actor has already finished — nothing will ever read its
+    // inbox again, so a registered response would hang forever. Reject now.
+    if (this._completedNodes.has(targetNodeId)) {
+      throw new Error(
+        `Target node already completed and cannot handle control events: ${targetNodeId}`
+      );
     }
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {

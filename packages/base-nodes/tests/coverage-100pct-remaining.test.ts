@@ -33,7 +33,7 @@ import {
   JoinWorkspacePathsNode,
   SaveImageFileNode,
   SaveVideoFileNode
-} from "../src/nodes/workspace.js";
+} from "@nodetool-ai/automation-nodes";
 
 /**
  * Helper: assign props to a node AND patch serialize() so that
@@ -575,7 +575,7 @@ import {
   ExtractorNode,
   ClassifierNode,
   AgentNode
-} from "../src/nodes/agents.js";
+} from "@nodetool-ai/llm-nodes";
 
 describe("agents nodes", () => {
   describe("SummarizerNode", () => {
@@ -948,7 +948,7 @@ import {
   AutomaticSpeechRecognitionNode,
   LoadTextAssetsNode,
   LoadTextFolderNode
-} from "../src/nodes/text-extra.js";
+} from "@nodetool-ai/text-nodes";
 
 describe("text-extra nodes full coverage", () => {
   it("SplitTextNode", async () => {
@@ -1673,7 +1673,7 @@ describe("LoadTextFolderNode", () => {
 // 5. DATA — remaining uncovered lines
 // ============================================================================
 
-import * as dataModule from "../src/nodes/data.js";
+import * as dataModule from "@nodetool-ai/data-nodes";
 
 describe("data.ts uncovered lines", () => {
   it("asRows returns [] for non-object, non-array input (line 17-18)", async () => {
@@ -1830,7 +1830,7 @@ import {
   SplitJSONNode,
   SplitRecursivelyNode,
   SplitMarkdownNode
-} from "../src/nodes/document.js";
+} from "@nodetool-ai/document-nodes";
 
 describe("document.ts uncovered lines", () => {
   let tmpDir: string;
@@ -2020,7 +2020,7 @@ describe("document.ts uncovered lines", () => {
 // 7. CODE — remaining uncovered lines (timeout, error, killed)
 // ============================================================================
 
-import { ExecuteBashNode, ExecutePythonNode } from "../src/nodes/code.js";
+import { ExecuteBashNode, ExecutePythonNode } from "@nodetool-ai/code-nodes";
 
 describe("code.ts uncovered lines", () => {
   it("ExecuteBashNode basic execution", async () => {

@@ -11,7 +11,7 @@
  * position updates never cause the full track/clip tree to re-render.
  */
 
-import { create } from "zustand";
+import { create, type StoreApi, type UseBoundStore } from "zustand";
 
 export interface TimelinePlaybackState {
   currentTimeMs: number;
@@ -32,8 +32,13 @@ export interface TimelinePlaybackState {
   stop: () => void;
 }
 
-export const useTimelinePlaybackStore = create<TimelinePlaybackState>(
-  (set) => ({
+export type TimelinePlaybackStoreApi = UseBoundStore<
+  StoreApi<TimelinePlaybackState>
+>;
+
+/** Create an isolated playback store for one timeline-editor instance. */
+export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi =>
+  create<TimelinePlaybackState>((set) => ({
     currentTimeMs: 0,
     isPlaying: false,
     rate: 1,
@@ -50,5 +55,7 @@ export const useTimelinePlaybackStore = create<TimelinePlaybackState>(
     play: () => set({ isPlaying: true }),
     pause: () => set({ isPlaying: false }),
     stop: () => set({ isPlaying: false, currentTimeMs: 0 })
-  })
-);
+  }));
+
+// Context-bound hook re-exported from the instance module.
+export { useTimelinePlaybackStore } from "./TimelineInstance";

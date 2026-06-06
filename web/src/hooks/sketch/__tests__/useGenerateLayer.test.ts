@@ -105,10 +105,12 @@ describe("useGenerateLayer", () => {
       job_id: null as string | null,
       run: jest.fn(async () => {
         runnerState.job_id = "job-1";
+        return "job-1";
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
-      getState: () => runnerState
+      getState: () => runnerState,
+      setState: jest.fn()
     });
 
     const onComplete = jest.fn();
@@ -161,10 +163,12 @@ describe("useGenerateLayer", () => {
       job_id: null as string | null,
       run: jest.fn(async () => {
         runnerState.job_id = "job-2";
+        return "job-2";
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
-      getState: () => runnerState
+      getState: () => runnerState,
+      setState: jest.fn()
     });
 
     const onComplete = jest.fn();
@@ -236,10 +240,12 @@ describe("useGenerateLayer", () => {
       job_id: null as string | null,
       run: jest.fn(async () => {
         runnerState.job_id = "job-3";
+        return "job-3";
       })
     };
     getWorkflowRunnerStoreMock.mockReturnValue({
-      getState: () => runnerState
+      getState: () => runnerState,
+      setState: jest.fn()
     });
 
     const onFailed = jest.fn();
@@ -263,7 +269,9 @@ describe("useGenerateLayer", () => {
     expect(
       useSketchGenerationStore.getState().layerJobs["layer-1"]?.status
     ).toBe("failed");
-    expect(useErrorStore.getState().getError("wf-1", "output-1")).toBe("boom");
+    expect(useErrorStore.getState().getError("wf-1", "job-3", "output-1")).toBe(
+      "boom"
+    );
     expect(onFailed).toHaveBeenCalledWith("boom");
     expect(result.current.isFailed).toBe(true);
     expect(result.current.errorMessage).toBe("boom");

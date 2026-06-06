@@ -1,5 +1,6 @@
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
+import globals from "globals";
 
 export default [
   eslint.configs.recommended,
@@ -13,6 +14,15 @@ export default [
       "electron/**",
       "mobile/**",
     ],
+  },
+  {
+    // Node scripts (build, dev, release, etc.) get Node globals (process,
+    // __dirname, Buffer, setTimeout, ...). Without this, ESLint flags them
+    // as no-undef even though Node provides them.
+    files: ["scripts/**/*.{js,mjs,cjs}"],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
   },
   {
     files: ["packages/*/src/**/*.{ts,tsx,js,jsx}"],

@@ -20,6 +20,7 @@ import {
 } from "../../ui_primitives";
 import ForumIcon from "@mui/icons-material/Forum";
 import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useTheme } from "@mui/material/styles";
 import ThreadList from "../thread/ThreadList";
 import { useParams, useNavigate } from "react-router-dom";
@@ -39,45 +40,79 @@ const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
 
-  // Split selectors to minimize re-renders - group by update frequency
-  // Frequently updated values (messages, status, progress)
-  const status = useGlobalChatStore((state) => state.status);
-  const progress = useGlobalChatStore((state) => state.progress);
-  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
-  const error = useGlobalChatStore((state) => state.error);
-  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
-
-  // Thread management (changes on thread switch)
-  const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
-  const threads = useGlobalChatStore((state) => state.threads);
-  const threadsLoaded = useGlobalChatStore((state) => state.threadsLoaded);
-  const messageCache = useGlobalChatStore((state) => state.messageCache);
-  const getCurrentMessagesSync = useGlobalChatStore((state) => state.getCurrentMessagesSync);
-
-  // Actions (stable references)
-  const sendMessage = useGlobalChatStore((state) => state.sendMessage);
-  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
-  const switchThread = useGlobalChatStore((state) => state.switchThread);
-  const fetchThread = useGlobalChatStore((state) => state.fetchThread);
-  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
-  const deleteThread = useGlobalChatStore((state) => state.deleteThread);
-  const connect = useGlobalChatStore((state) => state.connect);
-  const disconnect = useGlobalChatStore((state) => state.disconnect);
-
-  // Agent mode and settings (change less frequently)
-  const agentMode = useGlobalChatStore((state) => state.agentMode);
-  const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
-  const agentPlanner = useGlobalChatStore((state) => state.agentPlanner);
-  const setAgentPlanner = useGlobalChatStore(
-    (state) => state.setAgentPlanner
+  const {
+    status,
+    progress,
+    statusMessage,
+    error,
+    currentLogUpdate
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      status: state.status,
+      progress: state.progress,
+      statusMessage: state.statusMessage,
+      error: state.error,
+      currentLogUpdate: state.currentLogUpdate
+    }))
+  );
+  const memoryEnabled = useGlobalChatStore((state) => state.memoryEnabled);
+  const setMemoryEnabled = useGlobalChatStore(
+    (state) => state.setMemoryEnabled
   );
 
-  // Task updates (change during execution)
-  const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
-  const currentTaskUpdate = useGlobalChatStore((state) => state.currentTaskUpdate);
-  const currentTaskUpdateThreadId = useGlobalChatStore((state) => state.currentTaskUpdateThreadId);
-  const lastTaskUpdatesByThread = useGlobalChatStore((state) => state.lastTaskUpdatesByThread);
-  const workflowId = useGlobalChatStore((state) => state.workflowId);
+  const {
+    currentThreadId,
+    threads,
+    threadsLoaded,
+    messageCache,
+    getCurrentMessagesSync
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      currentThreadId: state.currentThreadId,
+      threads: state.threads,
+      threadsLoaded: state.threadsLoaded,
+      messageCache: state.messageCache,
+      getCurrentMessagesSync: state.getCurrentMessagesSync
+    }))
+  );
+
+  const {
+    sendMessage,
+    createNewThread,
+    switchThread,
+    fetchThread,
+    stopGeneration,
+    deleteThread,
+    connect,
+    disconnect
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      sendMessage: state.sendMessage,
+      createNewThread: state.createNewThread,
+      switchThread: state.switchThread,
+      fetchThread: state.fetchThread,
+      stopGeneration: state.stopGeneration,
+      deleteThread: state.deleteThread,
+      connect: state.connect,
+      disconnect: state.disconnect
+    }))
+  );
+
+  const {
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    currentTaskUpdateThreadId,
+    lastTaskUpdatesByThread,
+    workflowId
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      currentPlanningUpdate: state.currentPlanningUpdate,
+      currentTaskUpdate: state.currentTaskUpdate,
+      currentTaskUpdateThreadId: state.currentTaskUpdateThreadId,
+      lastTaskUpdatesByThread: state.lastTaskUpdatesByThread,
+      workflowId: state.workflowId
+    }))
+  );
 
   // Get connection state from WebSocket manager directly
   const [_connectionState, setConnectionState] = useState(
@@ -113,21 +148,13 @@ const GlobalChat: React.FC = () => {
     currentRunningToolCallId: runningToolCallId,
     currentToolMessage: runningToolMessage,
     selectedModel,
-    setSelectedModel,
-    selectedTools,
-    setSelectedTools,
-    selectedCollections,
-    setSelectedCollections
+    setSelectedModel
   } = useGlobalChatStore(
     useShallow((state) => ({
       currentRunningToolCallId: state.currentRunningToolCallId,
       currentToolMessage: state.currentToolMessage,
       selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel,
-      selectedTools: state.selectedTools,
-      setSelectedTools: state.setSelectedTools,
-      selectedCollections: state.selectedCollections,
-      setSelectedCollections: state.setSelectedCollections
+      setSelectedModel: state.setSelectedModel
     }))
   );
 
@@ -148,8 +175,9 @@ const GlobalChat: React.FC = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  // Side panel states (for desktop spacing)
-  const leftPanel = usePanelStore((s) => s.panel);
+  const leftPanelVisible = usePanelStore((s) => s.panel.isVisible);
+  const leftPanelSize = usePanelStore((s) => s.panel.panelSize);
+  const leftPanelMinWidth = usePanelStore((s) => s.panel.minWidth);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -337,16 +365,12 @@ const GlobalChat: React.FC = () => {
         role: "user",
         provider: selectedModel?.provider,
         model: selectedModel?.id,
-        content: [{ type: "text", text: suggestion }],
-        tools: selectedTools.length > 0 ? selectedTools : undefined,
-        collections:
-          selectedCollections.length > 0 ? selectedCollections : undefined,
-        agent_mode: agentMode
+        content: [{ type: "text", text: suggestion }]
       }).catch((err) => {
         console.error("Failed to send suggestion:", err);
       });
     },
-    [sendMessage, selectedModel, selectedTools, selectedCollections, agentMode]
+    [sendMessage, selectedModel]
   );
 
   const welcomePlaceholder = useMemo(
@@ -429,7 +453,7 @@ const GlobalChat: React.FC = () => {
         justify="center"
         sx={{ height: "100vh" }}
       >
-        <Text>Loading chat...</Text>
+        <Text>Loading chat…</Text>
       </FlexRow>
     );
   }
@@ -464,9 +488,9 @@ const GlobalChat: React.FC = () => {
         // Add horizontal padding on desktop to avoid side panes
         paddingLeft: isMobile
           ? 0
-          : leftPanel.isVisible
-            ? `${leftPanel.panelSize}px`
-            : `${leftPanel.minWidth}px`,
+          : leftPanelVisible
+            ? `${leftPanelSize}px`
+            : `${leftPanelMinWidth}px`,
         paddingRight: 0,
         overflow: "hidden",
         position: "relative",
@@ -475,6 +499,23 @@ const GlobalChat: React.FC = () => {
         // Mobile styles handled via separate CSS file
       }}
     >
+      {/* Back to the editor workspace */}
+      <EditorButton
+        className="back-to-editor"
+        variant="text"
+        onClick={() => navigate("/workspace")}
+        startIcon={<ArrowBackIcon sx={{ fontSize: "var(--fontSizeBig)" }} />}
+        sx={{
+          position: "absolute",
+          top: 28,
+          right: 16,
+          zIndex: 200,
+          whiteSpace: "nowrap",
+          fontSize: "var(--fontSizeNormal)"
+        }}
+      >
+        Back to editor
+      </EditorButton>
       {/* Main Chat Area */}
       <FlexColumn
         sx={{ height: "100%", maxHeight: "100%" }}
@@ -520,7 +561,6 @@ const GlobalChat: React.FC = () => {
           sx={{
             position: "relative",
             height: "100%",
-            marginTop: isMobile ? "48px" : "50px", // Offset for AppHeader
             minHeight: 0,
             flex: 1,
             overflow: "hidden",
@@ -561,7 +601,7 @@ const GlobalChat: React.FC = () => {
                   "&:hover": {
                     backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.98)`
                   },
-                  "& svg": { fontSize: "1.25rem" }
+                  "& svg": { fontSize: "var(--fontSizeBig)" }
                 }}
               >
                 <ForumIcon />
@@ -629,22 +669,18 @@ const GlobalChat: React.FC = () => {
               runningToolCallId={runningToolCallId}
               runningToolMessage={runningToolMessage}
               model={selectedModel}
-              selectedTools={selectedTools}
-              onToolsChange={setSelectedTools}
-              selectedCollections={selectedCollections}
-              onCollectionsChange={setSelectedCollections}
               onModelChange={setSelectedModel}
               onStop={stopGeneration}
               onNewChat={handleNewChat}
-              agentMode={agentMode}
-              onAgentModeToggle={setAgentMode}
-              agentPlanner={agentPlanner}
-              onAgentPlannerChange={setAgentPlanner}
+              memoryEnabled={memoryEnabled}
+              onMemoryToggle={setMemoryEnabled}
               currentPlanningUpdate={currentPlanningUpdate}
               currentTaskUpdate={taskUpdateForDisplay}
               currentLogUpdate={currentLogUpdate}
               workflowId={workflowId}
               noMessagesPlaceholder={welcomePlaceholder}
+              useExternalComposer
+              showConversationHeader
             />
           </FlexColumn>
         </FlexRow>

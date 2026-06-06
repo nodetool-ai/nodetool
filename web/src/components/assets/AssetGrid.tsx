@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
-import { Box } from "@mui/material";
-import { Text, Tooltip, Divider } from "../ui_primitives";
+import { Text, Tooltip, Divider, Box } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -27,6 +26,7 @@ import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useShallow } from "zustand/react/shallow";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import StorageAnalytics from "./StorageAnalytics";
@@ -121,19 +121,31 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isMobile = false
 }) => {
   const { error, folderFilesFiltered } = useAssets();
-  // Separate selectors prevent unnecessary re-renders when only one value changes
-  // Setters are pulled out of selectors since they never change reference
-  const setOpenAsset = useAssetGridStore((state) => state.setOpenAsset);
-  const setSelectedAssetIds = useAssetGridStore((state) => state.setSelectedAssetIds);
-  const setRenameDialogOpen = useAssetGridStore((state) => state.setRenameDialogOpen);
-
-  const openAsset = useAssetGridStore((state) => state.openAsset);
-  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
-  const selectedFolderId = useAssetGridStore((state) => state.selectedFolderId);
-  const currentAudioAsset = useAssetGridStore((state) => state.currentAudioAsset);
-  const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
-  const currentFolder = useAssetGridStore((state) => state.currentFolder);
-  const foldersVisible = useAssetGridStore((state) => state.foldersVisible);
+  const {
+    setOpenAsset,
+    setSelectedAssetIds,
+    setRenameDialogOpen,
+    openAsset,
+    selectedAssetIds,
+    selectedFolderId,
+    currentAudioAsset,
+    currentFolderId,
+    currentFolder,
+    foldersVisible
+  } = useAssetGridStore(
+    useShallow((state) => ({
+      setOpenAsset: state.setOpenAsset,
+      setSelectedAssetIds: state.setSelectedAssetIds,
+      setRenameDialogOpen: state.setRenameDialogOpen,
+      openAsset: state.openAsset,
+      selectedAssetIds: state.selectedAssetIds,
+      selectedFolderId: state.selectedFolderId,
+      currentAudioAsset: state.currentAudioAsset,
+      currentFolderId: state.currentFolderId,
+      currentFolder: state.currentFolder,
+      foldersVisible: state.foldersVisible
+    }))
+  );
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();

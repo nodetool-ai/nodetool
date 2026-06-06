@@ -3,9 +3,17 @@
  * file I/O is abstracted behind {@link StorageAdapter}. Local FS, S3, and
  * Supabase backends all expose the same tool surface.
  *
- * `path` parameters are storage keys (POSIX-style relative paths). For the
- * local FS backend they map to files under the workspace root; for cloud
- * backends they map to object keys with a workspace prefix.
+ * Tool shape mirrors Claude Code:
+ *   - `file_path` is the canonical arg name (workspace-relative storage key
+ *     here, not an absolute filesystem path — the workspace adapter handles
+ *     resolution against the configured root).
+ *   - Read returns numbered text (`cat -n` format) so the model can refer to
+ *     line numbers when editing.
+ *   - Write refuses to overwrite a file that wasn't read first in this
+ *     session — protects against blind clobbers.
+ *   - Successful results are plain strings, not `{success: true, ...}` envelopes.
+ *     Errors return `Error: <message>` strings so the model parses them
+ *     consistently with every other tool failure.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -15,6 +23,33 @@ import { Tool } from "./base-tool.js";
 const MAX_READ_CHARS = 100_000;
 const MAX_TOKENS = 25_000;
 const TOKEN_MODEL = "gpt-4" as const;
+const DEFAULT_READ_LIMIT = 2000;
+
+/** Context variable holding the set of file paths read in this session. */
+const READ_TRACKER_KEY = "__nt_read_files";
+
+function readSet(context: ProcessingContext): Set<string> {
+  let set = context.get<Set<string>>(READ_TRACKER_KEY);
+  if (!set) {
+    set = new Set<string>();
+    context.set(READ_TRACKER_KEY, set);
+  }
+  return set;
+}
+
+function formatNumberedLines(
+  content: string,
+  startLine: number
+): string {
+  const lines = content.split("\n");
+  // Drop a single trailing empty line introduced by the split when content
+  // ends with "\n" — matches `cat -n` behavior.
+  if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+  const width = String(startLine + lines.length - 1).length;
+  return lines
+    .map((line, i) => `${String(startLine + i).padStart(width, " ")}\t${line}`)
+    .join("\n");
+}
 
 async function countTokens(text: string): Promise<number> {
   const { encodingForModel } = await import("js-tiktoken");
@@ -73,271 +108,202 @@ function isInvalidStorageKeyError(err: unknown): boolean {
   return msg.toLowerCase().includes("invalid storage key");
 }
 
-const NO_WORKSPACE_ERROR = {
-  success: false,
-  error:
-    "No workspace storage is configured for this context. File-tool calls " +
-    "are only supported in environments where the runtime wires a " +
-    "workspace adapter (websocket server, CLI). DSL/test contexts must set " +
-    "`workspaceStorage` explicitly."
-} as const;
+const NO_WORKSPACE_ERROR =
+  "Error: No workspace storage is configured for this context. File tools " +
+  "require an environment that wires a workspace adapter (websocket server, " +
+  "CLI). DSL/test contexts must set `workspaceStorage` explicitly.";
 
 export class ReadFileTool extends Tool {
   readonly name = "read_file";
   readonly description =
-    "Read the contents of a text file in the agent workspace. Routed " +
-    "through the workspace storage adapter so this works against local FS " +
-    "and cloud (S3/Supabase) backends identically. Counts tokens and " +
-    "supports reading specific line ranges. Cannot read binary files.";
+    "Reads a text file from the agent workspace. Returns the file contents " +
+    "with line numbers in `cat -n` format. By default reads up to 2000 " +
+    "lines from the start. Use `offset` and `limit` to read a specific " +
+    "window. Cannot read binary files. Paths are workspace-relative storage " +
+    "keys; the workspace adapter handles backend resolution (local FS, S3, " +
+    "Supabase).";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
-      path: {
+      file_path: {
         type: "string" as const,
         description:
-          "Storage key of the file to read (POSIX-style relative path)."
+          "Workspace-relative path to the file (POSIX-style)."
       },
-      start_line: {
+      offset: {
         type: "number" as const,
-        description: "Start line (1-indexed, optional)"
+        description:
+          "1-indexed line number to start reading from. Defaults to 1."
       },
-      end_line: {
+      limit: {
         type: "number" as const,
-        description: "End line (1-indexed, inclusive, optional)"
+        description:
+          "Number of lines to read. Defaults to 2000."
       }
     },
-    required: ["path"]
+    required: ["file_path"]
   };
 
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    const rawPath = params["path"];
-    if (typeof rawPath !== "string") {
-      return { error: "path must be a string" };
+    const filePath = params["file_path"];
+    if (typeof filePath !== "string") {
+      return "Error: file_path must be a string";
     }
     const storage = getStorage(context);
     if (!storage) return NO_WORKSPACE_ERROR;
 
     let uri: string;
     try {
-      uri = storage.uriForKey(rawPath);
+      uri = storage.uriForKey(filePath);
     } catch (e) {
-      return {
-        success: false,
-        error: `Path '${rawPath}' is outside the workspace: ${e instanceof Error ? e.message : String(e)}`
-      };
+      const msg = e instanceof Error ? e.message : String(e);
+      return `Error: Path '${filePath}' is outside the workspace: ${msg}`;
     }
     const bytes = await storage.retrieve(uri);
     if (!bytes) {
-      return {
-        success: false,
-        error: `Path ${rawPath} does not exist`
-      };
+      return `Error: ${filePath} does not exist`;
     }
 
     if (isBinaryBytes(bytes)) {
-      return {
-        success: false,
-        is_binary: true,
-        path: rawPath,
-        error: `The file ${rawPath} contains binary data that cannot be processed`
-      };
+      return `Error: ${filePath} contains binary data and cannot be read as text`;
     }
 
     const raw = new TextDecoder("utf-8").decode(bytes);
+    const allLines = raw.split("\n");
+    const totalLines = allLines.length;
 
-    const startLine = params["start_line"];
-    const endLine = params["end_line"];
-    let content: string;
-    let lineInfo: Record<string, number>;
+    const rawOffset = params["offset"];
+    const rawLimit = params["limit"];
+    const offset =
+      typeof rawOffset === "number" && rawOffset >= 1
+        ? Math.floor(rawOffset)
+        : 1;
+    const limit =
+      typeof rawLimit === "number" && rawLimit >= 1
+        ? Math.floor(rawLimit)
+        : DEFAULT_READ_LIMIT;
 
-    if (typeof startLine === "number" || typeof endLine === "number") {
-      const lines = raw.split("\n");
-      const totalLines = lines.length;
-      const startIdx = Math.max(
-        0,
-        (typeof startLine === "number" ? startLine : 1) - 1
-      );
-      const endIdx = Math.min(
-        totalLines,
-        typeof endLine === "number" ? endLine : totalLines
-      );
-
-      if (startIdx >= totalLines || startIdx > endIdx) {
-        return {
-          success: false,
-          is_directory: false,
-          path: rawPath,
-          error: `Invalid line range: start_line=${startLine}, end_line=${endLine}, total lines=${totalLines}`,
-          suggested_ranges: [
-            `1-${Math.min(500, totalLines)}`,
-            `${Math.max(1, totalLines - 500)}-${totalLines}`
-          ]
-        };
-      }
-
-      content = lines.slice(startIdx, endIdx).join("\n");
-      lineInfo = {
-        start_line: typeof startLine === "number" ? startLine : 1,
-        end_line: endIdx,
-        total_lines: totalLines
-      };
-    } else {
-      content =
-        raw.length > MAX_READ_CHARS ? raw.slice(0, MAX_READ_CHARS) : raw;
-      lineInfo = { total_lines: (raw.match(/\n/g) || []).length + 1 };
+    if (offset > totalLines) {
+      return `Error: offset ${offset} is beyond end of file (${totalLines} lines)`;
     }
+
+    const startIdx = offset - 1;
+    const endIdx = Math.min(totalLines, startIdx + limit);
+    const slice = allLines.slice(startIdx, endIdx).join("\n");
+    const truncated = slice.length > MAX_READ_CHARS;
+    const content = truncated ? slice.slice(0, MAX_READ_CHARS) : slice;
 
     const tokenCount = await countTokens(content);
-    const tokenInfo = { count: tokenCount, model: TOKEN_MODEL };
-
     if (tokenCount > MAX_TOKENS) {
-      const totalLines = lineInfo.total_lines ?? 0;
-      const approxLinesPerToken = totalLines / Math.max(1, tokenCount);
-      const suggestedLineCount = Math.floor(
-        approxLinesPerToken * MAX_TOKENS * 0.9
+      return (
+        `Error: requested window (${endIdx - startIdx} lines) is ` +
+        `${tokenCount} tokens, over the ${MAX_TOKENS}-token limit. ` +
+        `Read a smaller range using offset/limit.`
       );
-
-      let suggestedRanges: string[];
-      if (typeof startLine === "number") {
-        const suggestedEnd = Math.min(
-          startLine + suggestedLineCount - 1,
-          totalLines
-        );
-        suggestedRanges = [`${startLine}-${suggestedEnd}`];
-      } else {
-        const chunkSize = Math.min(suggestedLineCount, 500);
-        suggestedRanges = [];
-        for (
-          let i = 1;
-          i <= totalLines && suggestedRanges.length < 3;
-          i += chunkSize
-        ) {
-          suggestedRanges.push(
-            `${i}-${Math.min(i + chunkSize - 1, totalLines)}`
-          );
-        }
-      }
-
-      return {
-        success: false,
-        is_directory: false,
-        path: rawPath,
-        error: `Token count (${tokenCount}) exceeds maximum (${MAX_TOKENS}). Please read only a portion of the file.`,
-        token_info: tokenInfo,
-        line_info: lineInfo,
-        suggested_ranges: suggestedRanges
-      };
     }
 
-    return {
-      success: true,
-      is_directory: false,
-      path: rawPath,
-      content,
-      truncated: raw.length > MAX_READ_CHARS,
-      is_binary: false,
-      line_info: lineInfo,
-      token_info: tokenInfo
-    };
+    readSet(context).add(filePath);
+    const numbered = formatNumberedLines(content, offset);
+    if (truncated) {
+      return (
+        numbered +
+        `\n\n[content truncated at ${MAX_READ_CHARS} characters; use offset/limit to read further]`
+      );
+    }
+    if (endIdx < totalLines) {
+      return (
+        numbered +
+        `\n\n[showing lines ${offset}-${endIdx} of ${totalLines}; use offset=${endIdx + 1} to continue]`
+      );
+    }
+    return numbered;
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const path = params["path"];
-    const msg = `Reading content from ${path}...`;
-    return msg.length > 80 ? "Reading content from a path..." : msg;
+    const path = params["file_path"];
+    const msg = `Reading ${path}`;
+    return msg.length > 80 ? "Reading a file" : msg;
   }
 }
 
 export class WriteFileTool extends Tool {
   readonly name = "write_file";
   readonly description =
-    "Write content to a file in the agent workspace, creating it if it " +
-    "doesn't exist. Routed through the workspace storage adapter (local FS " +
-    "or cloud).";
+    "Writes a file in the agent workspace. Overwrites the file if it " +
+    "exists. If the file already exists, you MUST call `read_file` on it " +
+    "first in this session so you know what you're about to replace. New " +
+    "files don't require a prior read. Paths are workspace-relative storage " +
+    "keys.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
-      path: {
+      file_path: {
         type: "string" as const,
-        description: "Storage key of the file to write."
+        description: "Workspace-relative path to the file to write."
       },
       content: {
         type: "string" as const,
-        description: "Content to write to the file"
-      },
-      append: {
-        type: "boolean" as const,
-        description: "Whether to append to the file instead of overwriting",
-        default: false
+        description: "Full content to write to the file."
       }
     },
-    required: ["path", "content"]
+    required: ["file_path", "content"]
   };
 
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    const rawPath = params["path"];
+    const filePath = params["file_path"];
     const content = params["content"];
-    const appendMode = params["append"] === true;
 
-    if (typeof rawPath !== "string") {
-      return { error: "path must be a string" };
+    if (typeof filePath !== "string") {
+      return "Error: file_path must be a string";
     }
     if (typeof content !== "string") {
-      return { error: "content must be a string" };
+      return "Error: content must be a string";
     }
     const storage = getStorage(context);
     if (!storage) return NO_WORKSPACE_ERROR;
 
     let uri: string;
     try {
-      uri = storage.uriForKey(rawPath);
+      uri = storage.uriForKey(filePath);
     } catch (e) {
-      return {
-        success: false,
-        error: `Path '${rawPath}' is outside the workspace: ${e instanceof Error ? e.message : String(e)}`
-      };
+      const msg = e instanceof Error ? e.message : String(e);
+      return `Error: Path '${filePath}' is outside the workspace: ${msg}`;
     }
-    let created = true;
-    let payload = content;
-    if (appendMode) {
-      const existing = await storage.retrieve(uri);
-      if (existing) {
-        created = false;
-        payload = new TextDecoder("utf-8").decode(existing) + content;
-      }
-    } else {
-      created = !(await storage.exists(uri));
+
+    const exists = await storage.exists(uri);
+    if (exists && !readSet(context).has(filePath)) {
+      return (
+        `Error: ${filePath} exists but has not been read in this session. ` +
+        `Call read_file on it first so you know what you're overwriting.`
+      );
     }
 
     try {
-      const bytes = new TextEncoder().encode(payload);
-      await storage.store(rawPath, bytes, mimeForPath(rawPath));
-      return {
-        success: true,
-        path: rawPath,
-        append: appendMode,
-        created
-      };
+      const bytes = new TextEncoder().encode(content);
+      await storage.store(filePath, bytes, mimeForPath(filePath));
+      // After a successful write, treat the file as "read" — the model knows
+      // its current contents (it just wrote them) and shouldn't have to re-read
+      // before the next overwrite.
+      readSet(context).add(filePath);
+      return exists
+        ? `Updated ${filePath}`
+        : `Created ${filePath}`;
     } catch (e) {
-      return {
-        success: false,
-        error: `Failed to write file: ${e instanceof Error ? e.message : String(e)}`
-      };
+      const msg = e instanceof Error ? e.message : String(e);
+      return `Error: Failed to write ${filePath}: ${msg}`;
     }
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const path = params["path"] ?? "";
-    const appendMode = params["append"] === true;
-    const action = appendMode ? "Appending to" : "Writing to";
-    const msg = `${action} file ${path}...`;
-    return msg.length > 160 ? `${action} a file...` : msg;
+    const path = params["file_path"] ?? "";
+    const msg = `Writing ${path}`;
+    return msg.length > 160 ? "Writing a file" : msg;
   }
 }
 
@@ -350,18 +316,21 @@ interface DirEntry {
 export class ListDirectoryTool extends Tool {
   readonly name = "list_directory";
   readonly description =
-    "List the contents (files and subdirectories) of a directory in the " +
-    "agent workspace. Routed through the workspace storage adapter.";
+    "Lists files and subdirectories in a workspace directory. Returns one " +
+    "entry per line: directories end with `/`, files show their size in " +
+    "bytes after the name. Use `path: \".\"` to list the workspace root.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
       path: {
         type: "string" as const,
-        description: "Storage key prefix of the directory to list."
+        description:
+          "Workspace-relative directory path. Use `.` for the workspace root."
       },
       recursive: {
         type: "boolean" as const,
-        description: "Whether to list contents recursively (default false)"
+        description:
+          "Walk subdirectories. Defaults to false."
       }
     },
     required: ["path"]
@@ -373,15 +342,39 @@ export class ListDirectoryTool extends Tool {
   ): Promise<unknown> {
     const rawPath = params["path"];
     if (typeof rawPath !== "string") {
-      return { error: "path must be a string" };
+      return "Error: path must be a string";
     }
     const storage = getStorage(context);
     if (!storage) return NO_WORKSPACE_ERROR;
 
     const recursive = params["recursive"] === true;
+    const entries = await this.listEntries(context, rawPath, recursive);
+    if (typeof entries === "string") return entries; // error already formatted
+
+    if (entries.length === 0) {
+      return `(empty) ${rawPath || "."}`;
+    }
+    // Render as plain text: directories first, then files; trailing slash
+    // marks dirs; size in bytes after the name.
+    const dirs = entries.filter((e) => e.isDirectory);
+    const files = entries.filter((e) => !e.isDirectory);
+    const lines = [
+      ...dirs.map((e) => `${e.name}/`),
+      ...files.map((e) => `${e.name}\t${e.size} bytes`)
+    ];
+    return lines.join("\n");
+  }
+
+  private async listEntries(
+    context: ProcessingContext,
+    rawPath: string,
+    recursive: boolean
+  ): Promise<DirEntry[] | string> {
+    const storage = getStorage(context);
+    if (!storage) return NO_WORKSPACE_ERROR;
+
     // Normalize "." and "/" to the empty prefix (workspace root). The
-    // storage layer's normalizeStorageKey rejects "." as invalid, but the
-    // semantic intent here is "list root."
+    // storage layer's normalizeStorageKey rejects "." as invalid.
     const listPrefix =
       rawPath === "." || rawPath === "/" || rawPath === "" ? "" : rawPath;
 
@@ -391,39 +384,27 @@ export class ListDirectoryTool extends Tool {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (isInvalidStorageKeyError(e)) {
-        return {
-          success: false,
-          error: `Path '${rawPath}' is outside the workspace: ${msg}`
-        };
+        return `Error: Path '${rawPath}' is outside the workspace: ${msg}`;
       }
-      return {
-        success: false,
-        error: `Failed to list directory '${rawPath}': ${msg}`
-      };
+      return `Error: Failed to list '${rawPath}': ${msg}`;
     }
     if (
       result.entries.length === 0 &&
       result.commonPrefixes.length === 0 &&
       listPrefix !== ""
     ) {
-      // Match legacy behavior: non-existent directory returns an error.
       let stillExists = false;
       try {
         stillExists = await storage.exists(storage.uriForKey(listPrefix));
       } catch (e) {
         if (isInvalidStorageKeyError(e)) {
-          return {
-            success: false,
-            error: `Path '${rawPath}' is outside the workspace`
-          };
+          return `Error: Path '${rawPath}' is outside the workspace`;
         }
-        return {
-          success: false,
-          error: `Failed to list directory '${rawPath}': ${e instanceof Error ? e.message : String(e)}`
-        };
+        const msg = e instanceof Error ? e.message : String(e);
+        return `Error: Failed to list '${rawPath}': ${msg}`;
       }
       if (!stillExists) {
-        return { error: `Failed to list directory: '${rawPath}' not found` };
+        return `Error: '${rawPath}' not found`;
       }
     }
     const entries: DirEntry[] = [];
@@ -435,12 +416,6 @@ export class ListDirectoryTool extends Tool {
           ? entry.key.slice(prefixToStrip.length)
           : entry.key
         : entry.key;
-      // Legacy parity: the FS-based ListDirectoryTool reported size 0 when
-      // stat() failed (e.g. broken symlink). Storage entries already filter
-      // unreadable items, so just emit normally — broken symlinks won't
-      // appear in entries because fs-safe rejects them; surface them as
-      // size: 0 dir-style entries is no longer possible. Tests that rely on
-      // this should treat absence as expected.
       entries.push({ name, size: entry.size, isDirectory: false });
     }
     for (const cp of result.commonPrefixes) {
@@ -450,38 +425,26 @@ export class ListDirectoryTool extends Tool {
           ? trimmed.slice(prefixToStrip.length).replace(/^\/+/, "")
           : trimmed
         : trimmed;
-      // Last path segment only — match the legacy FS readdir behavior.
       const lastSegment = name.split("/").pop() ?? name;
-      entries.push({
-        name: lastSegment,
-        size: 0,
-        isDirectory: true
-      });
+      entries.push({ name: lastSegment, size: 0, isDirectory: true });
     }
 
     if (recursive) {
       for (const cp of result.commonPrefixes) {
         const subKey = cp.replace(/\/+$/, "");
-        const subResult = (await this.process(context, {
-          path: subKey,
-          recursive: true
-        })) as { entries?: DirEntry[] };
-        if (subResult.entries) {
-          const subBase = subKey.split("/").pop() ?? subKey;
-          for (const child of subResult.entries) {
-            entries.push({
-              ...child,
-              name: `${subBase}/${child.name}`
-            });
-          }
+        const subEntries = await this.listEntries(context, subKey, true);
+        if (typeof subEntries === "string") continue; // skip errored subdirs
+        const subBase = subKey.split("/").pop() ?? subKey;
+        for (const child of subEntries) {
+          entries.push({ ...child, name: `${subBase}/${child.name}` });
         }
       }
     }
 
-    return { entries };
+    return entries;
   }
 
   userMessage(params: Record<string, unknown>): string {
-    return `Listing directory: ${String(params["path"] ?? "")}`;
+    return `Listing ${String(params["path"] ?? ".")}`;
   }
 }

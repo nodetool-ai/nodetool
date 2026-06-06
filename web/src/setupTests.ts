@@ -20,8 +20,8 @@ Object.defineProperty(globalThis, "import", {
 
 // Mock TextEncoder/TextDecoder for msgpack
 import { TextEncoder, TextDecoder } from "util";
-(global as any).TextEncoder = TextEncoder;
-(global as any).TextDecoder = TextDecoder;
+(globalThis as unknown as { TextEncoder: typeof TextEncoder }).TextEncoder = TextEncoder;
+(globalThis as unknown as { TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder;
 
 // Mock global.btoa and atob for base64 operations
 global.btoa = (str: string) => Buffer.from(str, "binary").toString("base64");

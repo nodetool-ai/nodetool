@@ -118,4 +118,103 @@ describe("Replicate factory argument building", () => {
       seed: 0
     });
   });
+
+  it("produces a single output per process() call for image-generation nodes", async () => {
+    replicateSubmit.mockResolvedValueOnce({ output: ["u1", "u2", "u3"] });
+
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/model",
+      className: "MultiImageModel",
+      moduleName: "image.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      inputFields: [],
+      outputFields: [],
+      enums: []
+    });
+    const instance = new NodeClass({});
+
+    // process() returns a single mapped output — no genProcess fan-out.
+    const result = await instance.process();
+    expect(result).toHaveProperty("output");
+    expect((result as { output: { type: string } }).output.type).toBe("image");
+    expect(NodeClass.outputCorrelation).toBeUndefined();
+    expect(
+      (NodeClass as unknown as { isStreamingOutput?: boolean })
+        .isStreamingOutput
+    ).toBeFalsy();
+  });
+
+  it("does not register num_outputs and forces num_outputs=1 in API args", async () => {
+    replicateSubmit.mockResolvedValueOnce({ output: "u1" });
+
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/model",
+      className: "MultiOutputModel",
+      moduleName: "image.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      inputFields: [
+        {
+          name: "prompt",
+          propType: "str",
+          tsType: "string",
+          default: "",
+          description: "",
+          fieldType: "input",
+          required: true
+        },
+        {
+          name: "num_outputs",
+          propType: "int",
+          tsType: "number",
+          default: 1,
+          description: "",
+          fieldType: "input",
+          required: false,
+          min: 1,
+          max: 4
+        }
+      ],
+      outputFields: [],
+      enums: []
+    });
+
+    expect(
+      NodeClass.getDeclaredProperties().find((p) => p.name === "num_outputs")
+    ).toBeUndefined();
+
+    const instance = new NodeClass({});
+    (instance as unknown as Record<string, unknown>).prompt = "cat";
+    (instance as unknown as Record<string, unknown>).num_outputs = 4;
+
+    await instance.process();
+
+    expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
+      prompt: "cat",
+      num_outputs: 1
+    });
+  });
+
+  it("does not mark text outputs as streaming iterations", () => {
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/model",
+      className: "TextModel",
+      moduleName: "text.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "str",
+      inputFields: [],
+      outputFields: [],
+      enums: []
+    });
+
+    expect(NodeClass.outputCorrelation).toBeUndefined();
+    expect(NodeClass.toDescriptor("text").is_streaming_output).toBe(false);
+  });
 });

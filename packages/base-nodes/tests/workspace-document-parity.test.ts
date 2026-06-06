@@ -7,14 +7,14 @@ import {
   ListWorkspaceFilesNode,
   ReadTextFileNode,
   WriteTextFileNode
-} from "../src/nodes/workspace.js";
+} from "@nodetool-ai/automation-nodes";
 import {
   ListDocumentsNode,
   LoadDocumentFileNode,
   SaveDocumentFileNode,
   SplitMarkdownNode,
   SplitRecursivelyNode
-} from "../src/nodes/document.js";
+} from "@nodetool-ai/document-nodes";
 
 async function collectGen<T>(iter: AsyncGenerator<T>): Promise<T[]> {
   const items: T[] = [];

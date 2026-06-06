@@ -23,6 +23,7 @@ Iterate over a list and emit each item sequentially.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | input_list | `list[any]` | The list of items to iterate over. | `[]` |
+| limit | `int` |  | `-1` |
 
 ## Outputs
 

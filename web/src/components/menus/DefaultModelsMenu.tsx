@@ -40,7 +40,7 @@ function DefaultModelsMenu() {
 
   return (
     <div>
-      <Text size="big" id="default-models" style={{ margin: 0 }}>
+      <Text size="big" id="default-models" className="settings-heading">
         Default Models
       </Text>
       <Text className="description" sx={{ mb: 2 }}>
@@ -48,17 +48,19 @@ function DefaultModelsMenu() {
         new nodes.
       </Text>
 
-      {MODEL_TYPE_CONFIG.map(({ type, label, Select }) => (
-        <DefaultModelRow
-          key={type}
-          modelType={type}
-          label={label}
-          Select={Select}
-          current={defaults[type]}
-          onSelect={setDefault}
-          onClear={clearDefault}
-        />
-      ))}
+      <div className="default-models-list">
+        {MODEL_TYPE_CONFIG.map(({ type, label, Select }) => (
+          <DefaultModelRow
+            key={type}
+            modelType={type}
+            label={label}
+            Select={Select}
+            current={defaults[type]}
+            onSelect={setDefault}
+            onClear={clearDefault}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -105,9 +107,9 @@ function DefaultModelRow({
   }, [modelType, onClear]);
 
   return (
-    <div className="settings-section" id={`default-model-${modelType}`}>
-      <Text size="big">{label}</Text>
-      <FlexRow align="center" gap={1} sx={{ mt: 1 }}>
+    <div className="default-model-row" id={`default-model-${modelType}`}>
+      <Text weight={600}>{label}</Text>
+      <FlexRow align="center" gap={1}>
         <Select onChange={handleChange} value={current?.id || ""} />
         {current && (
           <EditorButton size="small" onClick={handleClear}>
@@ -115,11 +117,6 @@ function DefaultModelRow({
           </EditorButton>
         )}
       </FlexRow>
-      {current && (
-        <Text size="small" sx={{ mt: 0.5, opacity: 0.7 }}>
-          {current.provider} / {current.name || current.id}
-        </Text>
-      )}
     </div>
   );
 }

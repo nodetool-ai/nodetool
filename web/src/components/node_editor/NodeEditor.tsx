@@ -1,11 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useState, useRef } from "react";
+import { memo, useState, useRef, useEffect } from "react";
 import {
-  Box,
-  Modal,
-  TextField
+  Modal
 } from "@mui/material";
-import { LoadingSpinner, Dialog, EditorButton } from "../ui_primitives";
+import { LoadingSpinner, Dialog, EditorButton, Box, TextInput } from "../ui_primitives";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 //css
@@ -23,6 +21,7 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import isEqual from "fast-deep-equal";
 import { useShallow } from "zustand/react/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
+import { generateCSS } from "../themes/GenerateCSS";
 import { useTemporalNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
@@ -41,6 +40,7 @@ import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowRuntimeCheck } from "../../hooks/useWorkflowRuntimeCheck";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
 
 declare global {
   interface Window {
@@ -78,6 +78,16 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const undo = useTemporalNodes((state) => state.undo);
   const redo = useTemporalNodes((state) => state.redo);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
+
+  // Auto-reveal the Inspector whenever a node becomes selected.
+  const setActiveView = useRightPanelStore((state) => state.setActiveView);
+  const setPanelVisibility = useRightPanelStore((state) => state.setVisibility);
+  useEffect(() => {
+    if (active && selectedNodeCount > 0) {
+      setActiveView("inspector");
+      setPanelVisibility(true);
+    }
+  }, [active, selectedNodeCount, setActiveView, setPanelVisibility]);
 
   // Keyboard shortcut for CommandMenu (Meta+K on Mac, Ctrl+K on Windows/Linux).
   // Global scope: must work even when an input/editor is focused.
@@ -153,13 +163,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         <Box
           ref={reactFlowWrapperRef}
           className="node-editor"
+          css={generateCSS}
           style={{
             backgroundColor: theme.vars.palette.c_editor_bg_color
           }}
         >
           {isUploading && (
             <div className="loading-overlay">
-              <LoadingSpinner variant="circular" size="medium" /> Uploading assets...
+              <LoadingSpinner variant="circular" size="medium" /> Uploading assets…
             </div>
           )}
           <ReactFlowWrapper workflowId={workflowId} active={active} />
@@ -229,7 +240,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         confirmText="Save"
         cancelText="Cancel"
       >
-        <TextField
+        <TextInput
           autoFocus
           margin="dense"
           label="Package Name"

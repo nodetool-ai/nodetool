@@ -1,6 +1,5 @@
 import React, { useCallback, useState, memo } from "react";
-import { Box } from "@mui/material";
-import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton } from "../../ui_primitives";
+import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -9,7 +8,7 @@ import { resolveFalSchemaClient } from "../../../utils/falDynamicSchema";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-export const DYNAMIC_FAL_NODE_TYPE = "fal.DynamicFal";
+export { DYNAMIC_FAL_NODE_TYPE } from "../../../constants/nodeTypes";
 
 interface FalSchemaLoaderProps {
   nodeId: string;

@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { Box } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, EditorButton } from "../../ui_primitives";
+import { Tooltip, EditorButton, FlexRow } from "../../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { CopyButton } from "../../ui_primitives";
@@ -86,14 +85,11 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
   }, [addNotification]);
 
   return (
-    <Box
+    <FlexRow
       className="actions"
+      gap={1}
+      align="center"
       sx={{
-        display: "flex",
-        gap: 1,
-        justifyContent: "flex-start",
-        alignItems: "center",
-        padding: 0,
         margin: "0 0 .25em 0"
       }}
     >
@@ -133,7 +129,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
           aria-label="Copy to clipboard"
         />
       )}
-    </Box>
+    </FlexRow>
   );
 });
 

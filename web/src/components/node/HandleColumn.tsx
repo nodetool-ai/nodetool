@@ -20,25 +20,40 @@ import type { Theme } from "@mui/material/styles";
 import { Property, Edge } from "../../stores/ApiTypes";
 import HandleOnlyField from "./HandleOnlyField";
 
+const HANDLE_ROW_HEIGHT = 18;
+
 const styles = (theme: Theme) =>
   css({
     "&.handle-column": {
       position: "absolute",
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
+      top: theme.spacing(4),
       left: 0,
       width: 0,
       pointerEvents: "none",
       zIndex: 3,
       display: "flex",
       flexDirection: "column",
-      justifyContent: "space-around",
-      gap: theme.spacing(0.25)
+      justifyContent: "flex-start",
+      gap: theme.spacing(0.5)
     },
     ".handle-only": {
       position: "relative",
-      minHeight: 0,
+      height: HANDLE_ROW_HEIGHT,
+      flex: "0 0 auto",
+      marginBottom: theme.spacing(2),
       pointerEvents: "auto"
+    },
+    ".handle-only:last-child": {
+      marginBottom: 0
+    },
+    "& .handle-only .react-flow__handle.react-flow__handle-left": {
+      top: "50%",
+      bottom: "auto",
+      transform: "translate(0, -50%)",
+      transformOrigin: "right center"
+    },
+    "& .handle-only .react-flow__handle.react-flow__handle-left:hover": {
+      transform: "translate(0, -50%) scale(1.75, 1.2)"
     }
   });
 

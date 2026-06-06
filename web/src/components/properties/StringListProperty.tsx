@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from "react";
-import { Autocomplete, Box, useTheme } from "@mui/material";
-import { Chip } from "../ui_primitives";
+import { Autocomplete, useTheme } from "@mui/material";
+import { Chip, Box } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "fast-deep-equal";
@@ -56,12 +56,12 @@ const StringListProperty = (props: PropertyProps) => {
     color: "var(--palette-grey-100)",
     border: "1px solid var(--palette-grey-600)",
     "& .MuiChip-label": {
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       padding: "0 8px"
     },
     "& .MuiChip-deleteIcon": {
       color: "var(--palette-grey-400)",
-      fontSize: "14px",
+      fontSize: "var(--fontSizeNormal)",
       "&:hover": {
         color: "var(--palette-grey-200)"
       }

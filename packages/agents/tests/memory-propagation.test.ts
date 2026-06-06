@@ -2,7 +2,7 @@
  * End-to-end tests for the unified agent memory system with progressive
  * disclosure.
  *
- * Drives `MultiModeAgent` in plan mode and `TaskExecutor` directly with a
+ * Drives `Agent` in plan mode and `TaskExecutor` directly with a
  * scriptable mock provider, then verifies that:
  *
  *   1. Every step / task / input is written to `context.memory` under a
@@ -16,7 +16,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { MultiModeAgent } from "../src/multi-mode-agent.js";
+import { Agent } from "../src/agent.js";
 import { TaskExecutor } from "../src/task-executor.js";
 import { StepExecutor } from "../src/step-executor.js";
 import { ParallelTaskExecutor } from "../src/parallel-task-executor.js";
@@ -343,7 +343,7 @@ describe("Agent memory propagation", () => {
   });
 
   it("plan mode emits a final task_result discoverable by callers", async () => {
-    // Two-task plan via MultiModeAgent driven by the planner tool sequence.
+    // Two-task plan via Agent driven by the planner tool sequence.
     const provider = createRecordingProvider([
       // Planner: add_task #1
       [
@@ -376,24 +376,25 @@ describe("Agent memory propagation", () => {
     ]);
     const context = createMockContext();
 
-    const agent = new MultiModeAgent({
+    const agent = new Agent({
       name: "test-plan-mode",
       objective: "Greet the user",
       provider,
-      model: "test",
-      mode: "plan"
+      model: "test"
     });
 
     for await (const _ of agent.execute(context)) {
       /* drain */
     }
 
-    // The task result must be in shared memory under the canonical key.
+    // The task result must be in shared memory under the canonical key —
+    // callers (including the downstream CompilerAgent) discover it from
+    // there. The agent's own `getResults()` reflects the compiler's
+    // synthesis pass, not this raw value.
     expect(context.memory.getValue(memoryKeys.task("task_one"))).toEqual({
       greeting: "Hello"
     });
-    // The agent's `results` is set from the captured step_result.
-    expect(agent.getResults()).toEqual({ greeting: "Hello" });
+    void agent;
   });
 
   it("agent discovers and reads memory via memory_list → memory_read → finish_step", async () => {

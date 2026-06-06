@@ -23,7 +23,7 @@ import { getToolHandler } from "../tools";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import { TransformTool } from "../tools/TransformTool";
 import { CropTool } from "../tools/CropTool";
-import { sampleColorHex } from "../tools/EyedropperTool";
+import { sampleColorHex } from "../tools/ColorPickerTool";
 import type { ToolContext, ToolPointerEvent, StrokeEndOptions } from "../tools/types";
 import { buildToolContext } from "../tools/buildToolContext";
 import { useKeyboardModifiers } from "./useKeyboardModifiers";
@@ -169,6 +169,14 @@ export interface UsePointerHandlersParams {
   // Local React state setters for transform preview. Never persisted.
   setLayerTransformPreview?: (layerId: string, transform: LayerTransform) => void;
   clearLayerTransformPreview?: (layerId?: string) => void;
+
+  /**
+   * Must match `useOverlayRenderer`'s modifier refs when both hooks are
+   * composed (see `useCanvasOrchestration`). Otherwise overlay shape
+   * preview reads stale Shift/Alt while `ToolContext` uses pointer-updated refs.
+   */
+  shiftHeldRef?: React.MutableRefObject<boolean>;
+  altHeldRef?: React.MutableRefObject<boolean>;
 }
 
 export interface UsePointerHandlersResult {
@@ -251,9 +259,12 @@ export function usePointerHandlers({
   foregroundColor = "#000000",
   onCanvasLeave,
   setLayerTransformPreview,
-  clearLayerTransformPreview
+  clearLayerTransformPreview,
+  shiftHeldRef: shiftHeldRefShared,
+  altHeldRef: altHeldRefShared
 }: UsePointerHandlersParams): UsePointerHandlersResult {
   const [spaceHeldUi, setSpaceHeldUi] = useState(false);
+  const [altHeldUi, setAltHeldUi] = useState(false);
   const [isPanningUi, setIsPanningUi] = useState(false);
 
   // ─── Core interaction state refs ────────────────────────────────────
@@ -279,7 +290,10 @@ export function usePointerHandlers({
     useKeyboardModifiers({
       isSpacePanningRef,
       isSizeDraggingRef,
-      onSpaceHeldChange: setSpaceHeldUi
+      onSpaceHeldChange: setSpaceHeldUi,
+      onAltHeldChange: setAltHeldUi,
+      shiftHeldRef: shiftHeldRefShared,
+      altHeldRef: altHeldRefShared
     });
 
   const [transformHoverCursor, setTransformHoverCursor] = useState<
@@ -298,7 +312,12 @@ export function usePointerHandlers({
       ? "grab"
       : interactionTool === "transform" && transformHoverCursor !== null
         ? transformHoverCursor
-        : cursorStyleForTool(interactionTool);
+        : altHeldUi &&
+            !spaceHeldUi &&
+            isPaintingTool(activeTool) &&
+            activeTool !== "clone_stamp"
+          ? "crosshair"
+          : cursorStyleForTool(interactionTool);
 
   // ─── Utility callbacks ───────────────────────────────────────────────
   const {

@@ -12,7 +12,6 @@ import ReactDOM from "react-dom";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   IconButton,
   Menu,
   MenuItem,
@@ -55,10 +54,13 @@ import { displayCombo } from "./shortcuts";
 import {
   Caption,
   Divider,
+  FlexColumn,
+  FlexRow,
   TabGroup,
   TabPanel,
   Text,
-  Tooltip
+  Tooltip,
+  Box
 } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
@@ -124,6 +126,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
   onExportMask
 }) => {
   const theme = useTheme();
+  const modalStyles = useMemo(() => styles(theme), [theme]);
   const editorRef = useRef<SketchEditorHandle>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [symmetryAnchorEl, setSymmetryAnchorEl] = useState<HTMLElement | null>(null);
@@ -190,19 +193,19 @@ const SketchModal: React.FC<SketchModalProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // Esc never closes the editor — it's reserved for tool / selection
+      // cancel (see `cancel-or-deselect` shortcut). We only intercept it
+      // here to dismiss modal-local overlays (shortcuts help, discard
+      // confirmation) before falling through to the global handler.
       if (e.key === "Escape") {
         if (shortcutsPaneOpen) {
           setShortcutsPaneOpen(false);
-          return;
-        }
-        if (confirmDiscard) {
+        } else if (confirmDiscard) {
           setConfirmDiscard(false);
-        } else {
-          handleRequestClose();
         }
       }
     },
-    [handleRequestClose, confirmDiscard, shortcutsPaneOpen]
+    [confirmDiscard, shortcutsPaneOpen]
   );
 
   if (!open) {
@@ -212,7 +215,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
   return ReactDOM.createPortal(
     <Box
       className="sketch-modal"
-      css={styles(theme)}
+      css={modalStyles}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
@@ -222,14 +225,12 @@ const SketchModal: React.FC<SketchModalProps> = ({
         </Text>
 
         {isPressureSketchTool(activeTool) ? (
-          <Box
+          <FlexRow
             className="sketch-modal-pen-inline"
+            align="center"
+            wrap
+            gap={0.75}
             sx={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 0.75,
               rowGap: "4px"
             }}
           >
@@ -260,18 +261,16 @@ const SketchModal: React.FC<SketchModalProps> = ({
               </IconButton>
             </Tooltip>
             {headerPenPressureOn ? (
-              <Box
+              <FlexRow
                 id="sketch-modal-pen-pressure-panel"
+                align="center"
+                wrap
                 sx={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  columnGap: 10,
+                  columnGap: 8,
                   rowGap: 4,
-                  py: 0.25,
-                  pl: 0.75,
-                  ml: 0.25,
+                  py: 0.5,
+                  pl: 1,
+                  ml: 0.5,
                   borderLeft: `1px solid ${theme.vars.palette.grey[700]}`,
                   minWidth: 0
                 }}
@@ -282,24 +281,24 @@ const SketchModal: React.FC<SketchModalProps> = ({
                   omitSensitivitySwitch
                   inlineRow
                 />
-              </Box>
+              </FlexRow>
             ) : null}
-          </Box>
+          </FlexRow>
         ) : null}
 
         {/* ── Actions (right-aligned) ── */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: "2px" }}>
+        <FlexRow align="center" sx={{ gap: "2px" }}>
           <Tooltip title={`Undo (${displayCombo("undo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
               <IconButton size="small" aria-label="Undo" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
-                <UndoIcon sx={{ fontSize: "18px" }} />
+                <UndoIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title={`Redo (${displayCombo("redo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
               <IconButton size="small" aria-label="Redo" onClick={() => editorRef.current?.redo()} disabled={!canRedo}>
-                <RedoIcon sx={{ fontSize: "18px" }} />
+                <RedoIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
               </IconButton>
             </span>
           </Tooltip>
@@ -312,7 +311,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
               aria-expanded={shortcutsPaneOpen}
               color={shortcutsPaneOpen ? "primary" : "default"}
             >
-              <KeyboardOutlinedIcon sx={{ fontSize: "18px" }} />
+              <KeyboardOutlinedIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
 
@@ -327,7 +326,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
               onClick={(e) => setSymmetryAnchorEl(e.currentTarget)}
               color={symmetryActive ? "primary" : "default"}
             >
-              <FlipIcon sx={{ fontSize: "18px" }} />
+              <FlipIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
           <Menu
@@ -367,12 +366,6 @@ const SketchModal: React.FC<SketchModalProps> = ({
             )}
           </Menu>
 
-          <Tooltip title={`Export PNG (${displayCombo("export-png")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-            <IconButton size="small" aria-label="Export PNG" onClick={() => editorRef.current?.exportPng()}>
-              <SaveAltIcon sx={{ fontSize: "18px" }} />
-            </IconButton>
-          </Tooltip>
-
           <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
 
           {confirmDiscard ? (
@@ -384,32 +377,37 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 <TrashIcon width={16} height={16} />
               </IconButton>
               <IconButton size="small" aria-label="Cancel discard" onClick={() => setConfirmDiscard(false)}>
-                <CloseIcon sx={{ fontSize: "16px" }} />
+                <CloseIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
               </IconButton>
             </>
           ) : (
-            <>
-              <Tooltip title="Discard all changes and close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton size="small" aria-label="Discard changes" onClick={() => setConfirmDiscard(true)} sx={{ color: "grey.500" }}>
-                  <TrashIcon width={16} height={16} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={`Close (${displayCombo("cancel-or-deselect")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <IconButton size="small" aria-label="Close" onClick={handleRequestClose}>
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </>
+            <Tooltip title="Discard all changes and close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+              <IconButton size="small" aria-label="Discard changes" onClick={() => setConfirmDiscard(true)} sx={{ color: "error.light" }}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           )}
-        </Box>
+
+          <Tooltip title="Export Image" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+            <IconButton size="small" aria-label="Export Image" onClick={() => editorRef.current?.exportPng()}>
+              <SaveAltIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
+            </IconButton>
+          </Tooltip>
+
+          {!confirmDiscard && (
+            <Tooltip title="Save & Close" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+              <IconButton size="small" aria-label="Save and close" onClick={handleRequestClose} sx={{ color: "success.light" }}>
+                <CheckIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </FlexRow>
       </Box>
-      <Box
+      <FlexColumn
         className="sketch-modal-body"
         sx={{
           flex: 1,
           position: "relative",
-          display: "flex",
-          flexDirection: "column",
           minHeight: 0,
           overflow: "hidden"
         }}
@@ -434,7 +432,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 backgroundColor: alpha(theme.palette.common.black, 0.45)
               }}
             />
-            <Box
+            <FlexColumn
               component="section"
               role="dialog"
               aria-modal="true"
@@ -449,8 +447,6 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 height: "80vh",
                 maxHeight: "80vh",
                 zIndex: SKETCH_Z_INDEX.popover,
-                display: "flex",
-                flexDirection: "column",
                 borderRadius: 2,
                 border: `1px solid ${theme.vars.palette.grey[700]}`,
                 backgroundColor: theme.vars.palette.grey[800],
@@ -458,12 +454,11 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 overflow: "hidden"
               }}
             >
-              <Box
+              <FlexRow
+                align="center"
+                justify="space-between"
+                gap={1}
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 1,
                   px: SKETCH_SPACING.md,
                   py: SKETCH_SPACING.sm,
                   borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
@@ -479,17 +474,15 @@ const SketchModal: React.FC<SketchModalProps> = ({
                     onClick={() => setShortcutsPaneOpen(false)}
                     aria-label="Close keyboard shortcuts"
                   >
-                    <CloseIcon sx={{ fontSize: "18px" }} />
+                    <CloseIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
                   </IconButton>
                 </Tooltip>
-              </Box>
-              <Box
+              </FlexRow>
+              <FlexColumn
                 sx={{
                   flex: 1,
                   minHeight: 0,
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column"
+                  overflow: "hidden"
                 }}
               >
                 <TabGroup
@@ -511,13 +504,11 @@ const SketchModal: React.FC<SketchModalProps> = ({
                     borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
                   }}
                 />
-                <Box
+                <FlexColumn
                   sx={{
                     flex: 1,
                     minHeight: 0,
                     overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
                     px: SKETCH_SPACING.md,
                     pb: SKETCH_SPACING.md,
                     pt: SKETCH_SPACING.sm
@@ -558,12 +549,12 @@ const SketchModal: React.FC<SketchModalProps> = ({
                       imageEditorShortcuts
                     />
                   </TabPanel>
-                </Box>
-              </Box>
-            </Box>
+                </FlexColumn>
+              </FlexColumn>
+            </FlexColumn>
           </>
         ) : null}
-      </Box>
+      </FlexColumn>
     </Box>,
     window.document.body
   );

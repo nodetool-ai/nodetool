@@ -1,6 +1,5 @@
 import React, { useCallback, useState, memo } from "react";
-import { Box } from "@mui/material";
-import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton } from "../../ui_primitives";
+import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -9,8 +8,7 @@ import { resolveReplicateSchemaClient } from "../../../utils/replicateDynamicSch
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-export const DYNAMIC_REPLICATE_NODE_TYPE =
-  "replicate.DynamicReplicate";
+export { DYNAMIC_REPLICATE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 interface ReplicateSchemaLoaderProps {
   nodeId: string;
@@ -137,6 +135,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
     }, [
       modelInfo,
       data.model_id,
+      data.dynamic_inputs,
       loading,
       error,
       autoLoadAttempted,

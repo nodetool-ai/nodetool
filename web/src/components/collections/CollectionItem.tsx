@@ -1,11 +1,10 @@
 import React, { memo, useCallback, useMemo } from "react";
 import {
   ListItem,
-  LinearProgress,
-  Box
+  LinearProgress
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, Text, Caption, Tooltip, LoadingSpinner, EditorButton } from "../ui_primitives";
+import { DeleteButton, FlexRow, Text, Caption, Tooltip, LoadingSpinner, EditorButton } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -168,7 +167,7 @@ const CollectionItem = ({
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    py: 2.5,
+    py: 3,
     px: 3,
     position: "relative"
   }), [dragOverCollection, collection.name]);
@@ -203,14 +202,13 @@ const CollectionItem = ({
       }
     >
       {dragOverCollection === collection.name && (
-        <Box
+        <FlexRow
           className="drop-zone-overlay"
+          align="center"
+          justify="center"
           sx={{
             position: "absolute",
             inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             backgroundColor: "transparent",
             pointerEvents: "none",
             zIndex: 1
@@ -218,7 +216,7 @@ const CollectionItem = ({
         >
           <Text
             size="normal"
-            weight={700}
+            weight={600}
             sx={{
               color: "primary.main",
               display: "flex",
@@ -228,10 +226,10 @@ const CollectionItem = ({
               textShadow: "0 0 10px rgb(var(--mui-palette-primary-mainChannel) / 0.2)"
             }}
           >
-            <UploadFileIcon sx={{ fontSize: "1.5rem" }} />
+            <UploadFileIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             Drop files to upload
           </Text>
-        </Box>
+        </FlexRow>
       )}
       <div style={containerStyle}>
         <Tooltip title={`Collection: ${collection.name}`}>
@@ -240,7 +238,7 @@ const CollectionItem = ({
             truncate
             sx={{
               color: "text.primary",
-              fontSize: "1.1rem",
+              fontSize: "var(--fontSizeBig)",
               flexShrink: 0,
               maxWidth: "150px"
             }}

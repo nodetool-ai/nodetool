@@ -15,6 +15,7 @@ export const assets = pgTable(
     size: real("size"),
     duration: real("duration"),
     metadata: jsonText<Record<string, unknown>>()("metadata"),
+    sketch_document_id: text("sketch_document_id"),
     workflow_id: text("workflow_id"),
     node_id: text("node_id"),
     job_id: text("job_id"),

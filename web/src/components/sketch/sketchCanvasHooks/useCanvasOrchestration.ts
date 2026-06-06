@@ -44,6 +44,7 @@ import type {
   UsePointerHandlersResult
 } from "../sketchCanvasHooks";
 import { selectionAntCanvasMarginCssPx } from "./useOverlayRenderer";
+import { useSketchStore } from "../state/useSketchStore";
 
 interface SelectionAntsRuntime {
   setSelectionAntsOverlayCanvas?: (canvas: HTMLCanvasElement | null) => void;
@@ -56,6 +57,7 @@ interface SelectionAntsRuntime {
     dpr: number;
   }) => void;
   setSelectionOriginOverride?: (pos: { x: number; y: number } | null) => void;
+  setSelectionPreviewMode?: (mode: "ants" | "mask") => void;
   onNeedsRedraw?: () => void;
 }
 
@@ -68,6 +70,8 @@ export interface UseCanvasOrchestrationParams {
   /** Document merged with live toolSettings — consumed by overlay + pointer. */
   docWithTools: SketchDocument;
   selection?: Selection | null;
+  /** "ants" (default) or "mask" — red rubylith overlay over unselected pixels. */
+  selectionPreviewMode?: "ants" | "mask";
   isolatedLayerId?: string | null;
   foregroundColor?: string;
 
@@ -158,6 +162,7 @@ export function useCanvasOrchestration(
     symmetryMode,
     symmetryRays,
     selection,
+    selectionPreviewMode = "ants",
     isolatedLayerId,
     foregroundColor,
     transformPreviewByLayerIdRef,
@@ -194,7 +199,9 @@ export function useCanvasOrchestration(
 
   // ─── Modifier refs (shared between overlay + pointer) ─────────────
   // Created at this level to break the circular dependency: overlay needs
-  // shift/alt refs from pointer, pointer needs overlay draw callbacks.
+  // shift/alt refs while pointer handlers own keyboard listeners. Both must
+  // read/write the **same** refs so shape preview (`drawOverlayShape`) sees
+  // `event.shiftKey` updates from `ShapeTool.onMove` instead of always false.
   const shiftHeldRef = useRef(false);
   const altHeldRef = useRef(false);
   const selectStartRef = useRef<Point | null>(null);
@@ -226,6 +233,17 @@ export function useCanvasOrchestration(
   requestPreviewRedrawRef.current = requestRedraw;
   invalidateLayerRef.current = invalidateLayer;
 
+  // Publish the runtime to the store so non-React code (selection-refine
+  // GPU ops in selectionSlice) can dispatch onto it. Unregister on unmount
+  // so a stale runtime reference can't outlive the editor mount.
+  const setRuntimeInstance = useSketchStore((s) => s.setRuntimeInstance);
+  useEffect(() => {
+    setRuntimeInstance(runtime);
+    return () => {
+      setRuntimeInstance(null);
+    };
+  }, [runtime, setRuntimeInstance]);
+
   // Sync external selection state to the runtime. During interactive commits
   // the runtime is authoritative; the store only keeps the CPU snapshot that
   // gets published at commit/history boundaries and rehydrates undo/redo here.
@@ -233,6 +251,16 @@ export function useCanvasOrchestration(
     runtime.setSelection(selection ?? null);
     requestRedraw();
   }, [requestRedraw, runtime, selection]);
+
+  // Push the selection preview mode (ants / mask) to the runtime so pass 4
+  // picks the right pipeline. Static after each switch, so just trigger a
+  // single redraw — the runtime stops the redraw loop on its own when in
+  // mask mode (no animation).
+  useEffect(() => {
+    const rt = runtime as SelectionAntsRuntime;
+    rt.setSelectionPreviewMode?.(selectionPreviewMode);
+    requestRedraw();
+  }, [requestRedraw, runtime, selectionPreviewMode]);
 
   // Schedule the next WebGPU frame while selection ants are drawn (pass 5 loads the blit).
   useEffect(() => {
@@ -355,7 +383,9 @@ export function useCanvasOrchestration(
     foregroundColor,
     onCanvasLeave,
     setLayerTransformPreview,
-    clearLayerTransformPreview
+    clearLayerTransformPreview,
+    shiftHeldRef,
+    altHeldRef
   });
 
   return {

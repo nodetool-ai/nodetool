@@ -47,7 +47,7 @@ export interface ChainNode {
   /** User-configured property values keyed by property name. */
   properties: Record<string, unknown>;
   /**
-   * Dynamic properties for nodes with is_dynamic=true (e.g. Code).
+   * Dynamic properties for nodes with supports_dynamic_inputs=true (e.g. Code).
    * These are user-created inputs not defined in static metadata.
    * Keys are input names, values are stored/passed to the node at runtime.
    */
@@ -148,7 +148,6 @@ export function chainToGraph(
       position: { x: 0, y: index * 200 },
       width: 280,
     },
-    sync_mode: "zip_all",
   }));
 
   const edges: Edge[] = connections.map((c, i) => ({

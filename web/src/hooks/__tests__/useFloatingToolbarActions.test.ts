@@ -5,9 +5,7 @@ import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "../useAutosave";
-import { executeComfyWorkflow } from "../../utils/comfyExecutor";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 
@@ -17,13 +15,14 @@ jest.mock("react-router-dom", () => ({
 }));
 
 jest.mock("../../stores/WorkflowRunner");
+jest.mock("../useRunningJobs", () => ({
+  useRunningJobs: jest.fn(() => ({ data: [] }))
+}));
 jest.mock("../../contexts/NodeContext");
 jest.mock("../../contexts/WorkflowManagerContext");
 jest.mock("../../stores/SettingsStore");
 jest.mock("../useAutosave");
-jest.mock("../../utils/comfyExecutor");
 jest.mock("../../stores/NodeMenuStore");
-jest.mock("../../stores/RightPanelStore");
 jest.mock("../../stores/BottomPanelStore");
 jest.mock("../../stores/MiniMapStore");
 
@@ -43,14 +42,8 @@ const mockUseSettingsStore = useSettingsStore as jest.MockedFunction<
 const mockTriggerAutosave = triggerAutosaveForWorkflow as jest.MockedFunction<
   typeof triggerAutosaveForWorkflow
 >;
-const mockExecuteComfyWorkflow = executeComfyWorkflow as jest.MockedFunction<
-  typeof executeComfyWorkflow
->;
 const mockUseNodeMenuStore = useNodeMenuStore as jest.MockedFunction<
   typeof useNodeMenuStore
->;
-const mockUseRightPanelStore = useRightPanelStore as jest.MockedFunction<
-  typeof useRightPanelStore
 >;
 const mockUseBottomPanelStore = useBottomPanelStore as jest.MockedFunction<
   typeof useBottomPanelStore
@@ -78,7 +71,6 @@ describe("useFloatingToolbarActions", () => {
   const mockCloseNodeMenu = jest.fn();
   const mockToggleBottomPanel = jest.fn();
   const mockToggleMiniMap = jest.fn();
-  const mockHandleViewChange = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -89,7 +81,9 @@ describe("useFloatingToolbarActions", () => {
       cancel: mockCancel,
       pause: mockPause,
       resume: mockResume,
-      state: "idle"
+      state: "idle",
+      queuePosition: null,
+      pendingRuns: []
     };
     mockUseWebsocketRunner.mockImplementation((selector) => {
       // If selector is a function, call it with mock state
@@ -119,8 +113,7 @@ describe("useFloatingToolbarActions", () => {
       getState: jest.fn(() => ({
         nodes: [],
         edges: [],
-        getWorkflow: jest.fn(() => mockWorkflow),
-        isComfyWorkflow: jest.fn(() => false)
+        getWorkflow: jest.fn(() => mockWorkflow)
       }))
     } as any);
 
@@ -176,8 +169,6 @@ describe("useFloatingToolbarActions", () => {
       return mockNodeMenuState as any;
     });
 
-    mockUseRightPanelStore.mockReturnValue(mockHandleViewChange as any);
-
     mockUseBottomPanelStore.mockReturnValue(mockToggleBottomPanel as any);
 
     // Mock useMiniMapStore calls with different selectors
@@ -194,10 +185,6 @@ describe("useFloatingToolbarActions", () => {
     });
 
     mockTriggerAutosave.mockResolvedValue(undefined);
-    mockExecuteComfyWorkflow.mockResolvedValue({
-      success: true,
-      promptId: "test-prompt-id"
-    });
 
     jest.useFakeTimers();
   });
@@ -217,14 +204,16 @@ describe("useFloatingToolbarActions", () => {
       expect(mockRun).toHaveBeenCalled();
     });
 
-    it("does not run workflow when already running", async () => {
+    it("still calls run while running so the store can queue it", async () => {
       mockUseWebsocketRunner.mockImplementation((selector) => {
         const mockRunnerState = {
           run: mockRun,
           cancel: mockCancel,
           pause: mockPause,
           resume: mockResume,
-          state: "running"
+          state: "running",
+          queuePosition: null,
+          pendingRuns: []
         };
         if (typeof selector === 'function') {
           return selector(mockRunnerState as any);
@@ -238,7 +227,8 @@ describe("useFloatingToolbarActions", () => {
         await result.current.handleRun();
       });
 
-      expect(mockRun).not.toHaveBeenCalled();
+      // Clicking Run while busy now reaches the store, which enqueues it.
+      expect(mockRun).toHaveBeenCalled();
     });
 
     it("triggers autosave before running if enabled", async () => {
@@ -499,7 +489,9 @@ describe("useFloatingToolbarActions", () => {
           cancel: mockCancel,
           pause: mockPause,
           resume: mockResume,
-          state: "running"
+          state: "running",
+          queuePosition: null,
+          pendingRuns: []
         };
         if (typeof selector === 'function') {
           return selector(mockRunnerState as any);
@@ -521,7 +513,9 @@ describe("useFloatingToolbarActions", () => {
           cancel: mockCancel,
           pause: mockPause,
           resume: mockResume,
-          state: "paused"
+          state: "paused",
+          queuePosition: null,
+          pendingRuns: []
         };
         if (typeof selector === 'function') {
           return selector(mockRunnerState as any);

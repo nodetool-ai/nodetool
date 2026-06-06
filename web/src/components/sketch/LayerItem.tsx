@@ -2,13 +2,13 @@
  * LayerItem
  *
  * Renders an individual layer row within the layers panel, including
- * thumbnail, name (with inline rename), visibility, isolate, and
+ * thumbnail, isolate, name (with inline rename), visibility (right), and
  * exposed input/output indicators. Supports drag-and-drop reordering.
  * Group layers show an expand/collapse toggle and a folder icon.
  */
 
 import React, { memo } from "react";
-import { Box, IconButton } from "@mui/material";
+import { IconButton } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -21,13 +21,26 @@ import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import type { Layer } from "./types";
 import { summarizeLayerImageReference } from "./types";
 import { getLayerDataImageUrl } from "./serialization";
-import { SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
-import { StatusIndicator, Text, Tooltip } from "../ui_primitives";
+import { resolveAssetUri } from "../node/output/hooks";
+import {
+  SKETCH_FONT,
+  SKETCH_SPACING,
+  SKETCH_TOOLTIP_DELAY_MS
+} from "./sketchStyles";
+import {
+  FlexColumn,
+  FlexRow,
+  StatusIndicator,
+  Text,
+  Tooltip,
+  Box
+} from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
 
-/** Base left padding for the layer row (px). */
-const BASE_PADDING = 8;
+/** Base left padding for the layer row (px). 0 so the thumbnail sits flush
+ *  with the row's left edge — the row background should not stick out past it. */
+const BASE_PADDING = 0;
 /** Additional left padding per nesting depth level (px). */
 const DEPTH_INDENT = 20;
 
@@ -58,11 +71,11 @@ export interface LayerItemProps {
   onLayerRowPointerDown: (e: React.PointerEvent, layerId: string) => void;
   onLayerRowClick: (e: React.MouseEvent, layerId: string) => void;
   onVisibilityButtonMouseDown: (
-    e: React.MouseEvent<HTMLButtonElement>,
+    e: React.PointerEvent<HTMLButtonElement>,
     layerId: string
   ) => void;
   onVisibilityButtonMouseEnter: (
-    e: React.MouseEvent<HTMLButtonElement>,
+    e: React.PointerEvent<HTMLButtonElement>,
     layerId: string
   ) => void;
   onVisibilityButtonClick: (
@@ -73,7 +86,11 @@ export interface LayerItemProps {
   onToggleExposedInput: (layerId: string) => void;
   onToggleExposedOutput: (layerId: string) => void;
   onContextMenu: (e: React.MouseEvent, layerId: string) => void;
-  onThumbnailCtrlClick?: (layerId: string) => void;
+  /**
+   * Ctrl/Cmd + click on the thumbnail loads the layer alpha as a selection.
+   * Adding Shift unions it with the current selection instead of replacing.
+   */
+  onThumbnailCtrlClick?: (layerId: string, mode: "replace" | "add") => void;
   onStartRename: (layerId: string, currentName: string) => void;
   onFinishRename: (layerId: string) => void;
   onEditNameChange: (value: string) => void;
@@ -124,13 +141,26 @@ const LayerItem: React.FC<LayerItemProps> = ({
   bindingStatus
 }) => {
   const isGroup = layer.type === "group";
-  const thumbnailSrc = isGroup ? null : getLayerDataImageUrl(layer.data);
+  // Resolve the image ref to a fetchable URL — a raw `asset://` scheme is
+  // blocked by the page CSP when set directly as an <img src>.
+  const layerImage = isGroup ? null : getLayerDataImageUrl(layer.data);
+  const thumbnailSrc = layerImage ? resolveAssetUri(layerImage) : null;
+
+  // Mockup-style sub-label under the name: blend mode + opacity (or MASK).
+  const opacityPct = Math.round(layer.opacity * 100);
+  const blendLabel = (layer.blendMode ?? "normal")
+    .replace(/[-_]/g, " ")
+    .toUpperCase();
+  const layerSublabel = isMask
+    ? `MASK · ${opacityPct}%`
+    : `${blendLabel} · ${opacityPct}%`;
   const rowClass =
     `layer-item${isPaintTarget ? " active" : ""}` +
     `${isMask ? " mask-layer" : ""}` +
     `${isIsolated ? " isolated" : ""}` +
     `${isGroup ? " group-layer" : ""}` +
     `${layer.alphaLock ? " alpha-lock" : ""}` +
+    `${layer.visible === false ? " layer-hidden" : ""}` +
     `${isRowSelected && !isPaintTarget ? " selected-secondary" : ""}`;
 
   const dropIndicatorSx = (() => {
@@ -188,9 +218,9 @@ const LayerItem: React.FC<LayerItemProps> = ({
             sx={GROUP_LAYER_ICON_BUTTON_SX}
           >
             {layer.collapsed ? (
-              <ChevronRightIcon sx={{ fontSize: "0.875rem" }} />
+              <ChevronRightIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             ) : (
-              <ExpandMoreIcon sx={{ fontSize: "0.875rem" }} />
+              <ExpandMoreIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
             )}
           </IconButton>
         ) : null}
@@ -200,7 +230,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           layer.collapsed ? (
             <FolderOutlinedIcon
               sx={{
-                fontSize: "0.95rem",
+                fontSize: "var(--fontSizeNormal)",
                 color: isPaintTarget ? "primary.contrastText" : "grey.500",
                 flexShrink: 0,
                 mr: "2px",
@@ -210,7 +240,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           ) : (
             <FolderOpenOutlinedIcon
               sx={{
-                fontSize: "0.95rem",
+                fontSize: "var(--fontSizeNormal)",
                 color: isPaintTarget ? "primary.contrastText" : "grey.400",
                 flexShrink: 0,
                 mr: "2px",
@@ -227,64 +257,16 @@ const LayerItem: React.FC<LayerItemProps> = ({
             onClick={(e) => {
               if (e.ctrlKey || e.metaKey) {
                 e.stopPropagation();
-                onThumbnailCtrlClick?.(layer.id);
+                onThumbnailCtrlClick?.(
+                  layer.id,
+                  e.shiftKey ? "add" : "replace"
+                );
               }
             }}
           />
         ) : (
           <Box className="layer-thumbnail-empty" />
         )}
-
-        {/* Disable the ripple here so press-and-drag visibility toggling stays stable. */}
-        <IconButton
-          size="small"
-          disableRipple
-          aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
-          onPointerDown={(e) =>
-            onVisibilityButtonMouseDown(
-              e as unknown as React.MouseEvent<HTMLButtonElement>,
-              layer.id
-            )
-          }
-          onPointerEnter={(e) =>
-            onVisibilityButtonMouseEnter(
-              e as unknown as React.MouseEvent<HTMLButtonElement>,
-              layer.id
-            )
-          }
-          onPointerUp={(e) => {
-            if (
-              typeof e.currentTarget.hasPointerCapture === "function" &&
-              e.currentTarget.hasPointerCapture(e.pointerId)
-            ) {
-              e.currentTarget.releasePointerCapture(e.pointerId);
-            }
-          }}
-          onPointerCancel={(e) => {
-            if (
-              typeof e.currentTarget.hasPointerCapture === "function" &&
-              e.currentTarget.hasPointerCapture(e.pointerId)
-            ) {
-              e.currentTarget.releasePointerCapture(e.pointerId);
-            }
-          }}
-          onClick={(e) => onVisibilityButtonClick(e, layer.id)}
-          sx={
-            isGroup
-              ? GROUP_LAYER_ICON_BUTTON_SX
-              : { padding: SKETCH_SPACING.sm, flexShrink: 0 }
-          }
-        >
-          {layer.visible ? (
-            <VisibilityIcon
-              sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem" }}
-            />
-          ) : (
-            <VisibilityOffIcon
-              sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem", opacity: 0.65 }}
-            />
-          )}
-        </IconButton>
 
         {!isGroup && (
           <Tooltip
@@ -304,16 +286,20 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 flexShrink: 0,
                 color: isIsolated ? "warning.main" : "grey.500",
                 opacity: isIsolated ? 1 : 0.75,
-                "&:hover": { opacity: 1, color: isIsolated ? "warning.main" : "grey.300" }
+                "&:hover": {
+                  opacity: 1,
+                  color: isIsolated ? "warning.main" : "grey.300"
+                }
               }}
             >
-              <CenterFocusStrongIcon sx={{ fontSize: "1.125rem" }} />
+              <CenterFocusStrongIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
             </IconButton>
           </Tooltip>
         )}
 
         {editingLayerId === layer.id ? (
           <input
+            aria-label="Layer name"
             value={editName}
             onChange={(e) => onEditNameChange(e.target.value)}
             onBlur={() => onFinishRename(layer.id)}
@@ -337,75 +323,94 @@ const LayerItem: React.FC<LayerItemProps> = ({
             }}
           />
         ) : (
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              gap: SKETCH_SPACING.sm,
-              minWidth: 0
-            }}
-          >
-            {layer.imageReference ? (
-              <Tooltip
-                title={summarizeLayerImageReference(layer.imageReference)}
-                placement="left"
-                enterDelay={SKETCH_TOOLTIP_DELAY_MS}
-                enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
-              >
-                <LinkIcon
-                  sx={{
-                    fontSize: "12px",
-                    color: "info.light",
-                    flexShrink: 0,
-                    opacity: 0.85
-                  }}
-                />
-              </Tooltip>
-            ) : null}
-            {layer.alphaLock ? (
-              <Tooltip title="Lock transparency" placement="top" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
-                <LockIcon
-                  sx={{
-                    fontSize: "1rem",
-                    color: "info.main",
-                    flexShrink: 0,
-                    opacity: 0.95
-                  }}
-                />
-              </Tooltip>
-            ) : null}
-            <Text
-              className="layer-name"
-              onDoubleClick={() => onStartRename(layer.id, layer.name)}
-              sx={{ minWidth: 0 }}
+          <FlexColumn sx={{ flex: 1, minWidth: 0, gap: 0 }}>
+            <FlexRow
+              align="center"
+              sx={{
+                gap: SKETCH_SPACING.sm,
+                minWidth: 0
+              }}
             >
-              {layer.name}
-            </Text>
-            {bindingStatus && (
-              <StatusIndicator
-                className="layer-status-badge"
-                status={LAYER_STATUS_MAP[bindingStatus].status}
-                pulse={LAYER_STATUS_MAP[bindingStatus].pulse}
-                tooltip={LAYER_STATUS_MAP[bindingStatus].label}
-                size="small"
-              />
+              {layer.imageReference ? (
+                <Tooltip
+                  title={summarizeLayerImageReference(layer.imageReference)}
+                  placement="left"
+                  enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+                  enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+                >
+                  <LinkIcon
+                    sx={{
+                      fontSize: "var(--fontSizeSmall)",
+                      color: "info.light",
+                      flexShrink: 0,
+                      opacity: 0.85
+                    }}
+                  />
+                </Tooltip>
+              ) : null}
+              {layer.alphaLock ? (
+                <Tooltip
+                  title="Lock transparency"
+                  placement="top"
+                  enterDelay={SKETCH_TOOLTIP_DELAY_MS}
+                  enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}
+                >
+                  <LockIcon
+                    sx={{
+                      fontSize: "var(--fontSizeNormal)",
+                      color: "info.main",
+                      flexShrink: 0,
+                      opacity: 0.95
+                    }}
+                  />
+                </Tooltip>
+              ) : null}
+              <Text
+                className="layer-name"
+                onDoubleClick={() => onStartRename(layer.id, layer.name)}
+                sx={{ minWidth: 0 }}
+              >
+                {layer.name}
+              </Text>
+              {bindingStatus && (
+                <StatusIndicator
+                  className="layer-status-badge"
+                  status={LAYER_STATUS_MAP[bindingStatus].status}
+                  pulse={LAYER_STATUS_MAP[bindingStatus].pulse}
+                  tooltip={LAYER_STATUS_MAP[bindingStatus].label}
+                  size="small"
+                />
+              )}
+            </FlexRow>
+            {!isGroup && (
+              <Text
+                className="layer-sublabel"
+                sx={{
+                  fontSize: SKETCH_FONT.xs,
+                  color: "text.secondary",
+                  lineHeight: 1.1,
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {layerSublabel}
+              </Text>
             )}
-          </Box>
+          </FlexColumn>
         )}
 
         {/* I/O indicator dots: visible only when input or output is hidden */}
         {!isGroup && (
-          <Box
+          <FlexColumn
+            align="center"
+            justify="center"
             sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
               gap: "3px",
               flexShrink: 0,
               width: 10,
-              ml: "4px"
+              ml: "2px"
             }}
           >
             <Tooltip
@@ -420,7 +425,10 @@ const LayerItem: React.FC<LayerItemProps> = ({
                   width: 5,
                   height: 5,
                   borderRadius: "50%",
-                  bgcolor: layer.exposedAsInput === false ? "info.main" : "transparent",
+                  bgcolor:
+                    layer.exposedAsInput === false
+                      ? "info.main"
+                      : "transparent",
                   flexShrink: 0
                 }}
               />
@@ -437,13 +445,62 @@ const LayerItem: React.FC<LayerItemProps> = ({
                   width: 5,
                   height: 5,
                   borderRadius: "50%",
-                  bgcolor: layer.exposedAsOutput === false ? "success.main" : "transparent",
+                  bgcolor:
+                    layer.exposedAsOutput === false
+                      ? "success.main"
+                      : "transparent",
                   flexShrink: 0
                 }}
               />
             </Tooltip>
-          </Box>
+          </FlexColumn>
         )}
+
+        {/* Discrete cell mirrors thumbnail column — see `.layer-visibility-cell` in panel styles */}
+        <Box className="layer-visibility-cell">
+          <IconButton
+            size="small"
+            disableRipple
+            aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
+            onPointerDown={(e) =>
+              onVisibilityButtonMouseDown(e, layer.id)
+            }
+            onPointerEnter={(e) =>
+              onVisibilityButtonMouseEnter(e, layer.id)
+            }
+            onPointerUp={(e) => {
+              if (
+                typeof e.currentTarget.hasPointerCapture === "function" &&
+                e.currentTarget.hasPointerCapture(e.pointerId)
+              ) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
+            }}
+            onPointerCancel={(e) => {
+              if (
+                typeof e.currentTarget.hasPointerCapture === "function" &&
+                e.currentTarget.hasPointerCapture(e.pointerId)
+              ) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
+            }}
+            onClick={(e) => onVisibilityButtonClick(e, layer.id)}
+            sx={isGroup ? GROUP_LAYER_ICON_BUTTON_SX : { flexShrink: 0 }}
+          >
+            {layer.visible ? (
+              <VisibilityIcon
+                sx={{ fontSize: isGroup ? "0.9rem" : "1.125rem" }}
+              />
+            ) : (
+              <VisibilityOffIcon
+                sx={{
+                  fontSize: isGroup ? "0.9rem" : "1.125rem",
+                  opacity: 0.65
+                }}
+              />
+            )}
+          </IconButton>
+        </Box>
       </Box>
     </Box>
   );

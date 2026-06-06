@@ -11,7 +11,7 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { shallow } from "zustand/shallow";
+import { useShallow } from "zustand/react/shallow";
 
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
@@ -85,7 +85,7 @@ const controlBarStyles = (theme: Theme) =>
     paddingRight: theme.spacing(1),
     display: "flex",
     alignItems: "center",
-    gap: theme.spacing(0.25)
+    gap: theme.spacing(0.5)
   });
 
 const timecodeStyles = (theme: Theme) =>
@@ -114,7 +114,7 @@ const dividerStyles = (theme: Theme) =>
     height: 18,
     backgroundColor: theme.vars.palette.divider,
     flexShrink: 0,
-    margin: `0 ${theme.spacing(0.25)}`
+    margin: `0 ${theme.spacing(0.5)}`
   });
 
 export interface PreviewAreaProps {
@@ -139,7 +139,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       setCurrentTimeMs,
       seekNonce
     } = useTimelinePlaybackStore(
-      (s) => ({
+      useShallow((s) => ({
         currentTimeMs: s.currentTimeMs,
         isPlaying: s.isPlaying,
         play: s.play,
@@ -147,17 +147,15 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         stop: s.stop,
         setCurrentTimeMs: s.setCurrentTimeMs,
         seekNonce: s.seekNonce
-      }),
-      shallow
+      }))
     );
 
     const { clips, tracks, durationMs } = useTimelineStore(
-      (s) => ({
+      useShallow((s) => ({
         clips: s.clips,
         tracks: s.tracks,
         durationMs: s.durationMs
-      }),
-      shallow
+      }))
     );
 
     const getAsset = useAssetStore((s) => s.get);

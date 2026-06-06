@@ -19,7 +19,10 @@ export { createHistorySlice, resolveLayerData } from "./historySlice";
 export type { HistorySlice } from "./historySlice";
 
 export { createSelectionSlice } from "./selectionSlice";
-export type { SelectionSlice } from "./selectionSlice";
+export type { SelectionSlice, SelectionPreviewMode } from "./selectionSlice";
 
 export { createUiSlice } from "./uiSlice";
 export type { UiSlice } from "./uiSlice";
+
+export { createRuntimeSlice } from "./runtimeSlice";
+export type { RuntimeSlice } from "./runtimeSlice";

@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
-import { Text, Caption } from "../ui_primitives";
+import { Text, Caption, Box } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import {
@@ -35,21 +34,21 @@ const styles = (theme: Theme) =>
       gap: "4px"
     },
     ".preview-label": {
-      fontSize: "10px",
+      fontSize: "var(--fontSizeSmaller)",
       textTransform: "uppercase",
       opacity: 0.8
     },
     ".preview-text": {
-      fontSize: "14px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500
     },
     ".preview-text-large": {
-      fontSize: "18px",
-      fontWeight: 700
+      fontSize: "var(--fontSizeBig)",
+      fontWeight: 600
     },
     ".contrast-ratio": {
-      fontSize: "24px",
-      fontWeight: 700,
+      fontSize: "var(--fontSizeBig)",
+      fontWeight: 600,
       textAlign: "center",
       margin: "8px 0"
     },
@@ -67,14 +66,14 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".compliance-label": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       flex: 1
     },
     ".color-blindness-section": {
       marginTop: "8px"
     },
     ".color-blindness-title": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       color: theme.vars.palette.grey[400],
       marginBottom: "8px",
@@ -94,7 +93,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".cb-label": {
-      fontSize: "9px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       textAlign: "center"
     },

@@ -5,16 +5,12 @@
  * Each class extends BaseNode and calls Kie.ai API via shared helpers.
  */
 
-import { classifyFields } from "@nodetool-ai/node-sdk";
+import { classifyFields, classNameToTitle } from "@nodetool-ai/node-sdk";
 import type { NodeConfig, ModuleConfig, FieldDef } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function toTitle(className: string): string {
-  return className.replace(/([A-Z])/g, " $1").trim();
-}
 
 function castFn(type: string): string {
   switch (type) {
@@ -46,7 +42,14 @@ function fieldToVarName(name: string): string {
 }
 
 function isAssetType(type: string): boolean {
-  return ["image", "audio", "video", "list[image]", "list[video]", "list[audio]"].includes(type);
+  return [
+    "image",
+    "audio",
+    "video",
+    "list[image]",
+    "list[video]",
+    "list[audio]"
+  ].includes(type);
 }
 
 // ---------------------------------------------------------------------------
@@ -120,7 +123,7 @@ export class KieNodeGenerator {
   ): string {
     const fullClassName = `${node.className}Node`;
     const nodeType = `kie.${moduleName}.${node.className}`;
-    const title = node.title || toTitle(node.className);
+    const title = node.title || classNameToTitle(node.className);
     const description = node.description.replace(/`/g, "'");
     const pollInterval =
       node.pollInterval ?? moduleConfig.defaultPollInterval ?? 2000;
@@ -136,7 +139,6 @@ export class KieNodeGenerator {
       `  static readonly metadataOutputTypes = { output: ${JSON.stringify(node.outputType)} };`
     );
     lines.push(`  static readonly requiredSettings = ["KIE_API_KEY"];`);
-    lines.push(`  static readonly exposeAsTool = true;`);
 
     // Compute and emit field classification
     const { inlineFields, inputFields } = computeFieldClassification(node.fields);

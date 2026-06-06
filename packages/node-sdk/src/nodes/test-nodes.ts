@@ -18,7 +18,7 @@ export class Add extends BaseNode {
   static readonly nodeType = "nodetool.test.Add";
   static readonly title = "Add";
   static readonly description = "Adds two numbers";
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   @prop({ type: "int", default: 0 })
   declare a: any;
 
@@ -67,7 +67,7 @@ export class StringConcat extends BaseNode {
   static readonly nodeType = "nodetool.test.StringConcat";
   static readonly title = "String Concat";
   static readonly description = "Concatenates strings";
-  static readonly isDynamic = true;
+  static readonly supportsDynamicInputs = true;
   @prop({ type: "str", default: "" })
   declare a: any;
 
@@ -158,7 +158,6 @@ export class StreamingCounter extends BaseNode {
   static readonly nodeType = "nodetool.test.StreamingCounter";
   static readonly title = "Streaming Counter";
   static readonly description = "Streams integers from 0 to count-1";
-  static readonly isStreamingOutput = true;
   @prop({ type: "int", default: 3 })
   declare count: any;
 
@@ -213,7 +212,6 @@ export class SimpleController extends BaseNode {
   static readonly nodeType = "nodetool.test.SimpleController";
   static readonly title = "Simple Controller";
   static readonly description = "Emits one RunEvent via __control__ handle";
-  static readonly isStreamingOutput = true;
   @prop({ type: "float", default: 0.8 })
   declare threshold: any;
 
@@ -244,7 +242,6 @@ export class MultiTriggerController extends BaseNode {
   static readonly nodeType = "nodetool.test.MultiTriggerController";
   static readonly title = "Multi Trigger Controller";
   static readonly description = "Emits N RunEvents via __control__ handle";
-  static readonly isStreamingOutput = true;
   @prop({ type: "int", default: 3 })
   declare count: any;
 
@@ -279,7 +276,6 @@ export class StopEventController extends BaseNode {
   static readonly nodeType = "nodetool.test.StopEventController";
   static readonly title = "Stop Event Controller";
   static readonly description = "Emits a StopEvent via __control__ handle";
-  static readonly isStreamingOutput = true;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -319,7 +315,6 @@ export class FullStreamingNode extends BaseNode {
   static readonly title = "Full Streaming Node";
   static readonly description = "Both streaming input and output";
   static readonly isStreamingInput = true;
-  static readonly isStreamingOutput = true;
   @prop({ type: "int", default: 2 })
   declare count: any;
 

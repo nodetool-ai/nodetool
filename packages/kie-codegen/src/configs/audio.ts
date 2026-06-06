@@ -36,143 +36,6 @@ export const audioConfig: ModuleConfig = {
       ]
     },
     {
-      "className": "ElevenlabsSoundEffectV2",
-      "modelId": "elevenlabs/sound-effect-v2",
-      "title": "elevenlabs/sound-effect-v2",
-      "description": "elevenlabs/sound-effect-v2 via Kie.ai.\n\n    kie, audio, ai\n\n    Content generation using elevenlabs/sound-effect-v2",
-      "outputType": "audio",
-      "fields": [
-        {
-          "name": "text",
-          "type": "str",
-          "default": "",
-          "title": "Text",
-          "description": "The text describing the sound effect to generate (Max length: 5000 characters)",
-          "required": true,
-          "max": 5000
-        },
-        {
-          "name": "loop",
-          "type": "bool",
-          "default": false,
-          "title": "Loop",
-          "description": "Whether to create a sound effect that loops smoothly (Boolean value (true/false))",
-          "required": false
-        },
-        {
-          "name": "duration_seconds",
-          "type": "float",
-          "default": 0,
-          "title": "Duration Seconds",
-          "description": "Duration in seconds (0.5-22). If None, optimal duration will be determined from prompt (Min: 0.5, Max: 22, Step: 0.1) (step: 0.1)",
-          "required": false,
-          "min": 0.5,
-          "max": 22
-        },
-        {
-          "name": "prompt_influence",
-          "type": "float",
-          "default": 0.3,
-          "title": "Prompt Influence",
-          "description": "How closely to follow the prompt (0-1). Higher values mean less variation (Min: 0, Max: 1, Step: 0.01) (step: 0.01)",
-          "required": false,
-          "min": 0,
-          "max": 1
-        },
-        {
-          "name": "output_format",
-          "type": "enum",
-          "default": "mp3_44100_128",
-          "title": "Output Format",
-          "description": "Output format of the generated audio. Formatted as codec_sample_rate_bitrate",
-          "required": false,
-          "values": [
-            "mp3_22050_32",
-            "mp3_44100_32",
-            "mp3_44100_64",
-            "mp3_44100_96",
-            "mp3_44100_128",
-            "mp3_44100_192",
-            "pcm_8000",
-            "pcm_16000",
-            "pcm_22050",
-            "pcm_24000",
-            "pcm_44100",
-            "pcm_48000",
-            "ulaw_8000",
-            "alaw_8000",
-            "opus_48000_32",
-            "opus_48000_64",
-            "opus_48000_96",
-            "opus_48000_128",
-            "opus_48000_192"
-          ]
-        }
-      ],
-      "validation": [
-        {
-          "field": "text",
-          "rule": "not_empty",
-          "message": "Text is required"
-        }
-      ]
-    },
-    {
-      "className": "ElevenlabsSpeechToText",
-      "modelId": "elevenlabs/speech-to-text",
-      "title": "elevenlabs/speech-to-text",
-      "description": "elevenlabs/speech-to-text via Kie.ai.\n\n    kie, audio, ai\n\n    Content generation using elevenlabs/speech-to-text",
-      "outputType": "audio",
-      "fields": [
-        {
-          "name": "audio",
-          "type": "audio",
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          },
-          "title": "Audio",
-          "description": "URL of the audio file to transcribe (File URL after upload, not file content; Accepted types: audio/mpeg, audio/wav, audio/x-wav, audio/aac, audio/mp3, audio/ogg; Max size: 200.0MB)",
-          "required": true
-        },
-        {
-          "name": "language_code",
-          "type": "str",
-          "default": "",
-          "title": "Language Code",
-          "description": "Language code of the audio (Max length: 500 characters)",
-          "required": false,
-          "max": 500
-        },
-        {
-          "name": "tag_audio_events",
-          "type": "bool",
-          "default": false,
-          "title": "Tag Audio Events",
-          "description": "Tag audio events like laughter, applause, etc. (Boolean value (true/false))",
-          "required": false
-        },
-        {
-          "name": "diarize",
-          "type": "bool",
-          "default": false,
-          "title": "Diarize",
-          "description": "Whether to annotate who is speaking (Boolean value (true/false))",
-          "required": false
-        }
-      ],
-      "uploads": [
-        {
-          "field": "audio",
-          "kind": "audio",
-          "paramName": "audio_url"
-        }
-      ]
-    },
-    {
       "className": "ElevenlabsTextToDialogueV3",
       "modelId": "elevenlabs/text-to-dialogue-v3",
       "title": "elevenlabs/text-to-dialogue-v3",
@@ -760,8 +623,20 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Persona Id",
-          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music.",
+          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
           "required": false
+        },
+        {
+          "name": "personaModel",
+          "type": "enum",
+          "default": "",
+          "title": "Persona Model",
+          "description": "The persona model is only available for models version 5 and 5.5.",
+          "required": false,
+          "values": [
+            "style_persona",
+            "voice_persona"
+          ]
         }
       ],
       "validation": [
@@ -905,8 +780,20 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Persona Id",
-          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [](generate-persona) endpoint to create a personalized music Persona based on generated music.",
+          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
           "required": false
+        },
+        {
+          "name": "personaModel",
+          "type": "enum",
+          "default": "",
+          "title": "Persona Model",
+          "description": "The persona model is only available for models version 5 and 5.5.",
+          "required": false,
+          "values": [
+            "style_persona",
+            "voice_persona"
+          ]
         }
       ],
       "validation": [
@@ -1061,8 +948,20 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Persona Id",
-          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music.",
+          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
           "required": false
+        },
+        {
+          "name": "personaModel",
+          "type": "enum",
+          "default": "",
+          "title": "Persona Model",
+          "description": "The persona model is only available for models version 5 and 5.5.",
+          "required": false,
+          "values": [
+            "voice_persona",
+            "style_persona"
+          ]
         }
       ],
       "uploads": [
@@ -1227,8 +1126,20 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Persona Id",
-          "description": "Only available when Custom Mode (`defaultParamFlag: true`) is enabled. Persona ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music.",
+          "description": "Only available when Custom Mode (`customMode: true`) is enabled. Persona ID or Voice ID to apply to the generated music. Optional. Use this to apply a specific persona style to your music generation. To generate a persona ID, use the [Generate Persona](https://docs.kie.ai/suno-api/generate-persona) endpoint to create a personalized music Persona based on generated music. To generate a Voice ID, use the [Generate Voice](https://docs.kie.ai/suno-api/suno-voice-generate)endpoint",
           "required": false
+        },
+        {
+          "name": "personaModel",
+          "type": "enum",
+          "default": "",
+          "title": "Persona Model",
+          "description": "The persona model is only available for models version 5 and 5.5.",
+          "required": false,
+          "values": [
+            "style_persona",
+            "voice_persona"
+          ]
         }
       ],
       "uploads": [
@@ -2174,6 +2085,198 @@ export const audioConfig: ModuleConfig = {
           "field": "model",
           "rule": "not_empty",
           "message": "Model is required"
+        }
+      ]
+    },
+    {
+      "className": "SunoVoiceValidate",
+      "modelId": "suno-voice-validate",
+      "title": "Suno Voice Generate Verification Phrase API",
+      "description": "Suno Voice Generate Verification Phrase API via Kie.ai.\n\n    kie, audio, ai\n\n    Generate a validation phrase for the Suno Voice custom voice workflow.",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/voice/validate",
+      "fields": [
+        {
+          "name": "voiceUrl",
+          "type": "str",
+          "default": "",
+          "title": "Voice Url",
+          "description": "The original recording URL uploaded by the user [Required]",
+          "required": true
+        },
+        {
+          "name": "vocalStartS",
+          "type": "int",
+          "default": 0,
+          "title": "Vocal Start S",
+          "description": "Start time (in seconds) for extracting the vocal segment [Required]",
+          "required": true
+        },
+        {
+          "name": "vocalEndS",
+          "type": "int",
+          "default": 0,
+          "title": "Vocal End S",
+          "description": "End time (in seconds) for extracting the vocal segment, must be greater than vocalStartS [Required]",
+          "required": true
+        },
+        {
+          "name": "language",
+          "type": "str",
+          "default": "",
+          "title": "Language",
+          "description": "Verify the language of the short phrase. Supported languages ​​include: English (en), Chinese (zh), Spanish (es), French (fr), Portuguese (pt), German (de), Japanese (ja), Korean (ko), Hindi (hi), and Russian (ru).",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "voiceUrl",
+          "rule": "not_empty",
+          "message": "Voice Url is required"
+        }
+      ]
+    },
+    {
+      "className": "SunoVoiceGenerate",
+      "modelId": "suno-voice-generate",
+      "title": "Suno Voice Create Custom Voice API",
+      "description": "Suno Voice Create Custom Voice API via Kie.ai.\n\n    kie, audio, ai\n\n    Generate a custom Suno Voice after the user reads the validation phrase.",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/voice/generate",
+      "fields": [
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID",
+          "required": true
+        },
+        {
+          "name": "verifyUrl",
+          "type": "str",
+          "default": "",
+          "title": "Verify Url",
+          "description": "Audio URL for the user's recording of the server-returned `validateInfo` validation phrase. For best voice generation results, recording the phrase in a singing voice rather than plain speech is recommended. [Required]",
+          "required": true
+        },
+        {
+          "name": "voiceName",
+          "type": "str",
+          "default": "",
+          "title": "Voice Name",
+          "description": "Voice name",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "str",
+          "default": "",
+          "title": "Description",
+          "description": "Voice description",
+          "required": false
+        },
+        {
+          "name": "style",
+          "type": "str",
+          "default": "",
+          "title": "Style",
+          "description": "Voice style",
+          "required": false
+        },
+        {
+          "name": "singerSkillLevel",
+          "type": "enum",
+          "default": "beginner",
+          "title": "Singer Skill Level",
+          "description": "Singer skill level. Supported: beginner, intermediate, advanced, professional",
+          "required": false,
+          "values": [
+            "beginner",
+            "intermediate",
+            "advanced",
+            "professional"
+          ]
+        }
+      ],
+      "validation": [
+        {
+          "field": "taskId",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        },
+        {
+          "field": "verifyUrl",
+          "rule": "not_empty",
+          "message": "Verify Url is required"
+        }
+      ]
+    },
+    {
+      "className": "SunoVoiceRegenerate",
+      "modelId": "suno-voice-regenerate",
+      "title": "Suno Voice Regenerate Verification Phrase",
+      "description": "Suno Voice Regenerate Verification Phrase via Kie.ai.\n\n    kie, audio, ai\n\n    Regenerate the validation phrase for an existing Suno Voice task.",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/voice/regenerate",
+      "fields": [
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID",
+          "required": true
+        },
+        {
+          "name": "calBackUrl",
+          "type": "str",
+          "default": "",
+          "title": "Cal Back Url",
+          "description": "Callback URL after the task is completed",
+          "required": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "taskId",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        },
+        {
+          "field": "calBackUrl",
+          "rule": "not_empty",
+          "message": "Cal Back Url is required"
+        }
+      ]
+    },
+    {
+      "className": "SunoVoiceCheckVoice",
+      "modelId": "suno-voice-check-voice",
+      "title": "Suno Voice Check Availability API",
+      "description": "Suno Voice Check Availability API via Kie.ai.\n\n    kie, audio, ai\n\n    Check whether a generated Suno custom voice is available.",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/voice/check-voice",
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Task ID that needs to be checked",
+          "required": true
+        }
+      ],
+      "validation": [
+        {
+          "field": "task_id",
+          "rule": "not_empty",
+          "message": "Task Id is required"
         }
       ]
     }

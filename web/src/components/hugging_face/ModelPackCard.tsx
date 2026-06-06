@@ -8,14 +8,13 @@ import {
   Card,
   CardContent,
   CardActions,
-  Box,
   Collapse,
   LinearProgress,
   List,
   ListItem,
   ListItemText
 } from "@mui/material";
-import { Text, Caption, EditorButton, ToolbarIconButton, Chip } from "../ui_primitives";
+import { Text, Caption, EditorButton, ToolbarIconButton, Chip, Box } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -159,7 +158,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                   sx={{
                     backgroundColor: "var(--palette-grey-800)",
                     color: "var(--palette-grey-200)",
-                    fontSize: "0.7rem"
+                    fontSize: "var(--fontSizeSmaller)"
                   }}
                 />
               ))}
@@ -197,7 +196,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
               }}
             />
             <Caption sx={{ color: "var(--palette-grey-400)" }}>
-              Downloading {activeDownloads.length} of {pack.models.length} models...
+              Downloading {activeDownloads.length} of {pack.models.length} models…
             </Caption>
           </Box>
         )}

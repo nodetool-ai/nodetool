@@ -3,13 +3,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Box,
   List,
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  FormControlLabel,
-  Checkbox
+  FormControlLabel
 } from "@mui/material";
 import React, { useCallback, useState, memo } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -27,8 +25,11 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import {
+  Box,
+  Checkbox,
   Chip,
   EditorButton,
+  FlexColumn,
   FlexRow,
   LoadingSpinner,
   Text,
@@ -63,7 +64,7 @@ const styles = (theme: Theme) =>
     },
     ".workspace-icon": {
       color: theme.vars.palette.primary.main,
-      fontSize: "1.5rem"
+      fontSize: "var(--fontSizeBig)"
     },
     ".workspace-info": {
       flex: 1,
@@ -71,11 +72,11 @@ const styles = (theme: Theme) =>
     },
     ".workspace-name": {
       fontWeight: 500,
-      fontSize: "0.95rem",
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.primary
     },
     ".workspace-path": {
-      fontSize: "0.8rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -395,7 +396,7 @@ const WorkspacesManager: React.FC = () => {
 
   return (
     <>
-      <Box css={styles(theme)} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <FlexColumn css={styles(theme)} sx={{ flex: 1, minHeight: 0 }}>
         <div className="workspaces-manager">
             {isLoading ? (
               <FlexRow
@@ -609,7 +610,7 @@ const WorkspacesManager: React.FC = () => {
               )}
             </div>
         </div>
-      </Box>
+      </FlexColumn>
 
       <FileBrowserDialog
         open={isFileBrowserOpen}

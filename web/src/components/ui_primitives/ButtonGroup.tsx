@@ -64,7 +64,7 @@ const ButtonGroupInternal: React.FC<ButtonGroupProps> = ({
       sx={{
         ...(compact && {
           "& .MuiButton-root": {
-            py: 0.25,
+            py: 0.5,
             px: 1,
             fontSize: theme.fontSizeSmall || "0.875rem",
             minWidth: "auto",

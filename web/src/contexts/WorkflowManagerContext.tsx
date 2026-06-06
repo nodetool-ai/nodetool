@@ -19,7 +19,6 @@ import {
   type ReactNode,
   type FC
 } from "react";
-import { useParams, useNavigate } from "react-router-dom";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { QueryClient } from "@tanstack/react-query";
@@ -102,68 +101,6 @@ export const useWorkflowManagerStore = (): WorkflowManagerStore => {
 // -----------------------------------------------------------------
 // COMPONENTS
 // -----------------------------------------------------------------
-
-/**
- * Component that ensures the current workflow is fetched based on URL params.
- * @param {Object} props Component props
- * @param {ReactNode} props.children Child components
- * @returns {ReactNode}
- */
-export const FetchCurrentWorkflow: FC<{
-  children: ReactNode;
-}> = ({ children }) => {
-  const setCurrentWorkflowId = useWorkflowManager((state) => state.setCurrentWorkflowId);
-  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
-  const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
-  const createNew = useWorkflowManager((state) => state.createNew);
-  const navigate = useNavigate();
-  // Extract workflow id from the route.
-  const { workflow: workflowId } = useParams();
-  const isWorkflowLoaded = Boolean(workflowId && getNodeStore(workflowId));
-
-  useEffect(() => {
-    let isCancelled = false;
-    const ensureWorkflow = async () => {
-      if (!workflowId) {
-        return;
-      }
-      setCurrentWorkflowId(workflowId);
-      if (isWorkflowLoaded) {
-        return;
-      }
-      try {
-        const fetched = await fetchWorkflow(workflowId);
-        if (!fetched && !isCancelled) {
-          const workflow = await createNew();
-          if (!isCancelled) {
-            navigate(`/editor/${workflow.id}`, { replace: true });
-          }
-        }
-      } catch {
-        if (isCancelled) {
-          return;
-        }
-        const workflow = await createNew();
-        if (!isCancelled) {
-          navigate(`/editor/${workflow.id}`, { replace: true });
-        }
-      }
-    };
-    ensureWorkflow();
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    workflowId,
-    fetchWorkflow,
-    isWorkflowLoaded,
-    setCurrentWorkflowId,
-    createNew,
-    navigate
-  ]);
-
-  return children;
-};
 
 // Provider component that sets up the WorkflowManager store and supplies it via context.
 // It also sets up WebSocket connections to handle real-time workflow updates and

@@ -38,6 +38,95 @@ import { drawOffCanvasIndicator } from "./gizmo";
 import { useSketchStore } from "../state/useSketchStore";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
 import { pickTopmostTransformableLayer } from "./transformTargetSet";
+import { getSelectionBounds, selectionHasAnyPixels } from "../selection";
+import { buildSketchInternalClipboardCanvas } from "../sketchClipboard";
+
+/**
+ * Full-layer duplicate (Ctrl+Alt+drag with no active selection). Returns
+ * the freshly-active layer from the store, or null when duplication
+ * yielded no new active layer.
+ */
+function duplicateActiveLayer(
+  sourceLayerId: string
+): import("../types").Layer | null {
+  useSketchStore.getState().duplicateLayer(sourceLayerId);
+  const freshDoc = useSketchStore.getState().document;
+  const dup = freshDoc.layers.find((l) => l.id === freshDoc.activeLayerId);
+  return dup ?? null;
+}
+
+/**
+ * Selection-aware variant for Ctrl+Alt+drag: lift the selected pixels
+ * out of the active layer into a brand-new layer that sits exactly on
+ * top of the source so the duplicate visually starts in-place. The
+ * source layer is left untouched (this is duplicate, not cut). The
+ * runtime is used to materialize a doc-sized canvas for the new
+ * layer and paint the cropped selection at its original document
+ * coordinates. Selection is preserved.
+ *
+ * Falls back to a full-layer duplicate when any required runtime
+ * surface is unavailable (snapshots, layer canvases, contexts).
+ */
+function duplicateActiveLayerFromSelection(
+  ctx: ToolContext,
+  sourceLayer: import("../types").Layer,
+  selection: import("../types").Selection
+): import("../types").Layer | null {
+  const runtime = ctx.runtime;
+  if (!runtime) {
+    return duplicateActiveLayer(sourceLayer.id);
+  }
+  const snapshot = runtime.snapshotLayerCanvas(sourceLayer.id);
+  if (!snapshot) {
+    return duplicateActiveLayer(sourceLayer.id);
+  }
+  const docW = ctx.doc.canvas.width;
+  const docH = ctx.doc.canvas.height;
+  const clipboard = buildSketchInternalClipboardCanvas({
+    snapshot,
+    layer: sourceLayer,
+    documentCanvasWidth: docW,
+    documentCanvasHeight: docH,
+    selection
+  });
+  const bounds = getSelectionBounds(selection);
+  if (!clipboard || !bounds) {
+    return duplicateActiveLayer(sourceLayer.id);
+  }
+
+  const newLayerId = useSketchStore.getState().addLayer();
+  // Materialize a doc-sized blank canvas in the runtime so the next
+  // drawImage lands on a real backing store. Without this, the layer
+  // exists only in the Zustand store and the runtime won't create its
+  // canvas until the next reconciliation tick.
+  runtime.setLayerData(newLayerId, null, {
+    x: 0,
+    y: 0,
+    width: docW,
+    height: docH
+  });
+  const newCanvas = ctx.getOrCreateLayerCanvas(newLayerId);
+  const newCtx = newCanvas.getContext("2d");
+  if (!newCtx) {
+    return duplicateActiveLayer(sourceLayer.id);
+  }
+  newCtx.drawImage(clipboard, bounds.x, bounds.y);
+  ctx.invalidateLayer?.(newLayerId);
+  // Persist the new layer's pixels back into the store so undo/redo
+  // and future reconciliation see them.
+  const dataUrl = newCanvas.toDataURL();
+  useSketchStore.setState((s) => ({
+    document: {
+      ...s.document,
+      layers: s.document.layers.map((l) =>
+        l.id === newLayerId ? { ...l, data: dataUrl } : l
+      )
+    }
+  }));
+
+  const freshDoc = useSketchStore.getState().document;
+  return freshDoc.layers.find((l) => l.id === newLayerId) ?? null;
+}
 
 /** Paint corner brackets for off-canvas layer extents on the gizmo canvas.
  *  Uses {@link resolveGizmoBounds} (same contract as TransformTool) and maps the
@@ -90,6 +179,16 @@ export class MoveTool implements ToolHandler {
   private readonly session: PreviewSession = createPreviewSession();
   private moveStart: Point | null = null;
   private moveLayerStartTransform: LayerTransform = { ...IDENTITY_AFFINE };
+  /**
+   * Additional layers being moved as part of a multi-selection drag.
+   * Each carries its own baseline transform so the same translation delta
+   * can be applied independently (preserving each layer's scale/rotation).
+   * The session itself only tracks the primary layer.
+   */
+  private extraMoveTargets: Array<{
+    layerId: string;
+    baseline: LayerTransform;
+  }> = [];
 
   onActivate(ctx: ToolContext): void {
     this.refreshGizmo(ctx);
@@ -117,6 +216,10 @@ export class MoveTool implements ToolHandler {
       }
     }
     this.session.clear(ctx);
+    for (const extra of this.extraMoveTargets) {
+      ctx.clearLayerTransformPreview?.(extra.layerId);
+    }
+    this.extraMoveTargets = [];
     this.moveStart = null;
     this.moveLayerStartTransform = { ...IDENTITY_AFFINE };
     ctx.clearGizmo();
@@ -168,14 +271,51 @@ export class MoveTool implements ToolHandler {
     const pt = event.point;
     let moveTargetLayer = activeLayer;
 
-    // Ctrl+Alt: duplicate layer then move the duplicate
+    // Ctrl+Alt: duplicate layer (or just the selected pixels) then move
+    // the duplicate. When a selection is active and has pixels, only
+    // the selected region is lifted into the new layer at its original
+    // document position — mirroring "Layer via Copy" + drag.
     if ((event.nativeEvent.ctrlKey || event.nativeEvent.metaKey) && event.nativeEvent.altKey) {
-      useSketchStore.getState().duplicateLayer(activeLayer.id);
-      const freshDoc = useSketchStore.getState().document;
-      const dup = freshDoc.layers.find((l) => l.id === freshDoc.activeLayerId);
+      const sel = useSketchStore.getState().selection;
+      const hasSelPixels = sel != null && selectionHasAnyPixels(sel);
+      const dup = hasSelPixels
+        ? duplicateActiveLayerFromSelection(ctx, activeLayer, sel)
+        : duplicateActiveLayer(activeLayer.id);
       if (dup) {
         moveTargetLayer = dup;
       }
+    } else if (
+      (event.nativeEvent.ctrlKey || event.nativeEvent.metaKey) &&
+      event.nativeEvent.shiftKey &&
+      ctx.onAutoPickLayer
+    ) {
+      // Ctrl/Cmd+Shift+click with auto-select: toggle the hit layer into the
+      // multi-layer selection instead of replacing it. This mirrors how the
+      // layers panel builds multi-selection (Ctrl/Cmd+click) but works
+      // directly on the canvas, which is how users naturally compose
+      // a group to move together.
+      const storeSettings = useSketchStore.getState().toolSettings;
+      const autoSelect = storeSettings?.move?.autoSelect ?? true;
+      if (autoSelect) {
+        const { isolatedLayerId } = useSketchStore.getState();
+        const picked = pickTopmostTransformableLayer(
+          doc.layers,
+          ctx.layerCanvasesRef.current,
+          pt,
+          isolatedLayerId,
+          ctx.getOrCreateLayerCanvas
+        );
+        if (picked) {
+          useSketchStore.getState().toggleLayerInSelection(picked.id);
+          // Do not start a drag for the toggle click; let the user click
+          // again (without Shift) to begin moving the assembled group.
+          // This keeps the gesture predictable — Shift+click is purely
+          // a selection-mutation gesture, never a move gesture.
+          this.refreshGizmo(ctx);
+          return false;
+        }
+      }
+      // No hit and no toggle: fall through with active layer as target.
     } else if (event.nativeEvent.altKey && ctx.onAutoPickLayer) {
       // Alt+click: auto-pick topmost non-transparent layer (affine-aware)
       const { isolatedLayerId } = useSketchStore.getState();
@@ -227,6 +367,40 @@ export class MoveTool implements ToolHandler {
     // preview and commit preserve existing scale/rotation state.
     this.moveLayerStartTransform = cloneTransform(moveTargetLayer.transform);
     this.session.start(ctx, moveTargetLayer.id, cloneTransform(this.moveLayerStartTransform));
+
+    // Collect siblings that should follow the primary target as a group
+    // drag. Only kicks in when the primary target is itself part of an
+    // explicit multi-layer selection — otherwise a plain move on a layer
+    // that's incidentally in selectedLayerIds would silently drag the
+    // whole group, which is surprising for a single click.
+    this.extraMoveTargets = [];
+    const { selectedLayerIds } = useSketchStore.getState();
+    if (
+      selectedLayerIds.length >= 2 &&
+      selectedLayerIds.includes(moveTargetLayer.id)
+    ) {
+      const docLayerById = new Map(doc.layers.map((l) => [l.id, l]));
+      for (const id of selectedLayerIds) {
+        if (id === moveTargetLayer.id) {
+          continue;
+        }
+        const sibling = docLayerById.get(id);
+        if (!sibling || sibling.type === "group") {
+          continue;
+        }
+        if (
+          sibling.locked &&
+          !layerAllowsTransformWhilePixelLocked(sibling)
+        ) {
+          continue;
+        }
+        ctx.getOrCreateLayerCanvas(sibling.id);
+        this.extraMoveTargets.push({
+          layerId: sibling.id,
+          baseline: cloneTransform(sibling.transform)
+        });
+      }
+    }
     return true;
   }
 
@@ -256,11 +430,23 @@ export class MoveTool implements ToolHandler {
       );
       const merged = mergeTransformPreview(this.moveLayerStartTransform, previewTransform);
       this.session.update(ctx, merged);
+      // Mirror the same delta onto every extra target. Each layer keeps
+      // its own scale/rotation since computeMoveTransform operates on
+      // the per-layer baseline; only the translation component changes.
+      for (const extra of this.extraMoveTargets) {
+        const extraPreview = computeMoveTransform(
+          extra.baseline,
+          this.moveStart,
+          cursor
+        );
+        const extraMerged = mergeTransformPreview(extra.baseline, extraPreview);
+        ctx.setLayerTransformPreview?.(extra.layerId, extraMerged);
+      }
       this.refreshGizmo(ctx);
     }
   }
 
-  onUp(ctx: ToolContext, _event?: ToolPointerEvent): void {
+  onUp(ctx: ToolContext, event?: ToolPointerEvent): void {
     const layerId = this.session.state.layerId;
     // Capture the final transform before commit clears the session so the
     // gizmo can draw at the correct position even though ctx.doc is stale.
@@ -268,6 +454,34 @@ export class MoveTool implements ToolHandler {
       ? cloneTransform(this.session.state.currentTransform)
       : null;
     this.session.commit(ctx);
+
+    // Commit each extra target using the same final cursor delta. Done
+    // after the primary commit so the store mutations apply in a stable
+    // order (primary first, then extras), which keeps history entries
+    // grouped naturally and makes the post-up gizmo refresh see the
+    // freshest doc.
+    const finalCursor = event?.point ?? null;
+    const extras = this.extraMoveTargets;
+    this.extraMoveTargets = [];
+    if (finalCursor && this.moveStart) {
+      for (const extra of extras) {
+        const extraTransform = computeMoveTransform(
+          extra.baseline,
+          this.moveStart,
+          finalCursor
+        );
+        const extraMerged = mergeTransformPreview(extra.baseline, extraTransform);
+        ctx.onLayerTransformChange?.(extra.layerId, extraMerged);
+        ctx.clearLayerTransformPreview?.(extra.layerId);
+        ctx.onStrokeEnd(extra.layerId, null, undefined, {
+          syncDocumentFromCanvas: false
+        });
+      }
+    } else {
+      for (const extra of extras) {
+        ctx.clearLayerTransformPreview?.(extra.layerId);
+      }
+    }
 
     this.moveStart = null;
     this.moveLayerStartTransform = { ...IDENTITY_AFFINE };

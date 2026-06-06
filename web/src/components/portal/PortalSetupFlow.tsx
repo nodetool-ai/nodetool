@@ -14,7 +14,7 @@ const styles = (theme: Theme) =>
       fontSize: 14,
       color: theme.vars.palette.c_gray6,
       lineHeight: 1.6,
-      marginBottom: 14,
+      marginBottom: 8,
     },
     ".portal-setup-providers": {
       display: "flex",
@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
     ".portal-setup-provider": {
       display: "flex",
       alignItems: "center",
-      gap: 10,
+      gap: 8,
       background: theme.vars.palette.c_gray1,
       border: `1px solid ${theme.vars.palette.c_gray2}`,
       borderRadius: 10,
@@ -44,7 +44,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       fontSize: 14,
       color: "white",
-      fontWeight: "bold",
+      fontWeight: 600,
     },
     ".portal-setup-provider-info": {
       flex: 1,
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     ".portal-setup-note": {
       fontSize: 11,
       color: theme.vars.palette.c_gray4,
-      marginTop: 10,
+      marginTop: 8,
       textAlign: "center" as const,
     },
     ".portal-setup-ollama-status": {
@@ -175,7 +175,10 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
           <div key={provider.id}>
             <div
               className="portal-setup-provider"
+              role="button"
+              tabIndex={0}
               onClick={() => handleProviderClick(provider)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleProviderClick(provider); } }}
             >
               <div
                 className="portal-setup-provider-icon"
@@ -222,7 +225,13 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
         ))}
 
         {/* Ollama (no API key) */}
-        <div className="portal-setup-provider" onClick={handleOllamaClick}>
+        <div
+          className="portal-setup-provider"
+          role="button"
+          tabIndex={0}
+          onClick={handleOllamaClick}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { handleOllamaClick(); } }}
+        >
           <div
             className="portal-setup-provider-icon"
             style={{ backgroundColor: "#666" }}
@@ -239,12 +248,12 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
         </div>
         {ollamaStatus === "checking" && (
           <div className="portal-setup-ollama-status">
-            Checking if Ollama is running...
+            Checking if Ollama is running…
           </div>
         )}
         {ollamaStatus === "running" && (
           <div className="portal-setup-ollama-status" style={{ color: "#4caf50" }}>
-            ✓ Ollama is running. Connecting...
+            ✓ Ollama is running. Connecting…
           </div>
         )}
         {ollamaStatus === "not-running" && (

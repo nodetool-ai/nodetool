@@ -9,6 +9,7 @@ export const jobResponse = z.object({
   user_id: z.string(),
   job_type: z.literal("workflow"),
   status: z.string(),
+  name: z.string().nullable(),
   workflow_id: z.string(),
   started_at: z.string().nullable(),
   finished_at: z.string().nullable(),

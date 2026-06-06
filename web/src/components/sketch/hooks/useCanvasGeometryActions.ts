@@ -567,13 +567,41 @@ export function useCanvasGeometryActions({
   ]);
 
   const handleCropCanvasToSelection = useCallback(() => {
-    const sel = useSketchStore.getState().selection;
+    const store = useSketchStore.getState();
+    const sel = store.selection;
     if (!sel) return;
     const bounds = getSelectionBounds(sel);
     if (!bounds || bounds.width <= 0 || bounds.height <= 0) return;
 
+    // Clamp the selection bbox to the current canvas: a selection mask
+    // can extend outside the document (e.g. after nudging the mask off
+    // the canvas, or when the mask grid was bigger than the doc to
+    // begin with). Cropping to the raw bbox then produces a canvas that
+    // overshoots the visible area on one or more sides, leaving an
+    // empty strip and making the crop look imprecise. Intersect with
+    // [0, 0, docW, docH] before passing to finalizeCanvasCrop.
+    const { width: docW, height: docH } = store.document.canvas;
+    const minX = Math.max(0, bounds.x);
+    const minY = Math.max(0, bounds.y);
+    const maxX = Math.min(docW, bounds.x + bounds.width);
+    const maxY = Math.min(docH, bounds.y + bounds.height);
+    const cropW = maxX - minX;
+    const cropH = maxY - minY;
+    if (cropW <= 0 || cropH <= 0) {
+      // Selection lies entirely outside the canvas — nothing meaningful
+      // to crop to. Clear the selection but skip the crop so the user
+      // doesn't end up with a zero-sized document.
+      store.setSelection(null);
+      return;
+    }
+
     reconcileAllLayerTransforms();
-    finalizeCanvasCrop(bounds.x, bounds.y, bounds.width, bounds.height);
+    finalizeCanvasCrop(minX, minY, cropW, cropH);
+    // Drop the selection: after the canvas is cropped to the bbox, the
+    // selection's document-space origin no longer points anywhere
+    // meaningful (it referred to the pre-crop document) and showing it
+    // at the wrong place is more confusing than just clearing it.
+    useSketchStore.getState().setSelection(null);
     pushHistory("crop to selection");
   }, [reconcileAllLayerTransforms, finalizeCanvasCrop, pushHistory]);
 
@@ -667,7 +695,13 @@ export function useCanvasGeometryActions({
       if (!canvasRef.current) {
         return;
       }
-      const layerId = options?.targetLayerId ?? document.activeLayerId;
+      // Read the live store rather than the closure document so that
+      // callers like `handleLayerViaCopy` — which add a new layer and
+      // immediately paste into it inside the same tick — can target the
+      // freshly-added layer. The React closure still holds the
+      // pre-add document and would otherwise miss the new layer.
+      const liveDoc = useSketchStore.getState().document;
+      const layerId = options?.targetLayerId ?? liveDoc.activeLayerId;
       if (!layerId) {
         return;
       }
@@ -691,7 +725,7 @@ export function useCanvasGeometryActions({
         return;
       }
 
-      const layer = document.layers.find((l) => l.id === layerId);
+      const layer = liveDoc.layers.find((l) => l.id === layerId);
       if (!layer) {
         return;
       }
@@ -699,8 +733,8 @@ export function useCanvasGeometryActions({
         layer,
         pasteSnapshot,
         {
-          width: document.canvas.width,
-          height: document.canvas.height
+          width: liveDoc.canvas.width,
+          height: liveDoc.canvas.height
         }
       ).compositeOffset;
 
@@ -730,6 +764,76 @@ export function useCanvasGeometryActions({
       pushHistory,
       syncPixelLayerFromCanvas
     ]
+  );
+
+  /**
+   * Photoshop-style paste: create a NEW layer containing the resolved
+   * clipboard image, anchored so the image is centered on the last known
+   * pointer position (falling back to the document center). Returns the
+   * new layer id (or null when nothing was on the clipboard).
+   *
+   * Pasting into a fresh, doc-sized layer avoids two pitfalls of the
+   * paste-into-active-layer flow: the image isn't clipped by the active
+   * layer's content-bounds, and existing pixels can't be visually
+   * "lost" by an unexpected composite. The active layer is left
+   * untouched; the new layer becomes active.
+   */
+  const handlePasteAsNewLayer = useCallback(
+    async (
+      createLayer: () => string | null,
+      options?: { preferInternalClipboardFirst?: boolean }
+    ): Promise<string | null> => {
+      if (!canvasRef.current) {
+        return null;
+      }
+      const imageToPaste = await resolveSketchPasteImageCanvas({
+        internalBuffer: clipboardCanvasRef.current,
+        preferInternalClipboardFirst:
+          options?.preferInternalClipboardFirst ?? false
+      });
+      if (!imageToPaste) {
+        return null;
+      }
+
+      const newLayerId = createLayer();
+      if (!newLayerId) {
+        return null;
+      }
+      // Materialize a doc-sized canvas in the runtime so snapshot/restore
+      // operate on a real buffer. Without this, `snapshotLayerCanvas`
+      // returns null on the freshly-added layer (reconciliation hasn't
+      // run yet) and the paste silently bails.
+      canvasRef.current.setLayerData(newLayerId, null);
+
+      pushHistory("paste");
+
+      const snapshot = canvasRef.current.snapshotLayerCanvas(newLayerId);
+      if (!snapshot) {
+        return newLayerId;
+      }
+      const ctx = snapshot.getContext("2d");
+      if (!ctx) {
+        return newLayerId;
+      }
+
+      const liveDoc = useSketchStore.getState().document;
+      const docWidth = liveDoc.canvas.width;
+      const docHeight = liveDoc.canvas.height;
+      const anchor =
+        canvasRef.current.getPasteAnchorDocumentPoint() ?? {
+          x: Math.round(docWidth / 2),
+          y: Math.round(docHeight / 2)
+        };
+      const destX = Math.round(anchor.x - imageToPaste.width / 2);
+      const destY = Math.round(anchor.y - imageToPaste.height / 2);
+      ctx.drawImage(imageToPaste, destX, destY);
+
+      canvasRef.current.restoreLayerCanvas(newLayerId, snapshot);
+      syncPixelLayerFromCanvas(newLayerId);
+      canvasRef.current.redrawDisplay();
+      return newLayerId;
+    },
+    [canvasRef, pushHistory, syncPixelLayerFromCanvas]
   );
 
   /** Import a dropped or externally-provided image file into the active layer. */
@@ -956,6 +1060,7 @@ export function useCanvasGeometryActions({
     handleCopy,
     handleCut,
     handlePaste,
+    handlePasteAsNewLayer,
     handleDropImage,
     handleDropAsset,
     adjBrightness,

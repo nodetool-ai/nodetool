@@ -3,10 +3,10 @@
  *
  * Radial HSV color selector:
  * - Outer ring: static hue spectrum (0–360°)
- * - Inner equilateral triangle (fixed orientation): saturation + value for the selected hue
- *   - Top vertex = fully saturated color (S=1, V=1) for the current hue
+ * - Inner equilateral triangle: saturation + value for the selected hue
+ *   - Tip (saturated-hue vertex) rotates to point at the ring angle for the current hue
  *   - Other vertices = white (S=0, V=1) and black (S=0, V=0)
- * The triangle does not rotate when the hue ring changes; only its colors update.
+ * Triangle fill is cached per integer degree of hue; ring cursor can move smoothly between degrees.
  * A round cursor is always visible inside the triangle.
  */
 
@@ -17,7 +17,7 @@ import React, {
   useEffect,
   useState
 } from "react";
-import { Box } from "@mui/material";
+import { FlexColumn, FlexRow, Box } from "../ui_primitives";
 import {
   parseColorToRgba,
   rgbToHsv,
@@ -29,8 +29,18 @@ import {
 /** Overall wheel + triangle diameter (canvas px). */
 const WIDGET_SIZE = 144;
 /** Floating preview while dragging hue ring or triangle: fixed to viewport, left of the wheel (does not affect panel width). */
-const PREVIEW_SWATCH_SIZE = 42;
-const PREVIEW_GAP = 5;
+const PREVIEW_FRAME_REF = 50;
+/** Live + comparison swatches ~60% of reference frame width. */
+const PREVIEW_SWATCH_WIDTH = Math.round(PREVIEW_FRAME_REF * 0.65);
+/** Square live-color preview (matches width). */
+const PREVIEW_SWATCH_HEIGHT = PREVIEW_SWATCH_WIDTH;
+/** Comparison strip height (scaled with narrow preview). */
+const PREVIEW_OLD_SWATCH_HEIGHT = Math.round(17 * 0.6);
+const PREVIEW_GAP = 12;
+const PREVIEW_TOTAL_HEIGHT =
+  PREVIEW_SWATCH_HEIGHT + PREVIEW_OLD_SWATCH_HEIGHT;
+/** Subtle corners on the floating preview (theme spacing units). */
+const PREVIEW_BORDER_RADIUS = 0.4;
 const RING_WIDTH = 16;
 const OUTER_R = WIDGET_SIZE / 2;
 const INNER_R = OUTER_R - RING_WIDTH;
@@ -57,13 +67,22 @@ function normalizeHueDeg(h: number): number {
 
 // ─── Geometry helpers ────────────────────────────────────────────────────────
 
-/** Equilateral triangle in a fixed orientation (hue vertex at top). Geometry is independent of hue. */
-function triVertsFixed(): [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }] {
-  const hRad = -Math.PI / 2; // same as hue 0°: vertex v0 points up (−Y in canvas)
+/**
+ * Equilateral triangle with the saturated-hue vertex aimed at `hueDeg` on the ring
+ * (same convention as `paintHueCursor`: hue 0° at 12 o'clock, clockwise).
+ */
+function triVertsForHue(hueDeg: number): [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }] {
+  const hNorm = normalizeHueDeg(hueDeg);
+  const hRad = (hNorm - 90) * Math.PI / 180;
   const v0 = { x: CX + TRI_R * Math.cos(hRad), y: CY + TRI_R * Math.sin(hRad) };
   const v1 = { x: CX + TRI_R * Math.cos(hRad + 2 * Math.PI / 3), y: CY + TRI_R * Math.sin(hRad + 2 * Math.PI / 3) };
   const v2 = { x: CX + TRI_R * Math.cos(hRad + 4 * Math.PI / 3), y: CY + TRI_R * Math.sin(hRad + 4 * Math.PI / 3) };
   return [v0, v1, v2];
+}
+
+/** Matches `ensureTriangleLayer` cache key — geometry aligns with rasterized triangle. */
+function snapHueDegForTriangle(hueDeg: number): number {
+  return Math.round(normalizeHueDeg(hueDeg));
 }
 
 /** Barycentric coordinates of P relative to triangle (A, B, C). */
@@ -152,9 +171,9 @@ function paintRing(ctx: CanvasRenderingContext2D) {
   ctx.putImageData(img, 0, 0);
 }
 
-/** Paint the HSV triangle for the given hue (fixed geometry; only pixel colors depend on hue). */
+/** Paint the HSV triangle for the given hue (rotation + fills both follow `hueDeg`). */
 function paintTriangle(ctx: CanvasRenderingContext2D, hueDeg: number) {
-  const [v0, v1, v2] = triVertsFixed();
+  const [v0, v1, v2] = triVertsForHue(hueDeg);
 
   // Build bounding box
   const minX = Math.floor(Math.min(v0.x, v1.x, v2.x));
@@ -225,9 +244,9 @@ function paintHueCursor(ctx: CanvasRenderingContext2D, hueDeg: number) {
   ctx.stroke();
 }
 
-/** Draw the SV cursor inside the triangle. */
-function paintSVCursor(ctx: CanvasRenderingContext2D, s: number, val: number) {
-  const [v0, v1, v2] = triVertsFixed();
+/** Draw the SV cursor inside the triangle (uses snapped hue to match cached triangle bitmap). */
+function paintSVCursor(ctx: CanvasRenderingContext2D, hueDeg: number, s: number, val: number) {
+  const [v0, v1, v2] = triVertsForHue(snapHueDegForTriangle(hueDeg));
   const { u, v, w } = svToBary(s, val);
   const cx = u * v0.x + v * v1.x + w * v2.x;
   const cy = u * v0.y + v * v1.y + w * v2.y;
@@ -264,9 +283,12 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
   const dragTarget = useRef<DragTarget>(null);
   /** Latest SV while dragging the triangle; committed to store on pointer up only. */
   const triangleDragSvRef = useRef<{ s: number; v: number }>({ s: 0, v: 0 });
+  /** Pre-drag color (rgba CSS) for the comparison strip while dragging. */
+  const previewBaselineCssRef = useRef("");
   /** Only set while pointer is down on hue ring or triangle; `null` = preview hidden. */
   const [trianglePreviewScreen, setTrianglePreviewScreen] = useState<{
-    css: string;
+    newCss: string;
+    previousCss: string;
     left: number;
     top: number;
   } | null>(null);
@@ -338,7 +360,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     ctx.drawImage(triLayer, 0, 0);
 
     paintHueCursor(ctx, hue);
-    paintSVCursor(ctx, sat, val);
+    paintSVCursor(ctx, hue, sat, val);
   }, [ensureTriangleLayer]);
 
   useEffect(() => {
@@ -359,7 +381,8 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
 
     if (dist >= INNER_R && dist <= OUTER_R) { return "ring"; }
 
-    const [v0, v1, v2] = triVertsFixed();
+    const hSnap = snapHueDegForTriangle(localHueRef.current);
+    const [v0, v1, v2] = triVertsForHue(hSnap);
     const { u, v, w } = barycentric(px, py, v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
     if (u >= HIT_EPSILON && v >= HIT_EPSILON && w >= HIT_EPSILON) { return "triangle"; }
 
@@ -388,7 +411,8 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     const rect = canvas.getBoundingClientRect();
     const px = (clientX - rect.left) * (WIDGET_SIZE / rect.width);
     const py = (clientY - rect.top) * (WIDGET_SIZE / rect.height);
-    const [v0, v1, v2] = triVertsFixed();
+    const hSnap = snapHueDegForTriangle(localHueRef.current);
+    const [v0, v1, v2] = triVertsForHue(hSnap);
     const raw = barycentric(px, py, v0.x, v0.y, v1.x, v1.y, v2.x, v2.y);
     const clamped = clampBarycentric(raw.u, raw.v, raw.w);
     return baryToSV(clamped.u, clamped.v, clamped.w);
@@ -402,60 +426,108 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
     [a]
   );
 
-  const placeTrianglePreviewFloating = useCallback((css: string) => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-    const rect = canvas.getBoundingClientRect();
-    const size = PREVIEW_SWATCH_SIZE;
-    setTrianglePreviewScreen({
-      css,
-      left: rect.left - PREVIEW_GAP - size,
-      top: rect.top + rect.height / 2 - size / 2
-    });
-  }, []);
+  const placeTrianglePreviewFloating = useCallback(
+    (newCss: string, previousCss: string) => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const width = PREVIEW_SWATCH_WIDTH;
+      setTrianglePreviewScreen({
+        newCss,
+        previousCss,
+        left: rect.left - PREVIEW_GAP - width,
+        top: rect.top + rect.height / 2 - PREVIEW_TOTAL_HEIGHT / 2
+      });
+    },
+    []
+  );
 
   // ─── Mouse handlers ─────────────────────────────────────────────
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    const target = hitTest(e.clientX, e.clientY);
-    dragTarget.current = target;
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      const target = hitTest(e.clientX, e.clientY);
+      dragTarget.current = target;
 
-    const canvas = canvasRef.current;
-    if (canvas) { canvas.setPointerCapture(e.pointerId); }
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.setPointerCapture(e.pointerId);
+      }
 
-    if (target === "ring") {
-      const newHue = pointerToHue(e.clientX, e.clientY);
-      localHueRef.current = newHue;
-      setLocalHue(newHue);
-      placeTrianglePreviewFloating(previewCssFromHsv(newHue, hsv.s, hsv.v));
-      repaint(newHue, hsv.s, hsv.v);
-    } else if (target === "triangle") {
-      const { s, val } = pointerToSV(e.clientX, e.clientY);
-      triangleDragSvRef.current = { s, v: val };
-      placeTrianglePreviewFloating(previewCssFromHsv(localHue, s, val));
-      repaint(localHue, s, val);
-    }
-  }, [hitTest, pointerToHue, pointerToSV, localHue, hsv.s, hsv.v, repaint, previewCssFromHsv, placeTrianglePreviewFloating]);
+      const { r: br, g: bg, b: bb, a: ba } = parseColorToRgba(color);
+      const previousCss = rgbaToCss({ r: br, g: bg, b: bb, a: ba });
+      previewBaselineCssRef.current = previousCss;
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (dragTarget.current === null) { return; }
-    e.preventDefault();
+      if (target === "ring") {
+        const newHue = pointerToHue(e.clientX, e.clientY);
+        localHueRef.current = newHue;
+        setLocalHue(newHue);
+        placeTrianglePreviewFloating(
+          previewCssFromHsv(newHue, hsv.s, hsv.v),
+          previousCss
+        );
+        repaint(newHue, hsv.s, hsv.v);
+      } else if (target === "triangle") {
+        const { s, val } = pointerToSV(e.clientX, e.clientY);
+        triangleDragSvRef.current = { s, v: val };
+        placeTrianglePreviewFloating(
+          previewCssFromHsv(localHue, s, val),
+          previousCss
+        );
+        repaint(localHue, s, val);
+      }
+    },
+    [
+      color,
+      hitTest,
+      pointerToHue,
+      pointerToSV,
+      localHue,
+      hsv.s,
+      hsv.v,
+      repaint,
+      previewCssFromHsv,
+      placeTrianglePreviewFloating
+    ]
+  );
 
-    if (dragTarget.current === "ring") {
-      const newHue = pointerToHue(e.clientX, e.clientY);
-      localHueRef.current = newHue;
-      placeTrianglePreviewFloating(previewCssFromHsv(newHue, hsv.s, hsv.v));
-      repaint(newHue, hsv.s, hsv.v);
-    } else if (dragTarget.current === "triangle") {
-      const { s, val } = pointerToSV(e.clientX, e.clientY);
-      triangleDragSvRef.current = { s, v: val };
-      const h = localHueRef.current;
-      placeTrianglePreviewFloating(previewCssFromHsv(h, s, val));
-      repaint(h, s, val);
-    }
-  }, [pointerToHue, pointerToSV, hsv.s, hsv.v, repaint, previewCssFromHsv, placeTrianglePreviewFloating]);
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (dragTarget.current === null) {
+        return;
+      }
+      e.preventDefault();
+
+      const baseline = previewBaselineCssRef.current;
+
+      if (dragTarget.current === "ring") {
+        const newHue = pointerToHue(e.clientX, e.clientY);
+        localHueRef.current = newHue;
+        placeTrianglePreviewFloating(
+          previewCssFromHsv(newHue, hsv.s, hsv.v),
+          baseline
+        );
+        repaint(newHue, hsv.s, hsv.v);
+      } else if (dragTarget.current === "triangle") {
+        const { s, val } = pointerToSV(e.clientX, e.clientY);
+        triangleDragSvRef.current = { s, v: val };
+        const h = localHueRef.current;
+        placeTrianglePreviewFloating(previewCssFromHsv(h, s, val), baseline);
+        repaint(h, s, val);
+      }
+    },
+    [
+      pointerToHue,
+      pointerToSV,
+      hsv.s,
+      hsv.v,
+      repaint,
+      previewCssFromHsv,
+      placeTrianglePreviewFloating
+    ]
+  );
 
   const endPointerDrag = useCallback(
     (e: React.PointerEvent) => {
@@ -492,31 +564,49 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
   return (
     <>
       {trianglePreviewScreen ? (
-        <Box
+        <FlexColumn
           aria-hidden
           sx={{
             position: "fixed",
             left: trianglePreviewScreen.left,
             top: trianglePreviewScreen.top,
-            width: PREVIEW_SWATCH_SIZE,
-            height: PREVIEW_SWATCH_SIZE,
+            width: PREVIEW_SWATCH_WIDTH,
             zIndex: (theme) => theme.zIndex.tooltip,
+            pointerEvents: "none",
             boxSizing: "border-box",
-            borderRadius: 1,
+            borderRadius: PREVIEW_BORDER_RADIUS,
             border: 1,
             borderColor: "divider",
-            backgroundColor: trianglePreviewScreen.css,
-            pointerEvents: "none",
-            boxShadow: 2
+            boxShadow: 2,
+            overflow: "hidden"
           }}
-        />
+        >
+          <Box
+            sx={{
+              width: PREVIEW_SWATCH_WIDTH,
+              height: PREVIEW_SWATCH_HEIGHT,
+              flexShrink: 0,
+              backgroundColor: trianglePreviewScreen.newCss
+            }}
+          />
+          <Box
+            sx={{
+              width: PREVIEW_SWATCH_WIDTH,
+              height: PREVIEW_OLD_SWATCH_HEIGHT,
+              flexShrink: 0,
+              backgroundColor: trianglePreviewScreen.previousCss,
+              borderTop: 1,
+              borderTopColor: "divider",
+              boxSizing: "border-box"
+            }}
+          />
+        </FlexColumn>
       ) : null}
-      <Box
+      <FlexRow
+        align="center"
+        justify="center"
+        fullWidth
         sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
           py: "4px",
           position: "relative"
         }}
@@ -536,7 +626,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
         />
-      </Box>
+      </FlexRow>
     </>
   );
 };

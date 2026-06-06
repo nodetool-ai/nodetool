@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Terminal, Box, Zap, Globe, Cpu, Layers, ArrowRight, MessageSquare, Bot } from "lucide-react";
+import { Terminal, Box, Zap, RefreshCw, Cpu, Layers, ArrowRight, MessageSquare, Bot, Palette, Film, Sparkles } from "lucide-react";
 
 type AccentColor = "blue" | "purple" | "emerald";
 
@@ -23,10 +23,12 @@ export default function AgentBuildRunDeploy() {
             <div className="relative mx-auto max-w-6xl w-full z-10">
                 <div className="mb-12 text-center max-w-2xl mx-auto">
                     <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-4 tracking-tight">
-                        Plan. Act. Self-correct.
+                        Brief it. Direct it. Iterate.
                     </h2>
                     <p className="text-slate-400 text-lg">
-                        Design agents that plan a task, call the right tools, and self-correct as they go — then re-run them as a node in any workflow.
+                        Hand your agent a creative brief, watch it pick models and generate
+                        variants, then save the winning run as a node you can rerun for the
+                        next campaign.
                     </p>
                 </div>
 
@@ -42,8 +44,8 @@ export default function AgentBuildRunDeploy() {
 
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3 relative z-10">
                     <Card
-                        title="Design"
-                        subtitle="Set the objective, pick a mode (loop, plan, or multi-agent), and wire in the tools and skills the agent should reach for."
+                        title="Write the brief"
+                        subtitle="Set the look, the mood, the deliverable. Wire in the image, video, and audio models you want the agent to direct — Flux, Seedance, Veo, Suno, ElevenLabs."
                         step={1}
                         accentColor="blue"
                     >
@@ -51,8 +53,8 @@ export default function AgentBuildRunDeploy() {
                     </Card>
 
                     <Card
-                        title="Observe"
-                        subtitle="Stream reasoning, tool calls, and task progress live. OpenTelemetry tracing built in so you can see exactly what the agent did."
+                        title="Watch it direct"
+                        subtitle="See the agent reason about the shot, choose the model, generate variants, and self-correct when a render misses the brief. Every decision is on screen."
                         step={2}
                         accentColor="purple"
                     >
@@ -60,8 +62,8 @@ export default function AgentBuildRunDeploy() {
                     </Card>
 
                     <Card
-                        title="Re-run"
-                        subtitle="Run a team of specialized agents in parallel via a shared task board, then re-run the whole thing as a node next time."
+                        title="Iterate the cut"
+                        subtitle="Tweak the prompt, swap a model, re-run a branch — or save the whole agent as a node and reuse it on the next campaign. Your taste, multiplied."
                         step={3}
                         accentColor="emerald"
                     >
@@ -186,9 +188,9 @@ function Card({ title, subtitle, children, step, accentColor }: CardProps) {
                     {/* Text Content */}
                     <div className="mt-auto relative z-10">
                         <h3 className={`text-xl font-bold mb-3 flex items-center gap-2 ${textAccents[accentColor]}`}>
-                            {step === 1 && <Box className="w-5 h-5" />}
-                            {step === 2 && <Bot className="w-5 h-5" />}
-                            {step === 3 && <Globe className="w-5 h-5" />}
+                            {step === 1 && <MessageSquare className="w-5 h-5" />}
+                            {step === 2 && <Palette className="w-5 h-5" />}
+                            {step === 3 && <RefreshCw className="w-5 h-5" />}
                             {title}
                         </h3>
                         <p className="text-slate-400 text-sm leading-relaxed font-medium">
@@ -307,19 +309,19 @@ function RunGraphic() {
             <div className="flex-1 flex flex-col p-3 font-mono text-[10px] text-slate-400 gap-2 bg-[#0B0C10]">
                 <div className="flex items-start gap-2 animate-[fadeIn_0.5s_ease-out_0.5s_both]">
                     <span className="text-green-400 shrink-0">➜</span>
-                    <span>User: Research &quot;Agents&quot;</span>
+                    <span>Brief: &quot;Sneaker launch, 9:16, neon noir&quot;</span>
                 </div>
                 <div className="flex items-start gap-2 text-blue-400 animate-[fadeIn_0.5s_ease-out_1.5s_both]">
-                    <span className="shrink-0">[PLANNER]</span>
-                    <span>Reasoning: I need to search the web for recent papers.</span>
+                    <span className="shrink-0">[DIRECTOR]</span>
+                    <span>Plan: 4 stills, then animate the hero shot.</span>
                 </div>
                 <div className="flex items-start gap-2 text-yellow-400 animate-[fadeIn_0.5s_ease-out_2.5s_both]">
-                    <span className="shrink-0">[TOOL]</span>
-                    <span>Calling: web_search(query=&quot;autonomous agents 2024&quot;)</span>
+                    <span className="shrink-0">[MODEL]</span>
+                    <span>flux_pro(prompt=&quot;rain-soaked alley, chrome accents&quot;)</span>
                 </div>
                 <div className="flex items-start gap-2 text-purple-400 animate-[fadeIn_0.5s_ease-out_3.5s_both]">
-                    <span className="shrink-0">[OUTPUT]</span>
-                    <span>Found 5 relevant papers...</span>
+                    <span className="shrink-0">[RENDER]</span>
+                    <span>4 variants ready · routing best to Seedance…</span>
                 </div>
             </div>
         </div>
@@ -339,7 +341,7 @@ function DeployGraphic() {
 
             {/* Center Core */}
             <div className="relative z-10 w-16 h-16 rounded-full bg-gradient-to-br from-emerald-900 to-slate-900 border border-emerald-500/50 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-                <Globe className="w-8 h-8 text-emerald-400" />
+                <Film className="w-8 h-8 text-emerald-400" />
                 {/* Ping Effect */}
                 <div className="absolute inset-0 rounded-full border border-emerald-400 animate-ping opacity-20" />
             </div>
@@ -355,7 +357,7 @@ function DeployGraphic() {
             {/* Success Toast */}
             <div className="absolute -bottom-2 bg-emerald-900/80 border border-emerald-500/30 text-emerald-200 text-xs px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg backdrop-blur-md animate-[bounce_3s_infinite]">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Agent Swarm Active
+                Saved as reusable node
             </div>
         </div>
     );
