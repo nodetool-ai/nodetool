@@ -206,6 +206,15 @@ export abstract class BaseNode {
 
   protected dynamicProps = new Map<string, unknown>();
 
+  /**
+   * Framework-injected internals (resolved `_secrets`, the `_control_context`,
+   * …). Kept separate from `dynamicProps` so reserved `_`-prefixed values never
+   * leak into user-facing dynamic-input iteration (prompt template vars, API
+   * args) or into `serialize()`. Read/written through getDynamic/setDynamic,
+   * which route `_`-prefixed keys here.
+   */
+  private _internalProps = new Map<string, unknown>();
+
   constructor(properties: Record<string, unknown> = {}) {
     this.assign(properties);
   }
@@ -275,11 +284,17 @@ export abstract class BaseNode {
             : def;
       }
     }
-    // For dynamic nodes, store undeclared properties in dynamicProps
+    // For dynamic nodes, store undeclared properties. Reserved, framework-
+    // injected keys (anything `_`-prefixed, e.g. `_secrets`, `_control_context`)
+    // are routed to `_internalProps` instead of `dynamicProps` so they never
+    // leak into user-facing dynamic-input iteration or `serialize()`.
     if (ctor.supportsDynamicInputs) {
-      const skip = new Set(["__node_id", "__node_name", "_secrets"]);
       for (const [key, value] of Object.entries(properties)) {
-        if (!declaredNames.has(key) && !skip.has(key)) {
+        if (declaredNames.has(key)) continue;
+        if (key === "__node_id" || key === "__node_name") continue;
+        if (key.startsWith("_")) {
+          this._internalProps.set(key, value);
+        } else {
           this.dynamicProps.set(key, value);
         }
       }
@@ -309,11 +324,16 @@ export abstract class BaseNode {
   }
 
   setDynamic(key: string, value: unknown): void {
-    this.dynamicProps.set(key, value);
+    if (key.startsWith("_")) {
+      this._internalProps.set(key, value);
+    } else {
+      this.dynamicProps.set(key, value);
+    }
   }
 
   getDynamic<T = unknown>(key: string): T | undefined {
-    return this.dynamicProps.get(key) as T | undefined;
+    const store = key.startsWith("_") ? this._internalProps : this.dynamicProps;
+    return store.get(key) as T | undefined;
   }
 
   async initialize(): Promise<void> {}
