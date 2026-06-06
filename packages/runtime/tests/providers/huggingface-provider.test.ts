@@ -35,9 +35,19 @@ function makeMockHfClient(overrides: Record<string, any> = {}) {
     textToImage: vi.fn().mockResolvedValue({
       arrayBuffer: async () => new ArrayBuffer(16)
     }),
+    imageToImage: vi.fn().mockResolvedValue({
+      arrayBuffer: async () => new ArrayBuffer(16)
+    }),
+    textToVideo: vi.fn().mockResolvedValue({
+      arrayBuffer: async () => new ArrayBuffer(32)
+    }),
     textToSpeech: vi.fn().mockResolvedValue({
       arrayBuffer: async () => new ArrayBuffer(16)
     }),
+    automaticSpeechRecognition: vi
+      .fn()
+      .mockResolvedValue({ text: "transcribed text" }),
+    featureExtraction: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
     ...overrides
   };
 }
@@ -318,6 +328,123 @@ describe("HuggingFaceProvider", () => {
     });
   });
 
+  describe("imageToImage", () => {
+    it("sends the image as inputs and prompt as a parameter", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const result = await provider.imageToImage(new Uint8Array([1, 2, 3]), {
+        model: { id: "edit-model", name: "Edit", provider: "huggingface" },
+        prompt: "make it night",
+        guidanceScale: 5
+      });
+
+      expect(result).toBeInstanceOf(Uint8Array);
+      const call = mockClient.imageToImage.mock.calls[0][0];
+      expect(call.model).toBe("edit-model");
+      expect(call.inputs).toBeInstanceOf(Blob);
+      expect(call.parameters.prompt).toBe("make it night");
+      expect(call.parameters.guidance_scale).toBe(5);
+    });
+  });
+
+  describe("textToVideo", () => {
+    it("generates a video from a prompt", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const result = await provider.textToVideo({
+        model: { id: "vid-model", name: "Vid", provider: "huggingface" },
+        prompt: "a dog running",
+        numFrames: 24
+      });
+
+      expect(result).toBeInstanceOf(Uint8Array);
+      const call = mockClient.textToVideo.mock.calls[0][0];
+      expect(call.inputs).toBe("a dog running");
+      expect(call.parameters.num_frames).toBe(24);
+    });
+
+    it("throws on empty prompt", async () => {
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: makeMockHfClient() }
+      );
+      await expect(
+        provider.textToVideo({
+          model: { id: "vid", name: "Vid", provider: "huggingface" },
+          prompt: ""
+        })
+      ).rejects.toThrow("The input prompt cannot be empty.");
+    });
+  });
+
+  describe("automaticSpeechRecognition", () => {
+    it("transcribes audio to text", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const result = await provider.automaticSpeechRecognition({
+        audio: new Uint8Array([1, 2, 3, 4]),
+        model: "openai/whisper-large-v3"
+      });
+
+      expect(result.text).toBe("transcribed text");
+      const call = mockClient.automaticSpeechRecognition.mock.calls[0][0];
+      expect(call.model).toBe("openai/whisper-large-v3");
+      expect(call.data).toBeInstanceOf(Blob);
+    });
+  });
+
+  describe("generateEmbedding", () => {
+    it("wraps a single embedding vector into a list", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const result = await provider.generateEmbedding({
+        text: "hello",
+        model: "sentence-transformers/all-MiniLM-L6-v2"
+      });
+
+      expect(result).toEqual([[0.1, 0.2, 0.3]]);
+    });
+
+    it("passes through a batch of embedding vectors", async () => {
+      const mockClient = makeMockHfClient({
+        featureExtraction: vi.fn().mockResolvedValue([
+          [0.1, 0.2],
+          [0.3, 0.4]
+        ])
+      });
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const result = await provider.generateEmbedding({
+        text: ["a", "b"],
+        model: "test"
+      });
+
+      expect(result).toEqual([
+        [0.1, 0.2],
+        [0.3, 0.4]
+      ]);
+    });
+  });
+
   describe("textToSpeechEncoded", () => {
     it("generates encoded audio from text", async () => {
       // Minimal FLAC header magic bytes ("fLaC") so the provider detects
@@ -432,6 +559,61 @@ describe("HuggingFaceProvider", () => {
       expect(models.length).toBeGreaterThan(0);
       expect(models.every((m) => m.provider === "huggingface")).toBe(true);
       expect(fetchMock).toHaveBeenCalledOnce();
+    });
+
+    it("returns ASR models", async () => {
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "openai/whisper-large-v3" }]
+      } as Response);
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: makeMockHfClient() }
+      );
+
+      const models = await provider.getAvailableASRModels();
+      expect(models.length).toBeGreaterThan(0);
+      expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+      expect(fetchMock).toHaveBeenCalledOnce();
+    });
+
+    it("returns embedding models", async () => {
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () => [{ id: "sentence-transformers/all-MiniLM-L6-v2" }]
+      } as Response);
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: makeMockHfClient() }
+      );
+
+      const models = await provider.getAvailableEmbeddingModels();
+      expect(models.length).toBeGreaterThan(0);
+      expect(models.every((m) => m.provider === "huggingface")).toBe(true);
+      expect(fetchMock).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("capabilities", () => {
+    it("advertises every supported modality", async () => {
+      const { providerCapabilities } = await import(
+        "../../src/providers/base-provider.js"
+      );
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: makeMockHfClient() }
+      );
+      const caps = providerCapabilities(provider);
+      expect(caps).toEqual(
+        expect.arrayContaining([
+          "text_to_image",
+          "image_to_image",
+          "text_to_video",
+          "text_to_speech",
+          "automatic_speech_recognition",
+          "generate_embedding"
+        ])
+      );
     });
   });
 });

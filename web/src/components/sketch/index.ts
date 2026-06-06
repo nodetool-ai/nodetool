@@ -133,14 +133,8 @@ export {
   exportLayer,
   canvasToDataUrl,
   canvasToBlob,
-  loadImageToLayerData,
   loadImageWithDimensions,
   getLayerDataImageUrl
-} from "./serialization";
-
-export type {
-  ImageLoadResult,
-  LayerRasterBounds
 } from "./serialization";
 
 /** Clipboard / copy-paste pixel pipeline (usable from a standalone sketch shell). */

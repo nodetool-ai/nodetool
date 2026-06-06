@@ -57,7 +57,7 @@ function colour(k: SpectraKey) {
   return SpectraNode[k];
 }
 
-export function normalizeTypeName(value: string) {
+export function normalizeTypeName(value: string): string {
   return value === "model3d" ? "model_3d" : value;
 }
 

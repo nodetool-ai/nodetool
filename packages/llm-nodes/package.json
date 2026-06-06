@@ -48,6 +48,12 @@
       "import": "./dist/nodes/mistral.js",
       "default": "./dist/nodes/mistral.js"
     },
+    "./xai": {
+      "nodetool-dev": "./src/nodes/xai.ts",
+      "types": "./dist/nodes/xai.d.ts",
+      "import": "./dist/nodes/xai.js",
+      "default": "./dist/nodes/xai.js"
+    },
     "./agents": {
       "nodetool-dev": "./src/nodes/agents.ts",
       "types": "./dist/nodes/agents.d.ts",

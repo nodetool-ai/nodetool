@@ -318,7 +318,7 @@ async function pollCustom(
     // Runway-style completion: state === "success"
     const state = inner?.state as string;
     if (state === "success") return data;
-    if (state === "fail") {
+    if (state === "fail" || state === "failed") {
       const msg = inner?.failMsg || data.msg || "Unknown error";
       throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
     }
