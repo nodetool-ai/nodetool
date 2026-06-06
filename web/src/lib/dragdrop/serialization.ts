@@ -5,6 +5,7 @@
  * compatibility for existing dataTransfer keys.
  */
 
+import type { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import type { DragData, DragDataType } from "./types";
 
 /** Custom MIME type for internal drag data */
@@ -82,9 +83,10 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   const createNode = dataTransfer.getData("create-node");
   if (createNode) {
     try {
+      const payload: unknown = JSON.parse(createNode);
       return {
         type: "create-node",
-        payload: JSON.parse(createNode)
+        payload: payload as NodeMetadata
       };
     } catch {
       // Ignore parse errors
@@ -109,9 +111,10 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   const asset = dataTransfer.getData("asset");
   if (asset) {
     try {
+      const assetPayload: unknown = JSON.parse(asset);
       return {
         type: "asset",
-        payload: JSON.parse(asset)
+        payload: assetPayload as Asset
       };
     } catch {
       // Ignore parse errors
