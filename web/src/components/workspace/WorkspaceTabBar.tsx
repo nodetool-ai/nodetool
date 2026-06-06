@@ -355,7 +355,11 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
       const updatedWorkflow = { ...workflow, name: trimmed };
       updateWorkflow(updatedWorkflow);
-      await saveWorkflow(updatedWorkflow);
+      try {
+        await saveWorkflow(updatedWorkflow);
+      } catch {
+        updateWorkflow(workflow);
+      }
     },
     [getWorkflow, updateWorkflow, saveWorkflow]
   );

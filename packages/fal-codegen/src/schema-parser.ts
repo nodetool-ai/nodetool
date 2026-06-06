@@ -951,10 +951,7 @@ export class SchemaParser {
             tsType: "audio",
             propType: "audio"
           };
-        } else if (
-          lower === "mask_url" ||
-          (lower.includes("mask") && !lower.includes("image"))
-        ) {
+        } else if (lower === "mask_url") {
           // mask_url → mask (FAL API still expects mask_url)
           return {
             ...f,

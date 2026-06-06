@@ -197,6 +197,7 @@ const pruneStaleWorkflowReference = (
   const previousOpenIds = storage.getOpenWorkflows();
   const openIds = previousOpenIds.filter((id) => id !== workflowId);
   if (openIds.length !== previousOpenIds.length) {
+    storage.setOpenWorkflows.cancel();
     localStorage.setItem(
       STORAGE_KEYS.OPEN_WORKFLOWS,
       JSON.stringify(openIds)
@@ -224,6 +225,7 @@ const pruneStaleWorkflowReference = (
     if (newCurrentId) {
       storage.setCurrentWorkflow(newCurrentId);
     } else {
+      storage.setCurrentWorkflow.cancel();
       localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKFLOW);
     }
 

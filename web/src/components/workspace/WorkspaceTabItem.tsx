@@ -2,6 +2,7 @@
 import React, {
   memo,
   useCallback,
+  useRef,
   useState,
   type DragEvent,
   type MouseEvent
@@ -64,6 +65,7 @@ const WorkspaceTabItem = ({
     x: number;
     y: number;
   } | null>(null);
+  const skipBlurCommitRef = useRef(false);
 
   const dropClass =
     dropTarget?.id === tab.id
@@ -92,12 +94,6 @@ const WorkspaceTabItem = ({
     [onClose, tab]
   );
 
-  const handleMouseDown = useCallback((event: MouseEvent<HTMLDivElement>) => {
-    if (event.button === 0) {
-      event.preventDefault();
-    }
-  }, []);
-
   const handleTabKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -124,7 +120,6 @@ const WorkspaceTabItem = ({
             onBeginRename(tab);
           }
         }}
-        onMouseDown={handleMouseDown}
         onAuxClick={handleAuxClick}
         onDragStart={(event) => onDragStart(event, tab.id)}
         onDragOver={(event) => onDragOver(event, tab)}
@@ -144,12 +139,22 @@ const WorkspaceTabItem = ({
             onClick={(event) => event.stopPropagation()}
             onFocus={(event) => event.currentTarget.select()}
             onBlur={(event) => {
+              if (skipBlurCommitRef.current) {
+                skipBlurCommitRef.current = false;
+                return;
+              }
               void onCommitRename(tab, event.currentTarget.value);
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
+                event.preventDefault();
+                event.stopPropagation();
+                skipBlurCommitRef.current = true;
                 void onCommitRename(tab, event.currentTarget.value);
               } else if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                skipBlurCommitRef.current = true;
                 onCancelRename();
               }
             }}

@@ -181,17 +181,33 @@ async function promptAssetOverrides(
   return mapPromptAssetsToInputs(textFields, assetFields, context);
 }
 
-function resolveFieldValue(instance: BaseNode, fieldName: string): unknown {
+function resolveFieldValue(
+  instance: BaseNode,
+  fieldName: string,
+  apiParamName?: string,
+  propType?: string
+): unknown {
   const record = instance as unknown as Record<string, unknown>;
-  if (fieldName === "mask") {
-    const mask = record["mask"];
-    const legacy = record["mask_url"];
-    if (isRefSet(mask)) return mask;
-    if (legacy !== undefined) return legacy;
-    return mask;
+  const primary = fieldName in record ? record[fieldName] : undefined;
+  const kind = propType ? assetKind(propType) : "none";
+
+  if (
+    apiParamName &&
+    apiParamName in record &&
+    record[apiParamName] !== undefined &&
+    (primary === undefined || (kind !== "none" && !isRefSet(primary)))
+  ) {
+    return record[apiParamName];
   }
-  if (fieldName in record && record[fieldName] !== undefined) {
-    return record[fieldName];
+  if (primary !== undefined) {
+    return primary;
+  }
+  if (
+    fieldName === "mask" &&
+    record.mask_url !== undefined &&
+    (primary === undefined || (kind !== "none" && !isRefSet(primary)))
+  ) {
+    return record.mask_url;
   }
   return undefined;
 }
@@ -210,7 +226,12 @@ function validateRequiredAssetArgs(
     if (field.parentField || !field.required) continue;
     const kind = assetKind(field.propType);
     if (kind === "none") continue;
-    const value = resolveFieldValue(instance, field.name);
+    const value = resolveFieldValue(
+      instance,
+      field.name,
+      field.apiParamName,
+      field.propType
+    );
     const suffix =
       field.name === "mask" ? " and match image dimensions" : "";
     if (isListAsset(field.propType)) {
@@ -253,7 +274,12 @@ async function buildArgs(
     const value =
       field.name in overrides
         ? overrides[field.name]
-        : resolveFieldValue(instance, field.name);
+        : resolveFieldValue(
+            instance,
+            field.name,
+            field.apiParamName,
+            field.propType
+          );
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
 
