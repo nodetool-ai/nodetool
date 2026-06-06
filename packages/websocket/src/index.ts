@@ -44,6 +44,7 @@ export {
 } from "./lib/package-asset-export.js";
 export {
   packWorkflowBundle,
+  packWorkflowsBundle,
   unpackWorkflowBundle,
   importWorkflowBundle,
   verifyBundleChecksums,
@@ -53,6 +54,7 @@ export {
   type WorkflowBundleManifest,
   type BundledWorkflow,
   type PackBundleOptions,
+  type PackWorkflowsBundleOptions,
   type PackBundleResult,
   type UnpackedBundle,
   type ImportBundleOptions,

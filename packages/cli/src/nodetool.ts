@@ -757,10 +757,10 @@ workflows
   );
 
 workflows
-  .command("export-bundle <workflow_id_or_file>")
+  .command("export-bundle <workflow_id_or_file...>")
   .description(
-    "Export a workflow as a portable .nodetool bundle (zip): the graph plus the " +
-      "bytes of every asset it references, sharable as a single file"
+    "Export one or more workflows as a portable .nodetool bundle (zip): the " +
+      "graphs plus the bytes of every asset they reference, in a single file"
   )
   .option(
     "--api-url <url>",
@@ -774,15 +774,15 @@ workflows
   )
   .action(
     async (
-      idOrFile: string,
+      idsOrFiles: string[],
       opts: { apiUrl: string; output?: string; includeRemote?: boolean }
     ) => {
       try {
         const { readFileSync } = await import("node:fs");
         const { writeFile } = await import("node:fs/promises");
-        const { packWorkflowBundle } = await import("@nodetool-ai/websocket");
+        const { packWorkflowsBundle } = await import("@nodetool-ai/websocket");
 
-        let workflow: {
+        type BundleWf = {
           name: string;
           description?: string;
           tags?: string[];
@@ -791,60 +791,48 @@ workflows
           graph: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
         };
 
-        const isFile =
-          idOrFile.endsWith(".json") ||
-          idOrFile.includes("/") ||
-          idOrFile.includes("\\");
-
-        if (isFile) {
-          const raw = JSON.parse(readFileSync(idOrFile, "utf8")) as Record<
-            string,
-            unknown
-          >;
-          workflow = {
-            name: typeof raw.name === "string" ? raw.name : "workflow",
-            description:
-              typeof raw.description === "string" ? raw.description : "",
-            tags: Array.isArray(raw.tags)
-              ? raw.tags.filter((t): t is string => typeof t === "string")
-              : [],
-            run_mode: (raw.run_mode as string | null | undefined) ?? null,
-            settings: (raw.settings as Record<string, unknown> | null) ?? null,
-            graph: (raw.graph ?? raw) as typeof workflow.graph
-          };
-        } else {
-          const wf = (await createApiClient(opts.apiUrl).workflows.get.query({
-            id: idOrFile
-          })) as Record<string, unknown>;
-          workflow = {
-            name: typeof wf.name === "string" ? wf.name : "workflow",
-            description:
-              typeof wf.description === "string" ? wf.description : "",
-            tags: Array.isArray(wf.tags)
-              ? wf.tags.filter((t): t is string => typeof t === "string")
-              : [],
-            run_mode: (wf.run_mode as string | null | undefined) ?? null,
-            settings: (wf.settings as Record<string, unknown> | null) ?? null,
-            graph: wf.graph as typeof workflow.graph
-          };
-        }
-
-        if (!workflow.graph?.nodes) {
-          throw new Error("Workflow has no graph to export");
-        }
+        const toBundleWf = (raw: Record<string, unknown>): BundleWf => ({
+          name: typeof raw.name === "string" ? raw.name : "workflow",
+          description: typeof raw.description === "string" ? raw.description : "",
+          tags: Array.isArray(raw.tags)
+            ? raw.tags.filter((t): t is string => typeof t === "string")
+            : [],
+          run_mode: (raw.run_mode as string | null | undefined) ?? null,
+          settings: (raw.settings as Record<string, unknown> | null) ?? null,
+          graph: (raw.graph ?? raw) as BundleWf["graph"]
+        });
 
         const apiUrl = opts.apiUrl.replace(/\/+$/, "");
-        const fetchAssetBytes = makeAssetFetcher(apiUrl);
+        const workflowsToPack: BundleWf[] = [];
+        for (const idOrFile of idsOrFiles) {
+          const isFile =
+            idOrFile.endsWith(".json") ||
+            idOrFile.includes("/") ||
+            idOrFile.includes("\\");
+          const raw = isFile
+            ? (JSON.parse(readFileSync(idOrFile, "utf8")) as Record<string, unknown>)
+            : ((await createApiClient(apiUrl).workflows.get.query({
+                id: idOrFile
+              })) as Record<string, unknown>);
+          const wf = toBundleWf(raw);
+          if (!wf.graph?.nodes) {
+            throw new Error(`Workflow '${idOrFile}' has no graph to export`);
+          }
+          workflowsToPack.push(wf);
+        }
 
-        const { bytes, manifest, skipped } = await packWorkflowBundle({
-          workflow,
-          fetchAssetBytes,
+        const { bytes, manifest, skipped } = await packWorkflowsBundle({
+          workflows: workflowsToPack,
+          fetchAssetBytes: makeAssetFetcher(apiUrl),
           nodetoolVersion: cliVersion(),
           ...(opts.includeRemote ? { includeRemote: true } : {})
         });
 
-        const safeName = workflow.name.replace(/[^A-Za-z0-9._-]+/g, "_");
-        const outPath = opts.output ?? `${safeName}.nodetool`;
+        const defaultBase =
+          workflowsToPack.length === 1
+            ? workflowsToPack[0]!.name.replace(/[^A-Za-z0-9._-]+/g, "_")
+            : `${workflowsToPack.length}-workflows`;
+        const outPath = opts.output ?? `${defaultBase}.nodetool`;
         await writeFile(outPath, bytes);
 
         for (const a of manifest.assets) {
@@ -853,6 +841,9 @@ workflows
         for (const s of skipped) {
           console.error(`  warning: could not resolve asset ${s} (left as-is)`);
         }
+        console.error(
+          `  bundled ${manifest.workflows.length} workflow(s), ${manifest.assets.length} asset(s)`
+        );
         console.log(outPath);
       } catch (e) {
         console.error(String(e));
@@ -865,9 +856,9 @@ workflows
   .command("import-bundle <bundle_file>")
   .description(
     "Import a .nodetool bundle into the local library: store its assets and " +
-      "create the workflow with refs rewritten to the imported assets"
+      "create the workflows with refs rewritten to the imported assets"
   )
-  .option("--json", "Output the created workflow as JSON")
+  .option("--json", "Output the created workflows as JSON")
   .action(async (bundleFile: string, opts: { json?: boolean }) => {
     try {
       const { readFileSync } = await import("node:fs");
@@ -888,17 +879,21 @@ workflows
         }
       });
 
-      const wf = result.workflow;
-      const created = (await Workflow.create({
-        user_id: "1",
-        name: wf.name,
-        description: wf.description ?? "",
-        tags: wf.tags ?? [],
-        access: "private",
-        graph: wf.graph,
-        run_mode: wf.run_mode ?? "workflow",
-        settings: wf.settings ?? null
-      })) as unknown as Record<string, unknown>;
+      const created: Record<string, unknown>[] = [];
+      for (const wf of result.workflows) {
+        created.push(
+          (await Workflow.create({
+            user_id: "1",
+            name: wf.name,
+            description: wf.description ?? "",
+            tags: wf.tags ?? [],
+            access: "private",
+            graph: wf.graph,
+            run_mode: wf.run_mode ?? "workflow",
+            settings: wf.settings ?? null
+          })) as unknown as Record<string, unknown>
+        );
+      }
 
       for (const s of result.missing) {
         console.error(`  warning: bundle asset ${s} was missing from the archive`);
@@ -907,13 +902,15 @@ workflows
         console.error(`  warning: ${m}`);
       }
       console.error(
-        `  imported ${result.imported.length} asset(s) into local storage`
+        `  imported ${created.length} workflow(s) and ${result.imported.length} asset(s) into local storage`
       );
 
       if (opts.json) {
         asJson(created);
       } else {
-        console.log(String(created["id"]));
+        for (const c of created) {
+          console.log(String(c["id"]));
+        }
       }
     } catch (e) {
       console.error(String(e));

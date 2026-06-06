@@ -49,6 +49,12 @@ import {
 } from "./storage-api.js";
 import { handleFileRequest } from "./file-api.js";
 import { storeAssetWithThumbnail, thumbnailKey } from "./lib/thumbnail.js";
+import { getAssetAdapter } from "./lib/storage.js";
+import {
+  packWorkflowsBundle,
+  importWorkflowBundle,
+  type BundledWorkflow
+} from "./lib/workflow-bundle.js";
 
 const log = createLogger("nodetool.websocket.http");
 
@@ -1161,6 +1167,216 @@ export async function handleWorkflowDslExport(
   }
 }
 
+// ── Workflow bundle export/import (.nodetool) ──────────────────────────
+
+/** Resolve asset bytes for a ref during export, via the asset storage adapter. */
+async function resolveAssetBytesForExport(
+  ref: string
+): Promise<Uint8Array | null> {
+  try {
+    if (ref.startsWith("asset://")) {
+      const rest = ref.slice("asset://".length).split("?")[0].split("#")[0];
+      let key = rest;
+      if (!nodePath.extname(rest)) {
+        const asset = (await Asset.get(rest)) as Asset | null;
+        if (!asset) return null;
+        key = getAssetFileName(asset.id, asset.content_type);
+      }
+      const adapter = getAssetAdapter();
+      return await adapter.retrieve(adapter.uriForKey(key));
+    }
+    if (ref.includes("/api/storage/")) {
+      const key = decodeURIComponent(
+        ref.slice(ref.indexOf("/api/storage/") + "/api/storage/".length).split("?")[0]
+      );
+      const adapter = getAssetAdapter();
+      return await adapter.retrieve(adapter.uriForKey(key));
+    }
+    if (/^https?:\/\//.test(ref)) {
+      const res = await fetch(ref);
+      if (!res.ok) return null;
+      return new Uint8Array(await res.arrayBuffer());
+    }
+  } catch {
+    // Unresolved — the ref is left as-is in the bundle.
+  }
+  return null;
+}
+
+async function loadBundledWorkflow(
+  workflowId: string,
+  userId: string
+): Promise<BundledWorkflow | { error: Response }> {
+  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+  if (!workflow) {
+    return { error: errorResponse(404, `Workflow not found: ${workflowId}`) };
+  }
+  if (workflow.access !== "public" && workflow.user_id !== userId) {
+    return { error: errorResponse(404, `Workflow not found: ${workflowId}`) };
+  }
+  if (!workflow.graph) {
+    return { error: errorResponse(400, "Workflow has no graph to export") };
+  }
+  return {
+    id: workflow.id,
+    name: workflow.name,
+    description: workflow.description ?? "",
+    tags: workflow.tags ?? [],
+    run_mode: workflow.run_mode ?? null,
+    settings: workflow.settings ?? null,
+    graph: workflow.graph as unknown as BundledWorkflow["graph"]
+  };
+}
+
+function bundleResponse(bytes: Uint8Array, name: string): Response {
+  const safe = name.replace(/[^A-Za-z0-9._-]+/g, "_") || "workflows";
+  // Copy into an ArrayBuffer-backed view so it satisfies BodyInit.
+  const body = new Uint8Array(bytes);
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "content-type": "application/zip",
+      "content-length": String(bytes.byteLength),
+      "content-disposition": `attachment; filename="${safe}.nodetool"`,
+      "cache-control": "no-store"
+    }
+  });
+}
+
+/** GET /api/workflows/:id/export-bundle — single workflow as a .nodetool zip. */
+export async function handleWorkflowExportBundle(
+  request: Request,
+  workflowId: string,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  const loaded = await loadBundledWorkflow(workflowId, userId);
+  if ("error" in loaded) {
+    return loaded.error;
+  }
+  const { bytes } = await packWorkflowsBundle({
+    workflows: [loaded],
+    fetchAssetBytes: resolveAssetBytesForExport
+  });
+  return bundleResponse(bytes, loaded.name);
+}
+
+/** POST /api/workflows/export-bundle {workflow_ids} — multiple workflows. */
+export async function handleWorkflowsExportBundle(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  const body = await parseJsonBody<{ workflow_ids?: unknown }>(request);
+  const ids = Array.isArray(body?.workflow_ids)
+    ? body.workflow_ids.filter((v): v is string => typeof v === "string")
+    : [];
+  if (ids.length === 0) {
+    return errorResponse(400, "workflow_ids (non-empty array) is required");
+  }
+  const workflows: BundledWorkflow[] = [];
+  for (const id of ids) {
+    const loaded = await loadBundledWorkflow(id, userId);
+    if ("error" in loaded) {
+      return loaded.error;
+    }
+    workflows.push(loaded);
+  }
+  const { bytes } = await packWorkflowsBundle({
+    workflows,
+    fetchAssetBytes: resolveAssetBytesForExport
+  });
+  const name =
+    workflows.length === 1 ? workflows[0].name : `${workflows.length}-workflows`;
+  return bundleResponse(bytes, name);
+}
+
+/** POST /api/workflows/import-bundle — multipart .nodetool upload. */
+export async function handleWorkflowImportBundle(
+  request: Request,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+
+  let zipBytes: Uint8Array | null = null;
+  const contentType = request.headers.get("content-type") ?? "";
+  if (contentType.toLowerCase().includes("multipart/form-data")) {
+    try {
+      const fd = await request.formData();
+      const file = fd.get("file") as File | null;
+      if (file) {
+        zipBytes = new Uint8Array(await file.arrayBuffer());
+      }
+    } catch {
+      return errorResponse(400, "Invalid multipart form data");
+    }
+  } else {
+    const buf = await request.arrayBuffer();
+    if (buf.byteLength > 0) {
+      zipBytes = new Uint8Array(buf);
+    }
+  }
+  if (!zipBytes) {
+    return errorResponse(400, "A .nodetool bundle file is required");
+  }
+
+  let result: Awaited<ReturnType<typeof importWorkflowBundle>>;
+  try {
+    result = await importWorkflowBundle(zipBytes, {
+      storeAsset: async ({ bytes, fileName, contentType: assetType }) => {
+        const asset = (await Asset.create({
+          user_id: userId,
+          name: fileName,
+          content_type: assetType,
+          parent_id: userId,
+          size: bytes.byteLength
+        })) as Asset;
+        const storedName = getAssetFileName(asset.id, asset.content_type);
+        await storeAssetWithThumbnail(asset.id, storedName, bytes, asset.content_type);
+        return { uri: `asset://${storedName}`, assetId: asset.id };
+      }
+    });
+  } catch (error) {
+    return errorResponse(
+      400,
+      `Invalid bundle: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  const created: JsonObject[] = [];
+  for (const wf of result.workflows) {
+    const workflow = await createWorkflow(
+      {
+        name: wf.name,
+        description: wf.description ?? "",
+        tags: wf.tags ?? [],
+        access: "private",
+        graph: wf.graph as unknown as WorkflowRequestBody["graph"],
+        settings: wf.settings ?? null,
+        run_mode: wf.run_mode ?? "workflow"
+      },
+      userId
+    );
+    created.push(toWorkflowResponse(workflow));
+  }
+
+  return jsonResponse({
+    workflows: created,
+    imported: result.imported.length,
+    missing: result.missing,
+    checksum_mismatches: result.checksumMismatches
+  });
+}
+
 // ── Workflow Gradio export (stub) ──────────────────────────────────────
 
 export async function handleWorkflowGradioExport(
@@ -1726,6 +1942,14 @@ export async function handleApiRequest(
     return handleWorkflowTools(request, options);
   }
 
+  if (pathname === "/api/workflows/export-bundle") {
+    return handleWorkflowsExportBundle(request, options);
+  }
+
+  if (pathname === "/api/workflows/import-bundle") {
+    return handleWorkflowImportBundle(request, options);
+  }
+
   if (pathname === "/api/workflows/examples") {
     return handleWorkflowExamples(request, options);
   }
@@ -1779,6 +2003,9 @@ export async function handleApiRequest(
       }
       if (subPath === "dsl-export") {
         return handleWorkflowDslExport(request, workflowId, options);
+      }
+      if (subPath === "export-bundle") {
+        return handleWorkflowExportBundle(request, workflowId, options);
       }
       if (subPath === "gradio-export") {
         return handleWorkflowGradioExport(request, workflowId, options);

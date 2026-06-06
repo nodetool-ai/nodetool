@@ -9,6 +9,7 @@ import { describe, it, expect, vi } from "vitest";
 import { strToU8, zipSync } from "fflate";
 import {
   packWorkflowBundle,
+  packWorkflowsBundle,
   unpackWorkflowBundle,
   importWorkflowBundle,
   verifyBundleChecksums,
@@ -86,7 +87,9 @@ describe("packWorkflowBundle / unpackWorkflowBundle", () => {
     expect(manifest.assets[0].bytes).toBe(3);
 
     const unpacked = unpackWorkflowBundle(bytes);
-    const ref = (unpacked.workflow.graph.nodes[0].data as Record<string, any>)
+    expect(unpacked.workflows).toHaveLength(1);
+    expect(unpacked.manifest.workflows[0].name).toBe("Audio To Image");
+    const ref = (unpacked.workflows[0].graph.nodes[0].data as Record<string, any>)
       .value;
     expect(ref.uri.startsWith(WORKFLOW_BUNDLE_SCHEME)).toBe(true);
     expect(ref.asset_id).toBeUndefined();
@@ -148,11 +151,12 @@ describe("importWorkflowBundle", () => {
     expect(result.missing).toEqual([]);
     expect(result.imported).toHaveLength(1);
 
-    const ref = (result.workflow.graph.nodes[0].data as Record<string, any>)
+    expect(result.workflows).toHaveLength(1);
+    const ref = (result.workflows[0].graph.nodes[0].data as Record<string, any>)
       .value;
     expect(ref.uri).toBe("asset://imported-1.mp3");
     expect(ref.asset_id).toBe("imported-1");
-    expect(result.workflow.name).toBe("Audio To Image");
+    expect(result.workflows[0].name).toBe("Audio To Image");
   });
 
   it("reports bundle:// refs whose bytes are missing from the archive", async () => {
@@ -217,13 +221,14 @@ describe("verifyBundleChecksums", () => {
         format: WORKFLOW_BUNDLE_FORMAT,
         version: WORKFLOW_BUNDLE_VERSION,
         created_at: "",
+        workflows: [],
         assets: [
           { file: "assets/a.png", bytes: 1, sha256: "wrong" },
           { file: "assets/b.png", bytes: 1, sha256: "x" }
         ],
         thumbnail: null
       },
-      workflow: { name: "w", graph: { nodes: [], edges: [] } },
+      workflows: [{ name: "w", graph: { nodes: [], edges: [] } }],
       assets: new Map([["a.png", new Uint8Array([1])]]),
       thumbnail: null
     });
@@ -231,5 +236,81 @@ describe("verifyBundleChecksums", () => {
       "assets/a.png (checksum)",
       "assets/b.png (missing)"
     ]);
+  });
+});
+
+describe("multi-workflow bundles", () => {
+  it("packs several workflows, sharing identical assets, and imports them all", async () => {
+    const shared = { uri: "/api/storage/shared.png", type: "image" };
+    const workflows: BundledWorkflow[] = [
+      {
+        name: "First",
+        graph: { nodes: [{ id: "1", type: "x", data: { v: { ...shared } } }], edges: [] }
+      },
+      {
+        name: "Second",
+        graph: { nodes: [{ id: "2", type: "x", data: { v: { ...shared } } }], edges: [] }
+      }
+    ];
+    // Same source across workflows → resolved once (memoized).
+    const fetchAssetBytes = vi.fn().mockResolvedValue(new Uint8Array([1, 1, 1]));
+
+    const { bytes, manifest } = await packWorkflowsBundle({
+      workflows,
+      fetchAssetBytes
+    });
+    expect(fetchAssetBytes).toHaveBeenCalledTimes(1);
+    expect(manifest.workflows.map((w) => w.name)).toEqual(["First", "Second"]);
+    expect(manifest.assets).toHaveLength(1); // shared, deduped
+
+    const unpacked = unpackWorkflowBundle(bytes);
+    expect(unpacked.workflows).toHaveLength(2);
+
+    let storeCalls = 0;
+    const result = await importWorkflowBundle(bytes, {
+      storeAsset: async () => {
+        storeCalls += 1;
+        return { uri: "asset://shared-imported.png", assetId: "shared-imported" };
+      }
+    });
+    // Shared asset stored once across both workflows.
+    expect(storeCalls).toBe(1);
+    expect(result.workflows).toHaveLength(2);
+    for (const wf of result.workflows) {
+      expect((wf.graph.nodes[0].data as Record<string, any>).v.uri).toBe(
+        "asset://shared-imported.png"
+      );
+    }
+  });
+
+  it("disambiguates workflow file names when names collide", async () => {
+    const { manifest } = await packWorkflowsBundle({
+      workflows: [
+        { name: "Same", graph: { nodes: [], edges: [] } },
+        { name: "Same", graph: { nodes: [], edges: [] } }
+      ],
+      fetchAssetBytes: vi.fn()
+    });
+    const files = manifest.workflows.map((w) => w.file);
+    expect(new Set(files).size).toBe(2);
+  });
+
+  it("reads a legacy v1 single-workflow bundle (workflow.json)", async () => {
+    const v1 = zipSync({
+      "manifest.json": strToU8(
+        JSON.stringify({
+          format: WORKFLOW_BUNDLE_FORMAT,
+          version: 1,
+          created_at: "",
+          assets: []
+        })
+      ),
+      "workflow.json": strToU8(
+        JSON.stringify({ name: "Legacy", graph: { nodes: [], edges: [] } })
+      )
+    });
+    const unpacked = unpackWorkflowBundle(v1);
+    expect(unpacked.workflows).toHaveLength(1);
+    expect(unpacked.workflows[0].name).toBe("Legacy");
   });
 });
