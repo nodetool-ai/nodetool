@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.workflow`.
  */
 
-import { eq, and, desc, or, isNull, type SQL } from "drizzle-orm";
+import { eq, and, desc, or, isNull, lt, type SQL } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
@@ -128,9 +128,10 @@ export class Workflow extends DBModel {
       access?: AccessLevel;
       runMode?: WorkflowRunMode | string;
       tag?: string;
+      startKey?: string;
     } = {}
   ): Promise<[Workflow[], string]> {
-    const { limit = 50, access, runMode, tag } = opts;
+    const { limit = 50, access, runMode, tag, startKey } = opts;
     const db = getDb();
 
     const conditions = [eq(workflows.user_id, userId)];
@@ -151,6 +152,12 @@ export class Workflow extends DBModel {
           )
         )
       );
+    }
+    if (startKey) {
+      const cursor = await Workflow.get<Workflow>(startKey);
+      if (cursor && cursor.user_id === userId) {
+        conditions.push(lt(workflows.updated_at, cursor.updated_at));
+      }
     }
 
     const rows = await db
@@ -185,14 +192,21 @@ export class Workflow extends DBModel {
 
   /** Paginate public workflows only. */
   static async paginatePublic(
-    opts: { limit?: number } = {}
+    opts: { limit?: number; startKey?: string } = {}
   ): Promise<[Workflow[], string]> {
-    const { limit = 50 } = opts;
+    const { limit = 50, startKey } = opts;
     const db = getDb();
+    const conditions = [eq(workflows.access, "public")];
+    if (startKey) {
+      const cursor = await Workflow.get<Workflow>(startKey);
+      if (cursor && cursor.access === "public") {
+        conditions.push(lt(workflows.updated_at, cursor.updated_at));
+      }
+    }
     const rows = await db
       .select()
       .from(workflows)
-      .where(eq(workflows.access, "public"))
+      .where(and(...conditions))
       .orderBy(desc(workflows.updated_at))
       .limit(limit + 1);
 
@@ -208,14 +222,24 @@ export class Workflow extends DBModel {
   /** Paginate workflows that are configured as tools. */
   static async paginateTools(
     userId: string,
-    opts: { limit?: number } = {}
+    opts: { limit?: number; startKey?: string } = {}
   ): Promise<[Workflow[], string]> {
-    const { limit = 50 } = opts;
+    const { limit = 50, startKey } = opts;
     const db = getDb();
+    const conditions = [
+      eq(workflows.user_id, userId),
+      eq(workflows.run_mode, "tool")
+    ];
+    if (startKey) {
+      const cursor = await Workflow.get<Workflow>(startKey);
+      if (cursor && cursor.user_id === userId) {
+        conditions.push(lt(workflows.updated_at, cursor.updated_at));
+      }
+    }
     const rows = await db
       .select()
       .from(workflows)
-      .where(and(eq(workflows.user_id, userId), eq(workflows.run_mode, "tool")))
+      .where(and(...conditions))
       .orderBy(desc(workflows.updated_at))
       .limit(limit + 1);
 

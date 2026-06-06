@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.asset`.
  */
 
-import { eq, and, like, desc, isNull } from "drizzle-orm";
+import { eq, and, like, desc, isNull, lt } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { assets } from "./schema/assets.js";
@@ -90,6 +90,7 @@ export class Asset extends DBModel {
       jobId?: string;
       timelineId?: string;
       limit?: number;
+      startKey?: string;
     } = {}
   ): Promise<[Asset[], string]> {
     const {
@@ -99,7 +100,8 @@ export class Asset extends DBModel {
       nodeId,
       jobId,
       timelineId,
-      limit = 50
+      limit = 50,
+      startKey
     } = opts;
     const db = getDb();
 
@@ -122,6 +124,12 @@ export class Asset extends DBModel {
     }
     if (jobId) {
       conditions.push(eq(assets.job_id, jobId));
+    }
+    if (startKey) {
+      const cursor = await Asset.get<Asset>(startKey);
+      if (cursor && cursor.user_id === userId) {
+        conditions.push(lt(assets.created_at, cursor.created_at));
+      }
     }
     if (timelineId) {
       conditions.push(eq(assets.timeline_id, timelineId));

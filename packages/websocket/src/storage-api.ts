@@ -29,6 +29,30 @@ function getMimeType(filePath: string): string {
   );
 }
 
+// ── Cross-origin headers ──────────────────────────────────────────
+//
+// Asset URLs returned by the storage endpoint are designed to be embedded
+// from arbitrary origins — MCP App iframes (which run with a `null` or
+// remote origin and often `Cross-Origin-Embedder-Policy: require-corp`),
+// the Electron renderer, and external preview/MCP clients. Without
+// `Cross-Origin-Resource-Policy: cross-origin` the browser refuses to load
+// images/video/audio into COEP-enabled documents, even though the bytes
+// are public. Setting CORS headers here (in addition to the global
+// `fastifyCors` plugin) guarantees they're attached to every binary
+// response that flows through the Web API → Fastify bridge.
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Cross-Origin-Resource-Policy": "cross-origin",
+  "Access-Control-Expose-Headers":
+    "Content-Length, Content-Range, Content-Type, Accept-Ranges, Last-Modified",
+  "Timing-Allow-Origin": "*",
+  Vary: "Origin"
+};
+
+function withCors(headers: Record<string, string>): Record<string, string> {
+  return { ...CORS_HEADERS, ...headers };
+}
+
 // ── Key validation ────────────────────────────────────────────────
 
 function validateStorageKey(key: string): string | null {
@@ -127,7 +151,7 @@ async function handleStorageRequest(
   if (validationError) {
     return new Response(JSON.stringify({ detail: validationError }), {
       status: 400,
-      headers: { "content-type": "application/json" }
+      headers: withCors({ "content-type": "application/json" })
     });
   }
 
@@ -139,15 +163,16 @@ async function handleStorageRequest(
     try {
       fileStat = await stat(filePath);
     } catch {
-      return new Response(null, { status: 404 });
+      return new Response(null, { status: 404, headers: withCors({}) });
     }
     return new Response(null, {
       status: 200,
-      headers: {
+      headers: withCors({
         "Last-Modified": fileStat.mtime.toUTCString(),
         "Content-Length": String(fileStat.size),
-        "Content-Type": getMimeType(filePath)
-      }
+        "Content-Type": getMimeType(filePath),
+        "Accept-Ranges": "bytes"
+      })
     });
   }
 
@@ -159,7 +184,7 @@ async function handleStorageRequest(
     } catch {
       return new Response(JSON.stringify({ detail: "Not found" }), {
         status: 404,
-        headers: { "content-type": "application/json" }
+        headers: withCors({ "content-type": "application/json" })
       });
     }
 
@@ -176,7 +201,7 @@ async function handleStorageRequest(
         !Number.isNaN(ifModifiedSinceDate.getTime()) &&
         mtime <= ifModifiedSinceDate
       ) {
-        return new Response(null, { status: 304 });
+        return new Response(null, { status: 304, headers: withCors({}) });
       }
     }
 
@@ -189,10 +214,10 @@ async function handleStorageRequest(
           JSON.stringify({ detail: "Range Not Satisfiable" }),
           {
             status: 416,
-            headers: {
+            headers: withCors({
               "content-type": "application/json",
               "Content-Range": `bytes */${fileSize}`
-            }
+            })
           }
         );
       }
@@ -201,13 +226,13 @@ async function handleStorageRequest(
       const body = nodeStreamToWebStream(filePath, { start, end });
       return new Response(body, {
         status: 206,
-        headers: {
+        headers: withCors({
           "Content-Type": contentType,
           "Content-Length": String(chunkSize),
           "Content-Range": `bytes ${start}-${end}/${fileSize}`,
           "Last-Modified": lastModified,
           "Accept-Ranges": "bytes"
-        }
+        })
       });
     }
 
@@ -215,12 +240,12 @@ async function handleStorageRequest(
     const body = nodeStreamToWebStream(filePath);
     return new Response(body, {
       status: 200,
-      headers: {
+      headers: withCors({
         "Content-Type": contentType,
         "Content-Length": String(fileSize),
         "Last-Modified": lastModified,
         "Accept-Ranges": "bytes"
-      }
+      })
     });
   }
 
@@ -229,12 +254,12 @@ async function handleStorageRequest(
     await mkdir(path.dirname(filePath), { recursive: true });
     const bodyBuffer = await request.arrayBuffer();
     await writeFile(filePath, Buffer.from(bodyBuffer));
-    return new Response(null, { status: 200 });
+    return new Response(null, { status: 200, headers: withCors({}) });
   }
 
   return new Response(JSON.stringify({ detail: "Method not allowed" }), {
     status: 405,
-    headers: { "content-type": "application/json" }
+    headers: withCors({ "content-type": "application/json" })
   });
 }
 

@@ -21,6 +21,7 @@
     "@fastify/cors": "^10.0.2",
     "@fastify/static": "^9.1.1",
     "@fastify/websocket": "^11.0.1",
+    "@modelcontextprotocol/ext-apps": "^1.7.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@nodetool-ai/agents": "*",
     "@nodetool-ai/auth": "*",
