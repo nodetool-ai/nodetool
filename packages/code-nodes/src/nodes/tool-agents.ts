@@ -9,6 +9,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ToolLike } from "@nodetool-ai/llm-nodes";
 import { runAgentLoop } from "@nodetool-ai/llm-nodes";
 import { createLogger } from "@nodetool-ai/config";
@@ -629,7 +630,15 @@ export class LiveBrowserAgentNode extends ToolAgentNode {
   static readonly description =
     "Drives your real, logged-in Chrome via the Nodetool browser extension.\n    Automates media-generation UIs, saves generated images/videos as assets, and uploads assets into sites.\n    skills, browser, live, automation, extension, media";
   static readonly metadataOutputTypes = {
-    text: "str"
+    text: "str",
+    chunk: "chunk"
+  };
+  // `text` is the final answer; `chunk` streams assistant text deltas as the
+  // agent works. Each yielded chunk is its own iteration so downstream keeps
+  // the full stream rather than collapsing to the last value.
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "single", source: "__execution__" },
+    chunk: { kind: "iteration", source: "__execution__", group: "stream" }
   };
   static readonly _systemPrompt =
     "You drive the user's REAL, logged-in Chrome through the Nodetool extension (CDP). " +
@@ -711,6 +720,128 @@ export class LiveBrowserAgentNode extends ToolAgentNode {
         textChars: typeof result.text === "string" ? result.text.length : 0
       });
       return result;
+    } catch (err) {
+      liveBrowserLog.error(
+        `LiveBrowserAgent failed after ${Date.now() - startedAt}ms`,
+        err instanceof Error ? err : new Error(String(err))
+      );
+      throw err;
+    } finally {
+      if (prev === undefined) {
+        delete process.env.NODETOOL_BROWSER_TRANSPORT;
+      } else {
+        process.env.NODETOOL_BROWSER_TRANSPORT = prev;
+      }
+    }
+  }
+
+  /**
+   * Streaming execution: yield assistant text deltas on the `chunk` output as
+   * the agent works, then the final answer on `text` (same shape as the Agent
+   * node's `chunk`/`text`). The kernel prefers this over `process()` because it
+   * overrides `genProcess`.
+   */
+  override async *genProcess(
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
+    const prev = process.env.NODETOOL_BROWSER_TRANSPORT;
+    process.env.NODETOOL_BROWSER_TRANSPORT = "extension";
+
+    const model =
+      (this as { model?: { id?: string; provider?: string } }).model ?? {};
+    const providerId = String(model.provider || "").toLowerCase();
+    const modelId = String(model.id || "");
+    const promptText = String(
+      (this as { prompt?: unknown }).prompt ?? ""
+    ).trim();
+    const startedAt = Date.now();
+    liveBrowserLog.info("LiveBrowserAgent starting (stream)", {
+      transport: "extension",
+      provider: model.provider,
+      model: model.id,
+      promptChars: promptText.length,
+      wsUrl: process.env.NODETOOL_EXTENSION_WS_URL ?? "(in-process bridge)",
+      tools: LIVE_BROWSER_TOOL_NAMES.length
+    });
+
+    try {
+      if (!promptText) throw new Error("Prompt is required");
+      if (!providerId || !modelId) {
+        throw new Error("Select a model for this skill.");
+      }
+      if (!context || typeof context.getProvider !== "function") {
+        throw new Error("Processing context with provider access is required");
+      }
+
+      // Bridge runAgentLoop's onText callback into this generator via a queue:
+      // the loop pushes deltas, the generator drains and yields them as chunks.
+      const queue: string[] = [];
+      let notify: (() => void) | null = null;
+      const wake = (): void => {
+        const n = notify;
+        notify = null;
+        n?.();
+      };
+      let finished = false;
+      let finalText = "";
+      let loopError: unknown = null;
+
+      const systemPrompt = (this.constructor as typeof ToolAgentNode)
+        ._systemPrompt;
+      const loop = runAgentLoop({
+        context,
+        providerId,
+        modelId,
+        systemPrompt,
+        prompt: promptText,
+        tools: this.getTools(""),
+        maxTokens: 4096,
+        maxIterations: 10,
+        onText: (delta) => {
+          queue.push(delta);
+          wake();
+        }
+      })
+        .then((r) => {
+          finalText = r.text;
+        })
+        .catch((e) => {
+          loopError = e;
+        })
+        .finally(() => {
+          finished = true;
+          wake();
+        });
+
+      while (true) {
+        while (queue.length > 0) {
+          const content = queue.shift() as string;
+          yield {
+            chunk: { type: "chunk", content, content_type: "text", done: false },
+            text: null
+          };
+        }
+        if (finished) break;
+        await new Promise<void>((resolve) => {
+          notify = resolve;
+        });
+      }
+      await loop;
+      if (loopError) {
+        throw loopError instanceof Error
+          ? loopError
+          : new Error(String(loopError));
+      }
+
+      liveBrowserLog.info("LiveBrowserAgent finished (stream)", {
+        elapsedMs: Date.now() - startedAt,
+        textChars: finalText.length
+      });
+
+      yield {
+        chunk: { type: "chunk", content: "", content_type: "text", done: true },
+        text: finalText
+      };
     } catch (err) {
       liveBrowserLog.error(
         `LiveBrowserAgent failed after ${Date.now() - startedAt}ms`,

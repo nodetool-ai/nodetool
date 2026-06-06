@@ -471,4 +471,53 @@ describe("LiveBrowserAgentNode", () => {
     expect(process.env.NODETOOL_BROWSER_TRANSPORT).toBeUndefined();
     await rm(workspaceDir, { recursive: true, force: true });
   });
+
+  it("declares a chunk output and streams text deltas via genProcess", async () => {
+    delete process.env.NODETOOL_BROWSER_TRANSPORT;
+    expect(LiveBrowserAgentNode.metadataOutputTypes).toMatchObject({
+      text: "str",
+      chunk: "chunk"
+    });
+
+    const node = new LiveBrowserAgentNode();
+    const workspaceDir = await mkdtemp(path.join(tmpdir(), "live-stream-"));
+    const context = {
+      getProvider: vi.fn().mockResolvedValue({
+        provider: "mock",
+        generateMessages: async function* () {
+          yield { type: "chunk" as const, content: "Navigating…", done: false };
+          yield { type: "chunk" as const, content: " done.", done: true };
+        },
+        async *generateMessagesTraced(...args: any[]) {
+          yield* (this as any).generateMessages(...args);
+        }
+      }),
+      workspaceDir
+    } as any;
+
+    node.assign({
+      prompt: "open example.com",
+      model: { provider: "mock", id: "test-model" }
+    });
+
+    const outputs: any[] = [];
+    for await (const out of node.genProcess(context)) {
+      outputs.push(out);
+    }
+
+    // Streamed deltas arrived on `chunk` (done:false) before the final value.
+    const streamed = outputs
+      .filter((o) => o.chunk && o.chunk.done === false)
+      .map((o) => o.chunk.content)
+      .join("");
+    expect(streamed).toBe("Navigating… done.");
+
+    // Final yield carries the complete text plus a terminal chunk.
+    const last = outputs[outputs.length - 1];
+    expect(last.text).toBe("Navigating… done.");
+    expect(last.chunk).toMatchObject({ done: true, content_type: "text" });
+
+    expect(process.env.NODETOOL_BROWSER_TRANSPORT).toBeUndefined();
+    await rm(workspaceDir, { recursive: true, force: true });
+  });
 });

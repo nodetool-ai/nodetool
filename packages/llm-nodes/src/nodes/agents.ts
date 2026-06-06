@@ -1007,6 +1007,12 @@ export interface AgentLoopOptions {
   maxTokens?: number;
   maxIterations?: number;
   threadId?: string;
+  /**
+   * Optional sink for streamed assistant text deltas (non-thinking). Lets a
+   * caller surface incremental output (e.g. a node `chunk` output) without
+   * changing the loop's accumulate-and-return contract.
+   */
+  onText?: (delta: string) => void;
 }
 
 export interface AgentLoopResult {
@@ -1066,7 +1072,9 @@ export async function runAgentLoop(
     })) {
       if (isChunkItem(item)) {
         if (!item.thinking) {
-          assistantText += item.content ?? "";
+          const delta = item.content ?? "";
+          assistantText += delta;
+          if (delta) options.onText?.(delta);
         }
       }
       if (isToolCallItem(item)) {
