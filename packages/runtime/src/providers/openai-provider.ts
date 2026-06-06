@@ -29,6 +29,7 @@ import type {
   MessageContent,
   MessageImageContent,
   MessageTextContent,
+  ProviderId,
   ProviderStreamItem,
   ProviderTool,
   StreamingAudioChunk,
@@ -43,6 +44,13 @@ interface OpenAIProviderOptions {
   client?: OpenAI;
   clientFactory?: (apiKey: string) => OpenAI;
   fetchFn?: typeof fetch;
+  /**
+   * Provider id reported by this instance. Defaults to `"openai"`.
+   * OpenAI-compatible subclasses (gateways pointed at a different base URL)
+   * pass their own id so the readonly `provider` field is set via the base
+   * constructor rather than reassigned afterwards.
+   */
+  providerId?: ProviderId;
 }
 
 interface MutableToolCall {
@@ -137,7 +145,7 @@ export class OpenAIProvider extends BaseProvider {
     secrets: { OPENAI_API_KEY?: string },
     options: OpenAIProviderOptions = {}
   ) {
-    super("openai");
+    super(options.providerId ?? "openai");
 
     const apiKey = secrets.OPENAI_API_KEY;
     if (!apiKey) {
