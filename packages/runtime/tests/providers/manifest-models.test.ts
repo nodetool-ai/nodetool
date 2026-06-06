@@ -67,6 +67,31 @@ describe("manifest-models task inference (FAL manifest)", () => {
     }
   });
 
+  it("derives per-model option constraints from manifest enums", () => {
+    const pixverse = byId(videos, "fal-ai/pixverse/v5.6/image-to-video") as
+      | { durations?: number[]; resolutions?: string[] }
+      | undefined;
+    // duration enums ship as strings ("5"/"8"/"10") and must be numbers so the
+    // composer can offer them and the request doesn't 422.
+    expect(pixverse?.durations).toEqual([5, 8, 10]);
+    expect(pixverse?.resolutions).toEqual(["360p", "540p", "720p", "1080p"]);
+
+    const seedance = byId(
+      videos,
+      "fal-ai/bytedance/seedance/v1/pro/fast/image-to-video"
+    ) as { aspectRatios?: string[] } | undefined;
+    expect(seedance?.aspectRatios).toContain("16:9");
+
+    // A meaningful share of the video catalog carries constraints.
+    const withConstraints = videos.filter(
+      (m) =>
+        (m as { durations?: number[] }).durations ||
+        (m as { resolutions?: string[] }).resolutions ||
+        (m as { aspectRatios?: string[] }).aspectRatios
+    );
+    expect(withConstraints.length).toBeGreaterThan(50);
+  });
+
   it("tags lip-sync and video-to-video as exclusive video tasks", () => {
     const lip = videos.filter((m) => m.supportedTasks?.includes("lip_sync"));
     expect(lip.length).toBeGreaterThan(0);

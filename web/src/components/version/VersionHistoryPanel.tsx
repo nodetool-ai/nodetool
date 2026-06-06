@@ -16,13 +16,16 @@ import {
 import VersionListItem from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
+import { WorkflowMiniPreview } from "./WorkflowMiniPreview";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
+import { formatDistanceToNow, format } from "date-fns";
 import PanelHeadline from "../ui/PanelHeadline";
 import {
   Caption,
+  Chip,
   CloseButton,
   Dialog,
   EditorButton,
@@ -50,6 +53,27 @@ const getGraphSizeBytes = (graph: Graph): number => {
   } catch {
     return 0;
   }
+};
+
+const getSaveTypeLabel = (saveType: SaveType): string => {
+  switch (saveType) {
+    case "manual":
+      return "manual";
+    case "autosave":
+      return "auto";
+    case "restore":
+      return "restored";
+    case "checkpoint":
+      return "checkpoint";
+    default:
+      return saveType;
+  }
+};
+
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
 const getSaveType = (version: WorkflowVersion): SaveType => {
@@ -317,8 +341,8 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               variant={isCompareMode ? "contained" : "text"}
               onClick={handleToggleCompareMode}
               sx={{
-                fontSize: "0.7rem",
-                py: 0.25,
+                fontSize: "var(--fontSizeSmaller)",
+                py: 0.5,
                 px: 1,
                 minWidth: 0,
                 color: isCompareMode ? undefined : "text.secondary"
@@ -334,7 +358,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               density="compact"
               variant="text"
               onClick={handleClearComparison}
-              sx={{ fontSize: "0.7rem", py: 0.25, px: 0.5, minWidth: 0 }}
+              sx={{ fontSize: "var(--fontSizeSmaller)", py: 0.5, px: 0.5, minWidth: 0 }}
             >
               Clear
             </EditorButton>
@@ -355,66 +379,197 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </div>
       )}
 
-      {diff && selectedVersion && compareVersion && (
-        <div style={{ borderBottom: "1px solid var(--palette-divider)" }}>
-          <div style={{ padding: "4px 8px", backgroundColor: "rgba(2, 136, 209, 0.05)" }}>
-            <Caption size="tiny" color="secondary" sx={{ fontWeight: 500 }}>
-              Visual Preview
-            </Caption>
-            <GraphVisualDiff
-              diff={diff}
-              oldGraph={compareVersion.version < selectedVersion.version ? compareVersion.graph : selectedVersion.graph}
-              newGraph={compareVersion.version < selectedVersion.version ? selectedVersion.graph : compareVersion.graph}
-              width={280}
-              height={140}
-            />
-          </div>
-          <div style={{
-            padding: "4px 8px",
-            maxHeight: 200,
-            overflow: "auto"
-          }}>
-            <VersionDiff
-              diff={diff}
-              oldVersionNumber={Math.min(
-                selectedVersion.version,
-                compareVersion.version
-              )}
-              newVersionNumber={Math.max(
-                selectedVersion.version,
-                compareVersion.version
-              )}
-            />
-          </div>
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          minHeight: 0,
+          overflow: "hidden"
+        }}
+      >
+        <div
+          className="version-list-pane"
+          style={{
+            width: 360,
+            flexShrink: 0,
+            borderRight: "1px solid var(--palette-divider)",
+            overflowY: "auto",
+            overflowX: "hidden"
+          }}
+        >
+          {versions.length === 0 ? (
+            <div style={{ padding: "16px", textAlign: "center" }}>
+              <Text color="secondary">No versions saved yet</Text>
+              <Caption size="tiny" color="muted">
+                Save your workflow to create a version
+              </Caption>
+            </div>
+          ) : (
+            <List dense sx={{ py: 0 }}>
+              {versions.map((version) => (
+                <VersionListItem
+                  key={version.id}
+                  version={version}
+                  isSelected={selectedVersionId === version.id}
+                  isCompareTarget={compareVersionId === version.id}
+                  compareMode={isCompareMode}
+                  onSelect={handleSelect}
+                  onRestore={handleRestore}
+                  onDelete={handleDelete}
+                  onCompare={handleCompare}
+                  isRestoring={isRestoringVersion}
+                />
+              ))}
+            </List>
+          )}
         </div>
-      )}
 
-      <div style={{ flex: 1, overflow: "auto" }}>
-        {versions.length === 0 ? (
-          <div style={{ padding: "16px", textAlign: "center" }}>
-            <Text color="secondary">No versions saved yet</Text>
-            <Caption size="tiny" color="muted">
-              Save your workflow to create a version
-            </Caption>
-          </div>
-        ) : (
-          <List dense sx={{ py: 0 }}>
-            {versions.map((version) => (
-              <VersionListItem
-                key={version.id}
-                version={version}
-                isSelected={selectedVersionId === version.id}
-                isCompareTarget={compareVersionId === version.id}
-                compareMode={isCompareMode}
-                onSelect={handleSelect}
-                onRestore={handleRestore}
-                onDelete={handleDelete}
-                onCompare={handleCompare}
-                isRestoring={isRestoringVersion}
+        <div
+          className="version-preview-pane"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            overflow: "auto",
+            padding: "16px 20px"
+          }}
+        >
+          {diff && selectedVersion && compareVersion ? (
+            <FlexColumn gap={2} fullHeight>
+              <div>
+                <Caption size="tiny" color="muted" sx={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Comparing v{Math.min(selectedVersion.version, compareVersion.version)}
+                  {" "}↔{" "}
+                  v{Math.max(selectedVersion.version, compareVersion.version)}
+                </Caption>
+              </div>
+              <GraphVisualDiff
+                diff={diff}
+                oldGraph={
+                  compareVersion.version < selectedVersion.version
+                    ? compareVersion.graph
+                    : selectedVersion.graph
+                }
+                newGraph={
+                  compareVersion.version < selectedVersion.version
+                    ? selectedVersion.graph
+                    : compareVersion.graph
+                }
+                width={640}
+                height={320}
               />
-            ))}
-          </List>
-        )}
+              <VersionDiff
+                diff={diff}
+                oldVersionNumber={Math.min(
+                  selectedVersion.version,
+                  compareVersion.version
+                )}
+                newVersionNumber={Math.max(
+                  selectedVersion.version,
+                  compareVersion.version
+                )}
+              />
+            </FlexColumn>
+          ) : selectedVersion ? (
+            <FlexColumn gap={2}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                <Text size="bigger" weight={600}>
+                  v{selectedVersion.version}
+                </Text>
+                <Chip
+                  label={getSaveTypeLabel(selectedVersion.save_type)}
+                  size="small"
+                  variant="outlined"
+                />
+                {selectedVersion.created_at && (
+                  <Caption size="tiny" color="secondary">
+                    {format(
+                      new Date(selectedVersion.created_at),
+                      "MMM d, yyyy · HH:mm"
+                    )}
+                    {" · "}
+                    {formatDistanceToNow(
+                      new Date(selectedVersion.created_at),
+                      { addSuffix: true }
+                    )}
+                  </Caption>
+                )}
+                <Caption size="tiny" color="muted" sx={{ marginLeft: "auto" }}>
+                  {formatBytes(selectedVersion.size_bytes)}
+                </Caption>
+              </div>
+
+              {(selectedVersion.name || selectedVersion.description) && (
+                <FlexColumn gap={0.5}>
+                  {selectedVersion.name && (
+                    <Text size="small" weight={500}>
+                      {selectedVersion.name}
+                    </Text>
+                  )}
+                  {selectedVersion.description && (
+                    <Caption size="small" color="secondary">
+                      {selectedVersion.description}
+                    </Caption>
+                  )}
+                </FlexColumn>
+              )}
+
+              <div
+                style={{
+                  border: "1px solid var(--palette-divider)",
+                  borderRadius: "var(--rounded-md)",
+                  padding: 8,
+                  backgroundColor: "var(--palette-background-default)"
+                }}
+              >
+                <WorkflowMiniPreview
+                  workflow={selectedVersion}
+                  width="100%"
+                  height={320}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <EditorButton
+                  density="compact"
+                  variant="contained"
+                  onClick={() => handleRestore(selectedVersion)}
+                  disabled={isRestoringVersion}
+                >
+                  {isRestoringVersion ? (
+                    <LoadingSpinner size="small" />
+                  ) : (
+                    "Restore this version"
+                  )}
+                </EditorButton>
+                <EditorButton
+                  density="compact"
+                  variant="text"
+                  onClick={() => handleDelete(selectedVersion.id)}
+                  sx={{ color: "text.secondary" }}
+                >
+                  Delete
+                </EditorButton>
+              </div>
+            </FlexColumn>
+          ) : (
+            <FlexColumn
+              align="center"
+              justify="center"
+              fullHeight
+              gap={1}
+              sx={{ color: "text.secondary", textAlign: "center" }}
+            >
+              <Text color="secondary">
+                Select a version to preview
+              </Text>
+              <Caption size="tiny" color="muted">
+                {isCompareMode
+                  ? "Pick two versions to see what changed."
+                  : "Click any entry to see its graph and metadata here."}
+              </Caption>
+            </FlexColumn>
+          )}
+        </div>
       </div>
 
       <div style={{

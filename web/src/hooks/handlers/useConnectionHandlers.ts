@@ -17,14 +17,16 @@ import {
   ConnectionMatchMenuPayload,
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
-import { DYNAMIC_KIE_NODE_TYPE } from "../../components/node/DynamicKieSchemaNode";
+import {
+  DYNAMIC_KIE_NODE_TYPE,
+  PREVIEW_NODE_TYPE,
+  REROUTE_NODE_TYPE
+} from "../../constants/nodeTypes";
 import { wouldCreateCycle } from "../../utils/graphCycle";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 import { shallow } from "zustand/shallow";
 
-const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
-const REROUTE_NODE_TYPE = "nodetool.control.Reroute";
 const REROUTE_INPUT_HANDLE = "input_value";
 const REROUTE_OUTPUT_HANDLE = "output";
 
@@ -521,7 +523,7 @@ export default function useConnectionHandlers() {
         // Handle dynamic properties case (if no auto-connection was possible)
         // Note: For FAL nodes, we only want inputs derived from the schema, so we skip manual creation.
         if (
-          nodeMetadata.is_dynamic &&
+          nodeMetadata.supports_dynamic_inputs &&
           connectDirection === "source" &&
           node.type !== "fal.DynamicFal" &&
           node.type !== DYNAMIC_KIE_NODE_TYPE &&

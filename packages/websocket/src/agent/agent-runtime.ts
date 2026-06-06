@@ -196,6 +196,7 @@ class AgentRuntime {
       resumeSessionId: options.resumeSessionId,
       modelParams: options.modelParams,
       chatProviderId: options.chatProviderId,
+      memoryEnabled: options.memoryEnabled,
     });
 
     this.activeSessions.set(tempId, session);
@@ -288,6 +289,24 @@ class AgentRuntime {
   async stopExecution(sessionId: string, userId: string): Promise<void> {
     const session = this.getOwnedSession(sessionId, userId);
     await session.interrupt();
+  }
+
+  /**
+   * Flip the long-term-memory opt-in for a session mid-conversation.
+   * Only honoured by sessions that implement {@link AgentQuerySession.setMemoryEnabled}
+   * (currently the in-process LLM provider); other sessions are no-ops.
+   */
+  setMemoryEnabled(
+    sessionId: string,
+    userId: string,
+    enabled: boolean,
+  ): void {
+    const session = this.getOwnedSession(sessionId, userId);
+    const setter = (session as { setMemoryEnabled?: (v: boolean) => void })
+      .setMemoryEnabled;
+    if (typeof setter === "function") {
+      setter.call(session, enabled);
+    }
   }
 
   closeSession(sessionId: string, userId: string): void {

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-slim AS deps
+FROM node:22-slim AS deps
 
 # Native build dependencies are only needed while installing/building packages.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,6 +31,7 @@ COPY packages/fal-nodes/package.json packages/fal-nodes/
 COPY packages/replicate-codegen/package.json packages/replicate-codegen/
 COPY packages/replicate-nodes/package.json packages/replicate-nodes/
 COPY packages/elevenlabs-nodes/package.json packages/elevenlabs-nodes/
+COPY packages/minimax-nodes/package.json packages/minimax-nodes/
 COPY packages/kie-codegen/package.json packages/kie-codegen/
 COPY packages/kie-nodes/package.json packages/kie-nodes/
 COPY packages/agents/package.json packages/agents/
@@ -105,7 +106,7 @@ RUN mkdir -p /runtime/packages /runtime/web \
     && cp web/package.json /runtime/web/package.json \
     && cp -a web/dist /runtime/web/dist
 
-FROM node:24-slim AS runtime
+FROM node:22-slim AS runtime
 
 ENV NODE_ENV=production \
     NODETOOL_ENV=production \

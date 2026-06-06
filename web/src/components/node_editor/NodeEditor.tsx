@@ -21,6 +21,7 @@ import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentati
 import isEqual from "fast-deep-equal";
 import { useShallow } from "zustand/react/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
+import { generateCSS } from "../themes/GenerateCSS";
 import { useTemporalNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
@@ -162,13 +163,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         <Box
           ref={reactFlowWrapperRef}
           className="node-editor"
+          css={generateCSS}
           style={{
             backgroundColor: theme.vars.palette.c_editor_bg_color
           }}
         >
           {isUploading && (
             <div className="loading-overlay">
-              <LoadingSpinner variant="circular" size="medium" /> Uploading assets...
+              <LoadingSpinner variant="circular" size="medium" /> Uploading assets…
             </div>
           )}
           <ReactFlowWrapper workflowId={workflowId} active={active} />

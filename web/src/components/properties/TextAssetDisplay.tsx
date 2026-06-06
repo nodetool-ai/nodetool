@@ -50,7 +50,7 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
       }}
     >
       <Tooltip title="Open Editor" delay={TOOLTIP_ENTER_DELAY}>
-        <button className="button-expand" onClick={toggleExpand}>
+        <button type="button" className="button-expand" onClick={toggleExpand}>
           {isExpanded ? "↙" : "↗"}
         </button>
       </Tooltip>

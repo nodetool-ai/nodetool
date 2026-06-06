@@ -60,13 +60,6 @@ function getContrastTextColor(hexColor: string): string {
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
-export type CustomText = {
-  text: string;
-  bold?: boolean;
-  italic?: boolean;
-  size?: "-" | "+";
-};
-
 const styles = (theme: Theme) =>
   css({
     width: "100%",
@@ -194,8 +187,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode
   }), shallow);
-  const [color, setColor] = useState(
-    props.data.properties.comment_color ||
+  const [color, setColor] = useState<string>(
+    (props.data.properties.comment_color as string) ||
       theme.vars.palette.c_bg_comment ||
       "#ffffff"
   );

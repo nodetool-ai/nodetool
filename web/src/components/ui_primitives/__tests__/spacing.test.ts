@@ -1,35 +1,60 @@
 import {
   SPACING,
+  SPACING_STEPS,
   GAP,
   PADDING,
   MARGIN,
   getSpacingPx,
-  resolveSpacing
+  resolveSpacing,
+  snapSpacing
 } from "../spacing";
 
 describe("spacing utilities", () => {
   describe("SPACING constants", () => {
-    it("defines correct spacing values", () => {
-      expect(SPACING.xxs).toBe(0.5);
+    it("defines the canonical scale", () => {
+      expect(SPACING.none).toBe(0);
+      expect(SPACING.micro).toBe(0.5);
       expect(SPACING.xs).toBe(1);
       expect(SPACING.sm).toBe(1.5);
       expect(SPACING.md).toBe(2);
-      expect(SPACING.ml).toBe(2.5);
       expect(SPACING.lg).toBe(3);
       expect(SPACING.xl).toBe(4);
-      expect(SPACING.xxl).toBe(5);
+      expect(SPACING.xxl).toBe(6);
+      expect(SPACING.xxxl).toBe(8);
+    });
+
+    it("every value is a canonical step (no off-grid spacing)", () => {
+      for (const value of Object.values(SPACING)) {
+        expect(SPACING_STEPS).toContain(value);
+      }
+    });
+
+    it("legacy aliases snap onto a canonical step", () => {
+      expect(SPACING.xxs).toBe(0.5);
+      expect(SPACING.ml).toBe(3);
       expect(SPACING.huge).toBe(6);
+    });
+  });
+
+  describe("snapSpacing", () => {
+    it("snaps off-grid values to the nearest canonical step", () => {
+      expect(snapSpacing(0.25)).toBe(0.5);
+      expect(snapSpacing(0.6)).toBe(0.5);
+      expect(snapSpacing(0.75)).toBe(1);
+      expect(snapSpacing(2.5)).toBe(3);
+      expect(snapSpacing(5)).toBe(6);
     });
   });
 
   describe("GAP constants", () => {
     it("defines correct gap values", () => {
       expect(GAP.none).toBe(0);
+      expect(GAP.micro).toBe(0.5);
       expect(GAP.tight).toBe(1);
       expect(GAP.compact).toBe(1.5);
       expect(GAP.normal).toBe(2);
-      expect(GAP.comfortable).toBe(2.5);
-      expect(GAP.spacious).toBe(3);
+      expect(GAP.comfortable).toBe(3);
+      expect(GAP.spacious).toBe(4);
     });
   });
 

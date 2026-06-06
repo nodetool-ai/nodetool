@@ -1,39 +1,67 @@
 /**
- * Mobile tRPC client.
+ * Mobile tRPC clients.
  *
- * Creates a vanilla tRPC client (no React Query) that calls the server's
- * `/trpc` endpoint.  The base URL and auth token are resolved from the same
- * sources the REST `apiService` uses so both clients share consistent
- * session / host configuration without a circular import.
+ * Two clients share one link configuration:
+ *  - `trpc`: the React Query client (`@trpc/react-query`) used by screens and
+ *    components through `trpc.<router>.<proc>.useQuery()/useMutation()`.
+ *  - `createMobileTRPCClient()`: a vanilla client for non-React callers
+ *    (Zustand stores, helpers) where hooks can't run.
+ *
+ * Both resolve the base URL and auth token from the same sources so session /
+ * host configuration stays consistent.
  */
 
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
+import { createTRPCReact } from '@trpc/react-query';
 import superjson from 'superjson';
 import type { AppRouter } from '@nodetool-ai/websocket/trpc';
 
 import { getApiHost } from '../services/apiHost';
 import { useAuthStore } from '../stores/AuthStore';
 
+/** React Query bindings (`trpc.workflows.list.useQuery(...)`, etc.). */
+export const trpc = createTRPCReact<AppRouter>();
+
+function authHeaders(): Record<string, string> {
+  const token = useAuthStore.getState().session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 /**
- * Build a tRPC client bound to the current API host.
+ * Rewrite the request origin to the *current* API host at send time.
  *
- * The host URL is captured at client-creation time (httpBatchLink resolves
- * `url` once when the link is built), so callers must recreate the client
- * whenever `getApiHost()` changes — the auth token, by contrast, is read
- * per-request via the async `headers` factory.
+ * `httpBatchLink` captures its `url` once at creation, but the React Query
+ * client is long-lived while the host can change in Settings. Re-targeting the
+ * host here keeps that single client (and the per-call vanilla client) pointed
+ * at whatever host is configured now, without recreating either.
  */
+function hostRewriteFetch(
+  input: RequestInfo | URL,
+  options?: RequestInit
+): Promise<Response> {
+  const raw =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+  const trpcIndex = raw.lastIndexOf('/trpc');
+  const path = trpcIndex >= 0 ? raw.slice(trpcIndex) : raw;
+  return fetch(`${getApiHost()}${path}`, options);
+}
+
+export function createTrpcLinks() {
+  return [
+    httpBatchLink({
+      url: `${getApiHost()}/trpc`,
+      transformer: superjson,
+      headers: authHeaders,
+      fetch: hostRewriteFetch,
+    }),
+  ];
+}
+
+/** Vanilla client for Zustand stores and other non-React contexts. */
 export function createMobileTRPCClient() {
-  return createTRPCClient<AppRouter>({
-    links: [
-      httpBatchLink({
-        url: `${getApiHost()}/trpc`,
-        transformer: superjson,
-        async headers() {
-          const session = useAuthStore.getState().session;
-          const token = session?.access_token;
-          return token ? { Authorization: `Bearer ${token}` } : {};
-        },
-      }),
-    ],
-  });
+  return createTRPCClient<AppRouter>({ links: createTrpcLinks() });
 }

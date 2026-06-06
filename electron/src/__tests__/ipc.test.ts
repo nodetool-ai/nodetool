@@ -130,7 +130,6 @@ import {
 } from '../packageManager';
 import {
   createIpcMainHandler,
-  createIpcOnceHandler,
   initializeIpcHandlers,
 } from '../ipc';
 
@@ -220,14 +219,6 @@ describe('IPC utilities', () => {
     );
   });
 
-  it('createIpcOnceHandler registers handler with ipcMain.once', () => {
-    const handler = jest.fn();
-    createIpcOnceHandler(Channels.BOOT_MESSAGE as any, handler as any);
-    expect(ipcMainMock.once).toHaveBeenCalledWith(
-      Channels.BOOT_MESSAGE,
-      expect.any(Function)
-    );
-  });
 });
 
 describe('initializeIpcHandlers', () => {

@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
     },
     ".text-icon": {
       color: theme.vars.palette.grey[400],
-      fontSize: "20px",
+      fontSize: "var(--fontSizeBig)",
       flexShrink: 0
     },
     ".text-content": {
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
       minWidth: 0
     },
     ".text-filename": {
-      fontSize: "12px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.grey[300],
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".remove-button .MuiSvgIcon-root": {
-      fontSize: "14px"
+      fontSize: "var(--fontSizeNormal)"
     },
     ".dropzone": {
       position: "relative",
@@ -119,7 +119,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       textTransform: "uppercase",
       letterSpacing: "1px",
-      fontSize: "10px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       margin: "1em",
       lineHeight: "1.1em"
@@ -491,8 +491,11 @@ const TextListProperty = (props: PropertyProps) => {
       {/* Dropzone */}
       <Tooltip title="Click to select text files or drag and drop">
         <div
+          role="button"
+          tabIndex={0}
           className={`dropzone ${isDragOver ? "drag-over" : ""}`}
           onClick={handleDropzoneClick}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleDropzoneClick(); } }}
           onDragOver={onDragOver}
           onDragLeave={handleDragLeave}
           onDrop={onDrop}

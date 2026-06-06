@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Text, ToolbarIconButton, LoadingSpinner } from "../../ui_primitives";
 import { Caption } from "../../ui_primitives";
+import { PREVIEW_NODE_TYPE } from "../../../constants/nodeTypes";
 import ClearIcon from "@mui/icons-material/Clear";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
@@ -50,7 +51,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
             // Exclude bypassed nodes
             uiProps?.bypassed ||
             // Exclude PreviewNode - they shouldn't show in app mode
-            node.type === "nodetool.workflows.base_node.Preview"
+            node.type === PREVIEW_NODE_TYPE
           );
         })
         .map((node) => node.id)

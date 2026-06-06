@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import { useCallback, memo } from "react";
+import { useNavigate } from "react-router-dom";
 //mui
 import { Menu, MenuItem } from "@mui/material";
 import { Text, Divider } from "../ui_primitives";
@@ -13,12 +14,15 @@ import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CompareIcon from "@mui/icons-material/Compare";
 import TabIcon from "@mui/icons-material/Tab";
+import MovieEditIcon from "@mui/icons-material/Movie";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useFileTabsStore } from "../../stores/FileTabsStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { assetTabType } from "../workspace/assetTabType";
+import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import AssetInfoPanel from "./AssetInfoPanel";
@@ -51,11 +55,21 @@ const AssetItemContextMenu = () => {
   const download = useAssetStore((state) => state.download);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
-  const openFileTab = useFileTabsStore((state) => state.openFileTab);
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const navigate = useNavigate();
+  const editVideoAsset = useEditVideoAsset();
 
   const isFolder = selectedAssets.some(
     (asset) => asset.content_type === "folder"
   );
+
+  // A single video opens in the timeline editor: its source timeline when one
+  // exists, otherwise a fresh timeline wrapping the video.
+  const singleVideo =
+    selectedAssets.length === 1 &&
+    selectedAssets[0]?.content_type?.startsWith("video/")
+      ? selectedAssets[0]
+      : null;
 
   // Check if the selected asset is a single item that supports clipboard
   const isSingleClipboardSupported =
@@ -68,10 +82,13 @@ const AssetItemContextMenu = () => {
     selectedAssets.length === 2 &&
     selectedAssets.every((asset) => asset.content_type?.startsWith("image/"));
 
-  // Check if a single non-folder asset is selected (for "Open as Tab")
-  const isSingleNonFolderAsset =
-    selectedAssets.length === 1 &&
-    selectedAssets[0]?.content_type !== "folder";
+  // Resolve the workspace tab type for a single selected asset ("Open as Tab").
+  // Null when nothing is openable as a tab (multi-select, folder, or a content
+  // type with no document surface, e.g. video).
+  const openableTabType =
+    selectedAssets.length === 1 && selectedAssets[0]
+      ? assetTabType(selectedAssets[0])
+      : null;
 
   // Determine if we have non-folder assets selected for moving to new folder
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
@@ -158,8 +175,21 @@ const AssetItemContextMenu = () => {
   });
 
   const handleOpenAsTab = withMenuClose(() => {
-    if (isSingleNonFolderAsset && selectedAssets[0]) {
-      openFileTab(selectedAssets[0]);
+    const asset = selectedAssets[0];
+    if (openableTabType && asset) {
+      openTab({
+        type: openableTabType,
+        ref: asset.id,
+        mode: "view",
+        title: asset.name || "Untitled"
+      });
+      navigate("/workspace");
+    }
+  });
+
+  const handleEditVideo = withMenuClose(() => {
+    if (singleVideo) {
+      void editVideoAsset(singleVideo);
     }
   });
 
@@ -205,12 +235,24 @@ const AssetItemContextMenu = () => {
           IconComponent={<DriveFileRenameOutlineIcon />}
           tooltip="Rename selected assets"
         />
-        {isSingleNonFolderAsset && (
+        {openableTabType && (
           <ContextMenuItem
             onClick={handleOpenAsTab}
             label="Open as Tab"
             IconComponent={<TabIcon />}
             tooltip="Open this asset in a new editor tab"
+          />
+        )}
+        {singleVideo && (
+          <ContextMenuItem
+            onClick={handleEditVideo}
+            label={singleVideo.timeline_id ? "Edit Timeline" : "Create Timeline from Video"}
+            IconComponent={<MovieEditIcon />}
+            tooltip={
+              singleVideo.timeline_id
+                ? "Open the timeline this video was rendered from"
+                : "Create a timeline from this video and open it for editing"
+            }
           />
         )}
         <Divider />

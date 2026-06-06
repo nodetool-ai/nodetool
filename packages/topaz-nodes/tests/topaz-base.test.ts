@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   containerContentType,
   getApiKey,
+  parseRetryAfterMs,
   refToBytes,
   sourceContainerFromRef,
   topazExecuteImageTask,
@@ -113,9 +114,14 @@ describe("topazExecuteImageTask", () => {
         return { ok: true, json: async () => ({ status: "Completed" }) } as Response;
       }
       if (u.includes("/download/")) {
+        // Spec response: { download_url, head_url, expiry }.
         return {
           ok: true,
-          json: async () => ({ url: "https://cdn.topaz/result.png" })
+          json: async () => ({
+            download_url: "https://cdn.topaz/result.png",
+            head_url: "https://cdn.topaz/result.png?head",
+            expiry: 0
+          })
         } as Response;
       }
       if (u === "https://cdn.topaz/result.png") {
@@ -130,7 +136,7 @@ describe("topazExecuteImageTask", () => {
     const out = await topazExecuteImageTask(
       "key",
       spec,
-      { model: "Standard V2", scale: 2, output_width: 0 },
+      { model: "Standard V2", output_width: 0 },
       Uint8Array.from([1, 2, 3])
     );
 
@@ -201,6 +207,28 @@ describe("containerContentType", () => {
 });
 
 // ---------------------------------------------------------------------------
+// parseRetryAfterMs
+// ---------------------------------------------------------------------------
+describe("parseRetryAfterMs", () => {
+  it("treats a numeric value as seconds", () => {
+    expect(parseRetryAfterMs("2", 5000)).toBe(2000);
+    expect(parseRetryAfterMs("0", 5000)).toBe(0);
+  });
+
+  it("treats an HTTP-date value as an absolute deadline", () => {
+    const ms = parseRetryAfterMs(new Date(Date.now() + 4000).toUTCString(), 9999);
+    // Allow a little slack for clock drift during the call.
+    expect(ms).toBeGreaterThan(2000);
+    expect(ms).toBeLessThanOrEqual(4000);
+  });
+
+  it("falls back (never NaN) for missing or unparseable values", () => {
+    expect(parseRetryAfterMs(null, 5000)).toBe(5000);
+    expect(parseRetryAfterMs("not-a-date", 5000)).toBe(5000);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // topazExecuteVideoTask
 // ---------------------------------------------------------------------------
 describe("topazExecuteVideoTask", () => {
@@ -209,10 +237,11 @@ describe("topazExecuteVideoTask", () => {
     submitEndpoint: "https://api.topazlabs.com/video/",
     acceptEndpoint: "https://api.topazlabs.com/video/{request_id}/accept",
     completeEndpoint:
-      "https://api.topazlabs.com/video/{request_id}/complete-upload",
+      "https://api.topazlabs.com/video/{request_id}/complete-upload/",
     statusEndpoint: "https://api.topazlabs.com/video/{request_id}/status",
     pollInterval: 0,
-    maxAttempts: 5
+    maxAttempts: 5,
+    videoKind: "upscale"
   };
 
   const sourceMeta: TopazVideoMetadata = {
@@ -239,13 +268,18 @@ describe("topazExecuteVideoTask", () => {
       requests.push({ url: u, method, headers: init?.headers });
 
       if (u === spec.submitEndpoint && method === "POST") {
-        return { ok: true, json: async () => ({ id: "req-1" }) } as Response;
+        return {
+          ok: true,
+          json: async () => ({ requestId: "req-1" })
+        } as Response;
       }
       if (u.endsWith("/accept")) {
+        // Spec: { uploadId, urls[] }.
         return {
           ok: true,
           json: async () => ({
-            uploadUrls: [
+            uploadId: "upload-1",
+            urls: [
               "https://upload.topaz/part1",
               "https://upload.topaz/part2"
             ]
@@ -258,15 +292,16 @@ describe("topazExecuteVideoTask", () => {
         const headers = new Headers({ ETag: '"etag-' + u.slice(-5) + '"' });
         return { ok: true, headers } as unknown as Response;
       }
-      if (u.endsWith("/complete-upload")) {
+      if (u.endsWith("/complete-upload/")) {
         return { ok: true, json: async () => ({}) } as Response;
       }
       if (u.endsWith("/status")) {
+        // Spec: status="complete" (not "Completed"), download is nested.
         return {
           ok: true,
           json: async () => ({
-            status: "Completed",
-            downloadUrl: "https://cdn.topaz/result.mov"
+            status: "complete",
+            download: { url: "https://cdn.topaz/result.mov" }
           })
         } as Response;
       }
@@ -285,8 +320,7 @@ describe("topazExecuteVideoTask", () => {
       {
         model: "prob-4",
         output_container: "mp4",
-        audio_codec: "copy",
-        slowmo: 1
+        audio_mode: "copy"
       },
       Uint8Array.from(new Array(1024).fill(1)),
       sourceMeta
@@ -299,7 +333,9 @@ describe("topazExecuteVideoTask", () => {
       expect(c.contentType).toBe("video/quicktime");
     }
     // complete-upload body should reference the parts' ETags.
-    const completeReq = requests.find((r) => r.url.endsWith("/complete-upload"));
+    const completeReq = requests.find((r) =>
+      r.url.endsWith("/complete-upload/")
+    );
     expect(completeReq?.method).toBe("PATCH");
 
     // Create body should send the *source* container, not the output container.
@@ -317,10 +353,13 @@ describe("topazExecuteVideoTask", () => {
     global.fetch = vi.fn(async (url: string | URL) => {
       const u = String(url);
       if (u === spec.submitEndpoint) {
-        return { ok: true, json: async () => ({ id: "r" }) } as Response;
+        return {
+          ok: true,
+          json: async () => ({ requestId: "r" })
+        } as Response;
       }
       if (u.endsWith("/accept")) {
-        return { ok: true, json: async () => ({}) } as Response;
+        return { ok: true, json: async () => ({ uploadId: "u" }) } as Response;
       }
       throw new Error(`unexpected: ${u}`);
     }) as unknown as typeof fetch;
@@ -341,12 +380,18 @@ describe("topazExecuteVideoTask", () => {
     global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
       const u = String(url);
       if (u === spec.submitEndpoint) {
-        return { ok: true, json: async () => ({ id: "r2" }) } as Response;
+        return {
+          ok: true,
+          json: async () => ({ requestId: "r2" })
+        } as Response;
       }
       if (u.endsWith("/accept")) {
         return {
           ok: true,
-          json: async () => ({ uploadUrls: ["https://upload.topaz/only"] })
+          json: async () => ({
+            uploadId: "u",
+            urls: ["https://upload.topaz/only"]
+          })
         } as Response;
       }
       if (u === "https://upload.topaz/only") {
@@ -355,13 +400,16 @@ describe("topazExecuteVideoTask", () => {
         );
         return { ok: true, headers: new Headers() } as unknown as Response;
       }
-      if (u.endsWith("/complete-upload")) {
+      if (u.endsWith("/complete-upload/")) {
         return { ok: true, json: async () => ({}) } as Response;
       }
       if (u.endsWith("/status")) {
         return {
           ok: true,
-          json: async () => ({ status: "Completed", url: "https://cdn/x" })
+          json: async () => ({
+            status: "complete",
+            download: { url: "https://cdn/x" }
+          })
         } as Response;
       }
       if (u === "https://cdn/x") {
@@ -381,6 +429,103 @@ describe("topazExecuteVideoTask", () => {
       { ...sourceMeta, container: "weirdformat" }
     );
     expect(captured[0]).toBe("application/octet-stream");
+  });
+
+  it("skips empty trailing parts when accept returns more URLs than bytes", async () => {
+    const uploaded: Array<{ url: string; length: number }> = [];
+    let completeBody: { uploadResults: Array<{ partNum: number }> } | undefined;
+
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u === spec.submitEndpoint) {
+        return { ok: true, json: async () => ({ requestId: "r3" }) } as Response;
+      }
+      if (u.endsWith("/accept")) {
+        // 4 presigned URLs but only 3 source bytes — a ceil split leaves the
+        // 4th part empty (3/3/3/0 at partSize 1).
+        return {
+          ok: true,
+          json: async () => ({
+            uploadId: "up-3",
+            urls: [
+              "https://upload.topaz/p1",
+              "https://upload.topaz/p2",
+              "https://upload.topaz/p3",
+              "https://upload.topaz/p4"
+            ]
+          })
+        } as Response;
+      }
+      if (u.startsWith("https://upload.topaz/")) {
+        const body = init?.body as Uint8Array;
+        uploaded.push({ url: u, length: body.byteLength });
+        return {
+          ok: true,
+          headers: new Headers({ ETag: '"e"' })
+        } as unknown as Response;
+      }
+      if (u.endsWith("/complete-upload/")) {
+        completeBody = JSON.parse((init?.body as string) ?? "{}");
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+      if (u.endsWith("/status")) {
+        return {
+          ok: true,
+          json: async () => ({
+            status: "complete",
+            download: { url: "https://cdn/v" }
+          })
+        } as Response;
+      }
+      if (u === "https://cdn/v") {
+        return {
+          ok: true,
+          arrayBuffer: async () => Uint8Array.from([1]).buffer
+        } as Response;
+      }
+      throw new Error(`unexpected: ${u}`);
+    }) as unknown as typeof fetch;
+
+    await topazExecuteVideoTask(
+      "key",
+      spec,
+      { model: "prob-4" },
+      Uint8Array.from([1, 2, 3]),
+      sourceMeta
+    );
+
+    // Only 3 non-empty parts are uploaded; the 4th URL is left unused.
+    expect(uploaded.length).toBe(3);
+    expect(uploaded.every((p) => p.length > 0)).toBe(true);
+    expect(completeBody?.uploadResults.length).toBe(3);
+    expect(completeBody?.uploadResults.map((r) => r.partNum)).toEqual([1, 2, 3]);
+  });
+
+  it("does not retry the job-creating POST on a 5xx", async () => {
+    let createCalls = 0;
+    global.fetch = vi.fn(async (url: string | URL) => {
+      if (String(url) === spec.submitEndpoint) {
+        createCalls++;
+        return {
+          ok: false,
+          status: 503,
+          text: async () => "overloaded"
+        } as Response;
+      }
+      throw new Error(`unexpected: ${String(url)}`);
+    }) as unknown as typeof fetch;
+
+    await expect(
+      topazExecuteVideoTask(
+        "key",
+        spec,
+        { model: "prob-4" },
+        Uint8Array.from([1, 2]),
+        sourceMeta
+      )
+    ).rejects.toThrow("Topaz create failed: 503");
+    // A retried POST could submit a second billable job — must be exactly one.
+    expect(createCalls).toBe(1);
   });
 });
 

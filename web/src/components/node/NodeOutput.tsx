@@ -137,10 +137,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
   ]);
 
   return (
-    <div
-      className="output-handle-container"
-      data-onboarding-target="output-handle"
-    >
+    <div className="output-handle-container">
       <HandleTooltip
         typeMetadata={output.type}
         paramName={output.name}

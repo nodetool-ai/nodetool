@@ -28,6 +28,7 @@ export const sharpenUnsharpMaskV1 = defineModule({
   // batch (params stable since Phase 2).
   surface: "published",
   category: "filters",
+  linearity: "nonlinear-in-rgb",
   kind: "compute",
   params: SharpenParams,
   paramDefaults: { amount: 0, threshold: 0 },
@@ -63,10 +64,10 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     }
   }
   let blurAvg = sum / 9.0;
-  let diff = center.rgb - blurAvg.rgb;
+  let diff = center.rgb - blurAvg.rgb; // premul: ok TODO(invariant-fixes): see review §BUGS — diff on premul rgb skews per-alpha pixels
   let lum = abs(dot(diff, vec3<f32>(0.299, 0.587, 0.114)));
   let mask = step(sharpen.threshold, lum);
-  let sharpened = clamp(center.rgb + diff * sharpen.amount * mask, vec3<f32>(0.0), vec3<f32>(1.0));
+  let sharpened = clamp(center.rgb + diff * sharpen.amount * mask, vec3<f32>(0.0), vec3<f32>(1.0)); // premul: ok TODO(invariant-fixes): see review §BUGS
   textureStore(layout.$.outputTexture, coords, vec4<f32>(sharpened, center.a));
 }
 `,

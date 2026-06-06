@@ -17,15 +17,13 @@ export function logPythonWorkerStderr(line: string, logger: Logger): void {
     return;
   }
 
-  if (
-    /\| INFO \|/i.test(trimmed) ||
-    /Flux preload|Starting Flux|execute_node|Loading Nunchaku|Nunchaku transformer/i.test(
-      trimmed
-    )
-  ) {
-    logger.info(`[python-worker] ${trimmed}`);
+  if (/\| DEBUG \|/i.test(trimmed) || /^\[debug\]/i.test(trimmed)) {
+    logger.debug(`[python-worker] ${trimmed}`);
     return;
   }
 
-  logger.debug(`[python-worker] ${trimmed}`);
+  // Everything else from the worker (explicit INFO lines, raw prints,
+  // tracebacks, library output) goes to the main log at info level so no
+  // Python-side output is silently dropped at the default log level.
+  logger.info(`[python-worker] ${trimmed}`);
 }

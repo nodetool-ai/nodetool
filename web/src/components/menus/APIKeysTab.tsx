@@ -47,6 +47,7 @@ import falColorIcon from "@lobehub/icons-static-svg/icons/fal-color.svg";
 import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
 import moonshotIcon from "@lobehub/icons-static-svg/icons/moonshot.svg";
 import topazlabsIcon from "@lobehub/icons-static-svg/icons/topazlabs.svg";
+import atlascloudIcon from "@lobehub/icons-static-svg/icons/atlascloud.svg";
 import zhipuColorIcon from "@lobehub/icons-static-svg/icons/zhipu-color.svg";
 import minimaxColorIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg";
 import meshyColorIcon from "@lobehub/icons-static-svg/icons/meshy-color.svg";
@@ -64,6 +65,8 @@ interface ProviderMeta {
   icon?: string;
   /** Mono (single-color black) icon — needs inversion in dark mode to be visible. */
   mono?: boolean;
+  /** Extra hint rendered under the description (e.g. required key scope). */
+  note?: string;
 }
 
 const PROVIDER_META: ProviderMeta[] = [
@@ -176,7 +179,8 @@ const PROVIDER_META: ProviderMeta[] = [
     description: "Serverless AI image and video generation.",
     category: "other",
     docsUrl: "https://fal.ai/docs",
-    icon: falColorIcon
+    icon: falColorIcon,
+    note: "For exact cost tracking, use an admin key (fal.ai dashboard → Keys → scope “Admin”). NodeTool reads each request's actual billing from FAL; a standard key only yields estimates."
   },
   {
     key: "ELEVENLABS_API_KEY",
@@ -195,6 +199,21 @@ const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://developer.topazlabs.com/",
     icon: topazlabsIcon,
     mono: true
+  },
+  {
+    key: "ATLASCLOUD_API_KEY",
+    name: "AtlasCloud",
+    description: "GPT Image 2, Nano Banana, and Seedance 2.0 video generation.",
+    category: "other",
+    docsUrl: "https://www.atlascloud.ai/",
+    icon: atlascloudIcon
+  },
+  {
+    key: "REVE_API_KEY",
+    name: "Reve",
+    description: "Image creation, editing, and remix with strong prompt adherence.",
+    category: "other",
+    docsUrl: "https://api.reve.com/"
   },
   {
     key: "KIMI_API_KEY",
@@ -447,7 +466,7 @@ const ProviderCard = memo(function ProviderCard({
             }}
           />
         ) : (
-          <Text size="big" weight={700}>
+          <Text size="big" weight={600}>
             {meta.name.charAt(0)}
           </Text>
         )}
@@ -477,6 +496,17 @@ const ProviderCard = memo(function ProviderCard({
         <Caption sx={{ opacity: 0.55, lineHeight: 1.4 }}>
           {meta.description}
         </Caption>
+        {meta.note && (
+          <Caption
+            sx={{
+              opacity: 0.45,
+              lineHeight: 1.4,
+              fontSize: theme.fontSizeTiny
+            }}
+          >
+            {meta.note}
+          </Caption>
+        )}
       </FlexColumn>
 
       {/* Status + Actions — right-aligned, vertically distributed */}

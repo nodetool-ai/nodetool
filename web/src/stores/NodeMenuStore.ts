@@ -6,7 +6,6 @@ import { create } from "zustand";
 import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
 import useMetadataStore from "./MetadataStore";
-import { useComfyUIStore } from "./ComfyUIStore";
 import { useRecentNodesStore } from "./RecentNodesStore";
 import {
   computeSearchResults,
@@ -111,26 +110,14 @@ export type NodeMenuStore = {
   getSelectedNode: () => NodeMetadata | null;
 };
 
-type NodeMenuStoreOptions = {
-  onlyTools?: boolean;
-};
-
-export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
+export const createNodeMenuStore = () =>
   create<NodeMenuStore>((set, get) => {
     let searchTimeout: ReturnType<typeof setTimeout> | null = null;
     let hoveredNodeTimeout: ReturnType<typeof setTimeout> | null = null;
     let pendingSearchId = 0;
 
-    const getFilteredMetadata = () => {
-      const all = Object.values(useMetadataStore.getState().metadata);
-      const isComfyConnected = useComfyUIStore.getState().isConnected;
-      const visibleNodes = isComfyConnected
-        ? all
-        : all.filter((node) => !node.node_type?.startsWith("comfy."));
-      return options.onlyTools
-        ? visibleNodes.filter((n) => n.expose_as_tool)
-        : visibleNodes;
-    };
+    const getFilteredMetadata = () =>
+      Object.values(useMetadataStore.getState().metadata);
     const filterNodes = (nodes: NodeMetadata[]) =>
       filterNodesUtil(
         nodes,
@@ -599,6 +586,5 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
 const nodeMenuMetadataUnsubscribers = new Set<() => void>();
 
 export const useNodeMenuStore = createNodeMenuStore();
-export const useNodeToolsMenuStore = createNodeMenuStore({ onlyTools: true });
 
 export default useNodeMenuStore;

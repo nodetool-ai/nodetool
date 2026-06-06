@@ -10,6 +10,7 @@ export interface SummarizerInputs {
   text?: Connectable<string>;
   image?: Connectable<ImageRef>;
   audio?: Connectable<AudioRef>;
+  max_sentences?: Connectable<number>;
 }
 
 export interface SummarizerOutputs {
@@ -72,7 +73,7 @@ export function classifier(inputs: ClassifierInputs): DslNode<ClassifierOutputs,
 // Agent — nodetool.agents.Agent
 export interface AgentInputs {
   model?: Connectable<unknown>;
-  mode?: Connectable<"loop" | "plan" | "multi-agent">;
+  mode?: Connectable<"loop" | "plan">;
   system?: Connectable<string>;
   prompt?: Connectable<string>;
   tools?: Connectable<unknown[]>;
@@ -82,8 +83,6 @@ export interface AgentInputs {
   thread_id?: Connectable<string>;
   max_tokens?: Connectable<number>;
   max_turns?: Connectable<number>;
-  num_agents?: Connectable<number>;
-  team_strategy?: Connectable<"coordinator" | "autonomous" | "hybrid">;
 }
 
 export interface AgentOutputs {

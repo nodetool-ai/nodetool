@@ -42,6 +42,7 @@ export const mixerColorOverlayV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "mixer",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: ColorOverlayParams,
   paramDefaults: { color: d.vec4f(1, 0, 0, 1), amount: 0.5 },

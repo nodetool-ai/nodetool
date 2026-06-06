@@ -13,6 +13,11 @@ import {
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type {
+  PromptAssetTextField,
+  PromptAssetInputField
+} from "@nodetool-ai/runtime";
+import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import {
   getApiKey,
   kieExecuteTask,
@@ -45,8 +50,7 @@ export interface KieFieldDef {
     | "list[str]"
     | "list[image]"
     | "list[video]"
-    | "list[audio]"
-    | "video_clip_list";
+    | "list[audio]";
   default?: unknown;
   title?: string;
   description?: string;
@@ -111,8 +115,7 @@ function isAssetType(type: string): boolean {
     "video",
     "list[image]",
     "list[video]",
-    "list[audio]",
-    "video_clip_list"
+    "list[audio]"
   ].includes(type);
 }
 
@@ -183,7 +186,6 @@ function defaultForType(type: string): unknown {
     case "list[video]":
     case "list[audio]":
     case "list[str]":
-    case "video_clip_list":
       return [];
     default:
       return "";
@@ -218,6 +220,47 @@ async function buildVideoClips(
   );
 }
 
+/**
+ * Route `asset://` media mentioned inline in a node's text inputs onto its
+ * empty image/audio/video uploads (and strip the mentions from the text).
+ * Shared with FAL / Replicate / image-to-image via `mapPromptAssetsToInputs`.
+ */
+async function promptAssetOverrides(
+  instance: BaseNode,
+  spec: KieManifestEntry,
+  context?: Parameters<BaseNode["process"]>[0]
+): Promise<Record<string, unknown>> {
+  const values = instance as unknown as Record<string, unknown>;
+  const textFields: PromptAssetTextField[] = spec.fields
+    .filter((f) => f.type === "str")
+    .map((f) => ({ name: f.name, value: String(values[f.name] ?? "") }));
+  const assetFields: PromptAssetInputField[] = [];
+  for (const upload of spec.uploads ?? []) {
+    // Video-clip uploads carry per-clip start/end timing, not a plain ref, so
+    // they aren't a target for inline mentions; plain video uploads are.
+    if (upload.isVideoClip) continue;
+    if (
+      upload.kind !== "image" &&
+      upload.kind !== "audio" &&
+      upload.kind !== "video"
+    )
+      continue;
+    const value = values[upload.field];
+    const list = Boolean(upload.isList);
+    const hasSource = list
+      ? Array.isArray(value) && value.some(isRefSet)
+      : isRefSet(value);
+    assetFields.push({
+      name: upload.field,
+      label: upload.paramName ?? upload.field,
+      kind: upload.kind,
+      list,
+      hasSource
+    });
+  }
+  return mapPromptAssetsToInputs(textFields, assetFields, context);
+}
+
 async function buildParams(
   instance: BaseNode,
   spec: KieManifestEntry,
@@ -228,6 +271,11 @@ async function buildParams(
   const clipUploads = new Set(
     spec.uploads?.filter((u) => u.isVideoClip).map((u) => u.field) ?? []
   );
+  const overrides = await promptAssetOverrides(instance, spec, context);
+  const readValue = (name: string): unknown =>
+    name in overrides
+      ? overrides[name]
+      : (instance as unknown as Record<string, unknown>)[name];
 
   // Scalar and list[str] fields
   for (const field of spec.fields) {
@@ -241,7 +289,7 @@ async function buildParams(
       continue;
     }
 
-    const value = (instance as unknown as Record<string, unknown>)[field.name];
+    const value = readValue(field.name);
     const paramName = spec.paramNames?.[field.name] ?? field.name;
     const defLit = field.default ?? defaultForType(field.type);
 
@@ -258,15 +306,16 @@ async function buildParams(
     const conditional = spec.conditionalFields?.find(
       (c) => c.field === field.name
     );
-    if (conditional) {
-      if (conditional.condition === "gte_zero" && Number(cast) >= 0) {
-        params[paramName] = cast;
-      } else if (conditional.condition === "truthy" && value) {
-        params[paramName] = cast;
-      } else if (!conditional) {
-        params[paramName] = cast;
-      }
+    if (conditional?.condition === "gte_zero") {
+      if (Number(cast) >= 0) params[paramName] = cast;
+    } else if (conditional?.condition === "truthy") {
+      if (value) params[paramName] = cast;
     } else {
+      // No conditional, or an unconditional rule ("not_default"): include the
+      // param as-is. Mirrors the codegen reference (node-generator.ts), whose
+      // `else` branch emits the value unconditionally. The previous
+      // `else if (!conditional)` was dead code inside `if (conditional)`, so
+      // "not_default" fields were silently dropped from the request.
       params[paramName] = cast;
     }
   }
@@ -276,9 +325,7 @@ async function buildParams(
     const groups = new Map<string, string[]>();
 
     for (const upload of spec.uploads) {
-      const value = (instance as unknown as Record<string, unknown>)[
-        upload.field
-      ];
+      const value = readValue(upload.field);
       const fn = uploadFnForKind(upload.kind);
 
       if (upload.isVideoClip) {
@@ -433,13 +480,15 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     value: ["KIE_API_KEY"],
     configurable: true
   });
-  Object.defineProperty(KieNodeClass, "exposeAsTool", {
-    value: true,
-    configurable: true
-  });
   if (isGenerativeOutput) {
     Object.defineProperty(KieNodeClass, "autoSaveAsset", {
       value: true,
+      configurable: true
+    });
+    // Media generators render as a content card. Metadata-driven equivalent of
+    // the frontend's old "kie.* namespace + media output" heuristic.
+    Object.defineProperty(KieNodeClass, "body", {
+      value: "content_card",
       configurable: true
     });
   }

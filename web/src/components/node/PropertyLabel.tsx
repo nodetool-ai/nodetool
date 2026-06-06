@@ -16,7 +16,6 @@ import {
 } from "../../contexts/InspectorPropertyHeaderContext";
 import { FlexRow } from "../ui_primitives";
 import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
-import { isCollectType } from "../../utils/TypeHandler";
 
 interface PropertyLabelProps {
   id: string;
@@ -41,7 +40,6 @@ interface PropertyLabelProps {
   showDescriptionInline?: boolean;
   handleTooltipType?: TypeMetadata;
   handleTooltipPosition?: "left" | "right";
-  isCollectInput?: boolean;
 }
 
 const PropertyLabel: React.FC<PropertyLabelProps> = ({
@@ -53,16 +51,11 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   density = "normal",
   showDescriptionInline = false,
   handleTooltipType,
-  handleTooltipPosition = "left",
-  isCollectInput = false
+  handleTooltipPosition = "left"
 }) => {
   const theme = useTheme();
   const contextHandleTooltipType = useContext(PropertyHandleTooltipContext);
   const resolvedHandleTooltipType = handleTooltipType ?? contextHandleTooltipType;
-  const resolvedIsCollectInput =
-    isCollectInput ||
-    (resolvedHandleTooltipType != null &&
-      isCollectType(resolvedHandleTooltipType));
   const scope = useEditorScope();
   const formattedName = useMemo(() => {
     if (isDynamicProperty) {
@@ -81,7 +74,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
       headerReset != null ||
       headerSupplemental != null);
   const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
-  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.25);
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1);
   // Only show inline descriptions when explicitly requested, not automatically in inspector
   const shouldShowInlineDescription = showDescriptionInline && !isInspector;
 
@@ -96,7 +89,6 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
       typeMetadata={resolvedHandleTooltipType}
       paramName={name}
       handlePosition={handleTooltipPosition}
-      isCollectInput={resolvedIsCollectInput}
       variant="property"
     >
       {label}
@@ -187,6 +179,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         padding: 0,
         overflow: "visible",
         flexGrow: 1,
+        marginBottom: labelMarginBottom,
         "&:hover": {
           "& label": {
             opacity: 0.94
@@ -198,16 +191,13 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           fontSize: labelFontSize,
           color: theme.vars.palette.text.secondary,
           padding: 0,
-          margin: hasHeaderActions ? 0 : `0 0 ${labelMarginBottom} 0`,
+          margin: 0,
           lineHeight: "1em",
           maxHeight: "2em",
           minHeight: "13px",
           textTransform: "capitalize",
           letterSpacing: "0.01em",
           userSelect: "none"
-        },
-        "&.property-label-with-actions": {
-          marginBottom: labelMarginBottom
         },
         ".inspector-header-toolbar .inspector-reset-button": {
           padding: 0,
@@ -238,7 +228,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           height: 20
         },
         ".inspector-header-toolbar .MuiIconButton-root svg": {
-          fontSize: "0.75rem"
+          fontSize: "var(--fontSizeSmall)"
         },
         ".inspector-header-toolbar .inspector-supplemental-action": {
           width: 22,

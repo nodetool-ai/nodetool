@@ -10908,7 +10908,7 @@
       },
       {
         "name": "video_list",
-        "type": "video_clip_list",
+        "type": "list[video]",
         "default": [],
         "title": "Video List",
         "description": "Array of video clips. Each item defines a source video and the trim range to use during generation. Video limits: - Each file must be no larger than `100MB` - Video duration must not exceed `30s` - `ends` should be greater than `start` - The difference between the end time and the start time must not exceed `10s`. - Max 1 items. Equal 2 images",

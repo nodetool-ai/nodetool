@@ -3,7 +3,7 @@
  */
 
 // Types
-export type { Step, Task, TaskPlan, AgentMode, SubAgentConfig } from "./types.js";
+export type { Step, Task, TaskPlan } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
@@ -36,6 +36,11 @@ export {
   GrepTool
 } from "./tools/claude-code-tools.js";
 export { RunCodeTool } from "./tools/code-tools.js";
+export {
+  TodoWriteTool,
+  getThreadTodos,
+  clearThreadTodos
+} from "./tools/todo-tools.js";
 export { MiniJSAgentTool } from "./tools/js-code-tool.js";
 export {
   GoogleSearchTool,
@@ -116,6 +121,25 @@ export {
 } from "./tools/vector-tools.js";
 export type { VecCollection } from "./tools/vector-tools.js";
 export {
+  ListCollectionsTool,
+  QueryCollectionTool
+} from "./tools/collection-tools.js";
+export {
+  TOOL_PERMISSION_CATEGORIES,
+  permissionCategoryFor,
+  decidePermission,
+  gateTools
+} from "./tools/tool-permissions.js";
+export type {
+  PermissionCategory,
+  PermissionMode,
+  PermissionDecision,
+  ApprovalDecision,
+  ApprovalRequest,
+  RequestApproval,
+  PermissionGateOptions
+} from "./tools/tool-permissions.js";
+export {
   registerTool,
   resolveTool,
   listTools,
@@ -169,6 +193,15 @@ export type { ControlNodeInfo } from "./tools/control-tool.js";
 export { CreatePlanTool } from "./tools/create-plan-tool.js";
 export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 export {
+  RunSubtaskTool,
+  SUBTASK_DEPTH_KEY,
+  TOOL_CALL_ID_FIELD
+} from "./tools/run-subtask-tool.js";
+export type {
+  RunSubtaskToolOptions,
+  ForwardMessage
+} from "./tools/run-subtask-tool.js";
+export {
   PlanBuilder,
   AddTaskTool,
   RemoveTaskTool,
@@ -208,14 +241,29 @@ export { AgentExecutor } from "./agent-executor.js";
 export type { AgentExecutorOptions } from "./agent-executor.js";
 
 // Agents
-export { BaseAgent } from "./base-agent.js";
-export { SimpleAgent } from "./simple-agent.js";
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
 export type { AgentSkill, AgentOptions } from "./agent.js";
-export { MultiModeAgent } from "./multi-mode-agent.js";
-export type { MultiModeAgentOptions } from "./multi-mode-agent.js";
-export { SubAgentPlanner } from "./sub-agent-planner.js";
-export type { SubAgentPlannerOptions } from "./sub-agent-planner.js";
+
+// Long-term memory (cross-session, automatically queried)
+export {
+  LongTermMemory,
+  formatMemoryForPrompt,
+  createDefaultLongTermMemory
+} from "./long-term-memory.js";
+export type {
+  LongTermMemoryItem,
+  LongTermMemoryOptions,
+  CreateDefaultLongTermMemoryOptions,
+  MemoryKind as LongTermMemoryKind
+} from "./long-term-memory.js";
+export {
+  LtmRecallTool,
+  LtmRememberTool,
+  getLongTermMemoryTools,
+  LTM_TOOL_NAMES,
+  setLongTermMemory,
+  getLongTermMemory
+} from "./tools/ltm-tools.js";
 
 // Planning & orchestration
 export { TaskPlanner } from "./task-planner.js";
@@ -236,42 +284,3 @@ export type { AgentStepExecutorOptions } from "./agent-step-executor.js";
 export { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 export type { AgentWorkflowRunnerOptions } from "./agent-workflow-runner.js";
 
-// Multi-agent team system
-export {
-  // In-memory implementations
-  MessageBus,
-  TaskBoard,
-  // Edge-native implementations
-  EdgeMessageBus,
-  EdgeTaskBoard,
-  // DB-backed implementation
-  DbTaskBoard,
-  // Orchestration
-  TeamExecutor,
-  // Tools
-  createTeamTools,
-  SendMessageTool,
-  BroadcastTool,
-  CheckMessagesTool,
-  CreateTaskTool,
-  ListTasksTool,
-  ClaimTaskTool,
-  CompleteTaskTool,
-  FailTaskTool,
-  DecomposeTaskTool
-} from "./team/index.js";
-export type {
-  AgentIdentity,
-  AgentMessage,
-  MessageType,
-  BoardTask,
-  TaskStatus,
-  TeamEvent,
-  TeamConfig,
-  TeamStrategy,
-  IMessageBus,
-  ITaskBoard,
-  TeamExecutorOptions,
-  MessageHandler,
-  BoardEventHandler
-} from "./team/index.js";

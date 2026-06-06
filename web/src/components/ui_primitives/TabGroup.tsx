@@ -103,7 +103,7 @@ export const TabGroup: React.FC<TabGroupProps> = ({
             minWidth: "auto",
             minHeight: isSmall ? "36px" : "42px",
             padding: isSmall ? "6px 12px" : "8px 16px",
-            fontSize: isSmall ? "11px" : "13px",
+            fontSize: isSmall ? "var(--fontSizeSmaller)" : "var(--fontSizeSmall)",
             fontWeight: 600,
             textTransform: "none",
             color: theme.vars.palette.text.secondary,

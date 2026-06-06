@@ -53,7 +53,7 @@ function SketchToolIconLabel({
         borderRadius: 1,
         backgroundColor: shortcutBg,
         fontSize: compact ? SKETCH_FONT.xs : SKETCH_FONT.sm,
-        fontWeight: 700,
+        fontWeight: 600,
         lineHeight: 1.2,
         color: "text.secondary",
         opacity: selected ? 1 : 0,
@@ -111,7 +111,7 @@ function SketchToolIconLabel({
         className="sketch-tool-icon-label__label"
         sx={{
           fontSize: compact ? SKETCH_FONT.xxs : SKETCH_FONT.sm,
-          fontWeight: row ? 700 : 600,
+          fontWeight: row ? 600 : 600,
           color: row ? "text.primary" : "text.secondary",
           lineHeight: 1.15,
           textTransform: "uppercase",
@@ -127,7 +127,7 @@ function SketchToolIconLabel({
                 WebkitLineClamp: 2,
                 overflow: "hidden",
                 wordBreak: "break-word" as const,
-                px: 0.15
+                px: 0.5
               }
             : {})
         }}

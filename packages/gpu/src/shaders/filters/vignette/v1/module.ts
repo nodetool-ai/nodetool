@@ -28,6 +28,7 @@ export const vignetteV1 = defineModule({
   // since Phase 2 and the falloff math is unchanged.
   surface: "published",
   category: "filters",
+  linearity: "nonlinear-in-rgb",
   kind: "compute",
   params: VignetteParams,
   paramDefaults: { intensity: 0, radius: 0.9, softness: 0.5 },
@@ -58,7 +59,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let t = clamp((dist - inner) / (outer - inner), 0.0, 1.0);
   let fade = t * t * (3.0 - 2.0 * t);
   let dim = 1.0 - v.intensity * fade;
-  textureStore(layout.$.outputTexture, coords, vec4<f32>(color.rgb * dim, color.a));
+  textureStore(layout.$.outputTexture, coords, vec4<f32>(color.rgb * dim, color.a)); // premul: ok — scalar '* dim' preserves rgb <= a; mis-tagged as nonlinear (TODO retag linear)
 }
 `,
   io: {

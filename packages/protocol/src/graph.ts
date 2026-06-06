@@ -160,8 +160,8 @@ export interface NodeDescriptor {
   /** Whether this node is controlled via control edges. */
   is_controlled?: boolean;
 
-  /** Whether this node is dynamic (runtime outputs). */
-  is_dynamic?: boolean;
+  /** Whether this node accepts user-named dynamic input properties. */
+  supports_dynamic_inputs?: boolean;
 
   /**
    * If true, this node is an explicit join (`Zip` or `Cross`) and is allowed

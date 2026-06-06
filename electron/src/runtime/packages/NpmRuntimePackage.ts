@@ -287,6 +287,3 @@ export class NpmRuntimePackage implements RuntimePackage {
     };
   }
 }
-
-/** Exported for tests / callers that need to ensure npm exists. */
-export const _internal = { resolveNpmExecutable };

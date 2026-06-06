@@ -100,13 +100,16 @@ function isSearchEngine(hostname: string): boolean {
 
 export class BrowserTool extends Tool {
   readonly name = "browser";
-  readonly description = "Fetch content from a web page";
+  readonly description =
+    "Fetches a web page and returns its readable text content (HTML " +
+    "stripped). Returns plain text. Errors include a short reason. Search " +
+    "engine result pages are blocked — use `google_search` instead.";
   readonly inputSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       url: {
         type: "string",
-        description: "URL to navigate to"
+        description: "URL to fetch."
       }
     },
     required: ["url"]
@@ -114,8 +117,8 @@ export class BrowserTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     const url = (params.url as string) ?? "a specific URL";
-    const msg = `Browsing ${url}...`;
-    return msg.length > 160 ? "Browsing a specified URL..." : msg;
+    const msg = `Fetching ${url}`;
+    return msg.length > 160 ? "Fetching a URL" : msg;
   }
 
   async process(
@@ -124,21 +127,16 @@ export class BrowserTool extends Tool {
   ): Promise<unknown> {
     const url = params.url as string | undefined;
     if (!url) {
-      return { error: "URL is required" };
+      return "Error: url is required";
     }
 
-    // Block search-engine result pages
     try {
       const hostname = new URL(url).hostname;
       if (isSearchEngine(hostname)) {
-        return {
-          error:
-            "Direct browsing of search engine result pages is disabled. Use a SERP tool (e.g., google_search) instead.",
-          url
-        };
+        return "Error: Direct browsing of search engine result pages is disabled. Use google_search instead.";
       }
     } catch {
-      return { error: `Invalid URL: ${url}` };
+      return `Error: Invalid URL: ${url}`;
     }
 
     try {
@@ -154,23 +152,14 @@ export class BrowserTool extends Tool {
       });
 
       if (!response.ok) {
-        return {
-          error: `HTTP ${response.status}: ${response.statusText}`,
-          url
-        };
+        return `Error: HTTP ${response.status} ${response.statusText} fetching ${url}`;
       }
 
       const html = await response.text();
-      const content = htmlToText(html);
-
-      return {
-        success: true,
-        url,
-        content
-      };
+      return htmlToText(html);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      return { error: `Error fetching page: ${message}` };
+      return `Error: ${message}`;
     }
   }
 }

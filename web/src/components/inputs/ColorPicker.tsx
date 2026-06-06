@@ -55,7 +55,7 @@ const colorMatrixStyle = (theme: Theme) =>
     ".custom-button": {
       width: "100%",
       marginTop: "8px",
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       textTransform: "none"
     }
   });
@@ -199,7 +199,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
               size="small"
               onClick={handleOpenModal}
             >
-              Custom Color...
+              Custom Color…
             </Button>
           )}
         </div>

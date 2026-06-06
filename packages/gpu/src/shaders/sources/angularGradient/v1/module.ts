@@ -24,6 +24,7 @@ export const sourcesAngularGradientV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "sources",
+  linearity: "source",
   kind: "fragment",
   params: AngularGradientParams,
   paramDefaults: {

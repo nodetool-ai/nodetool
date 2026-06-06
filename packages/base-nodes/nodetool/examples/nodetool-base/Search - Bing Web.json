@@ -39,7 +39,7 @@
     "nodes": [
       {
         "id": "claude-agent",
-        "type": "anthropic.agents.ClaudeAgent",
+        "type": "nodetool.agents.Agent",
         "data": {
           "prompt": "Use the Bing Search tool to research 'emerging AI frameworks 2026'. Compare results across multiple queries and write a concise market overview with key players and trends.",
           "model": {
@@ -48,11 +48,9 @@
             "id": "claude-sonnet-4-6",
             "name": "Claude Sonnet 4.6"
           },
-          "system_prompt": "You are a technology analyst. Use the available search tools to gather data, then provide structured, insightful analysis with specific references. Be concise but thorough.",
+          "system": "You are a technology analyst. Use the available search tools to gather data, then provide structured, insightful analysis with specific references. Be concise but thorough.",
           "max_turns": 10,
-          "allowed_tools": [],
-          "permission_mode": "acceptEdits",
-          "use_claude_credentials": true
+          "tools": []
         },
         "ui_properties": {
           "position": {

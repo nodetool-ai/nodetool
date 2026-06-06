@@ -202,7 +202,10 @@ export class AgentExecutor {
     }
 
     try {
-      return await tool.process(this.context, toolCall.args);
+      return await tool.process(
+        this.context,
+        Tool.stripMessage(toolCall.args)
+      );
     } catch (e: unknown) {
       return { error: String(e) };
     }

@@ -1,6 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import ELK, { ElkNode } from "elkjs/lib/elk.bundled.js";
+import { COMMENT_NODE_TYPE } from "../constants/nodeTypes";
 
 /**
  * Graph utilities for workflow layout and traversal.
@@ -213,7 +214,7 @@ export const autoLayout = async (
 
   // Filter out comment nodes
   const nonCommentNodes = nodes.filter(
-    (node) => node.type !== "nodetool.workflows.base_node.Comment"
+    (node) => node.type !== COMMENT_NODE_TYPE
   );
 
   // Group non-comment nodes by parentId
@@ -340,10 +341,11 @@ export const autoLayout = async (
   // root group is processed last to ensure all group nodes are processed
   for (const groupId of groupOrder) {
     const groupNodes = nodeGroups[groupId] || [];
+    const groupNodeIds = new Set(groupNodes.map((n) => n.id));
     const groupEdges = edges.filter(
       (edge) =>
-        groupNodes.some((n) => n.id === edge.source) &&
-        groupNodes.some((n) => n.id === edge.target)
+        groupNodeIds.has(edge.source) &&
+        groupNodeIds.has(edge.target)
     );
 
     const graph = createElkGraph(groupNodes, groupEdges, groupId === "root");
@@ -388,7 +390,7 @@ export const autoLayout = async (
   // Combine updated non-comment nodes with original comment nodes
   const updatedNonCommentNodes = Object.values(processedGroups).flat();
   const commentNodes = nodes.filter(
-    (node) => node.type === "nodetool.workflows.base_node.Comment"
+    (node) => node.type === COMMENT_NODE_TYPE
   );
 
   return [...updatedNonCommentNodes, ...commentNodes];

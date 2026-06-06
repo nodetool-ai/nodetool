@@ -5,6 +5,8 @@ type BaseNodeSelectionStyleArgs = {
   selected: boolean;
   isFocused: boolean;
   isLoading: boolean;
+  /** Ambient liveness ring is showing (node active in other, non-focused runs). */
+  hasAmbientRing?: boolean;
   hasParent: boolean;
   hasToggleableResult: boolean;
   baseColor: string | undefined;
@@ -52,6 +54,7 @@ export const getBaseNodeSelectionStyles = ({
   selected,
   isFocused,
   isLoading,
+  hasAmbientRing = false,
   hasParent,
   hasToggleableResult,
   baseColor,
@@ -62,6 +65,18 @@ export const getBaseNodeSelectionStyles = ({
 }: BaseNodeSelectionStyleArgs) => {
   const resolvedBaseColor = baseColor || theme.vars.palette.primary.main;
   const defaultBorder = `1px solid color-mix(in srgb, ${theme.vars.palette.grey[800]} 84%, transparent)`;
+
+  // When the node carries an execution ring (the primary loading ring outside
+  // the node, or the ambient ring at its edge), selection moves *inside* the
+  // node so the two never fight over the border zone: selection is shown as the
+  // inset outline + depth shadow only, dropping its own crisp outer ring. The
+  // outer zone is left to the run animation.
+  const hasRunActivity = isLoading || hasAmbientRing;
+  const selectionDepthShadow = `0 10px 28px rgb(0 0 0 / 0.34), 0 2px 10px color-mix(in srgb, ${resolvedBaseColor} 18%, transparent)`;
+  const selectionOuterRing = `0 0 0 1px color-mix(in srgb, ${resolvedBaseColor} 75%, white 25%)`;
+  const selectionShadow = hasRunActivity
+    ? selectionDepthShadow
+    : `${selectionOuterRing}, ${selectionDepthShadow}`;
 
   const sizeStyles = collapsed
     ? NODE_COLLAPSED_BASE_NODE_SX
@@ -79,7 +94,7 @@ export const getBaseNodeSelectionStyles = ({
       border: isLoading ? "none" : defaultBorder
     }),
     boxShadow: selected
-      ? `0 0 0 1px color-mix(in srgb, ${resolvedBaseColor} 75%, white 25%), 0 10px 28px rgb(0 0 0 / 0.34), 0 2px 10px color-mix(in srgb, ${resolvedBaseColor} 18%, transparent)`
+      ? selectionShadow
       : isFocused
         ? `0 0 0 2px ${theme.vars.palette.warning.main}, 0 10px 24px rgb(0 0 0 / 0.22)`
         : `0 8px 20px rgb(0 0 0 / 0.16), 0 1px 0 rgb(255 255 255 / 0.03) inset`,

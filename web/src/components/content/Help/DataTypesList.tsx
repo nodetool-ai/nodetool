@@ -10,7 +10,8 @@ import {
   FlexRow,
   Text
 } from "../../ui_primitives";
-import { DataType, IconForType } from "../../../config/data_types";
+import { DataType } from "../../../config/data_types";
+import { IconForType } from "../../../config/IconForType";
 
 interface DataTypesListProps {
   title: string;
@@ -101,7 +102,7 @@ const DataTypesList = ({
                 }}
               >
                 {type.namespace && (
-                  <Text size="small" weight={300} sx={{ width: "100%" }}>
+                  <Text size="small" weight={400} sx={{ width: "100%" }}>
                     {type.namespace}
                   </Text>
                 )}

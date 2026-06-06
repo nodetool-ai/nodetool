@@ -111,7 +111,7 @@ const NodeDiffItem: React.FC<{
       label={type === "added" ? "Added" : "Removed"}
       size="small"
       color={type === "added" ? "success" : "error"}
-      sx={{ height: 20, fontSize: "0.65rem" }}
+      sx={{ height: 20, fontSize: "var(--fontSizeSmaller)" }}
     />
   </ListItem>
 ));
@@ -144,7 +144,7 @@ const ModifiedNodeItem: React.FC<{ nodeChange: NodeChange }> = memo(({
           label={`${nodeChange.changes.length} change(s)`}
           size="small"
           color="warning"
-          sx={{ height: 20, fontSize: "0.65rem", ml: "auto", mr: 1 }}
+          sx={{ height: 20, fontSize: "var(--fontSizeSmaller)", ml: "auto", mr: 1 }}
         />
       </FlexRow>
     </AccordionSummary>

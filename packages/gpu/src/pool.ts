@@ -21,6 +21,18 @@ export * from "./executor.js";
 export * from "./recipe.js";
 export * from "./fullscreenQuad.js";
 export {
+  consumePremulDebugWarnings,
+  isPremulDebugEnabled,
+  setPremulDebugEnabled,
+  resetPremulDebugCache
+} from "./debug/premulValidator.js";
+export type {
+  DebugViolation,
+  DebugReadback,
+  DebugSink,
+  EncodeValidationArgs
+} from "./debug/premulValidator.js";
+export {
   ceilToBucket,
   makeScratchPool,
   makeUniformRing,

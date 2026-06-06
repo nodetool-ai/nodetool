@@ -38,6 +38,7 @@ export const colorHsbV1 = defineModule({
   // model for color adjustment; schema matches that vocabulary exactly.
   surface: "published",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: HsbParams,
   paramDefaults: { hue: 0, saturation: 1, brightness: 1 },

@@ -48,8 +48,7 @@ function isAssetType(type: string): boolean {
     "video",
     "list[image]",
     "list[video]",
-    "list[audio]",
-    "video_clip_list"
+    "list[audio]"
   ].includes(type);
 }
 
@@ -140,7 +139,6 @@ export class KieNodeGenerator {
       `  static readonly metadataOutputTypes = { output: ${JSON.stringify(node.outputType)} };`
     );
     lines.push(`  static readonly requiredSettings = ["KIE_API_KEY"];`);
-    lines.push(`  static readonly exposeAsTool = true;`);
 
     // Compute and emit field classification
     const { inlineFields, inputFields } = computeFieldClassification(node.fields);

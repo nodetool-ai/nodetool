@@ -290,7 +290,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             onClick={handleCreateFolder}
             sx={{
               color: "var(--palette-primary-main)",
-              fontWeight: "bold"
+              fontWeight: 600
             }}
           >
             {hasSelectedAssets ? "Move to New Folder" : "Create Folder"}

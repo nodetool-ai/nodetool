@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       justifyContent: "space-between"
     },
     ".section-title": {
-      fontSize: "12px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       textTransform: "uppercase"
@@ -70,12 +70,12 @@ const styles = (theme: Theme) =>
       justifyContent: "space-between"
     },
     ".palette-name": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
       color: theme.vars.palette.grey[400]
     },
     ".empty-message": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[600],
       fontStyle: "italic",
       padding: "8px"

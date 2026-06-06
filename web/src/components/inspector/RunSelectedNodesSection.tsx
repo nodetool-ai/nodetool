@@ -5,11 +5,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import {
   Caption,
   FlexColumn,
   FlexRow,
+  ShortcutHint,
   Text
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
@@ -23,28 +24,54 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       borderTop: `1px solid ${theme.vars.palette.divider}`,
-      padding: `${theme.spacing(2)} ${theme.spacing(3)}`,
+      padding: `${theme.spacing(1.5)} ${theme.spacing(3)} ${theme.spacing(2)}`,
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(1.5)
+      gap: theme.spacing(1),
+      backgroundColor: theme.vars.palette.background.default
+    },
+    ".runs-row": {
+      width: "100%"
+    },
+    ".runs-label": {
+      fontFamily: theme.fontFamily1,
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: theme.vars.palette.text.secondary
     },
     ".stepper-control": {
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "var(--rounded-md)",
       paddingLeft: theme.spacing(0.5),
-      paddingRight: theme.spacing(0.5)
+      paddingRight: theme.spacing(0.5),
+      backgroundColor: "transparent"
+    },
+    ".stepper-control .MuiButtonBase-root": {
+      borderRadius: "var(--rounded-sm)",
+      "&:hover": {
+        backgroundColor: "rgba(255,255,255,0.06)"
+      }
     },
     ".stepper-value": {
       minWidth: "1.5em",
       textAlign: "center",
-      fontVariantNumeric: "tabular-nums"
+      fontVariantNumeric: "tabular-nums",
+      color: theme.vars.palette.text.primary,
+      fontWeight: 500
     },
     ".run-button": {
       width: "100%",
       justifyContent: "center",
       gap: theme.spacing(1),
+      padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
+      fontSize: theme.fontSizeNormal,
+      fontWeight: 500,
+      borderRadius: "var(--rounded-md)",
+      transition: "background-color 120ms ease",
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark
       },
@@ -52,6 +79,13 @@ const styles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.action.disabledBackground,
         color: theme.vars.palette.action.disabled
       }
+    },
+    ".run-button .play-icon": {
+      fontSize: "var(--fontSizeBig)"
+    },
+    ".run-button .run-shortcut": {
+      marginLeft: "auto",
+      opacity: 0.85
     }
   });
 
@@ -75,11 +109,14 @@ const RunSelectedNodesSectionInternal: React.FC = () => {
 
   return (
     <div css={styles(theme)} className="run-selected-section">
-      <Caption size="smaller" color="muted">
-        Run selected nodes
-      </Caption>
-      <FlexRow gap={2} align="center" justify="space-between" fullWidth>
-        <Text size="small">Runs</Text>
+      <FlexRow
+        gap={2}
+        align="center"
+        justify="space-between"
+        fullWidth
+        className="runs-row"
+      >
+        <span className="runs-label">Runs</span>
         <FlexRow gap={0} align="center" className="stepper-control">
           <EditorButton
             onClick={decrement}
@@ -108,8 +145,9 @@ const RunSelectedNodesSectionInternal: React.FC = () => {
           disabled={buttonDisabled}
           aria-label="Run selected nodes"
         >
-          <ArrowForwardIcon fontSize="small" />
-          <span>Run selected</span>
+          <PlayArrowIcon className="play-icon" />
+          <span>Run selected nodes</span>
+          <ShortcutHint className="run-shortcut" shortcut={["⌘", "Enter"]} />
         </EditorButton>
         {inSequence ? (
           <Caption size="smaller" color="muted">

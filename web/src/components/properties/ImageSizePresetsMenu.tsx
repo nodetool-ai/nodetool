@@ -86,7 +86,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
             lineHeight: '32px',
             backgroundColor: '#1E1E1E', 
             backgroundImage: 'none', 
-            fontWeight: 'bold',
+            fontWeight: 600,
             color: 'primary.light',
             position: 'sticky',
             top: '48px',

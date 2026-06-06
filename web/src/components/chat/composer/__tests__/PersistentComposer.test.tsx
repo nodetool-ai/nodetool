@@ -39,15 +39,7 @@ jest.mock("../../../../stores/GlobalChatStore", () => ({
     selector({
       status: "connected",
       selectedModel: { type: "language_model", provider: "openai", id: "x" },
-      selectedTools: [],
-      agentMode: false,
-      agentPlanner: "multi",
-      selectedCollections: [],
       setSelectedModel: jest.fn(),
-      setSelectedTools: jest.fn(),
-      setAgentMode: jest.fn(),
-      setAgentPlanner: jest.fn(),
-      setSelectedCollections: jest.fn(),
       stopGeneration: jest.fn(),
       createNewThread: jest.fn().mockResolvedValue("new-thread-id"),
       switchThread: jest.fn()

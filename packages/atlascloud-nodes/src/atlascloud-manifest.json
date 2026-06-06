@@ -1,0 +1,1248 @@
+[
+  {
+    "className": "Seedance2TextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.0/text-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.0 \u2014 Text to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 \u2014 generates video from text with native audio. Supports adaptive aspect ratio.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video (English or Chinese).",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds. -1 lets the model choose.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "720p-SR",
+          "1080p",
+          "1080p-SR",
+          "1440p-SR"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Native synchronized audio (voice, sound effects, music)."
+      },
+      {
+        "name": "web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search",
+        "description": "Use web search to ground generation in real-time info."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark"
+      }
+    ]
+  },
+  {
+    "className": "Seedance2ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.0/image-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.0 \u2014 Image to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 \u2014 generates video from a first-frame image (and optional last frame) with native audio.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text guiding the motion. Recommended.",
+        "required": false
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "First Frame",
+        "description": "Image used as the first frame. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame (optional)",
+        "description": "Optional ending frame."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds. -1 lets the model choose.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "720p-SR",
+          "1080p",
+          "1080p-SR",
+          "1440p-SR"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Native synchronized audio (voice, sound effects, music)."
+      },
+      {
+        "name": "web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search",
+        "description": "Use web search to ground generation in real-time info."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark"
+      }
+    ]
+  },
+  {
+    "className": "Seedance2FastTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.0-fast/text-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.0 Fast \u2014 Text to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Fast \u2014 accelerated T2V with native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video (English or Chinese).",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds. -1 lets the model choose.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "720p-SR",
+          "1080p-SR",
+          "1440p-SR"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Native synchronized audio (voice, sound effects, music)."
+      },
+      {
+        "name": "web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search",
+        "description": "Use web search to ground generation in real-time info."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark"
+      }
+    ]
+  },
+  {
+    "className": "Seedance2FastImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.0-fast/image-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.0 Fast \u2014 Image to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Fast \u2014 accelerated I2V from a first-frame image with native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text guiding the motion. Recommended.",
+        "required": false
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "First Frame",
+        "description": "Image used as the first frame. Connect from an upstream node, drag/drop, or paste a public URL.",
+        "required": true
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame (optional)",
+        "description": "Optional ending frame."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds. -1 lets the model choose.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "720p-SR",
+          "1080p-SR",
+          "1440p-SR"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Native synchronized audio (voice, sound effects, music)."
+      },
+      {
+        "name": "web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search",
+        "description": "Use web search to ground generation in real-time info."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark"
+      }
+    ]
+  },
+  {
+    "className": "GPTImage2TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-2/text-to-image",
+    "outputType": "image",
+    "title": "GPT Image 2 \u2014 Text to Image",
+    "description": "AtlasCloud / OpenAI GPT Image 2 \u2014 fast, cost-efficient text-to-image powered by GPT-5 guidance.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "values": [
+          "1024x768",
+          "768x1024",
+          "1024x1024",
+          "1024x1536",
+          "1536x1024",
+          "2560x1440",
+          "1440x2560",
+          "3840x2160",
+          "2160x3840"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "values": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "moderation",
+        "type": "enum",
+        "default": "low",
+        "title": "Moderation",
+        "description": "Content moderation strictness.",
+        "values": [
+          "low",
+          "auto"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GPTImage2Edit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "openai/gpt-image-2/edit",
+    "outputType": "image",
+    "title": "GPT Image 2 \u2014 Edit",
+    "description": "AtlasCloud / OpenAI GPT Image 2 \u2014 precise natural-language image editing (add/remove objects, retouch, swap backgrounds, etc.).",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1024x1024",
+        "title": "Size",
+        "values": [
+          "1024x1024",
+          "1024x1536",
+          "1536x1024",
+          "2048x2048",
+          "2048x1152",
+          "3840x2160",
+          "2160x3840"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "medium",
+        "title": "Quality",
+        "values": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "moderation",
+        "type": "enum",
+        "default": "low",
+        "title": "Moderation",
+        "values": [
+          "low",
+          "auto"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "NanoBanana2TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "google/nano-banana-2/text-to-image",
+    "outputType": "image",
+    "title": "Nano Banana 2 \u2014 Text to Image",
+    "description": "AtlasCloud / Google Nano Banana 2 \u2014 fast 4K-capable text-to-image with native text rendering.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": null,
+        "title": "Aspect Ratio",
+        "values": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "values": [
+          "1k",
+          "2k",
+          "4k"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "default",
+        "title": "Output Format",
+        "values": [
+          "default",
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "media_resolution",
+        "type": "enum",
+        "default": "default",
+        "title": "Media Resolution",
+        "description": "Controls how input media is processed (lower = fewer tokens).",
+        "values": [
+          "default",
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Internal reasoning depth before generating.",
+        "values": [
+          "default",
+          "high",
+          "minimal"
+        ]
+      },
+      {
+        "name": "enable_web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search",
+        "description": "Ground generation in real-time web info."
+      },
+      {
+        "name": "enable_image_search",
+        "type": "bool",
+        "default": false,
+        "title": "Image Search",
+        "description": "Ground generation in real-time image search."
+      }
+    ]
+  },
+  {
+    "className": "NanoBanana2Edit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "google/nano-banana-2/edit",
+    "outputType": "image",
+    "title": "Nano Banana 2 \u2014 Edit",
+    "description": "AtlasCloud / Google Nano Banana 2 \u2014 guided-diffusion image editing (up to 14 input images).",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": null,
+        "title": "Aspect Ratio",
+        "values": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "values": [
+          "1k",
+          "2k",
+          "4k"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "default",
+        "title": "Output Format",
+        "values": [
+          "default",
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "media_resolution",
+        "type": "enum",
+        "default": "default",
+        "title": "Media Resolution",
+        "description": "Controls how input media is processed (lower = fewer tokens).",
+        "values": [
+          "default",
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Internal reasoning depth before generating.",
+        "values": [
+          "default",
+          "high",
+          "minimal"
+        ]
+      },
+      {
+        "name": "enable_web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search",
+        "description": "Ground generation in real-time web info."
+      },
+      {
+        "name": "enable_image_search",
+        "type": "bool",
+        "default": false,
+        "title": "Image Search",
+        "description": "Ground generation in real-time image search."
+      }
+    ]
+  },
+  {
+    "className": "Seedance2ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.0/reference-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.0 \u2014 Reference to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 multimodal \u2014 generates video from reference images, videos, and/or audio. Refer to inputs in your prompt as 'image 1', 'video 1', etc.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt. You can reference uploaded media as 'image 1', 'video 1', 'audio 1', etc."
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Up to 9 reference images for character consistency, style, or scene composition."
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference videos for editing, extension, or multimodal generation."
+      },
+      {
+        "name": "reference_audios",
+        "type": "list[audio]",
+        "default": null,
+        "title": "Reference Audios",
+        "description": "Reference audio for synchronized voice/music. At least one reference media is required."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds. -1 lets the model choose.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "720p-SR",
+          "1080p",
+          "1080p-SR",
+          "1440p-SR"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio"
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark"
+      }
+    ]
+  },
+  {
+    "className": "Seedance2FastReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.0-fast/reference-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.0 Fast \u2014 Reference to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Fast multimodal \u2014 accelerated multimodal video gen from reference images/videos/audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt. You can reference uploaded media as 'image 1', 'video 1', 'audio 1', etc."
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Up to 9 reference images for character consistency, style, or scene composition."
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference videos for editing, extension, or multimodal generation."
+      },
+      {
+        "name": "reference_audios",
+        "type": "list[audio]",
+        "default": null,
+        "title": "Reference Audios",
+        "description": "Reference audio for synchronized voice/music. At least one reference media is required."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds. -1 lets the model choose.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "values": [
+          "480p",
+          "720p",
+          "720p-SR",
+          "1080p-SR",
+          "1440p-SR"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the output video. 'adaptive' lets the API choose.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio"
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark"
+      }
+    ]
+  },
+  {
+    "className": "NanoBananaProTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "google/nano-banana-pro/text-to-image",
+    "outputType": "image",
+    "title": "Nano Banana Pro \u2014 Text to Image",
+    "description": "AtlasCloud / Google Nano Banana Pro \u2014 higher-quality T2I with optional web grounding.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": null,
+        "title": "Aspect Ratio",
+        "values": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "values": [
+          "1k",
+          "2k",
+          "4k"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "default",
+        "title": "Output Format",
+        "values": [
+          "default",
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "media_resolution",
+        "type": "enum",
+        "default": "default",
+        "title": "Media Resolution",
+        "values": [
+          "default",
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "enable_web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search"
+      }
+    ]
+  },
+  {
+    "className": "NanoBananaProEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "google/nano-banana-pro/edit",
+    "outputType": "image",
+    "title": "Nano Banana Pro \u2014 Edit",
+    "description": "AtlasCloud / Google Nano Banana Pro \u2014 higher-quality image editing with optional web grounding.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": null,
+        "title": "Aspect Ratio",
+        "values": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "values": [
+          "1k",
+          "2k",
+          "4k"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "default",
+        "title": "Output Format",
+        "values": [
+          "default",
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "media_resolution",
+        "type": "enum",
+        "default": "default",
+        "title": "Media Resolution",
+        "values": [
+          "default",
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "name": "enable_web_search",
+        "type": "bool",
+        "default": false,
+        "title": "Web Search"
+      }
+    ]
+  },
+  {
+    "className": "NanoBananaProTextToImageUltra",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "google/nano-banana-pro/text-to-image-ultra",
+    "outputType": "image",
+    "title": "Nano Banana Pro \u2014 Text to Image (Ultra)",
+    "description": "AtlasCloud / Google Nano Banana Pro Ultra \u2014 4K/8K text-to-image.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": null,
+        "title": "Aspect Ratio",
+        "values": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "4k",
+        "title": "Resolution",
+        "values": [
+          "4k",
+          "8k"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "values": [
+          "png",
+          "jpeg"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "NanoBananaProEditUltra",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "google/nano-banana-pro/edit-ultra",
+    "outputType": "image",
+    "title": "Nano Banana Pro \u2014 Edit (Ultra)",
+    "description": "AtlasCloud / Google Nano Banana Pro Ultra \u2014 4K/8K image editing.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to edit. Connect from upstream nodes, drag/drop, or paste public URLs.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": null,
+        "title": "Aspect Ratio",
+        "values": [
+          "1:1",
+          "3:2",
+          "2:3",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "4k",
+        "title": "Resolution",
+        "values": [
+          "4k",
+          "8k"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "values": [
+          "png",
+          "jpeg"
+        ]
+      }
+    ]
+  }
+]

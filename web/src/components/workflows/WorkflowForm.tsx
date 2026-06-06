@@ -15,7 +15,6 @@ const workspacesEnabled = !isProduction;
 const RUN_MODE_OPTIONS = [
   { value: "workflow", label: "Workflow" },
   { value: "chat", label: "Chat" },
-  { value: "comfy", label: "Comfy" },
   { value: "app", label: "App" },
   { value: "tool", label: "Tool" }
 ];
@@ -24,7 +23,6 @@ const DEFAULT_TAG_SUGGESTIONS = [
   "image",
   "audio",
   "video",
-  "comfy",
   "chat",
   "docs",
   "mail",
@@ -75,7 +73,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
       color: theme.vars.palette.grey[200],
-      marginBottom: theme.spacing(0.75),
+      marginBottom: theme.spacing(1),
       display: "block"
     },
     
@@ -104,7 +102,7 @@ const styles = (theme: Theme) =>
     },
     
     ".MuiFormHelperText-root": {
-      fontSize: "0.7rem",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[400],
       marginTop: theme.spacing(0.5),
       marginLeft: 0

@@ -3,25 +3,19 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer } from "@mui/material";
-import {
-  CloseButton,
-  Divider,
-  ToolbarIconButton,
-  Tooltip,
-  Box
-} from "../ui_primitives";
+import { Tooltip, Box } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import {
   BOTTOM_PANEL_GROUPS,
   BottomPanelView,
   useBottomPanelStore
 } from "../../stores/BottomPanelStore";
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import isEqual from "fast-deep-equal";
 import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
-import JobsPanel from "./jobs/JobsPanel";
+import QueuePanel from "./jobs/QueuePanel";
 import SandboxesPanel from "../dashboard/SandboxesPanel";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
@@ -38,19 +32,83 @@ import {
   Node as GraphNode,
   Edge as GraphEdge
 } from "../../stores/ApiTypes";
+import { useRunningJobs } from "../../hooks/useRunningJobs";
+import { useSystemStatsStore } from "../../stores/systemStatsHandler";
+import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import { BASE_URL } from "../../stores/BASE_URL";
+import type { NodeStoreState } from "../../stores/NodeStore";
 
 // icons
 import TimelineIcon from "@mui/icons-material/Timeline";
 import ArticleIcon from "@mui/icons-material/Article";
-import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import HistoryIcon from "@mui/icons-material/History";
 import FolderIcon from "@mui/icons-material/Folder";
+import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
 
 const workspacesEnabled = !isProduction;
 const sandboxesEnabled = !isProduction;
 
-const HEADER_HEIGHT = 36;
+const HEADER_HEIGHT = 32;
+
+// Worker label derived from BASE_URL. Empty = local dev (Vite proxy → :7777).
+const workerLabel = (() => {
+  if (!BASE_URL) return "worker:local";
+  try {
+    return `worker:${new URL(BASE_URL).hostname}`;
+  } catch {
+    return "worker:remote";
+  }
+})();
+
+const useWsConnected = (): boolean => {
+  const [connected, setConnected] = useState(
+    () => globalWebSocketManager.isConnectionOpen()
+  );
+  useEffect(() => {
+    const sync = () => setConnected(globalWebSocketManager.isConnectionOpen());
+    const offOpen = globalWebSocketManager.subscribeEvent("open", sync);
+    const offClose = globalWebSocketManager.subscribeEvent("close", sync);
+    const offState = globalWebSocketManager.subscribeEvent("stateChange", sync);
+    sync();
+    return () => {
+      offOpen();
+      offClose();
+      offState();
+    };
+  }, []);
+  return connected;
+};
+
+const useGraphCounts = (
+  workflowId: string | null | undefined
+): { nodes: number; edges: number } => {
+  const nodeStore = useWorkflowManager((state) =>
+    workflowId ? state.nodeStores[workflowId] : undefined
+  );
+  const [counts, setCounts] = useState<{ nodes: number; edges: number }>(() => {
+    if (!nodeStore) return { nodes: 0, edges: 0 };
+    const s = nodeStore.getState();
+    return { nodes: s.nodes.length, edges: s.edges.length };
+  });
+
+  useEffect(() => {
+    if (!nodeStore) {
+      setCounts({ nodes: 0, edges: 0 });
+      return;
+    }
+    const sync = (s: NodeStoreState) =>
+      setCounts({ nodes: s.nodes.length, edges: s.edges.length });
+    sync(nodeStore.getState());
+    return nodeStore.subscribe((state: NodeStoreState, prev: NodeStoreState) => {
+      if (state.nodes !== prev.nodes || state.edges !== prev.edges) {
+        sync(state);
+      }
+    });
+  }, [nodeStore]);
+
+  return counts;
+};
 
 interface ViewSpec {
   id: BottomPanelView;
@@ -61,10 +119,10 @@ interface ViewSpec {
 
 const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
   logs: { id: "logs", label: "Logs", icon: <ArticleIcon />, enabled: true },
-  jobs: {
-    id: "jobs",
-    label: "Jobs",
-    icon: <WorkHistoryIcon />,
+  queue: {
+    id: "queue",
+    label: "Queue",
+    icon: <PlaylistPlayIcon />,
     enabled: true
   },
   sandboxes: {
@@ -161,59 +219,129 @@ const styles = (theme: Theme) =>
       height: `${HEADER_HEIGHT}px`,
       minHeight: `${HEADER_HEIGHT}px`,
       display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: "8px",
-      padding: "0 12px",
+      alignItems: "stretch",
+      gap: 0,
+      padding: 0,
       backgroundColor: theme.vars.palette.background.default,
       borderTop: `1px solid ${theme.vars.palette.divider}`,
+      fontSize: "var(--fontSizeSmall)",
+      lineHeight: 1,
+      color: theme.vars.palette.text.secondary,
+      userSelect: "none",
+
+      "& .status-cluster": {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "0 14px",
+        flexShrink: 0,
+        whiteSpace: "nowrap"
+      },
+
+      "& .status-dot": {
+        width: "6px",
+        height: "6px",
+        borderRadius: "50%",
+        backgroundColor: theme.vars.palette.success.main,
+        flexShrink: 0,
+        boxShadow: `0 0 6px ${theme.vars.palette.success.main}99`,
+        "&.disconnected": {
+          backgroundColor: theme.vars.palette.text.disabled,
+          boxShadow: "none"
+        }
+      },
+
+      "& .sep": {
+        color: theme.vars.palette.text.disabled,
+        margin: "0 2px"
+      },
+
       "& .tab-rail": {
         display: "flex",
-        alignItems: "center",
-        gap: "2px",
+        alignItems: "stretch",
+        gap: 0,
         overflowX: "auto",
-        flex: 1,
+        flexShrink: 1,
         minWidth: 0,
-        WebkitOverflowScrolling: "touch"
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
+        WebkitOverflowScrolling: "touch",
+        "&::-webkit-scrollbar": { display: "none" }
       },
-      "& .tab-group": {
-        display: "flex",
-        alignItems: "center",
-        gap: "2px"
-      },
-      "& .tab-group-divider": {
-        height: "20px",
-        margin: "0 6px",
-        borderColor: theme.vars.palette.grey[800]
-      },
+
       "& .tab-button": {
-        padding: "4px 10px",
-        borderRadius: "var(--rounded-md)",
+        height: "100%",
+        padding: "0 12px",
         color: theme.vars.palette.text.secondary,
-        fontSize: "0.78rem",
-        lineHeight: 1.2,
+        fontSize: "var(--fontSizeSmall)",
+        lineHeight: 1,
+        fontWeight: 400,
         textTransform: "none",
         minWidth: "auto",
         display: "inline-flex",
         alignItems: "center",
-        gap: "6px",
+        gap: "8px",
         cursor: "pointer",
         backgroundColor: "transparent",
         border: "none",
         whiteSpace: "nowrap",
-        transition: "background-color 0.15s ease, color 0.15s ease",
+        transition: "background-color 120ms, color 120ms",
         "& svg": {
-          fontSize: "0.95rem"
+          fontSize: "var(--fontSizeNormal)",
+          color: theme.vars.palette.text.disabled
         },
         "&:hover": {
-          backgroundColor: `${theme.vars.palette.action.hover}66`,
-          color: theme.vars.palette.text.primary
+          backgroundColor: "rgba(255,255,255,0.03)",
+          color: theme.vars.palette.text.primary,
+          "& svg": { color: theme.vars.palette.text.secondary }
         },
         "&.active": {
-          backgroundColor: `${theme.vars.palette.action.selected}66`,
-          color: theme.vars.palette.primary.main,
-          boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}44 inset`
-        }
+          color: theme.vars.palette.text.primary,
+          backgroundColor: "rgba(255,255,255,0.04)",
+          "& svg": { color: theme.vars.palette.primary.main },
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "1px",
+            background: theme.vars.palette.primary.main
+          }
+        },
+        position: "relative"
+      },
+
+      "& .tab-count": {
+        color: theme.vars.palette.text.disabled,
+        fontVariantNumeric: "tabular-nums",
+        fontSize: "var(--fontSizeSmaller)"
+      },
+
+      "& .meta-cluster": {
+        marginLeft: "auto",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "12px",
+        padding: "0 12px 0 16px",
+        flexShrink: 0,
+        whiteSpace: "nowrap",
+        fontVariantNumeric: "tabular-nums"
+      },
+
+      "& .meta-pair": {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px"
+      },
+
+      "& .meta-key": {
+        color: theme.vars.palette.text.disabled,
+        textTransform: "lowercase"
+      },
+
+      "& .meta-value": {
+        color: theme.vars.palette.text.secondary
       }
     },
     ".panel-body": {
@@ -228,10 +356,16 @@ const styles = (theme: Theme) =>
 interface TabButtonProps {
   spec: ViewSpec;
   active: boolean;
+  count?: number;
   onClick: () => void;
 }
 
-const TabButton = memo(function TabButton({ spec, active, onClick }: TabButtonProps) {
+const TabButton = memo(function TabButton({
+  spec,
+  active,
+  count,
+  onClick
+}: TabButtonProps) {
   return (
     <Tooltip title={spec.label} placement="top" delay={TOOLTIP_ENTER_DELAY}>
       <button
@@ -243,6 +377,9 @@ const TabButton = memo(function TabButton({ spec, active, onClick }: TabButtonPr
       >
         {spec.icon}
         <span>{spec.label}</span>
+        {count !== undefined && count > 0 && (
+          <span className="tab-count">{count}</span>
+        )}
       </button>
     </Tooltip>
   );
@@ -300,19 +437,21 @@ const PanelBodyContent = memo(function PanelBodyContent({
   switch (activeView) {
     case "logs":
       return <LogPanel />;
-    case "jobs":
+    case "queue":
       return (
         <Box
-          className="jobs-panel"
+          className="queue-panel"
           sx={{
+            display: "flex",
+            flexDirection: "column",
             width: "100%",
             height: "100%",
-            overflow: "auto",
+            overflow: "hidden",
             padding: "0 1em"
           }}
         >
-          <PanelHeadline title="Jobs" />
-          <JobsPanel />
+          <PanelHeadline title="Queue" />
+          <QueuePanel />
         </Box>
       );
     case "sandboxes":
@@ -355,28 +494,42 @@ const PanelBottom: React.FC = () => {
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
   const setActiveView = useBottomPanelStore((state) => state.setActiveView);
-  const setVisibility = useBottomPanelStore((state) => state.setVisibility);
+
+  const isConnected = useWsConnected();
+
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
+  const { nodes: nodeCount, edges: edgeCount } = useGraphCounts(
+    currentWorkflowId
+  );
+
+  const { data: allJobs } = useRunningJobs();
+  const queuedCount =
+    allJobs?.filter((j) => j.status === "queued").length ?? 0;
+
+  const systemStats = useSystemStatsStore((state) => state.stats);
 
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
   useCombo(["l"], () => handlePanelToggle("logs"), false);
 
   // Production-disabled-view safeguard: if a previous session persisted a
   // gated-off view (workspace/sandboxes), migrate the store to "logs" so the
-  // active view and the rendered body stay in sync — otherwise the close
-  // button would need two clicks (the first would just switch views).
+  // active view and the rendered body stay in sync.
   useEffect(() => {
     if (!VIEW_SPECS[activeView]?.enabled) {
       setActiveView("logs");
     }
   }, [activeView, setActiveView]);
 
-  const handleClose = useCallback(() => {
-    setVisibility(false);
-  }, [setVisibility]);
-
-  if (!path.startsWith("/editor")) {
+  // Shown in the legacy editor (/editor) and the unified workspace (/workspace).
+  if (!path.startsWith("/editor") && !path.startsWith("/workspace")) {
     return null;
   }
+
+  const enabledViews = BOTTOM_PANEL_GROUPS.flatMap((g) =>
+    g.views.filter((v) => VIEW_SPECS[v]?.enabled)
+  );
 
   const openHeight = isVisible
     ? Math.min(
@@ -421,48 +574,69 @@ const PanelBottom: React.FC = () => {
             className="panel-resize-button"
             onMouseDown={handleMouseDown}
             style={{ cursor: isDragging ? "ns-resize" : "ns-resize" }}
+            role="slider"
+            aria-label="Resize panel"
+            aria-valuenow={panelSize}
+            aria-valuemin={40}
+            aria-valuemax={600}
+            tabIndex={-1}
           />
         )}
         <div className="panel-content">
           <div className="panel-header">
-            <div className="tab-rail" role="tablist">
-              {BOTTOM_PANEL_GROUPS.map((group, groupIdx) => {
-                const enabledViews = group.views.filter(
-                  (v) => VIEW_SPECS[v]?.enabled
-                );
-                if (enabledViews.length === 0) {
-                  return null;
-                }
-                return (
-                  <div key={group.id} style={{ display: "contents" }}>
-                    {groupIdx > 0 && (
-                      <Divider
-                        orientation="vertical"
-                        flexItem
-                        className="tab-group-divider"
-                      />
-                    )}
-                    <div className="tab-group" aria-label={group.label}>
-                      {enabledViews.map((view) => (
-                        <TabButton
-                          key={view}
-                          spec={VIEW_SPECS[view]}
-                          active={isVisible && activeView === view}
-                          onClick={() => handlePanelToggle(view)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {isVisible && (
-              <CloseButton
-                onClick={handleClose}
-                buttonSize="small"
-                tooltip="Hide panel"
+            <div
+              className="status-cluster"
+              role="status"
+              aria-label={`Worker ${isConnected ? "connected" : "disconnected"}`}
+            >
+              <span
+                className={`status-dot ${isConnected ? "" : "disconnected"}`}
+                aria-hidden
               />
-            )}
+              <span>{isConnected ? "connected" : "offline"}</span>
+              <span className="sep" aria-hidden>·</span>
+              <span>{workerLabel}</span>
+            </div>
+            <div className="tab-rail" role="tablist">
+              {enabledViews.map((view) => (
+                <TabButton
+                  key={view}
+                  spec={VIEW_SPECS[view]}
+                  active={isVisible && activeView === view}
+                  count={view === "queue" ? queuedCount : undefined}
+                  onClick={() => handlePanelToggle(view)}
+                />
+              ))}
+            </div>
+            <div className="meta-cluster" aria-label="Workflow stats">
+              {currentWorkflowId && (
+                <span className="meta-pair">
+                  <span className="meta-value">{nodeCount}</span>
+                  <span className="meta-key">nodes</span>
+                  <span className="sep" aria-hidden>·</span>
+                  <span className="meta-value">{edgeCount}</span>
+                  <span className="meta-key">edges</span>
+                </span>
+              )}
+              {systemStats && (
+                <>
+                  <span className="meta-pair">
+                    <span className="meta-key">cpu</span>
+                    <span className="meta-value">
+                      {Math.round(systemStats.cpu_percent)}%
+                    </span>
+                  </span>
+                  <span className="meta-pair">
+                    <span className="meta-key">mem</span>
+                    <span className="meta-value">
+                      {systemStats.memory_used_gb !== undefined
+                        ? `${systemStats.memory_used_gb.toFixed(1)}G`
+                        : `${Math.round(systemStats.memory_percent)}%`}
+                    </span>
+                  </span>
+                </>
+              )}
+            </div>
           </div>
           <div className="panel-body">
             {isVisible && (

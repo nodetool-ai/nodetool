@@ -13,6 +13,7 @@ import { jobs } from "./schema/jobs.js";
 
 export type JobStatus =
   | "scheduled"
+  | "queued"
   | "running"
   | "suspended"
   | "paused"

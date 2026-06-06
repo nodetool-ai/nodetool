@@ -42,7 +42,7 @@ const styles = (
       minHeight: opts.fillContainer ? 0 : undefined,
       padding: "0.25em 0.5em 2em 0.5em",
       fontSize: opts.fontSize ?? theme.vars.fontSizeBig,
-      fontWeight: "300",
+      fontWeight: 400,
       lineHeight: "1.3",
       position: "relative",
       ...(opts.constrainHeight
@@ -192,6 +192,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         }`}
         css={mainStyles}
         ref={containerRef}
+        role="region"
+        aria-label="Markdown content"
         tabIndex={0}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

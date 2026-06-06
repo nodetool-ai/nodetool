@@ -182,8 +182,7 @@ describe("GlobalChatStore", () => {
       const cachedMessage = store.getState().messageCache[threadId][0];
       expect(cachedMessage).toMatchObject({
         ...msg,
-        thread_id: threadId,
-        agent_mode: false
+        thread_id: threadId
       });
       expect(cachedMessage.created_at).toBeDefined();
       expect(store.getState().status).toBe("loading");
@@ -196,11 +195,10 @@ describe("GlobalChatStore", () => {
           ...msg,
           workflow_id: null,
           thread_id: threadId,
-          agent_mode: false,
+          memory_enabled: false,
           model: "gpt-oss:20b",
           provider: "empty",
-          tools: undefined,
-          collections: undefined,
+          permission_mode: "default",
           media_generation: null
         }
       });
@@ -806,11 +804,10 @@ describe("GlobalChatStore", () => {
           ...message,
           workflow_id: "test-workflow",
           thread_id: threadId,
-          agent_mode: false,
+          memory_enabled: false,
           model: "gpt-oss:20b",
           provider: "empty",
-          tools: undefined,
-          collections: undefined,
+          permission_mode: "default",
           media_generation: null
         }
       });
@@ -867,6 +864,10 @@ describe("GlobalChatStore", () => {
       await store.getState().connect();
       await new Promise((resolve) => setTimeout(resolve, 50));
       await store.getState().createNewThread();
+      // connect() now sends the client_tools_manifest (the builtin ui_* tools
+      // are always registered). Clear it so each test asserts only what its
+      // own action sends.
+      sentData = undefined;
     });
 
     afterEach(() => {

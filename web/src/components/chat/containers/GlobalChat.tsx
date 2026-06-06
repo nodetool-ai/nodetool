@@ -20,6 +20,7 @@ import {
 } from "../../ui_primitives";
 import ForumIcon from "@mui/icons-material/Forum";
 import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useTheme } from "@mui/material/styles";
 import ThreadList from "../thread/ThreadList";
 import { useParams, useNavigate } from "react-router-dom";
@@ -53,6 +54,10 @@ const GlobalChat: React.FC = () => {
       error: state.error,
       currentLogUpdate: state.currentLogUpdate
     }))
+  );
+  const memoryEnabled = useGlobalChatStore((state) => state.memoryEnabled);
+  const setMemoryEnabled = useGlobalChatStore(
+    (state) => state.setMemoryEnabled
   );
 
   const {
@@ -94,10 +99,6 @@ const GlobalChat: React.FC = () => {
   );
 
   const {
-    agentMode,
-    setAgentMode,
-    agentPlanner,
-    setAgentPlanner,
     currentPlanningUpdate,
     currentTaskUpdate,
     currentTaskUpdateThreadId,
@@ -105,10 +106,6 @@ const GlobalChat: React.FC = () => {
     workflowId
   } = useGlobalChatStore(
     useShallow((state) => ({
-      agentMode: state.agentMode,
-      setAgentMode: state.setAgentMode,
-      agentPlanner: state.agentPlanner,
-      setAgentPlanner: state.setAgentPlanner,
       currentPlanningUpdate: state.currentPlanningUpdate,
       currentTaskUpdate: state.currentTaskUpdate,
       currentTaskUpdateThreadId: state.currentTaskUpdateThreadId,
@@ -151,21 +148,13 @@ const GlobalChat: React.FC = () => {
     currentRunningToolCallId: runningToolCallId,
     currentToolMessage: runningToolMessage,
     selectedModel,
-    setSelectedModel,
-    selectedTools,
-    setSelectedTools,
-    selectedCollections,
-    setSelectedCollections
+    setSelectedModel
   } = useGlobalChatStore(
     useShallow((state) => ({
       currentRunningToolCallId: state.currentRunningToolCallId,
       currentToolMessage: state.currentToolMessage,
       selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel,
-      selectedTools: state.selectedTools,
-      setSelectedTools: state.setSelectedTools,
-      selectedCollections: state.selectedCollections,
-      setSelectedCollections: state.setSelectedCollections
+      setSelectedModel: state.setSelectedModel
     }))
   );
 
@@ -186,8 +175,9 @@ const GlobalChat: React.FC = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  // Side panel states (for desktop spacing)
-  const leftPanel = usePanelStore((s) => s.panel);
+  const leftPanelVisible = usePanelStore((s) => s.panel.isVisible);
+  const leftPanelSize = usePanelStore((s) => s.panel.panelSize);
+  const leftPanelMinWidth = usePanelStore((s) => s.panel.minWidth);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -375,16 +365,12 @@ const GlobalChat: React.FC = () => {
         role: "user",
         provider: selectedModel?.provider,
         model: selectedModel?.id,
-        content: [{ type: "text", text: suggestion }],
-        tools: selectedTools.length > 0 ? selectedTools : undefined,
-        collections:
-          selectedCollections.length > 0 ? selectedCollections : undefined,
-        agent_mode: agentMode
+        content: [{ type: "text", text: suggestion }]
       }).catch((err) => {
         console.error("Failed to send suggestion:", err);
       });
     },
-    [sendMessage, selectedModel, selectedTools, selectedCollections, agentMode]
+    [sendMessage, selectedModel]
   );
 
   const welcomePlaceholder = useMemo(
@@ -467,7 +453,7 @@ const GlobalChat: React.FC = () => {
         justify="center"
         sx={{ height: "100vh" }}
       >
-        <Text>Loading chat...</Text>
+        <Text>Loading chat…</Text>
       </FlexRow>
     );
   }
@@ -502,9 +488,9 @@ const GlobalChat: React.FC = () => {
         // Add horizontal padding on desktop to avoid side panes
         paddingLeft: isMobile
           ? 0
-          : leftPanel.isVisible
-            ? `${leftPanel.panelSize}px`
-            : `${leftPanel.minWidth}px`,
+          : leftPanelVisible
+            ? `${leftPanelSize}px`
+            : `${leftPanelMinWidth}px`,
         paddingRight: 0,
         overflow: "hidden",
         position: "relative",
@@ -513,6 +499,23 @@ const GlobalChat: React.FC = () => {
         // Mobile styles handled via separate CSS file
       }}
     >
+      {/* Back to the editor workspace */}
+      <EditorButton
+        className="back-to-editor"
+        variant="text"
+        onClick={() => navigate("/workspace")}
+        startIcon={<ArrowBackIcon sx={{ fontSize: "var(--fontSizeBig)" }} />}
+        sx={{
+          position: "absolute",
+          top: 28,
+          right: 16,
+          zIndex: 200,
+          whiteSpace: "nowrap",
+          fontSize: "var(--fontSizeNormal)"
+        }}
+      >
+        Back to editor
+      </EditorButton>
       {/* Main Chat Area */}
       <FlexColumn
         sx={{ height: "100%", maxHeight: "100%" }}
@@ -558,7 +561,6 @@ const GlobalChat: React.FC = () => {
           sx={{
             position: "relative",
             height: "100%",
-            marginTop: isMobile ? "48px" : "50px", // Offset for AppHeader
             minHeight: 0,
             flex: 1,
             overflow: "hidden",
@@ -599,7 +601,7 @@ const GlobalChat: React.FC = () => {
                   "&:hover": {
                     backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.98)`
                   },
-                  "& svg": { fontSize: "1.25rem" }
+                  "& svg": { fontSize: "var(--fontSizeBig)" }
                 }}
               >
                 <ForumIcon />
@@ -667,23 +669,18 @@ const GlobalChat: React.FC = () => {
               runningToolCallId={runningToolCallId}
               runningToolMessage={runningToolMessage}
               model={selectedModel}
-              selectedTools={selectedTools}
-              onToolsChange={setSelectedTools}
-              selectedCollections={selectedCollections}
-              onCollectionsChange={setSelectedCollections}
               onModelChange={setSelectedModel}
               onStop={stopGeneration}
               onNewChat={handleNewChat}
-              agentMode={agentMode}
-              onAgentModeToggle={setAgentMode}
-              agentPlanner={agentPlanner}
-              onAgentPlannerChange={setAgentPlanner}
+              memoryEnabled={memoryEnabled}
+              onMemoryToggle={setMemoryEnabled}
               currentPlanningUpdate={currentPlanningUpdate}
               currentTaskUpdate={taskUpdateForDisplay}
               currentLogUpdate={currentLogUpdate}
               workflowId={workflowId}
               noMessagesPlaceholder={welcomePlaceholder}
               useExternalComposer
+              showConversationHeader
             />
           </FlexColumn>
         </FlexRow>

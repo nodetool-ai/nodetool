@@ -3,6 +3,7 @@ import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useResultsStore from "../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import {
   getWorkflowRunnerStore,
   useWebsocketRunner
@@ -77,6 +78,15 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           selectedNodeIds.has(edge.target) && !selectedNodeIds.has(edge.source)
       );
 
+      // Seed external inputs from the workflow's focused run; if nothing has run
+      // there's no focused job and the store read yields undefined
+      // (literal-source fallback still applies).
+      const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
+        workflow.id
+      );
+      const getResultForFocusedJob = (wf: string, src: string): unknown =>
+        focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
+
       const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
 
       for (const edge of externalInputEdges) {
@@ -92,7 +102,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
         const { value, hasValue, isFallback } = resolveExternalEdgeValue(
           edge,
           workflow.id,
-          getResult,
+          getResultForFocusedJob,
           findNode
         );
         if (!hasValue) {
@@ -201,7 +211,8 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
             nodesWithCachedValues,
             selectedEdges,
             undefined,
-            selectedNodeIds
+            selectedNodeIds,
+            true
           );
 
           if (i < totalRuns) {

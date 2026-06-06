@@ -34,7 +34,12 @@ import {
   APIKeysRightSidebar,
   SecurityNotice
 } from "./APIKeysTab";
+import {
+  getDisplayedSettingGroups,
+  settingGroupSlug
+} from "./RemoteSettingsMenu";
 import SettingsIntroCard from "./SettingsIntroCard";
+import ServerNumberSetting from "./ServerNumberSetting";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
 import ModelListIndex from "../hugging_face/model_list/ModelListIndex";
@@ -51,7 +56,15 @@ import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
 
 const workspacesEnabled = !isProduction;
-const aboutTabIndex = workspacesEnabled ? 5 : 4;
+
+// Tab indices. Workspaces is conditional, so About/Packages are derived.
+const TAB_GENERAL = 0;
+const TAB_API_KEYS = 1;
+const TAB_INTEGRATIONS = 2;
+const TAB_MODELS = 3;
+const TAB_COLLECTIONS = 4;
+const TAB_WORKSPACES = 5;
+const aboutTabIndex = workspacesEnabled ? 6 : 5;
 const packagesTabIndex = aboutTabIndex + 1;
 
 const UPDATE_CHANNEL_OPTIONS = [
@@ -119,6 +132,38 @@ const TabPanel = React.memo(function TabPanel(props: TabPanelProps) {
   );
 });
 
+interface SearchItemProps {
+  /** Lowercased, trimmed search term. Empty string shows everything. */
+  search: string;
+  /** Free-text the item matches against (label + description keywords). */
+  keywords: string;
+  id?: string;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+/**
+ * A single settings row that hides itself when it doesn't match the current
+ * search. Returning null removes it from the DOM so the surrounding
+ * `.settings-section`/heading can collapse via CSS `:has()`.
+ */
+const SearchItem = React.memo(function SearchItem({
+  search,
+  keywords,
+  id,
+  className = "settings-item",
+  children
+}: SearchItemProps) {
+  if (search && !keywords.toLowerCase().includes(search)) {
+    return null;
+  }
+  return (
+    <div id={id} className={className}>
+      {children}
+    </div>
+  );
+});
+
 function SettingsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -126,15 +171,17 @@ function SettingsPage() {
 
   const tabSubtitle = (tab: number): string => {
     switch (tab) {
-      case 0:
+      case TAB_GENERAL:
         return "Editor and workspace preferences.";
-      case 1:
-        return "Manage API keys, providers, and editor preferences.";
-      case 2:
+      case TAB_API_KEYS:
+        return "Provider API keys and credentials.";
+      case TAB_INTEGRATIONS:
+        return "Service endpoints, MCP servers, storage, and the Nodetool API.";
+      case TAB_MODELS:
         return "Manage local models and runtime preferences.";
-      case 3:
+      case TAB_COLLECTIONS:
         return "Vector store collections for retrieval and search.";
-      case 4:
+      case TAB_WORKSPACES:
         return "Workspaces and project organization.";
       default:
         if (tab === packagesTabIndex) {
@@ -148,7 +195,7 @@ function SettingsPage() {
     const raw = Number(searchParams.get("tab") ?? 0);
     if (Number.isNaN(raw)) return 0;
     const bounded = Math.min(packagesTabIndex, Math.max(0, raw));
-    if (!workspacesEnabled && bounded === 5) {
+    if (!workspacesEnabled && bounded === TAB_WORKSPACES) {
       return aboutTabIndex;
     }
     return bounded;
@@ -176,8 +223,18 @@ function SettingsPage() {
   const updateAutosaveSettings = useSettingsStore(
     (state) => state.updateAutosaveSettings
   );
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
   const settings = useSettingsStore((state) => state.settings);
   const [apiSearchTerm, setApiSearchTerm] = useState("");
+  const [generalSearchTerm, setGeneralSearchTerm] = useState("");
+  const generalSearch = generalSearchTerm.toLowerCase().trim();
+  // Sections/components that aren't individual settings rows still need to hide
+  // when they don't match the search.
+  const generalMatches = useCallback(
+    (keywords: string) =>
+      !generalSearch || keywords.toLowerCase().includes(generalSearch),
+    [generalSearch]
+  );
 
   // Generate unique IDs for form controls
   const baseId = useId();
@@ -306,6 +363,7 @@ function SettingsPage() {
       next.set("tab", String(newValue));
       setSearchParams(next, { replace: true });
       setApiSearchTerm("");
+      setGeneralSearchTerm("");
     },
     [searchParams, setSearchParams]
   );
@@ -426,15 +484,18 @@ function SettingsPage() {
     });
   };
 
-  // Tab 0: General sidebar folders
+  // Tab 0: General sidebar folders — every section listed, in page order.
   const generalSidebarSections = [
     {
       category: "Workspace",
       items: [
         { id: "editor", label: "Editor" },
-        { id: "appearance", label: "Appearance" },
         ...(isElectron ? [{ id: "updates", label: "Updates" }] : [])
       ]
+    },
+    {
+      category: "Execution",
+      items: [{ id: "execution", label: "Execution" }]
     },
     {
       category: "Canvas",
@@ -446,46 +507,54 @@ function SettingsPage() {
     },
     {
       category: "History",
-      items: [{ id: "autosave", label: "Autosave" }]
-    }
-  ];
-
-  // Tab 1: API & Keys sidebar folders
-  const apiKeysSidebarSections = [
-    {
-      category: "Credentials",
       items: [
-        { id: "api-keys", label: "API Keys" },
-        ...(session?.access_token && !isLocalhost
-          ? [{ id: "nodetool-api-token", label: "Nodetool API Token" }]
-          : [])
+        { id: "autosave", label: "Autosave" },
+        { id: "appearance", label: "Appearance" }
       ]
-    },
-    {
-      category: "Configuration",
-      items: [{ id: "api-settings", label: "API Settings" }]
-    },
-    ...(isLocalhost
-      ? [
-          {
-            category: "Integrations",
-            items: [{ id: "mcp-integration", label: "MCP Servers" }]
-          }
-        ]
-      : []),
-    {
-      category: "Storage",
-      items: [{ id: "folders", label: "Folders" }]
     }
   ];
 
-  // Subscribe to store data for sidebar sections to enable memoization
+  // Subscribe to store data so the Integrations sidebar mirrors the live
+  // (registry-driven) list of setting groups rendered in the panel.
   const remoteSettings = useRemoteSettingsStore((state) => state.settings);
   const secrets = useSecretsStore((state) => state.secrets);
-
-  // Keep secrets sidebar sections for potential future use
-  void remoteSettings;
   void secrets;
+
+  // Tab 2: Integrations sidebar folders — Configuration lists every group the
+  // generic settings panel renders, so the sidebar shows all items.
+  const integrationsSidebarSections = useMemo(() => {
+    const configItems = [
+      { id: "api-settings", label: "API Settings" },
+      { id: "huggingface-oauth", label: "HuggingFace" },
+      { id: "search-provider", label: "Search Provider" },
+      ...getDisplayedSettingGroups(remoteSettings ?? []).map((group) => ({
+        id: settingGroupSlug(group),
+        label: group
+      }))
+    ];
+    return [
+      ...(session?.access_token && !isLocalhost
+        ? [
+            {
+              category: "Credentials",
+              items: [
+                { id: "nodetool-api-token", label: "Nodetool API Token" }
+              ]
+            }
+          ]
+        : []),
+      { category: "Configuration", items: configItems },
+      ...(isLocalhost
+        ? [
+            {
+              category: "Servers",
+              items: [{ id: "mcp-integration", label: "MCP Servers" }]
+            }
+          ]
+        : []),
+      { category: "Storage", items: [{ id: "folders", label: "Folders" }] }
+    ];
+  }, [remoteSettings, session?.access_token]);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -529,313 +598,472 @@ function SettingsPage() {
                 aria-label="settings tabs"
               >
                 <Tab label="General" id="settings-tab-0" />
-                <Tab label="API & Keys" id="settings-tab-1" />
-                <Tab label="Models" id="settings-tab-2" />
-                <Tab label="Collections" id="settings-tab-3" />
-                {workspacesEnabled && <Tab label="Workspaces" id="settings-tab-4" />}
+                <Tab label="API Keys" id="settings-tab-1" />
+                <Tab label="Integrations" id="settings-tab-2" />
+                <Tab label="Models" id="settings-tab-3" />
+                <Tab label="Collections" id="settings-tab-4" />
+                {workspacesEnabled && (
+                  <Tab label="Workspaces" id={`settings-tab-${TAB_WORKSPACES}`} />
+                )}
                 <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
                 <Tab label="Packages" id={`settings-tab-${packagesTabIndex}`} />
               </Tabs>
             </div>
 
-            <div className={`settings-container${settingsTab === 1 && !isMobile ? " settings-container--api-keys" : ""}`}>
-              {!isMobile && (settingsTab === 0 || settingsTab === 1 || settingsTab === aboutTabIndex) && (
-                <SettingsSidebar
-                  key={`sidebar-${settingsTab}`}
-                  activeSection={activeSection}
-                  sections={
-                    settingsTab === 0
-                      ? generalSidebarSections
-                      : settingsTab === 1
-                        ? apiKeysSidebarSections
-                        : settingsTab === aboutTabIndex
-                          ? getAboutSidebarSections()
-                          : []
-                  }
-                  onSectionClick={scrollToSection}
-                  footer={settingsTab === 1 ? <SecurityNotice /> : undefined}
-                />
-              )}
+            <div className={`settings-container${settingsTab === TAB_API_KEYS && !isMobile ? " settings-container--api-keys" : ""}`}>
+              {!isMobile &&
+                (settingsTab === TAB_GENERAL ||
+                  settingsTab === TAB_INTEGRATIONS ||
+                  settingsTab === aboutTabIndex) && (
+                  <SettingsSidebar
+                    key={`sidebar-${settingsTab}`}
+                    activeSection={activeSection}
+                    sections={
+                      settingsTab === TAB_GENERAL
+                        ? generalSidebarSections
+                        : settingsTab === TAB_INTEGRATIONS
+                          ? integrationsSidebarSections
+                          : settingsTab === aboutTabIndex
+                            ? getAboutSidebarSections()
+                            : []
+                    }
+                    onSectionClick={scrollToSection}
+                  />
+                )}
 
               <div
                 className={`settings-content${
-                  settingsTab === 2 ||
-                  settingsTab === 3 ||
-                  (settingsTab === 4 && workspacesEnabled) ||
+                  settingsTab === TAB_MODELS ||
+                  settingsTab === TAB_COLLECTIONS ||
+                  (settingsTab === TAB_WORKSPACES && workspacesEnabled) ||
                   settingsTab === packagesTabIndex
                     ? " settings-content--full"
                     : ""
-                }${settingsTab === 1 ? " settings-content--api-keys" : ""}`}
+                }${settingsTab === TAB_API_KEYS ? " settings-content--api-keys" : ""}`}
                 ref={settingsContentRef}
               >
                 {/* Tab 0: General */}
-                <TabPanel value={settingsTab} index={0}>
-                  <div id="editor" className="settings-section">
-                    <div className="settings-item">
-                      <LabeledSwitch
-                        label="Show Welcome Screen"
-                        checked={!!settings.showWelcomeOnStartup}
-                        onChange={handleShowWelcomeChange}
-                        description="Show the welcome screen when starting the application."
-                      />
-                    </div>
-
-                    <div className="settings-item">
-                      <LabeledSwitch
-                        label="Select Nodes On Drag"
-                        checked={!!settings.selectNodesOnDrag}
-                        onChange={handleSelectNodesOnDragChange}
-                      />
-                      <Text className="description">
-                        Mark nodes as selected after changing a node&apos;s
-                        position.
-                        <br />
-                        If disabled, nodes can still be selected by clicking on
-                        them.
+                <TabPanel value={settingsTab} index={TAB_GENERAL}>
+                  <div style={{ marginBottom: "1.5em" }}>
+                    <SearchInput
+                      placeholder="Search settings..."
+                      value={generalSearchTerm}
+                      onChange={setGeneralSearchTerm}
+                      size="small"
+                      showClear
+                    />
+                  </div>
+                  <div className="general-settings">
+                    <div className="settings-section">
+                      <Text size="big" id="editor" className="settings-heading">
+                        Editor
                       </Text>
-                    </div>
-
-                    {isElectron && (
-                      <div className="settings-item">
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="editor workspace show welcome screen startup"
+                      >
                         <LabeledSwitch
-                          label="Sound Notifications"
-                          checked={!!settings.soundNotifications}
-                          onChange={handleSoundNotificationsChange}
-                          description="Play a system beep sound when workflows complete, exports finish, or other important events occur."
+                          label="Show Welcome Screen"
+                          checked={!!settings.showWelcomeOnStartup}
+                          onChange={handleShowWelcomeChange}
+                          description="Show the welcome screen when starting the application."
                         />
-                      </div>
-                    )}
+                      </SearchItem>
 
-                    {supportsDesktopUpdateSettings && (
-                      <div className="settings-item">
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="editor workspace select nodes on drag selection"
+                      >
                         <LabeledSwitch
-                          label="Automatic Updates"
-                          checked={autoUpdatesEnabled}
-                          onChange={handleAutoUpdatesChange}
-                          description="Check for and download desktop app updates from the selected release channel."
-                        />
-                      </div>
-                    )}
-
-                    {supportsDesktopUpdateSettings && (
-                      <div id="updates" className="settings-item">
-                        <SelectField
-                          label="Update Channel"
-                          value={updateChannel}
-                          variant="standard"
-                          onChange={handleUpdateChannelChange}
-                          options={UPDATE_CHANNEL_OPTIONS}
+                          label="Select Nodes On Drag"
+                          checked={!!settings.selectNodesOnDrag}
+                          onChange={handleSelectNodesOnDragChange}
                         />
                         <Text className="description">
-                          Stable follows full releases. Nightly follows prerelease nightly builds.
-                          Nightly builds default to the Nightly channel.
+                          Mark nodes as selected after changing a node&apos;s
+                          position.
+                          <br />
+                          If disabled, nodes can still be selected by clicking on
+                          them.
                         </Text>
-                      </div>
+                      </SearchItem>
+
+                      {isElectron && (
+                        <SearchItem
+                          search={generalSearch}
+                          keywords="editor workspace sound notifications beep"
+                        >
+                          <LabeledSwitch
+                            label="Sound Notifications"
+                            checked={!!settings.soundNotifications}
+                            onChange={handleSoundNotificationsChange}
+                            description="Play a system beep sound when workflows complete, exports finish, or other important events occur."
+                          />
+                        </SearchItem>
+                      )}
+
+                      {supportsDesktopUpdateSettings && (
+                        <SearchItem
+                          search={generalSearch}
+                          keywords="editor workspace updates automatic desktop"
+                        >
+                          <LabeledSwitch
+                            label="Automatic Updates"
+                            checked={autoUpdatesEnabled}
+                            onChange={handleAutoUpdatesChange}
+                            description="Check for and download desktop app updates from the selected release channel."
+                          />
+                        </SearchItem>
+                      )}
+
+                      {supportsDesktopUpdateSettings && (
+                        <SearchItem
+                          search={generalSearch}
+                          id="updates"
+                          keywords="editor workspace update channel stable nightly"
+                        >
+                          <SelectField
+                            label="Update Channel"
+                            value={updateChannel}
+                            variant="standard"
+                            onChange={handleUpdateChannelChange}
+                            options={UPDATE_CHANNEL_OPTIONS}
+                          />
+                          <Text className="description">
+                            Stable follows full releases. Nightly follows prerelease nightly builds.
+                            Nightly builds default to the Nightly channel.
+                          </Text>
+                        </SearchItem>
+                      )}
+
+                      {isElectron && (
+                        <SearchItem
+                          search={generalSearch}
+                          keywords="editor workspace on close behavior quit background tray"
+                        >
+                          <SelectField
+                            label="On Close Behavior"
+                            value={closeBehavior}
+                            variant="standard"
+                            onChange={(v) =>
+                              handleCloseBehaviorChange(
+                                v as "ask" | "quit" | "background"
+                              )
+                            }
+                            options={CLOSE_BEHAVIOR_OPTIONS}
+                          />
+                          <Text className="description">
+                            Choose what happens when you close the main window.
+                            <br />
+                            <b>Ask Every Time:</b> Shows a dialog with options.
+                            <br />
+                            <b>Quit:</b> Closes the application completely.
+                            <br />
+                            <b>Background:</b> Keeps the app running in the system
+                            tray.
+                          </Text>
+                        </SearchItem>
+                      )}
+                    </div>
+
+                    <div className="settings-section">
+                      <Text
+                        size="big"
+                        id="execution"
+                        className="settings-heading"
+                      >
+                        Execution
+                      </Text>
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="execution warn before large runs confirmation"
+                      >
+                        <LabeledSwitch
+                          label="Warn Before Large Runs"
+                          checked={settings.confirmLargeRun ?? true}
+                          onChange={(checked) =>
+                            updateSettings({ confirmLargeRun: checked })
+                          }
+                          description="Running a workflow executes every node at once. Show a confirmation when a run would launch many model/provider nodes that could overload an API."
+                        />
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="execution large-run threshold"
+                      >
+                        <TextInput
+                          type="number"
+                          autoComplete="off"
+                          slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                          id="large-run-threshold-input"
+                          label="Large-Run Threshold"
+                          value={settings.largeRunThreshold ?? 5}
+                          onChange={(e) =>
+                            updateSettings({
+                              largeRunThreshold: Math.max(
+                                1,
+                                Number(e.target.value) || 1
+                              )
+                            })
+                          }
+                          variant="standard"
+                          size="small"
+                          disabled={!(settings.confirmLargeRun ?? true)}
+                        />
+                        <Text className="description">
+                          Warn when a run would execute more than this many
+                          model/provider nodes (LLM, image, audio, API, etc.).
+                        </Text>
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="execution max concurrent jobs runs queue concurrency parallel"
+                      >
+                        <ServerNumberSetting
+                          envVar="MAX_CONCURRENT_JOBS"
+                          label="Max Concurrent Runs"
+                          defaultValue={4}
+                          min={1}
+                          max={64}
+                          description="Maximum number of workflow runs you can execute at once. Additional runs queue and start automatically as running ones finish."
+                        />
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="execution max concurrent runs per workflow same queue concurrency parallel"
+                      >
+                        <ServerNumberSetting
+                          envVar="MAX_CONCURRENT_RUNS_PER_WORKFLOW"
+                          label="Max Concurrent Runs per Workflow"
+                          defaultValue={4}
+                          min={1}
+                          max={64}
+                          description="How many runs of the same workflow may run at once before further runs queue. Applies to concurrent generation (timeline, sketch); canvas runs always stay sequential."
+                        />
+                      </SearchItem>
+                    </div>
+
+                    <div className="settings-section">
+                      <Text
+                        size="big"
+                        id="canvas-navigation"
+                        className="settings-heading"
+                      >
+                        Canvas & Navigation
+                      </Text>
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="canvas navigation pan controls mouse"
+                      >
+                        <SelectField
+                          label="Pan Controls"
+                          value={settings.panControls}
+                          variant="standard"
+                          onChange={handlePanControlsChange}
+                          options={PAN_CONTROLS_OPTIONS}
+                        />
+                        <div className="description">
+                          <Text>
+                            Move the canvas by dragging with the left or right
+                            mouse button.
+                          </Text>
+                          <Text>
+                            With RMB selected, you can also pan with the Middle
+                            Mouse Button.
+                          </Text>
+                        </div>
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="canvas navigation node selection mode full partial"
+                      >
+                        <SelectField
+                          label="Node Selection Mode"
+                          value={settings.selectionMode}
+                          variant="standard"
+                          onChange={handleSelectionModeChange}
+                          options={SELECTION_MODE_OPTIONS}
+                        />
+                        <Text className="description">
+                          When drawing a selection box for node selections:
+                          <br />
+                          <b>Full:</b> nodes have to be fully enclosed.
+                          <br />
+                          <b>Partial:</b> intersecting nodes will be selected.
+                        </Text>
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="canvas navigation grid snap precision"
+                      >
+                        <TextInput
+                          type="number"
+                          autoComplete="off"
+                          slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                          id="grid-snap-input"
+                          label="Grid Snap Precision"
+                          value={settings.gridSnap}
+                          onChange={handleGridSnapChange}
+                          variant="standard"
+                          size="small"
+                        />
+                        <Text className="description">
+                          Snap precision for moving nodes on the canvas.
+                        </Text>
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="canvas navigation connection snap range"
+                      >
+                        <TextInput
+                          type="number"
+                          autoComplete="off"
+                          slotProps={{ htmlInput: { min: 5, max: 30 } }}
+                          id="connection-snap-input"
+                          label="Connection Snap Range"
+                          value={settings.connectionSnap}
+                          onChange={handleConnectionSnapChange}
+                          variant="standard"
+                          size="small"
+                        />
+                        <Text className="description">
+                          Snap distance for connecting nodes.
+                        </Text>
+                      </SearchItem>
+                    </div>
+
+                    {generalMatches("ai default models provider") && (
+                      <DefaultModelsMenu />
                     )}
 
-                    {isElectron && (
-                      <div className="settings-item">
+                    <div className="settings-section">
+                      <Text
+                        size="big"
+                        id="autosave"
+                        className="settings-heading"
+                      >
+                        Autosave & Version History
+                      </Text>
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="autosave version history enable"
+                      >
+                        <LabeledSwitch
+                          label="Enable Autosave"
+                          checked={settings.autosave?.enabled ?? true}
+                          onChange={(checked) =>
+                            updateAutosaveSettings({ enabled: checked })
+                          }
+                          description="Automatically save your workflow at regular intervals."
+                        />
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="autosave version history interval minutes"
+                      >
                         <SelectField
-                          label="On Close Behavior"
-                          value={closeBehavior}
+                          label="Autosave Interval (minutes)"
+                          value={settings.autosave?.intervalMinutes ?? 10}
                           variant="standard"
                           onChange={(v) =>
-                            handleCloseBehaviorChange(
-                              v as "ask" | "quit" | "background"
-                            )
+                            updateAutosaveSettings({
+                              intervalMinutes: Number(v)
+                            })
                           }
-                          options={CLOSE_BEHAVIOR_OPTIONS}
+                          options={AUTOSAVE_INTERVAL_OPTIONS}
+                          disabled={!settings.autosave?.enabled}
+                          description="How often to automatically save your workflow."
                         />
-                        <Text className="description">
-                          Choose what happens when you close the main window.
-                          <br />
-                          <b>Ask Every Time:</b> Shows a dialog with options.
-                          <br />
-                          <b>Quit:</b> Closes the application completely.
-                          <br />
-                          <b>Background:</b> Keeps the app running in the system
-                          tray.
-                        </Text>
-                      </div>
-                    )}
-                  </div>
+                      </SearchItem>
 
-                  <Text size="big" id="canvas-navigation">
-                    Canvas & Navigation
-                  </Text>
-                  <div className="settings-section">
-                    <div className="settings-item">
-                      <SelectField
-                        label="Pan Controls"
-                        value={settings.panControls}
-                        variant="standard"
-                        onChange={handlePanControlsChange}
-                        options={PAN_CONTROLS_OPTIONS}
-                      />
-                      <div className="description">
-                        <Text>
-                          Move the canvas by dragging with the left or right
-                          mouse button.
-                        </Text>
-                        <Text>
-                          With RMB selected, you can also pan with the Middle
-                          Mouse Button.
-                        </Text>
-                      </div>
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="autosave version history save before running checkpoint"
+                      >
+                        <LabeledSwitch
+                          label="Save Before Running"
+                          checked={settings.autosave?.saveBeforeRun ?? true}
+                          onChange={(checked) =>
+                            updateAutosaveSettings({
+                              saveBeforeRun: checked
+                            })
+                          }
+                          description="Create a checkpoint version before executing workflow."
+                        />
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="autosave version history save on window close"
+                      >
+                        <LabeledSwitch
+                          label="Save on Window Close"
+                          checked={settings.autosave?.saveOnClose ?? true}
+                          onChange={(checked) =>
+                            updateAutosaveSettings({
+                              saveOnClose: checked
+                            })
+                          }
+                          description="Automatically save when closing the tab or window."
+                        />
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="autosave version history max versions per workflow"
+                      >
+                        <SelectField
+                          label="Max Versions per Workflow"
+                          value={
+                            settings.autosave?.maxVersionsPerWorkflow ?? 50
+                          }
+                          variant="standard"
+                          onChange={(v) =>
+                            updateAutosaveSettings({
+                              maxVersionsPerWorkflow: Number(v)
+                            })
+                          }
+                          options={MAX_VERSIONS_OPTIONS}
+                          description="Maximum number of versions to keep per workflow."
+                        />
+                      </SearchItem>
                     </div>
 
-                    <div className="settings-item">
-                      <SelectField
-                        label="Node Selection Mode"
-                        value={settings.selectionMode}
-                        variant="standard"
-                        onChange={handleSelectionModeChange}
-                        options={SELECTION_MODE_OPTIONS}
-                      />
-                      <Text className="description">
-                        When drawing a selection box for node selections:
-                        <br />
-                        <b>Full:</b> nodes have to be fully enclosed.
-                        <br />
-                        <b>Partial:</b> intersecting nodes will be selected.
+                    <div className="settings-section">
+                      <Text
+                        size="big"
+                        id="appearance"
+                        className="settings-heading"
+                      >
+                        Appearance
                       </Text>
-                    </div>
-
-                    <div className="settings-item">
-                      <TextInput
-                        type="number"
-                        autoComplete="off"
-                        slotProps={{ htmlInput: { min: 1, max: 100 } }}
-                        id="grid-snap-input"
-                        label="Grid Snap Precision"
-                        value={settings.gridSnap}
-                        onChange={handleGridSnapChange}
-                        variant="standard"
-                        size="small"
-                      />
-                      <Text className="description">
-                        Snap precision for moving nodes on the canvas.
-                      </Text>
-                    </div>
-
-                    <div className="settings-item">
-                      <TextInput
-                        type="number"
-                        autoComplete="off"
-                        slotProps={{ htmlInput: { min: 5, max: 30 } }}
-                        id="connection-snap-input"
-                        label="Connection Snap Range"
-                        value={settings.connectionSnap}
-                        onChange={handleConnectionSnapChange}
-                        variant="standard"
-                        size="small"
-                      />
-                      <Text className="description">
-                        Snap distance for connecting nodes.
-                      </Text>
-                    </div>
-                  </div>
-
-                  <DefaultModelsMenu />
-
-                  <Text size="big" id="autosave">
-                    Autosave & Version History
-                  </Text>
-                  <div className="settings-section">
-                    <div className="settings-item">
-                      <LabeledSwitch
-                        label="Enable Autosave"
-                        checked={settings.autosave?.enabled ?? true}
-                        onChange={(checked) =>
-                          updateAutosaveSettings({ enabled: checked })
-                        }
-                        description="Automatically save your workflow at regular intervals."
-                      />
-                    </div>
-
-                    <div className="settings-item">
-                      <SelectField
-                        label="Autosave Interval (minutes)"
-                        value={settings.autosave?.intervalMinutes ?? 10}
-                        variant="standard"
-                        onChange={(v) =>
-                          updateAutosaveSettings({
-                            intervalMinutes: Number(v)
-                          })
-                        }
-                        options={AUTOSAVE_INTERVAL_OPTIONS}
-                        disabled={!settings.autosave?.enabled}
-                        description="How often to automatically save your workflow."
-                      />
-                    </div>
-
-                    <div className="settings-item">
-                      <LabeledSwitch
-                        label="Save Before Running"
-                        checked={settings.autosave?.saveBeforeRun ?? true}
-                        onChange={(checked) =>
-                          updateAutosaveSettings({
-                            saveBeforeRun: checked
-                          })
-                        }
-                        description="Create a checkpoint version before executing workflow."
-                      />
-                    </div>
-
-                    <div className="settings-item">
-                      <LabeledSwitch
-                        label="Save on Window Close"
-                        checked={settings.autosave?.saveOnClose ?? true}
-                        onChange={(checked) =>
-                          updateAutosaveSettings({
-                            saveOnClose: checked
-                          })
-                        }
-                        description="Automatically save when closing the tab or window."
-                      />
-                    </div>
-
-                    <div className="settings-item">
-                      <SelectField
-                        label="Max Versions per Workflow"
-                        value={
-                          settings.autosave?.maxVersionsPerWorkflow ?? 50
-                        }
-                        variant="standard"
-                        onChange={(v) =>
-                          updateAutosaveSettings({
-                            maxVersionsPerWorkflow: Number(v)
-                          })
-                        }
-                        options={MAX_VERSIONS_OPTIONS}
-                        description="Maximum number of versions to keep per workflow."
-                      />
-                    </div>
-                  </div>
-
-                  <Text size="big" id="appearance">
-                    Appearance
-                  </Text>
-                  <div className="settings-section">
-                    <div className="settings-item">
-                      <SelectField
-                        label="Time Format"
-                        value={settings.timeFormat}
-                        variant="standard"
-                        onChange={handleTimeFormatChange}
-                        options={TIME_FORMAT_OPTIONS}
-                        description="Display time in 12h or 24h format."
-                      />
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="appearance time format 12h 24h"
+                      >
+                        <SelectField
+                          label="Time Format"
+                          value={settings.timeFormat}
+                          variant="standard"
+                          onChange={handleTimeFormatChange}
+                          options={TIME_FORMAT_OPTIONS}
+                          description="Display time in 12h or 24h format."
+                        />
+                      </SearchItem>
                     </div>
                   </div>
                 </TabPanel>
 
-                {/* Tab 1: API & Keys */}
-                <TabPanel value={settingsTab} index={1}>
-                  <div
-                    data-onboarding-target="provider-setup"
-                    style={{ marginBottom: "1.5em" }}
-                  >
+                {/* Tab 1: API Keys (provider credentials only) */}
+                <TabPanel value={settingsTab} index={TAB_API_KEYS}>
+                  <div style={{ marginBottom: "1.5em" }}>
                     <SearchInput
                       placeholder="Search providers..."
                       value={apiSearchTerm}
@@ -845,10 +1073,21 @@ function SettingsPage() {
                     />
                   </div>
                   <APIKeysTabContent searchTerm={apiSearchTerm} />
+                  <Box sx={{ marginTop: "1.5em" }}>
+                    <SecurityNotice />
+                  </Box>
+                </TabPanel>
 
+                {/* Tab 2: Integrations (endpoints, MCP, storage, Nodetool API) */}
+                <TabPanel value={settingsTab} index={TAB_INTEGRATIONS}>
+                  <div className="integrations-settings">
                   {session?.access_token && !isLocalhost && (
                     <>
-                      <Text size="big" id="nodetool-api-token" sx={{ marginTop: "2em" }}>
+                      <Text
+                        size="big"
+                        id="nodetool-api-token"
+                        className="settings-heading"
+                      >
                         Nodetool API
                       </Text>
                       <Text
@@ -878,7 +1117,7 @@ function SettingsPage() {
                       >
                         <Text
                           sx={{
-                            fontSize: "1rem",
+                            fontSize: "var(--fontSizeNormal)",
                             color: theme.palette.text.primary
                           }}
                         >
@@ -917,33 +1156,42 @@ function SettingsPage() {
                     </>
                   )}
 
-                  <Text size="big" id="api-settings" sx={{ marginTop: "2em" }}>
+                  <Text
+                    size="big"
+                    id="api-settings"
+                    className="settings-heading"
+                  >
                     API Settings
                   </Text>
                   <RemoteSettingsMenuComponent />
 
                   {isLocalhost && (
                     <>
-                      <Text size="big" id="mcp-integration" sx={{ marginTop: "2em" }}>
+                      <Text
+                        size="big"
+                        id="mcp-integration"
+                        className="settings-heading"
+                      >
                         MCP Integration
                       </Text>
                       <MCPSettingsMenu />
                     </>
                   )}
 
-                  <Text size="big" id="folders" sx={{ marginTop: "2em" }}>
+                  <Text size="big" id="folders" className="settings-heading">
                     Folders
                   </Text>
                   <FoldersSettings />
+                  </div>
                 </TabPanel>
 
-                {/* Tab 2: Models */}
-                <TabPanel value={settingsTab} index={2}>
+                {/* Tab 3: Models */}
+                <TabPanel value={settingsTab} index={TAB_MODELS}>
                   <ModelListIndex />
                 </TabPanel>
 
-                {/* Tab 3: Collections */}
-                <TabPanel value={settingsTab} index={3}>
+                {/* Tab 4: Collections */}
+                <TabPanel value={settingsTab} index={TAB_COLLECTIONS}>
                   <Box className="settings-panel-padded">
                     <SettingsIntroCard
                       icon={<LibraryBooksOutlinedIcon sx={{ fontSize: 22 }} />}
@@ -960,9 +1208,9 @@ function SettingsPage() {
                   </Box>
                 </TabPanel>
 
-                {/* Tab 4: Workspaces */}
+                {/* Tab 5: Workspaces */}
                 {workspacesEnabled && (
-                  <TabPanel value={settingsTab} index={4}>
+                  <TabPanel value={settingsTab} index={TAB_WORKSPACES}>
                     <Box className="settings-panel-padded">
                       <SettingsIntroCard
                         icon={<FolderSpecialOutlinedIcon sx={{ fontSize: 22 }} />}
@@ -991,7 +1239,7 @@ function SettingsPage() {
                 </TabPanel>
               </div>
 
-              {settingsTab === 1 && !isMobile && (
+              {settingsTab === TAB_API_KEYS && !isMobile && (
                 <APIKeysRightSidebar />
               )}
             </div>

@@ -152,7 +152,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
           </Stack>
         </DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
-          <div style={{ padding: 16 }}>
+          <div style={{ padding: 8 }}>
             <Chip
               size="small"
               label={`Info`}
@@ -198,7 +198,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               onClick={toggleErrorSeverity}
             />
           </div>
-          <div style={{ padding: 10 }} ref={logsRef}>
+          <div style={{ padding: 8 }} ref={logsRef}>
             <LogsTable
               rows={logRows}
               height={400}

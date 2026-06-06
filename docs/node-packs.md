@@ -74,7 +74,6 @@ NodeTool ships with extensive built-in nodes organized by provider:
 | **anthropic** | Text | Claude models |
 | **gemini** | Audio, image, text, video | Google Gemini multimodal models |
 | **huggingface** | 27+ categories | Thousands of open-source models |
-| **comfy** | Image-to-image, LoRA, text-to-image | ComfyUI-powered diffusion workflows |
 | **mlx** | ASR, image, text, TTS | Apple Silicon optimized models |
 | **lib** | 30+ utility categories | NumPy, Pillow, PDF, Excel, SQLite, HTTP, RSS, and more |
 

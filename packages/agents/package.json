@@ -20,6 +20,7 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/storage": "*",
     "@nodetool-ai/vectorstore": "*",
     "@sebastianwessel/quickjs": "^3.0.1",
     "@types/mailparser": "^3.4.6",
@@ -44,6 +45,12 @@
       "types": "./dist/tools/base-tool.d.ts",
       "import": "./dist/tools/base-tool.js",
       "default": "./dist/tools/base-tool.js"
+    },
+    "./memory": {
+      "nodetool-dev": "./src/long-term-memory.ts",
+      "types": "./dist/long-term-memory.d.ts",
+      "import": "./dist/long-term-memory.js",
+      "default": "./dist/long-term-memory.js"
     }
   },
   "license": "MIT",

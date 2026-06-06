@@ -100,13 +100,14 @@ const PathPreview = ({
 }: PathPreviewProps) => {
   return (
     <div className="path-picker__inputs">
-      <button onClick={onBrowseClick} className="path-picker__browse-button">
+      <button type="button" onClick={onBrowseClick} className="path-picker__browse-button">
         Browse
       </button>
       <div className="path-picker__preview">
         <Text>{value?.toString()}</Text>
         {value?.toString() && (
           <button
+            type="button"
             onClick={onClear}
             className="path-picker__reset-button"
             aria-label={ariaLabel}

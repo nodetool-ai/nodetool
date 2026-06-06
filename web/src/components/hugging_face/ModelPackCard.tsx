@@ -158,7 +158,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                   sx={{
                     backgroundColor: "var(--palette-grey-800)",
                     color: "var(--palette-grey-200)",
-                    fontSize: "0.7rem"
+                    fontSize: "var(--fontSizeSmaller)"
                   }}
                 />
               ))}
@@ -196,7 +196,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
               }}
             />
             <Caption sx={{ color: "var(--palette-grey-400)" }}>
-              Downloading {activeDownloads.length} of {pack.models.length} models...
+              Downloading {activeDownloads.length} of {pack.models.length} models…
             </Caption>
           </Box>
         )}

@@ -245,6 +245,11 @@ const agentSocketRoute: FastifyPluginAsync = async (app) => {
             sendResponse(msg.request_id);
             return;
           }
+          case "set_memory_enabled": {
+            runtime.setMemoryEnabled(msg.session_id, userId, msg.enabled);
+            sendResponse(msg.request_id);
+            return;
+          }
           case "list_models": {
             const models = await runtime.listModels(msg.options, userId);
             sendResponse(msg.request_id, models);

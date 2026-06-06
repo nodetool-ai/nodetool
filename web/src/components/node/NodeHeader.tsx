@@ -8,12 +8,12 @@ import isEqual from "fast-deep-equal";
 import { NodeData } from "../../stores/NodeData";
 import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
 import { useNodes } from "../../contexts/NodeContext";
-import { IconForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, NotificationBadge } from "../ui_primitives";
+import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -119,17 +119,17 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     () =>
       css({
         width: "100%",
-        minHeight: "32px",
+        minHeight: "24px",
         backgroundColor: "transparent",
         color: "var(--palette-text-secondary)",
         margin: 0,
-        padding: "0 6px",
+        padding: 0,
         borderRadius:
           "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0",
         borderBottom: "none",
         transition: "background-color 0.2s ease-in-out, opacity 0.15s",
         ".header-left": {
-          padding: "2px 2px",
+          padding: 0,
           flex: 1,
           minWidth: 0
         },
@@ -188,8 +188,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           width: "16px",
           height: "16px",
           borderRadius: BORDER_RADIUS.pill,
-          fontSize: "0.6rem",
-          fontWeight: 700,
+          fontSize: "var(--fontSizeSmaller)",
+          fontWeight: 600,
           letterSpacing: "0.02em",
           color: "var(--palette-text-primary)",
           backgroundColor: "rgba(255, 255, 255, 0.12)",
@@ -371,6 +371,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           {isEditingTitle ? (
             <input
               className="node-title-input nodrag nopan"
+              aria-label="Node title"
               autoFocus
               value={draftTitle}
               onBlur={commitTitleEdit}
@@ -400,7 +401,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               }
             }}
           >
-            <OpenInNew sx={{ fontSize: "0.85rem" }} />
+            <OpenInNew sx={{ fontSize: "var(--fontSizeNormal)" }} />
           </ToolbarIconButton>
         )}
         {data.bypassed && (
@@ -413,9 +414,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             onClick={handleOpenLogsDialog}
             sx={{ padding: "4px" }}
           >
-            <NotificationBadge count={logCount} color="warning" max={99}>
-              <ListAltIcon sx={{ fontSize: "1rem" }} />
-            </NotificationBadge>
+            <ListAltIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
           </ToolbarIconButton>
         )}
       </FlexRow>

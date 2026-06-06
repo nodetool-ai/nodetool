@@ -78,9 +78,12 @@ const OverallDownloadProgress: React.FC = () => {
           padding: "0 4px",
           height: "32px",
           borderRadius: "var(--rounded-md)",
-          transition: "all 0.2s ease-out",
+          color: "var(--palette-text-secondary)",
+          transition:
+            "color 150ms ease-out, background-color 150ms ease-out",
           "&:hover": {
-            backgroundColor: "var(--palette-action-selected)"
+            color: "var(--palette-text-primary)",
+            backgroundColor: "var(--palette-action-hover)"
           },
           "&:focus-visible": {
             outline: "2px solid var(--palette-primary-main)",

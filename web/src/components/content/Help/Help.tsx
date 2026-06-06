@@ -106,7 +106,7 @@ const helpStyles = (theme: Theme) =>
       color: theme.vars.palette.secondary.contrastText,
       backgroundColor: theme.vars.palette.secondary.main,
       textDecoration: "none",
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       padding: "8px 14px",
       borderRadius: "var(--rounded-lg)",
@@ -128,7 +128,7 @@ const helpStyles = (theme: Theme) =>
         fontWeight: 600,
       },
       "& svg": {
-        fontSize: "2rem",
+        fontSize: "var(--fontSizeBig)",
         // color: theme.vars.palette.primary.main
       }
     },
@@ -213,23 +213,15 @@ const Help = ({
     setHelpIndex(newValue);
   };
   const [expandedNodetool, setExpandedNodetool] = useState(true);
-  const [expandedComfy, setExpandedComfy] = useState(false);
 
   const theme = useTheme();
 
-  const nodetoolTypes = DATA_TYPES.filter(
-    (type) => !type.value.startsWith("comfy.")
-  );
-  const comfyTypes = DATA_TYPES.filter((type) =>
-    type.value.startsWith("comfy.")
-  );
+  const nodetoolTypes = DATA_TYPES;
 
   const handleAccordionChange =
     (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
       if (panel === "nodetool") {
         setExpandedNodetool(isExpanded);
-      } else if (panel === "comfy") {
-        setExpandedComfy(isExpanded);
       }
     };
 
@@ -288,12 +280,6 @@ const Help = ({
                   dataTypes={nodetoolTypes}
                   expanded={expandedNodetool}
                   onChange={handleAccordionChange("nodetool")}
-                />
-                <DataTypesList
-                  title="Comfy Data Types"
-                  dataTypes={comfyTypes}
-                  expanded={expandedComfy}
-                  onChange={handleAccordionChange("comfy")}
                 />
               </TabPanel>
             </div>

@@ -20,7 +20,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import LockIcon from "@mui/icons-material/Lock";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 import type { TimelineClip, TimelineTrack, ClipStatus } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -30,9 +30,11 @@ import {
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineGenerationStore } from "../../../stores/timeline/TimelineGenerationStore";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
+import { type NodeKey } from "../../../stores/nodeKey";
 import { StatusIndicator } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
@@ -41,6 +43,7 @@ import { useClipThumbnails } from "./useClipThumbnails";
 import { useAudioPeaks } from "./useAudioPeaks";
 import { samplePeaksWindow } from "./audioPeaks";
 import { isCompatibleWithTrack } from "../dnd/assetToClipAdapter";
+import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
 
 /** Clip-side wrapper: TimelineClip.mediaType also includes "overlay";
  *  treat those as video-track-compatible. */
@@ -57,8 +60,10 @@ function isClipCompatibleWithTrack(
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const TRIM_HANDLE_WIDTH_PX = 8;
-const SNAP_THRESHOLD_PX = 8;
 const MIN_CLIP_WIDTH_PX = 4;
+const CLIP_RADIUS_PX = 6;
+/** Width below which we suppress secondary chrome (duration label). */
+const COMPACT_THRESHOLD_PX = 96;
 
 // ── Status mapping (PRD §5.5) ──────────────────────────────────────────────
 
@@ -75,17 +80,29 @@ const CLIP_STATUS_MAP: Record<ClipStatus, { status: StatusType; label: string; p
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
-const clipStyles = (theme: Theme, selected: boolean, locked: boolean) =>
+const clipStyles = (
+  theme: Theme,
+  selected: boolean,
+  locked: boolean,
+  mediaType: TimelineClip["mediaType"]
+) =>
   css({
     position: "absolute",
-    top: 4,
-    bottom: 4,
-    borderRadius: 4,
+    top: 6,
+    bottom: 6,
+    borderRadius: CLIP_RADIUS_PX,
     overflow: "hidden",
-    backgroundColor: theme.vars.palette.primary.dark,
+    backgroundColor: theme.vars.palette.background.paper,
+    backgroundImage: `linear-gradient(0deg, ${clipSurfaceTint(
+      theme,
+      mediaType
+    )}, ${clipSurfaceTint(theme, mediaType)})`,
     border: selected
-      ? `2px solid ${theme.vars.palette.primary.light}`
-      : `1px solid ${theme.vars.palette.primary.main}`,
+      ? `1.5px solid ${theme.vars.palette.secondary.main}`
+      : `1px solid ${clipBorderTint(theme, mediaType)}`,
+    boxShadow: selected
+      ? `0 0 0 3px rgba(232, 121, 249, 0.18), 0 4px 12px rgba(0, 0, 0, 0.35)`
+      : "none",
     cursor: locked ? "not-allowed" : "grab",
     "&:active": {
       cursor: locked ? "not-allowed" : "grabbing"
@@ -93,33 +110,73 @@ const clipStyles = (theme: Theme, selected: boolean, locked: boolean) =>
     userSelect: "none",
     touchAction: "none",
     minWidth: MIN_CLIP_WIDTH_PX,
-    boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "flex-end",
-    padding: "2px 4px"
+    boxSizing: "border-box"
+  });
+
+const clipHeaderRowStyles = css({
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  height: 18,
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "0 8px",
+  pointerEvents: "none",
+  zIndex: 4
+});
+
+const clipDotStyles = (accent: string) =>
+  css({
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    backgroundColor: accent,
+    boxShadow: `0 0 0 1px rgba(0, 0, 0, 0.45)`,
+    flexShrink: 0
   });
 
 const clipNameStyles = (theme: Theme) =>
   css({
     fontSize: 11,
-    color: theme.vars.palette.primary.contrastText,
+    fontWeight: 500,
+    letterSpacing: "-0.005em",
+    color: theme.vars.palette.text.primary,
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
     pointerEvents: "none",
-    lineHeight: 1.2,
-    position: "relative",
-    zIndex: 1,
-    textShadow: "0 1px 2px rgba(0,0,0,0.6)"
+    lineHeight: 1.4,
+    textShadow: "0 1px 2px rgba(0, 0, 0, 0.7)",
+    flex: "1 1 auto",
+    minWidth: 0
+  });
+
+const clipDurationStyles = (theme: Theme) =>
+  css({
+    flexShrink: 0,
+    fontFamily:
+      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontSize: 10,
+    fontWeight: 500,
+    color: theme.vars.palette.text.secondary,
+    letterSpacing: "0",
+    textShadow: "0 1px 2px rgba(0, 0, 0, 0.7)"
   });
 
 const filmstripStyles = css({
   position: "absolute",
-  inset: 0,
+  left: 6,
+  right: 6,
+  top: 20,
+  bottom: 6,
   display: "flex",
+  gap: 1,
   pointerEvents: "none",
-  zIndex: 0
+  zIndex: 0,
+  borderRadius: 3,
+  overflow: "hidden"
 });
 
 const waveformStyles = css({
@@ -153,7 +210,7 @@ const generatingOverlayStyles = (theme: Theme) =>
     pointerEvents: "none",
     zIndex: 3,
     overflow: "hidden",
-    borderRadius: 4,
+    borderRadius: CLIP_RADIUS_PX,
     "&::before": {
       content: '""',
       position: "absolute",
@@ -164,10 +221,10 @@ const generatingOverlayStyles = (theme: Theme) =>
       background: `linear-gradient(
         100deg,
         transparent 0%,
-        ${theme.vars.palette.primary.light} 50%,
+        ${theme.vars.palette.secondary.light} 50%,
         transparent 100%
       )`,
-      opacity: 0.85,
+      opacity: 0.75,
       mixBlendMode: "screen",
       filter: "blur(2px)",
       animation: `${shimmerSweep} 1.2s linear infinite`,
@@ -178,7 +235,7 @@ const generatingOverlayStyles = (theme: Theme) =>
       position: "absolute",
       inset: 0,
       borderRadius: "inherit",
-      boxShadow: `inset 0 0 0 2px ${theme.vars.palette.primary.light}`,
+      boxShadow: `inset 0 0 0 1.5px ${theme.vars.palette.secondary.light}`,
       animation: `${outlinePulse} 1.4s ease-in-out infinite`
     },
     "@media (prefers-reduced-motion: reduce)": {
@@ -238,7 +295,7 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
       barCount
     );
     const mid = cssHeight / 2;
-    ctx.fillStyle = theme.vars.palette.primary.main;
+    ctx.fillStyle = theme.vars.palette.success.main;
     for (let i = 0; i < slice.length; i += 1) {
       const amp = slice[i];
       const h = Math.max(1, amp * (cssHeight - 2));
@@ -252,15 +309,14 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
 };
 WaveformCanvas.displayName = "WaveformCanvas";
 
-const filmstripCellStyles = (url: string, withDivider: boolean) =>
+const filmstripCellStyles = (url: string) =>
   css({
     flex: 1,
     height: "100%",
     backgroundImage: `url(${url})`,
     backgroundSize: "cover",
     backgroundPosition: "center",
-    opacity: 0.7,
-    borderRight: withDivider ? "1px solid rgba(0,0,0,0.2)" : "none"
+    opacity: 0.78
   });
 
 const trimHandleStyles = (
@@ -284,16 +340,16 @@ const trimHandleStyles = (
 
 const statusBadgeStyles = css({
   position: "absolute",
-  top: 3,
-  right: 4,
+  bottom: 4,
+  right: 6,
   zIndex: 3,
   pointerEvents: "none"
 });
 
 const lockIconStyles = css({
   position: "absolute",
-  top: 3,
-  left: 4,
+  bottom: 4,
+  left: 8,
   zIndex: 3,
   pointerEvents: "none",
   opacity: 0.85,
@@ -379,15 +435,20 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     return { status: rawJobState.status as ClipGenerationState["status"] };
   }, [rawJobState]);
 
-  // Node-level errors from ErrorStore, keyed by the clip's workflowId.
+  // Node-level errors from ErrorStore. Error keys are now scoped per run
+  // (`${wf}:${jobId}:${node}`), so restrict the scan to the workflow's focused
+  // run; with no focused run there's no error to surface.
   const workflowId = clip?.workflowId;
   const errorEntries = useErrorStore((s) => s.errors);
+  const focusedJobId = useWorkflowRunsStore((s) =>
+    workflowId ? s.focusedJob[workflowId] : undefined
+  );
   const errorState: ClipErrorState | null = useMemo(() => {
-    if (!workflowId) {
+    if (!workflowId || !focusedJobId) {
       return null;
     }
-    const prefix = `${workflowId}:`;
-    for (const key of Object.keys(errorEntries)) {
+    const prefix = `${workflowId}:${focusedJobId}:`;
+    for (const key of Object.keys(errorEntries) as NodeKey[]) {
       if (key.startsWith(prefix) && hasNodeError(errorEntries[key])) {
         return {
           hasError: true,
@@ -396,7 +457,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       }
     }
     return null;
-  }, [workflowId, errorEntries]);
+  }, [workflowId, focusedJobId, errorEntries]);
 
   // Derive the displayed status badge.
   // For the "missing" check we trust clip.currentAssetId: if it's set,
@@ -587,6 +648,16 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     [clipId, selectClip, addToSelection, toggleSelection]
   );
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.stopPropagation();
+        selectClip(clipId);
+      }
+    },
+    [clipId, selectClip]
+  );
+
   // ── Trim start ──────────────────────────────────────────────────────────
 
   const trimStartRef = useRef({ startX: 0, startMs: 0 });
@@ -691,6 +762,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       statusInfo={statusInfo}
       handleDragPointerDown={handleDragPointerDown}
       handleClick={handleClick}
+      handleKeyDown={handleKeyDown}
       handleTrimStartPointerDown={handleTrimStartPointerDown}
       handleTrimStartPointerMove={handleTrimStartPointerMove}
       handleTrimEndPointerDown={handleTrimEndPointerDown}
@@ -709,6 +781,7 @@ interface ClipBodyProps {
   statusInfo: typeof CLIP_STATUS_MAP[ClipStatus];
   handleDragPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
+  handleKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   handleTrimStartPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimStartPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -725,6 +798,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   statusInfo,
   handleDragPointerDown,
   handleClick,
+  handleKeyDown,
   handleTrimStartPointerDown,
   handleTrimStartPointerMove,
   handleTrimEndPointerDown,
@@ -822,24 +896,39 @@ const ClipBody: React.FC<ClipBodyProps> = ({
     return cells;
   }, [thumbnails, cellCount]);
 
+  const accent = (() => {
+    switch (clip.mediaType) {
+      case "audio":
+        return theme.vars.palette.success.main;
+      case "overlay":
+        return theme.vars.palette.secondary.main;
+      case "image":
+      case "video":
+      default:
+        return theme.vars.palette.info.main;
+    }
+  })();
+
+  const showDuration = widthPx >= COMPACT_THRESHOLD_PX;
+  const durationLabel = formatClipDuration(clip.durationMs);
+
   return (
     <div
-      css={clipStyles(theme, isSelected, clip.locked)}
+      css={clipStyles(theme, isSelected, clip.locked, clip.mediaType)}
       style={{ left: leftPx, width: widthPx, cursor: cutMode ? "crosshair" : undefined }}
       onPointerDown={handleDragPointerDown}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       data-testid={`clip-${clipId}`}
       aria-selected={isSelected}
       role="option"
+      tabIndex={0}
       aria-label={clip.name || `Clip ${clip.id}`}
     >
       {filmstripCells && (
         <div css={filmstripStyles}>
           {filmstripCells.map((cell, i) => (
-            <div
-              key={i}
-              css={filmstripCellStyles(cell.url, i < filmstripCells.length - 1)}
-            />
+            <div key={i} css={filmstripCellStyles(cell.url)} />
           ))}
         </div>
       )}
@@ -851,7 +940,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
             backgroundImage: `url(${imageUrl})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            opacity: 0.7
+            opacity: 0.78
           }}
         />
       )}
@@ -864,6 +953,15 @@ const ClipBody: React.FC<ClipBodyProps> = ({
           widthPx={widthPx}
         />
       )}
+
+      {/* Header strip: type dot · name · duration */}
+      <div css={clipHeaderRowStyles}>
+        <span css={clipDotStyles(accent)} aria-hidden />
+        <span css={clipNameStyles(theme)}>{clip.name}</span>
+        {showDuration && (
+          <span css={clipDurationStyles(theme)}>{durationLabel}</span>
+        )}
+      </div>
 
       <div
         css={trimHandleStyles(theme, "start", clip.locked)}
@@ -883,7 +981,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
 
       {clip.locked && (
         <div css={lockIconStyles}>
-          <LockIcon sx={{ fontSize: 12 }} aria-label="Clip locked" />
+          <LockOutlinedIcon sx={{ fontSize: 12 }} aria-label="Clip locked" />
         </div>
       )}
 
@@ -911,10 +1009,20 @@ const ClipBody: React.FC<ClipBodyProps> = ({
             />
           </div>
         )}
-
-      <div css={clipNameStyles(theme)}>{clip.name}</div>
     </div>
   );
 };
+
+/** "4.6s" for sub-minute, "1:23" for ≥1 min. Shown when clip width ≥ compact threshold. */
+function formatClipDuration(durationMs: number): string {
+  if (durationMs < 60_000) {
+    const sec = durationMs / 1000;
+    return sec < 10 ? `${sec.toFixed(1)}s` : `${Math.round(sec)}s`;
+  }
+  const totalSec = Math.round(durationMs / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 Clip.displayName = "Clip";

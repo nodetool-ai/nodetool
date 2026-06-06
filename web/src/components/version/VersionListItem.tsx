@@ -94,9 +94,22 @@ const VersionListItem = React.memo(function VersionListItem({
 
   const fullDate = format(new Date(version.created_at), "PPpp");
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleClick();
+      }
+    },
+    [handleClick]
+  );
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       className="version-list-item"
       style={{
         display: "flex",
@@ -150,7 +163,7 @@ const VersionListItem = React.memo(function VersionListItem({
             size="small"
             sx={{
               height: "16px",
-              fontSize: "0.6rem",
+              fontSize: "var(--fontSizeSmaller)",
               opacity: 0.7,
               "& .MuiChip-label": { px: 0.5 }
             }}

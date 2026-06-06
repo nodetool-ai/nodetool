@@ -26,8 +26,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
-
-const RESIZE_NODE_TYPE = "nodetool.image.Resize";
+import { RESIZE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
   css({
@@ -54,7 +53,7 @@ const styles = (theme: Theme) =>
       "& > .handle-column": {
         top: 0,
         bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
+        left: `calc(${theme.spacing(0)})`
       },
       "& img": {
         display: "block",
@@ -66,7 +65,7 @@ const styles = (theme: Theme) =>
         position: "absolute",
         bottom: theme.spacing(0.5),
         right: theme.spacing(0.5),
-        padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
         background: "rgba(0,0,0,0.6)",
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,

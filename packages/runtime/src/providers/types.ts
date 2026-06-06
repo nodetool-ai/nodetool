@@ -1,11 +1,10 @@
-import type { Chunk } from "@nodetool-ai/protocol";
+import type { Chunk, ProviderId } from "@nodetool-ai/protocol";
 
-export type ProviderId =
-  | "openai"
-  | "anthropic"
-  | "ollama"
-  | "llama_cpp"
-  | string;
+// Provider identifiers are owned by @nodetool-ai/protocol (the base dependency
+// for the whole monorepo). Re-exported here so existing runtime importers keep
+// resolving `ProviderId`/`PROVIDER_IDS` from `./types.js`.
+export { PROVIDER_IDS } from "@nodetool-ai/protocol";
+export type { ProviderId };
 
 export interface LanguageModel {
   id: string;
@@ -25,6 +24,14 @@ export interface VideoModel {
   name: string;
   provider: ProviderId;
   supportedTasks?: string[];
+  /**
+   * Per-model option constraints derived from the provider manifest's enum
+   * fields. When present the composer offers only these values (e.g. a model
+   * that only supports 5s/10s clips), avoiding 422s from unsupported params.
+   */
+  durations?: number[];
+  resolutions?: string[];
+  aspectRatios?: string[];
 }
 
 export interface TTSModel {

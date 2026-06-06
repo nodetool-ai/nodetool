@@ -12,7 +12,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 import { createLogger } from "@nodetool-ai/config";
-import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { withAgentSpanGen } from "@nodetool-ai/runtime";
 
 const log = createLogger("nodetool.agents.agent");
@@ -25,17 +25,24 @@ import type {
   Chunk
 } from "@nodetool-ai/protocol";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
-import { BaseAgent } from "./base-agent.js";
 import { TaskPlanner } from "./task-planner.js";
 import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
+import { GraphPlanner } from "./graph-planner.js";
+import { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
+import { DEFAULT_TOKEN_LIMIT } from "./constants.js";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   type AgentOutputFormat,
   outputFormatDirective
 } from "./output-format.js";
+import {
+  formatMemoryForPrompt,
+  type LongTermMemory
+} from "./long-term-memory.js";
 
 // ---------------------------------------------------------------------------
 // Skill types and helpers
@@ -206,9 +213,53 @@ export interface AgentOptions {
   task?: Task;
   skills?: string[];
   skillDirs?: string[];
+  /**
+   * Optional long-term memory. When provided, items relevant to the agent's
+   * objective are recalled before planning and folded into the system prompt
+   * so the planner and every step inherit the same context.
+   *
+   * **Writes are opt-in.** Agent runs do NOT auto-mine the objective +
+   * final result for memories by default — agent results are generated
+   * output, not user-confirmed facts, and persisting them across sessions
+   * pollutes the store with hallucinations or run-specific artefacts.
+   * Agents can still publish memories explicitly via the `ltm_remember`
+   * tool. To re-enable automatic mining for a specific agent, set
+   * {@link AgentOptions.autoPersistMemory} to `true`.
+   */
+  longTermMemory?: LongTermMemory | null;
+  /**
+   * If `true`, mine the objective + final result for memories on a
+   * best-effort basis when the run finishes. Defaults to `false`.
+   */
+  autoPersistMemory?: boolean;
+  /**
+   * Use the graph-native planner: build a DAG of nodes directly instead of a
+   * TaskPlan. Requires {@link registry}. When set, planning emits a workflow
+   * graph executed by {@link AgentWorkflowRunner}.
+   */
+  useGraphPlanner?: boolean;
+  /** Node registry required when {@link useGraphPlanner} is true. */
+  registry?: NodeRegistry;
+  /**
+   * Configured BaseProvider instances by id. When supplied, the GraphPlanner
+   * exposes a `find_model` tool so the agent can pick a real model+provider
+   * for generic AI nodes (TextToImage, TextToVideo, etc.).
+   */
+  providers?: Record<string, BaseProvider>;
 }
 
-export class Agent extends BaseAgent {
+export class Agent {
+  readonly name: string;
+  readonly objective: string;
+  readonly provider: BaseProvider;
+  readonly model: string;
+  readonly tools: Tool[];
+  readonly inputs: Record<string, unknown>;
+  readonly systemPrompt: string;
+  readonly maxTokenLimit: number;
+  results: unknown = null;
+  task: Task | null = null;
+
   private readonly description: string;
   private readonly planningModel: string;
   private readonly reasoningModel: string;
@@ -220,20 +271,23 @@ export class Agent extends BaseAgent {
   private readonly requestedSkills?: string[];
   private readonly skillDirs: string[];
   private readonly initialTask?: Task;
+  private readonly longTermMemory: LongTermMemory | null;
+  private readonly autoPersistMemory: boolean;
+  private readonly useGraphPlanner: boolean;
+  private readonly registry?: NodeRegistry;
+  private readonly providers?: Record<string, BaseProvider>;
   /** The multi-task plan, set after planning. */
   taskPlan: TaskPlan | null = null;
 
   constructor(opts: AgentOptions) {
-    super({
-      name: opts.name,
-      objective: opts.objective,
-      provider: opts.provider,
-      model: opts.model,
-      tools: opts.tools,
-      inputs: opts.inputs,
-      systemPrompt: opts.systemPrompt,
-      maxTokenLimit: opts.maxTokenLimit
-    });
+    this.name = opts.name;
+    this.objective = opts.objective;
+    this.provider = opts.provider;
+    this.model = opts.model;
+    this.tools = opts.tools ?? [];
+    this.inputs = opts.inputs ?? {};
+    this.systemPrompt = opts.systemPrompt ?? "";
+    this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.description = opts.description ?? "";
     this.planningModel = opts.planningModel ?? opts.model;
     this.reasoningModel = opts.reasoningModel ?? opts.model;
@@ -247,6 +301,11 @@ export class Agent extends BaseAgent {
     this.requestedSkills = opts.skills;
     this.skillDirs = opts.skillDirs ?? [];
     this.initialTask = opts.task;
+    this.longTermMemory = opts.longTermMemory ?? null;
+    this.autoPersistMemory = opts.autoPersistMemory === true;
+    this.useGraphPlanner = opts.useGraphPlanner === true;
+    this.registry = opts.registry;
+    this.providers = opts.providers;
     if (opts.task) {
       this.task = opts.task;
     }
@@ -395,12 +454,16 @@ export class Agent extends BaseAgent {
   }
 
   /**
-   * Merge user system prompt with skill system prompt.
+   * Merge user system prompt, skills and recalled long-term memory.
    */
-  private mergeSystemPrompt(skillPrompt: string | null): string | undefined {
+  private mergeSystemPrompt(
+    skillPrompt: string | null,
+    memoryPrompt: string | null = null
+  ): string | undefined {
     const parts: string[] = [];
     if (this.systemPrompt) parts.push(this.systemPrompt);
     if (skillPrompt) parts.push(skillPrompt);
+    if (memoryPrompt) parts.push(memoryPrompt);
     const formatDirective = outputFormatDirective(this.outputFormat);
     if (formatDirective) parts.push(formatDirective);
     if (parts.length === 0) return undefined;
@@ -439,7 +502,27 @@ export class Agent extends BaseAgent {
     );
     const skillSystemPrompt = this.buildSkillSystemPrompt(activeSkills);
     const effectiveObjective = this.buildEffectiveObjective(activeSkills);
-    const mergedSystemPrompt = this.mergeSystemPrompt(skillSystemPrompt);
+
+    // Recall long-term memory and fold it into the system prompt so the
+    // planner and every step share the same background context. Best-effort:
+    // if the LTM backend is misconfigured we just continue without it.
+    let memoryPrompt: string | null = null;
+    if (this.longTermMemory && this.longTermMemory.isReady()) {
+      try {
+        const recalled = await this.longTermMemory.recall(this.objective);
+        const block = formatMemoryForPrompt(recalled);
+        if (block) memoryPrompt = block;
+      } catch (err) {
+        log.warn("Long-term memory recall failed", {
+          name: this.name,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+    const mergedSystemPrompt = this.mergeSystemPrompt(
+      skillSystemPrompt,
+      memoryPrompt
+    );
 
     // Ensure workspace directory exists
     const workspacePath =
@@ -454,6 +537,12 @@ export class Agent extends BaseAgent {
         this.initialTask,
         mergedSystemPrompt
       );
+      return;
+    }
+
+    // Graph-native planner: build DAG of nodes directly.
+    if (this.useGraphPlanner && this.registry) {
+      yield* this.executeGraphPlan(context, mergedSystemPrompt);
       return;
     }
 
@@ -580,6 +669,85 @@ export class Agent extends BaseAgent {
     }
 
     log.info("Agent completed", { name: this.name });
+    this.persistAgentRunMemory();
+  }
+
+  /**
+   * Graph-native plan: build a DAG of nodes via GraphPlanner, then execute it
+   * with AgentWorkflowRunner.
+   */
+  private async *executeGraphPlan(
+    context: ProcessingContext,
+    systemPrompt: string | undefined
+  ): AsyncGenerator<ProcessingMessage> {
+    log.info("Graph planning phase started", { name: this.name });
+
+    yield {
+      type: "log_update",
+      node_id: "graph_planner",
+      node_name: this.name,
+      content: `Building workflow graph for: ${this.objective.slice(0, 100)}...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const planner = new GraphPlanner({
+      provider: this.provider,
+      model: this.planningModel,
+      registry: this.registry!,
+      tools: this.tools,
+      systemPrompt,
+      outputSchema: this.outputSchema,
+      inputs: this.inputs,
+      providers: this.providers
+    });
+
+    const planGen = planner.plan(this.objective, context);
+    let planResult = await planGen.next();
+    while (!planResult.done) {
+      yield planResult.value;
+      planResult = await planGen.next();
+    }
+    const graphData = planResult.value;
+
+    if (!graphData) {
+      throw new Error("GraphPlanner failed to build a workflow graph.");
+    }
+
+    log.info("Graph planning complete", {
+      name: this.name,
+      nodes: graphData.nodes.length,
+      edges: graphData.edges.length
+    });
+
+    yield {
+      type: "log_update",
+      node_id: "graph_executor",
+      node_name: this.name,
+      content: `Executing workflow: ${graphData.nodes.length} nodes, ${graphData.edges.length} edges...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const runner = new AgentWorkflowRunner({
+      provider: this.provider,
+      model: this.model,
+      registry: this.registry!,
+      tools: [...this.tools],
+      context,
+      systemPrompt,
+      maxTokenLimit: this.maxTokenLimit,
+      maxStepIterations: this.maxStepIterations,
+      inputs: this.inputs
+    });
+
+    for await (const item of runner.execute(graphData)) {
+      if (item.type === "step_result") {
+        const sr = item as StepResult;
+        if (sr.is_task_result) {
+          this.results = sr.result;
+        }
+      }
+      yield item;
+    }
   }
 
   /**
@@ -642,6 +810,39 @@ export class Agent extends BaseAgent {
     }
 
     log.info("Agent completed", { name: this.name });
+    this.persistAgentRunMemory();
+  }
+
+  /**
+   * Mine the completed run for new long-term memories. Fire-and-forget so a
+   * slow extraction call never blocks the caller, and any backend error is
+   * swallowed (already logged inside the LTM module).
+   */
+  private persistAgentRunMemory(): void {
+    if (!this.autoPersistMemory) return;
+    if (!this.longTermMemory || !this.longTermMemory.isReady()) return;
+    const resultText =
+      this.results === null || this.results === undefined
+        ? ""
+        : typeof this.results === "string"
+          ? this.results
+          : (() => {
+              try {
+                return JSON.stringify(this.results);
+              } catch {
+                return String(this.results);
+              }
+            })();
+    if (!resultText.trim()) return;
+    const synthetic: Message[] = [
+      { role: "user", content: this.objective },
+      { role: "assistant", content: resultText }
+    ];
+    void this.longTermMemory
+      .rememberConversation(synthetic, { source: `agent:${this.name}` })
+      .catch(() => {
+        // already logged inside rememberConversation
+      });
   }
 
   getResults(): unknown {

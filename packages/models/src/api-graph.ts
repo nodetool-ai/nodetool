@@ -48,7 +48,7 @@ export interface ApiGraph {
  * Convert a kernel-level NodeDescriptor to an ApiNode.
  *
  * Strips runtime-only fields (is_streaming_input, is_streaming_output,
- * is_controlled, is_dynamic, outputs) and maps `properties` to `data`.
+ * is_controlled, supports_dynamic_inputs, outputs) and maps `properties` to `data`.
  */
 export function toApiNode(node: NodeDescriptor): ApiNode {
   return {

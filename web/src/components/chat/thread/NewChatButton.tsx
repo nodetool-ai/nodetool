@@ -13,7 +13,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
     <div className="new-chat-section">
       <CreateFab
         className="new-chat-button"
-        icon={<AddIcon sx={{ fontSize: "1.3rem" }} />}
+        icon={<AddIcon sx={{ fontSize: "var(--fontSizeBig)" }} />}
         label="New Chat"
         tooltip="Start a new chat"
         onClick={onNewThread}
@@ -30,7 +30,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
           background: theme.vars.palette.grey[800],
           boxShadow: "2px 2px 0px var(--palette-grey-600)",
           fontSize: "var(--fontSizeSmaller)",
-          fontWeight: 300,
+          fontWeight: 400,
           textTransform: "uppercase",
           justifyContent: "center",
           transition: "all 0.1s ease-in-out",

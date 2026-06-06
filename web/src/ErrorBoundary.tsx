@@ -34,7 +34,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
 
     ".heading": {
-      fontSize: "1.5rem",
+      fontSize: "var(--fontSizeBig)",
       fontWeight: 600,
       color: theme.vars.palette.grey[100],
       letterSpacing: "-0.01em"
@@ -44,7 +44,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       maxWidth: 460,
       textAlign: "center",
       color: theme.vars.palette.grey[300],
-      fontSize: "0.95rem",
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: 1.7
     },
 
@@ -68,7 +68,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.grey[1000],
       padding: "0.6em 2.5em",
-      fontSize: "1rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       borderRadius: "var(--rounded-md)",
       textTransform: "none",
@@ -79,7 +79,7 @@ const errorBoundaryStyles = (theme: Theme) =>
 
     ".copy-error-button": {
       padding: "0.6em 1.5em",
-      fontSize: "1rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       borderRadius: "var(--rounded-md)",
       textTransform: "none",
@@ -105,7 +105,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       gap: "0.4em",
       color: theme.vars.palette.grey[100],
       textDecoration: "none",
-      fontSize: "0.95rem",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       padding: "0.45em 1em",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
@@ -127,7 +127,7 @@ const errorBoundaryStyles = (theme: Theme) =>
     },
 
     ".details-toggle": {
-      fontSize: "0.8rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.grey[500],
       textTransform: "none",
       marginBottom: "0.5rem",
@@ -141,7 +141,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       width: "100%",
       color: theme.vars.palette.grey[200],
       fontFamily: theme.fontFamily2,
-      fontSize: "0.9rem",
+      fontSize: "var(--fontSizeNormal)",
       padding: "0.75em 1em",
       lineHeight: 1.6,
       textAlign: "center",
@@ -160,7 +160,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       borderRadius: "var(--rounded-md)",
       fontFamily: "monospace",
-      fontSize: "0.8rem",
+      fontSize: "var(--fontSizeSmall)",
       padding: "1em",
       whiteSpace: "pre-wrap",
       wordBreak: "break-all",

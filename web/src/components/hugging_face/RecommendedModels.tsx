@@ -80,7 +80,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
   }, [cacheStatuses, filteredModels]);
 
   if (!recommendedModels) {
-    return <div>Loading...</div>;
+    return <div>Loading…</div>;
   }
 
   return (
@@ -127,7 +127,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
 
       {displayModels.length === 0 ? (
         <Text
-          sx={{ color: "var(--palette-grey-200)", ml: 2, mt: 8, mb: 10 }}
+          sx={{ color: "var(--palette-grey-200)", ml: 2, mt: 8, mb: 8 }}
         >
           No models found{searchQuery ? ` for "${searchQuery}"` : ""}.
         </Text>

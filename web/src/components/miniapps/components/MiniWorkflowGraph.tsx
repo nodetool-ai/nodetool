@@ -2,7 +2,9 @@
 import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { Caption, Tooltip, Box } from "../../ui_primitives";
-import useStatusStore, { hashKey } from "../../../stores/StatusStore";
+import useStatusStore from "../../../stores/StatusStore";
+import { nodeKey } from "../../../stores/nodeKey";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { Workflow } from "../../../stores/ApiTypes";
 
 interface MiniWorkflowGraphProps {
@@ -52,6 +54,88 @@ interface GraphEdge {
   [key: string]: unknown;
 }
 
+const CONTAINER_WIDTH = 320;
+const CONTAINER_HEIGHT = 200;
+
+const graphStyles = css({
+  ".mini-graph-container": {
+    position: "relative",
+    width: `${CONTAINER_WIDTH}px`,
+    height: `${CONTAINER_HEIGHT}px`,
+    background: "color-mix(in srgb, var(--palette-background-paper), transparent 60%)",
+    backdropFilter: "blur(12px)",
+    borderRadius: "var(--rounded-lg)",
+    border: "1px solid var(--palette-divider)",
+    overflow: "hidden"
+  },
+
+  ".mini-node": {
+    position: "absolute",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+    padding: "3px 8px",
+    background: "var(--palette-background-default)",
+    border: "1px solid var(--palette-divider)",
+    borderRadius: "var(--rounded-sm)",
+    fontSize: "var(--fontSizeSmaller)",
+    whiteSpace: "nowrap",
+    maxWidth: "90px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    transition: "all 0.2s ease",
+    cursor: "default",
+
+    "&:hover": {
+      zIndex: 10,
+      maxWidth: "none",
+      background: "var(--palette-action-hover)"
+    }
+  },
+
+  ".mini-node.running": {
+    borderColor: "var(--palette-success-main, #4caf50)",
+    animation: `${glowPulse} 1.5s ease-in-out infinite`
+  },
+
+  ".mini-node.completed": {
+    borderColor: "var(--palette-success-main, #4caf50)",
+    background: "var(--palette-success-light, rgba(76, 175, 80, 0.15))"
+  },
+
+  ".mini-node.error": {
+    borderColor: "var(--palette-error-main, #f44336)",
+    background: "var(--palette-error-light, rgba(244, 67, 54, 0.15))"
+  },
+
+  ".mini-node.booting, .mini-node.queued": {
+    borderColor: "var(--palette-warning-main, #ff9800)",
+    background: "var(--palette-warning-light, rgba(255, 152, 0, 0.1))"
+  },
+
+  ".edge-line": {
+    stroke: "var(--palette-divider)",
+    strokeWidth: 1,
+    fill: "none"
+  },
+
+  ".edge-line.active": {
+    stroke: "var(--palette-success-main, #4caf50)",
+    strokeWidth: 1.5
+  },
+
+  ".mini-graph-title": {
+    position: "absolute",
+    top: "6px",
+    left: "10px",
+    fontSize: "var(--fontSizeSmaller)",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    color: "var(--palette-text-secondary)",
+    fontWeight: 500
+  }
+});
+
 const getNodeTitle = (node: GraphNode): string => {
   if (
     node.ui_properties &&
@@ -70,9 +154,13 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
   isRunning: _isRunning = false
 }) => {
   const statuses = useStatusStore((state) => state.statuses);
+  // Node statuses are keyed per run; display the workflow's focused run.
+  const focusedJobId = useWorkflowRunsStore(
+    (state) => state.focusedJob[workflow.id]
+  );
 
-  const containerWidth = 320;
-  const containerHeight = 200;
+  const containerWidth = CONTAINER_WIDTH;
+  const containerHeight = CONTAINER_HEIGHT;
   const nodeWidth = 80;
   const nodeHeight = 22;
   const paddingX = 16;
@@ -193,88 +281,9 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
     [layoutNodes]
   );
 
-  const styles = css({
-    ".mini-graph-container": {
-      position: "relative",
-      width: `${containerWidth}px`,
-      height: `${containerHeight}px`,
-      background: "color-mix(in srgb, var(--palette-background-paper), transparent 60%)",
-      backdropFilter: "blur(12px)",
-      borderRadius: "var(--rounded-lg)",
-      border: "1px solid var(--palette-divider)",
-      overflow: "hidden"
-    },
-
-    ".mini-node": {
-      position: "absolute",
-      display: "flex",
-      alignItems: "center",
-      gap: "4px",
-      padding: "3px 8px",
-      background: "var(--palette-background-default)",
-      border: "1px solid var(--palette-divider)",
-      borderRadius: "var(--rounded-sm)",
-      fontSize: "10px",
-      whiteSpace: "nowrap",
-      maxWidth: "90px",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      transition: "all 0.2s ease",
-      cursor: "default",
-
-      "&:hover": {
-        zIndex: 10,
-        maxWidth: "none",
-        background: "var(--palette-action-hover)"
-      }
-    },
-
-    ".mini-node.running": {
-      borderColor: "var(--palette-success-main, #4caf50)",
-      animation: `${glowPulse} 1.5s ease-in-out infinite`
-    },
-
-    ".mini-node.completed": {
-      borderColor: "var(--palette-success-main, #4caf50)",
-      background: "var(--palette-success-light, rgba(76, 175, 80, 0.15))"
-    },
-
-    ".mini-node.error": {
-      borderColor: "var(--palette-error-main, #f44336)",
-      background: "var(--palette-error-light, rgba(244, 67, 54, 0.15))"
-    },
-
-    ".mini-node.booting, .mini-node.queued": {
-      borderColor: "var(--palette-warning-main, #ff9800)",
-      background: "var(--palette-warning-light, rgba(255, 152, 0, 0.1))"
-    },
-
-    ".edge-line": {
-      stroke: "var(--palette-divider)",
-      strokeWidth: 1,
-      fill: "none"
-    },
-
-    ".edge-line.active": {
-      stroke: "var(--palette-success-main, #4caf50)",
-      strokeWidth: 1.5
-    },
-
-    ".mini-graph-title": {
-      position: "absolute",
-      top: "6px",
-      left: "10px",
-      fontSize: "9px",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
-      color: "var(--palette-text-secondary)",
-      fontWeight: 500
-    }
-  });
-
   if (layoutNodes.length === 0) {
     return (
-      <Box css={styles}>
+      <Box css={graphStyles}>
         <div className="mini-graph-container">
           <Caption color="secondary" sx={{ textAlign: "center", display: "block", pt: 8 }}>
             No nodes to display
@@ -285,7 +294,7 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
   }
 
   return (
-    <Box css={styles}>
+    <Box css={graphStyles}>
       <div className="mini-graph-container">
         <span className="mini-graph-title">Workflow Graph</span>
 
@@ -307,7 +316,9 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
               return null;
             }
 
-            const sourceStatus = statuses[hashKey(workflow.id, edge.source)];
+            const sourceStatus = focusedJobId
+              ? statuses[nodeKey(workflow.id, focusedJobId, edge.source)]
+              : undefined;
             const isActive = sourceStatus === "completed" || sourceStatus === "running";
             const edgeKey = `${edge.source}-${edge.target}`;
 
@@ -330,7 +341,9 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
 
         {/* Nodes */}
         {layoutNodes.map((node) => {
-          const status = statuses[hashKey(workflow.id, node.id)];
+          const status = focusedJobId
+            ? statuses[nodeKey(workflow.id, focusedJobId, node.id)]
+            : undefined;
           const statusClass = status || "";
 
           return (

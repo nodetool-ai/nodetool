@@ -26,6 +26,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/fal-codegen` | Code generator for FAL AI node definitions |
 | `@nodetool-ai/replicate-nodes` | Replicate integration nodes |
 | `@nodetool-ai/elevenlabs-nodes` | ElevenLabs TTS integration nodes |
+| `@nodetool-ai/minimax-nodes` | MiniMax TTS, music, image, and video nodes |
 | `@nodetool-ai/code-runners` | Secure code execution (Docker + subprocess sandboxing) |
 | `@nodetool-ai/huggingface` | HuggingFace model discovery and downloads |
 | `@nodetool-ai/vectorstore` | SQLite-vec vector store for RAG |
@@ -61,7 +62,7 @@ npm run dev:watch:server
 npm run dev:server
 ```
 
-**Important**: The dev server uses `tsx --watch` which runs TypeScript directly. However, `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, and `elevenlabs-nodes` use decorators and load from `dist/`. If you change these packages, run `npm run build:packages` first.
+**Important**: The dev server uses `tsx --watch` which runs TypeScript directly. However, `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes`, and `minimax-nodes` use decorators and load from `dist/`. If you change these packages, run `npm run build:packages` first.
 
 ## Testing
 

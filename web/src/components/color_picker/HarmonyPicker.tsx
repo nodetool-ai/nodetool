@@ -30,12 +30,12 @@ const styles = (theme: Theme) =>
       justifyContent: "space-between"
     },
     ".harmony-title": {
-      fontSize: "12px",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       color: theme.vars.palette.grey[300]
     },
     ".harmony-description": {
-      fontSize: "10px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       marginTop: "2px"
     },
@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".color-hex": {
-      fontSize: "9px",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       textTransform: "uppercase",
       opacity: 0,
@@ -143,9 +143,12 @@ const HarmonyPicker: React.FC<HarmonyPickerProps> = ({
               return (
                 <Tooltip key={harmonyColor} title={`Click to use ${harmonyColor}`}>
                   <div
+                    role="button"
+                    tabIndex={0}
                     className="harmony-color"
                     style={{ backgroundColor: harmonyColor }}
                     onClick={handleSelectColorWithHarmony(harmonyColor, harmony.type)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleSelectColorWithHarmony(harmonyColor, harmony.type)(); } }}
                   >
                     <span className="color-hex" style={{ color: textHex }}>
                       {harmonyColor.replace("#", "")}

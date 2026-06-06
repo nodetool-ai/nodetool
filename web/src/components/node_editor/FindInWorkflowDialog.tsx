@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
     "& .search-input": {
       width: "100%",
       padding: "8px 12px",
-      fontSize: "14px",
+      fontSize: "var(--fontSizeNormal)",
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "var(--rounded-lg)",
       backgroundColor: theme.vars.palette.background.default,
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
     },
     "& .results-count": {
       padding: "8px 16px",
-      fontSize: "12px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       borderBottom: `1px solid ${theme.vars.palette.divider}`
@@ -119,14 +119,14 @@ const styles = (theme: Theme) =>
     },
     "& .result-name": {
       flex: 1,
-      fontSize: "14px",
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.primary,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
     "& .result-type": {
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       marginLeft: "8px",
       maxWidth: "100px",
@@ -170,12 +170,12 @@ const styles = (theme: Theme) =>
       textAlign: "center"
     },
     "& .empty-icon": {
-      fontSize: "32px",
+      fontSize: "var(--fontSizeBig)",
       marginBottom: "8px",
       opacity: 0.5
     },
     "& .empty-text": {
-      fontSize: "13px"
+      fontSize: "var(--fontSizeSmall)"
     }
   });
 
@@ -340,6 +340,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           <Box className="search-input-wrapper">
             <input
               ref={inputRef}
+              aria-label="Find nodes"
               className="search-input"
               type="text"
               placeholder="Find nodes..."
@@ -347,13 +348,14 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               onChange={handleInputChange}
             />
             {searchTerm && (
-              <button className="clear-button" onClick={handleClear}>
+              <button type="button" className="clear-button" onClick={handleClear}>
                 <ClearIcon fontSize="small" />
               </button>
             )}
           </Box>
           <Box className="navigation-buttons">
             <button
+              type="button"
               className="nav-button"
               onClick={navigatePrevious}
               disabled={results.length === 0}
@@ -362,6 +364,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
               <ArrowUpwardIcon fontSize="small" />
             </button>
             <button
+              type="button"
               className="nav-button"
               onClick={navigateNext}
               disabled={results.length === 0}

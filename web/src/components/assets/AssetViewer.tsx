@@ -1,8 +1,22 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
+
+// Filmstrip motion. Thumbnails reveal from the center outward as the gallery
+// opens (and as new frames scroll in); the active frame pops when it changes.
+const thumbReveal = keyframes({
+  from: { opacity: 0, transform: "translateY(10px) scale(0.94)" },
+  to: { opacity: 1, transform: "translateY(0) scale(1)" }
+});
+
+const activePop = keyframes({
+  from: { opacity: 0.5, transform: "scale(0.86)" },
+  to: { opacity: 1, transform: "scale(1)" }
+});
+
+const EASE_OUT_EXPO = "cubic-bezier(0.16, 1, 0.3, 1)";
+const EASE_OUT_QUINT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
-import { useNavigate } from "react-router-dom";
 //mui
 import { EditorButton, Dialog, Text } from "../ui_primitives";
 //icons
@@ -17,8 +31,8 @@ import { ImageComparer } from "../widgets";
 //
 //components
 //store
-import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 //utils
 import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -27,6 +41,8 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
+import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
+import { useNavigate } from "react-router-dom";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
@@ -34,8 +50,7 @@ import {
   ToolbarIconButton,
   CloseButton,
   DownloadButton,
-  FlexRow,
-  FlexColumn
+  FlexRow
 } from "../ui_primitives";
 
 const containerStyles = css({
@@ -69,23 +84,6 @@ const styles = (theme: Theme) =>
       zIndex: 11000,
       margin: 0,
       borderRadius: 0
-    },
-    ".asset-info": {
-      position: "relative",
-      maxWidth: "350px",
-      margin: 0,
-      padding: 0,
-      bottom: "1em",
-      right: "1em",
-      zIndex: "2000",
-      overflowWrap: "break-word",
-      marginLeft: "auto"
-    },
-    ".asset-info p": {
-      fontSize: "0.9em",
-      textAlign: "right",
-      margin: "0",
-      padding: "0"
     },
     ".current-folder": {
       top: "20px"
@@ -122,16 +120,6 @@ const styles = (theme: Theme) =>
       bottom: 0,
       zIndex: 200
     },
-    ".folder-name": {
-      fontWeight: "bold",
-      bottom: "3em",
-      textAlign: "right",
-      color: theme.vars.palette.primary.main
-    },
-    ".folder-separator": {
-      color: theme.vars.palette.text.primary,
-      marginRight: theme.spacing(1)
-    },
     ".prev-next-button": {
       position: "absolute",
       top: "40%",
@@ -141,7 +129,11 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       color: theme.vars.palette.grey[200],
       backgroundColor: theme.vars.palette.background.paper,
-      border: `2px solid ${theme.vars.palette.action.disabledBackground}`
+      border: `2px solid ${theme.vars.palette.action.disabledBackground}`,
+      transition: `transform 140ms ${EASE_OUT_QUINT}, background-color 140ms ease, color 140ms ease`
+    },
+    ".prev-next-button:active": {
+      transform: "scale(0.88)"
     },
     ".prev-next-button img": {
       cursor: "pointer !important",
@@ -177,7 +169,12 @@ const styles = (theme: Theme) =>
       width: "100px",
       height: "100px",
       overflow: "hidden",
-      border: `1px solid ${theme.vars.palette.grey[0]}`
+      borderRadius: "0.6em",
+      border: `2px solid ${theme.vars.palette.primary.main}`,
+      boxShadow: `0 0 0 4px rgb(${theme.vars.palette.primary.mainChannel} / 0.18), 0 12px 32px rgb(0 0 0 / 0.5)`,
+      // Re-keyed by asset id on navigation, so this replays each time the
+      // centered frame changes — a quick confident pop, no bounce.
+      animation: `${activePop} 300ms ${EASE_OUT_EXPO}`
     },
     ".prev-next-items .item": {
       backgroundColor: theme.vars.palette.background.paper,
@@ -185,7 +182,44 @@ const styles = (theme: Theme) =>
       width: "120px",
       height: "80px",
       overflow: "hidden",
-      cursor: "pointer !important"
+      borderRadius: "0.5em",
+      cursor: "pointer !important",
+      willChange: "transform",
+      transition: `transform 200ms ${EASE_OUT_QUINT}, box-shadow 200ms ease`,
+      // `backwards` keeps the from-state during the stagger delay but releases
+      // the element afterward, so the hover transition below still applies.
+      animation: `${thumbReveal} 320ms ${EASE_OUT_EXPO} backwards`
+    },
+    ".prev-next-items .item:hover": {
+      transform: "translateY(-6px) scale(1.06)",
+      boxShadow: "0 12px 26px rgb(0 0 0 / 0.45)",
+      zIndex: 5
+    },
+    // Press feedback: quick dip on click before the frame slides to center.
+    ".prev-next-items .item:active": {
+      transform: "translateY(-1px) scale(0.95)",
+      transition: `transform 90ms ${EASE_OUT_QUINT}`,
+      zIndex: 5
+    },
+    // Cascade from the center outward: nearest-to-center frame leads.
+    ".prev-next-items.left .item:nth-last-child(1)": { animationDelay: "20ms" },
+    ".prev-next-items.left .item:nth-last-child(2)": { animationDelay: "60ms" },
+    ".prev-next-items.left .item:nth-last-child(3)": { animationDelay: "100ms" },
+    ".prev-next-items.left .item:nth-last-child(4)": { animationDelay: "140ms" },
+    ".prev-next-items.left .item:nth-last-child(5)": { animationDelay: "180ms" },
+    ".prev-next-items.right .item:nth-child(1)": { animationDelay: "20ms" },
+    ".prev-next-items.right .item:nth-child(2)": { animationDelay: "60ms" },
+    ".prev-next-items.right .item:nth-child(3)": { animationDelay: "100ms" },
+    ".prev-next-items.right .item:nth-child(4)": { animationDelay: "140ms" },
+    ".prev-next-items.right .item:nth-child(5)": { animationDelay: "180ms" },
+    "@media (prefers-reduced-motion: reduce)": {
+      ".prev-next-items .item, .prev-next-items.current": {
+        animation: "none",
+        transition: "none"
+      },
+      ".prev-next-items .item:hover, .prev-next-items .item:active, .prev-next-button:active": {
+        transform: "none"
+      }
     },
     ".prev-next-items .item .asset-item": {
       cursor: "pointer"
@@ -212,7 +246,7 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translateX(-50%)",
       zIndex: 10001,
-      padding: theme.spacing(0.75, 1.5),
+      padding: theme.spacing(1, 1.5),
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: theme.shape.borderRadius,
       fontSize: theme.fontSizeSmaller,
@@ -246,9 +280,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentAsset, setCurrentAsset] = useState<Asset | undefined>(asset);
-  const getAsset = useAssetStore((state) => state.get);
-
-  const [currentFolderName, setCurrentFolderName] = useState<string | null>();
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const prevNextAmount = 5;
 
@@ -257,8 +288,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [compareAssetA, setCompareAssetA] = useState<Asset | null>(null);
   const [compareAssetB, setCompareAssetB] = useState<Asset | null>(null);
 
-  // Navigation for image editor
+  // Editing opens the asset in a workspace tab (image → sketch editor,
+  // model3d → 3D editor), retiring the legacy /assets/edit route.
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const navigate = useNavigate();
+  const editVideoAsset = useEditVideoAsset();
 
   // Reset compare mode when viewer closes
   useEffect(() => {
@@ -290,6 +324,18 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [currentAsset]
   );
 
+  // Check if current asset is audio (editable in the sample editor)
+  const isAudio = useMemo(() => {
+    const ct = currentAsset?.content_type || contentType;
+    return ct?.startsWith("audio/") || false;
+  }, [currentAsset?.content_type, contentType]);
+
+  // Check if current asset is a video (editable via its source timeline)
+  const isVideo = useMemo(() => {
+    const ct = currentAsset?.content_type || contentType;
+    return ct?.startsWith("video/") || false;
+  }, [currentAsset?.content_type, contentType]);
+
   // Check if there are multiple images to compare
   const imageAssets = useMemo(
     () => assetsToUse.filter((a) => a.content_type?.startsWith("image/")),
@@ -305,7 +351,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       color: theme.vars.palette.text.primary,
       border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
       borderRadius: "50%",
-      padding: theme.spacing(0.6),
+      padding: theme.spacing(0.5),
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.primary.main
@@ -350,15 +396,49 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   const handleOpenImageEditor = useCallback(() => {
     if (currentAsset && isImage) {
-      navigate(`/assets/edit/${currentAsset.id}`);
+      openTab({
+        type: "image",
+        ref: currentAsset.id,
+        mode: "edit",
+        title: currentAsset.name || "Image"
+      });
+      navigate("/workspace");
+      handleClose();
     }
-  }, [currentAsset, isImage, navigate]);
+  }, [currentAsset, isImage, openTab, navigate, handleClose]);
 
   const handleOpenModel3DEditor = useCallback(() => {
     if (currentAsset && isModel3D) {
-      navigate(`/assets/edit/${currentAsset.id}`);
+      openTab({
+        type: "model3d",
+        ref: currentAsset.id,
+        mode: "edit",
+        title: currentAsset.name || "3D model"
+      });
+      navigate("/workspace");
+      handleClose();
     }
-  }, [currentAsset, isModel3D, navigate]);
+  }, [currentAsset, isModel3D, openTab, navigate, handleClose]);
+
+  const handleOpenAudioEditor = useCallback(() => {
+    if (currentAsset && isAudio) {
+      openTab({
+        type: "audio",
+        ref: currentAsset.id,
+        mode: "edit",
+        title: currentAsset.name || "Audio"
+      });
+      navigate("/workspace");
+      handleClose();
+    }
+  }, [currentAsset, isAudio, openTab, navigate, handleClose]);
+
+  const handleOpenVideoEditor = useCallback(() => {
+    if (currentAsset && isVideo) {
+      void editVideoAsset(currentAsset);
+      handleClose();
+    }
+  }, [currentAsset, isVideo, editVideoAsset, handleClose]);
 
 
   // Copy to clipboard state and handler
@@ -410,14 +490,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (currentAsset?.parent_id) {
-      getAsset(currentAsset.parent_id).then((asset) => {
-        setCurrentFolderName(asset?.name);
-      });
-    }
-  }, [currentAsset?.parent_id, getAsset]);
 
   useEffect(() => {
     if (asset) {
@@ -576,6 +648,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             })}
           </FlexRow>
           <FlexRow
+            key={currentAsset?.id}
             className={`prev-next-items current ${compareAssetA?.id === currentAsset?.id ? "compare-selected" : ""
               }`}
             align="center"
@@ -618,18 +691,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               );
             })}
           </FlexRow>
-          <FlexColumn className="asset-info" gap={0.5} align="flex-end">
-            <Text className="folder-name">
-              <span className="folder-separator">/</span>
-              {currentFolderName || ""}
-            </Text>
-            {currentAsset?.name && (
-              <Text size="small">{currentAsset.name}</Text>
-            )}
-            {currentAsset?.id && (
-              <Text size="small">{currentAsset.id}</Text>
-            )}
-          </FlexColumn>
         </FlexRow>
       </>
     );
@@ -637,7 +698,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     currentIndex,
     assetsToUse,
     currentAsset,
-    currentFolderName,
     handleThumbnailClick,
     handlePrevAsset,
     handleNextAsset,
@@ -721,6 +781,30 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               icon={<EditIcon />}
               tooltip="Edit in 3D Editor"
               onClick={handleOpenModel3DEditor}
+              className="button edit"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {isAudio && !compareMode && (
+            <ToolbarIconButton
+              icon={<EditIcon />}
+              tooltip="Edit Audio"
+              onClick={handleOpenAudioEditor}
+              className="button edit"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {isVideo && !compareMode && (
+            <ToolbarIconButton
+              icon={<EditIcon />}
+              tooltip={
+                currentAsset?.timeline_id
+                  ? "Edit Timeline"
+                  : "Create Timeline from Video"
+              }
+              onClick={handleOpenVideoEditor}
               className="button edit"
               nodrag={false}
               sx={viewerActionButtonSx}

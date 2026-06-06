@@ -124,7 +124,7 @@ const FolderProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {isLoading && <p>Loading...</p>}
+      {isLoading && <p>Loading…</p>}
       {error && <p>Error: {error.message}</p>}
       <FlexRow align="center" gap={0.5}>
         <Select
@@ -141,7 +141,7 @@ const FolderProperty = (props: PropertyProps) => {
             margin: "0"
           }}
         >
-          <CreateNewFolderIcon sx={{ fontSize: "1.2rem" }} />
+          <CreateNewFolderIcon sx={{ fontSize: "var(--fontSizeBig)" }} />
         </EditorButton>
       </FlexRow>
       <Popover

@@ -770,16 +770,29 @@ export abstract class BaseProvider {
    * - Everything else     → returned unchanged (http/https/data: pass through)
    */
   protected async resolveUri(uri: string): Promise<string> {
-    const { readFile } = await import("node:fs/promises");
+    const { importNodeBuiltin } = await import("@nodetool-ai/config");
+    const fsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
+      "node:fs/promises"
+    );
+    if (!fsP) {
+      throw new Error(
+        "resolveUri requires node:fs/promises (Node-only feature)"
+      );
+    }
 
     if (uri.startsWith("file://")) {
       try {
-        const { fileURLToPath } = await import("node:url");
-        const filePath = fileURLToPath(uri);
-        const bytes = await readFile(filePath);
+        const urlMod = await importNodeBuiltin<typeof import("node:url")>(
+          "node:url"
+        );
+        if (!urlMod) {
+          throw new Error("resolveUri file:// requires node:url");
+        }
+        const filePath = urlMod.fileURLToPath(uri);
+        const bytes = (await fsP.readFile(filePath)) as Uint8Array;
         const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
         const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
-        return `data:${mime};base64,${bytes.toString("base64")}`;
+        return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
       } catch {
         return uri;
       }
@@ -789,10 +802,10 @@ export abstract class BaseProvider {
     if (uri.startsWith("/api/storage/")) {
       const key = uri.slice("/api/storage/".length);
       try {
-        const bytes = await readFile(getAssetFilePath(key));
+        const bytes = (await fsP.readFile(getAssetFilePath(key))) as Uint8Array;
         const ext = key.split(".").pop()?.toLowerCase() ?? "";
         const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
-        return `data:${mime};base64,${bytes.toString("base64")}`;
+        return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
       } catch {
         // Remote deployment: file not local, fall back to absolute HTTP
         return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
@@ -813,7 +826,7 @@ function applyUsageAttributes(span: Span, usage: LlmUsage | null): void {
     ...(usage.cachedInputTokens !== undefined && {
       "gen_ai.usage.cached_input_tokens": usage.cachedInputTokens
     }),
-    ...(usage.cost !== undefined && { "gen_ai.usage.cost_credits": usage.cost })
+    ...(usage.cost !== undefined && { "gen_ai.usage.cost_usd": usage.cost })
   });
 }
 

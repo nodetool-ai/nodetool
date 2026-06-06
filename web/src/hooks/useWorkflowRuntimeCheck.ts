@@ -4,7 +4,7 @@
  * a workflow is first opened.
  */
 import { useEffect, useRef } from "react";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodeStoreRef } from "../contexts/NodeContext";
 import useMetadataStore from "../stores/MetadataStore";
 import { getIsElectronDetails } from "../utils/browser";
 import {
@@ -12,12 +12,12 @@ import {
   getCachedRuntimeStatuses,
   RUNTIME_TO_PACKAGE_ID,
   RUNTIME_LABELS,
-} from "../components/node/NodeDependencyWarning";
+} from "../components/node/NodeDependencyWarning.helpers";
 import { useNotificationStore } from "../stores/NotificationStore";
 
 export function useWorkflowRuntimeCheck(workflowId: string | null): void {
   const { isElectron } = getIsElectronDetails();
-  const nodes = useNodes((s) => s.nodes);
+  const store = useNodeStoreRef();
   const getMetadata = useMetadataStore((s) => s.getMetadata);
   const addNotification = useNotificationStore((s) => s.addNotification);
   const checkedWorkflowRef = useRef<string | null>(null);
@@ -26,19 +26,19 @@ export function useWorkflowRuntimeCheck(workflowId: string | null): void {
     if (!isElectron || !workflowId || workflowId === checkedWorkflowRef.current) {
       return;
     }
+
+    const nodes = store.getState().nodes;
     if (nodes.length === 0) return;
 
     checkedWorkflowRef.current = workflowId;
 
     (async () => {
-      // Ensure runtime statuses are loaded
       if (!getCachedRuntimeStatuses()) {
         await refreshRuntimeStatuses();
       }
       const statuses = getCachedRuntimeStatuses();
       if (!statuses) return;
 
-      // Collect all missing runtimes across all nodes
       const missingSet = new Set<string>();
       for (const node of nodes) {
         if (!node.type) continue;
@@ -62,5 +62,5 @@ export function useWorkflowRuntimeCheck(workflowId: string | null): void {
         });
       }
     })();
-  }, [workflowId, nodes, getMetadata, isElectron, addNotification]);
+  }, [workflowId, store, getMetadata, isElectron, addNotification]);
 }

@@ -530,3 +530,84 @@ describe("JinaEmbeddingFunction", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Per-user secret resolution
+// ---------------------------------------------------------------------------
+
+describe("ProviderEmbeddingFunction per-user secret resolution", () => {
+  beforeEach(() => {
+    clearAllSecretCache();
+    delete process.env.OPENAI_API_KEY;
+  });
+
+  afterEach(() => {
+    clearAllSecretCache();
+    delete process.env.OPENAI_API_KEY;
+    vi.restoreAllMocks();
+  });
+
+  it("uses the supplied userId — not the legacy '1' scope — when looking up the API key", async () => {
+    // The embedding function is constructed for "real-user". A secret stored
+    // only for "real-user" must reach the API call; a secret stored only
+    // for "1" must NOT — otherwise one user's key could power another
+    // user's embeddings.
+    const models = await import("@nodetool-ai/models");
+    const getSecretSpy = vi
+      .spyOn(models, "getSecret")
+      .mockImplementation(async (key, userId) => {
+        if (key === "OPENAI_API_KEY" && userId === "real-user") {
+          return "sk" + "-real-user-key";
+        }
+        return null;
+      });
+
+    const seenAuth: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (_url: string, opts: RequestInit) => {
+        seenAuth.push(String((opts.headers as Record<string, string>).Authorization));
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{ index: 0, embedding: [0.1, 0.2] }]
+          }),
+          text: async () => ""
+        };
+      })
+    );
+
+    const ef = getProviderEmbeddingFunction(
+      "text-embedding-3-small",
+      undefined,
+      { userId: "real-user" }
+    );
+    expect(ef).toBeInstanceOf(OpenAIEmbeddingFunction);
+    await ef!.generate(["hello"]);
+
+    expect(getSecretSpy).toHaveBeenCalledWith("OPENAI_API_KEY", "real-user");
+    expect(seenAuth).toEqual(["Bearer " + "sk" + "-real-user-key"]);
+  });
+
+  it("does NOT fall back to a different user's secret when the requested user has none", async () => {
+    const models = await import("@nodetool-ai/models");
+    vi.spyOn(models, "getSecret").mockImplementation(async (key, userId) => {
+      // Only user "1" has the legacy key; the requested user has nothing.
+      if (key === "OPENAI_API_KEY" && userId === "1") return "sk" + "-legacy";
+      return null;
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("fetch should not be called"))
+    );
+
+    const ef = new OpenAIEmbeddingFunction(
+      "text-embedding-3-small",
+      undefined,
+      "real-user"
+    );
+    await expect(ef.generate(["hello"])).rejects.toThrow(
+      "OPENAI_API_KEY not configured"
+    );
+  });
+});

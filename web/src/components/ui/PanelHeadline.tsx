@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { FlexRow, Text } from "../ui_primitives";
+import { FlexRow } from "../ui_primitives/FlexRow";
+import { Text } from "../ui_primitives/Text";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
@@ -18,11 +19,11 @@ const styles = (theme: Theme) =>
 
     ".headline-actions .MuiIconButton-root": {
       padding: 2,
-      "& svg": { fontSize: "1rem" }
+      "& svg": { fontSize: "var(--fontSizeNormal)" }
     },
     ".headline-title": {
-      fontSize: "0.95rem",
-      fontWeight: 300,
+      fontSize: "var(--fontSizeNormal)",
+      fontWeight: 400,
       letterSpacing: "0.01em",
       lineHeight: "1.4em",
       color: theme.vars.palette.text.primary,

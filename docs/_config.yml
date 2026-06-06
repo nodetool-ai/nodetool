@@ -62,11 +62,11 @@ header_pages:
   - image-editor.md
   - templates-gallery.md
   - vibecoding.md
-  - comfyui-integration.md
   # Chat & Agents
   - global-chat.md
   - agent-config-schema.md
   - agent-memory.md
+  - long-term-memory.md
   # Models & Providers
   - models.md
   - providers.md
@@ -81,6 +81,7 @@ header_pages:
   - vector-storage.md
   - indexing.md
   - collections.md
+  - workspaces.md
   - asset-management.md
   - authentication.md
   - security-hardening.md

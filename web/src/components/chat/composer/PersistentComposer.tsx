@@ -4,7 +4,6 @@ import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import ChatInputSection from "../containers/ChatInputSection";
 import { useComposerSlotContext } from "./composerSlotContext";
 import { useFlipPosition } from "./useFlipPosition";
-import type { AgentPlanner } from "./AgentModeSelector";
 import type { LanguageModel } from "../../../stores/ApiTypes";
 import type { ComposerSendHandler } from "./composerSlotContext";
 
@@ -31,20 +30,15 @@ type InputStatus =
 interface PositionedComposerProps {
   box: Box;
   visible: boolean;
+  /** Identity of the active slot; changes only on slot transitions, so the FLIP
+   *  animation fires on navigation but not while tracking a scrolling slot. */
+  slotKey: number;
   status: InputStatus;
   onSendMessage: ComposerSendHandler;
   onStop: () => void;
   onNewChat: () => void;
   selectedModel: LanguageModel;
   onModelChange: (model: LanguageModel) => void;
-  selectedTools: string[];
-  onToolsChange: (tools: string[]) => void;
-  agentMode: boolean;
-  onAgentModeToggle: (enabled: boolean) => void;
-  selectedCollections: string[];
-  onCollectionsChange: (collections: string[]) => void;
-  agentPlanner: AgentPlanner;
-  onAgentPlannerChange: (planner: AgentPlanner) => void;
   setComposerHeight: (px: number) => void;
 }
 
@@ -57,20 +51,13 @@ interface PositionedComposerProps {
 const PositionedComposer: React.FC<PositionedComposerProps> = ({
   box,
   visible,
+  slotKey,
   status,
   onSendMessage,
   onStop,
   onNewChat,
   selectedModel,
   onModelChange,
-  selectedTools,
-  onToolsChange,
-  agentMode,
-  onAgentModeToggle,
-  selectedCollections,
-  onCollectionsChange,
-  agentPlanner,
-  onAgentPlannerChange,
   setComposerHeight
 }) => {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -86,7 +73,7 @@ const PositionedComposer: React.FC<PositionedComposerProps> = ({
     return () => ro.disconnect();
   }, [setComposerHeight]);
 
-  useFlipPosition(rootRef, [box.top, box.left, box.width]);
+  useFlipPosition(rootRef, [box.top, box.left, box.width], slotKey);
 
   return (
     <div
@@ -109,14 +96,6 @@ const PositionedComposer: React.FC<PositionedComposerProps> = ({
         onStop={onStop}
         selectedModel={selectedModel}
         onModelChange={onModelChange}
-        selectedTools={selectedTools}
-        onToolsChange={onToolsChange}
-        agentMode={agentMode}
-        onAgentModeToggle={onAgentModeToggle}
-        selectedCollections={selectedCollections}
-        onCollectionsChange={onCollectionsChange}
-        agentPlanner={agentPlanner}
-        onAgentPlannerChange={onAgentPlannerChange}
         onNewChat={onNewChat}
       />
     </div>
@@ -139,18 +118,8 @@ const PersistentComposer: React.FC = () => {
     useComposerSlotContext();
   const status = useGlobalChatStore((s) => s.status);
   const selectedModel = useGlobalChatStore((s) => s.selectedModel);
-  const selectedTools = useGlobalChatStore((s) => s.selectedTools);
-  const agentMode = useGlobalChatStore((s) => s.agentMode);
   const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
-  const setSelectedTools = useGlobalChatStore((s) => s.setSelectedTools);
-  const setAgentMode = useGlobalChatStore((s) => s.setAgentMode);
   const stopGeneration = useGlobalChatStore((s) => s.stopGeneration);
-  const selectedCollections = useGlobalChatStore((s) => s.selectedCollections);
-  const setSelectedCollections = useGlobalChatStore(
-    (s) => s.setSelectedCollections
-  );
-  const agentPlanner = useGlobalChatStore((s) => s.agentPlanner);
-  const setAgentPlanner = useGlobalChatStore((s) => s.setAgentPlanner);
   const createNewThread = useGlobalChatStore((s) => s.createNewThread);
   const switchThread = useGlobalChatStore((s) => s.switchThread);
 
@@ -163,14 +132,14 @@ const PersistentComposer: React.FC = () => {
     }
   }, [createNewThread, switchThread]);
 
-  const handleAgentPlannerChange = useCallback(
-    (planner: AgentPlanner) => {
-      setAgentPlanner(planner);
-    },
-    [setAgentPlanner]
-  );
-
   const [box, setBox] = useState<Box | null>(null);
+
+  // Bumped whenever the active slot element changes. Drives the FLIP animation
+  // (slot transitions animate; scroll/resize repositioning does not).
+  const [slotKey, setSlotKey] = useState(0);
+  useLayoutEffect(() => {
+    if (activeSlot) setSlotKey((k) => k + 1);
+  }, [activeSlot]);
 
   const measure = useCallback(() => {
     // No active slot (mid-route-transition or the Portal setup screen): keep
@@ -185,12 +154,28 @@ const PersistentComposer: React.FC = () => {
   useLayoutEffect(() => {
     measure();
     if (!activeSlot) return;
+
+    // Track a scrolling slot: when the start page scrolls, the slot moves and
+    // the fixed overlay must follow. Capture-phase catches scrolls from any
+    // nested scroll container, not just the window. rAF-throttled so we measure
+    // at most once per frame.
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        measure();
+      });
+    };
     window.addEventListener("resize", measure);
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
     const ro = new ResizeObserver(measure);
     ro.observe(activeSlot);
     return () => {
       window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", onScroll, { capture: true });
       ro.disconnect();
+      if (raf) cancelAnimationFrame(raf);
     };
   }, [activeSlot, measure]);
 
@@ -206,20 +191,13 @@ const PersistentComposer: React.FC = () => {
     <PositionedComposer
       box={box}
       visible={!!activeSlot}
+      slotKey={slotKey}
       status={inputStatus}
       onSendMessage={activeSend ?? NOOP}
       onStop={stopGeneration}
       onNewChat={handleNewChat}
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
-      selectedTools={selectedTools}
-      onToolsChange={setSelectedTools}
-      agentMode={agentMode}
-      onAgentModeToggle={setAgentMode}
-      selectedCollections={selectedCollections}
-      onCollectionsChange={setSelectedCollections}
-      agentPlanner={agentPlanner}
-      onAgentPlannerChange={handleAgentPlannerChange}
       setComposerHeight={setComposerHeight}
     />
   );

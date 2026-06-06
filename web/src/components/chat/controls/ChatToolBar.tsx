@@ -3,15 +3,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
-import {
-  AgentModeSelector,
-  type AgentPlanner
-} from "../composer/AgentModeSelector";
-import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
-import NodeToolsSelector from "../composer/NodeToolsSelector";
-import CollectionsSelector from "../composer/CollectionsSelector";
 import { LanguageModel } from "../../../stores/ApiTypes";
+import { StateIconButton } from "../../ui_primitives/StateIconButton";
+import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 
 const styles = (theme: Theme) =>
   css({
@@ -102,39 +97,25 @@ const styles = (theme: Theme) =>
   });
 
 interface ChatToolBarProps {
-  selectedTools: string[];
-  onToolsChange?: (tools: string[]) => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
-  agentMode?: boolean;
-  onAgentModeToggle?: (enabled: boolean) => void;
-  agentPlanner?: AgentPlanner;
-  onAgentPlannerChange?: (planner: AgentPlanner) => void;
-  selectedCollections?: string[];
-  onCollectionsChange?: (collections: string[]) => void;
+  memoryEnabled?: boolean;
+  onMemoryToggle?: (enabled: boolean) => void;
   allowedProviders?: string[];
   embedded?: boolean;
 }
 
 const ChatToolBar: React.FC<ChatToolBarProps> = ({
-  selectedTools,
-  onToolsChange,
   selectedModel,
   onModelChange,
-  agentMode,
-  onAgentModeToggle,
-  agentPlanner,
-  onAgentPlannerChange,
-  selectedCollections,
-  onCollectionsChange,
+  memoryEnabled,
+  onMemoryToggle,
   allowedProviders,
   embedded = false
 }) => {
   const theme = useTheme();
 
-  const hasToolsSection = onToolsChange;
   const hasModelSection = onModelChange;
-  const hasAgentSection = onAgentModeToggle;
 
   return (
     <div className={`chat-tool-bar ${embedded ? "embedded" : ""}`} css={[styles(theme), embedded && css({
@@ -165,45 +146,30 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
         </div>
       )}
 
-      {/* Visual Divider */}
-      {hasModelSection && hasToolsSection && (
-        <div className="toolbar-divider" />
-      )}
-
-      {/* Tools Group */}
-      {hasToolsSection && (
-        <div className="toolbar-group">
-          <WorkflowToolsSelector
-            value={selectedTools}
-            onChange={onToolsChange}
-          />
-          <NodeToolsSelector value={selectedTools} onChange={onToolsChange} />
-          {onCollectionsChange && (
-            <CollectionsSelector
-              value={selectedCollections || []}
-              onChange={onCollectionsChange}
-            />
-          )}
-        </div>
-      )}
-
       {/* Spacer to push agent toggle to the right */}
       {!embedded && <div className="toolbar-spacer" />}
 
-      {/* Agent Mode Selector */}
-      {hasAgentSection && (
+      {/* Memory Toggle — sits next to agent mode so the two trust-boundary
+          settings (autonomous tool calls, cross-session memory) live together. */}
+      {onMemoryToggle && (
         <>
           <div className="toolbar-divider" />
           <div className="toolbar-group">
-            <AgentModeSelector
-              agentMode={agentMode || false}
-              onToggle={onAgentModeToggle}
-              agentPlanner={agentPlanner}
-              onPlannerChange={onAgentPlannerChange}
+            <StateIconButton
+              icon={<PsychologyOutlinedIcon fontSize="small" />}
+              tooltip={
+                memoryEnabled
+                  ? "Long-term memory: ON — recalls facts from prior sessions and mines new ones after each turn"
+                  : "Long-term memory: OFF — this session won't recall or store memories"
+              }
+              isActive={!!memoryEnabled}
+              onClick={() => onMemoryToggle(!memoryEnabled)}
+              size="small"
             />
           </div>
         </>
       )}
+
     </div>
   );
 };

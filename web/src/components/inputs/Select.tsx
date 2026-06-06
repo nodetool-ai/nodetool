@@ -90,6 +90,16 @@ const Select: React.FC<SelectProps> = ({
     }
   }, [close, activeSelect, id, open]);
 
+  const handleHeaderKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleDropdown();
+      }
+    },
+    [toggleDropdown]
+  );
+
   const handleOptionClick = useCallback(
     (optionValue: string) => {
       onChange(optionValue);
@@ -220,10 +230,6 @@ const Select: React.FC<SelectProps> = ({
     ]
   );
 
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [searchQuery]);
-
   // Memoize styles to avoid recalculation on each render
   const styles = useMemo(() => selectStyles(theme), [theme]);
 
@@ -264,6 +270,9 @@ const Select: React.FC<SelectProps> = ({
       <Tooltip placement="top" delay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
         <div
           ref={selectRef}
+          role="combobox"
+          aria-expanded={activeSelect === id}
+          aria-haspopup="listbox"
           className={`custom-select select-wrapper ${
             activeSelect === id ? "open" : ""
           }`}
@@ -274,6 +283,7 @@ const Select: React.FC<SelectProps> = ({
             <div
               className="select-header"
               onClick={toggleDropdown}
+              onKeyDown={handleHeaderKeyDown}
               tabIndex={tabIndex}
               role="button"
               style={changedStyle}
@@ -294,8 +304,12 @@ const Select: React.FC<SelectProps> = ({
               type="text"
               className="search-input"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setHighlightedIndex(-1);
+              }}
               placeholder="Search..."
+              aria-label="Search options"
               onClick={(e) => e.stopPropagation()}
             />
           )}
@@ -304,6 +318,7 @@ const Select: React.FC<SelectProps> = ({
       {activeSelect === id && dropdownPosition && ReactDOM.createPortal(
         <ul
           ref={optionsRef}
+          role="listbox"
           className="options-list nowheel"
           css={portalOptionsStyles(theme)}
           style={dropdownStyle}
@@ -312,6 +327,8 @@ const Select: React.FC<SelectProps> = ({
           {filteredOptions.map((option, index) => (
             <li
               key={option.value}
+              role="option"
+              aria-selected={option.value === value}
               className={`option ${
                 option.value === value ? "selected" : ""
               } ${index === highlightedIndex ? "highlighted" : ""}`}

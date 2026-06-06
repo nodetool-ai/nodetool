@@ -41,7 +41,7 @@ export const SYSTEM_PROMPT = [
   "- If blocked, ask one concise clarification question and stop.",
   "",
   "## Generic AI nodes (prefer these over provider-specific ones)",
-  "These route to whichever model the user has configured — pick them before reaching for `huggingface.*`, `comfy.*`, `kie.*`, `fal.*`, `replicate.*` equivalents:",
+  "These route to whichever model the user has configured — pick them before reaching for `huggingface.*`, `kie.*`, `fal.*`, `replicate.*` equivalents:",
   "- Media generation: `nodetool.image.TextToImage`, `nodetool.image.ImageToImage`, `nodetool.video.TextToVideo`, `nodetool.video.ImageToVideo`, `nodetool.audio.TextToSpeech`, `nodetool.model3d.TextTo3D`, `nodetool.model3d.ImageTo3D`",
   "- LLM agents: `nodetool.agents.Agent` (general, tool-capable), `nodetool.agents.Summarizer`, `nodetool.agents.Classifier`, `nodetool.agents.Extractor`",
   "- Structured generation: `nodetool.generators.StructuredOutputGenerator` (schema-constrained JSON), `nodetool.generators.DataGenerator` (dataframe rows), `nodetool.generators.ListGenerator`, `nodetool.generators.ChartGenerator`, `nodetool.generators.SVGGenerator`",
@@ -103,6 +103,12 @@ export interface AgentSdkProvider {
      * (anthropic / openai / gemini / …). Ignored by harness providers.
      */
     chatProviderId?: string;
+    /**
+     * For the "llm" provider only — opt in to long-term memory recall +
+     * extraction for this session. Default-off; harness providers
+     * ignore it.
+     */
+    memoryEnabled?: boolean;
   }): AgentQuerySession;
   listSessions(
     options: AgentListSessionsRequest,

@@ -23,7 +23,10 @@ import { MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -58,14 +61,15 @@ const laneStyles = (
     width: "100%",
     height: heightPx,
     flexShrink: 0,
-    backgroundColor: visible
-      ? theme.vars.palette.background.default
-      : theme.vars.palette.action.disabledBackground,
-    borderBottom: `1px solid ${isDragReject
-      ? theme.vars.palette.error.main
-      : isDragOver
-        ? theme.vars.palette.primary.main
-        : theme.vars.palette.divider}`,
+    backgroundColor: theme.vars.palette.background.default,
+    opacity: visible ? 1 : 0.55,
+    borderBottom: `1px solid ${
+      isDragReject
+        ? theme.vars.palette.error.main
+        : isDragOver
+          ? theme.vars.palette.primary.main
+          : theme.vars.palette.divider
+    }`,
     outline: isDragOver
       ? `2px solid ${theme.vars.palette.primary.main}`
       : isDragReject
@@ -74,19 +78,14 @@ const laneStyles = (
     outlineOffset: "-2px",
     overflow: "hidden",
     cursor: isRubberBanding ? "crosshair" : "default",
-    // Subtle alternating stripe
-    "&:nth-of-type(even)": {
-      backgroundColor: visible
-        ? theme.vars.palette.background.paper
-        : theme.vars.palette.action.disabledBackground
-    }
+    transition: "opacity 120ms"
   });
 
 const rubberBandStyles = (theme: Theme) =>
   css({
     position: "absolute",
-    border: `1px solid ${theme.vars.palette.primary.main}`,
-    backgroundColor: `${theme.vars.palette.primary.main}22`,
+    border: `1px solid ${theme.vars.palette.secondary.main}`,
+    backgroundColor: `${theme.vars.palette.secondary.main}22`,
     pointerEvents: "none",
     zIndex: 20
   });
@@ -110,8 +109,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const theme = useTheme();
 
   // Get only the clip IDs for this track (stable list of ids)
+  const timelineStore = useTimelineStoreApi();
   const clipIds = useStoreWithEqualityFn(
-    useTimelineStore,
+    timelineStore,
     (s) =>
       s.clips
         .filter((c) => c.trackId === track.id)
@@ -416,6 +416,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       onDrop={handleAssetDrop}
       onContextMenu={handleLaneContextMenu}
       role="listbox"
+      tabIndex={0}
       aria-label={`Track: ${track.name}`}
       aria-multiselectable="true"
     >

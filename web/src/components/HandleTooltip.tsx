@@ -41,7 +41,6 @@ type HandleTooltipProps = {
   className?: string;
   children: React.ReactNode;
   handlePosition: "left" | "right";
-  isCollectInput?: boolean;
   enableHover?: boolean;
   variant?: "handle" | "property";
 };
@@ -53,7 +52,6 @@ const HandleTooltip = memo(function HandleTooltip({
   className = "",
   children,
   handlePosition,
-  isCollectInput,
   enableHover = true,
   variant = "handle"
 }: HandleTooltipProps) {
@@ -240,11 +238,6 @@ const HandleTooltip = memo(function HandleTooltip({
                 </div>
               )}
             </div>
-            {isHovering && isCollectInput && (
-              <div className={`handle-tooltip-info handle-tooltip-info-${handlePosition}`}>
-                Collect input - accepts multiple connections that are combined into a list
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -257,11 +250,6 @@ const HandleTooltip = memo(function HandleTooltip({
           style={{ color: tooltipColor }}
         >
           <div className="property-handle-tooltip-type">{displayType}</div>
-          {isCollectInput && (
-            <div className={`handle-tooltip-info handle-tooltip-info-${handlePosition}`}>
-              Collect input - accepts multiple connections that are combined into a list
-            </div>
-          )}
         </div>
       )}
     </div>

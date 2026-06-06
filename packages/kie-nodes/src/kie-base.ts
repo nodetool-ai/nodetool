@@ -318,7 +318,7 @@ async function pollCustom(
     // Runway-style completion: state === "success"
     const state = inner?.state as string;
     if (state === "success") return data;
-    if (state === "fail") {
+    if (state === "fail" || state === "failed") {
       const msg = inner?.failMsg || data.msg || "Unknown error";
       throw new Error(withTaskId(`Task failed: ${msg}`, taskId));
     }
@@ -423,6 +423,9 @@ export function parseCreditsConsumed(
   return undefined;
 }
 
+/** Kie.ai advertises credits at $0.005 each. */
+const KIE_USD_PER_CREDIT = 0.005;
+
 export function reportKieProviderCost(
   context: unknown,
   creditsConsumed: number | undefined
@@ -431,12 +434,25 @@ export function reportKieProviderCost(
   const setter = (context as { setProviderCost?: unknown } | null | undefined)
     ?.setProviderCost;
   if (typeof setter === "function") {
-    (setter as (p: string, a: number, u: string) => void).call(
-      context,
-      "kie",
-      creditsConsumed,
-      "credits"
-    );
+    const usd = creditsConsumed * KIE_USD_PER_CREDIT;
+    (
+      setter as (
+        p: string,
+        a: number,
+        u: string,
+        details?: {
+          billing_unit?: string;
+          quantity?: number;
+          unit_price?: number;
+          currency?: string;
+        }
+      ) => void
+    ).call(context, "kie", usd, "USD", {
+      billing_unit: "credits",
+      quantity: creditsConsumed,
+      unit_price: KIE_USD_PER_CREDIT,
+      currency: "USD"
+    });
   }
 }
 

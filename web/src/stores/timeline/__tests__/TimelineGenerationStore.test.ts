@@ -200,7 +200,7 @@ describe("TimelineGenerationStore", () => {
 
   describe("resolveOutputAssetId", () => {
     it("returns undefined when no result exists", () => {
-      const result = useTimelineGenerationStore.getState().resolveOutputAssetId("wf-1", "node-1");
+      const result = useTimelineGenerationStore.getState().resolveOutputAssetId("wf-1", "job-1", "node-1");
       expect(result).toBeUndefined();
     });
 
@@ -210,7 +210,7 @@ describe("TimelineGenerationStore", () => {
         require("../../ResultsStore").default, "getState"
       ).mockReturnValue({ getOutputResult: mockGetOutputResult });
 
-      const result = useTimelineGenerationStore.getState().resolveOutputAssetId("wf-1", "node-1");
+      const result = useTimelineGenerationStore.getState().resolveOutputAssetId("wf-1", "job-1", "node-1");
       expect(result).toBe("asset-42");
     });
 
@@ -220,7 +220,7 @@ describe("TimelineGenerationStore", () => {
         require("../../ResultsStore").default, "getState"
       ).mockReturnValue({ getOutputResult: mockGetOutputResult });
 
-      const result = useTimelineGenerationStore.getState().resolveOutputAssetId("wf-1", "node-1");
+      const result = useTimelineGenerationStore.getState().resolveOutputAssetId("wf-1", "job-1", "node-1");
       expect(result).toBe("direct-id");
     });
   });

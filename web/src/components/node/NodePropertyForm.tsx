@@ -156,7 +156,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
           >
             <DialogTitle>Add Output</DialogTitle>
             <DialogContent>
-              <FlexRow css={css({ gap: 12, marginTop: 8 })}>
+              <FlexRow css={css({ gap: 8, marginTop: 8 })}>
                 <TextField
                   autoFocus
                   label="Name"
@@ -228,7 +228,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
       >
         <DialogTitle>Add Input</DialogTitle>
         <DialogContent>
-          <FlexRow css={css({ gap: 12, marginTop: 8 })}>
+          <FlexRow css={css({ gap: 8, marginTop: 8 })}>
             <TextField
               autoFocus
               label="Name"

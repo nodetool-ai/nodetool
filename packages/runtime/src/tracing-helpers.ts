@@ -20,7 +20,32 @@
  * span active in AsyncLocalStorage for the duration of the callback.
  */
 
-import { AsyncLocalStorage } from "node:async_hooks";
+import { importNodeBuiltin } from "@nodetool-ai/config";
+
+// `node:async_hooks` is Node-only. In browser/Edge we fall back to a
+// simple mutable holder — the usage-tracking API loses concurrency
+// safety there, but is otherwise functional.
+const _asyncHooks = await importNodeBuiltin<typeof import("node:async_hooks")>(
+  "node:async_hooks"
+);
+class FallbackStore<T> {
+  private _value: T | undefined;
+  getStore(): T | undefined {
+    return this._value;
+  }
+  run<R>(value: T, callback: () => R): R {
+    const prev = this._value;
+    this._value = value;
+    try {
+      return callback();
+    } finally {
+      this._value = prev;
+    }
+  }
+}
+const AsyncLocalStorage =
+  _asyncHooks?.AsyncLocalStorage ??
+  (FallbackStore as unknown as typeof import("node:async_hooks").AsyncLocalStorage);
 import {
   SpanStatusCode,
   context as otelContext,
@@ -36,7 +61,7 @@ export interface LlmUsage {
   inputTokens: number;
   outputTokens: number;
   cachedInputTokens?: number;
-  /** In NodeTool credits (1 credit ≈ $0.01). */
+  /** Cost of the call in US dollars. */
   cost?: number;
 }
 

@@ -4,7 +4,7 @@ import {
   TwilioSendWhatsAppLibNode,
   TwilioGetMessagesLibNode,
   TwilioLookupLibNode
-} from "../src/nodes/lib-twilio.js";
+} from "@nodetool-ai/integration-nodes";
 import {
   NotionSearchLibNode,
   NotionGetPageLibNode,
@@ -12,7 +12,7 @@ import {
   NotionCreatePageLibNode,
   NotionUpdatePageLibNode,
   NotionQueryDatabaseLibNode
-} from "../src/nodes/lib-notion.js";
+} from "@nodetool-ai/integration-nodes";
 import {
   S3ListBucketsLibNode,
   S3ListObjectsLibNode,
@@ -21,13 +21,13 @@ import {
   S3DeleteObjectLibNode,
   S3CopyObjectLibNode,
   S3GetPresignedUrlLibNode
-} from "../src/nodes/lib-s3.js";
+} from "@nodetool-ai/integration-nodes";
 import {
   GraphQLQueryLibNode,
   GraphQLQueryWithAuthLibNode,
   GraphQLIntrospectionLibNode,
   GraphQLBatchQueryLibNode
-} from "../src/nodes/lib-graphql.js";
+} from "@nodetool-ai/integration-nodes";
 import {
   SentimentAnalysisLibNode,
   TokenizeLibNode,
@@ -36,7 +36,7 @@ import {
   ClassifyTextLibNode,
   ExtractEntitiesLibNode,
   PhoneticMatchLibNode
-} from "../src/nodes/lib-nlp.js";
+} from "@nodetool-ai/text-nodes";
 
 // ---------------------------------------------------------------------------
 // Twilio

@@ -22,7 +22,7 @@ interface NodePatch {
 /**
  * Walk edges and ensure that every handle referenced by an edge actually
  * renders on the node body:
- *   - `is_dynamic` target with unknown handle → add to `dynamic_properties`
+ *   - `supports_dynamic_inputs` target with unknown handle → add to `dynamic_properties`
  *   - `supports_dynamic_outputs` source with unknown handle → add to
  *     `dynamic_outputs` (type `any`)
  *   - static target property that's neither inline nor input-field → promote
@@ -61,7 +61,7 @@ const ensureHandlesForEdges = (
     const targetNode = nodeById.get(edge.target);
     const targetMeta = targetNode?.type ? metadata[targetNode.type] : undefined;
     if (targetNode && targetMeta) {
-      if (targetMeta.is_dynamic) {
+      if (targetMeta.supports_dynamic_inputs) {
         const patch = getPatch(targetNode.id);
         const currentDynProps =
           patch.dynamic_properties ??
@@ -191,7 +191,7 @@ export const isValidEdge = (
   }
 
   if (
-    !targetMetadata.is_dynamic &&
+    !targetMetadata.supports_dynamic_inputs &&
     !hasInputHandle(targetNode, edge.targetHandle, targetMetadata)
   ) {
     return false;
@@ -254,8 +254,8 @@ export const sanitizeGraph = (
         return false;
       }
 
-      // Keep edges when metadata is missing (e.g. ComfyUI not running) —
-      // the nodes are still on the canvas as placeholders.
+      // Keep edges when metadata is missing — the nodes are still on the
+      // canvas as placeholders.
       if (!sourceMetadata || !targetMetadata) {
         return true;
       }

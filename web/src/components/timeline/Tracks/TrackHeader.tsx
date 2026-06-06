@@ -3,10 +3,8 @@
  * TrackHeader
  *
  * Left-hand strip showing track metadata and controls:
- *   - Track name (inline-editable on double-click)
- *   - Visibility toggle (eye icon)
- *   - Lock toggle
- *   - Mute / Solo toggles (audio tracks only)
+ *   - Type glyph + name + index chip (V1, A1, …) on the top row
+ *   - Visibility / lock / mute / solo / fx / delete row beneath
  *   - Height resize handle at the bottom edge
  */
 
@@ -14,14 +12,14 @@ import React, { memo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import LockIcon from "@mui/icons-material/Lock";
-import LockOpenIcon from "@mui/icons-material/LockOpen";
-import VolumeOffIcon from "@mui/icons-material/VolumeOff";
-import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import GraphicEqIcon from "@mui/icons-material/GraphicEq";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
+import VolumeOffOutlinedIcon from "@mui/icons-material/VolumeOffOutlined";
+import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -31,11 +29,15 @@ import {
   DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
   FX_PANEL_HEIGHT_PX
 } from "./trackHeight";
+import {
+  trackTypeMeta,
+  trackTypeAccent
+} from "./trackVisuals";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-export const TRACK_HEADER_WIDTH_PX = 160;
-const MIN_TRACK_HEIGHT_PX = 40;
+export const TRACK_HEADER_WIDTH_PX = 192;
+const MIN_TRACK_HEIGHT_PX = 48;
 const MAX_TRACK_HEIGHT_PX = 300;
 const DEFAULT_TRACK_HEIGHT_PX = SHARED_DEFAULT_TRACK_HEIGHT_PX;
 const RESIZE_HANDLE_HEIGHT_PX = 6;
@@ -51,52 +53,121 @@ const headerStyles = (theme: Theme, heightPx: number) =>
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    padding: theme.spacing(0.5, 1),
-    backgroundColor: theme.vars.palette.background.paper,
-    borderRight: `1px solid ${theme.vars.palette.divider}`,
+    padding: "10px 12px 12px",
+    backgroundColor: theme.vars.palette.background.default,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     overflow: "hidden",
     userSelect: "none"
   });
+
+const topRowStyles = css({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  minWidth: 0
+});
+
+const typeGlyphStyles = (theme: Theme, accent: string) =>
+  css({
+    width: 26,
+    height: 26,
+    flexShrink: 0,
+    borderRadius: 6,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.vars.palette.background.paper,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    color: accent,
+    "& svg": {
+      fontSize: 15
+    }
+  });
+
+const nameWrapStyles = css({
+  flex: "1 1 auto",
+  minWidth: 0,
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6
+});
 
 const nameInputStyles = (theme: Theme) =>
   css({
     border: "none",
     background: "transparent",
     color: theme.vars.palette.text.primary,
-    fontSize: theme.typography.body2.fontSize,
+    fontSize: 13,
+    fontWeight: 500,
+    letterSpacing: "-0.005em",
     fontFamily: theme.typography.fontFamily,
-    width: "100%",
+    minWidth: 0,
+    flex: "0 1 auto",
     padding: 0,
     outline: "none",
     cursor: "default",
+    textOverflow: "ellipsis",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
     "&:focus": {
       cursor: "text",
-      borderBottom: `1px solid ${theme.vars.palette.primary.main}`
+      color: theme.vars.palette.text.primary
     }
+  });
+
+const indexChipStyles = (theme: Theme) =>
+  css({
+    flexShrink: 0,
+    height: 18,
+    padding: "0 6px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 4,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    fontFamily:
+      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0.04em",
+    color: theme.vars.palette.text.secondary,
+    backgroundColor: "transparent"
   });
 
 const controlsRowStyles = css({
   display: "flex",
   flexDirection: "row",
   alignItems: "center",
-  gap: 4
+  gap: 2,
+  marginLeft: -4 // align icon edges flush with the type glyph
 });
 
 const iconButtonStyles = (theme: Theme, active = true) =>
   css({
-    background: "none",
-    border: "none",
-    padding: "2px",
+    width: 24,
+    height: 22,
+    background: "transparent",
+    border: "1px solid transparent",
+    padding: 0,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
+    justifyContent: "center",
     color: active
-      ? theme.vars.palette.text.primary
+      ? theme.vars.palette.text.secondary
       : theme.vars.palette.text.disabled,
-    borderRadius: 3,
+    borderRadius: 5,
+    transition: "background-color 120ms, color 120ms, border-color 120ms",
     "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover
+      backgroundColor: theme.vars.palette.action.hover,
+      color: theme.vars.palette.text.primary,
+      borderColor: theme.vars.palette.divider
+    },
+    "&:focus-visible": {
+      outline: "none",
+      borderColor: theme.vars.palette.primary.main
     },
     "& svg": {
       fontSize: 14
@@ -114,7 +185,7 @@ const resizeHandleStyles = (theme: Theme) =>
     backgroundColor: "transparent",
     "&:hover": {
       backgroundColor: theme.vars.palette.primary.main,
-      opacity: 0.4
+      opacity: 0.3
     }
   });
 
@@ -122,9 +193,11 @@ const resizeHandleStyles = (theme: Theme) =>
 
 export interface TrackHeaderProps {
   track: TimelineTrack;
+  /** Pre-computed 1-based index within the track's type group. */
+  typedIndex: number;
 }
 
-export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
+export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex }) => {
   const theme = useTheme();
 
   const setTrackVisible = useTimelineStore((s) => s.setTrackVisible);
@@ -136,6 +209,9 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
   const removeTrack = useTimelineStore((s) => s.removeTrack);
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
+  const meta = trackTypeMeta(track.type);
+  const accent = trackTypeAccent(theme, track.type);
+  const TypeIcon = meta.Icon;
 
   // ── Inline name edit ────────────────────────────────────────────────────
 
@@ -222,44 +298,65 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
       css={headerStyles(theme, heightPx)}
       data-testid={`track-header-${track.id}`}
     >
-      {/* Track name */}
-      <input
-        ref={inputRef}
-        css={nameInputStyles(theme)}
-        value={editingName ? localName : track.name}
-        readOnly={!editingName}
-        onChange={(e) => setLocalName(e.target.value)}
-        onDoubleClick={handleNameDoubleClick}
-        onBlur={commitName}
-        onKeyDown={handleNameKeyDown}
-        aria-label={`Track name: ${track.name}`}
-      />
+      {/* Top row: type glyph · name · index chip */}
+      <div css={topRowStyles}>
+        <div
+          css={typeGlyphStyles(theme, accent)}
+          aria-hidden
+          title={meta.label}
+        >
+          <TypeIcon />
+        </div>
+        <div css={nameWrapStyles}>
+          <input
+            ref={inputRef}
+            css={nameInputStyles(theme)}
+            value={editingName ? localName : track.name}
+            readOnly={!editingName}
+            onChange={(e) => setLocalName(e.target.value)}
+            onDoubleClick={handleNameDoubleClick}
+            onBlur={commitName}
+            onKeyDown={handleNameKeyDown}
+            aria-label={`Track name: ${track.name}`}
+          />
+          <span
+            css={indexChipStyles(theme)}
+            aria-label={`${meta.label} track ${typedIndex}`}
+            title={`${meta.label} ${typedIndex}`}
+          >
+            {meta.prefix}
+            {typedIndex}
+          </span>
+        </div>
+      </div>
 
       {/* Controls row */}
       <div css={controlsRowStyles}>
         <Tooltip title={track.visible ? "Hide track" : "Show track"}>
           <button
+            type="button"
             css={iconButtonStyles(theme, track.visible)}
             onClick={() => setTrackVisible(track.id, !track.visible)}
             aria-label={track.visible ? "Hide track" : "Show track"}
             aria-pressed={!track.visible}
           >
             {track.visible ? (
-              <VisibilityIcon />
+              <VisibilityOutlinedIcon />
             ) : (
-              <VisibilityOffIcon />
+              <VisibilityOffOutlinedIcon />
             )}
           </button>
         </Tooltip>
 
         <Tooltip title={track.locked ? "Unlock track" : "Lock track"}>
           <button
+            type="button"
             css={iconButtonStyles(theme, !track.locked)}
             onClick={() => setTrackLocked(track.id, !track.locked)}
             aria-label={track.locked ? "Unlock track" : "Lock track"}
             aria-pressed={track.locked}
           >
-            {track.locked ? <LockIcon /> : <LockOpenIcon />}
+            {track.locked ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />}
           </button>
         </Tooltip>
 
@@ -267,23 +364,33 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
           <>
             <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
               <button
+                type="button"
                 css={iconButtonStyles(theme, !track.muted)}
                 onClick={() => setTrackMuted(track.id, !track.muted)}
                 aria-label={track.muted ? "Unmute" : "Mute"}
                 aria-pressed={!!track.muted}
               >
-                {track.muted ? <VolumeOffIcon /> : <VolumeUpIcon />}
+                {track.muted ? <VolumeOffOutlinedIcon /> : <VolumeUpOutlinedIcon />}
               </button>
             </Tooltip>
 
             <Tooltip title={track.solo ? "Unsolo" : "Solo"}>
               <button
+                type="button"
                 css={iconButtonStyles(theme, !!track.solo)}
                 onClick={() => setTrackSolo(track.id, !track.solo)}
                 aria-label={track.solo ? "Unsolo" : "Solo"}
                 aria-pressed={!!track.solo}
               >
-                <span style={{ fontSize: 11, fontWeight: 700 }}>S</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.04em"
+                  }}
+                >
+                  S
+                </span>
               </button>
             </Tooltip>
           </>
@@ -298,19 +405,21 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
             }
           >
             <button
+              type="button"
               css={iconButtonStyles(theme, hasActiveEffects || fxExpanded)}
               onClick={handleFxToggle}
               aria-label={fxExpanded ? "Hide effects chain" : "Show effects chain"}
               aria-pressed={fxExpanded}
               data-testid={`track-fx-${track.id}`}
             >
-              <GraphicEqIcon />
+              <GraphicEqOutlinedIcon />
             </button>
           </Tooltip>
         )}
 
         <Tooltip title="Remove track">
           <button
+            type="button"
             css={iconButtonStyles(theme, true)}
             onClick={() => {
               if (
@@ -321,7 +430,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track }) => {
             }}
             aria-label="Remove track"
           >
-            <DeleteOutlineIcon />
+            <DeleteOutlineOutlinedIcon />
           </button>
         </Tooltip>
       </div>

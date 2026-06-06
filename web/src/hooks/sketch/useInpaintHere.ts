@@ -22,7 +22,7 @@ export interface UseInpaintHereResult {
   isBusy: boolean;
 }
 
-export const FOCUS_PROMPT_INPUT_EVENT = "sketch:focus-prompt-input";
+const FOCUS_PROMPT_INPUT_EVENT = "sketch:focus-prompt-input";
 
 export function useInpaintHere(): UseInpaintHereResult {
   const [isBusy, setIsBusy] = useState(false);

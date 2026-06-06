@@ -23,8 +23,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
-
-const SCALE_NODE_TYPE = "nodetool.image.Scale";
+import { SCALE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
   css({
@@ -41,7 +40,7 @@ const styles = (theme: Theme) =>
     "& > .handle-column": {
       top: theme.spacing(1),
       bottom: theme.spacing(1),
-      left: `calc(${theme.spacing(-0.5)})`
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -63,7 +62,7 @@ const styles = (theme: Theme) =>
         position: "absolute",
         bottom: theme.spacing(0.5),
         right: theme.spacing(0.5),
-        padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
         background: "rgba(0,0,0,0.6)",
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,
@@ -77,9 +76,9 @@ const styles = (theme: Theme) =>
       display: "grid",
       gridTemplateColumns: "auto 1fr auto",
       columnGap: theme.spacing(1),
-      rowGap: theme.spacing(0.75),
+      rowGap: theme.spacing(1),
       alignItems: "center",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)} ${theme.spacing(0.25)}`
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
     },
     ".ctrl-label": {
       fontSize: theme.fontSizeSmaller,

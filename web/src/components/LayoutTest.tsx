@@ -159,7 +159,7 @@ const styles = (theme: Theme) => css`
   
   .card-title {
     font-weight: 600;
-    font-size: 15px;
+    font-size: var(--fontSizeNormal);
     color: ${theme.vars.palette.text.primary};
   }
   
@@ -1158,7 +1158,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
           <div className="header-title">
             <div className="logo-accent">NT</div>
             <div>
-              <Text size="bigger" weight={700} color="text.primary">
+              <Text size="bigger" weight={600} color="text.primary">
                 UI Primitives
               </Text>
               <Text size="small" color="secondary">

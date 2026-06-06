@@ -115,14 +115,14 @@ const styles = (theme: Theme) => css`
     
     .submenu-icon {
       color: ${theme.vars.palette.text.disabled};
-      font-size: 18px;
+      font-size: var(--fontSizeBig);
     }
     
       &.dense {
         padding: 6px 12px;
         
         .MuiListItemText-primary {
-          font-size: 13px;
+          font-size: var(--fontSizeSmall);
         }
       }
 
@@ -135,7 +135,7 @@ const styles = (theme: Theme) => css`
         }
 
         .MuiListItemText-primary {
-          font-size: 11px;
+          font-size: var(--fontSizeSmaller);
         }
 
         .shortcut {

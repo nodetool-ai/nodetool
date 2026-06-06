@@ -24,6 +24,7 @@ export const sourcesDiamondGradientV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "sources",
+  linearity: "source",
   kind: "fragment",
   params: DiamondGradientParams,
   paramDefaults: {

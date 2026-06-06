@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Session, User, Subscription, AuthError } from '@supabase/supabase-js';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
+import { queryClient } from '../queryClient';
 
 export type AuthState = 'init' | 'loading' | 'logged_in' | 'logged_out' | 'error';
 
@@ -158,6 +159,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       } catch (err) {
         console.warn('[AuthStore] failed to reset chat on signOut', err);
       }
+
+      // Drop all cached server state so the next account starts clean.
+      queryClient.clear();
 
       set({
         session: null,

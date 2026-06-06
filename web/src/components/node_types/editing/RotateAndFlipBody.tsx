@@ -31,8 +31,7 @@ import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
-
-const ROTATE_AND_FLIP_NODE_TYPE = "nodetool.image.RotateAndFlip";
+import { ROTATE_AND_FLIP_NODE_TYPE } from "../../../constants/nodeTypes";
 
 // 90° snap marks across the slider's full -360..360 range. Material UI's
 // `Slider` shows ticks for `marks`; the user can still drag freely between.
@@ -63,7 +62,7 @@ const styles = (theme: Theme) =>
     "& > .handle-column": {
       top: theme.spacing(1),
       bottom: theme.spacing(1),
-      left: `calc(${theme.spacing(-0.5)})`
+      left: `calc(${theme.spacing(0)})`
     },
     ".preview-area": {
       position: "relative",
@@ -84,7 +83,7 @@ const styles = (theme: Theme) =>
     },
     ".controls": {
       flex: "0 0 auto",
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".angle-row": {
       paddingLeft: theme.spacing(0.5),
@@ -99,7 +98,7 @@ const styles = (theme: Theme) =>
       textAlign: "right"
     },
     ".action-row": {
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".outputs-row": {
       flex: "0 0 auto"

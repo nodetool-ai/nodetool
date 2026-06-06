@@ -84,7 +84,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       backgroundColor: theme.vars.palette.action.disabledBackground,
       color: theme.vars.palette.text.primary,
-      fontSize: "14px",
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600
     },
     ".node-info": {
@@ -93,13 +93,13 @@ const styles = (theme: Theme) =>
     },
     ".node-title": {
       fontWeight: 500,
-      fontSize: "14px",
+      fontSize: "var(--fontSizeNormal)",
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
     ".node-type": {
-      fontSize: "12px",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
       gap: "8px"
     },
     ".namespace-chip": {
-      fontSize: "10px",
+      fontSize: "var(--fontSizeSmaller)",
       height: "20px"
     },
     ".empty-state": {
@@ -128,7 +128,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       padding: "8px 16px",
       borderTop: `1px solid ${theme.vars.palette.divider}`,
-      fontSize: "11px",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary
     }
   });

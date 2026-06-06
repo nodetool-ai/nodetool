@@ -7,12 +7,11 @@ export interface ImageRefLike {
 
 export const asImageRef = (value: unknown): ImageRefLike | undefined => {
   if (!value || typeof value !== "object") return undefined;
-  const v = value as Record<string, unknown>;
   return {
-    uri: typeof v.uri === "string" ? v.uri : undefined,
-    width: typeof v.width === "number" ? v.width : undefined,
-    height: typeof v.height === "number" ? v.height : undefined,
-    data: v.data
+    uri: "uri" in value && typeof value.uri === "string" ? value.uri : undefined,
+    width: "width" in value && typeof value.width === "number" ? value.width : undefined,
+    height: "height" in value && typeof value.height === "number" ? value.height : undefined,
+    data: "data" in value ? value.data : undefined
   };
 };
 
@@ -34,8 +33,8 @@ export const unwrapOutput = (
       : undefined;
   }
   if (!value || typeof value !== "object") return value;
-  const v = value as Record<string, unknown>;
-  if (handle && handle in v) return v[handle];
-  if ("output" in v) return v.output;
+  const obj = value as Record<string, unknown>;
+  if (handle && handle in obj) return obj[handle];
+  if ("output" in obj) return obj.output;
   return value;
 };

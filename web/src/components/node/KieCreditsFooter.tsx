@@ -27,7 +27,7 @@ import {
   MenuItemPrimitive,
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
-import type { NodeMetadata } from "../../stores/ApiTypes";
+import type { NodeMetadata, ProviderCost } from "../../stores/ApiTypes";
 import { isKieNodeMetadata } from "../../utils/isKieNode";
 import {
   KIE_API_KEY_URL,
@@ -38,13 +38,40 @@ import {
   kieCreditsDetailSuggestsKeysLink,
   type KieCredits,
 } from "../../utils/kieCredits";
-import useResultsStore, { hashKey } from "../../stores/ResultsStore";
+import { useNodeProviderCost } from "../../hooks/nodes/useNodeExecState";
 import {
   formatKieUnitPricingShort,
   formatKieUnitPricingTooltip,
   isKieVagueBillingSummary,
   kiePricingExternalUrl,
 } from "../../utils/formatKieUnitPricing";
+
+/**
+ * Format a kie node's actual last-run charge. Since #3426, `provider_cost.amount`
+ * is USD with the credit count carried in `quantity` — show both so it reads in
+ * the credits users buy and the dollars actually billed.
+ */
+function formatKieLastRun(cost: ProviderCost): string {
+  const parts: string[] = [];
+  if (
+    cost.billing_unit === "credits" &&
+    typeof cost.quantity === "number" &&
+    Number.isFinite(cost.quantity)
+  ) {
+    parts.push(formatKieCredits({ credit_balance: cost.quantity }));
+  }
+  if (
+    cost.currency === "USD" &&
+    typeof cost.amount === "number" &&
+    Number.isFinite(cost.amount)
+  ) {
+    parts.push(`$${cost.amount.toFixed(4)}`);
+  }
+  if (parts.length === 0 && typeof cost.amount === "number") {
+    return `${cost.amount}${cost.unit ? ` ${cost.unit}` : ""}`;
+  }
+  return parts.join(" · ");
+}
 
 export interface KieCreditsFooterProps {
   metadata: NodeMetadata;
@@ -65,11 +92,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
   popoverResetDep,
 }) => {
   const theme = useTheme();
-  const lastRunCost = useResultsStore((state) =>
-    workflowId && nodeId
-      ? state.providerCosts[hashKey(workflowId, nodeId)]
-      : undefined,
-  );
+  const lastRunCost = useNodeProviderCost(workflowId ?? "", nodeId ?? "");
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(false);
   const [creditsData, setCreditsData] = useState<KieCredits | null | "error">(
@@ -131,7 +154,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
       py: 0,
       height: 20,
       borderRadius: 1,
-      fontSize: "0.65rem",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       lineHeight: 1.4,
       minHeight: 0,
@@ -180,7 +203,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
       >
         {pricing?.source === "live" && (
           <span
-            style={{ marginRight: 3, fontSize: "0.55rem", opacity: 0.85 }}
+            style={{ marginRight: 3, fontSize: "var(--fontSizeSmaller)", opacity: 0.85 }}
             aria-label="live price"
           >
             ●
@@ -196,7 +219,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
         placement={placement}
         paperSx={{
           minWidth: 220,
-          fontSize: "12px",
+          fontSize: "var(--fontSizeSmall)",
         }}
       >
         {pricing ? (
@@ -214,7 +237,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
               </Caption>
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "var(--fontSizeSmall)",
                   mt: 0.5,
                   whiteSpace: "pre-line",
                   color: theme.vars.palette.text.secondary,
@@ -240,7 +263,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
               </Caption>
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "var(--fontSizeSmall)",
                   mt: 0.5,
                   color: theme.vars.palette.text.secondary,
                 }}
@@ -269,7 +292,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
               <LoadingSpinner size={12} />
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.text.secondary,
                 }}
               >
@@ -279,7 +302,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
           ) : creditsData === "error" || creditsData === null ? (
             <Text
               sx={{
-                fontSize: "12px",
+                fontSize: "var(--fontSizeSmall)",
                 color: theme.vars.palette.text.disabled,
                 mt: 0.5,
               }}
@@ -290,7 +313,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             <FlexColumn gap={0.5} sx={{ mt: 0.5 }}>
               <Text
                 sx={{
-                  fontSize: "12px",
+                  fontSize: "var(--fontSizeSmall)",
                   color: theme.vars.palette.warning.main,
                   lineHeight: 1.4,
                   wordBreak: "break-word",
@@ -311,7 +334,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
           ) : (
             <Text
               sx={{
-                fontSize: "13px",
+                fontSize: "var(--fontSizeSmall)",
                 fontWeight: 600,
                 color: theme.vars.palette.success.main,
                 mt: 0.5,
@@ -338,13 +361,13 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
               </Caption>
               <Text
                 sx={{
-                  fontSize: "13px",
+                  fontSize: "var(--fontSizeSmall)",
                   fontWeight: 600,
                   color: theme.vars.palette.info.main,
                   mt: 0.5,
                 }}
               >
-                {formatKieCredits({ credit_balance: lastRunCost.amount })} credits
+                {formatKieLastRun(lastRunCost)}
               </Text>
             </FlexColumn>
           </>

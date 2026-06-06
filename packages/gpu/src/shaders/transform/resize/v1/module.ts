@@ -37,6 +37,7 @@ export const transformResizeV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: ResizeParams,
   paramDefaults: { mode: 1 },

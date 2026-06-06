@@ -19,7 +19,9 @@ import {
   MoonshotProvider,
   AkiProvider,
   LMStudioProvider,
-  BaseProvider as BaseProviderClass
+  BaseProvider as BaseProviderClass,
+  OLLAMA_DEFAULT_URL,
+  LMSTUDIO_DEFAULT_URL
 } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { getSecret } from "@nodetool-ai/models";
@@ -71,14 +73,14 @@ export async function createProvider(
     case "ollama":
       return new OllamaProvider({
         OLLAMA_API_URL:
-          (await resolveKey("OLLAMA_API_URL")) ?? "http://127.0.0.1:11434"
+          (await resolveKey("OLLAMA_API_URL")) ?? OLLAMA_DEFAULT_URL
       });
     case "gemini":
       return new GeminiProvider({
         GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY")
       });
     case "lmstudio":
-      return new LMStudioProvider({}, { baseURL: "http://127.0.0.1:1234" })
+      return new LMStudioProvider({}, { baseURL: LMSTUDIO_DEFAULT_URL })
     case "mistral":
       return new MistralProvider({
         MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY")
@@ -98,7 +100,7 @@ export async function createProvider(
     default:
       return new OllamaProvider({
         OLLAMA_API_URL:
-          (await resolveKey("OLLAMA_API_URL")) ?? "http://127.0.0.1:11434"
+          (await resolveKey("OLLAMA_API_URL")) ?? OLLAMA_DEFAULT_URL
       });
   }
 }

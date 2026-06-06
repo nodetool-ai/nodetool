@@ -7,7 +7,7 @@
   color: #1f2328;
   background-color: #ffffff;
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-  font-size: 16px;
+  font-size: var(--fontSizeNormal);
   line-height: 1.5;
   word-wrap: break-word;
 }
@@ -304,7 +304,7 @@
 
 .markdown-body p {
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .markdown-body blockquote {
@@ -341,14 +341,14 @@
 .markdown-body code,
 .markdown-body samp {
   font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-  font-size: 12px;
+  font-size: var(--fontSizeSmall);
 }
 
 .markdown-body pre {
   margin-top: 0;
   margin-bottom: 0;
   font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-  font-size: 12px;
+  font-size: var(--fontSizeSmall);
   word-wrap: normal;
 }
 
@@ -588,11 +588,11 @@
 }
 
 .markdown-body img[align=right] {
-  padding-left: 20px;
+  padding-left: 16px;
 }
 
 .markdown-body img[align=left] {
-  padding-right: 20px;
+  padding-right: 16px;
 }
 
 .markdown-body .emoji {
@@ -610,8 +610,8 @@
   display: block;
   float: left;
   width: auto;
-  padding: 7px;
-  margin: 13px 0 0;
+  padding: 6px;
+  margin: 12px 0 0;
   overflow: hidden;
   border: 1px solid #d1d9e0;
 }
@@ -623,7 +623,7 @@
 
 .markdown-body span.frame span span {
   display: block;
-  padding: 5px 0 0;
+  padding: 4px 0 0;
   clear: both;
   color: #1f2328;
 }
@@ -636,7 +636,7 @@
 
 .markdown-body span.align-center>span {
   display: block;
-  margin: 13px auto 0;
+  margin: 12px auto 0;
   overflow: hidden;
   text-align: center;
 }
@@ -654,7 +654,7 @@
 
 .markdown-body span.align-right>span {
   display: block;
-  margin: 13px 0 0;
+  margin: 12px 0 0;
   overflow: hidden;
   text-align: right;
 }
@@ -667,24 +667,24 @@
 .markdown-body span.float-left {
   display: block;
   float: left;
-  margin-right: 13px;
+  margin-right: 12px;
   overflow: hidden;
 }
 
 .markdown-body span.float-left span {
-  margin: 13px 0 0;
+  margin: 12px 0 0;
 }
 
 .markdown-body span.float-right {
   display: block;
   float: right;
-  margin-left: 13px;
+  margin-left: 12px;
   overflow: hidden;
 }
 
 .markdown-body span.float-right>span {
   display: block;
-  margin: 13px auto 0;
+  margin: 12px auto 0;
   overflow: hidden;
   text-align: right;
 }
@@ -760,16 +760,16 @@
 
 .markdown-body .csv-data td,
 .markdown-body .csv-data th {
-  padding: 5px;
+  padding: 4px;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--fontSizeSmall);
   line-height: 1;
   text-align: left;
   white-space: nowrap;
 }
 
 .markdown-body .csv-data .blob-num {
-  padding: 10px 0.5rem 9px;
+  padding: 8px 0.5rem 9px;
   text-align: right;
   background: #ffffff;
   border: 0;
@@ -794,7 +794,7 @@
 }
 
 .markdown-body .footnotes {
-  font-size: 12px;
+  font-size: var(--fontSizeSmall);
   color: #59636e;
   border-top: 1px solid #d1d9e0;
 }
@@ -894,7 +894,7 @@
 }
 
 .markdown-body .pl-sr .pl-cce {
-  font-weight: bold;
+  font-weight: 600;
   color: #116329;
 }
 
@@ -905,7 +905,7 @@
 .markdown-body .pl-mh,
 .markdown-body .pl-mh .pl-en,
 .markdown-body .pl-ms {
-  font-weight: bold;
+  font-weight: 600;
   color: #0550ae;
 }
 
@@ -915,7 +915,7 @@
 }
 
 .markdown-body .pl-mb {
-  font-weight: bold;
+  font-weight: 600;
   color: #1f2328;
 }
 
@@ -940,7 +940,7 @@
 }
 
 .markdown-body .pl-mdr {
-  font-weight: bold;
+  font-weight: 600;
   color: #8250df;
 }
 

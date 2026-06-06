@@ -1,6 +1,7 @@
 import { NodeMetadata } from "../stores/ApiTypes";
+import { GROUP_NODE_TYPE, COMMENT_NODE_TYPE } from "../constants/nodeTypes";
 
-export const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
+export { GROUP_NODE_TYPE };
 
 /**
  * Default metadata used for creating a Group node when
@@ -16,8 +17,7 @@ export const GROUP_NODE_METADATA: NodeMetadata = {
 
   layout: "default",
   recommended_models: [],
-  is_dynamic: false,
-  expose_as_tool: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
   is_streaming_output: false,
   required_settings: []
@@ -28,7 +28,7 @@ export const GROUP_NODE_METADATA: NodeMetadata = {
  */
 export const COMMENT_NODE_METADATA: NodeMetadata = {
   namespace: "default",
-  node_type: "nodetool.workflows.base_node.Comment",
+  node_type: COMMENT_NODE_TYPE,
   properties: [],
   title: "Comment",
   description: "Comment",
@@ -36,8 +36,7 @@ export const COMMENT_NODE_METADATA: NodeMetadata = {
 
   layout: "comment",
   recommended_models: [],
-  is_dynamic: false,
-  expose_as_tool: false,
+  supports_dynamic_inputs: false,
   supports_dynamic_outputs: false,
   is_streaming_output: false,
   required_settings: []

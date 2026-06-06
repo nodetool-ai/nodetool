@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "types": ["@webgpu/types"]
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../protocol" },
+    { "path": "../runtime" },
+    { "path": "../node-sdk" },
+    { "path": "../nodes-utils" },
+    { "path": "../gpu" }
+  ]
+}

@@ -27,8 +27,7 @@ import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
-
-const FIT_NODE_TYPE = "nodetool.image.Fit";
+import { FIT_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const PRESETS: ReadonlyArray<number> = [256, 512, 768, 1024];
 
@@ -57,7 +56,7 @@ const styles = (theme: Theme) =>
       "& > .handle-column": {
         top: 0,
         bottom: 0,
-        left: `calc(${theme.spacing(-0.5)})`
+        left: `calc(${theme.spacing(0)})`
       },
       "& img": {
         display: "block",
@@ -69,7 +68,7 @@ const styles = (theme: Theme) =>
         position: "absolute",
         bottom: theme.spacing(0.5),
         right: theme.spacing(0.5),
-        padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+        padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
         background: "rgba(0,0,0,0.6)",
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,
@@ -93,9 +92,9 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(0.5),
-      paddingTop: theme.spacing(0.25),
-      paddingLeft: theme.spacing(0.25),
-      paddingRight: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5),
+      paddingLeft: theme.spacing(0.5),
+      paddingRight: theme.spacing(0.5)
     },
     ".presets-label": {
       fontSize: theme.fontSizeSmaller,
@@ -106,7 +105,7 @@ const styles = (theme: Theme) =>
     },
     ".preset-chip": {
       cursor: "pointer",
-      padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
       borderRadius: "var(--rounded-sm)",
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",

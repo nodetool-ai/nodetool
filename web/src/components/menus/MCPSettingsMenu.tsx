@@ -145,7 +145,7 @@ const MCPSettingsMenu = () => {
           </Text>
         )}
 
-        {isLoading && <Text sx={{ padding: "1em" }}>Loading...</Text>}
+        {isLoading && <Text sx={{ padding: "1em" }}>Loading…</Text>}
 
         {data && (
           <>
@@ -158,14 +158,14 @@ const MCPSettingsMenu = () => {
                         <CheckCircleIcon
                           sx={{
                             color: theme.palette.success.main,
-                            fontSize: "1.2rem"
+                            fontSize: "var(--fontSizeBig)"
                           }}
                         />
                       ) : (
                         <CancelIcon
                           sx={{
                             color: theme.palette.text.disabled,
-                            fontSize: "1.2rem"
+                            fontSize: "var(--fontSizeBig)"
                           }}
                         />
                       )}

@@ -86,7 +86,7 @@ export const DropZoneOverlay: React.FC<DropZoneOverlayProps> = memo(
         {children ?? (
           <Text
             size="normal"
-            weight={700}
+            weight={600}
             sx={{
               color: theme.vars.palette.primary.main,
               display: "inline-flex",

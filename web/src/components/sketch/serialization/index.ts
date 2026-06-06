@@ -138,13 +138,16 @@ export function deserializeDocument(
     return null;
   }
   try {
-    const parsed = JSON.parse(json) as SketchDocument;
+    const parsed: unknown = JSON.parse(json);
     if (
-      parsed &&
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "version" in parsed &&
       typeof parsed.version === "number" &&
+      "layers" in parsed &&
       Array.isArray(parsed.layers)
     ) {
-      return normalizeSketchDocument(parsed);
+      return normalizeSketchDocument(parsed as SketchDocument);
     }
     return null;
   } catch {
@@ -385,50 +388,6 @@ export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
         reject(new Error("Failed to create blob from canvas"));
       }
     }, "image/png");
-  });
-}
-
-/**
- * Load an external image URL into a layer data string (base64 data URL).
- */
-export function loadImageToLayerData(
-  imageUrl: string,
-  canvasWidth: number,
-  canvasHeight: number
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        reject(new Error("Failed to get canvas context"));
-        return;
-      }
-      // Scale image to fit canvas while maintaining aspect ratio
-      const scale = Math.min(
-        canvasWidth / img.width,
-        canvasHeight / img.height
-      );
-      const scaledWidth = img.width * scale;
-      const scaledHeight = img.height * scale;
-      const x = (canvasWidth - scaledWidth) / 2;
-      const y = (canvasHeight - scaledHeight) / 2;
-      ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-      resolve(
-        serializeLayerData(canvas.toDataURL("image/png"), {
-          x: 0,
-          y: 0,
-          width: canvasWidth,
-          height: canvasHeight
-        })
-      );
-    };
-    img.onerror = () => reject(new Error("Failed to load image"));
-    img.src = imageUrl;
   });
 }
 

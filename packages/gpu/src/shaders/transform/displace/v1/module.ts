@@ -40,6 +40,7 @@ export const transformDisplaceV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: DisplaceParams,
   paramDefaults: { amountX: 0.05, amountY: 0.05 },

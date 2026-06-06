@@ -9,6 +9,8 @@ import {
   listRegisteredProviderIds,
   providerCapabilities,
   RECOMMENDED_MODELS,
+  OLLAMA_DEFAULT_URL,
+  LMSTUDIO_DEFAULT_URL,
   type ASRModel,
   type EmbeddingModel,
   type ImageModel,
@@ -19,7 +21,7 @@ import {
   type VideoModel
 } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
-import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 import {
   readCachedHfModels,
   searchCachedHfModels,
@@ -296,7 +298,7 @@ import { PythonProvider, registerProvider } from "@nodetool-ai/runtime";
  * via the Python stdio bridge. Call after the bridge has connected.
  */
 export async function registerPythonProviders(
-  bridge: PythonStdioBridge
+  bridge: PythonBridge
 ): Promise<string[]> {
   const providers = await bridge.listProviders();
   const registered: string[] = [];
@@ -500,9 +502,9 @@ async function getServerAvailability(): Promise<Record<string, boolean>> {
   };
 
   const [ollamaUrl, llamaUrl, lmstudioUrl, vllmUrl] = await Promise.all([
-    resolve("OLLAMA_API_URL", "http://127.0.0.1:11434"),
+    resolve("OLLAMA_API_URL", OLLAMA_DEFAULT_URL),
     resolve("LLAMA_CPP_URL", ""),
-    resolve("LMSTUDIO_API_URL", "http://127.0.0.1:1234"),
+    resolve("LMSTUDIO_API_URL", LMSTUDIO_DEFAULT_URL),
     resolve("VLLM_BASE_URL", "")
   ]);
 

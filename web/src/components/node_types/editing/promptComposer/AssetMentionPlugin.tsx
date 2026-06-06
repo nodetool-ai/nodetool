@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useState
 } from "react";
-import * as ReactDOM from "react-dom";
+import { createPortal } from "react-dom";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -47,7 +47,7 @@ const menuStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
       borderRadius: "var(--rounded-sm, 4px)",
       cursor: "pointer",
       fontFamily: theme.fontFamily1,
@@ -98,9 +98,15 @@ const AssetOptionRow: React.FC<{
       className={`asset-option${selected ? " selected" : ""}`}
       role="option"
       aria-selected={selected}
+      tabIndex={0}
       ref={option.setRefElement}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          onClick();
+        }
+      }}
       onMouseEnter={onMouseEnter}
     >
       {asset.thumb_url ? (
@@ -195,7 +201,7 @@ const AssetMentionPlugin: React.FC = () => {
         if (anchorElementRef.current === null) {
           return null;
         }
-        return ReactDOM.createPortal(
+        return createPortal(
           <div css={menuStyles(theme)} className="asset-mention-menu nowheel">
             {options.length === 0 ? (
               <div className="asset-empty">

@@ -197,9 +197,9 @@ const styles = (theme: Theme) =>
       },
       h4: {
         cursor: "default",
-        fontWeight: "600",
+        fontWeight: 600,
         margin: "0",
-        fontSize: "1rem",
+        fontSize: "var(--fontSizeNormal)",
         letterSpacing: "-0.01em",
         color: theme.vars.palette.text.primary,
         textShadow: "0 1px 3px rgba(0,0,0,0.2)"
@@ -238,7 +238,7 @@ const styles = (theme: Theme) =>
       border: "none",
       borderRadius: "var(--rounded-md)",
       padding: "3px 6px",
-      fontSize: "0.75rem",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,
       outline: "none",
       cursor: "pointer",
@@ -262,7 +262,7 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap",
       padding: "0",
       margin: "0",
-      fontSize: "0.78rem",
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       fontWeight: 400,
       opacity: 0.8
@@ -279,7 +279,7 @@ const styles = (theme: Theme) =>
       ".editor": {
         flex: 1,
         width: "100%",
-        fontSize: "14.5px",
+        fontSize: "var(--fontSizeNormal)",
         lineHeight: "1.7",
         color: theme.vars.palette.text.secondary,
         outline: "none",
@@ -406,7 +406,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
       borderRadius: "10px",
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -438,7 +438,7 @@ const styles = (theme: Theme) =>
       padding: "6px",
       cursor: "pointer",
       color: theme.vars.palette.grey[400],
-      fontSize: "0.85rem",
+      fontSize: "var(--fontSizeNormal)",
       borderRadius: "10px",
       background: "transparent",
       border: "1px solid transparent",
@@ -534,7 +534,7 @@ const styles = (theme: Theme) =>
       },
       ".description": {
         display: "block",
-        fontSize: "0.7rem"
+        fontSize: "var(--fontSizeSmaller)"
       },
       ".modal-body": {
         flexDirection: "column"
@@ -711,8 +711,6 @@ const TextEditorModal = ({
     sendMessage,
     selectedModel,
     setSelectedModel,
-    selectedTools,
-    selectedCollections,
     stopGeneration,
     createNewThread
   } = useChatIntegration({
@@ -947,6 +945,7 @@ const TextEditorModal = ({
                 <div className="toolbar-group code-tools">
                   <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Find">
                     <button
+                      type="button"
                       className="button-ghost"
                       onClick={handleMonacoFind}
                       aria-label="Find"
@@ -957,6 +956,7 @@ const TextEditorModal = ({
                   {!readOnly && (
                     <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Format">
                       <button
+                        type="button"
                         className="button-ghost"
                         onClick={handleMonacoFormat}
                         aria-label="Format"
@@ -971,6 +971,7 @@ const TextEditorModal = ({
                       title={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
                     >
                       <button
+                        type="button"
                         className={`button-ghost snippet-toggle ${snippetSidebarVisible ? "active" : ""}`}
                         onClick={() => setSnippetSidebarVisible((v) => !v)}
                         aria-label={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
@@ -984,6 +985,7 @@ const TextEditorModal = ({
                     title={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
                   >
                     <button
+                      type="button"
                       className="button-ghost"
                       onClick={handleToggleWordWrap}
                       aria-label={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
@@ -1029,6 +1031,7 @@ const TextEditorModal = ({
                     }
                   >
                     <button
+                      type="button"
                       className="button"
                       onClick={handleToggleEditorMode}
                       aria-label={isCodeEditor ? "Switch to Rich Text" : "Switch to Code Editor"}
@@ -1044,6 +1047,7 @@ const TextEditorModal = ({
                   title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
                 >
                   <button
+                    type="button"
                     className="button"
                     onClick={toggleAssistantVisible}
                     aria-label={assistantVisible ? "Hide Assistant" : "Show Assistant"}
@@ -1057,6 +1061,7 @@ const TextEditorModal = ({
                 </Tooltip>
                 <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Download">
                   <button
+                    type="button"
                     className="button"
                     onClick={handleDownload}
                     aria-label="Download"
@@ -1069,6 +1074,7 @@ const TextEditorModal = ({
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   <button
+                    type="button"
                     className="button"
                     onClick={toggleFullscreen}
                     aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
@@ -1081,6 +1087,7 @@ const TextEditorModal = ({
                   title="Close Editor | Esc"
                 >
                   <button
+                    type="button"
                     className="button button-close"
                     onClick={onClose}
                     aria-label="Close Editor"
@@ -1259,8 +1266,6 @@ const TextEditorModal = ({
                           name: DEFAULT_MODEL
                         }
                       }
-                      selectedTools={selectedTools}
-                      selectedCollections={selectedCollections}
                       onModelChange={setSelectedModel}
                       helpMode={false}
                       workflowAssistant={true}

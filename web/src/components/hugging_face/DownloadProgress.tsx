@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       display: "grid",
       gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
       columnGap: theme.spacing(2),
-      rowGap: theme.spacing(0.25),
+      rowGap: theme.spacing(0.5),
       marginTop: theme.spacing(1)
     },
     ".cancel-button": {
@@ -419,7 +419,7 @@ export const DownloadProgress: React.FC<{
                         ml: 1,
                         minWidth: "auto",
                         padding: "2px 8px",
-                        fontSize: "0.75rem"
+                        fontSize: "var(--fontSizeSmall)"
                       }}
                     >
                       Reconnect

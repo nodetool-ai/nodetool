@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { apiService } from '../services/api';
+import { trpc } from '../trpc/client';
+import { normalizeWorkflow } from '../services/api';
 import { Workflow } from '../types/miniapp';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
@@ -23,15 +24,43 @@ type WorkflowsListScreenProps = {
 };
 
 export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenProps) {
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loadError, setLoadError] = useState<string | null>(null);
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  const {
+    data: workflows = [],
+    isLoading,
+    isRefetching,
+    error,
+    errorUpdatedAt,
+    refetch,
+  } = trpc.workflows.list.useQuery(
+    { limit: 100 },
+    {
+      select: (data) =>
+        data.workflows.map((w) =>
+          normalizeWorkflow(w as unknown as Record<string, unknown>)
+        ),
+    }
+  );
+  const loadError = error ? error.message || 'Network Error' : null;
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+    Alert.alert(
+      'Connection Error',
+      `Could not load workflows.\n\n${error.message || 'Network Error'}`,
+      [
+        { text: 'Settings', onPress: () => navigation.navigate('Settings') },
+        { text: 'Retry', onPress: () => { refetch(); } },
+      ]
+    );
+  }, [error, errorUpdatedAt, navigation, refetch]);
 
   const handleSearchChange = useCallback((text: string) => {
     setSearchQuery(text);
@@ -53,42 +82,6 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
     );
   }, [workflows, debouncedQuery]);
 
-  const loadWorkflows = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const data = await apiService.getWorkflows();
-      const workflowsList = Array.isArray(data) ? data : (data?.workflows || []);
-      setWorkflows(workflowsList);
-    } catch (error: unknown) {
-      console.error('Failed to load workflows:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Network Error';
-      setLoadError(errorMessage);
-      Alert.alert(
-        'Connection Error',
-        `Could not load workflows.\n\n${errorMessage}`,
-        [
-          { text: 'Settings', onPress: () => navigation.navigate('Settings') },
-          { text: 'Retry', onPress: loadWorkflows },
-        ]
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [navigation]);
-
-  useEffect(() => {
-    const initialize = async () => {
-      setIsLoading(true);
-      try {
-        await apiService.loadApiHost();
-      } catch (error) {
-        console.error('Failed to initialize:', error);
-      }
-      await loadWorkflows();
-    };
-    initialize();
-  }, [loadWorkflows]);
-
   useEffect(() => {
     return () => {
       if (searchTimerRef.current) {
@@ -96,12 +89,6 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
       }
     };
   }, []);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await loadWorkflows();
-    setIsRefreshing(false);
-  };
 
   const handleWorkflowPress = (workflow: Workflow) => {
     navigation.navigate('GraphEditor', { workflowId: workflow.id });
@@ -215,7 +202,7 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
           <View style={styles.emptyButtons}>
             <TouchableOpacity
               style={[styles.button, shadows.small, { backgroundColor: colors.primary }]}
-              onPress={loadWorkflows}
+              onPress={() => { refetch(); }}
               accessibilityRole="button"
               accessibilityLabel="Retry loading"
             >
@@ -265,8 +252,8 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
             contentContainerStyle={styles.listContent}
             refreshControl={
               <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
+                refreshing={isRefetching}
+                onRefresh={() => { refetch(); }}
                 tintColor={colors.primary}
                 colors={[colors.primary]}
               />

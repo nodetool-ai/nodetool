@@ -1,7 +1,8 @@
 import type {
   InputMode,
   NodeDescriptor,
-  OutputCorrelation
+  OutputCorrelation,
+  Platform
 } from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
@@ -57,6 +58,7 @@ export type NodeClass = {
   title: string;
   description: string;
   layout?: string;
+  body?: string;
 
   recommendedModels?: unknown[];
   inlineFields?: string[];
@@ -67,13 +69,17 @@ export type NodeClass = {
   isStreamingOutput: boolean;
   inputMode?: InputMode;
   outputCorrelation?: Record<string, OutputCorrelation>;
-  isDynamic: boolean;
+  supportsDynamicInputs: boolean;
   isControlled: boolean;
   isJoinNode: boolean;
-  exposeAsTool?: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
   modelPacks?: unknown[];
+  /**
+   * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
+   * Platform type. Unset is treated as ["node"].
+   */
+  platforms?: readonly Platform[];
   metadataOutputTypes?: DeclaredOutputTypes;
   outputTypes: DeclaredOutputTypes;
   getDeclaredProperties(): Array<{
@@ -155,6 +161,13 @@ export abstract class BaseNode {
   static readonly title: string = "";
   static readonly description: string = "";
   static readonly layout: string | undefined = undefined;
+  /**
+   * Node body renderer key. Set to "content_card" to render a media/text-forward
+   * content card instead of the generic input/output body. Generator packages
+   * typically derive this from the primary output type on a shared base class
+   * (mirrors the Python `_body`/`body()` convention).
+   */
+  static readonly body: string | undefined = undefined;
 
   static readonly recommendedModels: unknown[] | undefined = undefined;
   static readonly inlineFields: string[] | undefined = undefined;
@@ -167,7 +180,7 @@ export abstract class BaseNode {
   static readonly outputCorrelation:
     | Record<string, OutputCorrelation>
     | undefined = undefined;
-  static readonly isDynamic: boolean = false;
+  static readonly supportsDynamicInputs: boolean = false;
   static readonly isControlled: boolean = false;
   /**
    * `Zip` and `Cross` set this to true so static correlation analysis allows
@@ -175,10 +188,15 @@ export abstract class BaseNode {
    * docs/correlation-design.md §7.
    */
   static readonly isJoinNode: boolean = false;
-  static readonly exposeAsTool: boolean | undefined = undefined;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
   static readonly modelPacks: unknown[] | undefined = undefined;
+  /**
+   * Deployment platforms this node supports. Defaults to ["node"]; nodes
+   * that work in V8 isolates should claim "workers" and/or "edge"
+   * explicitly. See `@nodetool-ai/protocol`'s Platform type.
+   */
+  static readonly platforms: readonly Platform[] | undefined = undefined;
   static readonly metadataOutputTypes: DeclaredOutputTypes | undefined =
     undefined;
   static readonly outputTypes: DeclaredOutputTypes = {};
@@ -258,7 +276,7 @@ export abstract class BaseNode {
       }
     }
     // For dynamic nodes, store undeclared properties in dynamicProps
-    if (ctor.isDynamic) {
+    if (ctor.supportsDynamicInputs) {
       const skip = new Set(["__node_id", "__node_name", "_secrets"]);
       for (const [key, value] of Object.entries(properties)) {
         if (!declaredNames.has(key) && !skip.has(key)) {
@@ -277,7 +295,7 @@ export abstract class BaseNode {
     }
 
     // Include dynamic properties so round-trip serialization is lossless
-    if (ctor.isDynamic) {
+    if (ctor.supportsDynamicInputs) {
       for (const [key, value] of this.dynamicProps) {
         result[key] = value;
       }

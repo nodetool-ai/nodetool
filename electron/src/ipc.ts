@@ -23,13 +23,11 @@ import { assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
 import {
   IpcChannels,
-  IpcEvents,
   IpcResponse,
   RuntimePackageId,
   WindowCloseAction,
 } from "./types.d";
 import {
-  readSettings,
   readSettingsAsync,
   updateSetting,
   getModelServiceStartupSettings,
@@ -122,11 +120,6 @@ export type IpcMainHandler<T extends keyof IpcRequest & keyof IpcResponse> = (
   event: Electron.IpcMainInvokeEvent,
   data: IpcRequest[T],
 ) => Promise<IpcResponse[T]>;
-
-export type IpcOnceHandler<T extends keyof IpcEvents> = (
-  event: Electron.IpcMainInvokeEvent,
-  data: IpcEvents[T],
-) => Promise<void>;
 
 // Channels that should have their payloads redacted for security
 const SENSITIVE_CHANNELS = ["clipboard:write-text", "clipboard:read-text"];
@@ -320,27 +313,6 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
   };
 
   ipcMain.handle(channel, wrappedHandler);
-}
-
-/**
- * Type-safe wrapper for IPC once handlers with logging
- */
-export function createIpcOnceHandler<T extends keyof IpcEvents>(
-  channel: T,
-  handler: IpcOnceHandler<T>,
-): void {
-  const wrappedHandler: IpcOnceHandler<T> = async (event, data) => {
-    const channelStr = String(channel);
-    logMessage(`IPC (once) → ${channelStr}`);
-    try {
-      await handler(event, data);
-      logMessage(`IPC (once) ← ${channelStr} OK`);
-    } catch (error) {
-      logMessage(`IPC (once) ← ${channelStr} ERROR: ${String(error)}`, "error");
-      throw error;
-    }
-  };
-  ipcMain.once(channel as string, wrappedHandler);
 }
 
 /**

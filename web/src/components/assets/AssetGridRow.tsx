@@ -5,7 +5,8 @@ import {
   getExtraFooterSpace
 } from "./assetGridUtils";
 import AssetItem from "./AssetItem";
-import { colorForType, IconForType } from "../../config/data_types";
+import { colorForType } from "../../config/data_types";
+import { IconForType } from "../../config/IconForType";
 import { Asset } from "../../stores/ApiTypes";
 import { Text, Tooltip } from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -139,6 +140,8 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
         nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
       >
         <div
+          role="button"
+          tabIndex={0}
           style={{
             ...style,
             height: DIVIDER_HEIGHT,
@@ -151,6 +154,12 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           }}
           className="content-type-header"
           onClick={handleToggleExpanded}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleToggleExpanded();
+            }
+          }}
         >
           <Text
             size="small"

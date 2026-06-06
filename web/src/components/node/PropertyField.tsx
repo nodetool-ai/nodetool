@@ -103,7 +103,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
 
   const propertySpacerStyle = useMemo(
     () => ({
-      marginLeft: 20,
+      marginLeft: 8,
       minHeight: 20,
       display: "flex" as const,
       alignItems: "center" as const
@@ -152,7 +152,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             paramName={property.name}
             className={classConnectable}
             handlePosition="left"
-            isCollectInput={isCollectHandle}
             enableHover={true}
           >
             <Handle
@@ -182,6 +181,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             hideActionIcons={hideActionIcons}
             data={data}
             inspectorBatchNodeIds={inspectorBatchNodeIds}
+            isConnected={isInspector ? isConnected : false}
             onValueChange={onValueChange}
           />
         </>
@@ -195,7 +195,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             density="compact"
             handleTooltipType={property.type}
             handleTooltipPosition="left"
-            isCollectInput={isCollectHandle}
           />
         </div>
       )}

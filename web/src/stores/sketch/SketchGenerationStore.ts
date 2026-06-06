@@ -17,6 +17,7 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import useResultsStore from "../ResultsStore";
+import { extractAssetId } from "../outputAssetId";
 
 export type LayerGenerationStatus =
   | "queued"
@@ -53,6 +54,7 @@ interface SketchGenerationStoreState {
   getLayerJobState: (layerId: string) => LayerJobState | undefined;
   resolveOutputAssetId: (
     workflowId: string,
+    jobId: string,
     selectedOutputNodeId: string
   ) => string | undefined;
 }
@@ -61,6 +63,16 @@ const STORAGE_KEY = "sketch-generation-jobs:v1";
 
 const canUseSessionStorage = (): boolean =>
   typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
+
+function isLayerJobEntry(value: unknown): value is LayerJobState {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "status" in value &&
+    "layerId" in value &&
+    "jobId" in value
+  );
+}
 
 const loadPersistedLayerJobs = (): Record<string, LayerJobState> => {
   if (!canUseSessionStorage()) {
@@ -71,12 +83,20 @@ const loadPersistedLayerJobs = (): Record<string, LayerJobState> => {
     if (!raw) {
       return {};
     }
-    const parsed = JSON.parse(raw) as Record<string, LayerJobState>;
-    return Object.fromEntries(
-      Object.entries(parsed).filter(
-        ([, value]) => value.status === "queued" || value.status === "running"
-      )
-    );
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return {};
+    const result: Record<string, LayerJobState> = {};
+    for (const [key, value] of Object.entries(
+      parsed as Record<string, unknown>
+    )) {
+      if (
+        isLayerJobEntry(value) &&
+        (value.status === "queued" || value.status === "running")
+      ) {
+        result[key] = value;
+      }
+    }
+    return result;
   } catch {
     return {};
   }
@@ -189,28 +209,12 @@ export const useSketchGenerationStore = create<SketchGenerationStoreState>(
 
       getLayerJobState: (layerId) => get().layerJobs[layerId],
 
-      resolveOutputAssetId: (workflowId, selectedOutputNodeId) => {
-        const result = useResultsStore
-          .getState()
-          .getOutputResult(workflowId, selectedOutputNodeId);
-
-        if (!result) {
-          return undefined;
-        }
-        if (typeof result === "string") {
-          return result;
-        }
-        if (typeof result === "object" && result !== null) {
-          const r = result as Record<string, unknown>;
-          if (typeof r.asset_id === "string") {
-            return r.asset_id;
-          }
-          if (typeof r.id === "string") {
-            return r.id;
-          }
-        }
-        return undefined;
-      }
+      resolveOutputAssetId: (workflowId, jobId, selectedOutputNodeId) =>
+        extractAssetId(
+          useResultsStore
+            .getState()
+            .getOutputResult(workflowId, jobId, selectedOutputNodeId)
+        )
     };
   }
 );

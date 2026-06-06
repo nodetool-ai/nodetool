@@ -86,9 +86,7 @@ describe("composerSlotContext", () => {
         <button
           data-testid="invoke"
           data-has-slot={activeSlot ? "yes" : "no"}
-          onClick={() =>
-            activeSend?.([{ type: "text", text: "x" }], "x", false)
-          }
+          onClick={() => activeSend?.([{ type: "text", text: "x" }], "x")}
         >
           invoke
         </button>

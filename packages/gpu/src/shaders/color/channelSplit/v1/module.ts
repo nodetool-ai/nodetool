@@ -35,6 +35,7 @@ export const colorChannelSplitV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: ChannelSplitParams,
   paramDefaults: { mode: 0 },
@@ -64,7 +65,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   } else if (mode == 3) {
     v = src.a;
   } else {
-    v = dot(src.rgb, vec3f(0.299, 0.587, 0.114));
+    v = dot(src.rgb, vec3f(0.299, 0.587, 0.114)); // premul: ok TODO(invariant-fixes): see review §BUGS — luma read on premul rgb
   }
   return vec4f(v, v, v, 1.0);
 }

@@ -8,7 +8,6 @@ const workflowSearchOptions = {
   includeMatches: true,
   threshold: 0.1,
   distance: 100,
-  tokenize: false,
   minMatchCharLength: 2,
   ignoreLocation: true,
   useExtendedSearch: false,

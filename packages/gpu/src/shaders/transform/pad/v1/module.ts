@@ -39,6 +39,7 @@ export const transformPadV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "transform",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: PadParams,
   paramDefaults: {

@@ -22,7 +22,7 @@ import type {
   ToolCallUpdate
 } from "@nodetool-ai/protocol";
 
-import type { Tool } from "./tools/base-tool.js";
+import { Tool } from "./tools/base-tool.js";
 import { GraphBuilder } from "./graph-builder.js";
 import { AddNodeTool } from "./tools/add-node-tool.js";
 import { AddEdgeTool } from "./tools/add-edge-tool.js";
@@ -375,7 +375,9 @@ export class GraphPlanner {
           tool_call_id: tc.id,
           name: tc.name,
           args: tc.args,
-          message: this.formatToolCallMessage(tc.name, tc.args),
+          message:
+            Tool.extractMessage(tc.args) ??
+            this.formatToolCallMessage(tc.name, tc.args),
           node_id: "graph_planner"
         } satisfies ToolCallUpdate;
 
@@ -392,7 +394,7 @@ export class GraphPlanner {
         const toolStartedAt = Date.now();
         const result = await tool.process(
           {} as ProcessingContext,
-          tc.args
+          Tool.stripMessage(tc.args)
         );
         const resultStr =
           typeof result === "string" ? result : JSON.stringify(result);

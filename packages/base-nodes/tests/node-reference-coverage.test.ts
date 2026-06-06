@@ -45,8 +45,6 @@ import {
   ShowNotificationLibNode,
   SplitExtensionLibNode,
   SplitPathLibNode,
-  TeamAgentNode,
-  TeamLeadNode,
   TransformLibNode
 } from "../src/index.js";
 
@@ -88,8 +86,6 @@ const ALL_REFERENCED_NODES = [
   ShowNotificationLibNode,
   SplitExtensionLibNode,
   SplitPathLibNode,
-  TeamAgentNode,
-  TeamLeadNode,
   TransformLibNode
 ];
 

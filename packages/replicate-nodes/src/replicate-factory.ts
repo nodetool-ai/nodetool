@@ -13,6 +13,11 @@ import {
   registerDeclaredProperty
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type {
+  PromptAssetTextField,
+  PromptAssetInputField
+} from "@nodetool-ai/runtime";
+import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import {
   getReplicateApiKey,
   replicateSubmit,
@@ -141,6 +146,46 @@ function computeFieldClassification(fields: ReplicateFieldDef[]) {
   );
 }
 
+/**
+ * Route `asset://` media mentioned inline in a node's text inputs onto its
+ * empty image/audio/video inputs (and strip the mentions from the text).
+ * Shared with FAL / KIE / image-to-image via `mapPromptAssetsToInputs`.
+ */
+async function promptAssetOverrides(
+  instance: BaseNode,
+  spec: ReplicateManifestEntry,
+  context?: Parameters<BaseNode["process"]>[0]
+): Promise<Record<string, unknown>> {
+  const values = instance as unknown as Record<string, unknown>;
+  const textFields: PromptAssetTextField[] = [];
+  const assetFields: PromptAssetInputField[] = [];
+  for (const field of spec.inputFields) {
+    if (field.parentField) continue;
+    if (EXCLUDED_FIELDS.has(field.name)) continue;
+    const kind = assetKind(field.propType);
+    if (kind === "image" || kind === "audio" || kind === "video") {
+      const list = isListAsset(field.propType);
+      const value = values[field.name];
+      const hasSource = list
+        ? Array.isArray(value) && value.some(isRefSet)
+        : isRefSet(value);
+      assetFields.push({
+        name: field.name,
+        label: field.apiParamName ?? field.name,
+        kind,
+        list,
+        hasSource
+      });
+    } else if (field.propType.toLowerCase() === "str") {
+      textFields.push({
+        name: field.name,
+        value: String(values[field.name] ?? "")
+      });
+    }
+  }
+  return mapPromptAssetsToInputs(textFields, assetFields, context);
+}
+
 async function buildArgs(
   instance: BaseNode,
   spec: ReplicateManifestEntry,
@@ -148,6 +193,7 @@ async function buildArgs(
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
   const args: Record<string, unknown> = {};
+  const overrides = await promptAssetOverrides(instance, spec, context);
 
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
@@ -161,7 +207,10 @@ async function buildArgs(
       continue;
     }
 
-    const value = (instance as unknown as Record<string, unknown>)[field.name];
+    const value =
+      field.name in overrides
+        ? overrides[field.name]
+        : (instance as unknown as Record<string, unknown>)[field.name];
     const apiName = field.apiParamName ?? field.name;
     const kind = assetKind(field.propType);
 
@@ -276,6 +325,12 @@ export function createReplicateNodeClass(
   if (isGenerativeOutput) {
     Object.defineProperty(ReplicateNodeClass, "autoSaveAsset", {
       value: true,
+      configurable: true
+    });
+    // Media generators render as a content card. Metadata-driven equivalent of
+    // the frontend's old "replicate.* namespace + media output" heuristic.
+    Object.defineProperty(ReplicateNodeClass, "body", {
+      value: "content_card",
       configurable: true
     });
   }

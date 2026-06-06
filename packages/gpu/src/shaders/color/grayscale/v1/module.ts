@@ -36,6 +36,7 @@ export const colorGrayscaleV1 = defineModule({
   // `tests/surfacePromotion.test.ts` for the published-set contract.
   surface: "internal",
   category: "color",
+  linearity: "linear-in-rgb",
   kind: "fragment",
   params: GrayscaleParams,
   paramDefaults: { amount: 1 },

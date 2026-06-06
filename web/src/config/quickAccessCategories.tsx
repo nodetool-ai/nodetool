@@ -2,7 +2,7 @@
 /**
  * Left-panel sidebar (top-level) and node-browser sub-tabs.
  *
- *  - `LEFT_PANEL_TOP_LEVEL` (5 entries): one icon per top-level view shown in
+ *  - `LEFT_PANEL_TOP_LEVEL`: one icon per top-level view shown in
  *    the vertical rail.
  *  - `NODE_SUBCATEGORIES` (8 entries): tile-grid sub-tabs nested inside the
  *    "Nodes" view. Each filters MetadataStore down to a node family.
@@ -18,6 +18,7 @@ import StarIcon from "@mui/icons-material/Star";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import ImageIcon from "@mui/icons-material/Image";
 import MovieIcon from "@mui/icons-material/Movie";
+import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import BuildIcon from "@mui/icons-material/Build";
@@ -25,7 +26,7 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 import LoginIcon from "@mui/icons-material/Login";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import HubIcon from "@mui/icons-material/Hub";
-import { IconForType } from "./data_types";
+import { IconForType } from "./IconForType";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
 import {
@@ -118,6 +119,8 @@ const POPULAR_MODEL_RANK: ReadonlyMap<string, number> = new Map(
 export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
   { id: "nodes", label: "Nodes", icon: <HubIcon /> },
   { id: "workflows", label: "Workflows", icon: <GridViewIcon /> },
+  { id: "sketches", label: "Sketches", icon: <BrushOutlinedIcon /> },
+  { id: "timelines", label: "Timelines", icon: <MovieIcon /> },
   { id: "settings", label: "Settings", icon: <SettingsIcon /> },
   { id: "history", label: "History", icon: <HistoryIcon /> },
   { id: "favorites", label: "Favorites", icon: <StarIcon /> },
@@ -142,7 +145,7 @@ export const NODE_SUBCATEGORIES: readonly NodeSubcategory[] = [
   },
   {
     id: "io",
-    label: "Inputs / Outputs",
+    label: "I/O",
     icon: <LoginIcon />,
     filter: (m) =>
       m.node_type.startsWith("nodetool.input.") ||

@@ -8,7 +8,6 @@ import {
   PID_FILE_PATH,
   PID_DIRECTORY,
   webPath,
-  getCondaEnvPath,
 } from "./config";
 
 /**
@@ -29,6 +28,7 @@ function isDevMode(): boolean {
 }
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
+import type { ServerState } from "./state";
 import { getServerUrl } from "./utils";
 import fs from "fs/promises";
 import net from "net";
@@ -808,22 +808,22 @@ async function stopLlamaCppService(): Promise<void> {
  * Returns the current server state
  * @returns Current server state object
  */
-export function getServerState() {
+export function getServerState(): ServerState {
   return serverState;
 }
 
 /**
  * Opens the log file in the system's default file explorer
  */
-export function openLogFile() {
-  return shell.showItemInFolder(LOG_FILE);
+export function openLogFile(): void {
+  shell.showItemInFolder(LOG_FILE);
 }
 
 /**
  * Opens the log file in the system's default file explorer
  */
-export function showItemInFolder(fullPath: string) {
-  return shell.showItemInFolder(fullPath);
+export function showItemInFolder(fullPath: string): void {
+  shell.showItemInFolder(fullPath);
 }
 
 /**

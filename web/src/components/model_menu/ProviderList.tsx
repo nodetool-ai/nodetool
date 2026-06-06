@@ -124,7 +124,6 @@ import vercelIcon from "@lobehub/icons-static-svg/icons/vercel.svg";
 import openrouterIcon from "@lobehub/icons-static-svg/icons/openrouter.svg";
 import lobehubColorIcon from "@lobehub/icons-static-svg/icons/lobehub-color.svg";
 import automaticColorIcon from "@lobehub/icons-static-svg/icons/automatic-color.svg";
-import comfyuiColorIcon from "@lobehub/icons-static-svg/icons/comfyui-color.svg";
 import glifIcon from "@lobehub/icons-static-svg/icons/glif.svg";
 import pollinationsIcon from "@lobehub/icons-static-svg/icons/pollinations.svg";
 import ppioColorIcon from "@lobehub/icons-static-svg/icons/ppio-color.svg";
@@ -316,7 +315,6 @@ const providerIconMap: Record<string, string> = {
   automatic: automaticColorIcon,
   "automatic1111": automaticColorIcon,
   "stable-diffusion-webui": automaticColorIcon,
-  comfyui: comfyuiColorIcon,
   glif: glifIcon,
   pollinations: pollinationsIcon,
   ppio: ppioColorIcon,
@@ -653,7 +651,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             title="All providers"
             placement="right"
           >
-            <FlexColumn align="center" gap={0.25} sx={{ py: 0.25 }}>
+            <FlexColumn align="center" gap={0.25} sx={{ py: 0.5 }}>
               <FormatListBulletedIcon className="model-menu__all-providers-icon" />
               <Caption
                 sx={{
@@ -768,7 +766,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 data-provider={p}
                 onContextMenu={(e) => handleMenuOpen(e, p)}
                 sx={{
-                  gap: 0.1,
+                  gap: 0.5,
                   opacity: enabled && available ? 1 : 0.5,
                   py: iconOnly ? 0.75 : 0.25,
                   justifyContent: iconOnly ? "center" : "flex-start",
@@ -783,7 +781,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     title={providerLabel}
                     placement="right"
                   >
-                    <FlexColumn align="center" gap={0.25} sx={{ py: 0.25 }}>
+                    <FlexColumn align="center" gap={0.25} sx={{ py: 0.5 }}>
                       <FlexRow
                         className="model-menu__provider-icon-circle"
                         align="center"
@@ -799,8 +797,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                 ? "action.selected"
                                 : "transparent",
                           border: `1px solid ${selected === p ? "transparent" : theme.vars.palette.divider}`,
-                          fontWeight: 700,
-                          fontSize: "0.8rem",
+                          fontWeight: 600,
+                          fontSize: "var(--fontSizeSmall)",
                           color:
                             selected === p
                               ? "primary.contrastText"
@@ -889,7 +887,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                   <Box
                                     component="span"
                                     sx={{
-                                      fontWeight: 700,
+                                      fontWeight: 600,
                                       fontSize: theme.vars.fontSizeSmall,
                                       color: theme.vars.palette.text.primary,
                                       lineHeight: 1

@@ -11,10 +11,6 @@ import SortIcon from "@mui/icons-material/Sort";
 import ClearIcon from "@mui/icons-material/Clear";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import CheckIcon from "@mui/icons-material/Check";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import AddIcon from "@mui/icons-material/Add";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -32,143 +28,86 @@ interface WorkflowToolbarProps {
 
 const styles = (theme: Theme) =>
   css({
-      width: "calc(100% - 10px)",
+    width: "100%",
+
     ".tools": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.5em",
-      margin: "0 10px"
+      gap: "8px",
+      padding: "0 10px"
     },
-    ".tools .search-row": {
-      display: "flex",
-      width: "100%",
-      maxWidth: "230px",
-      gap: "4px",
-      alignItems: "center"
-    },
-    ".tools .tags-button": {
-      fontSize: "0.7em",
-      borderColor: `${"var(--palette-primary-main)"}33`,
-      width: "1.5em",
-      height: "1.5em",
-      flexShrink: 0,
-      marginLeft: "0.5em",
-      "&:hover": {
-        borderColor: "var(--palette-primary-main)"
-      },
-      "& svg": {
-        color: theme.vars.palette.grey[400]
-      },
-      "&:hover svg": {
-        fill: "var(--palette-primary-main)"
-      }
-    },
-    ".tools .tags-button.has-selection": {
-      borderColor: "var(--palette-primary-main)",
-      "& svg": {
-        color: "var(--palette-primary-main)"
-      }
-    },
+
     ".tools .buttons-row": {
       display: "flex",
       flexDirection: "row",
-      gap: "0.5em",
+      gap: "2px",
       alignItems: "center",
       width: "100%"
     },
-    ".tools .checkbox-button": {
-      fontSize: "0.7em",
-      borderColor: `${"var(--palette-primary-main)"}33`,
-      width: "1.5em",
-      height: "1.5em",
-      "&:hover": {
-        borderColor: "var(--palette-primary-main)"
-      },
-      "& svg": {
-        color: theme.vars.palette.grey[400]
-      },
-      "&:hover svg": {
-        fill: "var(--palette-primary-main)"
-      }
-    },
-    ".tools .favorite-button": {
-      fontSize: "0.7em",
-      borderColor: `${"var(--palette-primary-main)"}33`,
-      width: "1.5em",
-      height: "1.5em",
-      "&:hover": {
-        borderColor: "var(--palette-primary-main)"
-      },
-      "& svg": {
-        color: theme.vars.palette.grey[400]
-      },
-      "&:hover svg": {
-        fill: "var(--palette-primary-main)"
-      }
-    },
-    ".tools .favorite-button.active": {
-      borderColor: "warning.main",
-      "& svg": {
-        color: "warning.main",
-        fill: "warning.main"
-      }
-    },
-    ".tools .preview-toggle-button": {
-      fontSize: "0.7em",
-      borderColor: `${"var(--palette-primary-main)"}33`,
-      width: "1.5em",
-      height: "1.5em",
-      "&:hover": {
-        borderColor: "var(--palette-primary-main)"
-      },
-      "& svg": {
-        color: theme.vars.palette.grey[400]
-      },
-      "&:hover svg": {
-        fill: "var(--palette-primary-main)"
-      }
-    },
-    ".tools .preview-toggle-button.active": {
-      borderColor: "var(--palette-primary-main)",
-      "& svg": {
-        color: "var(--palette-primary-main)"
-      }
-    },
-    ".tools .delete-selected-button": {
-      borderColor: `${"var(--palette-primary-main)"}33`,
-      color: "var(--palette-primary-main)",
-      "&:hover": {
-        borderColor: "var(--palette-primary-main)"
-      },
-      "& svg": {
-        color: "var(--palette-primary-main)"
-      }
-    },
-    ".MuiOutlinedInput-root": {
-      fontSize: "20px"
-    },
-    ".filter": {
-      width: "130px",
-      height: "35px",
-      fontSize: "var(--fontSizeSmall)"
-    },
-    ".spacer": {
-      flexGrow: 1
-    },
-    ".add-button": {
+
+    ".tools .tool-button": {
       width: "28px",
       height: "28px",
       minWidth: "28px",
-      borderRadius: "var(--rounded-md)",
-      backgroundColor: theme.vars.palette.primary.main,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      transition: "all 0.2s ease",
+      padding: 0,
+      borderRadius: "6px",
+      border: "none",
+      backgroundColor: "transparent",
+      transition:
+        "background-color 140ms ease-out, color 140ms ease-out",
+
+      "& svg": {
+        fontSize: "var(--fontSizeNormal)",
+        color: theme.vars.palette.text.secondary,
+        transition: "color 140ms ease-out"
+      },
+
       "&:hover": {
-        color: theme.vars.palette.primary.light,
-        // borderColor: theme.vars.palette.primary.light,
-        backgroundColor: theme.vars.palette.primary.dark
+        backgroundColor: theme.vars.palette.action.hover,
+        "& svg": {
+          color: theme.vars.palette.text.primary
+        }
+      },
+
+      "&.active": {
+        backgroundColor: theme.vars.palette.action.selected,
+        "& svg": {
+          color: theme.vars.palette.text.primary
+        }
+      },
+
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: "-2px"
       }
     },
+
+    ".tools .tool-button.favorite-active": {
+      backgroundColor: theme.vars.palette.action.selected,
+      "& svg": {
+        color: theme.vars.palette.warning.main
+      }
+    },
+
+    ".tools .delete-selected-button": {
+      width: "28px",
+      height: "28px",
+      minWidth: "28px",
+      padding: 0,
+      borderRadius: "6px",
+      border: "none",
+      backgroundColor: "transparent",
+      color: theme.vars.palette.error.main,
+      transition: "background-color 140ms ease-out",
+      "& svg": {
+        fontSize: "var(--fontSizeNormal)",
+        color: theme.vars.palette.error.main
+      },
+      "&:hover": {
+        backgroundColor: `${theme.vars.palette.error.main}1F`
+      }
+    },
+
     ".tools .active-tags-row": {
       display: "flex",
       flexDirection: "row",
@@ -176,30 +115,33 @@ const styles = (theme: Theme) =>
       gap: "4px",
       alignItems: "center"
     },
+
     ".tools .active-tag-chip": {
       height: "20px",
       fontSize: theme.fontSizeSmaller,
-      backgroundColor: "var(--palette-primary-main)",
-      color: theme.vars.palette.primary.contrastText,
+      backgroundColor: theme.vars.palette.action.selected,
+      color: theme.vars.palette.text.primary,
       border: "none",
       "& .MuiChip-deleteIcon": {
-        color: theme.vars.palette.primary.contrastText,
-        fontSize: "14px",
+        color: theme.vars.palette.text.secondary,
+        fontSize: "var(--fontSizeNormal)",
         "&:hover": {
-          color: theme.vars.palette.grey[200]
+          color: theme.vars.palette.text.primary
         }
       }
     },
+
     ".tools .clear-tags-button": {
       height: "20px",
       fontSize: theme.fontSizeSmaller,
       padding: "0 6px",
       minWidth: "auto",
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       "&:hover": {
-        color: theme.vars.palette.grey[200]
+        color: theme.vars.palette.text.primary
       }
     },
+
     ".tag-menu-item": {
       display: "flex",
       alignItems: "center",
@@ -208,7 +150,7 @@ const styles = (theme: Theme) =>
     },
     ".tag-menu-item .check-icon": {
       width: "16px",
-      color: "var(--palette-primary-main)"
+      color: theme.vars.palette.primary.main
     },
     ".tag-menu-item .empty-icon": {
       width: "16px"
@@ -225,9 +167,6 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   availableTags = []
 }) => {
   const theme = useTheme();
-  const createNewWorkflow = useWorkflowManager((state) => state.createNew);
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const showGraphPreview = useShowGraphPreview();
   const setShowGraphPreview = useWorkflowListViewStore((state) => state.actions.setShowGraphPreview);
   const sortBy = useSortBy();
@@ -270,14 +209,6 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
     handleSortChange("name");
   }, [handleSortChange]);
 
-  const handleCreateWorkflow = useCallback(async () => {
-    const workflow = await createNewWorkflow();
-    queryClient.invalidateQueries({ queryKey: ["workflows"] });
-    navigate(`/editor/${workflow.id}`);
-  }, [navigate, createNewWorkflow, queryClient]);
-
-  const flexGrow1Style = useMemo(() => ({ flexGrow: 1 }), []);
-
   // Memoize tag handlers to prevent new function references in map()
   // This is a performance optimization: prevents MenuItem and Chip from re-rendering
   // when the parent component re-renders
@@ -303,7 +234,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 tooltip="Filter by tags"
                 onClick={handleTagsMenuOpen}
                 active={selectedTags.length > 0}
-                className={`tags-button ${selectedTags.length > 0 ? "has-selection" : ""}`}
+                className={`tool-button ${selectedTags.length > 0 ? "active" : ""}`}
                 nodrag={false}
               />
               <Menu
@@ -349,7 +280,8 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             tooltip={`${showCheckboxes ? "Hide" : "Show"} selection checkboxes`}
             onClick={toggleCheckboxes}
             tooltipPlacement="top"
-            className="checkbox-button"
+            active={showCheckboxes}
+            className={`tool-button ${showCheckboxes ? "active" : ""}`}
             nodrag={false}
           />
 
@@ -360,7 +292,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               onClick={onToggleFavorites}
               tooltipPlacement="top"
               active={showFavoritesOnly}
-              className={`favorite-button ${showFavoritesOnly ? "active" : ""}`}
+              className={`tool-button ${showFavoritesOnly ? "favorite-active" : ""}`}
               nodrag={false}
             />
           )}
@@ -371,7 +303,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             onClick={handleToggleGraphPreview}
             tooltipPlacement="top"
             active={showGraphPreview}
-            className={`preview-toggle-button ${showGraphPreview ? "active" : ""}`}
+            className={`tool-button ${showGraphPreview ? "active" : ""}`}
             nodrag={false}
           />
 
@@ -380,7 +312,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             tooltip={`Sort by ${sortBy === "date" ? "date" : "name"}`}
             onClick={handleSortMenuOpen}
             tooltipPlacement="top"
-            className="preview-toggle-button"
+            className="tool-button"
             nodrag={false}
           />
           <Menu
@@ -410,17 +342,6 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             </MenuItem>
           </Menu>
 
-          <div style={flexGrow1Style} />
-
-          <ToolbarIconButton
-            icon={<AddIcon fontSize="small" />}
-            tooltip="Create new workflow"
-            onClick={handleCreateWorkflow}
-            size="large"
-            tooltipPlacement="top"
-            className="add-button"
-            nodrag={false}
-          />
         </div>
 
         {selectedTags.length > 0 && (

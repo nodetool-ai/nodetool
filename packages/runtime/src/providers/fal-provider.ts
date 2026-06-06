@@ -5,9 +5,12 @@
  * Supports: textToImage, imageToImage, getAvailableImageModels
  */
 
-import { createRequire } from "node:module";
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
+
+const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
+  "node:module"
+);
 import type {
   ImageModel,
   VideoModel,
@@ -73,8 +76,11 @@ let _falManifestByEndpoint: Map<string, FalManifestEntry> | null = null;
 function getFalManifestEntry(modelId: string): FalManifestEntry | undefined {
   if (!_falManifestByEndpoint) {
     _falManifestByEndpoint = new Map();
+    if (!_nodeModule) {
+      return undefined;
+    }
     try {
-      const req = createRequire(import.meta.url);
+      const req = _nodeModule.createRequire(import.meta.url);
       const data = req(
         `${FAL_MANIFEST_PKG}/${FAL_MANIFEST_PATH}`
       ) as FalManifestEntry[];
@@ -120,11 +126,29 @@ class FalArgsBuilder {
     return this.accepted.get(apiName)?.propType.toLowerCase();
   }
 
-  /** Set `apiName` to `value` only if the endpoint accepts it (or unknown). */
+  /**
+   * Set `apiName` to `value` only if the endpoint accepts it (or unknown),
+   * coercing to the manifest's declared type. fal returns 422 when a value's
+   * type doesn't match the field — notably numeric `duration`/`seed`/
+   * `num_frames` sent to fields the endpoint declares as `enum`/`str` (e.g.
+   * `duration` enums are `"5"`/`"10"`, not `5`). Enum values that aren't in
+   * the field's vocabulary are dropped rather than sent.
+   */
   set(apiName: string, value: unknown): this {
     if (value == null) return this;
     if (typeof value === "string" && value === "") return this;
-    if (this.has(apiName)) this.args[apiName] = value;
+    if (!this.has(apiName)) return this;
+    const t = this.propType(apiName);
+    if (t === "enum") {
+      const v = this.acceptedEnumValue(apiName, String(value));
+      if (v !== undefined) this.args[apiName] = v;
+      return this;
+    }
+    if (t === "str" && typeof value !== "string") {
+      this.args[apiName] = String(value);
+      return this;
+    }
+    this.args[apiName] = value;
     return this;
   }
 

@@ -86,7 +86,7 @@ function hasMediaContent(content: Message['content']): boolean {
   return items.some(item => item.type !== 'text');
 }
 
-export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
+export const MessageView: React.FC<MessageViewProps> = React.memo(({ message }) => {
   const isUser = message.role === 'user';
   const { colors } = useTheme();
 
@@ -170,7 +170,9 @@ export const MessageView: React.FC<MessageViewProps> = ({ message }) => {
       )}
     </View>
   );
-};
+});
+
+MessageView.displayName = "MessageView";
 
 const styles = StyleSheet.create({
   container: {

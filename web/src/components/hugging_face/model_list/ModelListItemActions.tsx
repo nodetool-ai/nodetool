@@ -80,11 +80,11 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
             border: "1px solid",
             borderColor: "divider",
             color: "text.secondary",
-            fontSize: "0.75rem"
+            fontSize: "var(--fontSizeSmall)"
           }}
         >
           <LoadingSpinner inline size={12} thickness={5} color="inherit" />
-          Checking cache...
+          Checking cache…
         </Box>
       )}
       {onDownload && !downloaded && !isCheckingCache && (

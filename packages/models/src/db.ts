@@ -284,9 +284,11 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     size: "real",
     duration: "real",
     metadata: "text",
+    sketch_document_id: "text",
     workflow_id: "text",
     node_id: "text",
     job_id: "text",
+    timeline_id: "text",
     created_at: "text",
     updated_at: "text"
   },
@@ -357,6 +359,7 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     id: "text",
     user_id: "text",
     node_id: "text",
+    node_type: "text",
     provider: "text",
     model: "text",
     workflow_id: "text",
@@ -369,6 +372,11 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     total_tokens: "integer",
     cached_tokens: "integer",
     reasoning_tokens: "integer",
+    billing_unit: "text",
+    quantity: "real",
+    unit_price: "real",
+    currency: "text",
+    provider_request_id: "text",
     created_at: "text",
     started_at: "text",
     completed_at: "text",
@@ -566,9 +574,11 @@ function getCreateSchemaSql(): string {
       "size" real,
       "duration" real,
       "metadata" text,
+      "sketch_document_id" text,
       "workflow_id" text,
       "node_id" text,
       "job_id" text,
+      "timeline_id" text,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
@@ -657,6 +667,7 @@ function getCreateSchemaSql(): string {
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,
       "node_id" text NOT NULL DEFAULT '',
+      "node_type" text NOT NULL DEFAULT '',
       "provider" text NOT NULL DEFAULT '',
       "model" text NOT NULL DEFAULT '',
       "workflow_id" text,
@@ -669,6 +680,11 @@ function getCreateSchemaSql(): string {
       "total_tokens" integer,
       "cached_tokens" integer,
       "reasoning_tokens" integer,
+      "billing_unit" text,
+      "quantity" real,
+      "unit_price" real,
+      "currency" text,
+      "provider_request_id" text,
       "created_at" text,
       "started_at" text,
       "completed_at" text,
@@ -757,6 +773,23 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_timeline_sequence_user" ON "timeline_sequences" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_timeline_sequence_project" ON "timeline_sequences" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_timeline_sequence_updated" ON "timeline_sequences" ("updated_at");
+    CREATE TABLE IF NOT EXISTS "image_documents" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "workflow_id" text,
+      "name" text NOT NULL,
+      "width" integer NOT NULL DEFAULT 1024,
+      "height" integer NOT NULL DEFAULT 1024,
+      "background_color" text NOT NULL DEFAULT '#ffffff',
+      "document" text NOT NULL,
+      "thumbnail_asset_id" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_image_document_user" ON "image_documents" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_image_document_project" ON "image_documents" ("project_id");
+    CREATE INDEX IF NOT EXISTS "idx_image_document_updated" ON "image_documents" ("updated_at");
   `;
 }
 

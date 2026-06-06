@@ -40,11 +40,6 @@ jest.mock("@tanstack/react-query", () => ({
   useQueryClient: jest.fn()
 }));
 
-jest.mock("../../../../components/assets/AssetGridContent", () => ({
-  __esModule: true,
-  default: () => null
-}));
-
 const renderWithTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
 
@@ -137,19 +132,19 @@ describe("JobItem", () => {
     it("displays queued status", () => {
       const queuedJob = { ...baseJob, status: "queued" as const, started_at: null, finished_at: null };
       renderWithTheme(<JobItem job={queuedJob} />);
-      expect(screen.getByText("Queued")).toBeInTheDocument();
+      expect(screen.getByText(/In queue/)).toBeInTheDocument();
     });
 
-    it("displays starting status", () => {
+    it("displays starting status as queued", () => {
       const startingJob = { ...baseJob, status: "starting" as const, started_at: null, finished_at: null };
       renderWithTheme(<JobItem job={startingJob} />);
-      expect(screen.getByText("Starting...")).toBeInTheDocument();
+      expect(screen.getByText(/In queue/)).toBeInTheDocument();
     });
 
     it("displays cancelled status", () => {
       const cancelledJob = { ...baseJob, status: "cancelled" as const, started_at: "2023-01-01T12:00:00Z", finished_at: "2023-01-01T12:00:30Z" };
       renderWithTheme(<JobItem job={cancelledJob} />);
-      expect(screen.getByText("Cancelled")).toBeInTheDocument();
+      expect(screen.getByText(/Cancelled/)).toBeInTheDocument();
     });
 
     it("displays error when present", () => {
@@ -170,6 +165,57 @@ describe("JobItem", () => {
     });
   });
 
+  describe("Generated assets", () => {
+    it("shows the output thumbnail inline for completed jobs", () => {
+      mockUseJobAssets.mockReturnValue({
+        data: [
+          {
+            id: "asset-1",
+            content_type: "image/png",
+            name: "image_1",
+            get_url: "http://localhost:7777/api/storage/asset-1.png",
+            thumb_url: "http://localhost:7777/api/storage/asset-1_thumb.jpg"
+          }
+        ],
+        isLoading: false,
+        error: null
+      } as any);
+
+      renderWithTheme(<JobItem job={baseJob} />);
+
+      // No toggle: the thumbnail is part of the row.
+      const img = screen.getByRole("img");
+      expect(img).toHaveAttribute(
+        "src",
+        "http://localhost:7777/api/storage/asset-1_thumb.jpg"
+      );
+      // The metadata line reports the output count.
+      expect(screen.getByText(/1 image/)).toBeInTheDocument();
+    });
+
+    it("renders every output thumbnail and counts them", () => {
+      mockUseJobAssets.mockReturnValue({
+        data: [
+          { id: "a1", content_type: "image/png", get_url: "u1", thumb_url: "t1" },
+          { id: "a2", content_type: "image/png", get_url: "u2", thumb_url: "t2" },
+          { id: "a3", content_type: "image/png", get_url: "u3", thumb_url: "t3" }
+        ],
+        isLoading: false,
+        error: null
+      } as any);
+
+      renderWithTheme(<JobItem job={baseJob} />);
+      expect(screen.getAllByRole("img")).toHaveLength(3);
+      expect(screen.getByText(/3 images/)).toBeInTheDocument();
+    });
+
+    it("shows a status glyph instead of an image when there are no outputs", () => {
+      // Default mock returns no assets.
+      renderWithTheme(<JobItem job={baseJob} />);
+      expect(screen.queryByRole("img")).toBeNull();
+    });
+  });
+
   describe("Job interactions", () => {
     it("navigates to workflow when clicked", () => {
       renderWithTheme(<JobItem job={baseJob} />);
@@ -182,15 +228,22 @@ describe("JobItem", () => {
     it("shows stop button for running jobs", () => {
       const runningJob = { ...baseJob, status: "running" as const, started_at: "2023-01-01T12:00:00Z", finished_at: null };
       renderWithTheme(<JobItem job={runningJob} />);
-      const buttons = screen.getAllByRole("button");
-      expect(buttons.length).toBeGreaterThan(1);
+      expect(
+        screen.getByRole("button", { name: /stop job/i })
+      ).toBeInTheDocument();
     });
 
     it("shows stop button for queued jobs", () => {
       const queuedJob = { ...baseJob, status: "queued" as const, started_at: null, finished_at: null };
       renderWithTheme(<JobItem job={queuedJob} />);
-      const buttons = screen.getAllByRole("button");
-      expect(buttons.length).toBeGreaterThan(1);
+      expect(
+        screen.getByRole("button", { name: /stop job/i })
+      ).toBeInTheDocument();
+    });
+
+    it("shows no stop button for completed jobs", () => {
+      renderWithTheme(<JobItem job={baseJob} />);
+      expect(screen.queryByRole("button", { name: /stop job/i })).toBeNull();
     });
   });
 
@@ -208,14 +261,15 @@ describe("JobItem", () => {
       expect(screen.getByText(/Running/)).toBeInTheDocument();
     });
 
-    it("does not update elapsed time for completed jobs", () => {
+    it("shows a static duration for completed jobs", () => {
+      // baseJob runs 12:00:00 -> 12:01:30 = 1m 30s.
       renderWithTheme(<JobItem job={baseJob} />);
 
       act(() => {
         jest.advanceTimersByTime(5000);
       });
 
-      expect(screen.getByText("completed")).toBeInTheDocument();
+      expect(screen.getByText(/1m 30s/)).toBeInTheDocument();
     });
   });
 

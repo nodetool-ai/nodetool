@@ -44,6 +44,14 @@ import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import LayerRow from "./LayerRow";
+import {
+  asImageRef,
+  resolveImageUrl,
+  useImageUrl,
+  sortImageKeys,
+  nextImageIndex,
+  type ImageRefLike
+} from "./CompositorBody.helpers";
 
 import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
@@ -51,8 +59,7 @@ import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput, useUpstreamValues } from "../../../hooks/nodes/useNodeIO";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
-
-const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
+import { COMPOSITOR_NODE_TYPE } from "../../../constants/nodeTypes";
 
 /** Canonical blend modes are owned by `@nodetool-ai/gpu`. */
 export type CompositorBlendMode = BlendMode;
@@ -87,87 +94,6 @@ const parseTransform = (raw: unknown): LayerTransform2D | undefined => {
 };
 
 export { BLEND_MODES };
-
-export interface ImageRefLike {
-  uri?: string;
-  width?: number;
-  height?: number;
-  data?: unknown;
-}
-
-const asImageRef = (value: unknown): ImageRefLike | undefined => {
-  if (!value || typeof value !== "object") return undefined;
-  const v = value as Record<string, unknown>;
-  return {
-    uri: typeof v.uri === "string" ? v.uri : undefined,
-    width: typeof v.width === "number" ? v.width : undefined,
-    height: typeof v.height === "number" ? v.height : undefined,
-    data: v.data
-  };
-};
-
-const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-};
-
-/**
- * Resolve an `ImageRefLike` to a displayable URL (pure). Converts Uint8Array
- * to a base64 data URI to avoid blob URL leaks.
- */
-export const resolveImageUrl = (
-  image: ImageRefLike | undefined
-): string | undefined => {
-  if (!image) return undefined;
-  if (image.uri) return image.uri;
-  if (typeof image.data === "string") {
-    if (
-      image.data.startsWith("data:") ||
-      image.data.startsWith("blob:") ||
-      image.data.startsWith("http")
-    ) {
-      return image.data;
-    }
-    return `data:image/png;base64,${image.data}`;
-  }
-  if (image.data instanceof Uint8Array) {
-    return `data:image/png;base64,${uint8ArrayToBase64(image.data)}`;
-  }
-  return undefined;
-};
-
-/**
- * Hook that resolves an `ImageRefLike` to a displayable URL.
- */
-export const useImageUrl = (
-  image: ImageRefLike | undefined
-): string | undefined => useMemo(() => resolveImageUrl(image), [image]);
-
-/** Sort `image_N` keys by their numeric suffix. */
-export const sortImageKeys = (keys: string[]): string[] =>
-  keys
-    .filter((k) => /^image_\d+$/.test(k))
-    .sort((a, b) => {
-      const ia = Number(a.slice("image_".length));
-      const ib = Number(b.slice("image_".length));
-      return ia - ib;
-    });
-
-/** Next unused `image_N` index given existing dynamic property keys. */
-export const nextImageIndex = (keys: string[]): number => {
-  let max = -1;
-  for (const k of keys) {
-    const m = /^image_(\d+)$/.exec(k);
-    if (m) {
-      const n = Number(m[1]);
-      if (n > max) max = n;
-    }
-  }
-  return max + 1;
-};
 
 const styles = (theme: Theme) =>
   css({
@@ -206,13 +132,13 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(0.5),
-      paddingRight: theme.spacing(0.25)
+      paddingRight: theme.spacing(0.5)
     },
     ".add-row": {
       flex: "0 0 auto",
       display: "flex",
       justifyContent: "flex-start",
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".outputs-row": {
       flex: "0 0 auto"
@@ -470,7 +396,7 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
       <FlexColumn className="layers" gap={0.5}>
         {imageKeys.length === 0 ? (
-          <div className="empty-state">No layers yet — add one below.</div>
+          <div className="empty-state">No layers yet - add one below.</div>
         ) : (
           imageKeys.map((key, idx) => (
             <LayerRow

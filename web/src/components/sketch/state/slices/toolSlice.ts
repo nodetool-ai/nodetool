@@ -26,6 +26,13 @@ import type {
 } from "../../types";
 import { SYMMETRY_DEFAULT_RAYS, cloneDefaultToolSettings } from "../../types";
 
+/**
+ * Active AI generation mode driving the top mode/prompt bar. Only `generate`
+ * (text-to-image) and `inpaint` (masked) have a real pipeline today; `outpaint`
+ * and `edit` are reserved and rendered disabled until they have a backend.
+ */
+export type SketchGenMode = "generate" | "inpaint" | "outpaint" | "edit";
+
 // ─── Private helpers ─────────────────────────────────────────────────────────
 
 const PRESSURE_OPTIONAL_KEYS = [
@@ -76,6 +83,13 @@ export interface ToolSlice {
   setActiveTool: (tool: SketchTool) => void;
 
   /**
+   * Active AI generation mode for the top mode/prompt bar. Transient UI state —
+   * not part of the persisted document snapshot.
+   */
+  genMode: SketchGenMode;
+  setGenMode: (mode: SketchGenMode) => void;
+
+  /**
    * Live tool settings — the runtime source of truth.
    * Stored separately from `document` so that brush/color changes do not
    * mutate the document object and do not trigger document re-renders.
@@ -123,6 +137,11 @@ export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
 ) => ({
   activeTool: "select",
   setActiveTool: (tool: SketchTool) => set({ activeTool: tool }),
+
+  // Default to text-to-image: it needs no selection, so the primary action is
+  // usable on a fresh canvas (unlike inpaint, which requires a masked region).
+  genMode: "generate",
+  setGenMode: (mode: SketchGenMode) => set({ genMode: mode }),
 
   // Runtime source of truth for tool settings — NOT inside `document` so that
   // brush/color changes do not mutate the document object and do not trigger

@@ -23,8 +23,22 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
 
 jest.mock("../../assets/AssetViewer", () => ({
   __esModule: true,
-  default: ({ open }: { open: boolean }) =>
-    open ? <div data-testid="asset-viewer-open" /> : null
+  default: ({
+    open,
+    asset,
+    sortedAssets
+  }: {
+    open: boolean;
+    asset?: { id?: string };
+    sortedAssets?: { id?: string }[];
+  }) =>
+    open ? (
+      <div
+        data-testid="asset-viewer-open"
+        data-current-asset={asset?.id ?? ""}
+        data-gallery-ids={(sortedAssets ?? []).map((a) => a.id).join(",")}
+      />
+    ) : null
 }));
 
 import NodeHistoryViewer from "../NodeHistoryViewer";
@@ -295,5 +309,37 @@ describe("NodeHistoryViewer", () => {
     expect(screen.queryByTestId("asset-viewer-open")).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Open in viewer"));
     expect(screen.getByTestId("asset-viewer-open")).toBeInTheDocument();
+  });
+
+  it("opens the viewer with the node's full generation history as the gallery", () => {
+    const assets = [makeAsset("a1"), makeAsset("a2"), makeAsset("a3")];
+    mockUseNodeResultHistory.mockReturnValue({
+      assetHistory: assets,
+      historyCount: 3,
+      lastJobAssets: assets,
+      lastJobId: "job-a",
+      isLoading: false,
+      refresh: jest.fn(),
+      workflowId: "wf1"
+    });
+
+    renderWithProviders(
+      <NodeHistoryViewer
+        workflowId="wf1"
+        nodeId="node-a"
+        liveResult={null}
+        renderSingle={renderSingle}
+      />
+    );
+
+    // Navigate to the second generation, then open the viewer.
+    fireEvent.click(screen.getByLabelText("Next output"));
+    fireEvent.click(screen.getByLabelText("Open in viewer"));
+
+    const viewer = screen.getByTestId("asset-viewer-open");
+    // Gallery holds every generation from the node, newest-first.
+    expect(viewer).toHaveAttribute("data-gallery-ids", "a1,a2,a3");
+    // Viewer opens on the currently-selected generation.
+    expect(viewer).toHaveAttribute("data-current-asset", "a2");
   });
 });

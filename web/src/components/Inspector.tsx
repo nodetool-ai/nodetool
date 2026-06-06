@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import PropertyField from "./node/PropertyField";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
@@ -15,7 +15,7 @@ import { EditorUiProvider } from "./editor_ui";
 import {
   Caption,
   CloseButton,
-  CollapsibleSection,
+  CopyButton,
   EditorButton,
   ScrollArea,
   Text,
@@ -35,12 +35,14 @@ import { useExposedInputToggle } from "../hooks/nodes/useExposedInputToggle";
 import usePropertyValidationStore from "../stores/PropertyValidationStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
+import { colorForType } from "../config/data_types";
+import { IconForType } from "../config/IconForType";
 
 const styles = (theme: Theme) =>
   css({
     "&": {
       display: "grid",
-      gridTemplateRows: "1fr auto",
+      gridTemplateRows: "auto auto 1fr auto",
       gridTemplateColumns: "100%",
       backgroundColor: theme.vars.palette.background.default,
       padding: "0",
@@ -49,6 +51,148 @@ const styles = (theme: Theme) =>
       height: "100%",
       overflow: "hidden"
     },
+
+    /* ---------- Head: icon + title + namespace + close ---------- */
+    ".inspector-head": {
+      display: "grid",
+      gridTemplateColumns: "auto 1fr auto",
+      alignItems: "center",
+      gap: theme.spacing(1.5),
+      padding: `${theme.spacing(3)} ${theme.spacing(4)} ${theme.spacing(2)}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".inspector-head-icon": {
+      width: 32,
+      height: 32,
+      borderRadius: "var(--rounded-md)",
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      backgroundColor:
+        "var(--inspector-icon-tint, rgba(102,144,212,0.22))",
+      "& .icon-container": {
+        width: 16,
+        height: 16
+      },
+      "& .icon-container svg, & svg": {
+        width: 16,
+        height: 16,
+        fontSize: 16
+      }
+    },
+    ".inspector-head-text": {
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: 0
+    },
+    ".inspector-title": {
+      fontFamily: theme.fontFamily1,
+      fontSize: "var(--fontSizeBig)",
+      fontWeight: 600,
+      letterSpacing: "-0.01em",
+      lineHeight: 1.2,
+      color: theme.vars.palette.text.primary,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      userSelect: "text"
+    },
+    ".inspector-namespace": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "2px",
+      minWidth: 0,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.secondary,
+      letterSpacing: "0.01em"
+    },
+    ".inspector-namespace-button": {
+      background: "transparent",
+      border: "none",
+      padding: 0,
+      cursor: "pointer",
+      color: "inherit",
+      font: "inherit",
+      minWidth: 0,
+      display: "inline-flex",
+      alignItems: "center"
+    },
+    ".inspector-namespace-text": {
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      maxWidth: "26ch"
+    },
+    ".inspector-namespace .copy-button": {
+      width: 16,
+      height: 16,
+      padding: 0,
+      opacity: 0.55,
+      "&:hover": { opacity: 1, backgroundColor: "transparent" },
+      "& svg": { fontSize: "var(--fontSizeSmall)" }
+    },
+    ".inspector-head-close": {
+      paddingTop: "2px"
+    },
+
+    /* ---------- Tabs ---------- */
+    ".inspector-tabs": {
+      display: "flex",
+      alignItems: "stretch",
+      gap: 0,
+      padding: `0 ${theme.spacing(4)}`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.background.default
+    },
+    ".inspector-tab": {
+      position: "relative",
+      background: "transparent",
+      border: "none",
+      cursor: "pointer",
+      padding: `${theme.spacing(1)} ${theme.spacing(1.5)} ${theme.spacing(1)} 0`,
+      marginRight: theme.spacing(2),
+      color: theme.vars.palette.text.secondary,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 500,
+      letterSpacing: "-0.005em",
+      lineHeight: 1.2,
+      display: "inline-flex",
+      alignItems: "baseline",
+      gap: "6px",
+      transition: "color 120ms ease",
+      "&:hover": { color: theme.vars.palette.text.primary },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 2
+      }
+    },
+    ".inspector-tab .tab-count": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.disabled,
+      fontVariantNumeric: "tabular-nums"
+    },
+    ".inspector-tab.is-active": {
+      color: theme.vars.palette.text.primary
+    },
+    ".inspector-tab.is-active::after": {
+      content: '""',
+      position: "absolute",
+      left: 0,
+      right: theme.spacing(1.5),
+      bottom: -1,
+      height: 2,
+      backgroundColor: theme.vars.palette.primary.main,
+      borderRadius: 2
+    },
+    ".inspector-tab.is-active .tab-count": {
+      color: theme.vars.palette.primary.main
+    },
+
+    /* ---------- Scrolling tab body ---------- */
     ".top": {
       overflow: "hidden",
       position: "relative",
@@ -63,66 +207,56 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(3),
       width: "100%",
       height: "100%",
-      padding: `${theme.spacing(2)} ${theme.spacing(3)} ${theme.spacing(2)} ${theme.spacing(5)}`,
-      transformOrigin: "top left"
+      padding: theme.spacing(4)
     },
-    ".header-row": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between"
+    ".top-content.tab-params": {
+      paddingLeft: `calc(${theme.spacing(3)} - 2px)`
     },
-    ".inspector-header": {
-      display: "flex",
-      flexDirection: "column",
+    ".top-content > .node-property": {
+      display: "contents"
+    },
+
+    /* ---------- Property rows ---------- */
+    ".property-row": {
       width: "100%",
-      paddingBottom: theme.spacing(1),
-      marginBottom: theme.spacing(0.5),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`
+      minWidth: 0
     },
-    ".title": {
+    ".property-row .node-property": {
       width: "100%",
-      userSelect: "none",
-      fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
-      fontWeight: 500
+      minWidth: 0
     },
-    ".namespace-button": {
-      alignSelf: "flex-start",
-      marginTop: theme.spacing(0.5),
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
-      fontSize: theme.fontSizeSmaller,
+    ".property-row .property-label label": {
       color: theme.vars.palette.text.secondary,
-      fontFamily: "monospace",
-      letterSpacing: "0.02em",
-      fontWeight: 500,
-      textTransform: "none",
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.vars.palette.action.hover,
-      whiteSpace: "nowrap",
-      maxWidth: "100%",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      "&:hover": {
-        bgcolor: theme.vars.palette.action.selected,
-        color: theme.vars.palette.text.primary,
-        borderColor: theme.vars.palette.text.secondary
-      }
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 400,
+      letterSpacing: "-0.005em",
+      textTransform: "none"
     },
-    ".header-description": {
-      color: theme.vars.palette.text.primary,
-      fontSize: theme.fontSizeSmaller,
-      lineHeight: 1.45,
-      marginTop: theme.spacing(0.5),
-      whiteSpace: "pre-wrap"
+    ".property-row .inspector-header-toolbar.inspector-toolbar-hoverable .MuiIconButton-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable .MuiButtonBase-root":
+      {
+        opacity: 0,
+        transition: "opacity 120ms ease"
+      },
+    ".property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable .MuiIconButton-root, .property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable .MuiButtonBase-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within .MuiIconButton-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within .MuiButtonBase-root":
+      {
+        opacity: 1
+      },
+    ".property-required-badge": {
+      fontFamily: theme.fontFamily1,
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: theme.vars.palette.text.disabled,
+      padding: "0 4px",
+      userSelect: "none"
     },
-    ".description": {
-      color: "var(--palette-grey-100)",
-      fontSize: theme.fontSizeTiny,
-      paddingRight: "0.5em",
-      maxHeight: "200px",
-      overflowY: "auto"
+    ".property-required-badge.is-required": {
+      color: theme.vars.palette.warning.main,
+      opacity: 0.85
     },
+
+    /* ---------- Multi-select row ---------- */
     ".multi-property-row": {
       display: "flex",
       position: "relative",
@@ -136,9 +270,6 @@ const styles = (theme: Theme) =>
       minWidth: 0,
       width: "100%"
     },
-    ".top-content > .node-property": {
-      display: "contents"
-    },
     ".mixed-indicator": {
       display: "inline-flex",
       flex: "0 0 auto",
@@ -146,33 +277,13 @@ const styles = (theme: Theme) =>
       marginTop: "0.15em",
       color: theme.vars.palette.warning.main
     },
-    ".close-button": {
-      position: "absolute",
-      right: "0.5em",
-      top: "0.5em"
-    },
-    ".property-row": {
-      width: "100%",
-      minWidth: 0
-    },
-    ".property-row .node-property": {
-      width: "100%",
-      minWidth: 0
-    },
-    ".property-row .inspector-header-toolbar.inspector-toolbar-hoverable": {
-      opacity: 0,
-      transition: "opacity 0.15s ease"
-    },
-    ".property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within":
-      {
-        opacity: 1
-      },
+
+    /* ---------- Validation banner ---------- */
     ".validation-banner": {
-      margin: "0.5em 0 0.75em",
       padding: "0.5em 0.75em",
-      borderLeft: `3px solid ${theme.vars.palette.error.main}`,
+      border: `1px solid ${theme.vars.palette.error.main}`,
       backgroundColor: "var(--palette-error-overlay)",
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-md)",
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.error.main
     },
@@ -200,6 +311,114 @@ const styles = (theme: Theme) =>
     ".validation-banner .validation-banner-row-property": {
       fontFamily: "var(--fontFamily2)",
       fontWeight: 600
+    },
+
+    /* ---------- I/O tab ---------- */
+    ".io-section + .io-section": {
+      marginTop: theme.spacing(2)
+    },
+    ".io-section-title": {
+      fontFamily: theme.fontFamily1,
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: theme.vars.palette.text.secondary,
+      marginBottom: theme.spacing(1)
+    },
+    ".io-row": {
+      display: "grid",
+      gridTemplateColumns: "1fr auto",
+      gap: theme.spacing(1),
+      alignItems: "center",
+      padding: `${theme.spacing(1)} 0`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      "&:last-child": { borderBottom: "none" }
+    },
+    ".io-row-name": {
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.text.primary,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    ".io-row-type": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      letterSpacing: "0.02em",
+      color: theme.vars.palette.text.secondary,
+      padding: "2px 6px",
+      borderRadius: "var(--rounded-sm)",
+      backgroundColor: "rgba(255,255,255,0.04)"
+    },
+
+    /* ---------- Help tab ---------- */
+    ".help-section": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(3)
+    },
+    ".help-description": {
+      fontSize: theme.fontSizeNormal,
+      lineHeight: 1.65,
+      color: theme.vars.palette.text.primary,
+      whiteSpace: "pre-wrap",
+      maxWidth: "65ch"
+    },
+    ".help-tags": {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: theme.spacing(1)
+    },
+    ".help-tag": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      letterSpacing: "0.02em",
+      color: theme.vars.palette.text.secondary,
+      padding: "2px 8px",
+      borderRadius: "var(--rounded-pill)",
+      backgroundColor: "rgba(255,255,255,0.04)",
+      border: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".help-meta": {
+      display: "flex",
+      flexDirection: "column",
+      gap: 0,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      paddingTop: theme.spacing(0.5)
+    },
+    ".help-meta-row": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      gap: theme.spacing(2),
+      padding: `${theme.spacing(1)} 0`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      fontSize: theme.fontSizeSmall,
+      "&:last-child": { borderBottom: "none" }
+    },
+    ".help-meta-key": {
+      color: theme.vars.palette.text.secondary,
+      letterSpacing: "0.01em",
+      flexShrink: 0
+    },
+    ".help-meta-value": {
+      color: theme.vars.palette.text.primary,
+      fontFamily: theme.fontFamily2,
+      textAlign: "right",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      minWidth: 0
+    },
+
+    /* ---------- Empty / placeholder tabs ---------- */
+    ".tab-empty": {
+      padding: theme.spacing(2),
+      color: theme.vars.palette.text.secondary,
+      fontSize: theme.fontSizeSmall,
+      textAlign: "center"
     }
   });
 
@@ -232,7 +451,6 @@ const ValidationErrorBanner: React.FC<ValidationErrorBannerProps> = ({
   );
 
   const handleScrollToField = useCallback((property: string) => {
-    // Find the PropertyField inside the inspector and scroll it into view.
     const root = document.querySelector(".inspector");
     if (!root) return;
     const target = root.querySelector(
@@ -242,7 +460,6 @@ const ValidationErrorBanner: React.FC<ValidationErrorBannerProps> = ({
       target.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    // Fallback: scroll the banner itself into view (the message is here).
     const banner = root.querySelector(".validation-banner");
     if (banner instanceof HTMLElement) {
       banner.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -277,10 +494,55 @@ const ValidationErrorBanner: React.FC<ValidationErrorBannerProps> = ({
   );
 };
 
+type InspectorTab = "params" | "io" | "help";
+
+const TAB_DEFS: { value: InspectorTab; label: string; hasCount: boolean }[] = [
+  { value: "params", label: "Params", hasCount: true },
+  { value: "io", label: "I/O", hasCount: true },
+  { value: "help", label: "Help", hasCount: false }
+];
+
+interface InspectorTabsProps {
+  active: InspectorTab;
+  onChange: (next: InspectorTab) => void;
+  counts: Partial<Record<InspectorTab, number>>;
+}
+
+const InspectorTabs: React.FC<InspectorTabsProps> = ({
+  active,
+  onChange,
+  counts
+}) => (
+  <div className="inspector-tabs" role="tablist">
+    {TAB_DEFS.map((tab) => {
+      const count = counts[tab.value];
+      const isActive = active === tab.value;
+      return (
+        <button
+          key={tab.value}
+          type="button"
+          role="tab"
+          aria-selected={isActive}
+          className={`inspector-tab${isActive ? " is-active" : ""}`}
+          onClick={() => onChange(tab.value)}
+        >
+          {tab.label}
+          {tab.hasCount && typeof count === "number" ? (
+            <span className="tab-count">{count}</span>
+          ) : null}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const TypeLabel: React.FC<{ type?: TypeMetadata | null }> = ({ type }) => {
+  const label = type?.type ?? "any";
+  return <span className="io-row-type">{label}</span>;
+};
+
 const Inspector: React.FC = () => {
   // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
-  // We use a custom equality function to avoid re-renders when nodes are moved (position changes)
-  // but their data remains the same.
   const selectedNodes = useNodes(
     (state) => state.nodes.filter((node) => node.selected),
     areNodesEqualIgnoringPosition
@@ -290,15 +552,11 @@ const Inspector: React.FC = () => {
   const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
   const { cycleExposedInputPlacement, getPlacement } = useExposedInputToggle();
 
-  // Optimize: Only subscribe to edges that are connected to selected nodes to avoid re-renders
-  // when unrelated edges change. This is especially important for dynamic properties lookup.
   const selectedNodeIds = useMemo(
     () => new Set(selectedNodes.map((node) => node.id)),
     [selectedNodes]
   );
 
-  // Use strict equality for allEdges to avoid O(E) shallow scan on every frame.
-  // Filter inside useMemo to avoid allocating new array on every frame.
   const allEdges = useNodes((state) => state.edges, (a, b) => a === b);
   const edges = useMemo(
     () =>
@@ -312,6 +570,7 @@ const Inspector: React.FC = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const theme = useTheme();
   const inspectorStyles = useMemo(() => styles(theme), [theme]);
+
   const nodesWithMetadata = useMemo(
     () =>
       selectedNodes
@@ -335,25 +594,19 @@ const Inspector: React.FC = () => {
   const handleInspectorClose = useCallback(() => {
     setSelectedNodes([]);
   }, [setSelectedNodes]);
+
   const sharedProperties = useMemo(() => {
     if (!isMultiSelect || nodesWithMetadata.length === 0) {
       return [];
     }
     const [first, ...rest] = nodesWithMetadata;
-
-    // Build a Set of property signatures from all other nodes for O(1) lookup
-    // This reduces the complexity from O(n*m) to O(n+m) where n is properties in first node
-    // and m is total properties in all other nodes
     const otherPropertySignatures = new Set<string>();
     for (const { metadata } of rest) {
       for (const prop of metadata.properties) {
-        // Create a unique signature for each property based on name and type
-        // We use JSON.stringify for type comparison as it's more efficient than deep comparison
         const typeSignature = JSON.stringify(prop.type);
         otherPropertySignatures.add(`${prop.name}:${typeSignature}`);
       }
     }
-
     return first.metadata.properties.filter((property) => {
       const typeSignature = JSON.stringify(property.type);
       return otherPropertySignatures.has(`${property.name}:${typeSignature}`);
@@ -392,11 +645,37 @@ const Inspector: React.FC = () => {
     [multiNodeIds, updateNodeProperties]
   );
 
-  // Define selectedNode and metadata early so callbacks can reference them
   const selectedNode = selectedNodes[0] || null;
   const metadata = selectedNode?.type
     ? getMetadata(selectedNode.type)
     : null;
+
+  // --- Header identity (icon + tint) -------------------------------------
+  const iconType = useMemo(() => {
+    return (
+      metadata?.outputs?.[0]?.type?.type ??
+      metadata?.properties?.[0]?.type?.type ??
+      "any"
+    );
+  }, [metadata]);
+
+  const iconTintStyle = useMemo<React.CSSProperties | undefined>(() => {
+    if (!metadata) return undefined;
+    const color = colorForType(iconType);
+    if (!color) return undefined;
+    return {
+      ["--inspector-icon-tint" as string]: `${color}40`
+    } as React.CSSProperties;
+  }, [metadata, iconType]);
+
+  // --- Tabs --------------------------------------------------------------
+  const [activeTab, setActiveTab] = useState<InspectorTab>("params");
+
+  // Reset tab when the focused node changes so we don't strand the user
+  // on Help/Cache from a previous node.
+  useEffect(() => {
+    setActiveTab("params");
+  }, [selectedNode?.id]);
 
   const handleNamespaceClick = useCallback(
     (e: React.MouseEvent) => {
@@ -413,8 +692,7 @@ const Inspector: React.FC = () => {
     [metadata?.namespace]
   );
 
-  // Connected target-handle names for the focused node, used to (a) gate the
-  // demotion confirmation prompt and (b) flag the toggle as "connected".
+  // Connected target-handle names for the focused node.
   const connectedTargetHandles = useMemo(() => {
     if (!selectedNode) {
       return new Set<string>();
@@ -429,6 +707,23 @@ const Inspector: React.FC = () => {
     );
   }, [edges, selectedNode]);
 
+  const visibleProperties = useMemo(() => {
+    if (!metadata) return [];
+    return metadata.properties.filter(
+      (p) => p.json_schema_extra?.hidden_in_inspector !== true
+    );
+  }, [metadata]);
+
+  const tabCounts = useMemo(() => {
+    if (!metadata) return {};
+    return {
+      params: visibleProperties.length,
+      io:
+        (metadata.properties?.length ?? 0) +
+        (metadata.outputs?.length ?? 0)
+    } as Partial<Record<InspectorTab, number>>;
+  }, [metadata, visibleProperties.length]);
+
   if (selectedNodes.length === 0) {
     return null;
   }
@@ -437,13 +732,26 @@ const Inspector: React.FC = () => {
     if (!metadataCoverageMatches) {
       return (
         <Box className="inspector" css={inspectorStyles}>
-          <Box className="top">
-            <ScrollArea className="top-content" direction="vertical">
-              <Text size="small" color="secondary">
-                Metadata is not available for all selected nodes.
-              </Text>
-            </ScrollArea>
-          </Box>
+          <div className="inspector-head">
+            <div className="inspector-head-text">
+              <div className="inspector-title">
+                {selectedNodes.length} nodes selected
+              </div>
+              <div className="inspector-namespace">
+                <span className="inspector-namespace-text">
+                  Metadata unavailable for some nodes
+                </span>
+              </div>
+            </div>
+            <div className="inspector-head-close">
+              <CloseButton
+                onClick={handleInspectorClose}
+                tooltip="Close inspector"
+                buttonSize="small"
+                nodrag={false}
+              />
+            </div>
+          </div>
         </Box>
       );
     }
@@ -451,22 +759,29 @@ const Inspector: React.FC = () => {
     return (
       <EditorUiProvider scope="inspector">
         <Box className="inspector" css={inspectorStyles}>
+          <div className="inspector-head">
+            <div className="inspector-head-text">
+              <div className="inspector-title">
+                {selectedNodes.length} nodes selected
+              </div>
+              <div className="inspector-namespace">
+                <span className="inspector-namespace-text">
+                  Editing shared properties
+                </span>
+              </div>
+            </div>
+            <div className="inspector-head-close">
+              <CloseButton
+                onClick={handleInspectorClose}
+                tooltip="Close inspector"
+                buttonSize="small"
+                nodrag={false}
+              />
+            </div>
+          </div>
+          <div />
           <Box className="top">
             <ScrollArea className="top-content" direction="vertical">
-              <div className="inspector-header">
-                <div className="header-row">
-                  <div className="title">{selectedNodes.length} nodes selected</div>
-                  <CloseButton
-                    onClick={handleInspectorClose}
-                    tooltip="Close inspector"
-                    buttonSize="small"
-                    nodrag={false}
-                  />
-                </div>
-                <div className="title">
-                  {`Editing ${selectedNodes.length} nodes`}
-                </div>
-              </div>
               {multiPropertyEntries.length > 0 ? (
                 multiPropertyEntries.map(({ property, value, isMixed }) => (
                   <div
@@ -527,30 +842,78 @@ const Inspector: React.FC = () => {
   return (
     <EditorUiProvider scope="inspector">
       <Box className="inspector" css={inspectorStyles}>
-        <Box className="top">
-          <ScrollArea className="top-content" direction="vertical">
-            <div className="inspector-header">
-              <div className="header-row">
-                <div className="title">{metadata.title}</div>
-                <CloseButton
-                  onClick={handleInspectorClose}
-                  tooltip="Close inspector"
+        {/* HEAD: icon + title + namespace + close */}
+        <div className="inspector-head">
+          <div className="inspector-head-icon" style={iconTintStyle}>
+            <IconForType
+              iconName={iconType}
+              showTooltip={false}
+              iconSize="small"
+            />
+          </div>
+          <div className="inspector-head-text">
+            <div className="inspector-title" title={metadata.title}>
+              {metadata.title}
+            </div>
+            {metadata.namespace ? (
+              <div className="inspector-namespace">
+                <Tooltip
+                  delay={TOOLTIP_ENTER_DELAY}
+                  title="Browse this namespace in the node menu"
+                  placement="bottom-start"
+                >
+                  <button
+                    type="button"
+                    onClick={handleNamespaceClick}
+                    className="inspector-namespace-button"
+                  >
+                    <span className="inspector-namespace-text">
+                      {metadata.namespace}
+                    </span>
+                  </button>
+                </Tooltip>
+                <CopyButton
+                  value={metadata.namespace}
+                  tooltip="Copy namespace"
                   buttonSize="small"
-                  nodrag={false}
                 />
               </div>
-              {metadata.fal_unit_pricing ? (
-                <Box sx={{ mt: 0.5 }}>
+            ) : null}
+          </div>
+          <div className="inspector-head-close">
+            <CloseButton
+              onClick={handleInspectorClose}
+              tooltip="Close inspector"
+              buttonSize="small"
+              nodrag={false}
+            />
+          </div>
+        </div>
+
+        {/* TABS */}
+        <InspectorTabs
+          active={activeTab}
+          onChange={setActiveTab}
+          counts={tabCounts}
+        />
+
+        {/* TAB BODY */}
+        <Box className="top">
+          <ScrollArea
+            className={`top-content${activeTab === "params" ? " tab-params" : ""}`}
+            direction="vertical"
+          >
+            {activeTab === "params" && (
+              <>
+                {metadata.fal_unit_pricing ? (
                   <FalPricingFooter
                     metadata={metadata}
                     selected
                     variant="inline"
                     popoverResetDep={selectedNode.id}
                   />
-                </Box>
-              ) : null}
-              {isKieNodeMetadata(metadata) ? (
-                <Box sx={{ mt: 0.5 }}>
+                ) : null}
+                {isKieNodeMetadata(metadata) ? (
                   <KieCreditsFooter
                     metadata={metadata}
                     selected
@@ -559,170 +922,245 @@ const Inspector: React.FC = () => {
                     workflowId={selectedNode.data.workflow_id}
                     popoverResetDep={selectedNode.id}
                   />
-                </Box>
-              ) : null}
-              {metadata.namespace ? (
-                <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
-                  title="Browse related nodes in the node menu"
-                  placement="bottom"
-                  arrow
-                >
-                  <EditorButton
-                    variant="text"
-                    className="namespace-button"
-                    onClick={handleNamespaceClick}
-                  >
-                    {metadata.namespace}
-                  </EditorButton>
-                </Tooltip>
-              ) : null}
-              {metadata.description && (
-                <CollapsibleSection
-                  title={<Caption size="tiny" color="muted">Description</Caption>}
-                  defaultOpen={false}
-                  compact
-                >
-                  <div className="header-description">
-                    {metadata.description}
-                  </div>
-                </CollapsibleSection>
-              )}
-            </div>
-            {/* Validation errors banner — surfaces every issue for this
-                node so users see errors even when the field is on a handle
-                that has no Inspector row (output slots, dynamic inputs,
-                multi-edge list handles, graph-level issues). */}
-            <ValidationErrorBanner
-              workflowId={selectedNode.data.workflow_id}
-              nodeId={selectedNode.id}
-            />
-            {/* Property list — placement toggle cycles off → top → bottom
-                for all metadata properties (including input_fields /
-                inline_fields defaults). */}
-            {metadata.properties.map((property, index) => {
-              if (property.json_schema_extra?.hidden_in_inspector === true) {
-                return null;
-              }
-              const hasToggle = canConfigureExposedPlacement(
-                metadata,
-                property.name
-              );
-              const exposurePlacement = getPlacement(
-                selectedNode.id,
-                property.name
-              );
-              const connected = connectedTargetHandles.has(property.name);
-              const propertyRowClass = [
-                "property-row",
-                hasToggle && "has-visibility-toggle"
-              ]
-                .filter(Boolean)
-                .join(" ");
-              const visibilityToggle = hasToggle ? (
-                <PropertyVisibilityToggle
-                  placement={exposurePlacement}
-                  connected={connected}
-                  onToggle={() =>
-                    selectedNode &&
-                    cycleExposedInputPlacement(
-                      selectedNode.id,
-                      property.name
-                    )
-                  }
+                ) : null}
+                <ValidationErrorBanner
+                  workflowId={selectedNode.data.workflow_id}
+                  nodeId={selectedNode.id}
                 />
-              ) : null;
-              return (
-                <div
-                  className={propertyRowClass}
-                  key={`inspector-${property.name}-${selectedNode.id}`}
-                >
-                  <InspectorHeaderActionsProvider actions={visibilityToggle}>
-                    <PropertyField
-                      id={selectedNode.id}
-                      value={selectedNode.data.properties[property.name]}
-                      property={property}
-                      propertyIndex={index.toString()}
-                      showHandle={false}
-                      isInspector={true}
-                      nodeType={selectedNode.type ?? "inspector"}
-                      data={selectedNode.data}
-                      layout=""
+                {visibleProperties.map((property, index) => {
+                  const hasToggle = canConfigureExposedPlacement(
+                    metadata,
+                    property.name
+                  );
+                  const exposurePlacement = getPlacement(
+                    selectedNode.id,
+                    property.name
+                  );
+                  const connected = connectedTargetHandles.has(property.name);
+                  const visibilityToggle = hasToggle ? (
+                    <PropertyVisibilityToggle
+                      placement={exposurePlacement}
+                      connected={connected}
+                      onToggle={() =>
+                        selectedNode &&
+                        cycleExposedInputPlacement(
+                          selectedNode.id,
+                          property.name
+                        )
+                      }
                     />
-                  </InspectorHeaderActionsProvider>
-                </div>
-              );
-            })}
+                  ) : null;
+                  const headerActions = property.required ? (
+                    <>
+                      <span className="property-required-badge is-required">
+                        Required
+                      </span>
+                      {visibilityToggle}
+                    </>
+                  ) : (
+                    visibilityToggle
+                  );
+                  return (
+                    <div
+                      className="property-row"
+                      key={`inspector-${property.name}-${selectedNode.id}`}
+                    >
+                      <InspectorHeaderActionsProvider actions={headerActions}>
+                        <PropertyField
+                          id={selectedNode.id}
+                          value={selectedNode.data.properties[property.name]}
+                          property={property}
+                          propertyIndex={index.toString()}
+                          showHandle={false}
+                          isInspector={true}
+                          isConnected={connected}
+                          nodeType={selectedNode.type ?? "inspector"}
+                          data={selectedNode.data}
+                          layout=""
+                        />
+                      </InspectorHeaderActionsProvider>
+                    </div>
+                  );
+                })}
 
-            {/* Dynamic properties, if any */}
-            {Object.entries(selectedNode.data.dynamic_properties || {}).map(
-              ([name, value], index) => {
-                // Infer type from incoming edge or dynamic_inputs metadata
-                const incoming = edges.find(
-                  (edge) =>
-                    edge.target === selectedNode.id &&
-                    edge.targetHandle === name
-                );
+                {Object.entries(selectedNode.data.dynamic_properties || {}).map(
+                  ([name, value], index) => {
+                    const incoming = edges.find(
+                      (edge) =>
+                        edge.target === selectedNode.id &&
+                        edge.targetHandle === name
+                    );
 
-                const dynamicInputMeta = selectedNode.data.dynamic_inputs?.[name];
+                    const dynamicInputMeta =
+                      selectedNode.data.dynamic_inputs?.[name];
 
-                const defaultTypeMetadata: TypeMetadata = {
-                  type: "any",
-                  type_args: [],
-                  optional: false
-                };
+                    const defaultTypeMetadata: TypeMetadata = {
+                      type: "any",
+                      type_args: [],
+                      optional: false
+                    };
 
-                let resolvedType: TypeMetadata = (dynamicInputMeta as TypeMetadata) || defaultTypeMetadata;
+                    let resolvedType: TypeMetadata =
+                      (dynamicInputMeta as TypeMetadata) || defaultTypeMetadata;
 
-                if (incoming && !dynamicInputMeta) {
-                  const sourceNode = findNode(incoming.source);
-                  if (sourceNode) {
-                    const sourceMeta = getMetadata(sourceNode.type || "");
-                    const handle = sourceMeta
-                      ? findOutputHandle(
-                        sourceNode,
-                        incoming.sourceHandle || "",
-                        sourceMeta
-                      )
-                      : undefined;
-                    if (handle?.type) {
-                      resolvedType = handle.type;
+                    if (incoming && !dynamicInputMeta) {
+                      const sourceNode = findNode(incoming.source);
+                      if (sourceNode) {
+                        const sourceMeta = getMetadata(sourceNode.type || "");
+                        const handle = sourceMeta
+                          ? findOutputHandle(
+                              sourceNode,
+                              incoming.sourceHandle || "",
+                              sourceMeta
+                            )
+                          : undefined;
+                        if (handle?.type) {
+                          resolvedType = handle.type;
+                        }
+                      }
                     }
+
+                    const isFalNode =
+                      selectedNode.type === "fal.DynamicFal" ||
+                      selectedNode.type === DYNAMIC_KIE_NODE_TYPE ||
+                      selectedNode.type === "kie.DynamicKie";
+
+                    const property: Property = {
+                      ...(dynamicInputMeta || {}),
+                      name,
+                      type: resolvedType as Property["type"],
+                      required: false
+                    };
+
+                    return (
+                      <PropertyField
+                        key={`inspector-dynamic-${name}-${selectedNode.id}`}
+                        id={selectedNode.id}
+                        value={value}
+                        property={property}
+                        propertyIndex={`dynamic-${index}`}
+                        showHandle={false}
+                        isInspector={true}
+                        isConnected={Boolean(incoming)}
+                        nodeType={selectedNode.type ?? "inspector"}
+                        data={selectedNode.data}
+                        layout=""
+                        isDynamicProperty={true}
+                        hideActionIcons={isFalNode}
+                      />
+                    );
                   }
-                }
+                )}
+              </>
+            )}
 
-                const isFalNode = selectedNode.type === "fal.DynamicFal" ||
-                  selectedNode.type === DYNAMIC_KIE_NODE_TYPE ||
-                  selectedNode.type === "kie.DynamicKie";
+            {activeTab === "io" && (
+              <>
+                <div className="io-section">
+                  <div className="io-section-title">
+                    Inputs ({metadata.properties.length})
+                  </div>
+                  {metadata.properties.length === 0 ? (
+                    <Caption size="smaller" color="muted">
+                      No inputs.
+                    </Caption>
+                  ) : (
+                    metadata.properties.map((property) => (
+                      <div key={`io-in-${property.name}`} className="io-row">
+                        <span className="io-row-name">{property.name}</span>
+                        <TypeLabel type={property.type as TypeMetadata} />
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="io-section">
+                  <div className="io-section-title">
+                    Outputs ({metadata.outputs.length})
+                  </div>
+                  {metadata.outputs.length === 0 ? (
+                    <Caption size="smaller" color="muted">
+                      No outputs.
+                    </Caption>
+                  ) : (
+                    metadata.outputs.map((output) => (
+                      <div key={`io-out-${output.name}`} className="io-row">
+                        <span className="io-row-name">{output.name}</span>
+                        <TypeLabel type={output.type as TypeMetadata} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
 
-                // Build property object with proper typing
-                const property: Property = {
-                  ...(dynamicInputMeta || {}),
-                  name,
-                  type: resolvedType as Property["type"],
-                  required: false,
-                };
-
-                return (
-                  <PropertyField
-                    key={`inspector-dynamic-${name}-${selectedNode.id}`}
-                    id={selectedNode.id}
-                    value={value}
-                    property={property}
-                    propertyIndex={`dynamic-${index}`}
-                    showHandle={false}
-                    isInspector={true}
-                    nodeType={selectedNode.type ?? "inspector"}
-                    data={selectedNode.data}
-                    layout=""
-                    isDynamicProperty={true}
-                    hideActionIcons={isFalNode}
-                  />
-                );
-              }
+            {activeTab === "help" && (
+              <div className="help-section">
+                {(() => {
+                  const raw = (metadata.description || "").trim();
+                  if (!raw) {
+                    return (
+                      <Caption size="smaller" color="muted">
+                        No description provided for this node.
+                      </Caption>
+                    );
+                  }
+                  // Description bodies are conventionally `<paragraph>\n<tags>`.
+                  // Detect a trailing comma-separated keyword line so we can
+                  // present it as chips instead of crammed text.
+                  const lines = raw.split(/\n+/);
+                  const last = lines[lines.length - 1] || "";
+                  const looksLikeTags =
+                    lines.length > 1 &&
+                    /,/.test(last) &&
+                    last.length <= 120 &&
+                    !/[.!?]\s*$/.test(last);
+                  const body = looksLikeTags ? lines.slice(0, -1).join("\n\n") : raw;
+                  const tags = looksLikeTags
+                    ? last.split(",").map((t) => t.trim()).filter(Boolean)
+                    : [];
+                  return (
+                    <>
+                      <div className="help-description">{body}</div>
+                      {tags.length > 0 ? (
+                        <div className="help-tags">
+                          {tags.map((tag) => (
+                            <span key={tag} className="help-tag">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </>
+                  );
+                })()}
+                <div className="help-meta">
+                  <div className="help-meta-row">
+                    <span className="help-meta-key">Type</span>
+                    <span
+                      className="help-meta-value"
+                      title={metadata.node_type}
+                    >
+                      {metadata.node_type}
+                    </span>
+                  </div>
+                  <div className="help-meta-row">
+                    <span className="help-meta-key">Namespace</span>
+                    <span className="help-meta-value" title={metadata.namespace}>
+                      {metadata.namespace}
+                    </span>
+                  </div>
+                  {metadata.supports_dynamic_inputs ? (
+                    <div className="help-meta-row">
+                      <span className="help-meta-key">Dynamic</span>
+                      <span className="help-meta-value">yes</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             )}
           </ScrollArea>
         </Box>
+
         <div className="bottom">
           <RunSelectedNodesSection />
         </div>

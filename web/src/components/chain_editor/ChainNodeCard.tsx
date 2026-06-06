@@ -4,6 +4,7 @@ import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Collapse, LinearProgress } from "@mui/material";
+import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -21,9 +22,11 @@ import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";
 import OutputRenderer from "../node/OutputRenderer";
-import useResultsStore, { hashKey } from "../../stores/ResultsStore";
-import useStatusStore from "../../stores/StatusStore";
-import { useShallow } from "zustand/react/shallow";
+import {
+  useNodeStatus,
+  useNodeProgress,
+  useNodeResultValue
+} from "../../hooks/nodes/useNodeExecState";
 import type { ChainNode, InputSource } from "./chainTypes";
 
 interface ChainNodeCardProps {
@@ -83,20 +86,10 @@ const errorCardStyles = (theme: Theme) =>
 type NodeStatus = "idle" | "running" | "booting" | "starting" | "completed" | "error";
 
 function useNodeExecState(workflowId: string | null, nodeId: string) {
-  const status = useStatusStore(
-    (s) => (workflowId ? s.getStatus(workflowId, nodeId) : undefined)
-  ) as NodeStatus | undefined;
-
-  const { progress, result } = useResultsStore(
-    useShallow((s) => {
-      if (!workflowId) return { progress: undefined, result: undefined };
-      const key = hashKey(workflowId, nodeId);
-      return {
-        progress: s.progress[key],
-        result: s.outputResults[key] ?? s.results[key]
-      };
-    })
-  );
+  const wf = workflowId ?? "";
+  const status = useNodeStatus(wf, nodeId) as NodeStatus | undefined;
+  const progress = useNodeProgress(wf, nodeId);
+  const result = useNodeResultValue(wf, nodeId);
 
   const isRunning = status === "running" || status === "booting" || status === "starting";
   const isCompleted = status === "completed";
@@ -174,14 +167,14 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
             width: 32, height: 32, borderRadius: 1.25,
             display: "flex", alignItems: "center", justifyContent: "center",
             backgroundColor: `${nsColor}18`, color: nsColor,
-            fontSize: 14, fontWeight: 800,
+            fontSize: 14, fontWeight: 600,
           }}
         >
           {index + 1}
         </Box>
 
         <FlexColumn gap={0.25} sx={{ flex: 1, minWidth: 0 }}>
-          <Text size="small" weight={700} truncate>{node.metadata.title}</Text>
+          <Text size="small" weight={600} truncate>{node.metadata.title}</Text>
           {node.expanded && (
             <Text size="tiny" weight={600} sx={{ color: nsColor }}>
               {formatNs(node.metadata.namespace)}
@@ -208,9 +201,9 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       {outputValue !== undefined && !isRunning && (
         <Box
           sx={{
-            px: 1.75,
+            px: 2,
             pb: 1.5,
-            ...(node.nodeType !== "nodetool.workflows.base_node.Preview" && {
+            ...(node.nodeType !== PREVIEW_NODE_TYPE && {
               maxHeight: 300,
               overflow: "auto",
             }),
@@ -222,7 +215,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
 
       {/* Expanded content */}
       <Collapse in={node.expanded} unmountOnExit>
-        <FlexColumn gap={1.5} sx={{ px: 1.75, pb: 1.75 }}>
+        <FlexColumn gap={1.5} sx={{ px: 2, pb: 2 }}>
           {node.metadata.description && (
             <Text size="smaller" color="secondary" lineClamp={3}>
               {node.metadata.description}

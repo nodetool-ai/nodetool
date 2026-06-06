@@ -183,7 +183,7 @@ export interface CircularActionButtonProps {
 
 const getThemeColor = (theme: Theme, colorKey: string): string => {
   // Type-safe palette color accessor
-  const palette = theme.vars.palette as Record<string, Record<string, string> | { main: string }>;
+  const palette = theme.vars.palette as unknown as Record<string, Record<string, string> | { main: string }>;
 
   // Check if it's a theme palette color (e.g., "primary.main" or just "primary")
   const parts = colorKey.split(".");

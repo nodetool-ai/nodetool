@@ -40,6 +40,7 @@ export const colorChannelMergeV1 = defineModule({
   version: 1,
   surface: "internal",
   category: "color",
+  linearity: "nonlinear-in-rgb",
   kind: "fragment",
   params: ChannelMergeParams,
   paramDefaults: { alphaChannel: 3 },

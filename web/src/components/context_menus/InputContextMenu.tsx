@@ -38,128 +38,128 @@ const NODE_ROW_HEIGHT = 28;
  * Returns null for types that don't have corresponding nodes.
  * sourceHandle is optional - defaults to "output" if not specified.
  */
+const NODE_PATHS_BY_TYPE: Record<
+  string,
+  { inputPath: string; constantPath: string; sourceHandle?: string }
+> = {
+  str: {
+    inputPath: "nodetool.input.StringInput",
+    constantPath: "nodetool.constant.String"
+  },
+  int: {
+    inputPath: "nodetool.input.IntegerInput",
+    constantPath: "nodetool.constant.Integer"
+  },
+  float: {
+    inputPath: "nodetool.input.FloatInput",
+    constantPath: "nodetool.constant.Float"
+  },
+  bool: {
+    inputPath: "nodetool.input.BooleanInput",
+    constantPath: "nodetool.constant.Bool"
+  },
+  boolean: {
+    inputPath: "nodetool.input.BooleanInput",
+    constantPath: "nodetool.constant.Bool"
+  },
+  image: {
+    inputPath: "nodetool.input.ImageInput",
+    constantPath: "nodetool.constant.Image"
+  },
+  audio: {
+    inputPath: "nodetool.input.AudioInput",
+    constantPath: "nodetool.constant.Audio"
+  },
+  video: {
+    inputPath: "nodetool.input.VideoInput",
+    constantPath: "nodetool.constant.Video"
+  },
+  document: {
+    inputPath: "nodetool.input.DocumentInput",
+    constantPath: "nodetool.constant.Document"
+  },
+  dataframe: {
+    inputPath: "nodetool.input.DataframeInput",
+    constantPath: "nodetool.constant.DataFrame"
+  },
+  enum: {
+    inputPath: "nodetool.input.SelectInput",
+    constantPath: "nodetool.constant.Select"
+  },
+  language_model: {
+    inputPath: "nodetool.input.LanguageModelInput",
+    constantPath: "nodetool.constant.LanguageModelConstant"
+  },
+  image_model: {
+    inputPath: "nodetool.input.ImageModelInput",
+    constantPath: "nodetool.constant.ImageModelConstant"
+  },
+  video_model: {
+    inputPath: "nodetool.input.VideoModelInput",
+    constantPath: "nodetool.constant.VideoModelConstant"
+  },
+  tts_model: {
+    inputPath: "nodetool.input.TTSModelInput",
+    constantPath: "nodetool.constant.TTSModelConstant"
+  },
+  asr_model: {
+    inputPath: "nodetool.input.ASRModelInput",
+    constantPath: "nodetool.constant.ASRModelConstant"
+  },
+  embedding_model: {
+    inputPath: "nodetool.input.EmbeddingModelInput",
+    constantPath: "nodetool.constant.EmbeddingModelConstant"
+  },
+  image_size: {
+    inputPath: "nodetool.input.ImageSizeInput",
+    constantPath: "nodetool.constant.ImageSize",
+    sourceHandle: "image_size"
+  }
+};
+
 const getNodePathsForType = (
   typeName: string
-): { inputPath: string; constantPath: string; sourceHandle?: string } | null => {
-  const mapping: Record<
-    string,
-    { inputPath: string; constantPath: string; sourceHandle?: string }
-  > = {
-    str: {
-      inputPath: "nodetool.input.StringInput",
-      constantPath: "nodetool.constant.String"
-    },
-    int: {
-      inputPath: "nodetool.input.IntegerInput",
-      constantPath: "nodetool.constant.Integer"
-    },
-    float: {
-      inputPath: "nodetool.input.FloatInput",
-      constantPath: "nodetool.constant.Float"
-    },
-    bool: {
-      inputPath: "nodetool.input.BooleanInput",
-      constantPath: "nodetool.constant.Bool"
-    },
-    boolean: {
-      inputPath: "nodetool.input.BooleanInput",
-      constantPath: "nodetool.constant.Bool"
-    },
-    image: {
-      inputPath: "nodetool.input.ImageInput",
-      constantPath: "nodetool.constant.Image"
-    },
-    audio: {
-      inputPath: "nodetool.input.AudioInput",
-      constantPath: "nodetool.constant.Audio"
-    },
-    video: {
-      inputPath: "nodetool.input.VideoInput",
-      constantPath: "nodetool.constant.Video"
-    },
-    document: {
-      inputPath: "nodetool.input.DocumentInput",
-      constantPath: "nodetool.constant.Document"
-    },
-    dataframe: {
-      inputPath: "nodetool.input.DataframeInput",
-      constantPath: "nodetool.constant.DataFrame"
-    },
-    enum: {
-      inputPath: "nodetool.input.SelectInput",
-      constantPath: "nodetool.constant.Select"
-    },
-    language_model: {
-      inputPath: "nodetool.input.LanguageModelInput",
-      constantPath: "nodetool.constant.LanguageModelConstant"
-    },
-    image_model: {
-      inputPath: "nodetool.input.ImageModelInput",
-      constantPath: "nodetool.constant.ImageModelConstant"
-    },
-    video_model: {
-      inputPath: "nodetool.input.VideoModelInput",
-      constantPath: "nodetool.constant.VideoModelConstant"
-    },
-    tts_model: {
-      inputPath: "nodetool.input.TTSModelInput",
-      constantPath: "nodetool.constant.TTSModelConstant"
-    },
-    asr_model: {
-      inputPath: "nodetool.input.ASRModelInput",
-      constantPath: "nodetool.constant.ASRModelConstant"
-    },
-    embedding_model: {
-      inputPath: "nodetool.input.EmbeddingModelInput",
-      constantPath: "nodetool.constant.EmbeddingModelConstant"
-    },
-    image_size: {
-      inputPath: "nodetool.input.ImageSizeInput",
-      constantPath: "nodetool.constant.ImageSize",
-      sourceHandle: "image_size"
-    }
-  };
-  return mapping[typeName] ?? null;
-};
+): { inputPath: string; constantPath: string; sourceHandle?: string } | null =>
+  NODE_PATHS_BY_TYPE[typeName] ?? null;
 
 /**
  * Maps element type to specialized list constant node paths.
  */
+const LIST_CONSTANT_PATHS: Record<
+  string,
+  { constantPath: string; inputPath: string; label: string }
+> = {
+  image: {
+    constantPath: "nodetool.constant.ImageList",
+    inputPath: "nodetool.input.ImageListInput",
+    label: "Image List"
+  },
+  video: {
+    constantPath: "nodetool.constant.VideoList",
+    inputPath: "nodetool.input.VideoListInput",
+    label: "Video List"
+  },
+  audio: {
+    constantPath: "nodetool.constant.AudioList",
+    inputPath: "nodetool.input.AudioListInput",
+    label: "Audio List"
+  },
+  text: {
+    constantPath: "nodetool.constant.TextList",
+    inputPath: "nodetool.input.TextListInput",
+    label: "Text List"
+  },
+  str: {
+    constantPath: "nodetool.constant.TextList",
+    inputPath: "nodetool.input.StringListInput",
+    label: "Text List"
+  }
+};
+
 const getListConstantPathForElementType = (
   elementTypeName: string
-): { constantPath: string; inputPath: string; label: string } | null => {
-  const mapping: Record<
-    string,
-    { constantPath: string; inputPath: string; label: string }
-  > = {
-    image: {
-      constantPath: "nodetool.constant.ImageList",
-      inputPath: "nodetool.input.ImageListInput",
-      label: "Image List"
-    },
-    video: {
-      constantPath: "nodetool.constant.VideoList",
-      inputPath: "nodetool.input.VideoListInput",
-      label: "Video List"
-    },
-    audio: {
-      constantPath: "nodetool.constant.AudioList",
-      inputPath: "nodetool.input.AudioListInput",
-      label: "Audio List"
-    },
-    text: {
-      constantPath: "nodetool.constant.TextList",
-      inputPath: "nodetool.input.TextListInput",
-      label: "Text List"
-    },
-    str: {
-      constantPath: "nodetool.constant.TextList",
-      inputPath: "nodetool.input.StringListInput",
-      label: "Text List"
-    }
-  };
-  return mapping[elementTypeName] ?? null;
-};
+): { constantPath: string; inputPath: string; label: string } | null =>
+  LIST_CONSTANT_PATHS[elementTypeName] ?? null;
 
 const InputContextMenu: React.FC = () => {
   const theme = useTheme();
@@ -885,7 +885,7 @@ const InputContextMenu: React.FC = () => {
       }}
       transitionDuration={200}
     >
-      <Box sx={{ px: 0.75, py: 0.25 }}>
+      <Box sx={{ px: 1, py: 0.5 }}>
         <TextField
           inputRef={searchInputRef}
           size="small"
@@ -914,7 +914,7 @@ const InputContextMenu: React.FC = () => {
             },
             "& .MuiInputBase-input": {
               fontSize: "var(--fontSizeSmall)",
-              py: 0.25
+              py: 0.5
             }
           }}
           slotProps={{
@@ -942,7 +942,7 @@ const InputContextMenu: React.FC = () => {
         />
       </Box>
       {showStaticActions && (
-        <Box sx={{ px: 0.75, py: 0.1 }}>
+        <Box sx={{ px: 1, py: 0.5 }}>
           {collectElementConstantNodeMetadata && (
             <Box
               component="button"
@@ -1038,7 +1038,7 @@ const InputContextMenu: React.FC = () => {
             ".node-button": { padding: 0 },
             ".icon-bg": { padding: 0, width: "16px", height: "16px" },
             ".icon-bg svg": {
-              fontSize: "0.75rem",
+              fontSize: "var(--fontSizeSmall)",
               width: "12px",
               height: "12px"
             }

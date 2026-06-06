@@ -1,4 +1,5 @@
 import chroma from "chroma-js";
+import { GROUP_NODE_TYPE, COMMENT_NODE_TYPE } from "../constants/nodeTypes";
 
 // Utility to detect CSS variable references (e.g. "var(--palette-primary-main)")
 function isCssVar(color: string): boolean {
@@ -199,10 +200,10 @@ export function createMinimapNodeColorFn(
 
     if (!useTypeColors) {
       // Original behavior: only special nodes get colors
-      if (node.type === "nodetool.workflows.base_node.Group") {
+      if (node.type === GROUP_NODE_TYPE) {
         return isDarkMode ? "#6366f1" : "#818cf8";
       }
-      if (node.type === "nodetool.workflows.base_node.Comment") {
+      if (node.type === COMMENT_NODE_TYPE) {
         return isDarkMode ? "#22c55e" : "#22c55e";
       }
       return isDarkMode ? "#94a3b8" : "#64748b";

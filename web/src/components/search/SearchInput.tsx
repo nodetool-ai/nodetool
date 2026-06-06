@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       transition: "color 0.2s",
       padding: 0,
       "& svg": {
-        fontSize: "1.2rem"
+        fontSize: "var(--fontSizeBig)"
       },
       "&:hover": {
         backgroundColor: "transparent"
@@ -289,6 +289,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         }
       >
         <button
+          type="button"
           className={`clear-search-btn ${localSearchTerm.trim() === "" ? "disabled" : ""
             }`}
           tabIndex={-1}
