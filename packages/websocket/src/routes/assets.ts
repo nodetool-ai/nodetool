@@ -88,22 +88,6 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
             }
           );
         }
-        const loaded = loadPythonPackageMetadata({
-          roots: apiOptions.metadataRoots,
-          maxDepth: apiOptions.metadataMaxDepth
-        });
-        const pkg = loaded.packages.find((p) => p.name === pkgName);
-        if (!pkg || !pkg.sourceFolder) {
-          return new Response(
-            JSON.stringify(
-              apiError(ApiErrorCode.NOT_FOUND, `Package '${pkgName}' not found`)
-            ),
-            {
-              status: 404,
-              headers: { "content-type": "application/json" }
-            }
-          );
-        }
         const { createReadStream, statSync } = await import("node:fs");
         const { extname, resolve } = await import("node:path");
         const mimeTypes: Record<string, string> = {
@@ -114,29 +98,58 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
           ".webp": "image/webp",
           ".svg": "image/svg+xml",
           ".mp3": "audio/mpeg",
+          ".wav": "audio/wav",
           ".mp4": "video/mp4",
           ".webm": "video/webm",
           ".json": "application/json",
           ".txt": "text/plain"
         };
-        const baseDir = resolve(
-          `${pkg.sourceFolder}/nodetool/assets/${pkgName}`
-        );
-        const assetPath = resolve(baseDir, aName);
-        // Prevent path traversal.
-        if (!assetPath.startsWith(baseDir + "/") && assetPath !== baseDir) {
+
+        // Candidate base dirs holding this package's constant assets. Bundled
+        // roots (shipped with the Electron build) are checked first so the
+        // route resolves without a Python installation; Python package
+        // metadata is the fallback for source/dev layouts.
+        const baseDirs: string[] = [];
+        for (const root of apiOptions.packageAssetsRoots ?? []) {
+          baseDirs.push(resolve(root, pkgName));
+        }
+        const loaded = loadPythonPackageMetadata({
+          roots: apiOptions.metadataRoots,
+          maxDepth: apiOptions.metadataMaxDepth
+        });
+        const pkg = loaded.packages.find((p) => p.name === pkgName);
+        if (pkg?.sourceFolder) {
+          baseDirs.push(resolve(`${pkg.sourceFolder}/nodetool/assets/${pkgName}`));
+        }
+        if (baseDirs.length === 0) {
           return new Response(
-            JSON.stringify(apiError(ApiErrorCode.ASSET_NOT_FOUND, "Not found")),
+            JSON.stringify(
+              apiError(ApiErrorCode.NOT_FOUND, `Package '${pkgName}' not found`)
+            ),
             {
               status: 404,
               headers: { "content-type": "application/json" }
             }
           );
         }
-        let fileStat: { size: number; mtimeMs: number };
-        try {
-          fileStat = statSync(assetPath);
-        } catch {
+
+        let assetPath: string | null = null;
+        let fileStat: { size: number; mtimeMs: number } | null = null;
+        for (const baseDir of baseDirs) {
+          const candidate = resolve(baseDir, aName);
+          // Prevent path traversal.
+          if (!candidate.startsWith(baseDir + "/") && candidate !== baseDir) {
+            continue;
+          }
+          try {
+            fileStat = statSync(candidate);
+            assetPath = candidate;
+            break;
+          } catch {
+            // Try the next candidate base dir.
+          }
+        }
+        if (!assetPath || !fileStat) {
           return new Response(
             JSON.stringify(
               apiError(

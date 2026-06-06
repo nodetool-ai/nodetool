@@ -107,6 +107,24 @@ describe("imageUtils", () => {
       expect(result.blobUrl).toBeNull();
     });
 
+    it("resolves package:// URI on ImageSource to the packages route", () => {
+      const source: ImageSource = { uri: "package://nodetool-base/cat.png" };
+      const result = createImageUrl(source, null);
+      expect(result.url).toBe(
+        "http://localhost:7777/api/assets/packages/nodetool-base/cat.png"
+      );
+      expect(result.blobUrl).toBeNull();
+    });
+
+    it("resolves raw package:// string to the packages route", () => {
+      const source: ImageData = "package://nodetool-base/cat.png";
+      const result = createImageUrl(source, null);
+      expect(result.url).toBe(
+        "http://localhost:7777/api/assets/packages/nodetool-base/cat.png"
+      );
+      expect(result.blobUrl).toBeNull();
+    });
+
     it("converts plain base64 string to data URI", () => {
       const source: ImageData = "abc123";
       const result = createImageUrl(source, null);

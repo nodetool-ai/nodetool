@@ -570,6 +570,177 @@ workflows
     }
   );
 
+workflows
+  .command("export-example <workflow_id_or_file>")
+  .description(
+    "Export a workflow as a shipped template: materialize its assets into the " +
+      "package's constant asset dir (package:// refs) and write the example JSON"
+  )
+  .option(
+    "--api-url <url>",
+    "API base URL (used to fetch the workflow and asset bytes by id)",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--package <name>", "Owning package", "nodetool-base")
+  .option(
+    "--assets-dir <dir>",
+    "Root holding <package>/<file> constant assets (defaults to the monorepo base-nodes assets dir)"
+  )
+  .option(
+    "--examples-dir <dir>",
+    "Directory the example JSON is written under, as <dir>/<package>/<name>.json"
+  )
+  .option("-o, --output <file>", "Write the example JSON to this exact path")
+  .option(
+    "--include-remote",
+    "Also materialize http(s) and local-file refs (off by default)"
+  )
+  .action(
+    async (
+      idOrFile: string,
+      opts: {
+        apiUrl: string;
+        package: string;
+        assetsDir?: string;
+        examplesDir?: string;
+        output?: string;
+        includeRemote?: boolean;
+      }
+    ) => {
+      try {
+        const { readFileSync } = await import("node:fs");
+        const { mkdir, writeFile } = await import("node:fs/promises");
+        const { join } = await import("node:path");
+        const { materializeWorkflowConstantAssets } = await import(
+          "@nodetool-ai/websocket"
+        );
+
+        let name = "";
+        let description = "";
+        let tags: string[] = [];
+        let graph: { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
+
+        const isFile =
+          idOrFile.endsWith(".json") ||
+          idOrFile.includes("/") ||
+          idOrFile.includes("\\");
+
+        if (isFile) {
+          const raw = JSON.parse(readFileSync(idOrFile, "utf8")) as Record<
+            string,
+            unknown
+          >;
+          name = typeof raw.name === "string" ? raw.name : "workflow";
+          description = typeof raw.description === "string" ? raw.description : "";
+          tags = Array.isArray(raw.tags)
+            ? raw.tags.filter((t): t is string => typeof t === "string")
+            : [];
+          graph = (raw.graph ?? raw) as typeof graph;
+        } else {
+          const client = createApiClient(opts.apiUrl);
+          const wf = (await client.workflows.get.query({
+            id: idOrFile
+          })) as Record<string, unknown>;
+          name = typeof wf.name === "string" ? wf.name : "workflow";
+          description = typeof wf.description === "string" ? wf.description : "";
+          tags = Array.isArray(wf.tags)
+            ? wf.tags.filter((t): t is string => typeof t === "string")
+            : [];
+          graph = wf.graph as typeof graph;
+        }
+
+        if (!graph?.nodes) {
+          throw new Error("Workflow has no graph to export");
+        }
+
+        const repoRoot = resolve(__dirname, "..", "..", "..");
+        const baseNodesDir = join(
+          repoRoot,
+          "packages",
+          "base-nodes",
+          "nodetool"
+        );
+        const assetsRoot = opts.assetsDir ?? join(baseNodesDir, "assets");
+        const examplesDir = opts.examplesDir ?? join(baseNodesDir, "examples");
+
+        const apiUrl = opts.apiUrl.replace(/\/+$/, "");
+        const fetchAssetBytes = async (
+          ref: string
+        ): Promise<Uint8Array | null> => {
+          let url: string | null = null;
+          if (ref.startsWith("asset://")) {
+            const id = ref.slice("asset://".length);
+            const bareId = id.replace(/\.[^.]+$/, "");
+            try {
+              const meta = await fetch(
+                `${apiUrl}/api/assets/${encodeURIComponent(bareId)}`
+              );
+              if (meta.ok) {
+                const j = (await meta.json()) as { get_url?: string };
+                if (j.get_url) {
+                  url = j.get_url.startsWith("/")
+                    ? `${apiUrl}${j.get_url}`
+                    : j.get_url;
+                }
+              }
+            } catch {
+              // fall back to the storage route below
+            }
+            url ??= `${apiUrl}/api/storage/${encodeURIComponent(id)}`;
+          } else if (ref.includes("/api/storage/")) {
+            url = /^https?:\/\//.test(ref)
+              ? ref
+              : `${apiUrl}${ref.startsWith("/") ? ref : `/${ref}`}`;
+          } else if (/^https?:\/\//.test(ref)) {
+            url = ref;
+          }
+          if (!url) return null;
+          const res = await fetch(url);
+          if (!res.ok) return null;
+          return new Uint8Array(await res.arrayBuffer());
+        };
+
+        const result = await materializeWorkflowConstantAssets(graph, {
+          packageName: opts.package,
+          assetsRoot,
+          fetchAssetBytes,
+          ...(opts.includeRemote ? { includeRemote: true } : {})
+        });
+
+        const example = {
+          id: name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, ""),
+          access: "public",
+          name,
+          description,
+          tags,
+          package_name: opts.package,
+          graph: result.graph
+        };
+
+        const outPath =
+          opts.output ?? join(examplesDir, opts.package, `${name}.json`);
+        await mkdir(dirname(outPath), { recursive: true });
+        await writeFile(outPath, JSON.stringify(example, null, 2) + "\n", "utf8");
+
+        for (const a of result.exported) {
+          console.error(
+            `  asset ${a.source} → ${a.packageUri} (${a.byteLength} bytes)`
+          );
+        }
+        for (const s of result.skipped) {
+          console.error(`  warning: could not resolve asset ${s} (left as-is)`);
+        }
+        console.log(outPath);
+      } catch (e) {
+        console.error(String(e));
+        process.exit(1);
+      }
+    }
+  );
+
 // ---------------------------------------------------------------------------
 // jobs
 // ---------------------------------------------------------------------------

@@ -722,6 +722,68 @@ describe("ProcessingContext.resolveAssetBytes", () => {
       expect.objectContaining({ method: "GET" })
     );
   });
+
+  it("resolves a package:// asset from the configured package assets dir", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nodetool-pkg-assets-"));
+    try {
+      await mkdir(join(root, "nodetool-base", "audio"), { recursive: true });
+      await writeFile(
+        join(root, "nodetool-base", "audio", "loop.bin"),
+        new Uint8Array([1, 2, 3, 4])
+      );
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        environment: { NODETOOL_PACKAGE_ASSETS_DIR: root }
+      });
+      const { bytes } = await ctx.resolveAssetBytes(
+        "package://nodetool-base/audio/loop.bin"
+      );
+      expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 2, 3, 4]));
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses path traversal in package:// asset paths", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nodetool-pkg-assets-"));
+    try {
+      await writeFile(join(root, "secret.bin"), new Uint8Array([9, 9]));
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        environment: { NODETOOL_PACKAGE_ASSETS_DIR: join(root, "pkg") }
+      });
+      const { bytes } = await ctx.resolveAssetBytes(
+        "package://pkg/..%2Fsecret.bin"
+      );
+      // The encoded segment is not decoded into a traversal, and the literal
+      // path does not exist, so nothing is leaked.
+      expect(bytes).toBeNull();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to the package-asset HTTP route when no dir is configured", async () => {
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      environment: { NODETOOL_API_URL: "http://server.test" }
+    });
+    const payload = new Uint8Array([5, 6, 7]);
+    const fetchSpy = vi
+      .spyOn(ctx as unknown as { _fetch: typeof fetch }, "_fetch")
+      .mockResolvedValue(
+        new Response(payload, { status: 200 }) as unknown as Response
+      );
+
+    const { bytes } = await ctx.resolveAssetBytes(
+      "package://nodetool-base/img/cat.png"
+    );
+    expect(Uint8Array.from(bytes ?? [])).toEqual(payload);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "http://server.test/api/assets/packages/nodetool-base/img/cat.png",
+      expect.objectContaining({ method: "GET" })
+    );
+  });
 });
 
 describe("ProcessingContext – asset helper methods", () => {

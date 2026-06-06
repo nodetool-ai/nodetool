@@ -30,3 +30,10 @@ export {
   handleMcpHttpRequest,
   type McpServerOptions
 } from "./mcp-server.js";
+export {
+  materializeWorkflowConstantAssets,
+  type WorkflowGraphLike,
+  type MaterializeOptions,
+  type MaterializeResult,
+  type ExportedAsset
+} from "./lib/package-asset-export.js";

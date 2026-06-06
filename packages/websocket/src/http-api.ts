@@ -89,6 +89,17 @@ export interface HttpApiOptions {
    */
   examplesDir?: string;
   examplesAssetsFallbackDir?: string;
+  /**
+   * Root directories that hold per-package constant assets, laid out as
+   * `<root>/<package-name>/<file>`. Served (read-only, public) at
+   * `/api/assets/packages/<package-name>/<file>` and referenced from workflows
+   * via the `package://<package-name>/<file>` scheme.
+   *
+   * These ship with the Electron build (bundled next to `server.mjs`) so the
+   * route resolves without a Python installation. When set, the route checks
+   * these roots before falling back to Python package metadata.
+   */
+  packageAssetsRoots?: string[];
 }
 
 // Lazily created storage handler — recreated if options change
