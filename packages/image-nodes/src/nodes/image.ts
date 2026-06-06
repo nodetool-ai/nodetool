@@ -1018,11 +1018,168 @@ export class PasteNode extends TransformImageNode {
   }
 }
 
+const RESIZE_IMAGE_NODE_TYPE = "nodetool.image.ResizeImage";
+
+function deprecatedResizeDescription(body: string): string {
+  return `Deprecated — use Resize Image (${RESIZE_IMAGE_NODE_TYPE}) instead.\n${body}`;
+}
+
+type ResizeImageMode = "scale" | "dimensions" | "fit";
+
+async function resizeImageByMode(
+  image: ImageRefLike,
+  mode: ResizeImageMode,
+  params: { scale: number; width: number; height: number },
+  context?: ProcessingContext
+): Promise<Record<string, unknown>> {
+  if (mode === "scale") {
+    const scale = params.scale > 0 ? params.scale : 1;
+    const output = (await transformImage(image, (instance) => {
+      const fallbackWidth = image.width ?? 1;
+      const fallbackHeight = image.height ?? 1;
+      return instance.resize({
+        width: Math.max(1, Math.round(fallbackWidth * scale)),
+        height: Math.max(1, Math.round(fallbackHeight * scale))
+      });
+    }, context)) as Record<string, unknown>;
+    const fallbackWidth =
+      image.width != null
+        ? Math.max(1, Math.round(Number(image.width) * scale))
+        : null;
+    const fallbackHeight =
+      image.height != null
+        ? Math.max(1, Math.round(Number(image.height) * scale))
+        : null;
+    return {
+      ...output,
+      width: fallbackWidth ?? output.width,
+      height: fallbackHeight ?? output.height
+    };
+  }
+
+  const width = Math.max(1, Math.floor(params.width));
+  const height = Math.max(1, Math.floor(params.height));
+
+  if (mode === "fit") {
+    const output = (await transformImage(
+      image,
+      (instance) => instance.resize(width, height, { fit: "inside" }),
+      context
+    )) as Record<string, unknown>;
+    return {
+      ...output,
+      width: output.width ?? width,
+      height: output.height ?? height
+    };
+  }
+
+  const explicitWidth = Number(params.width ?? image.width ?? 0) || null;
+  const explicitHeight = Number(params.height ?? image.height ?? 0) || null;
+  const output = (await transformImage(
+    image,
+    (instance) =>
+      instance.resize(explicitWidth ?? undefined, explicitHeight ?? undefined),
+    context
+  )) as Record<string, unknown>;
+  return {
+    ...output,
+    width: output.width ?? explicitWidth,
+    height: output.height ?? explicitHeight
+  };
+}
+
+export class ResizeImageNode extends TransformImageNode {
+  static readonly nodeType = RESIZE_IMAGE_NODE_TYPE;
+  static readonly title = "Resize Image";
+  static readonly description =
+    "Scale, set exact dimensions, or fit inside a box.\n    image, resize, scale, fit, dimensions";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = ["mode", "scale", "width", "height"];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to resize."
+  })
+  declare image: any;
+
+  @prop({
+    type: "enum",
+    default: "dimensions",
+    values: ["scale", "dimensions", "fit"],
+    title: "Mode",
+    description:
+      "Scale multiplies pixel size; Dimensions sets exact W×H; Fit preserves aspect inside a box."
+  })
+  declare mode: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Scale",
+    description: "Scale factor (scale mode).",
+    min: 0,
+    max: 10
+  })
+  declare scale: any;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Width",
+    description: "Target width (dimensions / fit modes).",
+    min: 1,
+    max: 8192
+  })
+  declare width: any;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Height",
+    description: "Target height (dimensions / fit modes).",
+    min: 1,
+    max: 8192
+  })
+  declare height: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const modeRaw = String(this.mode ?? "dimensions");
+    const mode: ResizeImageMode =
+      modeRaw === "scale" || modeRaw === "fit" ? modeRaw : "dimensions";
+    const output = await resizeImageByMode(
+      image,
+      mode,
+      {
+        scale: Number(this.scale ?? 1),
+        width: Number(this.width ?? image.width ?? 512),
+        height: Number(this.height ?? image.height ?? 512)
+      },
+      context
+    );
+    return { output };
+  }
+}
+
 export class ScaleNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Scale";
   static readonly title = "Scale";
-  static readonly description =
-    "Enlarge or shrink an image by a scale factor.\n    image, resize, scale";
+  static readonly deprecated = true;
+  static readonly replacedBy = RESIZE_IMAGE_NODE_TYPE;
+  static readonly description = deprecatedResizeDescription(
+    "Enlarge or shrink an image by a scale factor.\n    image, resize, scale"
+  );
   static readonly metadataOutputTypes = {
     output: "image"
   };
@@ -1086,8 +1243,11 @@ export class ScaleNode extends TransformImageNode {
 export class ResizeNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Resize";
   static readonly title = "Resize";
-  static readonly description =
-    "Change image dimensions to specified width and height.\n    image, resize";
+  static readonly deprecated = true;
+  static readonly replacedBy = RESIZE_IMAGE_NODE_TYPE;
+  static readonly description = deprecatedResizeDescription(
+    "Change image dimensions to specified width and height.\n    image, resize"
+  );
   static readonly metadataOutputTypes = {
     output: "image"
   };
@@ -1445,8 +1605,11 @@ export class CropNode extends TransformImageNode {
 export class FitNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Fit";
   static readonly title = "Fit";
-  static readonly description =
-    "Resize an image to fit within specified dimensions while preserving aspect ratio.\n    image, resize, fit";
+  static readonly deprecated = true;
+  static readonly replacedBy = RESIZE_IMAGE_NODE_TYPE;
+  static readonly description = deprecatedResizeDescription(
+    "Resize an image to fit within specified dimensions while preserving aspect ratio.\n    image, resize, fit"
+  );
   static readonly metadataOutputTypes = {
     output: "image"
   };
@@ -2869,6 +3032,7 @@ export const IMAGE_NODES = tagAsHybrid([
   BatchToListNode,
   ImagesToListNode,
   PasteNode,
+  ResizeImageNode,
   ScaleNode,
   ResizeNode,
   CanvasResizeNode,

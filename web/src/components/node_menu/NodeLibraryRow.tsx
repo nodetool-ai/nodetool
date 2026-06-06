@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 
-import { Text } from "../ui_primitives";
+import { Caption, Text } from "../ui_primitives";
 import FavoriteButton from "../ui_primitives/FavoriteButton";
 import { IconForType } from "../../config/IconForType";
 import { colorForType } from "../../config/data_types";
@@ -143,7 +143,11 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
             handleClick();
           }
         }}
-        title={node.title}
+        title={
+          node.deprecated
+            ? `${node.title}${node.replaced_by ? ` — use ${node.replaced_by}` : ""}`
+            : node.title
+        }
       >
         <IconForType
           iconName={outputType}
@@ -154,6 +158,11 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
         />
         <Text className="nl-row-title" component="div">
           {node.title}
+          {node.deprecated && (
+            <Caption component="span" sx={{ marginLeft: "6px", color: "warning.main" }}>
+              Deprecated
+            </Caption>
+          )}
         </Text>
         <span className="nl-fav">
           <FavoriteButton

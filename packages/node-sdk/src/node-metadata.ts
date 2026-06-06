@@ -278,7 +278,9 @@ export function getNodeMetadata(
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,
     model_packs: nodeClass.modelPacks,
-    platforms: normalizePlatforms(nodeClass.platforms)
+    platforms: normalizePlatforms(nodeClass.platforms),
+    deprecated: nodeClass.deprecated || undefined,
+    replaced_by: nodeClass.replacedBy
   };
 
   if (!options.mergePythonBackfill) {

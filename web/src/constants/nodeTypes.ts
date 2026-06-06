@@ -49,6 +49,7 @@ export const PAINTER_NODE_TYPE = "nodetool.image.Painter";
 export const PASTE_NODE_TYPE = "nodetool.image.Paste";
 export const PROMPT_NODE_TYPE = "nodetool.text.Prompt";
 export const RESIZE_NODE_TYPE = "nodetool.image.Resize";
+export const RESIZE_IMAGE_NODE_TYPE = "nodetool.image.ResizeImage";
 export const CANVAS_RESIZE_NODE_TYPE = "nodetool.image.CanvasResize";
 export const ROTATE_AND_FLIP_NODE_TYPE = "nodetool.image.RotateAndFlip";
 export const SCALE_NODE_TYPE = "nodetool.image.Scale";

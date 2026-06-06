@@ -300,6 +300,7 @@ export {
   BatchToListNode,
   ImagesToListNode,
   PasteNode,
+  ResizeImageNode,
   ScaleNode,
   ResizeNode,
   CanvasResizeNode,
