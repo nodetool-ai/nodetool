@@ -1,4 +1,10 @@
-import { outputOf, type Generation } from "../nodeGenerations";
+import {
+  outputOf,
+  assetToGeneration,
+  mergeGenerations,
+  type Generation
+} from "../nodeGenerations";
+import type { Asset } from "../../stores/ApiTypes";
 
 const gen = (outputs: Record<string, unknown>): Generation => ({
   id: "g1",
@@ -7,6 +13,16 @@ const gen = (outputs: Record<string, unknown>): Generation => ({
   outputs,
   status: "completed"
 });
+
+const asset = (id: string, jobId: string, createdAt: string): Asset =>
+  ({
+    id,
+    job_id: jobId,
+    node_id: "n1",
+    content_type: "image/png",
+    get_url: `http://x/${id}.png`,
+    created_at: createdAt
+  }) as unknown as Asset;
 
 describe("outputOf", () => {
   it("returns the named handle when present", () => {
@@ -21,5 +37,42 @@ describe("outputOf", () => {
   });
   it("returns undefined outputs as undefined", () => {
     expect(outputOf(gen({}), "x")).toBeUndefined();
+  });
+});
+
+describe("assetToGeneration", () => {
+  it("wraps the asset value under the output handle and carries asset id", () => {
+    const g = assetToGeneration(asset("a1", "j1", "2026-01-01T00:00:00Z"));
+    expect(g.assetId).toBe("a1");
+    expect(g.jobId).toBe("j1");
+    expect(g.status).toBe("completed");
+    expect(g.outputs.output).toEqual({ type: "image", uri: "http://x/a1.png" });
+  });
+});
+
+describe("mergeGenerations", () => {
+  it("keeps all persisted assets and drops a live gen once its job persisted", () => {
+    const persisted = [
+      assetToGeneration(asset("a1", "j1", "2026-01-01T00:00:00Z")),
+      assetToGeneration(asset("a2", "j1", "2026-01-01T00:00:01Z")) // batch: same job, 2 assets
+    ];
+    const live = [
+      {
+        id: "j1",
+        jobId: "j1",
+        createdAt: 10,
+        outputs: { output: "stale" },
+        status: "completed" as const
+      },
+      {
+        id: "j2",
+        jobId: "j2",
+        createdAt: 20,
+        outputs: { output: "live" },
+        status: "running" as const
+      }
+    ];
+    const merged = mergeGenerations(persisted, live);
+    expect(merged.map((g) => g.id)).toEqual(["a1", "a2", "j2"]); // j1 superseded; chronological
   });
 });

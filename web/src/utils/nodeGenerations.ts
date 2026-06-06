@@ -1,4 +1,5 @@
-import type { ProviderCost } from "../stores/ApiTypes";
+import type { Asset, ProviderCost } from "../stores/ApiTypes";
+import { assetToOutputValue } from "../hooks/nodes/useNodeResultHistory";
 
 export interface Generation {
   id: string;
@@ -27,4 +28,38 @@ export const outputOf = (gen: Generation, handle?: string): unknown => {
   if (keys.length === 1) return o[keys[0]];
   if (keys.length === 0) return undefined;
   return o;
+};
+
+export const assetToGeneration = (asset: Asset): Generation => ({
+  id: asset.id,
+  jobId: asset.job_id ?? null,
+  createdAt: asset.created_at ? Date.parse(asset.created_at) : 0,
+  outputs: { output: assetToOutputValue(asset) },
+  status: "completed",
+  assetId: asset.id
+});
+
+/**
+ * One time-ordered list: all persisted generations followed by live
+ * generations whose job has not yet persisted any asset (a live gen is
+ * superseded once its assets land). Each backing is sorted oldest→newest by
+ * createdAt; persisted (durable) generations always precede surviving live
+ * ones so an in-flight run shows after the settled history.
+ */
+export const mergeGenerations = (
+  persisted: Generation[],
+  live: Generation[]
+): Generation[] => {
+  const persistedJobs = new Set(
+    persisted.map((g) => g.jobId).filter(Boolean)
+  );
+  const survivingLive = live.filter(
+    (g) => !(g.jobId && persistedJobs.has(g.jobId))
+  );
+  const byCreatedAt = (a: Generation, b: Generation) =>
+    a.createdAt - b.createdAt;
+  return [
+    ...[...persisted].sort(byCreatedAt),
+    ...[...survivingLive].sort(byCreatedAt)
+  ];
 };
