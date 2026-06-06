@@ -33,7 +33,7 @@ import useStatusStore from "./StatusStore";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
 import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
-import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
+import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 const isWorkflowNotFoundError = (err: unknown): boolean => {
@@ -817,7 +817,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (cached) {
           get().addWorkflow(cached);
           get().setCurrentWorkflowId(workflowId);
-          await hydrateWorkflowResultsFromAssets(workflowId);
+          await useWorkflowAssetStore.getState().loadWorkflowAssets(workflowId);
           return cached;
         }
 
@@ -835,7 +835,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           }
           get().addWorkflow(data);
           get().setCurrentWorkflowId(data.id);
-          await hydrateWorkflowResultsFromAssets(data.id);
+          await useWorkflowAssetStore.getState().loadWorkflowAssets(data.id);
           return data;
         } catch (e: unknown) {
           if (!isWorkflowNotFoundError(e)) {
