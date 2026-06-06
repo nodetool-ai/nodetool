@@ -176,6 +176,79 @@ describe("FAL factory argument building", () => {
     });
   });
 
+  const makeNode = (overrides: Partial<Parameters<typeof createFalNodeClass>[0]>) =>
+    createFalNodeClass({
+      endpointId: "fal-ai/test",
+      className: "OutModel",
+      moduleName: "x",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "str",
+      outputFields: [],
+      enums: [],
+      inputFields: [],
+      ...overrides
+    });
+
+  it("maps a singular `image` object output onto the `output` slot", async () => {
+    falSubmit.mockResolvedValueOnce({
+      image: { url: "https://fal.media/out.png", width: 64, height: 32 }
+    });
+    const NodeClass = makeNode({
+      outputType: "image",
+      outputFields: [
+        { name: "image", propType: "image", tsType: "image", default: null, description: "", fieldType: "output", required: true }
+      ]
+    });
+    const result = await new NodeClass({}).process();
+    expect(result).toEqual({
+      output: { type: "image", uri: "https://fal.media/out.png" }
+    });
+  });
+
+  it("maps a `video_url` string output onto the `output` slot", async () => {
+    falSubmit.mockResolvedValueOnce({ video_url: "https://fal.media/clip.mp4" });
+    const NodeClass = makeNode({
+      outputType: "video",
+      outputFields: [
+        { name: "video_url", propType: "video", tsType: "video", default: null, description: "", fieldType: "output", required: true }
+      ]
+    });
+    const result = await new NodeClass({}).process();
+    expect(result).toEqual({
+      output: { type: "video", uri: "https://fal.media/clip.mp4" }
+    });
+  });
+
+  it("maps an `audio_file` object output onto the `output` slot", async () => {
+    falSubmit.mockResolvedValueOnce({
+      audio_file: { url: "https://fal.media/sound.wav" }
+    });
+    const NodeClass = makeNode({
+      outputType: "audio",
+      outputFields: [
+        { name: "audio_file", propType: "str", tsType: "string", default: null, description: "", fieldType: "output", required: true }
+      ]
+    });
+    const result = await new NodeClass({}).process();
+    expect(result).toEqual({
+      output: { type: "audio", uri: "https://fal.media/sound.wav" }
+    });
+  });
+
+  it("reads a `str` output from its declared field name (not `output`)", async () => {
+    falSubmit.mockResolvedValueOnce({ voice_id: "abc-123" });
+    const NodeClass = makeNode({
+      outputType: "str",
+      outputFields: [
+        { name: "voice_id", propType: "str", tsType: "string", default: "", description: "", fieldType: "output", required: true }
+      ]
+    });
+    const result = await new NodeClass({}).process();
+    expect(result).toEqual({ output: "abc-123" });
+  });
+
   it("forwards ProcessingContext to asset upload resolution", async () => {
     const NodeClass = createFalNodeClass({
       endpointId: "fal-ai/test",

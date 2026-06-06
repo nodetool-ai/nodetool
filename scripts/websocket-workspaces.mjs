@@ -14,6 +14,7 @@ export const websocketWorkspaces = [
   "@nodetool-ai/fal-nodes",
   "@nodetool-ai/replicate-nodes",
   "@nodetool-ai/elevenlabs-nodes",
+  "@nodetool-ai/minimax-nodes",
   "@nodetool-ai/agents",
   "@nodetool-ai/kie-nodes",
   "@nodetool-ai/base-nodes",

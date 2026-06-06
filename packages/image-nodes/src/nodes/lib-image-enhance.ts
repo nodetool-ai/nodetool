@@ -475,7 +475,7 @@ const DESCRIPTORS: readonly Desc[] = [
           description:
             "Represents the percentage of pixels to ignore at both the darkest and lightest ends of the histogram. A cutoff value of 5 means ignoring the darkest 5% and the lightest 5% of pixels, enhancing overall contrast by stretching the remaining pixel values across the full brightness range.",
           min: 0,
-          max: 255
+          max: 49
         }
       }
     ]

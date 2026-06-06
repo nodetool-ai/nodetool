@@ -126,6 +126,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
   onExportMask
 }) => {
   const theme = useTheme();
+  const modalStyles = useMemo(() => styles(theme), [theme]);
   const editorRef = useRef<SketchEditorHandle>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [symmetryAnchorEl, setSymmetryAnchorEl] = useState<HTMLElement | null>(null);
@@ -214,7 +215,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
   return ReactDOM.createPortal(
     <Box
       className="sketch-modal"
-      css={styles(theme)}
+      css={modalStyles}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >

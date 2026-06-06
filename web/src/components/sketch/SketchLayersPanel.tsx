@@ -457,6 +457,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onLoadLayerAsSelection
 }) => {
   const theme = useTheme();
+  const panelStyles = useMemo(() => styles(theme), [theme]);
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const layerById = useMemo(
@@ -928,7 +929,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   return (
     <Box
       className="sketch-layers-panel sketch-panel-right"
-      css={styles(theme)}
+      css={panelStyles}
     >
       {/* ── Color Selector ── */}
       {showColorPicker && (

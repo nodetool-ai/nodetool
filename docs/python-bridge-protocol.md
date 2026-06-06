@@ -128,6 +128,8 @@ Used for Python-only providers. Current message families include:
 - `provider.stream`
 - `provider.text_to_image`
 - `provider.image_to_image`
+- `provider.text_to_video`
+- `provider.text_to_audio`
 - `provider.tts`
 - `provider.asr`
 - `provider.embedding`

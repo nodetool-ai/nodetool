@@ -216,11 +216,15 @@ export function executeComfy(
     }
 
     // Reconcile from history: cached nodes (and any not captured live) don't
-    // emit `executed`, so fetch them now — skipping those already streamed.
+    // emit `executed`, so fetch them now — skipping only nodes whose live
+    // download actually succeeded. A node added to `emitted` but whose live
+    // download failed or yielded nothing is intentionally NOT skipped, so it
+    // gets a second chance from history rather than being lost. (All in-flight
+    // downloads have settled by now: `settle()` drains them before resolving.)
     const fromHistory = await fetchOutputs(
       base,
       promptId,
-      streamState.emitted
+      new Set(Object.keys(streamState.collected))
     );
     for (const [nodeId, outputs] of Object.entries(fromHistory)) {
       streamState.collected[nodeId] = outputs;

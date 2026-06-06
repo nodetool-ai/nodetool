@@ -287,13 +287,19 @@ export class AnthropicProvider extends BaseProvider {
     }
 
     if (message.role === "system") {
-      return {
-        role: "assistant",
-        content:
-          typeof message.content === "string"
-            ? message.content
-            : String(message.content ?? "")
-      };
+      // Anthropic has no `system` role in the messages array (the system prompt
+      // is a top-level param). The main generate paths strip system messages
+      // before conversion; if one still reaches here, fold it into a user
+      // message rather than mislabeling it as assistant text (and avoid
+      // String(array) producing "[object Object]").
+      const text =
+        typeof message.content === "string"
+          ? message.content
+          : (message.content ?? [])
+              .filter(isTextContent)
+              .map((c) => c.text)
+              .join("\n");
+      return { role: "user", content: text };
     }
 
     if (message.role === "user") {
@@ -517,6 +523,7 @@ export class AnthropicProvider extends BaseProvider {
     let streamInputTokens = 0;
     let streamOutputTokens = 0;
     let streamCachedTokens = 0;
+    let streamCacheWriteTokens = 0;
 
     // Track in-flight tool_use blocks: index → { id, name, accumulated partial_json }
     const activeToolBlocks = new Map<
@@ -529,6 +536,7 @@ export class AnthropicProvider extends BaseProvider {
         const usage = event.message.usage;
         streamInputTokens += usage.input_tokens ?? 0;
         streamCachedTokens += usage.cache_read_input_tokens ?? 0;
+        streamCacheWriteTokens += usage.cache_creation_input_tokens ?? 0;
       }
 
       if (event.type === "message_delta") {
@@ -536,10 +544,15 @@ export class AnthropicProvider extends BaseProvider {
       }
 
       if (event.type === "message_stop") {
+        // Anthropic's `input_tokens` is the uncached portion only; cache
+        // read/write tokens are reported separately. genai-prices expects
+        // `inputTokens` to be the full prompt total (see UsageInfo docs).
         this.trackUsage(args.model, {
-          inputTokens: streamInputTokens,
+          inputTokens:
+            streamInputTokens + streamCachedTokens + streamCacheWriteTokens,
           outputTokens: streamOutputTokens,
-          cachedTokens: streamCachedTokens
+          cachedTokens: streamCachedTokens,
+          cacheWriteTokens: streamCacheWriteTokens
         });
       }
 
@@ -691,10 +704,16 @@ export class AnthropicProvider extends BaseProvider {
     );
 
     if (response.usage) {
+      // Anthropic's `input_tokens` is the uncached portion only; cache
+      // read/write tokens are reported separately. genai-prices expects
+      // `inputTokens` to be the full prompt total (see UsageInfo docs).
+      const cacheRead = response.usage.cache_read_input_tokens ?? 0;
+      const cacheWrite = response.usage.cache_creation_input_tokens ?? 0;
       this.trackUsage(args.model, {
-        inputTokens: response.usage.input_tokens ?? 0,
+        inputTokens: (response.usage.input_tokens ?? 0) + cacheRead + cacheWrite,
         outputTokens: response.usage.output_tokens ?? 0,
-        cachedTokens: response.usage.cache_read_input_tokens ?? 0
+        cachedTokens: cacheRead,
+        cacheWriteTokens: cacheWrite
       });
     }
 

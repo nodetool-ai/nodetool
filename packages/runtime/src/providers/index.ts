@@ -32,6 +32,7 @@ import { ReplicateProvider } from "./replicate-provider.js";
 import { FalProvider } from "./fal-provider.js";
 import { KieProvider } from "./kie-provider.js";
 import { TopazProvider } from "./topaz-provider.js";
+import { ReveProvider } from "./reve-provider.js";
 import { AtlasCloudProvider } from "./atlascloud-provider.js";
 import { AkiProvider } from "./aki-provider.js";
 import { MeshyProvider } from "./meshy-provider.js";
@@ -64,6 +65,7 @@ export { ReplicateProvider };
 export { FalProvider };
 export { KieProvider };
 export { TopazProvider };
+export { ReveProvider };
 export { AtlasCloudProvider };
 export { AkiProvider };
 export { MeshyProvider };
@@ -152,6 +154,7 @@ registerBuiltinProvider(PROVIDER_IDS.REPLICATE, ReplicateProvider, { REPLICATE_A
 registerBuiltinProvider(PROVIDER_IDS.FAL_AI, FalProvider, { FAL_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.KIE, KieProvider, { KIE_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.TOPAZ, TopazProvider, { TOPAZ_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.REVE, ReveProvider, { REVE_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.ATLASCLOUD, AtlasCloudProvider, { ATLASCLOUD_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, { MESHY_API_KEY: "" });
@@ -164,6 +167,7 @@ registerBuiltinProvider(PROVIDER_IDS.VOYAGE, VoyageProvider, { VOYAGE_API_KEY: "
 registerBuiltinProvider(PROVIDER_IDS.JINA, JinaProvider, { JINA_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.DEEPSEEK, DeepSeekProvider, { DEEPSEEK_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.XAI, XAIProvider, { XAI_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.HUGGINGFACE, HuggingFaceProvider, { HF_TOKEN: "" });
 
 // Local-only providers — require local servers/CLIs, skip in production
 const _envProcess =
