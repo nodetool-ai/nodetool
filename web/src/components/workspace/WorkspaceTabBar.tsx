@@ -329,11 +329,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       }
 
       moveTab(sourceTabId, toIndex);
-
-      const sourceTab = currentTabs[sourceIndex];
-      if (sourceTab?.type === "workflow") {
-        syncWorkflowOrderFromTabs();
-      }
+      syncWorkflowOrderFromTabs();
 
       setDropTarget(null);
     },

@@ -37,7 +37,7 @@ import { RESIZE_IMAGE_NODE_TYPE } from "../../../constants/nodeTypes";
 type ResizeImageMode = "scale" | "dimensions" | "fit";
 
 const PRESETS: ReadonlyArray<number> = [256, 512, 768, 1024];
-const SCALE_MIN = 0;
+const SCALE_MIN = 0.1;
 const SCALE_MAX = 10;
 
 const styles = (theme: Theme) =>
@@ -252,36 +252,39 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
 
   const handleScaleChange = useCallback(
     (_: Event, v: number | number[]) => {
-      const next = Array.isArray(v) ? v[0] : v;
+      const raw = Array.isArray(v) ? v[0] : v;
+      const next = Math.max(SCALE_MIN, Math.min(SCALE_MAX, raw));
       setProperty("scale", Math.round(next * 100) / 100);
     },
     [setProperty]
   );
 
+  const dimMin = mode === "dimensions" ? 0 : 1;
+
   const setWidth = useCallback(
     (next: number) => {
-      const w = Math.max(1, Math.round(next));
+      const w = Math.max(dimMin, Math.round(next));
       if (chainLocked && aspectRef.current && aspectRef.current > 0) {
-        const h = Math.max(1, Math.round(w / aspectRef.current));
+        const h = Math.max(dimMin, Math.round(w / aspectRef.current));
         setProperties({ width: w, height: h });
       } else {
         setProperties({ width: w });
       }
     },
-    [chainLocked, setProperties]
+    [chainLocked, dimMin, setProperties]
   );
 
   const setHeight = useCallback(
     (next: number) => {
-      const h = Math.max(1, Math.round(next));
+      const h = Math.max(dimMin, Math.round(next));
       if (chainLocked && aspectRef.current && aspectRef.current > 0) {
-        const w = Math.max(1, Math.round(h * aspectRef.current));
+        const w = Math.max(dimMin, Math.round(h * aspectRef.current));
         setProperties({ width: w, height: h });
       } else {
         setProperties({ height: h });
       }
     },
-    [chainLocked, setProperties]
+    [chainLocked, dimMin, setProperties]
   );
 
   const applyPreset = useCallback(
@@ -342,7 +345,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
                   name="width"
                   description={widthProperty.description ?? "Target width"}
                   value={widthValue}
-                  min={widthProperty.min ?? 1}
+                  min={mode === "dimensions" ? 0 : (widthProperty.min ?? 1)}
                   max={widthProperty.max ?? 8192}
                   size="small"
                   color="secondary"
@@ -372,7 +375,7 @@ const ResizeImageBodyInner: React.FC<ResizeImageBodyProps> = ({
                   name="height"
                   description={heightProperty.description ?? "Target height"}
                   value={heightValue}
-                  min={heightProperty.min ?? 1}
+                  min={mode === "dimensions" ? 0 : (heightProperty.min ?? 1)}
                   max={heightProperty.max ?? 8192}
                   size="small"
                   color="secondary"

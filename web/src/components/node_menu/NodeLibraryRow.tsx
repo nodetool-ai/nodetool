@@ -10,6 +10,7 @@ import { IconForType } from "../../config/IconForType";
 import { colorForType } from "../../config/data_types";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import type { NodeMetadata } from "../../stores/ApiTypes";
+import { nodeTypeDisplayName } from "../../constants/nodeTypes";
 
 const rowStyles = (theme: Theme) =>
   css({
@@ -105,6 +106,10 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
       ? `1px solid color-mix(in srgb, ${typeColor} 14%, transparent)`
       : `1px solid ${theme.vars.palette.divider}`;
 
+    const replacementTitle = node.replaced_by
+      ? nodeTypeDisplayName(node.replaced_by)
+      : null;
+
     const containerStyle = useMemo(
       () => ({
         color: tileColor,
@@ -145,7 +150,7 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
         }}
         title={
           node.deprecated
-            ? `${node.title}${node.replaced_by ? ` — use ${node.replaced_by}` : ""}`
+            ? `${node.title}${replacementTitle ? ` — use ${replacementTitle}` : ""}`
             : node.title
         }
       >

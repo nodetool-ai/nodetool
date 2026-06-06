@@ -1092,7 +1092,7 @@ export class ResizeImageNode extends TransformImageNode {
   static readonly nodeType = RESIZE_IMAGE_NODE_TYPE;
   static readonly title = "Resize Image";
   static readonly description =
-    "Scale, set exact dimensions, or fit inside a box.\n    image, resize, scale, fit, dimensions";
+    "Scale, set exact dimensions, or fit inside a box. In dimensions mode, set width or height to 0 to preserve that axis.\n    image, resize, scale, fit, dimensions";
   static readonly metadataOutputTypes = {
     output: "image"
   };
@@ -1128,7 +1128,7 @@ export class ResizeImageNode extends TransformImageNode {
     default: 1,
     title: "Scale",
     description: "Scale factor (scale mode).",
-    min: 0,
+    min: 0.1,
     max: 10
   })
   declare scale: any;
@@ -1137,8 +1137,9 @@ export class ResizeImageNode extends TransformImageNode {
     type: "int",
     default: 512,
     title: "Width",
-    description: "Target width (dimensions / fit modes).",
-    min: 1,
+    description:
+      "Target width (dimensions / fit modes). Use 0 in dimensions mode to preserve aspect on this axis.",
+    min: 0,
     max: 8192
   })
   declare width: any;
@@ -1147,8 +1148,9 @@ export class ResizeImageNode extends TransformImageNode {
     type: "int",
     default: 512,
     title: "Height",
-    description: "Target height (dimensions / fit modes).",
-    min: 1,
+    description:
+      "Target height (dimensions / fit modes). Use 0 in dimensions mode to preserve aspect on this axis.",
+    min: 0,
     max: 8192
   })
   declare height: any;
@@ -1163,8 +1165,8 @@ export class ResizeImageNode extends TransformImageNode {
       mode,
       {
         scale: Number(this.scale ?? 1),
-        width: Number(this.width ?? image.width ?? 512),
-        height: Number(this.height ?? image.height ?? 512)
+        width: Number(this.width ?? 0),
+        height: Number(this.height ?? 0)
       },
       context
     );

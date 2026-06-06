@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { ResizeImageNode } from "../src/nodes/image.js";
+import { getNodeMetadata } from "@nodetool-ai/node-sdk";
+import {
+  FitNode,
+  ResizeImageNode,
+  ResizeNode,
+  ScaleNode
+} from "../src/nodes/image.js";
 
 async function makeTestImage(w = 100, h = 50): Promise<Record<string, unknown>> {
   const buf = await sharp({
@@ -61,5 +67,42 @@ describe("ResizeImageNode", () => {
     const { w, h } = await outputSize(output);
     expect(w).toBe(200);
     expect(h).toBe(100);
+  });
+
+  it("preserves height when width is 0 in dimensions mode", async () => {
+    const node = new ResizeImageNode();
+    node.assign({
+      image: await makeTestImage(100, 50),
+      mode: "dimensions",
+      width: 0,
+      height: 80
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    const { w, h } = await outputSize(output);
+    expect(w).toBe(160);
+    expect(h).toBe(80);
+  });
+});
+
+describe("deprecated resize nodes", () => {
+  it("emit deprecated metadata with replacement node type", () => {
+    for (const NodeClass of [ScaleNode, ResizeNode, FitNode]) {
+      const meta = getNodeMetadata(NodeClass);
+      expect(meta.deprecated).toBe(true);
+      expect(meta.replaced_by).toBe("nodetool.image.ResizeImage");
+    }
+  });
+
+  it("still process identically to unified node for scale", async () => {
+    const image = await makeTestImage(100, 50);
+    const legacy = new ScaleNode();
+    legacy.assign({ image, scale: 2 });
+    const unified = new ResizeImageNode();
+    unified.assign({ image, mode: "scale", scale: 2 });
+
+    const legacyOut = (await legacy.process()).output as Record<string, unknown>;
+    const unifiedOut = (await unified.process()).output as Record<string, unknown>;
+    expect(await outputSize(legacyOut)).toEqual(await outputSize(unifiedOut));
   });
 });

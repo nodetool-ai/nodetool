@@ -53,3 +53,9 @@ export const RESIZE_IMAGE_NODE_TYPE = "nodetool.image.ResizeImage";
 export const CANVAS_RESIZE_NODE_TYPE = "nodetool.image.CanvasResize";
 export const ROTATE_AND_FLIP_NODE_TYPE = "nodetool.image.RotateAndFlip";
 export const SCALE_NODE_TYPE = "nodetool.image.Scale";
+
+/** Human-readable label from a node_type string (e.g. ResizeImage → Resize Image). */
+export function nodeTypeDisplayName(nodeType: string): string {
+  const segment = nodeType.split(".").pop() ?? nodeType;
+  return segment.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}

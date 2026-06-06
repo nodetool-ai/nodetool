@@ -399,20 +399,23 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
         {imageKeys.length === 0 ? (
           <div className="empty-state">No layers yet - add one below.</div>
         ) : (
-          imageKeys.map((key, idx) => (
-            <LayerRow
-              key={key}
-              index={idx}
-              propertyKey={key}
-              state={layers[idx] ?? DEFAULT_LAYER_STATE}
-              image={upstreamForKey(key)}
-              onOpacityChange={onOpacityChange}
-              onOpacityComplete={onOpacityComplete}
-              onBlendChange={onBlendChange}
-              onToggleVisible={onToggleVisible}
-              onDelete={onDeleteLayer}
-            />
-          ))
+          [...imageKeys].reverse().map((key) => {
+            const idx = imageKeys.indexOf(key);
+            return (
+              <LayerRow
+                key={key}
+                index={idx}
+                propertyKey={key}
+                state={layers[idx] ?? DEFAULT_LAYER_STATE}
+                image={upstreamForKey(key)}
+                onOpacityChange={onOpacityChange}
+                onOpacityComplete={onOpacityComplete}
+                onBlendChange={onBlendChange}
+                onToggleVisible={onToggleVisible}
+                onDelete={onDeleteLayer}
+              />
+            );
+          })
         )}
       </FlexColumn>
 

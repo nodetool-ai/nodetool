@@ -23,6 +23,7 @@ describe("bespokeRegistry", () => {
     it("includes known bespoke node types", () => {
       const knownTypes = [
         "nodetool.image.Crop",
+        "nodetool.image.ResizeImage",
         "nodetool.image.Resize",
         "nodetool.image.Fit"
       ];
