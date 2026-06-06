@@ -722,11 +722,12 @@ workflows
           ...(opts.includeRemote ? { includeRemote: true } : {})
         });
 
+        const slug = name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
         const example = {
-          id: name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, ""),
+          id: slug || "workflow",
           access: "public",
           name,
           description,
@@ -735,8 +736,13 @@ workflows
           graph: result.graph
         };
 
+        // Sanitize the on-disk filename separately from the display name so
+        // names with path separators can't escape the examples directory.
+        const safeFileName =
+          name.replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^[._]+/, "") ||
+          "workflow";
         const outPath =
-          opts.output ?? join(examplesDir, opts.package, `${name}.json`);
+          opts.output ?? join(examplesDir, opts.package, `${safeFileName}.json`);
         await mkdir(dirname(outPath), { recursive: true });
         await writeFile(outPath, JSON.stringify(example, null, 2) + "\n", "utf8");
 

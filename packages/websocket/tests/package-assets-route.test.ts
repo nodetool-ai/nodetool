@@ -15,17 +15,23 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import assetsRoutes from "../src/routes/assets.js";
 
-describe("GET /api/assets/packages/:packageName/:assetName", () => {
+describe("GET /api/assets/packages/:packageName/*", () => {
   let app: FastifyInstance;
   let root: string;
 
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "nodetool-pkg-route-"));
-    await mkdir(join(root, "nodetool-base"), { recursive: true });
+    await mkdir(join(root, "nodetool-base", "audio"), { recursive: true });
     await writeFile(
       join(root, "nodetool-base", "cat.png"),
       Buffer.from([1, 2, 3, 4])
     );
+    await writeFile(
+      join(root, "nodetool-base", "audio", "loop.mp3"),
+      Buffer.from([5, 6, 7])
+    );
+    // A file that lives outside the package dir, used for traversal checks.
+    await writeFile(join(root, "secret.txt"), Buffer.from([9, 9, 9]));
     app = Fastify({ logger: false });
     await app.register(assetsRoutes, {
       apiOptions: { packageAssetsRoots: [root] }
@@ -48,6 +54,16 @@ describe("GET /api/assets/packages/:packageName/:assetName", () => {
     expect(Array.from(res.rawPayload)).toEqual([1, 2, 3, 4]);
   });
 
+  it("serves a nested package asset path", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/assets/packages/nodetool-base/audio/loop.mp3"
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toBe("audio/mpeg");
+    expect(Array.from(res.rawPayload)).toEqual([5, 6, 7]);
+  });
+
   it("404s for a missing asset in a known package", async () => {
     const res = await app.inject({
       method: "GET",
@@ -64,11 +80,12 @@ describe("GET /api/assets/packages/:packageName/:assetName", () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it("rejects path traversal in the asset name", async () => {
+  it("rejects path traversal out of the package dir", async () => {
     const res = await app.inject({
       method: "GET",
-      url: "/api/assets/packages/nodetool-base/weird..name.png"
+      url: "/api/assets/packages/nodetool-base/%2e%2e%2fsecret.txt"
     });
     expect(res.statusCode).toBe(404);
+    expect(res.rawPayload.includes(9)).toBe(false);
   });
 });
