@@ -282,6 +282,10 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
    */
   deliverLocal(message: WebSocketMessage): void {
     this.routeMessage(message);
+    // Mirror the real socket path (wsManager "message" handler), which routes
+    // and then re-emits, so manager-level "message" listeners also see
+    // locally-produced messages.
+    this.emit("message", message);
   }
 
   /**

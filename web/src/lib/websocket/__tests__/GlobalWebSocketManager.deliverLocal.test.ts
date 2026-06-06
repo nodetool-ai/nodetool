@@ -29,6 +29,23 @@ describe("GlobalWebSocketManager.deliverLocal", () => {
     unsubJob();
   });
 
+  it("re-emits a manager-level 'message' event, like the real socket path", () => {
+    const onMessage = jest.fn();
+    const unsub = globalWebSocketManager.subscribeEvent("message", onMessage);
+
+    const message = {
+      type: "node_update",
+      workflow_id: "wf-m",
+      job_id: "job-m",
+      node_id: "n1",
+      status: "running"
+    };
+    globalWebSocketManager.deliverLocal(message);
+
+    expect(onMessage).toHaveBeenCalledWith(message);
+    unsub();
+  });
+
   it("does not invoke handlers for unrelated keys", () => {
     const other = jest.fn();
     const unsub = globalWebSocketManager.subscribe("other-wf", other);
