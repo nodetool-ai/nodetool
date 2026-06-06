@@ -244,7 +244,8 @@ async function getWorkflowRuntimeEnvironment(
             Object.fromEntries(
               (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
             ),
-            meta?.required_settings ?? []
+            meta?.required_settings ?? [],
+            node.id
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
