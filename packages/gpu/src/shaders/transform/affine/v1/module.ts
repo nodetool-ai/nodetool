@@ -71,10 +71,12 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     p.m00 * uv.x + p.m01 * uv.y + p.tx,
     p.m10 * uv.x + p.m11 * uv.y + p.ty
   );
-  if (s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0) {
-    return vec4f(0.0);
-  }
-  return textureSample(layout.$.source, layout.$.samp, s);
+  // Sample unconditionally (WGSL requires textureSample in uniform control
+  // flow) and select transparent black for out-of-bounds taps. The clamp-to-
+  // edge sampler makes the discarded out-of-bounds read harmless.
+  let oob = s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0;
+  let col = textureSample(layout.$.source, layout.$.samp, s);
+  return select(col, vec4f(0.0), oob);
 }
 `,
   io: {

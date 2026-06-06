@@ -60,10 +60,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     p.originX + uv.x * p.width,
     p.originY + uv.y * p.height
   );
-  if (sampleUv.x < 0.0 || sampleUv.x > 1.0 || sampleUv.y < 0.0 || sampleUv.y > 1.0) {
-    return vec4f(0.0);
-  }
-  return textureSample(layout.$.source, layout.$.samp, sampleUv);
+  // Sample unconditionally (textureSample must run in uniform control flow);
+  // select transparent black for taps outside the crop region.
+  let oob = sampleUv.x < 0.0 || sampleUv.x > 1.0 || sampleUv.y < 0.0 || sampleUv.y > 1.0;
+  let col = textureSample(layout.$.source, layout.$.samp, sampleUv);
+  return select(col, vec4f(0.0), oob);
 }
 `,
   io: {

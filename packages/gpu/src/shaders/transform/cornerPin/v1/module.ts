@@ -81,15 +81,17 @@ export const transformCornerPinV1 = defineModule({
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let p = layout.$.params;
   let w = p.h20 * uv.x + p.h21 * uv.y + 1.0;
-  if (abs(w) < 1e-6) {
-    return vec4f(0.0);
-  }
-  let u = (p.h00 * uv.x + p.h01 * uv.y + p.h02) / w;
-  let v = (p.h10 * uv.x + p.h11 * uv.y + p.h12) / w;
-  if (u < 0.0 || u > 1.0 || v < 0.0 || v > 1.0) {
-    return vec4f(0.0);
-  }
-  return textureSample(layout.$.source, layout.$.samp, vec2f(u, v));
+  let degenerate = abs(w) < 1e-6;
+  // Guard the perspective divide so u/v stay finite even at the singularity;
+  // those pixels are discarded by the select below anyway.
+  let wSafe = select(w, 1.0, degenerate);
+  let u = (p.h00 * uv.x + p.h01 * uv.y + p.h02) / wSafe;
+  let v = (p.h10 * uv.x + p.h11 * uv.y + p.h12) / wSafe;
+  // Sample unconditionally (textureSample must run in uniform control flow);
+  // select transparent black at the singularity or outside the source.
+  let oob = degenerate || u < 0.0 || u > 1.0 || v < 0.0 || v > 1.0;
+  let col = textureSample(layout.$.source, layout.$.samp, vec2f(u, v));
+  return select(col, vec4f(0.0), oob);
 }
 `,
   io: {

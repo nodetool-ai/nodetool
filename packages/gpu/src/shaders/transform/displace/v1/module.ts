@@ -63,10 +63,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let disp = dispP.rgb / max(dispP.a, 1.0 / 255.0);
   let offset = vec2f((disp.r - 0.5) * 2.0 * p.amountX, (disp.g - 0.5) * 2.0 * p.amountY);
   let s = uv + offset;
-  if (s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0) {
-    return vec4f(0.0);
-  }
-  return textureSample(layout.$.source, layout.$.samp, s);
+  // Sample unconditionally (textureSample must run in uniform control flow);
+  // select transparent black where the offset pushes UV outside the source.
+  let oob = s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0;
+  let col = textureSample(layout.$.source, layout.$.samp, s);
+  return select(col, vec4f(0.0), oob);
 }
 `,
   io: {
