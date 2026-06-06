@@ -1,0 +1,25 @@
+{
+  "id": "90a33f13",
+  "phase": "agent_error",
+  "pageUrl": "/workspace",
+  "sourceFile": null,
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "01fdac4c",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [
+    {
+      "error": "agent_error",
+      "message": "Live session ended"
+    }
+  ],
+  "updatedAt": "2026-05-30T06:12:02.206Z"
+}

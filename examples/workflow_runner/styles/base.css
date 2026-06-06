@@ -1,0 +1,79 @@
+/* General styles and typography - NodeTool Theme */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+*::selection {
+  background-color: var(--c-selection);
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--c-brightest);
+  background: var(--c-black);
+  background-image: 
+    radial-gradient(ellipse at 20% 20%, rgba(142, 172, 167, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(227, 91, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(34, 51, 153, 0.05) 0%, transparent 70%);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+h1, h2, h3, h4 {
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--c-brightest);
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+
+a {
+  color: var(--c-link);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--c-link-visited);
+}
+
+code, pre {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--c-scroll-thumb);
+  border-radius: 3px;
+  transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-scroll-hover);
+}
+
+input, textarea, select, button {
+  font-family: inherit;
+  font-size: inherit;
+}

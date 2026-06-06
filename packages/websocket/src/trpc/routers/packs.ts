@@ -1,0 +1,111 @@
+/**
+ * Packs router — backs the Settings → Packages UI.
+ *
+ * Read operations return the in-memory snapshot populated by
+ * {@link bootstrapNodeRegistry} at startup. `setTrust` persists the allowlist
+ * to disk; `reload` re-scans installed packs and registers any new ones into
+ * the live registry (soft reload).
+ */
+
+import { z } from "zod";
+import { router } from "../index.js";
+import { protectedProcedure } from "../middleware.js";
+import { getPackSnapshot, reloadPacks } from "../../pack-snapshot.js";
+import {
+  resolvePackTrust,
+  writePackTrustConfig,
+  type LoadedPackResult
+} from "@nodetool-ai/node-sdk";
+
+// ── Schemas ──────────────────────────────────────────────────────────────
+
+const skipReasonSchema = z.enum([
+  "not-allowed",
+  "api-version",
+  "reserved-namespace",
+  "collision",
+  "no-node-type"
+]);
+
+const packResultSchema = z.object({
+  name: z.string(),
+  version: z.string().optional(),
+  status: z.enum(["loaded", "skipped", "error"]),
+  reason: z.string().optional(),
+  registered: z.array(z.string()),
+  skippedNodes: z.array(
+    z.object({ nodeType: z.string(), reason: skipReasonSchema })
+  ),
+  error: z.string().optional()
+});
+
+const packsListOutput = z.object({ packs: z.array(packResultSchema) });
+
+const trustSchema = z.object({
+  allowlist: z.array(z.string()),
+  allowUnlisted: z.boolean()
+});
+
+const trustUpdateInput = z
+  .object({
+    allowlist: z.array(z.string()).optional(),
+    allowUnlisted: z.boolean().optional()
+  })
+  .refine((v) => v.allowlist !== undefined || v.allowUnlisted !== undefined, {
+    message: "at least one of allowlist or allowUnlisted must be set"
+  });
+
+// ── DTO mapping ──────────────────────────────────────────────────────────
+
+function toDto(r: LoadedPackResult): z.infer<typeof packResultSchema> {
+  return {
+    name: r.pack.name,
+    ...(r.pack.version !== undefined ? { version: r.pack.version } : {}),
+    status: r.status,
+    ...(r.reason !== undefined ? { reason: r.reason } : {}),
+    registered: r.registered,
+    skippedNodes: r.skippedNodes,
+    ...(r.error ? { error: r.error.message } : {})
+  };
+}
+
+// ── Router ───────────────────────────────────────────────────────────────
+
+export const packsRouter = router({
+  /** Startup snapshot of every discovered pack and what happened to it. */
+  list: protectedProcedure.output(packsListOutput).query(() => ({
+    packs: getPackSnapshot().map(toDto)
+  })),
+
+  /** Effective trust config (env + config file + defaults merged). */
+  getTrust: protectedProcedure.output(trustSchema).query(() =>
+    resolvePackTrust()
+  ),
+
+  /**
+   * Persist a partial trust update to `~/.config/nodetool/packs.json` and
+   * return the new effective trust. Callers can then invoke `reload` to apply
+   * the change to the live registry.
+   */
+  setTrust: protectedProcedure
+    .input(trustUpdateInput)
+    .output(trustSchema)
+    .mutation(({ input }) => {
+      const current = resolvePackTrust();
+      const next = {
+        allowlist: input.allowlist ?? current.allowlist,
+        allowUnlisted: input.allowUnlisted ?? current.allowUnlisted
+      };
+      writePackTrustConfig(next);
+      return next;
+    }),
+
+  /**
+   * Re-scan installed packs and register any new ones into the live registry.
+   * Returns the refreshed snapshot.
+   */
+  reload: protectedProcedure.output(packsListOutput).mutation(async ({ ctx }) => {
+    await reloadPacks(ctx.registry);
+    return { packs: getPackSnapshot().map(toDto) };
+  })
+});
