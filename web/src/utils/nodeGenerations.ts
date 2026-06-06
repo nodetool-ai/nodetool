@@ -63,3 +63,30 @@ export const mergeGenerations = (
     ...[...survivingLive].sort(byCreatedAt)
   ];
 };
+
+/**
+ * Resolve the current generation: the explicitly selected one when its id is
+ * still present, otherwise the latest (last) generation. Returns undefined for
+ * an empty list.
+ */
+export const getCurrentGeneration = (
+  generations: Generation[],
+  selectedId?: string
+): Generation | undefined => {
+  if (generations.length === 0) return undefined;
+  if (selectedId) {
+    const found = generations.find((g) => g.id === selectedId);
+    if (found) return found;
+  }
+  return generations[generations.length - 1];
+};
+
+/** Resolve the current generation's value for an edge's source handle. */
+export const getCurrentOutput = (
+  generations: Generation[],
+  selectedId: string | undefined,
+  handle?: string
+): unknown => {
+  const current = getCurrentGeneration(generations, selectedId);
+  return current ? outputOf(current, handle) : undefined;
+};

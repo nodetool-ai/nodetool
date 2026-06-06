@@ -2,6 +2,8 @@ import {
   outputOf,
   assetToGeneration,
   mergeGenerations,
+  getCurrentGeneration,
+  getCurrentOutput,
   type Generation
 } from "../nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
@@ -74,5 +76,43 @@ describe("mergeGenerations", () => {
     ];
     const merged = mergeGenerations(persisted, live);
     expect(merged.map((g) => g.id)).toEqual(["a1", "a2", "j2"]); // j1 superseded; chronological
+  });
+});
+
+const list: Generation[] = [
+  {
+    id: "g1",
+    jobId: "j1",
+    createdAt: 1,
+    outputs: { output: "first" },
+    status: "completed"
+  },
+  {
+    id: "g2",
+    jobId: "j2",
+    createdAt: 2,
+    outputs: { output: "latest" },
+    status: "completed"
+  }
+];
+
+describe("getCurrentGeneration", () => {
+  it("defaults to the latest (last) generation", () => {
+    expect(getCurrentGeneration(list)?.id).toBe("g2");
+  });
+  it("honors an explicit selected id", () => {
+    expect(getCurrentGeneration(list, "g1")?.id).toBe("g1");
+  });
+  it("falls back to latest when the selected id is gone", () => {
+    expect(getCurrentGeneration(list, "missing")?.id).toBe("g2");
+  });
+  it("returns undefined for an empty list", () => {
+    expect(getCurrentGeneration([])).toBeUndefined();
+  });
+});
+
+describe("getCurrentOutput", () => {
+  it("returns the current generation's output for a handle", () => {
+    expect(getCurrentOutput(list, "g1", "output")).toBe("first");
   });
 });
