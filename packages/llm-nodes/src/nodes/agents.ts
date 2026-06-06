@@ -19,7 +19,10 @@ import type {
   ProcessingMessage
 } from "@nodetool-ai/protocol";
 import { Agent, Tool as AgentTool } from "@nodetool-ai/agents";
-import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
+import {
+  hydrateBuiltinAgentTool,
+  hydrateBuiltinAgentTools
+} from "./agent-tool-hydration.js";
 import { tagAsServer, renderTemplate } from "@nodetool-ai/nodes-utils";
 
 type MessagePart = { type?: string; text?: string };
@@ -1002,6 +1005,13 @@ export interface AgentLoopOptions {
   modelId: string;
   systemPrompt: string;
   prompt: string;
+  /**
+   * Tools the model may call. Each may be a fully-formed {@link ToolLike} (has
+   * `process` + `inputSchema`) OR a bare name-stub (`{ name }`) for a builtin
+   * tool registered via `registerBuiltinAgentToolClasses` — runAgentLoop
+   * hydrates stubs by name. Anything that can't be hydrated (no `process`) is
+   * logged and treated as an unknown tool by the model.
+   */
   tools: ToolLike[];
   contentParts?: MessageContent[];
   maxTokens?: number;
@@ -1026,6 +1036,17 @@ export interface AgentLoopResult {
   messages: Message[];
 }
 
+/**
+ * Run a streaming tool-use loop: the model streams text/tool-calls, tools
+ * execute, results feed back, repeat until no more tool calls or
+ * `maxIterations`. Returns the final assistant text plus the full message
+ * trail. Stream via `onText` / `onToolCall`.
+ *
+ * Tools (`options.tools`) may be real {@link ToolLike}s or bare `{ name }`
+ * stubs for registered builtin tools — they are hydrated here (see the `tools`
+ * field doc). This mirrors the AgentNode's `normalizeTools`; both paths now
+ * hydrate, so a tool reaches the loop the same way regardless of entry point.
+ */
 export async function runAgentLoop(
   options: AgentLoopOptions
 ): Promise<AgentLoopResult> {
@@ -1055,7 +1076,25 @@ export async function runAgentLoop(
     { role: "user", content: userContent }
   ];
 
-  const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
+  // Hydrate builtin tools passed as bare name-stubs ({ name }) into real Tool
+  // instances (same as the AgentNode path's normalizeTools). Without this a
+  // stub has no `process`/`inputSchema`, so the model gets a schemaless tool
+  // and every call is rejected as "Unknown tool". A real Tool passes through
+  // unchanged. Warn for anything still unrunnable so it fails loudly, not
+  // silently.
+  const resolvedTools = hydrateBuiltinAgentTools(tools) as ToolLike[];
+  for (const t of resolvedTools) {
+    if (typeof t.process !== "function") {
+      log.warn(
+        `runAgentLoop received tool '${t.name}' with no process() and could ` +
+          "not hydrate it — the model cannot call it. Pass a real Tool or a " +
+          "registered builtin tool name."
+      );
+    }
+  }
+
+  const providerTools =
+    resolvedTools.length > 0 ? toProviderTools(resolvedTools) : undefined;
   const provider = await context.getProvider(providerId);
   let lastAssistantText = "";
 
@@ -1110,7 +1149,7 @@ export async function runAgentLoop(
 
     for (const toolCall of assistantToolCalls) {
       options.onToolCall?.(toolCallChunk(toolCall));
-      const tool = tools.find((t) => t.name === toolCall.name);
+      const tool = resolvedTools.find((t) => t.name === toolCall.name);
       if (!tool || typeof tool.process !== "function") {
         messages.push({
           role: "tool",

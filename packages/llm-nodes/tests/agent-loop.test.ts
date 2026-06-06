@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { runAgentLoop } from "@nodetool-ai/llm-nodes";
+import {
+  runAgentLoop,
+  registerBuiltinAgentToolClasses
+} from "@nodetool-ai/llm-nodes";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 function createMockContext(providerFactory: () => any): ProcessingContext {
@@ -262,5 +265,37 @@ describe("runAgentLoop", () => {
     expect(toolCallChunks[0].content).toContain("browser_navigate");
     // Fired before the tool executed.
     expect(order).toEqual(["chunk", "tool-ran"]);
+  });
+
+  it("hydrates a bare name-stub into a registered builtin tool and runs it", async () => {
+    const ran = vi.fn().mockResolvedValue({ ok: true });
+    class FakeBuiltinTool {
+      readonly name = "fake_builtin_hydration_tool";
+      readonly description = "fake";
+      readonly inputSchema = { type: "object", properties: {} };
+      process = ran;
+    }
+    registerBuiltinAgentToolClasses([FakeBuiltinTool as any]);
+
+    const provider = makeMockProvider([
+      [{ id: "t1", name: "fake_builtin_hydration_tool", args: { a: 1 } }],
+      [{ type: "chunk", content: "ok", done: true }]
+    ]);
+
+    // Pass a bare stub (no process) — runAgentLoop must hydrate it from the
+    // registry, otherwise the call is rejected as "Unknown tool" and `ran`
+    // never fires.
+    const result = await runAgentLoop({
+      context: createMockContext(provider),
+      providerId: "mock",
+      modelId: "test-model",
+      systemPrompt: "sys",
+      prompt: "use the tool",
+      tools: [{ name: "fake_builtin_hydration_tool" } as any]
+    });
+
+    expect(ran).toHaveBeenCalledOnce();
+    expect(ran).toHaveBeenCalledWith(expect.anything(), { a: 1 });
+    expect(result.text).toBe("ok");
   });
 });

@@ -224,6 +224,30 @@ const tool = resolveTool("my_custom_tool");
 const allTools = getAllTools(); // returns all registered tools
 ```
 
+### Builtin Tools in Tool-Agent Nodes (`runAgentLoop`)
+
+There is a **separate** registry for tools that workflow tool-agent nodes
+expose via `runAgentLoop` (in `@nodetool-ai/llm-nodes`) — distinct from the
+`@nodetool-ai/agents` `registerTool`/`resolveTool` registry above. Builtin
+node tools (e.g. the `browser_*` CDP tools) are registered into it at module
+load via `registerBuiltinAgentToolClasses` (e.g. `code-nodes/sandbox.ts`) and
+resolved with `resolveBuiltinAgentTool(name)`.
+
+**Hydration contract:** a tool may be passed as a fully-formed `ToolLike` (has
+`process` + `inputSchema`) or a bare name-stub (`{ name }`). `runAgentLoop`
+hydrates stubs by name before use, so either form works — a real tool passes
+through unchanged. **But a stub is inert until hydrated:** it has no `process`,
+so if you build tools by name and execute them *outside* `runAgentLoop`, call
+`resolveBuiltinAgentTool` / `hydrateBuiltinAgentTool` yourself first, or the
+model gets a schemaless tool and every call is rejected as "Unknown tool".
+
+```ts
+// In a tool-agent node, getTools() may return hydrated tools…
+return TOOL_NAMES.map((name) => resolveBuiltinAgentTool(name)).filter(Boolean);
+// …or stubs (runAgentLoop will hydrate them):
+return TOOL_NAMES.map((name) => ({ name }));
+```
+
 ### Writing a Custom Tool
 
 ```ts
