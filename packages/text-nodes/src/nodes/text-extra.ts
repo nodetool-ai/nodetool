@@ -476,10 +476,10 @@ export class RegexReplaceNode extends BaseNode {
   declare count: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const pattern = String(this.pattern ?? this.pattern ?? "");
-    const replacement = String(this.replacement ?? this.replacement ?? "");
-    const count = Number(this.count ?? this.count ?? 0);
+    const text = String(this.text ?? "");
+    const pattern = String(this.pattern ?? "");
+    const replacement = String(this.replacement ?? "");
+    const count = Number(this.count ?? 0);
 
     if (count <= 0) {
       return { output: text.replace(new RegExp(pattern, "g"), replacement) };
@@ -1923,9 +1923,9 @@ export class SaveTextFileNode extends BaseNode {
   declare name: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const folder = String(this.folder ?? this.folder ?? "");
-    const name = formatFilename(String(this.name ?? this.name ?? "output.txt"));
+    const text = String(this.text ?? "");
+    const folder = String(this.folder ?? "");
+    const name = formatFilename(String(this.name ?? "output.txt"));
     if (!folder) {
       throw new Error("folder cannot be empty");
     }
@@ -1980,8 +1980,8 @@ export class SaveTextNode extends BaseNode {
   declare name: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const name = formatFilename(String(this.name ?? this.name ?? "output.txt"));
+    const text = String(this.text ?? "");
+    const name = formatFilename(String(this.name ?? "output.txt"));
     const folder = folderPath(this.folder ?? "");
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
