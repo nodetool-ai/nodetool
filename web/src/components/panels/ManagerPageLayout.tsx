@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AppHeader from "./AppHeader";
-import { Box, EditorButton, FlexColumn, FlexRow, Text } from "../ui_primitives";
+import { Box, EditorButton, FlexColumn, FlexRow } from "../ui_primitives";
 import { HEADER_HEIGHT } from "../../config/constants";
 
 interface ManagerPageLayoutProps {
