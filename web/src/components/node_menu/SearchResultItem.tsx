@@ -97,6 +97,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         }
       },
       ".result-namespace": {
+        fontFamily: theme.fontFamily2,
         fontSize: "var(--fontSizeSmaller)",
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
@@ -394,22 +395,21 @@ const SearchResultItem = memo(
                 <IconForType
                   iconName={outputType}
                   containerStyle={{
-                    borderRadius: "0 0 3px 0",
                     marginLeft: "0",
                     marginTop: "0"
                   }}
                   bgStyle={{
-                    backgroundColor: theme.vars.palette.grey[900],
+                    backgroundColor: theme.vars.palette.action.hover,
+                    border: `1px solid ${theme.vars.palette.divider}`,
                     margin: "0",
-                    padding: "1px",
-                    borderRadius: "0 0 3px 0",
-                    boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
-                    width: "20px",
-                    height: "20px"
+                    padding: "5px",
+                    borderRadius: "var(--rounded-md)",
+                    width: "28px",
+                    height: "28px"
                   }}
                   svgProps={{
-                    width: "15px",
-                    height: "15px"
+                    width: "16px",
+                    height: "16px"
                   }}
                 />
                 <Text className="result-title" component="div">

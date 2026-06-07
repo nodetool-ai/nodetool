@@ -313,18 +313,6 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                     setSelectedOutputType={setSelectedOutputType}
                   />
                 </div>
-                {searchTerm && searchTerm.trim() !== "" && (
-                  <span
-                    style={{
-                      fontSize: "var(--fontSizeSmall)",
-                      color: "var(--palette-text-secondary)",
-                      whiteSpace: "nowrap",
-                      flexShrink: 0
-                    }}
-                  >
-                    {searchResults.length} {searchResults.length === 1 ? "node" : "nodes"}
-                  </span>
-                )}
               </FlexRow>
             </FlexColumn>
             <NamespaceList
