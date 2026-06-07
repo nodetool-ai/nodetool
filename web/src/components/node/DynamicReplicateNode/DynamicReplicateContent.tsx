@@ -15,10 +15,7 @@ export interface DynamicReplicateContentProps {
   data: NodeData;
   status?: string;
   workflowId: string;
-  showResultOverlay?: boolean;
   result?: unknown;
-  onShowInputs?: () => void;
-  onShowResults?: () => void;
 }
 
 export const DynamicReplicateContent: React.FC<DynamicReplicateContentProps> =

@@ -33,10 +33,6 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     } as NodeData,
     status: undefined,
     workflowId: "wf-1",
-    showResultOverlay: false,
-    result: null,
-    onShowInputs: () => {},
-    onShowResults: () => {},
     ...overrides
   };
   return base as any;
@@ -93,17 +89,13 @@ describe("NodeContent arePropsEqual", () => {
   });
 
   it("returns true when property values are the same", () => {
-    const stableShowInputs = () => {};
-    const stableShowResults = () => {};
     const prev = makeProps({
       data: {
         properties: { value: "hello" },
         selectable: undefined,
         dynamic_properties: {},
         workflow_id: "wf-1"
-      },
-      onShowInputs: stableShowInputs,
-      onShowResults: stableShowResults
+      }
     });
     const next = makeProps({
       data: {
@@ -111,9 +103,7 @@ describe("NodeContent arePropsEqual", () => {
         selectable: undefined,
         dynamic_properties: {},
         workflow_id: "wf-1"
-      },
-      onShowInputs: stableShowInputs,
-      onShowResults: stableShowResults
+      }
     });
     expect(arePropsEqual(prev, next)).toBe(true);
   });

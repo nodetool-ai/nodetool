@@ -2,13 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import useResultsStore from "../../stores/ResultsStore";
-import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import {
   getWorkflowRunnerStore,
   useWebsocketRunner
 } from "../../stores/WorkflowRunner";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 
 export const MIN_RUNS = 1;
@@ -32,7 +32,6 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
   );
-  const getResult = useResultsStore((state) => state.getResult);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
   const [runProgress, setRunProgress] = useState<RunProgress | null>(null);
@@ -78,14 +77,19 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           selectedNodeIds.has(edge.target) && !selectedNodeIds.has(edge.source)
       );
 
-      // Seed external inputs from the workflow's focused run; if nothing has run
-      // there's no focused job and the store read yields undefined
-      // (literal-source fallback still applies).
-      const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
-        workflow.id
-      );
-      const getResultForFocusedJob = (wf: string, src: string): unknown =>
-        focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
+      // Seed external inputs from each upstream's selected generation (durable
+      // assets merged with the live buffer); resolveExternalEdgeValue unwraps
+      // the returned outputs record by source handle.
+      const getResultForFocusedJob = (
+        wf: string,
+        sourceId: string
+      ): unknown => {
+        const current = getCurrentGeneration(
+          getNodeGenerations(wf, sourceId),
+          findNode(sourceId)?.data?.selected_generation
+        );
+        return current?.outputs;
+      };
 
       const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
 
@@ -228,7 +232,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
         }
       }
     },
-    [isWorkflowRunning, nodeStore, getResult, run, addNotification]
+    [isWorkflowRunning, nodeStore, run, addNotification]
   );
 
   return {

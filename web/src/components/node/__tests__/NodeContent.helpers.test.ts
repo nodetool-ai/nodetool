@@ -5,8 +5,6 @@ import { arePropsEqual, NodeContentProps } from "../NodeContent.helpers";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 
-const stableNoop = () => {};
-
 function makeProps(overrides: Partial<NodeContentProps> = {}): NodeContentProps {
   const defaultMeta: NodeMetadata = {
     title: "TestNode",
@@ -45,10 +43,6 @@ function makeProps(overrides: Partial<NodeContentProps> = {}): NodeContentProps 
     data: defaultData,
     status: "idle",
     workflowId: "w1",
-    showResultOverlay: false,
-    result: null,
-    onShowInputs: stableNoop,
-    onShowResults: stableNoop,
     ...overrides
   };
 }
@@ -69,10 +63,6 @@ describe("arePropsEqual", () => {
 
   it("detects status change", () => {
     expect(arePropsEqual(makeProps(), makeProps({ status: "running" }))).toBe(false);
-  });
-
-  it("detects showResultOverlay change", () => {
-    expect(arePropsEqual(makeProps(), makeProps({ showResultOverlay: true }))).toBe(false);
   });
 
   it("detects metadata title change", () => {
@@ -177,22 +167,4 @@ describe("arePropsEqual", () => {
     expect(arePropsEqual(a, b)).toBe(false);
   });
 
-  it("detects result reference change", () => {
-    const a = makeProps({ result: { v: 1 } });
-    const b = makeProps({ result: { v: 1 } });
-    expect(arePropsEqual(a, b)).toBe(false);
-  });
-
-  it("treats same result reference as equal", () => {
-    const result = { v: 1 };
-    const a = makeProps({ result });
-    const b = makeProps({ result });
-    expect(arePropsEqual(a, b)).toBe(true);
-  });
-
-  it("detects callback reference change", () => {
-    const a = makeProps({ onShowInputs: () => {} });
-    const b = makeProps({ onShowInputs: () => {} });
-    expect(arePropsEqual(a, b)).toBe(false);
-  });
 });

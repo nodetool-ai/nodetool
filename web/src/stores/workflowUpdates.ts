@@ -236,8 +236,8 @@ export const handleUpdate = (
   getNodeStore: (workflowId: string) => NodeStore | undefined
 ) => {
   const runner = runnerStore.getState();
-  const setResult = useResultsStore.getState().setResult;
   const setProviderCost = useResultsStore.getState().setProviderCost;
+  const upsertLiveGeneration = useResultsStore.getState().upsertLiveGeneration;
   const setOutputResult = useResultsStore.getState().setOutputResult;
   const setStatus = useStatusStore.getState().setStatus;
   const getStatus = useStatusStore.getState().getStatus;
@@ -247,6 +247,7 @@ export const handleUpdate = (
   const addChunk = useResultsStore.getState().addChunk;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
+  const appendToolResult = useResultsStore.getState().appendToolResult;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
   const setEdge = useResultsStore.getState().setEdge;
   const addNotification = useNotificationStore.getState().addNotification;
@@ -311,8 +312,11 @@ export const handleUpdate = (
   }
 
   if (data.type === "tool_result_update") {
+    // A tool result is an artifact of an agent's run, not its output value.
+    // It accumulates in the toolResults channel (read by the agent tool log),
+    // never in the output/value paths.
     if (data.node_id && messageJobId) {
-      setOutputResult(workflow.id, messageJobId, data.node_id, data.result, true);
+      appendToolResult(workflow.id, messageJobId, data.node_id, data.result);
     }
   }
 
@@ -326,36 +330,12 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const normalizedValue = normalizeOutputUpdateValue(data);
-    // eslint-disable-next-line no-console
-    console.log(
-      "[debug:gen] output_update",
-      {
-        nodeId: data.node_id,
-        outputName: data.output_name,
-        outputType: data.output_type,
-        valueIsArray: Array.isArray(data.value),
-        normalizedIsArray: Array.isArray(normalizedValue),
-        normalizedPreview:
-          typeof normalizedValue === "object" && normalizedValue !== null
-            ? Object.keys(normalizedValue as Record<string, unknown>)
-            : typeof normalizedValue
-      }
-    );
+    // output_update feeds the output-node stream buffer only. It does NOT
+    // create or modify a live generation — generations are driven solely by
+    // node_update (see the live-generations branch below).
     if (messageJobId) {
       setOutputResult(workflow.id, messageJobId, data.node_id, normalizedValue, true);
     }
-    // eslint-disable-next-line no-console
-    console.log(
-      "[debug:gen] outputResults after append",
-      {
-        nodeId: data.node_id,
-        accumulated: messageJobId
-          ? useResultsStore
-              .getState()
-              .getOutputResult(workflow.id, messageJobId, data.node_id)
-          : undefined
-      }
-    );
 
     appendLog({
       workflowId: workflow.id,
@@ -655,6 +635,13 @@ export const handleUpdate = (
         endExecution(workflow.id, jobId, update.node_id);
         setStatus(workflow.id, jobId, update.node_id, update.status);
         setError(workflow.id, jobId, update.node_id, normalizedNodeError);
+        upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+          status: "error",
+          error:
+            typeof update.error === "string"
+              ? update.error
+              : String(normalizedNodeError)
+        });
       }
       appendLog({
         workflowId: workflow.id,
@@ -703,9 +690,30 @@ export const handleUpdate = (
         );
       }
 
-      // Store result if present
-      if (update.result && jobId) {
-        setResult(workflow.id, jobId, update.node_id, update.result);
+      if (jobId) {
+        if (
+          update.status === "running" ||
+          update.status === "starting" ||
+          update.status === "booting"
+        ) {
+          upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+            createdAt: Date.now(),
+            status: "running"
+          });
+        } else if (update.status === "completed") {
+          const raw = update.result;
+          const outputs: Record<string, unknown> =
+            typeof raw === "object" && raw !== null && !Array.isArray(raw)
+              ? (raw as Record<string, unknown>)
+              : raw !== undefined && raw !== null
+                ? { output: raw }
+                : {};
+          upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+            status: "completed",
+            outputs,
+            cost: update.provider_cost ?? undefined
+          });
+        }
       }
     }
 

@@ -9,7 +9,10 @@ import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
-import { useNodeArtifacts } from "../../../hooks/nodes/useNodeExecState";
+import { useNodeGenerations } from "../../../hooks/nodes/useNodeGenerations";
+import useResultsStore from "../../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import { outputOf } from "../../../utils/nodeGenerations";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
@@ -306,8 +309,23 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
 
-  // Use getOutputResult instead of getPreview - this gets accumulated streaming outputs
-  const result = useNodeArtifacts(props.data.workflow_id, props.id).output;
+  // Live display reads the output-node stream buffer (outputResults), which
+  // output_update appends to during a run, scoped to the focused job. When no
+  // live stream exists (e.g. after reopening the workflow) we fall back to the
+  // settled value from the node's generation timeline.
+  const workflowId = props.data.workflow_id;
+  const focusedJob = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  const streamBuffer = useResultsStore((s) =>
+    focusedJob
+      ? s.getOutputResult(workflowId, focusedJob, props.id)
+      : undefined
+  );
+  const { current } = useNodeGenerations(workflowId, props.id);
+  const settledValue = useMemo(
+    () => (current ? outputOf(current) : undefined),
+    [current]
+  );
+  const result = streamBuffer !== undefined ? streamBuffer : settledValue;
 
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
 

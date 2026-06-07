@@ -417,9 +417,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }),
     [theme.vars.palette.warning.main, theme.vars.palette.warning.contrastText]
   );
-  const updateNodeData = useNodes(
-    (state: NodeStoreState) => state.updateNodeData
-  );
   const updateNode = useNodes((state: NodeStoreState) => state.updateNode);
   const hasParent = Boolean(parentId);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
@@ -613,24 +610,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     suppressResultOverlay
   ]);
 
-  const handleShowInputs = useCallback(() => {
-    if (isConstantInputLockedResult) {
-      return;
-    }
-    setShowResultOverlay(false);
-    // Save preference: user wants to see inputs after workflow runs
-    updateNodeData(id, { showResultPreference: false });
-  }, [isConstantInputLockedResult, id, updateNodeData]);
-
-  const handleShowResults = useCallback(() => {
-    if (suppressResultOverlay) {
-      return;
-    }
-    setShowResultOverlay(true);
-    // Save preference: user wants to see results after workflow runs
-    updateNodeData(id, { showResultPreference: true });
-  }, [id, suppressResultOverlay, updateNodeData]);
-
   const shouldAlwaysShowResult =
     !usesContentCardBody &&
     !suppressResultOverlay &&
@@ -801,10 +780,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         }
         iconBaseColor={baseColor}
         workflowId={workflow_id}
-        showResultButton={Boolean(!isOverlayVisible && hasToggleableResult)}
-        showInputsButton={Boolean(isOverlayVisible && hasToggleableResult)}
-        onShowResults={handleShowResults}
-        onShowInputs={handleShowInputs}
         isTitleEditable={isCodeTitleEditable}
         showCodeBadge={showCodeBadge}
         codeBadgeTooltip="Code node"
@@ -833,12 +808,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           data={data}
           status={status}
           workflowId={workflow_id}
-          showResultOverlay={
-            isConstantInputLockedResult ? true : showResultOverlay
-          }
-          result={result}
-          onShowInputs={handleShowInputs}
-          onShowResults={handleShowResults}
         />
       </div>
 

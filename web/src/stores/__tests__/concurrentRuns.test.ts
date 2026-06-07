@@ -40,7 +40,6 @@ beforeEach(() => {
   useWorkflowRunsStore.setState({ runs: {}, focusedJob: {}, pinned: {} });
   useStatusStore.setState({ statuses: {} });
   useResultsStore.setState({
-    results: {},
     outputResults: {},
     providerCosts: {},
     progress: {},

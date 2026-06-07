@@ -60,9 +60,9 @@ runs will clobber each other. These rules come straight from shipped bug fixes:
   or not at all.
 - **An async/background task that resolves later must not call a focus-grabbing,
   latest-run-wins action unconditionally.** `recordRun` auto-focuses the latest
-  run; result hydration writes under `HYDRATED_JOB_ID` always but only
-  `recordRun`s when no real run exists (`getRuns(workflowId)` shows none),
-  otherwise it steals focus from a live run.
+  run; a background task that resolves after the user started or selected a run
+  must guard before recording (`getRuns(workflowId)`), otherwise it steals focus
+  from a live run.
 
 ## Testing
 
@@ -75,5 +75,5 @@ npm test -- --testPathPattern=stores  # Store tests only
 - Test actions and derived state, not internal implementation.
 - Mock API calls and external dependencies.
 - **Regression-test run-state code with two concurrent same-workflow jobs**
-  driven through the real reducer/handler (see `WorkflowRunner.test.ts`,
-  `workflowResultHydration.focus.test.ts`). Single-job tests miss every bug above.
+  driven through the real reducer/handler (see `WorkflowRunner.test.ts`).
+  Single-job tests miss every bug above.

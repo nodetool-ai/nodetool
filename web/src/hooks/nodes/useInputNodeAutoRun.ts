@@ -15,8 +15,8 @@ import { useCallback, useRef, useEffect } from "react";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { subgraph } from "../../core/graph";
-import useResultsStore from "../../stores/ResultsStore";
-import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
+import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { NodeData } from "../../stores/NodeData";
 import { Node, Edge } from "@xyflow/react";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
@@ -172,7 +172,6 @@ export const useNodeAutoRun = (
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
   );
-  const getResult = useResultsStore((state) => state.getResult);
   const instantUpdate = useSettingsStore(
     (state) => state.settings.instantUpdate
   );
@@ -209,19 +208,21 @@ export const useNodeAutoRun = (
     // This includes edges to ANY node in the subgraph, not just the start node
     const externalInputEdges = findExternalInputEdges(edges, subgraphNodeIds);
 
-    // Collect cached values for all external dependencies from the workflow's
-    // focused run. getResult is stable from useResultsStore, no need to include
-    // in deps. If nothing has run there's no focused job and the store read
-    // yields undefined (literal-source fallback still applies).
-    const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
-      workflow.id
-    );
-    const getResultForFocusedJob = (wf: string, src: string): unknown =>
-      focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
+    // Seed inputs from each upstream's selected generation (durable assets
+    // merged with the live buffer); resolveExternalEdgeValue unwraps the
+    // returned outputs record by source handle. If nothing has run the
+    // generation lookup yields undefined (literal-source fallback still applies).
+    const getResultFromGeneration = (wf: string, src: string): unknown => {
+      const current = getCurrentGeneration(
+        getNodeGenerations(wf, src),
+        findNode(src)?.data?.selected_generation
+      );
+      return current?.outputs;
+    };
     const propertyOverrides = collectCachedValuesForSubgraph(
       externalInputEdges,
       workflow.id,
-      getResultForFocusedJob,
+      getResultFromGeneration,
       findNode
     );
 
@@ -248,7 +249,7 @@ export const useNodeAutoRun = (
     });
 
     run({}, workflow, nodesWithCachedValues, downstream.edges);
-    // getResult is stable from useResultsStore, no need to include in deps
+    // Generation accessors read from stores at call time, no need to include in deps
   }, [
     nodeType,
     nodeId,
