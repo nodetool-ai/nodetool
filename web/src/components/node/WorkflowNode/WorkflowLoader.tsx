@@ -1,4 +1,5 @@
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   Autocomplete,
   TextField
@@ -38,14 +39,16 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
     );
     const updateNodeData = useNodes((state) => state.updateNodeData);
     const { load, getWorkflow, fetchWorkflow, selectedWorkflowStore } =
-      useWorkflowManager((state) => ({
-        load: state.load,
-        getWorkflow: state.getWorkflow,
-        fetchWorkflow: state.fetchWorkflow,
-        selectedWorkflowStore: selectedWorkflowId
-          ? state.nodeStores[selectedWorkflowId]
-          : undefined
-      }));
+      useWorkflowManager(
+        useShallow((state) => ({
+          load: state.load,
+          getWorkflow: state.getWorkflow,
+          fetchWorkflow: state.fetchWorkflow,
+          selectedWorkflowStore: selectedWorkflowId
+            ? state.nodeStores[selectedWorkflowId]
+            : undefined
+        }))
+      );
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 

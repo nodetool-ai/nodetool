@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
@@ -415,10 +416,10 @@ const WorkspaceTree: React.FC = () => {
   filesWorkspaceIdRef.current = filesWorkspaceId;
   const previousWorkflowId = useRef<string | null | undefined>(undefined);
   const { currentWorkflowId, getCurrentWorkflow } = useWorkflowManager(
-    (state) => ({
+    useShallow((state) => ({
       currentWorkflowId: state.currentWorkflowId,
       getCurrentWorkflow: state.getCurrentWorkflow
-    })
+    }))
   );
 
   const navigate = useNavigate();
