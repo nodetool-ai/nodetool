@@ -35,8 +35,6 @@ interface SearchResultItemProps {
   compact?: boolean;
 }
 
-const MAX_DESCRIPTION_LENGTH = 120;
-
 const searchResultStyles = (theme: Theme, compact: boolean) =>
   css({
     "&.search-result-item": {
@@ -111,6 +109,9 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         color: theme.vars.palette.text.secondary,
         lineHeight: 1.4,
         marginTop: theme.spacing(1),
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
         "& .highlight": {
           color: "var(--palette-primary-main)"
         }
@@ -265,15 +266,6 @@ const SearchResultItem = memo(
         const searchLower = searchTerm.toLowerCase();
         return tags.filter((tag) => tag.toLowerCase().includes(searchLower));
       }, [searchTerm, tags]);
-
-      // Truncate description if too long - memoize
-      const truncatedDescription = useMemo(
-        () =>
-          description.length > MAX_DESCRIPTION_LENGTH
-            ? description.substring(0, MAX_DESCRIPTION_LENGTH) + "..."
-            : description,
-        [description]
-      );
 
       const [isExpanded, setIsExpanded] = useState(false);
 
@@ -473,10 +465,10 @@ const SearchResultItem = memo(
             </div>
           </div>
 
-          {truncatedDescription && (
+          {description && (
             <Text className="result-description" component="div">
               <HighlightText
-                text={truncatedDescription}
+                text={description}
                 query={searchTerm}
                 matchStyle="primary"
               />
