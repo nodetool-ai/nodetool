@@ -34,3 +34,15 @@ see [packages/AGENTS.md § Output contract](../AGENTS.md#output-contract):
   `outputCorrelation` set to `iteration` (chunks) / `single` (aggregate).
 - `yield` structured results so the kernel routes them to dynamic output handles;
   a value `return`ed from a generator is discarded by `yield*`.
+
+## Mutation testing
+
+This package's behavioural core (validation, registry, metadata bridge, pack
+trust model) is gated by **mutation testing** — `npm run test:mutation` breaks
+below 80%. When you change `BaseNode`, the registry, validation, or the metadata
+loaders, add a test that pins the exact new behaviour, then re-run the gate. Two
+config settings are load-bearing and explained in
+[MUTATION_TESTING.md](./MUTATION_TESTING.md): `inPlace: true` (the source aliases
+in `vitest.config.ts` break Stryker's sandbox) and `ignoreStatic: true` (the
+top-level `await` in `metadata.ts` makes module-load constants slow static
+mutants). `src/docs/**` and `src/python-package-scan.ts` are excluded — see the doc.
