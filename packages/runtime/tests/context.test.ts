@@ -1458,9 +1458,34 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
     expect(result).toEqual(new Uint8Array([1, 2, 3]));
   });
 
-  it("dispatches image_to_image", async () => {
+  it("dispatches image_to_image with a list of images", async () => {
+    let received: Uint8Array[] | undefined;
     class I2IProvider extends MockProvider {
-      override async imageToImage(): Promise<Uint8Array> {
+      override async imageToImage(images: Uint8Array[]): Promise<Uint8Array> {
+        received = images;
+        return new Uint8Array([4, 5]);
+      }
+    }
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.registerProvider("i2i", new I2IProvider());
+    const result = await ctx.runProviderPrediction({
+      provider: "i2i",
+      capability: "image_to_image",
+      model: "m",
+      params: {
+        images: [new Uint8Array([1]), new Uint8Array([2])],
+        prompt: "style"
+      }
+    });
+    expect(result).toEqual(new Uint8Array([4, 5]));
+    expect(received).toEqual([new Uint8Array([1]), new Uint8Array([2])]);
+  });
+
+  it("dispatches image_to_image with a legacy singular image", async () => {
+    let received: Uint8Array[] | undefined;
+    class I2IProvider extends MockProvider {
+      override async imageToImage(images: Uint8Array[]): Promise<Uint8Array> {
+        received = images;
         return new Uint8Array([4, 5]);
       }
     }
@@ -1473,6 +1498,7 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       params: { image: new Uint8Array([1]), prompt: "style" }
     });
     expect(result).toEqual(new Uint8Array([4, 5]));
+    expect(received).toEqual([new Uint8Array([1])]);
   });
 
   it("dispatches text_to_video", async () => {
@@ -1492,9 +1518,11 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
     expect(result).toEqual(new Uint8Array([6]));
   });
 
-  it("dispatches image_to_video", async () => {
+  it("dispatches image_to_video with a list of images", async () => {
+    let received: Uint8Array[] | undefined;
     class I2VProvider extends MockProvider {
-      override async imageToVideo(): Promise<Uint8Array> {
+      override async imageToVideo(images: Uint8Array[]): Promise<Uint8Array> {
+        received = images;
         return new Uint8Array([7]);
       }
     }
@@ -1504,9 +1532,10 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
       provider: "i2v",
       capability: "image_to_video",
       model: "m",
-      params: { image: new Uint8Array([1]) }
+      params: { images: [new Uint8Array([1])] }
     });
     expect(result).toEqual(new Uint8Array([7]));
+    expect(received).toEqual([new Uint8Array([1])]);
   });
 
   it("dispatches automatic_speech_recognition", async () => {

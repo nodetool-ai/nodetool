@@ -492,10 +492,10 @@ export class ReplicateProvider extends BaseProvider {
   }
 
   async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    const base64 = Buffer.from(image).toString("base64");
+    const base64 = Buffer.from(images[0] ?? new Uint8Array()).toString("base64");
     const dataUri = `data:image/png;base64,${base64}`;
 
     const input: Record<string, unknown> = { image: dataUri };
@@ -536,10 +536,10 @@ export class ReplicateProvider extends BaseProvider {
   }
 
   async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
-    const base64 = Buffer.from(image).toString("base64");
+    const base64 = Buffer.from(images[0] ?? new Uint8Array()).toString("base64");
     const dataUri = `data:image/png;base64,${base64}`;
 
     const input: Record<string, unknown> = { image: dataUri };

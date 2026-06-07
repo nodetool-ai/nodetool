@@ -441,12 +441,12 @@ if (update.status === "IN_PROGRESS") {
   }
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
     const client = await this.getClient();
     const modelId = params.model.id;
-    const args = await this.buildImageToImageArgs(modelId, image, params);
+    const args = await this.buildImageToImageArgs(modelId, images[0], params);
     log.debug("FAL imageToImage", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -472,16 +472,16 @@ if (update.status === "IN_PROGRESS") {
   }
 
   override async imageToImages(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams,
     numImages: number
   ): Promise<Uint8Array[]> {
     if (numImages <= 1) {
-      return [await this.imageToImage(image, params)];
+      return [await this.imageToImage(images, params)];
     }
     const client = await this.getClient();
     const modelId = params.model.id;
-    const args = await this.buildImageToImageArgs(modelId, image, params);
+    const args = await this.buildImageToImageArgs(modelId, images[0], params);
     if (new FalArgsBuilder(modelId).has("num_images")) {
       args.num_images = numImages;
     }
@@ -521,12 +521,12 @@ if (update.status === "IN_PROGRESS") {
   }
 
   override async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
     const client = await this.getClient();
     const modelId = params.model.id;
-    const args = await this.buildImageToVideoArgs(modelId, image, params);
+    const args = await this.buildImageToVideoArgs(modelId, images[0], params);
     log.debug("FAL imageToVideo", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,

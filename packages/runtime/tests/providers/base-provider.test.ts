@@ -241,7 +241,7 @@ describe("BaseProvider – default method behaviors", () => {
 
   it("imageToImage() throws 'does not support'", async () => {
     await expect(
-      provider.imageToImage(new Uint8Array(), {
+      provider.imageToImage([new Uint8Array()], {
         model: { id: "m", name: "m", provider: "test" },
         prompt: "test"
       })
@@ -279,7 +279,7 @@ describe("BaseProvider – default method behaviors", () => {
 
   it("imageToVideo() throws 'does not support'", async () => {
     await expect(
-      provider.imageToVideo(new Uint8Array(), {
+      provider.imageToVideo([new Uint8Array()], {
         model: { id: "m", name: "m", provider: "test" },
         prompt: "test"
       })

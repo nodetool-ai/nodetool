@@ -168,7 +168,7 @@ describe("FalProvider", () => {
       strength: 0.8
     };
 
-    await p.imageToImage(inputImage, params);
+    await p.imageToImage([inputImage], params);
 
     // Verify the blob was uploaded via the FAL storage API
     expect(uploadMock).toHaveBeenCalledTimes(1);
