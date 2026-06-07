@@ -119,10 +119,6 @@ jest.mock("../../node/NodeInputs", () => {
   };
 });
 
-const workflowId = "workflow-1";
-const jobId = "job-current";
-const nodeId = "node-1";
-
 const nodeData = {
   workflow_id: workflowId,
   properties: {},

@@ -19,7 +19,9 @@ import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
 import type { Asset } from "../../stores/ApiTypes";
 import { normalizeAssetList } from "../../utils/normalizeAsset";
-export { assetToOutputValue } from "../../utils/nodeGenerations";
+import { assetToOutputValue } from "../../utils/nodeGenerations";
+
+export { assetToOutputValue };
 
 const EMPTY_ASSETS: Asset[] = [];
 
