@@ -1228,6 +1228,9 @@ const GEMMA_3_4B_IT_GGUF_BASE = {
 export class SummarizerNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.Summarizer";
   static readonly body = "content_card";
+  // Persist the primary text output as a generation so the node gets a
+  // reload-surviving, browsable history like generative media nodes.
+  static readonly autoSaveAsset = true;
   static readonly title = "Summarizer";
   static readonly description =
     "Generate concise summaries of text content using LLM providers with streaming output.\n    text, summarization, nlp, content, streaming\n\n    Specialized for creating high-quality summaries with real-time streaming:\n    - Condensing long documents into key points\n    - Creating executive summaries with live output\n    - Extracting main ideas from text as they're generated\n    - Maintaining factual accuracy while reducing length";
@@ -1667,6 +1670,9 @@ export class ExtractorNode extends BaseNode {
 export class ClassifierNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.Classifier";
   static readonly body = "content_card";
+  // Persist the primary text output as a generation so the node gets a
+  // reload-surviving, browsable history like generative media nodes.
+  static readonly autoSaveAsset = true;
   static readonly title = "Classifier";
   static readonly description =
     "Classify text into predefined or dynamic categories using LLM.\n    classification, nlp, categorization\n\n    Use cases:\n    - Sentiment analysis\n    - Topic classification\n    - Intent detection\n    - Content categorization";
@@ -1874,6 +1880,9 @@ export class ClassifierNode extends BaseNode {
 export class AgentNode extends BaseNode {
   static readonly nodeType: string = "nodetool.agents.Agent";
   static readonly body = "content_card";
+  // Persist the primary text output as a generation so the node gets a
+  // reload-surviving, browsable history like generative media nodes.
+  static readonly autoSaveAsset = true;
   static readonly title: string = "Agent";
   static readonly description: string =
     "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming\n\n    Dynamic properties are substituted as {{variable}} (or {variable})\n    placeholders in both the prompt and system text. Add a property named\n    `subject` and write `Classify: {{subject}}` in the prompt — the wired\n    value replaces the placeholder at run time. Jinja-style filters are\n    supported: {{subject|upper}}, {{text|truncate(100)}}, etc. Unknown\n    placeholders are left intact.";

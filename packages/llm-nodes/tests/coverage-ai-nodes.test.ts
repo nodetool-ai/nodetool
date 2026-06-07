@@ -29,6 +29,23 @@ function expectMetadataDefaults(NodeCls: any) {
   expect(new NodeCls().serialize()).toEqual(metadataDefaults(NodeCls));
 }
 
+describe("text agents persist generations", () => {
+  // These text content-card nodes opt into auto_save_asset so their primary
+  // text output is saved as a generation (text/plain asset) on job completion,
+  // giving them a reload-surviving, browsable history like media nodes.
+  it.each([
+    [SummarizerNode, "text"],
+    [ClassifierNode, "output"],
+    [AgentNode, "text"]
+  ])("%p saves its primary str output as a generation", (NodeCls, primary) => {
+    const meta = getNodeMetadata(NodeCls as any);
+    expect(meta.auto_save_asset).toBe(true);
+    // The backend only persists text generations when the primary output is str.
+    expect(meta.outputs[0]?.name).toBe(primary);
+    expect((meta.outputs[0]?.type as { type?: string })?.type).toBe("str");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // agents.ts
 // ---------------------------------------------------------------------------

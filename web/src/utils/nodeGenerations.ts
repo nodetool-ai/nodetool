@@ -10,6 +10,16 @@ export const assetToOutputValue = (asset: Asset): Record<string, unknown> => {
   if (ct.startsWith("image/")) return { type: "image", uri };
   if (ct.startsWith("video/")) return { type: "video", uri };
   if (ct.startsWith("audio/")) return { type: "audio", uri };
+  if (ct.startsWith("text/")) {
+    // Text generations carry the (capped) text inline in metadata so the
+    // preview renders without a fetch; the full text lives in the asset bytes.
+    const meta = asset.metadata as { text?: unknown } | null | undefined;
+    return {
+      type: "text",
+      text: typeof meta?.text === "string" ? meta.text : "",
+      uri
+    };
+  }
   if (ct.includes("model") || asset.name?.toLowerCase().endsWith(".glb")) {
     return { type: "model_3d", uri, name: asset.name ?? undefined };
   }

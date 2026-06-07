@@ -269,6 +269,40 @@ describe("ContentCardBody results", () => {
     const container = screen.getByLabelText("Generated text");
     expect(container).toHaveTextContent("first second");
   });
+
+  it("shows a history navigator over persisted text generations", () => {
+    const textAsset = (
+      id: string,
+      jobId: string,
+      text: string,
+      createdAt: string
+    ): Asset =>
+      ({
+        id,
+        content_type: "text/plain",
+        name: id,
+        get_url: `http://localhost/api/storage/${id}.txt`,
+        metadata: { text },
+        created_at: createdAt,
+        node_id: nodeId,
+        job_id: jobId
+      }) as unknown as Asset;
+    const assets = [
+      textAsset("t1", "job-1", "first gen", "2026-01-01T00:00:00Z"),
+      textAsset("t2", "job-2", "second gen", "2026-01-02T00:00:00Z")
+    ];
+    seedAssets(assets);
+    mockAssetHistory = assets;
+
+    renderContentCard(metadataForOutput("str"));
+
+    // The text card now gets the same navigator as media: pagination over the
+    // persisted generations, defaulting to the latest, rendering its inline text.
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    expect(screen.getByLabelText("Generated text")).toHaveTextContent(
+      "second gen"
+    );
+  });
 });
 
 describe("ContentCardBody dynamic inputs", () => {

@@ -263,10 +263,14 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     setMode((m) => (m === "single" ? "multi" : "single"));
   }, []);
 
+  // The fullscreen AssetViewer only renders media; text generations use the
+  // inline preview only.
+  const canOpenViewer =
+    !!currentAsset && !showingLive && isMediaAsset(currentAsset);
   const handleOpenViewer = useCallback(() => {
-    if (!currentAsset || showingLive) return;
+    if (!canOpenViewer) return;
     setViewerOpen(true);
-  }, [currentAsset, showingLive]);
+  }, [canOpenViewer]);
 
   // Children (ImageView) render under this context: it suppresses their own
   // overlay/viewer and routes "open" here, so the viewer's gallery reflects the
@@ -448,7 +452,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
             title="Open in viewer"
             size="small"
             onClick={handleOpenViewer}
-            disabled={!currentAsset || showingLive}
+            disabled={!canOpenViewer}
             className="overlay-icon-btn"
             aria-label="Open in viewer"
           >
@@ -480,7 +484,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
         </div>
       ) : null}
 
-      {currentAsset && currentAsset.get_url ? (
+      {currentAsset && currentAsset.get_url && isMediaAsset(currentAsset) ? (
         <AssetViewer
           asset={currentAsset}
           sortedAssets={mediaAssets}

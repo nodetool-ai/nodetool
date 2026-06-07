@@ -1,5 +1,6 @@
 import {
   outputOf,
+  assetToOutputValue,
   assetToGeneration,
   mergeGenerations,
   getCurrentGeneration,
@@ -39,6 +40,44 @@ describe("outputOf", () => {
   });
   it("returns undefined outputs as undefined", () => {
     expect(outputOf(gen({}), "x")).toBeUndefined();
+  });
+});
+
+describe("assetToOutputValue", () => {
+  it("maps an image asset to an image value", () => {
+    expect(assetToOutputValue(asset("a1", "j1", "2026-01-01T00:00:00Z"))).toEqual(
+      { type: "image", uri: "http://x/a1.png" }
+    );
+  });
+
+  it("maps a text/plain asset to a text value using inline metadata", () => {
+    const textAsset = {
+      id: "t1",
+      job_id: "j1",
+      node_id: "n1",
+      content_type: "text/plain",
+      get_url: "http://x/t1.txt",
+      metadata: { text: "hello world" },
+      created_at: "2026-01-01T00:00:00Z"
+    } as unknown as Asset;
+    expect(assetToOutputValue(textAsset)).toEqual({
+      type: "text",
+      text: "hello world",
+      uri: "http://x/t1.txt"
+    });
+  });
+
+  it("returns empty text when a text asset has no inline metadata", () => {
+    const textAsset = {
+      id: "t2",
+      content_type: "text/plain",
+      get_url: "http://x/t2.txt"
+    } as unknown as Asset;
+    expect(assetToOutputValue(textAsset)).toEqual({
+      type: "text",
+      text: "",
+      uri: "http://x/t2.txt"
+    });
   });
 });
 
