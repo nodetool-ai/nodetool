@@ -288,6 +288,29 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     [generations, select]
   );
 
+  const handleGridClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const thumb = (e.target as HTMLElement).closest<HTMLElement>(".thumb");
+      if (!thumb) return;
+      const idx = Number(thumb.dataset.index);
+      if (!Number.isNaN(idx)) handleSelectThumb(idx);
+    },
+    [handleSelectThumb]
+  );
+
+  const fallbackThumbStyle = useMemo<React.CSSProperties>(
+    () => ({
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: theme.vars.palette.text.secondary,
+      fontSize: theme.fontSizeTiny
+    }),
+    [theme.vars.palette.text.secondary, theme.fontSizeTiny]
+  );
+
   const handleDownload = useCallback(async () => {
     if (!currentAsset) return;
     const url = currentAsset.get_url;
@@ -348,7 +371,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
             </div>
           </MediaOverlaySuppressProvider>
         ) : (
-          <div className="grid nodrag nopan" role="list" aria-label="Output history">
+          <div className="grid nodrag nopan" role="list" aria-label="Output history" onClick={handleGridClick}>
             {generations.map((gen, i) => {
               const value = outputOf(gen) as
                 | { type?: string; uri?: string }
@@ -364,7 +387,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                   key={gen.id}
                   className={`thumb${i === currentIndex ? " selected" : ""}`}
                   role="listitem"
-                  onClick={() => handleSelectThumb(i)}
+                  data-index={i}
                 >
                   {kind === "image" && imgUrl ? (
                     <img src={imgUrl} alt={label} />
@@ -381,15 +404,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                       />
                     )
                   ) : (
-                    <div style={{
-                      width: "100%",
-                      height: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: theme.vars.palette.text.secondary,
-                      fontSize: theme.fontSizeTiny
-                    }}>
+                    <div style={fallbackThumbStyle}>
                       {kind || "asset"}
                     </div>
                   )}
