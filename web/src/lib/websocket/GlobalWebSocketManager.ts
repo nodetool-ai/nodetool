@@ -37,7 +37,7 @@ interface RpcResponse extends WebSocketMessage {
 }
 
 function isRpcResponse(msg: WebSocketMessage): msg is RpcResponse {
-  return msg.type === "rpc_response" && typeof (msg as Record<string, unknown>).request_id === "string";
+  return msg.type === "rpc_response" && "request_id" in msg && typeof msg.request_id === "string";
 }
 
 interface GlobalWebSocketEvents {
