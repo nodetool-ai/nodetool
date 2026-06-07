@@ -10,8 +10,8 @@ export interface StructuredOutputGeneratorInputs {
   instructions?: Connectable<string>;
   context?: Connectable<string>;
   max_tokens?: Connectable<number>;
-  image?: Connectable<ImageRef>;
-  audio?: Connectable<AudioRef>;
+  image?: Connectable<ImageRef[]>;
+  audio?: Connectable<AudioRef[]>;
 }
 
 export interface StructuredOutputGeneratorOutputs {
@@ -77,8 +77,8 @@ export function chartGenerator(inputs: ChartGeneratorInputs): DslNode<ChartGener
 export interface SVGGeneratorInputs {
   model?: Connectable<unknown>;
   prompt?: Connectable<string>;
-  image?: Connectable<ImageRef>;
-  audio?: Connectable<AudioRef>;
+  image?: Connectable<ImageRef[]>;
+  audio?: Connectable<AudioRef[]>;
   max_tokens?: Connectable<number>;
 }
 

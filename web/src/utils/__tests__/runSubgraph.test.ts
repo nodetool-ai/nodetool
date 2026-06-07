@@ -1,6 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { buildRunSubgraph } from "../runSubgraph";
 import { NodeData } from "../../stores/NodeData";
+import { NodeMetadata } from "../../stores/ApiTypes";
 
 const WF = "wf1";
 
@@ -29,8 +30,12 @@ const edge = (
 ): Edge => ({ id, source, target, sourceHandle, targetHandle, type: "default" });
 
 // Generative nodes are the ones flagged auto_save_asset.
-const getMetadata = (type: string) =>
-  type.startsWith("gen.") ? { auto_save_asset: true, title: type } : { title: type };
+const getMetadata = (type: string): NodeMetadata =>
+  ({
+    auto_save_asset: type.startsWith("gen."),
+    title: type,
+    properties: []
+  }) as unknown as NodeMetadata;
 
 const noResults = () => undefined;
 
@@ -154,6 +159,59 @@ describe("buildRunSubgraph", () => {
     });
     expect(sub.nodeIds).toEqual(new Set(["t", "m"]));
     expect(sub.blocked).toEqual([{ nodeId: "g", title: "gen.Audio" }]);
+  });
+
+  it("aggregates two edges into a list[image] handle instead of last-write-wins", () => {
+    const target = node("grid", "lib.grid.CombineImageGrid");
+    const genA = node("a", "gen.Image");
+    const genB = node("b", "gen.Image");
+
+    // Both upstreams have cached results, so they're inlined as overrides.
+    const getResult = (_wf: string, src: string) =>
+      src === "a"
+        ? { output: { uri: "a.png", type: "image" } }
+        : src === "b"
+          ? { output: { uri: "b.png", type: "image" } }
+          : undefined;
+
+    // The grid's `tiles` handle is list[image] → a collect type.
+    const getMetadataWithList = (type: string): NodeMetadata =>
+      ({
+        auto_save_asset: type.startsWith("gen."),
+        title: type,
+        properties:
+          type === "lib.grid.CombineImageGrid"
+            ? [
+                {
+                  name: "tiles",
+                  type: {
+                    type: "list",
+                    type_args: [{ type: "image", type_args: [] }]
+                  }
+                }
+              ]
+            : []
+      }) as unknown as NodeMetadata;
+
+    const sub = buildRunSubgraph({
+      targetId: "grid",
+      nodes: [target, genA, genB],
+      edges: [
+        edge("e1", "a", "grid", "tiles"),
+        edge("e2", "b", "grid", "tiles")
+      ],
+      workflowId: WF,
+      getResult,
+      getMetadata: getMetadataWithList
+    });
+
+    expect(sub.blocked).toEqual([]);
+    expect(sub.nodeIds).toEqual(new Set(["grid"]));
+    const submitted = sub.nodes.find((n) => n.id === "grid")!;
+    expect(submitted.data.properties.tiles).toEqual([
+      { uri: "a.png", type: "image" },
+      { uri: "b.png", type: "image" }
+    ]);
   });
 
   it("deduplicates a generative upstream feeding two inputs", () => {

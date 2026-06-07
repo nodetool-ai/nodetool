@@ -633,6 +633,44 @@ describe("AgentNode", () => {
     );
   });
 
+  it("attaches a list of images and audio as separate content blocks", async () => {
+    const n = new (AgentNode as any)();
+    let capturedMessages: any[] = [];
+    const mockProvider = {
+      async *generateMessages({
+        messages
+      }: any): AsyncGenerator<Record<string, unknown>> {
+        capturedMessages = messages;
+        yield {
+          type: "chunk",
+          content: "ok",
+          content_type: "text",
+          done: true
+        };
+      }
+    };
+    n.assign({
+      prompt: "Describe these",
+      image: [{ uri: "file://a.png" }, { uri: "file://b.png" }],
+      audio: [{ data: "YXVkaW8x" }, { data: "YXVkaW8y" }],
+      model: { provider: "test", id: "m1" }
+    });
+    await n.process({ getProvider: async () => mockProvider } as any);
+    const lastUser = capturedMessages[capturedMessages.length - 1];
+    expect(lastUser.role).toBe("user");
+    expect(lastUser.content[0].text).toBe("Describe these");
+    const images = lastUser.content.filter((p: any) => p.type === "image_url");
+    const audios = lastUser.content.filter((p: any) => p.type === "audio");
+    expect(images.map((p: any) => p.image.uri)).toEqual([
+      "file://a.png",
+      "file://b.png"
+    ]);
+    expect(audios.map((p: any) => p.audio.data)).toEqual([
+      "YXVkaW8x",
+      "YXVkaW8y"
+    ]);
+  });
+
   it("persists the user and assistant messages through context thread APIs", async () => {
     const n = new (AgentNode as any)();
     const created: any[] = [];
@@ -1690,6 +1728,33 @@ describe("SVGGeneratorNode", () => {
     const result = await n.process();
     const svg = (result.output as any[])[0].content;
     expect(svg).toContain(">SVG</text>");
+  });
+
+  it("attaches a list of images as separate content blocks", async () => {
+    let captured: any[] = [];
+    const mockContext = {
+      getProvider: async () => ({}),
+      // eslint-disable-next-line require-yield
+      async *streamProviderPrediction() {},
+      runProviderPrediction: async ({ params }: any) => {
+        captured = params.messages;
+        return { content: '<svg xmlns="http://www.w3.org/2000/svg"></svg>' };
+      }
+    };
+    const n = new (SVGGeneratorNode as any)();
+    n.assign({
+      prompt: "draw from these",
+      image: [{ uri: "file://a.png" }, { uri: "file://b.png" }],
+      model: { provider: "test", id: "m1" }
+    });
+    await n.process(mockContext as any);
+    const user = captured[captured.length - 1];
+    expect(user.role).toBe("user");
+    const images = user.content.filter((p: any) => p.type === "image");
+    expect(images.map((p: any) => p.image.uri)).toEqual([
+      "file://a.png",
+      "file://b.png"
+    ]);
   });
 
   it("defaults width/height to 512 when given 0 or NaN", async () => {

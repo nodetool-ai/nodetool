@@ -10,6 +10,11 @@ import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
 import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
+import useMetadataStore from "../../stores/MetadataStore";
+import {
+  EdgeOverrideCollector,
+  applyNodeOverrides
+} from "../../utils/edgeOverrides";
 
 export const MIN_RUNS = 1;
 export const MAX_RUNS = 32;
@@ -91,19 +96,18 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
         return current?.outputs;
       };
 
-      const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
-
+      // Seed each selected node's inputs from its external (non-selected)
+      // upstreams. The collector aggregates multiple edges into one list/collect
+      // handle — see EdgeOverrideCollector — so two images wired to a single
+      // list[image] handle aren't collapsed to one (last-write-wins).
+      const collector = new EdgeOverrideCollector();
       for (const edge of externalInputEdges) {
-        const sourceNodeId = edge.source;
-        const sourceHandle = edge.sourceHandle;
-        const targetNodeId = edge.target;
         const targetHandle = edge.targetHandle;
-
         if (!targetHandle) {
           continue;
         }
 
-        const { value, hasValue, isFallback } = resolveExternalEdgeValue(
+        const { value, hasValue } = resolveExternalEdgeValue(
           edge,
           workflow.id,
           getResultForFocusedJob,
@@ -113,50 +117,17 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           continue;
         }
 
-        const existing = nodePropertyOverrides.get(targetNodeId) || {};
-        existing[targetHandle] = value;
-        nodePropertyOverrides.set(targetNodeId, existing);
-
-        console.info(
-          `Run selected nodes: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
-          {
-            sourceHandle,
-            valueSource: isFallback ? "node" : "cached_result"
-          }
-        );
+        collector.add(edge.target, targetHandle, value);
       }
 
-      const nodesWithCachedValues = selectedNodes.map((n: Node<NodeData>) => {
-        const overrides = nodePropertyOverrides.get(n.id);
-        if (overrides && Object.keys(overrides).length > 0) {
-          const dynamicProps = n.data?.dynamic_properties || {};
-          const staticProps = n.data?.properties || {};
-          const updatedDynamicProps = { ...dynamicProps };
-          const updatedStaticProps = { ...staticProps };
+      const nodePropertyOverrides = collector.resolve(
+        findNode,
+        useMetadataStore.getState().getMetadata
+      );
 
-          for (const [key, value] of Object.entries(overrides)) {
-            if (Object.prototype.hasOwnProperty.call(dynamicProps, key)) {
-              updatedDynamicProps[key] = value;
-            } else {
-              updatedStaticProps[key] = value;
-            }
-          }
-
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              properties: {
-                ...updatedStaticProps
-              },
-              dynamic_properties: {
-                ...updatedDynamicProps
-              }
-            }
-          };
-        }
-        return n;
-      });
+      const nodesWithCachedValues = selectedNodes.map((n: Node<NodeData>) =>
+        applyNodeOverrides(n, nodePropertyOverrides.get(n.id))
+      );
 
       console.info(
         `Running workflow from ${selectedNodes.length} selected node(s) × ${totalRuns} run(s)`,
