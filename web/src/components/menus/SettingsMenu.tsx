@@ -24,7 +24,7 @@ import {
 } from "../ui_primitives";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { isLocalhost, isElectron, isProduction } from "../../lib/env";
+import { isLocalhost, isElectron } from "../../lib/env";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
@@ -38,13 +38,7 @@ import {
   getDisplayedSettingGroups,
   settingGroupSlug
 } from "./RemoteSettingsMenu";
-import SettingsIntroCard from "./SettingsIntroCard";
 import ServerNumberSetting from "./ServerNumberSetting";
-import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
-import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
-import ModelListIndex from "../hugging_face/model_list/ModelListIndex";
-import CollectionList from "../collections/CollectionList";
-import WorkspacesManager from "../workspaces/WorkspacesManager";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
@@ -55,17 +49,13 @@ import SettingsSidebar from "./SettingsSidebar";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
 
-const workspacesEnabled = !isProduction;
-
-// Tab indices. Workspaces is conditional, so About/Packages are derived.
+// Tab indices. Models, Collections, and Workspaces now live as standalone
+// full-screen pages reachable from the logo menu.
 const TAB_GENERAL = 0;
 const TAB_API_KEYS = 1;
 const TAB_INTEGRATIONS = 2;
-const TAB_MODELS = 3;
-const TAB_COLLECTIONS = 4;
-const TAB_WORKSPACES = 5;
-const aboutTabIndex = workspacesEnabled ? 6 : 5;
-const packagesTabIndex = aboutTabIndex + 1;
+const aboutTabIndex = 3;
+const packagesTabIndex = 4;
 
 const UPDATE_CHANNEL_OPTIONS = [
   { value: "latest", label: "Stable" },
@@ -177,12 +167,6 @@ function SettingsPage() {
         return "Provider API keys and credentials.";
       case TAB_INTEGRATIONS:
         return "Service endpoints, MCP servers, storage, and the Nodetool API.";
-      case TAB_MODELS:
-        return "Manage local models and runtime preferences.";
-      case TAB_COLLECTIONS:
-        return "Vector store collections for retrieval and search.";
-      case TAB_WORKSPACES:
-        return "Workspaces and project organization.";
       default:
         if (tab === packagesTabIndex) {
           return "Discover, trust, and install third-party node packs.";
@@ -194,11 +178,7 @@ function SettingsPage() {
   const settingsTab = useMemo(() => {
     const raw = Number(searchParams.get("tab") ?? 0);
     if (Number.isNaN(raw)) return 0;
-    const bounded = Math.min(packagesTabIndex, Math.max(0, raw));
-    if (!workspacesEnabled && bounded === TAB_WORKSPACES) {
-      return aboutTabIndex;
-    }
-    return bounded;
+    return Math.min(packagesTabIndex, Math.max(0, raw));
   }, [searchParams]);
 
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
@@ -600,11 +580,6 @@ function SettingsPage() {
                 <Tab label="General" id="settings-tab-0" />
                 <Tab label="API Keys" id="settings-tab-1" />
                 <Tab label="Integrations" id="settings-tab-2" />
-                <Tab label="Models" id="settings-tab-3" />
-                <Tab label="Collections" id="settings-tab-4" />
-                {workspacesEnabled && (
-                  <Tab label="Workspaces" id={`settings-tab-${TAB_WORKSPACES}`} />
-                )}
                 <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
                 <Tab label="Packages" id={`settings-tab-${packagesTabIndex}`} />
               </Tabs>
@@ -633,9 +608,6 @@ function SettingsPage() {
 
               <div
                 className={`settings-content${
-                  settingsTab === TAB_MODELS ||
-                  settingsTab === TAB_COLLECTIONS ||
-                  (settingsTab === TAB_WORKSPACES && workspacesEnabled) ||
                   settingsTab === packagesTabIndex
                     ? " settings-content--full"
                     : ""
@@ -1184,49 +1156,6 @@ function SettingsPage() {
                   <FoldersSettings />
                   </div>
                 </TabPanel>
-
-                {/* Tab 3: Models */}
-                <TabPanel value={settingsTab} index={TAB_MODELS}>
-                  <ModelListIndex />
-                </TabPanel>
-
-                {/* Tab 4: Collections */}
-                <TabPanel value={settingsTab} index={TAB_COLLECTIONS}>
-                  <Box className="settings-panel-padded">
-                    <SettingsIntroCard
-                      icon={<LibraryBooksOutlinedIcon sx={{ fontSize: 22 }} />}
-                      title="Collections"
-                      description="Group documents into searchable collections for RAG workflows. Drop in PDFs, Markdown, HTML, or transcripts and any index node can query them."
-                      docsUrl="https://docs.nodetool.ai/collections.html"
-                      highlights={[
-                        { label: "Vector search" },
-                        { label: "Embedding-backed" },
-                        { label: "Workflow-ready" }
-                      ]}
-                    />
-                    <CollectionList />
-                  </Box>
-                </TabPanel>
-
-                {/* Tab 5: Workspaces */}
-                {workspacesEnabled && (
-                  <TabPanel value={settingsTab} index={TAB_WORKSPACES}>
-                    <Box className="settings-panel-padded">
-                      <SettingsIntroCard
-                        icon={<FolderSpecialOutlinedIcon sx={{ fontSize: 22 }} />}
-                        title="Workspaces"
-                        description="Define directory roots that agents and workflows can read, write, and organize files in. Each workspace is a sandboxed folder available to chat tools and node runs."
-                        docsUrl="https://docs.nodetool.ai/workspaces.html"
-                        highlights={[
-                          { label: "Sandboxed folders" },
-                          { label: "Agent-accessible" },
-                          { label: "Per-project" }
-                        ]}
-                      />
-                      <WorkspacesManager />
-                    </Box>
-                  </TabPanel>
-                )}
 
                 {/* About */}
                 <TabPanel value={settingsTab} index={aboutTabIndex}>

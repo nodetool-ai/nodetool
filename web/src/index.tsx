@@ -75,8 +75,11 @@ const GlobalChat = React.lazy(
 const StandaloneMiniApp = React.lazy(
   () => import("./components/miniapps/StandaloneMiniApp")
 );
-const ModelListIndex = React.lazy(
-  () => import("./components/hugging_face/model_list/ModelListIndex")
+const ModelsPage = React.lazy(
+  () => import("./components/hugging_face/model_list/ModelsPage")
+);
+const WorkspacesPage = React.lazy(
+  () => import("./components/workspaces/WorkspacesPage")
 );
 const WorkflowGraphView = React.lazy(
   () => import("./components/graph_view/WorkflowGraphView")
@@ -330,7 +333,15 @@ function getRoutes() {
       path: "models",
       element: (
         <ProtectedRoute>
-          <ModelListIndex />
+          <ModelsPage />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "workspaces",
+      element: (
+        <ProtectedRoute>
+          <WorkspacesPage />
         </ProtectedRoute>
       )
     },
