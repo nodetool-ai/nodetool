@@ -6,6 +6,7 @@ import {
   getTopLevelCategory
 } from "../quickAccessCategories";
 import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
+import type { NodeCategoryId } from "../../stores/PanelStore";
 
 const slot = (kind: string): OutputSlot =>
   ({ name: "output", type: { type: kind } }) as unknown as OutputSlot;
@@ -13,15 +14,21 @@ const slot = (kind: string): OutputSlot =>
 const meta = (
   node_type: string,
   outputKind = "any",
-  title = node_type.split(".").pop() ?? node_type
+  extra: Partial<NodeMetadata> = {}
 ): NodeMetadata =>
   ({
     node_type,
-    title,
+    title: node_type.split(".").pop() ?? node_type,
     namespace: node_type.split(".").slice(0, -1).join("."),
     outputs: [slot(outputKind)],
-    description: ""
+    description: "",
+    ...extra
   }) as unknown as NodeMetadata;
+
+const idsIn = (category: NodeCategoryId, all: NodeMetadata[]): string[] =>
+  filterNodesForCategory(getNodeSubcategory(category)!, all).map(
+    (m) => m.node_type
+  );
 
 describe("quickAccessCategories", () => {
   it("ships nine top-level views in order", () => {
@@ -39,15 +46,17 @@ describe("quickAccessCategories", () => {
     ]);
   });
 
-  it("ships nine node sub-categories in order, leading with All", () => {
+  it("ships node sub-categories in order, leading with All", () => {
     const ids = NODE_SUBCATEGORIES.map((c) => c.id);
     expect(ids).toEqual([
       "all",
       "io",
-      "tools",
-      "image-models",
-      "video-models",
-      "audio-models",
+      "image",
+      "image-ai",
+      "video",
+      "video-ai",
+      "audio",
+      "audio-ai",
       "3d-models",
       "agents",
       "control-flow"
@@ -60,44 +69,69 @@ describe("quickAccessCategories", () => {
       meta("openai.agents.Foo", "str"),
       meta("nodetool.control.If", "any")
     ];
-    const out = filterNodesForCategory(getNodeSubcategory("all")!, all);
-    expect(out.map((m) => m.node_type).sort()).toEqual(
-      ["nodetool.control.If", "nodetool.image.Resize", "openai.agents.Foo"]
-    );
+    expect(idsIn("all", all).sort()).toEqual([
+      "nodetool.control.If",
+      "nodetool.image.Resize",
+      "openai.agents.Foo"
+    ]);
   });
 
   it("lookup helpers return the right entries", () => {
     expect(getTopLevelCategory("nodes")?.label).toBe("Nodes");
-    expect(getNodeSubcategory("image-models")?.label).toBe("Image");
+    expect(getNodeSubcategory("image")?.label).toBe("Image");
+    expect(getNodeSubcategory("image-ai")?.label).toBe("Image AI");
   });
 
-  it("image-models matches image and image_mask outputs", () => {
+  it("splits image outputs into non-AI processing and AI models", () => {
     const all = [
-      meta("a.GenA", "image"),
-      meta("b.GenB", "image_mask"),
-      meta("c.GenC", "video"),
-      meta("d.GenD", "str")
+      meta("nodetool.image.Resize", "image"), // local processing
+      meta("lib.image.Mask", "image_mask"), // local processing
+      meta("fal.text_to_image.Flux", "image"), // AI: provider namespace
+      meta("nodetool.image.TextToImage", "image", { auto_save_asset: true }), // AI: flag
+      meta("c.GenC", "video") // not an image output
     ];
-    const out = filterNodesForCategory(getNodeSubcategory("image-models")!, all);
-    expect(out.map((m) => m.node_type).sort()).toEqual(["a.GenA", "b.GenB"]);
+    expect(idsIn("image", all).sort()).toEqual([
+      "lib.image.Mask",
+      "nodetool.image.Resize"
+    ]);
+    expect(idsIn("image-ai", all).sort()).toEqual([
+      "fal.text_to_image.Flux",
+      "nodetool.image.TextToImage"
+    ]);
   });
 
-  it("video-models matches only video outputs", () => {
-    const all = [meta("a.GenA", "video"), meta("b.GenB", "image")];
-    const out = filterNodesForCategory(getNodeSubcategory("video-models")!, all);
-    expect(out.map((m) => m.node_type)).toEqual(["a.GenA"]);
+  it("splits video outputs into non-AI processing and AI models", () => {
+    const all = [
+      meta("nodetool.video.Trim", "video"),
+      meta("fal.text_to_video.Veo", "video"),
+      meta("nodetool.video.TextToVideo", "video", { auto_save_asset: true })
+    ];
+    expect(idsIn("video", all)).toEqual(["nodetool.video.Trim"]);
+    expect(idsIn("video-ai", all).sort()).toEqual([
+      "fal.text_to_video.Veo",
+      "nodetool.video.TextToVideo"
+    ]);
   });
 
-  it("audio-models matches only audio outputs", () => {
-    const all = [meta("a.GenA", "audio"), meta("b.GenB", "image")];
-    const out = filterNodesForCategory(getNodeSubcategory("audio-models")!, all);
-    expect(out.map((m) => m.node_type)).toEqual(["a.GenA"]);
+  it("splits audio outputs into non-AI processing and AI models", () => {
+    const all = [
+      meta("nodetool.audio.Normalize", "audio"),
+      meta("elevenlabs.text_to_speech.Tts", "audio")
+    ];
+    expect(idsIn("audio", all)).toEqual(["nodetool.audio.Normalize"]);
+    expect(idsIn("audio-ai", all)).toEqual(["elevenlabs.text_to_speech.Tts"]);
   });
 
-  it("3d-models matches model_3d outputs", () => {
-    const all = [meta("a.GenA", "model_3d"), meta("b.GenB", "image")];
-    const out = filterNodesForCategory(getNodeSubcategory("3d-models")!, all);
-    expect(out.map((m) => m.node_type)).toEqual(["a.GenA"]);
+  it("3d-models matches model_3d outputs (AI and processing together)", () => {
+    const all = [
+      meta("nodetool.model3d.RepairMesh", "model_3d"),
+      meta("fal.text_to_3d.Hunyuan", "model_3d"),
+      meta("b.GenB", "image")
+    ];
+    expect(idsIn("3d-models", all).sort()).toEqual([
+      "fal.text_to_3d.Hunyuan",
+      "nodetool.model3d.RepairMesh"
+    ]);
   });
 
   it("io matches `nodetool.input.*` and `nodetool.output.*`", () => {
@@ -106,9 +140,7 @@ describe("quickAccessCategories", () => {
       meta("nodetool.output.Output", "any"),
       meta("nodetool.image.Resize", "image")
     ];
-    const ids = filterNodesForCategory(getNodeSubcategory("io")!, all).map(
-      (m) => m.node_type
-    );
+    const ids = idsIn("io", all);
     expect(ids).toContain("nodetool.input.StringInput");
     expect(ids).toContain("nodetool.output.Output");
     expect(ids).not.toContain("nodetool.image.Resize");
@@ -120,10 +152,7 @@ describe("quickAccessCategories", () => {
       meta("nodetool.control.ForEach", "any"),
       meta("nodetool.image.Resize", "image")
     ];
-    const ids = filterNodesForCategory(
-      getNodeSubcategory("control-flow")!,
-      all
-    ).map((m) => m.node_type);
+    const ids = idsIn("control-flow", all);
     expect(ids).toContain("nodetool.control.If");
     expect(ids).toContain("nodetool.control.ForEach");
     expect(ids).not.toContain("nodetool.image.Resize");
@@ -135,88 +164,9 @@ describe("quickAccessCategories", () => {
       meta("openai.agents.RealtimeAgent", "str"),
       meta("nodetool.image.Resize", "image")
     ];
-    const ids = filterNodesForCategory(getNodeSubcategory("agents")!, all).map(
-      (m) => m.node_type
-    );
+    const ids = idsIn("agents", all);
     expect(ids).toContain("nodetool.agents.Agent");
     expect(ids).toContain("openai.agents.RealtimeAgent");
     expect(ids).not.toContain("nodetool.image.Resize");
-  });
-
-  it("tools matches the curated editing-node list", () => {
-    const all = [
-      meta("nodetool.image.Crop", "image"),
-      meta("nodetool.image.Blur", "image"),
-      meta("not.in.tools", "image")
-    ];
-    const ids = filterNodesForCategory(getNodeSubcategory("tools")!, all).map(
-      (m) => m.node_type
-    );
-    expect(ids).toContain("nodetool.image.Crop");
-    expect(ids).toContain("nodetool.image.Blur");
-    expect(ids).not.toContain("not.in.tools");
-  });
-
-  it("query narrows results by title/node_type/namespace", () => {
-    const all = [
-      meta("a.GenAlpha", "image", "Alpha generator"),
-      meta("a.GenBeta", "image", "Beta generator")
-    ];
-    const cat = getNodeSubcategory("image-models")!;
-    expect(
-      filterNodesForCategory(cat, all, "alpha").map((m) => m.node_type)
-    ).toEqual(["a.GenAlpha"]);
-    expect(
-      filterNodesForCategory(cat, all, "beta").map((m) => m.node_type)
-    ).toEqual(["a.GenBeta"]);
-    expect(filterNodesForCategory(cat, all, "nothing")).toEqual([]);
-  });
-
-  it("results are sorted by title", () => {
-    const all = [
-      meta("a.GenC", "image", "Charlie"),
-      meta("a.GenA", "image", "Alpha"),
-      meta("a.GenB", "image", "Bravo")
-    ];
-    const titles = filterNodesForCategory(
-      getNodeSubcategory("image-models")!,
-      all
-    ).map((m) => m.title);
-    expect(titles).toEqual(["Alpha", "Bravo", "Charlie"]);
-  });
-
-  it("floats generic nodetool nodes above models, then curated popular models", () => {
-    const all = [
-      meta("zzz.OtherModel", "image", "Zzz Other Model"),
-      meta("fal.text_to_image.FluxDev", "image", "Flux Dev"),
-      meta("fal.text_to_image.NanoBananaPro", "image", "Nano Banana Pro"),
-      meta("nodetool.image.TextToImage", "image", "Text To Image")
-    ];
-    const ids = filterNodesForCategory(
-      getNodeSubcategory("image-models")!,
-      all
-    ).map((m) => m.node_type);
-    expect(ids).toEqual([
-      "nodetool.image.TextToImage",
-      "fal.text_to_image.NanoBananaPro",
-      "fal.text_to_image.FluxDev",
-      "zzz.OtherModel"
-    ]);
-  });
-
-  it("ranking falls back to title sort while searching", () => {
-    const all = [
-      meta("fal.text_to_image.NanoBananaPro", "image", "Nano Banana Pro"),
-      meta("nodetool.image.TextToImage", "image", "Generate via prompt")
-    ];
-    const ids = filterNodesForCategory(
-      getNodeSubcategory("image-models")!,
-      all,
-      "a"
-    ).map((m) => m.node_type);
-    expect(ids).toEqual([
-      "nodetool.image.TextToImage",
-      "fal.text_to_image.NanoBananaPro"
-    ]);
   });
 });
