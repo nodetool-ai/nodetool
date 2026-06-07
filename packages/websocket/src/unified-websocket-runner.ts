@@ -458,6 +458,9 @@ async function autoSaveAssets(
     const textVal = result[textKey];
     if (typeof textVal === "string" && textVal.length > 0) {
       const bytes = new TextEncoder().encode(textVal);
+      const previewText = new TextDecoder().decode(
+        bytes.slice(0, TEXT_GENERATION_PREVIEW_CAP)
+      );
       const asset = new Asset({
         user_id: opts.userId,
         workflow_id: opts.workflowId ?? null,
@@ -467,7 +470,7 @@ async function autoSaveAssets(
         content_type: "text/plain",
         parent_id: null
       });
-      asset.metadata = { text: textVal.slice(0, TEXT_GENERATION_PREVIEW_CAP) };
+      asset.metadata = { text: previewText };
       const fileName = `${asset.id}.txt`;
       try {
         await storeAssetWithThumbnail(asset.id, fileName, bytes, "text/plain");
