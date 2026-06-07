@@ -326,6 +326,31 @@ describe("assetToFalUrl", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("resolves asset:// ref via context.resolveAssetBytes and uploads", async () => {
+    const context = {
+      storage: {
+        retrieve: vi.fn(async () => null)
+      },
+      resolveAssetBytes: vi.fn(async () => ({
+        bytes: Uint8Array.from([137, 80, 78, 71])
+      }))
+    };
+    mockStorageUpload.mockResolvedValueOnce(
+      "https://v3.fal.media/files/asset-resolved.png"
+    );
+
+    const url = await assetToFalUrl(
+      apiKey,
+      { type: "image", uri: "asset://asset-123" },
+      context
+    );
+
+    expect(url).toBe("https://v3.fal.media/files/asset-resolved.png");
+    expect(context.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(mockStorageUpload).toHaveBeenCalledTimes(1);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("returns null when no uri and no data", async () => {
     const url = await assetToFalUrl(apiKey, { type: "image" });
     expect(url).toBeNull();

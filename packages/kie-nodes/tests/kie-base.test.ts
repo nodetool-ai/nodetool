@@ -131,6 +131,42 @@ describe("uploadImageInput", () => {
     expect(result).toBe("https://kie.example/uploaded.png");
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
+
+  it("uploads bytes for asset:// refs via resolveAssetBytes", async () => {
+    const storage = { retrieve: vi.fn().mockResolvedValue(null) };
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) });
+
+    const result = await uploadImageInput(
+      "test-api-key",
+      { type: "image", uri: "asset://asset-123" },
+      { storage, resolveAssetBytes } as any
+    );
+
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(result).toBe("https://kie.example/uploaded.png");
+  });
+
+  it("uploads bytes via asset_id storage candidates when the uri misses", async () => {
+    const storage = {
+      retrieve: vi
+        .fn()
+        .mockImplementation(async (key: string) =>
+          key === "/api/storage/asset-123.png"
+            ? Uint8Array.from([137, 80, 78, 71])
+            : null
+        )
+    };
+
+    const result = await uploadImageInput(
+      "test-api-key",
+      { type: "image", uri: "/api/storage/stale.png", asset_id: "asset-123" },
+      { storage } as any
+    );
+
+    expect(result).toBe("https://kie.example/uploaded.png");
+  });
 });
 
 describe("kieExecuteOmniDirect", () => {

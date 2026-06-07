@@ -103,6 +103,12 @@ type StorageLike = {
 
 type ProcessContext = Parameters<BaseNode["process"]>[0] & {
   storage?: StorageLike | null;
+  // Canonical asset resolver on ProcessingContext. Resolves asset://<id> and
+  // package://<pkg>/<path> reference URIs that storage adapters return null for.
+  // SSRF-safe — it performs no unguarded outbound fetches.
+  resolveAssetBytes?: (
+    uri: string
+  ) => Promise<{ bytes: Uint8Array | null }>;
 };
 
 function looksLikePublicUrl(s: unknown): s is string {
@@ -286,6 +292,25 @@ export async function resolveAssetForAtlas(
   }
   if (r.data instanceof Uint8Array && r.data.byteLength > 0) {
     return bytesToDataUri(r.data, guessMime(r, defaultMimeFor(fieldType)));
+  }
+
+  // Reference URIs (asset://<id>, package://<pkg>/<path>) that storage adapters
+  // return null for — resolve them via the canonical, SSRF-safe context helper.
+  // Read uri fresh from ref: the looksLikePublicUrl predicate above narrowed
+  // r.uri away, so a typeof check re-establishes the string type here.
+  const uri = (ref as AssetRef).uri;
+  if (
+    typeof uri === "string" &&
+    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
+    context?.resolveAssetBytes
+  ) {
+    const { bytes } = await context.resolveAssetBytes(uri);
+    if (bytes && bytes.byteLength > 0) {
+      return bytesToDataUri(
+        new Uint8Array(bytes),
+        guessMime(r, defaultMimeFor(fieldType))
+      );
+    }
   }
 
   if (r.uri && context?.storage) {
