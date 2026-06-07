@@ -54,7 +54,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+      justifyContent: "flex-end",
       width: "100%",
       flex: "1 1 100%",
       gap: theme.spacing(1.5),
@@ -65,13 +65,14 @@ const typeFilterChipsStyles = (theme: Theme) =>
       alignItems: "center",
       gap: theme.spacing(1.5),
       minWidth: 0,
-      flex: "1 1 auto",
+      flex: "0 1 auto",
+      marginLeft: "auto",
       overflow: "visible"
     },
     ".provider-quick": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
+      gap: theme.spacing(0.5),
       marginRight: theme.spacing(0.5),
       paddingRight: theme.spacing(1.5),
       borderRight: `1px solid ${theme.vars.palette.divider}`
@@ -79,15 +80,21 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".provider-quick-chip": {
       height: "26px",
       fontSize: theme.fontSizeSmaller,
-      borderRadius: "var(--rounded-xl)",
-      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: "var(--rounded-md)",
+      border: "1px solid transparent",
+      backgroundColor: "transparent",
+      color: theme.vars.palette.text.secondary,
+      transition: "all 0.15s ease",
       "& .MuiChip-label": {
         paddingInline: theme.spacing(1)
+      },
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.text.primary
       }
     },
     ".provider-quick-chip.selected": {
       backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-      borderColor: "var(--palette-primary-main)",
       color: "var(--palette-primary-main)"
     },
     ".quick-label": {
@@ -118,38 +125,43 @@ const typeFilterChipsStyles = (theme: Theme) =>
     },
     ".type-chip": {
       height: "26px",
-      padding: theme.spacing(0, 1),
+      padding: theme.spacing(0, 0.5),
       fontSize: theme.fontSizeSmaller,
-      borderRadius: "var(--rounded-xl)",
-      backgroundColor: theme.vars.palette.action.hover,
-      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: "var(--rounded-md)",
+      backgroundColor: "transparent",
+      border: "1px solid transparent",
+      color: theme.vars.palette.text.secondary,
       cursor: "pointer",
       transition: "all 0.15s ease",
       "& .MuiChip-label": {
         paddingInline: theme.spacing(0.5)
       },
       "& .MuiChip-icon": {
-        marginLeft: theme.spacing(1),
-        marginRight: theme.spacing(0.5),
+        marginLeft: theme.spacing(0.75),
+        marginRight: theme.spacing(0.25),
         display: "inline-flex",
         alignItems: "center"
       },
       "&:hover": {
-        backgroundColor: theme.vars.palette.action.selected,
-        borderColor: theme.vars.palette.text.secondary
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.text.primary
       },
       "&.selected": {
         backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-        borderColor: "var(--palette-primary-main)",
         color: "var(--palette-primary-main)"
       }
     },
     ".filter-actions": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1),
-      flexShrink: 0,
-      marginLeft: "auto"
+      gap: theme.spacing(1.25),
+      flexShrink: 0
+    },
+    ".node-count": {
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.secondary,
+      whiteSpace: "nowrap",
+      userSelect: "none"
     },
     ".more-filters-button": {
       textTransform: "none",
@@ -222,6 +234,10 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
     );
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
     const metadata = useMetadataStore((state) => state.metadata);
+    const totalNodeCount = useMemo(
+      () => Object.keys(metadata).length,
+      [metadata]
+    );
 
     const allTypeOptions = useMemo<TypeOption[]>(() => {
       const allTypes = new Set<string>();
@@ -387,6 +403,9 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
           >
             Filters
           </EditorButton>
+          <span className="node-count">
+            {totalNodeCount} {totalNodeCount === 1 ? "node" : "nodes"}
+          </span>
         </Box>
 
         <Menu

@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import React from "react";
 
 import HomeIcon from "@mui/icons-material/Home";
@@ -98,6 +100,22 @@ const iconBoxStyles = css({
   }
 });
 
+// Rounded badge that frames the real provider/namespace icon, giving the
+// sidebar a consistent app-launcher look regardless of icon shape.
+const badgeStyles = (theme: Theme) =>
+  css({
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 26,
+    height: 26,
+    flexShrink: 0,
+    borderRadius: "var(--rounded-md)",
+    backgroundColor: theme.vars.palette.action.hover,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    transition: "background-color 0.15s ease, border-color 0.15s ease"
+  });
+
 interface NamespaceIconProps {
   namespace: string;
 }
@@ -114,24 +132,26 @@ const renderEntry = (entry: IconEntry, isDarkMode: boolean) => {
   return <img src={entry.src} alt="" style={filter ? { filter } : undefined} />;
 };
 
-const NamespaceIcon: React.FC<NamespaceIconProps> = ({ namespace }) => {
+const NamespaceBadge: React.FC<{ entry: IconEntry }> = ({ entry }) => {
   const isDarkMode = useIsDarkMode();
-  const key = namespace.toLowerCase();
-  const entry = NAMESPACE_ICONS[key] ?? FALLBACK_ENTRY;
+  const theme = useTheme();
   return (
-    <span css={iconBoxStyles} className="namespace-icon">
-      {renderEntry(entry, isDarkMode)}
+    <span css={badgeStyles(theme)} className="namespace-icon">
+      <span css={iconBoxStyles} className="namespace-icon-glyph">
+        {renderEntry(entry, isDarkMode)}
+      </span>
     </span>
   );
 };
 
-export const HomeNamespaceIcon: React.FC = () => {
-  const isDarkMode = useIsDarkMode();
-  return (
-    <span css={iconBoxStyles} className="namespace-icon">
-      {renderEntry(HOME_ENTRY, isDarkMode)}
-    </span>
-  );
+const NamespaceIcon: React.FC<NamespaceIconProps> = ({ namespace }) => {
+  const key = namespace.toLowerCase();
+  const entry = NAMESPACE_ICONS[key] ?? FALLBACK_ENTRY;
+  return <NamespaceBadge entry={entry} />;
 };
+
+export const HomeNamespaceIcon: React.FC = () => (
+  <NamespaceBadge entry={HOME_ENTRY} />
+);
 
 export default React.memo(NamespaceIcon);
