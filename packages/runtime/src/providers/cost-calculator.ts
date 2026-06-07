@@ -20,6 +20,7 @@ import { calcPrice, type Usage } from "@pydantic/genai-prices";
 import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic text, not a behavioural contract.
 const log = createLogger("nodetool.runtime.cost");
 
 export enum CostType {
@@ -180,12 +181,18 @@ function calcTokenPriceUsd(
     input_tokens: usage.inputTokens ?? 0,
     output_tokens: usage.outputTokens ?? 0
   };
+  // genai-prices prices a 0/undefined cache count identically to an absent one,
+  // so these guards only avoid passing redundant fields — toggling them is
+  // behaviour-preserving. The discount/premium themselves are pinned by the
+  // cache-read and cache-write tests, so we suppress the equivalent mutants.
+  // Stryker disable all
   if (usage.cachedTokens && usage.cachedTokens > 0) {
     gpUsage.cache_read_tokens = usage.cachedTokens;
   }
   if (usage.cacheWriteTokens && usage.cacheWriteTokens > 0) {
     gpUsage.cache_write_tokens = usage.cacheWriteTokens;
   }
+  // Stryker restore all
 
   const providerId = GENAI_PROVIDER_MAP[providerLower];
   const result = calcPrice(
@@ -205,10 +212,16 @@ export class CostCalculator {
     const modelLower = modelId.toLowerCase();
     const providerLower = provider.toLowerCase();
 
+    // Fast path. The longest-prefix scan below returns the identical tier for an
+    // exact id (a key is always a prefix of itself, and ties to the longest
+    // candidate), so mutating this block away is a perf change, not a behaviour
+    // change — hence equivalent mutants we suppress rather than chase.
+    // Stryker disable all
     const providerKey = `${providerLower}:${modelLower}`;
     if (providerKey in MODEL_TO_TIER) {
       return MODEL_TO_TIER[providerKey];
     }
+    // Stryker restore all
 
     // Longest-prefix match within the same provider.
     const providerPrefix = `${providerLower}:`;
@@ -249,6 +262,7 @@ export class CostCalculator {
       if (tier !== undefined) {
         return CostCalculator._calculateForTier(tier, usage);
       }
+      // Stryker disable next-line StringLiteral: warning text is for humans, not asserted.
       log.warn(`Pricing tier '${tierName}' not defined`);
     }
 
@@ -256,6 +270,7 @@ export class CostCalculator {
     const tokenCost = calcTokenPriceUsd(modelId, usage, provider);
     if (tokenCost !== null) return tokenCost;
 
+    // Stryker disable next-line StringLiteral: warning text is for humans, not asserted.
     log.warn(
       `No price found for model: ${modelId} (provider: ${provider})`
     );
