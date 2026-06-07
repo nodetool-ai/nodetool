@@ -22,6 +22,7 @@ dist/
 # Stryker mutation testing
 **/reports/mutation/
 **/.stryker-tmp/
+**/stryker-setup-*.js
 electron/dist/
 electron/dist-web/
 electron/dist-electron/
