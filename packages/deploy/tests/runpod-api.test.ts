@@ -21,12 +21,18 @@ import {
   updateRunpodEndpoint,
   deleteRunpodEndpointByName,
   createOrUpdateRunpodEndpoint,
-  createRunpodEndpointGraphql
+  createRunpodEndpointGraphql,
+  type RunpodAuth
 } from "../src/runpod-api.js";
 
 // ---------------------------------------------------------------------------
 // Setup
 // ---------------------------------------------------------------------------
+
+// After the multi-tenant refactor, RunPod auth is an EXPLICIT per-call argument
+// sourced from ctx.credentials.RUNPOD_API_KEY — it never transits process.env.
+// Every API helper takes a `RunpodAuth` bag.
+const AUTH: RunpodAuth = { apiKey: "test-api-key-123" };
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -52,7 +58,6 @@ function textResponse(text: string, status = 200, ok = true): Response {
 }
 
 beforeEach(() => {
-  vi.stubEnv("RUNPOD_API_KEY", "test-api-key-123");
   mockFetch.mockReset();
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -104,7 +109,7 @@ describe("printEnumOptions", () => {
 describe("makeRunpodApiCall", () => {
   it("makes GET request with auth header", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ items: [] }));
-    const result = await makeRunpodApiCall("endpoints", "GET");
+    const result = await makeRunpodApiCall("endpoints", AUTH, "GET");
     expect(result).toEqual({ items: [] });
     expect(mockFetch).toHaveBeenCalledOnce();
     const [url, init] = mockFetch.mock.calls[0];
@@ -115,7 +120,7 @@ describe("makeRunpodApiCall", () => {
 
   it("sends body for POST requests", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "tpl-1" }));
-    await makeRunpodApiCall("templates", "POST", { name: "test" });
+    await makeRunpodApiCall("templates", AUTH, "POST", { name: "test" });
     const [, init] = mockFetch.mock.calls[0];
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toEqual({ name: "test" });
@@ -123,7 +128,7 @@ describe("makeRunpodApiCall", () => {
 
   it("sends body for PATCH requests", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
-    await makeRunpodApiCall("templates/t1", "PATCH", { name: "updated" });
+    await makeRunpodApiCall("templates/t1", AUTH, "PATCH", { name: "updated" });
     const [, init] = mockFetch.mock.calls[0];
     expect(init.method).toBe("PATCH");
     expect(JSON.parse(init.body)).toEqual({ name: "updated" });
@@ -131,7 +136,7 @@ describe("makeRunpodApiCall", () => {
 
   it("does NOT send body for GET even if data provided", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
-    await makeRunpodApiCall("templates", "GET", { foo: "bar" });
+    await makeRunpodApiCall("templates", AUTH, "GET", { foo: "bar" });
     const [, init] = mockFetch.mock.calls[0];
     expect(init.body).toBeUndefined();
   });
@@ -146,7 +151,7 @@ describe("makeRunpodApiCall", () => {
       text: () => Promise.resolve(""),
       headers: new Headers()
     } as unknown as Response);
-    const result = await makeRunpodApiCall("templates/t1", "DELETE");
+    const result = await makeRunpodApiCall("templates/t1", AUTH, "DELETE");
     expect(result).toEqual({});
   });
 
@@ -157,7 +162,7 @@ describe("makeRunpodApiCall", () => {
       text: () => Promise.resolve(""),
       headers: new Headers()
     } as unknown as Response);
-    const result = await makeRunpodApiCall("endpoints", "GET");
+    const result = await makeRunpodApiCall("endpoints", AUTH, "GET");
     expect(result).toEqual({});
   });
 
@@ -168,23 +173,23 @@ describe("makeRunpodApiCall", () => {
       text: () => Promise.resolve("Internal Server Error"),
       headers: new Headers()
     } as unknown as Response);
-    await expect(makeRunpodApiCall("templates", "GET")).rejects.toThrow(
+    await expect(makeRunpodApiCall("templates", AUTH, "GET")).rejects.toThrow(
       /failed with status 500/
     );
   });
 
-  it("throws when RUNPOD_API_KEY is not set", async () => {
-    vi.stubEnv("RUNPOD_API_KEY", "");
-    // Remove the env var entirely
-    delete process.env.RUNPOD_API_KEY;
-    await expect(makeRunpodApiCall("endpoints", "GET")).rejects.toThrow(
-      "RUNPOD_API_KEY environment variable is not set"
-    );
+  it("throws when the auth bag has no API key", async () => {
+    // Auth is now an explicit per-call argument; an empty apiKey (e.g. a
+    // missing RUNPOD_API_KEY secret) fails fast before any fetch.
+    await expect(
+      makeRunpodApiCall("endpoints", { apiKey: "" }, "GET")
+    ).rejects.toThrow(/RUNPOD_API_KEY/);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("throws when fetch itself throws (network error)", async () => {
     mockFetch.mockRejectedValueOnce(new Error("Network error"));
-    await expect(makeRunpodApiCall("endpoints", "GET")).rejects.toThrow(
+    await expect(makeRunpodApiCall("endpoints", AUTH, "GET")).rejects.toThrow(
       "Network error"
     );
   });
@@ -199,7 +204,7 @@ describe("runGraphqlQuery", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ data: { myself: { id: "user-1" } } })
     );
-    const result = await runGraphqlQuery("{ myself { id } }");
+    const result = await runGraphqlQuery("{ myself { id } }", AUTH);
     expect(result).toEqual({ data: { myself: { id: "user-1" } } });
     const [url, init] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.runpod.io/graphql");
@@ -207,30 +212,36 @@ describe("runGraphqlQuery", () => {
     expect(JSON.parse(init.body)).toEqual({ query: "{ myself { id } }" });
   });
 
-  it("uses custom base URL from env", async () => {
-    vi.stubEnv("RUNPOD_API_BASE_URL", "https://custom.runpod.io");
+  it("uses a custom base URL from the auth bag (not process.env)", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ data: {} }));
-    await runGraphqlQuery("{ test }");
+    await runGraphqlQuery("{ test }", {
+      apiKey: "k",
+      baseUrl: "https://custom.runpod.io"
+    });
     expect(mockFetch.mock.calls[0][0]).toBe("https://custom.runpod.io/graphql");
   });
 
   it("throws on 401 unauthorized", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({}, 401));
-    await expect(runGraphqlQuery("{ test }")).rejects.toThrow("Unauthorized");
+    await expect(runGraphqlQuery("{ test }", AUTH)).rejects.toThrow(
+      "Unauthorized"
+    );
   });
 
   it("throws on GraphQL errors", async () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ errors: [{ message: "Bad query syntax" }] })
     );
-    await expect(runGraphqlQuery("{ bad }")).rejects.toThrow(
+    await expect(runGraphqlQuery("{ bad }", AUTH)).rejects.toThrow(
       "Bad query syntax"
     );
   });
 
-  it("throws when API key is missing", async () => {
-    delete process.env.RUNPOD_API_KEY;
-    await expect(runGraphqlQuery("{ test }")).rejects.toThrow("RUNPOD_API_KEY");
+  it("throws when the auth bag has no API key", async () => {
+    await expect(
+      runGraphqlQuery("{ test }", { apiKey: "" })
+    ).rejects.toThrow("RUNPOD_API_KEY");
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });
 
@@ -241,7 +252,7 @@ describe("runGraphqlQuery", () => {
 describe("Network Volume functions", () => {
   it("createNetworkVolume sends correct payload", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "vol-1" }));
-    const result = await createNetworkVolume("my-vol", 50, "US-TX-3");
+    const result = await createNetworkVolume("my-vol", 50, "US-TX-3", AUTH);
     expect(result).toEqual({ id: "vol-1" });
     const [url, init] = mockFetch.mock.calls[0];
     expect(url).toContain("networkvolumes");
@@ -255,7 +266,7 @@ describe("Network Volume functions", () => {
 
   it("listNetworkVolumes makes GET request", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse([{ id: "vol-1" }]));
-    const result = await listNetworkVolumes();
+    const result = await listNetworkVolumes(AUTH);
     expect(mockFetch.mock.calls[0][0]).toContain("networkvolumes");
     expect(mockFetch.mock.calls[0][1].method).toBe("GET");
     expect(result).toEqual([{ id: "vol-1" }]);
@@ -265,14 +276,14 @@ describe("Network Volume functions", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ id: "vol-1", name: "my-vol" })
     );
-    const result = await getNetworkVolume("vol-1");
+    const result = await getNetworkVolume("vol-1", AUTH);
     expect(mockFetch.mock.calls[0][0]).toContain("networkvolumes/vol-1");
     expect(result).toEqual({ id: "vol-1", name: "my-vol" });
   });
 
   it("updateNetworkVolume sends PATCH with partial data", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "vol-1" }));
-    await updateNetworkVolume("vol-1", "renamed");
+    await updateNetworkVolume("vol-1", AUTH, "renamed");
     const [, init] = mockFetch.mock.calls[0];
     expect(init.method).toBe("PATCH");
     expect(JSON.parse(init.body)).toEqual({ name: "renamed" });
@@ -280,14 +291,14 @@ describe("Network Volume functions", () => {
 
   it("updateNetworkVolume sends both name and size", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "vol-1" }));
-    await updateNetworkVolume("vol-1", "renamed", 100);
+    await updateNetworkVolume("vol-1", AUTH, "renamed", 100);
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body).toEqual({ name: "renamed", size: 100 });
   });
 
   it("updateNetworkVolume with no name or size sends empty object", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "vol-1" }));
-    await updateNetworkVolume("vol-1");
+    await updateNetworkVolume("vol-1", AUTH);
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body).toEqual({});
   });
@@ -305,7 +316,7 @@ describe("getRunpodTemplateByName", () => {
         { id: "t2", name: "other" }
       ])
     );
-    const tpl = await getRunpodTemplateByName("my-template");
+    const tpl = await getRunpodTemplateByName("my-template", AUTH);
     expect(tpl).toEqual({ id: "t1", name: "my-template" });
   });
 
@@ -318,19 +329,19 @@ describe("getRunpodTemplateByName", () => {
         ]
       })
     );
-    const tpl = await getRunpodTemplateByName("my-template");
+    const tpl = await getRunpodTemplateByName("my-template", AUTH);
     expect(tpl).toEqual({ id: "t1", name: "my-template" });
   });
 
   it("returns null when template not found", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ templates: [] }));
-    const tpl = await getRunpodTemplateByName("nonexistent");
+    const tpl = await getRunpodTemplateByName("nonexistent", AUTH);
     expect(tpl).toBeNull();
   });
 
   it("returns null on API error", async () => {
     mockFetch.mockRejectedValueOnce(new Error("API down"));
-    const tpl = await getRunpodTemplateByName("my-template");
+    const tpl = await getRunpodTemplateByName("my-template", AUTH);
     expect(tpl).toBeNull();
   });
 });
@@ -348,13 +359,13 @@ describe("deleteRunpodTemplateByName", () => {
       text: () => Promise.resolve(""),
       headers: new Headers()
     } as unknown as Response);
-    const result = await deleteRunpodTemplateByName("my-tpl");
+    const result = await deleteRunpodTemplateByName("my-tpl", AUTH);
     expect(result).toBe(true);
   });
 
   it("returns true when template does not exist", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ templates: [] }));
-    const result = await deleteRunpodTemplateByName("nonexistent");
+    const result = await deleteRunpodTemplateByName("nonexistent", AUTH);
     expect(result).toBe(true);
   });
 
@@ -368,7 +379,7 @@ describe("deleteRunpodTemplateByName", () => {
       text: () => Promise.resolve("Server error"),
       headers: new Headers()
     } as unknown as Response);
-    const result = await deleteRunpodTemplateByName("my-tpl");
+    const result = await deleteRunpodTemplateByName("my-tpl", AUTH);
     expect(result).toBe(false);
   });
 });
@@ -386,7 +397,7 @@ describe("updateRunpodTemplate", () => {
       isPublic: false,
       env: {}
     };
-    const result = await updateRunpodTemplate(tplData, "myimage", "v1");
+    const result = await updateRunpodTemplate(tplData, "myimage", "v1", AUTH);
     expect(result).toBe(true);
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.imageName).toBe("myimage:v1");
@@ -402,7 +413,7 @@ describe("updateRunpodTemplate", () => {
       dockerStartCmd: "serve",
       readme: "# Hello"
     };
-    await updateRunpodTemplate(tplData, "img", "latest");
+    await updateRunpodTemplate(tplData, "img", "latest", AUTH);
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.dockerEntrypoint).toBe("/start.sh");
     expect(body.dockerStartCmd).toBe("serve");
@@ -426,7 +437,7 @@ describe("createOrUpdateRunpodTemplate", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ templates: [] }));
     // createTemplate POST
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "new-tpl-1" }));
-    const id = await createOrUpdateRunpodTemplate("my-tpl", "myimg", "v1", {
+    const id = await createOrUpdateRunpodTemplate("my-tpl", "myimg", "v1", AUTH, {
       KEY: "val"
     });
     expect(id).toBe("new-tpl-1");
@@ -441,7 +452,7 @@ describe("createOrUpdateRunpodTemplate", () => {
     );
     // updateRunpodTemplate PATCH
     mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
-    const id = await createOrUpdateRunpodTemplate("my-tpl", "myimg", "v2");
+    const id = await createOrUpdateRunpodTemplate("my-tpl", "myimg", "v2", AUTH);
     expect(id).toBe("t1");
   });
 
@@ -449,7 +460,7 @@ describe("createOrUpdateRunpodTemplate", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ templates: [] }));
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
     await expect(
-      createOrUpdateRunpodTemplate("my-tpl", "img", "v1")
+      createOrUpdateRunpodTemplate("my-tpl", "img", "v1", AUTH)
     ).rejects.toThrow("No template ID returned");
   });
 
@@ -461,7 +472,7 @@ describe("createOrUpdateRunpodTemplate", () => {
     // updateRunpodTemplate fails
     mockFetch.mockRejectedValueOnce(new Error("update failed"));
     await expect(
-      createOrUpdateRunpodTemplate("my-tpl", "img", "v1")
+      createOrUpdateRunpodTemplate("my-tpl", "img", "v1", AUTH)
     ).rejects.toThrow("Failed to update template");
   });
 });
@@ -480,7 +491,7 @@ describe("getRunpodEndpointByName", () => {
         ]
       })
     );
-    const ep = await getRunpodEndpointByName("my-endpoint");
+    const ep = await getRunpodEndpointByName("my-endpoint", AUTH);
     expect(ep).toEqual({ id: "ep1", name: "my-endpoint" });
   });
 
@@ -490,13 +501,13 @@ describe("getRunpodEndpointByName", () => {
         endpoints: [{ id: "ep1", name: "my-endpoint-v2" }]
       })
     );
-    const ep = await getRunpodEndpointByName("my-endpoint");
+    const ep = await getRunpodEndpointByName("my-endpoint", AUTH);
     expect(ep).toEqual({ id: "ep1", name: "my-endpoint-v2" });
   });
 
   it("returns null when no match", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ endpoints: [] }));
-    const ep = await getRunpodEndpointByName("missing");
+    const ep = await getRunpodEndpointByName("missing", AUTH);
     expect(ep).toBeNull();
   });
 
@@ -504,14 +515,14 @@ describe("getRunpodEndpointByName", () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse([{ id: "ep1", name: "my-ep" }])
     );
-    const ep = await getRunpodEndpointByName("my-ep");
+    const ep = await getRunpodEndpointByName("my-ep", AUTH);
     expect(ep).toEqual({ id: "ep1", name: "my-ep" });
   });
 
   it("quiet mode suppresses logs", async () => {
     const logSpy = vi.spyOn(console, "log");
     mockFetch.mockResolvedValueOnce(jsonResponse({ endpoints: [] }));
-    await getRunpodEndpointByName("test", true);
+    await getRunpodEndpointByName("test", AUTH, true);
     // quiet mode should not log "Looking for endpoint" etc.
     const lookingCalls = logSpy.mock.calls.filter((c) =>
       String(c[0]).includes("Looking for endpoint")
@@ -523,7 +534,7 @@ describe("getRunpodEndpointByName", () => {
 describe("updateRunpodEndpoint", () => {
   it("updates endpoint with template ID", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
-    const result = await updateRunpodEndpoint("ep1", "tpl1");
+    const result = await updateRunpodEndpoint("ep1", "tpl1", AUTH);
     expect(result).toBe(true);
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.templateId).toBe("tpl1");
@@ -531,7 +542,7 @@ describe("updateRunpodEndpoint", () => {
 
   it("merges extra fields and removes undefined", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
-    await updateRunpodEndpoint("ep1", "tpl1", {
+    await updateRunpodEndpoint("ep1", "tpl1", AUTH, {
       workersMin: 1,
       foo: undefined
     });
@@ -542,7 +553,7 @@ describe("updateRunpodEndpoint", () => {
 
   it("returns false on error", async () => {
     mockFetch.mockRejectedValueOnce(new Error("fail"));
-    const result = await updateRunpodEndpoint("ep1", "tpl1");
+    const result = await updateRunpodEndpoint("ep1", "tpl1", AUTH);
     expect(result).toBe(false);
   });
 });
@@ -560,7 +571,7 @@ describe("deleteRunpodEndpointByName", () => {
       text: () => Promise.resolve(""),
       headers: new Headers()
     } as unknown as Response);
-    const result = await deleteRunpodEndpointByName("my-ep");
+    const result = await deleteRunpodEndpointByName("my-ep", AUTH);
     expect(result).toBe(true);
   });
 
@@ -576,13 +587,13 @@ describe("deleteRunpodEndpointByName", () => {
       text: () => Promise.resolve(""),
       headers: new Headers()
     } as unknown as Response);
-    const result = await deleteRunpodEndpointByName("my-ep");
+    const result = await deleteRunpodEndpointByName("my-ep", AUTH);
     expect(result).toBe(true);
   });
 
   it("returns true when endpoint not found", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ endpoints: [] }));
-    const result = await deleteRunpodEndpointByName("missing");
+    const result = await deleteRunpodEndpointByName("missing", AUTH);
     expect(result).toBe(true);
   });
 
@@ -596,7 +607,7 @@ describe("deleteRunpodEndpointByName", () => {
       text: () => Promise.resolve("error"),
       headers: new Headers()
     } as unknown as Response);
-    const result = await deleteRunpodEndpointByName("my-ep");
+    const result = await deleteRunpodEndpointByName("my-ep", AUTH);
     expect(result).toBe(false);
   });
 });
@@ -620,6 +631,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
       })
     );
     const id = await createOrUpdateRunpodEndpoint({
+      auth: AUTH,
       templateId: "tpl1",
       name: "test-ep"
     });
@@ -636,6 +648,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
     // updateRunpodEndpoint PATCH
     mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
     const id = await createOrUpdateRunpodEndpoint({
+      auth: AUTH,
       templateId: "tpl-new",
       name: "test-ep"
     });
@@ -646,6 +659,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ endpoints: [] }));
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "ep1" }));
     await createOrUpdateRunpodEndpoint({
+      auth: AUTH,
       templateId: "tpl1",
       name: "test"
     });
@@ -658,6 +672,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ endpoints: [] }));
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "ep1" }));
     await createOrUpdateRunpodEndpoint({
+      auth: AUTH,
       templateId: "tpl1",
       name: "test",
       computeType: ComputeType.CPU
@@ -671,7 +686,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ endpoints: [] }));
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
     await expect(
-      createOrUpdateRunpodEndpoint({ templateId: "tpl1", name: "test" })
+      createOrUpdateRunpodEndpoint({ auth: AUTH, templateId: "tpl1", name: "test" })
     ).rejects.toThrow("No endpoint ID returned");
   });
 
@@ -685,6 +700,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
     // create endpoint
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "ep-1" }));
     const id = await createOrUpdateRunpodEndpoint({
+      auth: AUTH,
       templateId: "tpl1",
       name: "test",
       networkVolumeId: "vol-1"
@@ -716,6 +732,7 @@ describe("createOrUpdateRunpodEndpoint", () => {
     // createEndpoint POST
     mockFetch.mockResolvedValueOnce(jsonResponse({ id: "ep-new" }));
     const id = await createOrUpdateRunpodEndpoint({
+      auth: AUTH,
       templateId: "tpl1",
       name: "test-ep"
     });
@@ -747,6 +764,7 @@ describe("createRunpodEndpointGraphql", () => {
       })
     );
     const id = await createRunpodEndpointGraphql({
+      auth: AUTH,
       templateId: "tpl1",
       name: "test-ep"
     });
@@ -763,6 +781,7 @@ describe("createRunpodEndpointGraphql", () => {
       })
     );
     await createRunpodEndpointGraphql({
+      auth: AUTH,
       templateId: "tpl1",
       name: "test-ep",
       flashboot: true
@@ -777,7 +796,7 @@ describe("createRunpodEndpointGraphql", () => {
       jsonResponse({ errors: [{ message: "Mutation failed" }] })
     );
     await expect(
-      createRunpodEndpointGraphql({ templateId: "tpl1", name: "test" })
+      createRunpodEndpointGraphql({ auth: AUTH, templateId: "tpl1", name: "test" })
     ).rejects.toThrow("Mutation failed");
   });
 
@@ -787,7 +806,7 @@ describe("createRunpodEndpointGraphql", () => {
       jsonResponse({ data: { saveEndpoint: {} } })
     );
     await expect(
-      createRunpodEndpointGraphql({ templateId: "tpl1", name: "test" })
+      createRunpodEndpointGraphql({ auth: AUTH, templateId: "tpl1", name: "test" })
     ).rejects.toThrow("No endpoint ID returned");
   });
 
@@ -799,6 +818,7 @@ describe("createRunpodEndpointGraphql", () => {
       })
     );
     await createRunpodEndpointGraphql({
+      auth: AUTH,
       templateId: "tpl1",
       name: "test",
       networkVolumeId: "vol-1",
@@ -809,10 +829,16 @@ describe("createRunpodEndpointGraphql", () => {
     expect(gqlBody.query).toContain('["US-TX-3"]');
   });
 
-  it("throws when API key missing", async () => {
-    delete process.env.RUNPOD_API_KEY;
+  it("throws when the auth bag has no API key", async () => {
+    // The endpoint check lists endpoints first (REST), which itself requires
+    // the key, so the missing-key error surfaces before any GraphQL mutation.
+    mockFetch.mockResolvedValueOnce(jsonResponse({ endpoints: [] }));
     await expect(
-      createRunpodEndpointGraphql({ templateId: "tpl1", name: "test" })
+      createRunpodEndpointGraphql({
+        auth: { apiKey: "" },
+        templateId: "tpl1",
+        name: "test"
+      })
     ).rejects.toThrow("RUNPOD_API_KEY");
   });
 });

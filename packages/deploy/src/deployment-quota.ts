@@ -1,18 +1,26 @@
 /**
- * Per-user deployment quota and encrypted credential schema.
+ * Per-user deployment quota schema and enforcement.
  *
- * Mirrors the column shape of `nodetool_deployment_settings` (one row per
- * user). Quotas cap a single user's blast radius — they cannot create more
+ * Mirrors the `quota_json` column of `nodetool_deployment_settings` (one row
+ * per user). Quotas cap a single user's blast radius — they cannot create more
  * deployments than `max_deployments`, run wider RunPod endpoints than
  * `max_workers_per_endpoint`, or use disallowed providers/GPU types.
  *
- * Provider credentials are stored encrypted at rest with
- * `encrypt(masterKey, user_id, plaintext)` so each user has their own
- * derived key — leaking one user's row plus the master key cannot decrypt
- * another user's credentials.
+ * Provider credentials are NOT stored here anymore: deployment credentials are
+ * ordinary per-user secrets (the `Secret` model), keyed by env name. The
+ * settings store is quota-only.
+ *
+ * This module also owns quota enforcement (`findQuotaViolations`,
+ * `assertQuotaOk`) and the related errors so the user-deployment-manager stays
+ * orchestration-only.
  */
 
 import { z } from "zod";
+import type { AnyDeployment, RunPodDeployment } from "./deployment-config.js";
+
+// ============================================================================
+// Quota schema
+// ============================================================================
 
 /**
  * Per-user deployment quota.
@@ -42,22 +50,84 @@ export const DeploymentQuotaSchema = z.object({
 });
 export type DeploymentQuota = z.infer<typeof DeploymentQuotaSchema>;
 
-/**
- * Ciphertext is the base64 output of `encrypt(masterKey, user_id, plaintext)`
- * from `@nodetool-ai/security`.
- */
-export const EncryptedCredentialSchema = z.object({
-  ciphertext: z.string().min(1),
-  /** Last-rotation timestamp, ISO 8601. */
-  updated_at: z.string()
-});
-export type EncryptedCredential = z.infer<typeof EncryptedCredentialSchema>;
+// ============================================================================
+// Errors
+// ============================================================================
+
+export class QuotaExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "QuotaExceededError";
+  }
+}
+
+export class ProviderNotAllowedError extends Error {
+  constructor(provider: string) {
+    super(`Provider ${JSON.stringify(provider)} is not allowed for this user`);
+    this.name = "ProviderNotAllowedError";
+  }
+}
+
+// ============================================================================
+// Enforcement
+// ============================================================================
 
 /**
- * Provider credentials, keyed by the env-var name the deployer expects
- * (e.g. `RUNPOD_API_KEY`, `DOCKER_PASSWORD`).
+ * Check a deployment object against a user's quota. Returns a list of
+ * violations; an empty list means the deployment is acceptable.
  */
-export const UserCredentialsSchema = z
-  .record(z.string(), EncryptedCredentialSchema)
-  .default({});
-export type UserCredentials = z.infer<typeof UserCredentialsSchema>;
+export function findQuotaViolations(
+  deployment: AnyDeployment,
+  quota: DeploymentQuota
+): string[] {
+  const violations: string[] = [];
+
+  if (
+    quota.allowed_providers.length > 0 &&
+    !quota.allowed_providers.includes(deployment.type)
+  ) {
+    violations.push(
+      `provider ${deployment.type} not in allowed list [${quota.allowed_providers.join(", ")}]`
+    );
+  }
+
+  if (deployment.type === "runpod") {
+    const d = deployment as RunPodDeployment;
+    if (d.workers_max > quota.max_workers_per_endpoint) {
+      violations.push(
+        `workers_max (${d.workers_max}) exceeds quota (${quota.max_workers_per_endpoint})`
+      );
+    }
+    const requestedGpu = d.gpu_count ?? 0;
+    if (requestedGpu > quota.max_gpu_count_per_endpoint) {
+      violations.push(
+        `gpu_count (${requestedGpu}) exceeds quota (${quota.max_gpu_count_per_endpoint})`
+      );
+    }
+    if (quota.allowed_gpu_types.length > 0) {
+      const disallowed = d.gpu_types.filter(
+        (g) => !quota.allowed_gpu_types.includes(g)
+      );
+      if (disallowed.length > 0) {
+        violations.push(
+          `gpu_types [${disallowed.join(", ")}] not in allowed list [${quota.allowed_gpu_types.join(", ")}]`
+        );
+      }
+    }
+  }
+
+  return violations;
+}
+
+/**
+ * Throw a {@link QuotaExceededError} if the deployment violates the quota.
+ */
+export function assertQuotaOk(
+  deployment: AnyDeployment,
+  quota: DeploymentQuota
+): void {
+  const violations = findQuotaViolations(deployment, quota);
+  if (violations.length > 0) {
+    throw new QuotaExceededError(violations.join("; "));
+  }
+}

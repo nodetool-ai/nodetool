@@ -9,35 +9,44 @@ vi.mock("node:child_process", () => ({
   spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" }))
 }));
 
-// Mock node:fs so we can control existsSync / readFileSync
-vi.mock("node:fs", async (importOriginal) => {
-  const actual = (await importOriginal()) as typeof import("node:fs");
-  return {
-    ...actual,
-    existsSync: vi.fn(actual.existsSync),
-    readFileSync: vi.fn(actual.readFileSync)
-  };
-});
-
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 import { execSync, execFileSync } from "node:child_process";
 import {
   shellEscape,
   runCommand,
   runCommandArgs,
-  checkDockerAuth,
   formatImageName,
   generateImageTag,
   pushToRegistry,
-  getDockerUsernameFromConfig
+  type DockerAuth
 } from "../src/docker.js";
+import {
+  withDeploymentContext,
+  type ScopedRunner
+} from "../src/deployment-context.js";
 
 const mockedExecSync = vi.mocked(execSync);
 const mockedExecFileSync = vi.mocked(execFileSync);
-const mockedExistsSync = vi.mocked(fs.existsSync);
-const mockedReadFileSync = vi.mocked(fs.readFileSync);
+
+// A DockerAuth whose scoped runner records every docker invocation, so we can
+// assert pushes go through the scoped runner with DOCKER_CONFIG redirected to
+// the scratch dir (multi-user path) — never the host ~/.docker.
+function makeRecordingAuth(
+  dockerConfigDir: string
+): {
+  auth: DockerAuth;
+  calls: Array<{ file: string; args: string[]; env?: Record<string, string> }>;
+} {
+  const calls: Array<{
+    file: string;
+    args: string[];
+    env?: Record<string, string>;
+  }> = [];
+  const run: ScopedRunner = async (file, args, opts) => {
+    calls.push({ file, args, env: opts?.env });
+    return { stdout: "", stderr: "" };
+  };
+  return { auth: { run, dockerConfigDir }, calls };
+}
 
 // ---------------------------------------------------------------------------
 // shellEscape
@@ -208,42 +217,6 @@ describe("runCommandArgs", () => {
 });
 
 // ---------------------------------------------------------------------------
-// checkDockerAuth
-// ---------------------------------------------------------------------------
-
-describe("checkDockerAuth", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("should return true when docker system info succeeds", () => {
-    mockedExecSync.mockReturnValue("info");
-    expect(checkDockerAuth()).toBe(true);
-  });
-
-  it("should try docker login --get-login if system info fails", () => {
-    mockedExecSync
-      .mockImplementationOnce(() => {
-        throw new Error("fail");
-      })
-      .mockReturnValueOnce("username");
-    expect(checkDockerAuth()).toBe(true);
-  });
-
-  it("should return false when both checks fail", () => {
-    mockedExecSync.mockImplementation(() => {
-      throw new Error("fail");
-    });
-    expect(checkDockerAuth()).toBe(false);
-  });
-
-  it("should accept registry parameter", () => {
-    mockedExecSync.mockReturnValue("ok");
-    expect(checkDockerAuth("ghcr.io")).toBe(true);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // formatImageName
 // ---------------------------------------------------------------------------
 
@@ -311,170 +284,62 @@ describe("generateImageTag", () => {
 // pushToRegistry
 // ---------------------------------------------------------------------------
 
-describe("pushToRegistry", () => {
+// After the multi-tenant refactor, pushToRegistry no longer probes host docker
+// auth. With a DockerAuth it pushes through the scoped runner with DOCKER_CONFIG
+// pointed at the scratch dir; the host ~/.docker is never read.
+describe("pushToRegistry (scoped auth)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  it("should push image when authenticated", () => {
-    // checkDockerAuth uses execSync, push uses execFileSync
-    mockedExecSync.mockReturnValue("ok");
-    mockedExecFileSync.mockReturnValue("" as any);
-    pushToRegistry("user/app", "v1");
-    // execSync should be called for auth check
-    expect(mockedExecSync).toHaveBeenCalled();
-    // execFileSync should be called for the push
-    expect(mockedExecFileSync).toHaveBeenCalledWith(
-      "docker",
-      ["push", "user/app:v1"],
-      expect.any(Object)
-    );
+  it("pushes through the scoped runner with a scratch DOCKER_CONFIG", async () => {
+    mockedExecSync.mockClear();
+    mockedExecFileSync.mockClear();
+    const dockerConfigDir = "/tmp/scratch/.docker";
+    const { auth, calls } = makeRecordingAuth(dockerConfigDir);
+    await pushToRegistry("user/app", "v1", "docker.io", auth);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].file).toBe("docker");
+    expect(calls[0].args).toEqual(["push", "user/app:v1"]);
+    // The push runs against the per-call config dir, not the host ~/.docker.
+    expect(calls[0].env?.DOCKER_CONFIG).toBe(dockerConfigDir);
+    // No host probe via execSync/execFileSync during a scoped push.
+    expect(mockedExecSync).not.toHaveBeenCalled();
+    expect(mockedExecFileSync).not.toHaveBeenCalled();
   });
 
-  it("should throw when not authenticated", () => {
-    mockedExecSync.mockImplementation(() => {
-      throw new Error("not logged in");
-    });
-    expect(() => pushToRegistry("user/app", "v1")).toThrow(
-      "Not authenticated with Docker registry"
+  it("threads a real scratch DOCKER_CONFIG end-to-end via withDeploymentContext", async () => {
+    let configDir: string | undefined;
+    await withDeploymentContext(
+      { userId: "u1", credentials: {} },
+      async (ctx) => {
+        const { auth, calls } = makeRecordingAuth(`${ctx.scratchDir}/.docker`);
+        await pushToRegistry("user/app", "v1", "docker.io", auth);
+        configDir = calls[0].env?.DOCKER_CONFIG;
+        // The config dir lives inside the call-scoped scratch dir.
+        expect(configDir?.startsWith(ctx.scratchDir)).toBe(true);
+      }
     );
+    expect(configDir).toBeTruthy();
   });
 
-  it("should accept custom registry", () => {
-    mockedExecSync.mockReturnValue("ok");
+  it("wraps a push failure in a helpful error", async () => {
+    const run: ScopedRunner = async () => {
+      throw new Error("denied");
+    };
+    const auth: DockerAuth = { run, dockerConfigDir: "/tmp/.docker" };
+    await expect(
+      pushToRegistry("user/app", "v1", "docker.io", auth)
+    ).rejects.toThrow(/Failed to push image user\/app:v1/);
+  });
+
+  it("logs the target registry", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    pushToRegistry("user/app", "v1", "ghcr.io");
+    const { auth } = makeRecordingAuth("/tmp/.docker");
+    await pushToRegistry("user/app", "v1", "ghcr.io", auth);
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("ghcr.io"));
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getDockerUsernameFromConfig
-// ---------------------------------------------------------------------------
-
-describe("getDockerUsernameFromConfig", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("should return null when config file does not exist", () => {
-    mockedExistsSync.mockReturnValue(false);
-    expect(getDockerUsernameFromConfig()).toBeNull();
-  });
-
-  it("should return username from auths with username field", () => {
-    mockedExistsSync.mockReturnValue(true);
-    mockedReadFileSync.mockReturnValue(
-      JSON.stringify({
-        auths: {
-          "https://index.docker.io/v1/": {
-            username: "myuser"
-          }
-        }
-      })
-    );
-    expect(getDockerUsernameFromConfig()).toBe("myuser");
-  });
-
-  it("should decode base64 auth field", () => {
-    mockedExistsSync.mockReturnValue(true);
-    const encoded = Buffer.from("myuser:mypass").toString("base64");
-    mockedReadFileSync.mockReturnValue(
-      JSON.stringify({
-        auths: {
-          "https://index.docker.io/v1/": {
-            auth: encoded
-          }
-        }
-      })
-    );
-    expect(getDockerUsernameFromConfig()).toBe("myuser");
-  });
-
-  it("should try multiple registry keys for docker.io", () => {
-    mockedExistsSync.mockReturnValue(true);
-    mockedReadFileSync.mockReturnValue(
-      JSON.stringify({
-        auths: {
-          "docker.io": {
-            username: "direct-user"
-          }
-        }
-      })
-    );
-    expect(getDockerUsernameFromConfig()).toBe("direct-user");
-  });
-
-  it("should return null when auths is empty", () => {
-    mockedExistsSync.mockReturnValue(true);
-    mockedReadFileSync.mockReturnValue(JSON.stringify({ auths: {} }));
-    expect(getDockerUsernameFromConfig()).toBeNull();
-  });
-
-  it("should return null when no matching registry found", () => {
-    mockedExistsSync.mockReturnValue(true);
-    mockedReadFileSync.mockReturnValue(
-      JSON.stringify({
-        auths: {
-          "ghcr.io": { username: "user" }
-        }
-      })
-    );
-    expect(getDockerUsernameFromConfig()).toBeNull();
-  });
-
-  it("should find username for custom registry", () => {
-    mockedExistsSync.mockReturnValue(true);
-    mockedReadFileSync.mockReturnValue(
-      JSON.stringify({
-        auths: {
-          "ghcr.io": { username: "ghuser" }
-        }
-      })
-    );
-    expect(getDockerUsernameFromConfig("ghcr.io")).toBe("ghuser");
-  });
-
-  it("should return null when config is unparseable", () => {
-    mockedExistsSync.mockReturnValue(true);
-    mockedReadFileSync.mockReturnValue("not json");
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(getDockerUsernameFromConfig()).toBeNull();
-  });
-
-  it("should handle config with no auths key", () => {
-    mockedExistsSync.mockReturnValue(true);
-    mockedReadFileSync.mockReturnValue(JSON.stringify({}));
-    expect(getDockerUsernameFromConfig()).toBeNull();
-  });
-
-  it("should handle auth entry with invalid base64", () => {
-    mockedExistsSync.mockReturnValue(true);
-    // The base64 decoding won't fail for most strings, but we can test
-    // that it tries to split on colon
-    mockedReadFileSync.mockReturnValue(
-      JSON.stringify({
-        auths: {
-          "https://index.docker.io/v1/": {
-            auth: Buffer.from("justusername").toString("base64")
-          }
-        }
-      })
-    );
-    expect(getDockerUsernameFromConfig()).toBe("justusername");
-  });
-
-  it("should try https://<registry>/v1/ format", () => {
-    mockedExistsSync.mockReturnValue(true);
-    mockedReadFileSync.mockReturnValue(
-      JSON.stringify({
-        auths: {
-          "https://docker.io/v1/": { username: "v1user" }
-        }
-      })
-    );
-    expect(getDockerUsernameFromConfig()).toBe("v1user");
   });
 });

@@ -19,15 +19,37 @@ vi.mock("../src/runpod-api.js", () => ({
   getRunpodEndpointByName: vi.fn().mockResolvedValue(null)
 }));
 
+// makeDockerAuth normally writes a scratch docker config and may run
+// `docker login`. We stub it so the deployer tests stay offline and don't touch
+// the filesystem; the returned DockerAuth carries a no-op scoped runner.
+vi.mock("../src/docker.js", () => ({
+  makeDockerAuth: vi.fn().mockResolvedValue({
+    run: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
+    dockerConfigDir: "/tmp/scratch/.docker"
+  })
+}));
+
 import { deployToRunpod } from "../src/deploy-to-runpod.js";
 import { getRunpodEndpointByName } from "../src/runpod-api.js";
+import { makeDockerAuth } from "../src/docker.js";
+import type { DeploymentContext } from "../src/deployment-context.js";
 
 const mockedDeployToRunpod = vi.mocked(deployToRunpod);
 const mockedGetEndpoint = vi.mocked(getRunpodEndpointByName);
+const mockedMakeDockerAuth = vi.mocked(makeDockerAuth);
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// A per-operation context carrying the user's RunPod token (sourced from a
+// secret in production). The deployer reads auth from ctx.credentials, never
+// process.env.
+function makeCtx(
+  credentials: Record<string, string> = { RUNPOD_API_KEY: "rp-token" }
+): DeploymentContext {
+  return { userId: "u1", credentials, scratchDir: "/tmp/scratch" };
+}
 
 function makeStateManager(state: Record<string, unknown> | null = null) {
   return {
@@ -35,6 +57,16 @@ function makeStateManager(state: Record<string, unknown> | null = null) {
     writeState: vi.fn().mockResolvedValue(undefined),
     updateDeploymentStatus: vi.fn().mockResolvedValue(undefined)
   } as any;
+}
+
+// Construct a RunPodDeployer with the ctx threaded in as the required 4th arg.
+function makeDeployer(
+  name: string,
+  dep: RunPodDeployment,
+  sm: ReturnType<typeof makeStateManager>,
+  ctx: DeploymentContext = makeCtx()
+): RunPodDeployer {
+  return new RunPodDeployer(name, dep, sm, ctx);
 }
 
 function makeDeployment(
@@ -76,7 +108,7 @@ describe("RunPodDeployer constructor", () => {
   it("stores deployment name, config, and state manager", () => {
     const sm = makeStateManager();
     const dep = makeDeployment();
-    const deployer = new RunPodDeployer("my-deploy", dep, sm);
+    const deployer = makeDeployer("my-deploy", dep, sm);
     expect(deployer.deploymentName).toBe("my-deploy");
     expect(deployer.deployment).toBe(dep);
     expect(deployer.stateManager).toBe(sm);
@@ -90,7 +122,7 @@ describe("RunPodDeployer constructor", () => {
 describe("RunPodDeployer.plan()", () => {
   it("returns initial deployment plan when no state exists", async () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const plan = await deployer.plan();
     expect(plan.deploymentName).toBe("test");
     expect(plan.type).toBe("runpod");
@@ -102,7 +134,7 @@ describe("RunPodDeployer.plan()", () => {
 
   it("returns initial deployment plan when state has no last_deployed", async () => {
     const sm = makeStateManager({ status: "pending" });
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const plan = await deployer.plan();
     expect(plan.willCreate.length).toBeGreaterThan(0);
     expect(plan.changes[0]).toContain("Initial deployment");
@@ -113,7 +145,7 @@ describe("RunPodDeployer.plan()", () => {
       status: "active",
       last_deployed: "2025-01-01T00:00:00Z"
     });
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const plan = await deployer.plan();
     expect(plan.willCreate).toHaveLength(0);
     expect(plan.willUpdate).toContain("RunPod endpoint configuration");
@@ -122,7 +154,7 @@ describe("RunPodDeployer.plan()", () => {
 
   it("always sets type to runpod", async () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("x", makeDeployment(), sm);
+    const deployer = makeDeployer("x", makeDeployment(), sm);
     const plan = await deployer.plan();
     expect(plan.type).toBe("runpod");
   });
@@ -135,7 +167,7 @@ describe("RunPodDeployer.plan()", () => {
 describe("RunPodDeployer.apply()", () => {
   it("returns plan when dryRun is true", async () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const result = await deployer.apply(true);
     expect((result as DeploymentPlan).type).toBe("runpod");
     expect(mockedDeployToRunpod).not.toHaveBeenCalled();
@@ -148,7 +180,7 @@ describe("RunPodDeployer.apply()", () => {
       environment: { MY_VAR: "hello" },
       execution_timeout: 600000
     } as any);
-    const deployer = new RunPodDeployer("my-deploy", dep, sm);
+    const deployer = makeDeployer("my-deploy", dep, sm);
     await deployer.apply();
     expect(mockedDeployToRunpod).toHaveBeenCalledOnce();
     const opts = mockedDeployToRunpod.mock.calls[0][0];
@@ -161,7 +193,7 @@ describe("RunPodDeployer.apply()", () => {
   it("uses deploymentName as templateName when template_name is not set", async () => {
     const sm = makeStateManager(null);
     const dep = makeDeployment();
-    const deployer = new RunPodDeployer("fallback-name", dep, sm);
+    const deployer = makeDeployer("fallback-name", dep, sm);
     await deployer.apply();
     const opts = mockedDeployToRunpod.mock.calls[0][0];
     expect(opts.templateName).toBe("fallback-name");
@@ -169,14 +201,14 @@ describe("RunPodDeployer.apply()", () => {
 
   it("updates status to deploying before deploy", async () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     await deployer.apply();
     expect(sm.updateDeploymentStatus).toHaveBeenCalledWith("test", "deploying");
   });
 
   it("writes active state after successful deploy", async () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     await deployer.apply();
     expect(sm.writeState).toHaveBeenCalledWith("test", {
       status: "active",
@@ -186,7 +218,7 @@ describe("RunPodDeployer.apply()", () => {
 
   it("returns success result with steps", async () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const result = (await deployer.apply()) as DeploymentResult;
     expect(result.status).toBe("success");
     expect(result.steps).toContain("Starting RunPod deployment...");
@@ -197,7 +229,7 @@ describe("RunPodDeployer.apply()", () => {
   it("sets error status and rethrows on deploy failure", async () => {
     const sm = makeStateManager(null);
     mockedDeployToRunpod.mockRejectedValueOnce(new Error("deploy boom"));
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     await expect(deployer.apply()).rejects.toThrow("deploy boom");
     expect(sm.updateDeploymentStatus).toHaveBeenCalledWith("test", "error");
   });
@@ -207,7 +239,7 @@ describe("RunPodDeployer.apply()", () => {
     const dep = makeDeployment();
     // Ensure no environment property
     delete (dep as any).environment;
-    const deployer = new RunPodDeployer("test", dep, sm);
+    const deployer = makeDeployer("test", dep, sm);
     await deployer.apply();
     const opts = mockedDeployToRunpod.mock.calls[0][0];
     expect(opts.env).toEqual({});
@@ -223,7 +255,7 @@ describe("RunPodDeployer.apply()", () => {
       idle_timeout: 10,
       flashboot: true
     } as any);
-    const deployer = new RunPodDeployer("test", dep, sm);
+    const deployer = makeDeployer("test", dep, sm);
     await deployer.apply();
     const opts = mockedDeployToRunpod.mock.calls[0][0];
     expect(opts.gpuCount).toBe(2);
@@ -243,7 +275,7 @@ describe("RunPodDeployer.status()", () => {
   it("returns basic info when no state exists", async () => {
     const sm = makeStateManager(null);
     mockedGetEndpoint.mockResolvedValueOnce(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const info = await deployer.status();
     expect(info.deploymentName).toBe("test");
     expect(info.type).toBe("runpod");
@@ -258,7 +290,7 @@ describe("RunPodDeployer.status()", () => {
       pod_id: "pod-123"
     });
     mockedGetEndpoint.mockResolvedValueOnce(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const info = await deployer.status();
     expect(info.status).toBe("active");
     expect(info.lastDeployed).toBe("2025-06-01T00:00:00Z");
@@ -274,7 +306,7 @@ describe("RunPodDeployer.status()", () => {
       workersMin: 0,
       workersMax: 3
     });
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const info = await deployer.status();
     expect(info.liveStatus).toBe("active");
     expect(info.endpointId).toBe("ep-1");
@@ -287,7 +319,7 @@ describe("RunPodDeployer.status()", () => {
   it("handles API error gracefully", async () => {
     const sm = makeStateManager(null);
     mockedGetEndpoint.mockRejectedValueOnce(new Error("API fail"));
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const info = await deployer.status();
     expect(info.liveStatusError).toContain("API fail");
     expect(info.liveStatus).toBeUndefined();
@@ -296,15 +328,19 @@ describe("RunPodDeployer.status()", () => {
   it("calls getRunpodEndpointByName with quiet=true", async () => {
     const sm = makeStateManager(null);
     mockedGetEndpoint.mockResolvedValueOnce(null);
-    const deployer = new RunPodDeployer("my-dep", makeDeployment(), sm);
+    const deployer = makeDeployer("my-dep", makeDeployment(), sm);
     await deployer.status();
-    expect(mockedGetEndpoint).toHaveBeenCalledWith("my-dep", true);
+    expect(mockedGetEndpoint).toHaveBeenCalledWith(
+      "my-dep",
+      expect.objectContaining({ apiKey: "rp-token" }),
+      true
+    );
   });
 
   it("uses unknown as default for missing state fields", async () => {
     const sm = makeStateManager({});
     mockedGetEndpoint.mockResolvedValueOnce(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const info = await deployer.status();
     expect(info.status).toBe("unknown");
     expect(info.lastDeployed).toBe("unknown");
@@ -320,7 +356,7 @@ describe("RunPodDeployer.status()", () => {
       workersMin: 0,
       workersMax: 3
     } as any);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const info = await deployer.status();
     expect(info.liveStatus).toBe("active");
     expect(info.urls).toBeUndefined();
@@ -334,13 +370,13 @@ describe("RunPodDeployer.status()", () => {
 describe("RunPodDeployer.logs()", () => {
   it("throws with informative message", () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     expect(() => deployer.logs()).toThrow("don't provide direct log access");
   });
 
   it("throws regardless of arguments", () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     expect(() => deployer.logs("service", true, 100)).toThrow();
   });
 });
@@ -352,7 +388,7 @@ describe("RunPodDeployer.logs()", () => {
 describe("RunPodDeployer.destroy()", () => {
   it("returns success with manual deletion instructions", async () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("my-deploy", makeDeployment(), sm);
+    const deployer = makeDeployer("my-deploy", makeDeployment(), sm);
     const result = await deployer.destroy();
     expect(result.status).toBe("success");
     expect(result.deploymentName).toBe("my-deploy");
@@ -362,7 +398,7 @@ describe("RunPodDeployer.destroy()", () => {
 
   it("updates state to destroyed", async () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     await deployer.destroy();
     expect(sm.updateDeploymentStatus).toHaveBeenCalledWith("test", "destroyed");
   });
@@ -370,14 +406,14 @@ describe("RunPodDeployer.destroy()", () => {
   it("rethrows on state update error", async () => {
     const sm = makeStateManager(null);
     sm.updateDeploymentStatus.mockRejectedValueOnce(new Error("state fail"));
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     await expect(deployer.destroy()).rejects.toThrow("state fail");
   });
 
   it("sets error status in result on failure", async () => {
     const sm = makeStateManager(null);
     sm.updateDeploymentStatus.mockRejectedValueOnce(new Error("boom"));
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     try {
       await deployer.destroy();
     } catch {
@@ -389,7 +425,7 @@ describe("RunPodDeployer.destroy()", () => {
 
   it("includes runpod console URL in steps", async () => {
     const sm = makeStateManager(null);
-    const deployer = new RunPodDeployer("test", makeDeployment(), sm);
+    const deployer = makeDeployer("test", makeDeployment(), sm);
     const result = await deployer.destroy();
     expect(result.steps.some((s) => s.includes("runpod.io/console"))).toBe(
       true

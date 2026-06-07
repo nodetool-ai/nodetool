@@ -1,145 +1,84 @@
 /**
- * User-scoped deployment orchestrator.
+ * User-scoped deployment orchestrator (orchestration only).
  *
- * Each user owns their own set of deployments (`user_id` partitions every
- * row in `nodetool_deployments`). This module wraps the existing
- * `DeploymentManager` so a single Docker host can host many users, each
- * deploying to backends like RunPod with their own credentials, quotas, and
- * audit log.
+ * Each user owns their own set of deployments (`user_id` partitions every row
+ * in `nodetool_deployments`). This module wraps the underlying
+ * `DeploymentManager` so a single host can serve many users, each deploying to
+ * backends like RunPod with their own credentials, quotas, and audit log.
  *
  * Isolation guarantees:
  *
  *   1. Ownership — every operation is scoped by `user_id`. Cross-user reads
  *      and writes are impossible because the SQL layer always filters by
  *      `user_id` (see `Deployment.findByName` / `listForUser`).
- *   2. Credentials — provider credentials are encrypted at rest with a
- *      per-user derived key (PBKDF2 with `user_id` as salt). They are
- *      decrypted, injected into `process.env` for the duration of a single
- *      deployer call, and removed in a `finally` block. Concurrent calls are
- *      serialized per-process so credentials never leak across users.
+ *   2. Credentials — provider credentials live in the per-user `Secret` store
+ *      and are decrypted PER CALL, only for the keys the deployment's provider
+ *      declares (least-privilege). The decrypted values are held solely in the
+ *      per-operation `DeploymentContext` (`ctx.credentials`) and reach child
+ *      processes through an explicitly-built child env (`runScopedCommand`) or
+ *      are passed to in-process HTTP providers as explicit arguments. They are
+ *      NEVER written to `process.env`, NEVER persisted to a host auth file, and
+ *      NEVER logged or recorded in audit metadata. Ephemeral credential files
+ *      (docker config, gcloud config, SA key, SSH key) live in a call-scoped
+ *      `scratchDir` that is removed in a `finally` on both success and failure.
  *   3. Quotas — each user has a quota record that caps deployment count,
  *      worker counts, GPU counts, allowed providers, and allowed GPU types.
  *      Quotas are enforced before delegating to the underlying deployer.
  *   4. Audit — every successful or failed action is recorded in the
- *      `nodetool_deployment_audit` table partitioned by `user_id`.
+ *      `nodetool_deployment_audit` table partitioned by `user_id`. Credential
+ *      values are never included in audit meta.
  */
 
-import { DeploymentAudit } from "@nodetool-ai/models";
+import { DeploymentAudit, Secret } from "@nodetool-ai/models";
 import { StateManager } from "./state.js";
 import {
   DeploymentManager,
   type DeployerFactory,
   type DeploymentInfo
 } from "./manager.js";
-import {
-  type AnyDeployment,
-  type RunPodDeployment
-} from "./deployment-config.js";
+import { type AnyDeployment } from "./deployment-config.js";
 import { DbDeploymentStore } from "./db-deployment-store.js";
 import { DbDeploymentSettingsStore } from "./db-deployment-settings-store.js";
-import type { DeploymentQuota } from "./deployment-quota.js";
+import {
+  assertQuotaOk,
+  QuotaExceededError,
+  ProviderNotAllowedError
+} from "./deployment-quota.js";
+import {
+  resolveProviderCredentials,
+  validateDeploymentCredentials,
+  type SecretResolver
+} from "./provider-credentials.js";
+import {
+  withDeploymentContext,
+  type DeploymentContext
+} from "./deployment-context.js";
 import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.deploy.user-deployment-manager");
 
-// ============================================================================
-// Errors
-// ============================================================================
-
-export class QuotaExceededError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "QuotaExceededError";
-  }
-}
-
-export class ProviderNotAllowedError extends Error {
-  constructor(provider: string) {
-    super(`Provider ${JSON.stringify(provider)} is not allowed for this user`);
-    this.name = "ProviderNotAllowedError";
-  }
-}
+// Re-export the quota errors so existing importers of this module keep working
+// after the enforcement logic moved into deployment-quota.ts.
+export { QuotaExceededError, ProviderNotAllowedError };
 
 // ============================================================================
-// Per-process env mutex
+// Default secret resolver
 // ============================================================================
 
 /**
- * Concurrent deployer calls would race on `process.env` — we mutate it
- * briefly to inject per-user credentials. A single process-wide queue keeps
- * that mutation invisible to anyone else.
+ * DB-only secret resolver: look up a single decrypted secret value for a user
+ * from the `Secret` model, returning `null` when absent.
+ *
+ * This deliberately does NOT call `getSecret` from @nodetool-ai/models —
+ * `getSecret` falls back to `process.env[key]` and caches the host value in a
+ * shared module-level map, which would re-leak host env across users on a
+ * multi-user server. Reading credentials from the per-user secret store only is
+ * what keeps tenants isolated.
  */
-class EnvMutex {
-  private chain: Promise<void> = Promise.resolve();
-
-  run<T>(fn: () => Promise<T>): Promise<T> {
-    const next = this.chain.then(() => fn());
-    this.chain = next.then(
-      () => undefined,
-      () => undefined
-    );
-    return next;
-  }
-}
-const envMutex = new EnvMutex();
-
-// ============================================================================
-// Quota enforcement
-// ============================================================================
-
-/**
- * Check a deployment object against a user's quota. Returns a list of
- * violations; an empty list means the deployment is acceptable.
- */
-export function findQuotaViolations(
-  deployment: AnyDeployment,
-  quota: DeploymentQuota
-): string[] {
-  const violations: string[] = [];
-
-  if (
-    quota.allowed_providers.length > 0 &&
-    !quota.allowed_providers.includes(deployment.type)
-  ) {
-    violations.push(
-      `provider ${deployment.type} not in allowed list [${quota.allowed_providers.join(", ")}]`
-    );
-  }
-
-  if (deployment.type === "runpod") {
-    const d = deployment as RunPodDeployment;
-    if (d.workers_max > quota.max_workers_per_endpoint) {
-      violations.push(
-        `workers_max (${d.workers_max}) exceeds quota (${quota.max_workers_per_endpoint})`
-      );
-    }
-    const requestedGpu = d.gpu_count ?? 0;
-    if (requestedGpu > quota.max_gpu_count_per_endpoint) {
-      violations.push(
-        `gpu_count (${requestedGpu}) exceeds quota (${quota.max_gpu_count_per_endpoint})`
-      );
-    }
-    if (quota.allowed_gpu_types.length > 0) {
-      const disallowed = d.gpu_types.filter(
-        (g) => !quota.allowed_gpu_types.includes(g)
-      );
-      if (disallowed.length > 0) {
-        violations.push(
-          `gpu_types [${disallowed.join(", ")}] not in allowed list [${quota.allowed_gpu_types.join(", ")}]`
-        );
-      }
-    }
-  }
-
-  return violations;
-}
-
-function assertQuotaOk(deployment: AnyDeployment, quota: DeploymentQuota): void {
-  const violations = findQuotaViolations(deployment, quota);
-  if (violations.length > 0) {
-    throw new QuotaExceededError(violations.join("; "));
-  }
-}
+const defaultSecretResolver: SecretResolver = async (key, userId) => {
+  const secret = await Secret.find(userId, key);
+  return secret ? secret.getDecryptedValue() : null;
+};
 
 // ============================================================================
 // UserDeploymentManager
@@ -150,6 +89,12 @@ export interface UserDeploymentManagerOptions {
   store: DbDeploymentStore;
   settings: DbDeploymentSettingsStore;
   deployerFactories: Record<string, DeployerFactory>;
+  /**
+   * Override for tests; defaults to the DB-only resolver backed by the per-user
+   * `Secret` store. MUST never source from `process.env` on the multi-user
+   * path.
+   */
+  secretResolver?: SecretResolver;
   /** Override for tests; defaults to the DB-backed audit logger. */
   audit?: (input: {
     user_id: string;
@@ -164,14 +109,17 @@ export interface UserDeploymentManagerOptions {
 
 /**
  * Per-user view of the deployment system. All operations are validated for
- * ownership and quota before delegating to the underlying `DeploymentManager`
- * with the user's credentials in `process.env`.
+ * ownership and quota, then delegated to the underlying `DeploymentManager`
+ * with a fresh per-operation `DeploymentContext` carrying the user's decrypted
+ * credentials and a call-scoped scratch dir. No process-global state is ever
+ * mutated.
  */
 export class UserDeploymentManager {
   readonly userId: string;
   private store: DbDeploymentStore;
   private settings: DbDeploymentSettingsStore;
   private deployerFactories: Record<string, DeployerFactory>;
+  private secretResolver: SecretResolver;
   private auditFn: NonNullable<UserDeploymentManagerOptions["audit"]>;
 
   constructor(opts: UserDeploymentManagerOptions) {
@@ -182,6 +130,7 @@ export class UserDeploymentManager {
     this.store = opts.store;
     this.settings = opts.settings;
     this.deployerFactories = opts.deployerFactories;
+    this.secretResolver = opts.secretResolver ?? defaultSecretResolver;
     this.auditFn =
       opts.audit ??
       ((input) =>
@@ -200,20 +149,33 @@ export class UserDeploymentManager {
   // Public CRUD
   // -------------------------------------------------------------------------
 
+  /**
+   * List deployments for this user. No deployer is constructed, so no provider
+   * credentials are resolved — the context carries empty credentials.
+   */
   async listDeployments(): Promise<DeploymentInfo[]> {
     const config = await this.store.loadConfig();
     const stateManager = this.makeStateManager();
-    const mgr = new DeploymentManager(
-      config,
-      stateManager,
-      this.deployerFactories
+    return withDeploymentContext(
+      { userId: this.userId, credentials: {} },
+      async (ctx) => {
+        const mgr = new DeploymentManager(
+          config,
+          stateManager,
+          this.deployerFactories,
+          ctx
+        );
+        return mgr.listDeployments();
+      }
     );
-    return mgr.listDeployments();
   }
 
   /**
    * Add or replace a deployment for this user. Validates quota before
    * persisting. Returns the saved deployment.
+   *
+   * A concurrent config write that loses the compare-and-swap surfaces as a
+   * `DeploymentConflictError` from the store; it propagates to the caller.
    */
   async upsertDeployment(
     name: string,
@@ -257,7 +219,9 @@ export class UserDeploymentManager {
   // -------------------------------------------------------------------------
 
   async plan(name: string): Promise<Record<string, unknown>> {
-    return this.runScoped("deployment.plan", name, async (mgr) => mgr.plan(name));
+    return this.runScoped("deployment.plan", name, async (mgr) =>
+      mgr.plan(name)
+    );
   }
 
   async apply(
@@ -304,17 +268,20 @@ export class UserDeploymentManager {
   }
 
   /**
-   * Wrap a deployer call: load config → enforce quota → inject credentials
-   * into `process.env` → delegate to `DeploymentManager` → restore env →
-   * audit. Concurrency-safe across the whole process.
+   * Wrap a deployer call:
+   *   load config → find deployment → resolve the provider's declared secret
+   *   keys (least-privilege) → fail if a required key is missing → create a
+   *   call-scoped scratch dir + build the per-operation context → delegate to
+   *   `DeploymentManager` (which threads `ctx` into the deployer factory) →
+   *   audit → tear the scratch dir down in a `finally`.
+   *
+   * `process.env` is never read for credentials and never mutated. No global
+   * locks: every call gets its own isolated context.
    */
   private async runScoped<T = Record<string, unknown>>(
     action: string,
     deploymentName: string,
-    fn: (
-      mgr: DeploymentManager,
-      deployment: AnyDeployment
-    ) => Promise<T>
+    fn: (mgr: DeploymentManager, deployment: AnyDeployment) => Promise<T>
   ): Promise<T> {
     const config = await this.store.loadConfig();
     const deployment = config.deployments[deploymentName];
@@ -331,53 +298,70 @@ export class UserDeploymentManager {
       throw err;
     }
 
-    const credentials = await this.settings.loadCredentials(this.userId);
+    // Least-privilege: resolve only this provider's declared keys from the
+    // per-user secret store.
+    const { credentials, missingRequired } = await resolveProviderCredentials(
+      deployment,
+      this.userId,
+      this.secretResolver
+    );
+    const problems = [
+      ...missingRequired,
+      ...validateDeploymentCredentials(deployment, credentials)
+    ];
+    if (problems.length > 0) {
+      const err = new Error(
+        `Deployment ${JSON.stringify(deploymentName)} (provider ${deployment.type}) ` +
+          `is missing required credentials: ${problems.join("; ")}`
+      );
+      await this.audit({
+        action,
+        deployment_name: deploymentName,
+        status: "error",
+        error: err.message
+      });
+      throw err;
+    }
 
-    return envMutex.run(async () => {
-      const previous: Record<string, string | undefined> = {};
-      for (const [k, v] of Object.entries(credentials)) {
-        previous[k] = process.env[k];
-        process.env[k] = v;
-      }
-      previous["NODETOOL_USER_ID"] = process.env["NODETOOL_USER_ID"];
-      process.env["NODETOOL_USER_ID"] = this.userId;
-
-      try {
-        const stateManager = this.makeStateManager();
-        const mgr = new DeploymentManager(
-          config,
-          stateManager,
-          this.deployerFactories
-        );
-        const result = await fn(mgr, deployment);
-        await this.audit({
-          action,
-          deployment_name: deploymentName,
-          status: "ok"
-        });
-        return result;
-      } catch (err) {
-        await this.audit({
-          action,
-          deployment_name: deploymentName,
-          status: "error",
-          error: err instanceof Error ? err.message : String(err)
-        });
-        throw err;
-      } finally {
-        for (const [k, v] of Object.entries(previous)) {
-          if (v === undefined) {
-            delete process.env[k];
-          } else {
-            process.env[k] = v;
-          }
+    // Fresh per-operation context with a scratch dir torn down in a finally on
+    // both success and failure. ctor-time ctx == call-time ctx because a fresh
+    // deployer is built per call inside DeploymentManager.getDeployer.
+    return withDeploymentContext(
+      { userId: this.userId, credentials },
+      async (ctx: DeploymentContext) => {
+        try {
+          const stateManager = this.makeStateManager();
+          const mgr = new DeploymentManager(
+            config,
+            stateManager,
+            this.deployerFactories,
+            ctx
+          );
+          const result = await fn(mgr, deployment);
+          await this.audit({
+            action,
+            deployment_name: deploymentName,
+            status: "ok"
+          });
+          return result;
+        } catch (err) {
+          await this.audit({
+            action,
+            deployment_name: deploymentName,
+            status: "error",
+            error: err instanceof Error ? err.message : String(err)
+          });
+          throw err;
         }
       }
-    });
+    );
   }
 
   private async audit(
-    input: Omit<Parameters<NonNullable<UserDeploymentManagerOptions["audit"]>>[0], "user_id">
+    input: Omit<
+      Parameters<NonNullable<UserDeploymentManagerOptions["audit"]>>[0],
+      "user_id"
+    >
   ): Promise<void> {
     try {
       await this.auditFn({ ...input, user_id: this.userId });

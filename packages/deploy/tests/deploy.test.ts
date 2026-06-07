@@ -98,26 +98,45 @@ describe("getDockerUsername", () => {
     expect(result).toBe("myuser");
   });
 
-  it("falls back to DOCKER_USERNAME env var", () => {
+  it("falls back to DOCKER_USERNAME env var ONLY in the single-user CLI path", () => {
     process.env["DOCKER_USERNAME"] = "envuser";
     const result = getDockerUsername({
+      singleUserFallback: true,
       getDockerUsernameFromConfig: () => null
     });
     expect(result).toBe("envuser");
   });
 
-  it("falls back to config fn when no explicit or env username", () => {
+  it("ignores DOCKER_USERNAME env var in the multi-user path (no fallback)", () => {
+    // Without singleUserFallback, process.env must NOT leak host identity.
+    process.env["DOCKER_USERNAME"] = "host-leak";
+    expect(() =>
+      getDockerUsername({ getDockerUsernameFromConfig: () => "config" })
+    ).toThrow("Docker username is required");
+  });
+
+  it("falls back to config fn ONLY in the single-user CLI path", () => {
     const configFn: GetDockerUsernameFromConfigFn = vi.fn(() => "configuser");
     const result = getDockerUsername({
+      singleUserFallback: true,
       getDockerUsernameFromConfig: configFn
     });
     expect(result).toBe("configuser");
     expect(configFn).toHaveBeenCalledWith("docker.io");
   });
 
-  it("uses custom registry for config fn", () => {
+  it("does not consult the host config fn in the multi-user path", () => {
+    const configFn: GetDockerUsernameFromConfigFn = vi.fn(() => "configuser");
+    expect(() =>
+      getDockerUsername({ getDockerUsernameFromConfig: configFn })
+    ).toThrow("Docker username is required");
+    expect(configFn).not.toHaveBeenCalled();
+  });
+
+  it("uses custom registry for config fn (single-user path)", () => {
     const configFn: GetDockerUsernameFromConfigFn = vi.fn(() => "user");
     getDockerUsername({
+      singleUserFallback: true,
       dockerRegistry: "ghcr.io",
       getDockerUsernameFromConfig: configFn
     });
@@ -170,10 +189,11 @@ describe("getDockerUsername", () => {
     expect(result).toBe("explicit");
   });
 
-  it("prefers env var over config fn", () => {
+  it("prefers env var over config fn (single-user path)", () => {
     process.env["DOCKER_USERNAME"] = "envuser";
     const configFn = vi.fn(() => "config");
     const result = getDockerUsername({
+      singleUserFallback: true,
       getDockerUsernameFromConfig: configFn
     });
     expect(result).toBe("envuser");
@@ -200,16 +220,16 @@ describe("getDockerUsername", () => {
     expect(calls).not.toContain("Using Docker username");
   });
 
-  it("error message mentions all three methods", () => {
+  it("error message names the DOCKER_USERNAME secret and config option", () => {
+    expect.assertions(2);
     try {
       getDockerUsername({
         getDockerUsernameFromConfig: () => null
       });
     } catch (e) {
       const msg = (e as Error).message;
-      expect(msg).toContain("Command line");
-      expect(msg).toContain("Environment variable");
-      expect(msg).toContain("Docker login");
+      expect(msg).toContain("DOCKER_USERNAME secret");
+      expect(msg).toContain("docker.username");
     }
   });
 });

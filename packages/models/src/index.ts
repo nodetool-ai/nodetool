@@ -131,7 +131,7 @@ export {
   LAYER_TEMPLATE_SEED_IDS
 } from "./seeds/index.js";
 
-export { Deployment } from "./deployment.js";
+export { Deployment, DeploymentConflictError } from "./deployment.js";
 export type { DeploymentRow } from "./deployment.js";
 
 export { DeploymentSettings } from "./deployment-settings.js";

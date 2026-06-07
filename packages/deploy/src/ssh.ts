@@ -27,7 +27,10 @@ interface SSH2ConnectConfig {
   port: number;
   username: string;
   readyTimeout: number;
-  privateKey?: Buffer;
+  // ssh2 accepts a Buffer or a PEM string. In the multi-user path the key
+  // MATERIAL comes straight from the SSH_PRIVATE_KEY secret (a string); in the
+  // single-user fallback we read it from a host file into a Buffer.
+  privateKey?: Buffer | string;
   password?: string;
   agent?: string;
 }
@@ -149,6 +152,18 @@ export class SSHCommandError extends Error {
 export interface SSHConnectionOptions {
   host: string;
   user: string;
+  /**
+   * Private-key MATERIAL (a PEM string or Buffer), sourced from the per-user
+   * `SSH_PRIVATE_KEY` secret in the multi-user path. Preferred over `keyPath`.
+   * Injected straight into the ssh2 `connectConfig.privateKey` — no host file
+   * is read and no SSH agent is consulted when this is set.
+   */
+  privateKey?: string | Buffer;
+  /**
+   * Path to a private key on the HOST filesystem. Single-user / CLI fallback
+   * ONLY — the multi-user path uses `privateKey` material instead so it never
+   * depends on host auth files.
+   */
   keyPath?: string;
   password?: string;
   port?: number;
@@ -170,6 +185,7 @@ export interface SSHConnectionOptions {
 export class SSHConnection {
   public readonly host: string;
   public readonly user: string;
+  public readonly privateKey: string | Buffer | undefined;
   public readonly keyPath: string | undefined;
   public readonly password: string | undefined;
   public readonly port: number;
@@ -183,6 +199,7 @@ export class SSHConnection {
   constructor(options: SSHConnectionOptions) {
     this.host = options.host;
     this.user = options.user;
+    this.privateKey = options.privateKey;
     this.keyPath = options.keyPath;
     this.password = options.password;
     this.port = options.port ?? 22;
@@ -210,7 +227,12 @@ export class SSHConnection {
             readyTimeout: this.timeout * 1000
           };
 
-          if (this.keyPath) {
+          if (this.privateKey !== undefined) {
+            // Multi-user path: key MATERIAL from the SSH_PRIVATE_KEY secret is
+            // injected straight into connectConfig — no host file read, no agent.
+            connectConfig.privateKey = this.privateKey;
+          } else if (this.keyPath) {
+            // Single-user / CLI fallback: read the key from a host file.
             const expandedPath = this.keyPath.startsWith("~")
               ? path.join(os.homedir(), this.keyPath.slice(1))
               : this.keyPath;
@@ -225,7 +247,9 @@ export class SSHConnection {
           } else if (this.password) {
             connectConfig.password = this.password;
           } else {
-            // Try to use SSH agent
+            // Single-user / CLI fallback only: consult the host SSH agent. The
+            // multi-user path always provides `privateKey` or `password` from a
+            // secret and never reaches this branch.
             connectConfig.agent = process.env.SSH_AUTH_SOCK;
           }
 

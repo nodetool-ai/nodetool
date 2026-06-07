@@ -139,12 +139,32 @@ export function printEnumOptions<T extends Record<string, string>>(
 // Shared helpers
 // ---------------------------------------------------------------------------
 
-function getApiKey(): string {
-  const key = process.env.RUNPOD_API_KEY;
-  if (!key) {
-    throw new Error("RUNPOD_API_KEY environment variable is not set");
+/**
+ * Per-call RunPod authentication.
+ *
+ * RunPod is an in-process HTTP provider (fetch with `Authorization: Bearer`),
+ * NOT a child process, so `runScopedCommand` cannot carry its credential. The
+ * API key is therefore passed as an EXPLICIT argument sourced from
+ * `ctx.credentials.RUNPOD_API_KEY` — it MUST NEVER transit `process.env`.
+ *
+ * `baseUrl` is non-secret config for the GraphQL endpoint (defaults to the
+ * public RunPod host). It is read in-process here, not via a child env var.
+ */
+export interface RunpodAuth {
+  /** RunPod API key (Bearer token), from ctx.credentials.RUNPOD_API_KEY. */
+  apiKey: string;
+  /** Optional GraphQL API base URL override (non-secret config). */
+  baseUrl?: string;
+}
+
+const DEFAULT_RUNPOD_GRAPHQL_BASE_URL = "https://api.runpod.io";
+
+/** Validate a per-call RunPod auth bag, throwing a clear error if the key is missing. */
+function requireApiKey(auth: RunpodAuth): string {
+  if (!auth.apiKey) {
+    throw new Error("RunPod API key (RUNPOD_API_KEY secret) is not set");
   }
-  return key;
+  return auth.apiKey;
 }
 
 // ---------------------------------------------------------------------------
@@ -158,13 +178,17 @@ export interface GraphQLResponse {
 
 /**
  * Run a GraphQL query against the RunPod API.
+ *
+ * @param query GraphQL query/mutation string.
+ * @param auth  Per-call auth — API key (required) and optional base URL.
  */
 export async function runGraphqlQuery(
-  query: string
+  query: string,
+  auth: RunpodAuth
 ): Promise<Record<string, unknown>> {
-  const apiUrlBase = process.env.RUNPOD_API_BASE_URL ?? "https://api.runpod.io";
+  const apiUrlBase = auth.baseUrl ?? DEFAULT_RUNPOD_GRAPHQL_BASE_URL;
   const url = `${apiUrlBase}/graphql`;
-  const apiKey = getApiKey();
+  const apiKey = requireApiKey(auth);
 
   const response = await fetch(url, {
     method: "POST",
@@ -200,17 +224,19 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
  * Make a REST API call to RunPod.
  *
  * @param endpoint - The API endpoint (e.g., "endpoints", "templates")
+ * @param auth     - Per-call auth (API key sourced from ctx.credentials)
  * @param method   - HTTP method
  * @param data     - Request body for POST/PUT/PATCH
  * @returns API response data, or empty object for DELETE 204 responses
  */
 export async function makeRunpodApiCall(
   endpoint: string,
+  auth: RunpodAuth,
   method: HttpMethod = "GET",
   data?: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const url = `${RUNPOD_REST_BASE_URL}/${endpoint}`;
-  const apiKey = getApiKey();
+  const apiKey = requireApiKey(auth);
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
@@ -272,9 +298,10 @@ export async function makeRunpodApiCall(
 export async function createNetworkVolume(
   name: string,
   size: number,
-  dataCenterId: string
+  dataCenterId: string,
+  auth: RunpodAuth
 ): Promise<Record<string, unknown>> {
-  return makeRunpodApiCall("networkvolumes", "POST", {
+  return makeRunpodApiCall("networkvolumes", auth, "POST", {
     dataCenterId,
     name,
     size
@@ -284,17 +311,20 @@ export async function createNetworkVolume(
 /**
  * List all network volumes.
  */
-export async function listNetworkVolumes(): Promise<Record<string, unknown>> {
-  return makeRunpodApiCall("networkvolumes", "GET");
+export async function listNetworkVolumes(
+  auth: RunpodAuth
+): Promise<Record<string, unknown>> {
+  return makeRunpodApiCall("networkvolumes", auth, "GET");
 }
 
 /**
  * Get details of a specific network volume.
  */
 export async function getNetworkVolume(
-  volumeId: string
+  volumeId: string,
+  auth: RunpodAuth
 ): Promise<Record<string, unknown>> {
-  return makeRunpodApiCall(`networkvolumes/${volumeId}`, "GET");
+  return makeRunpodApiCall(`networkvolumes/${volumeId}`, auth, "GET");
 }
 
 /**
@@ -302,13 +332,14 @@ export async function getNetworkVolume(
  */
 export async function updateNetworkVolume(
   volumeId: string,
+  auth: RunpodAuth,
   name?: string,
   size?: number
 ): Promise<Record<string, unknown>> {
   const data: Record<string, unknown> = {};
   if (name != null) data.name = name;
   if (size != null) data.size = size;
-  return makeRunpodApiCall(`networkvolumes/${volumeId}`, "PATCH", data);
+  return makeRunpodApiCall(`networkvolumes/${volumeId}`, auth, "PATCH", data);
 }
 
 // ---------------------------------------------------------------------------
@@ -319,10 +350,11 @@ export async function updateNetworkVolume(
  * Get a RunPod template by name.
  */
 export async function getRunpodTemplateByName(
-  templateName: string
+  templateName: string,
+  auth: RunpodAuth
 ): Promise<Record<string, unknown> | null> {
   try {
-    const result = await makeRunpodApiCall("templates", "GET");
+    const result = await makeRunpodApiCall("templates", auth, "GET");
 
     const templates: Record<string, unknown>[] = Array.isArray(result)
       ? result
@@ -344,17 +376,18 @@ export async function getRunpodTemplateByName(
  * Delete a RunPod template by name.
  */
 export async function deleteRunpodTemplateByName(
-  templateName: string
+  templateName: string,
+  auth: RunpodAuth
 ): Promise<boolean> {
   try {
-    const template = await getRunpodTemplateByName(templateName);
+    const template = await getRunpodTemplateByName(templateName, auth);
     if (!template) {
       console.log(`Template '${templateName}' not found (may not exist)`);
       return true;
     }
 
     const templateId = template.id as string;
-    await makeRunpodApiCall(`templates/${templateId}`, "DELETE");
+    await makeRunpodApiCall(`templates/${templateId}`, auth, "DELETE");
     console.log(
       `Template '${templateName}' (ID: ${templateId}) deleted successfully`
     );
@@ -371,7 +404,8 @@ export async function deleteRunpodTemplateByName(
 export async function updateRunpodTemplate(
   templateData: Record<string, unknown>,
   imageName: string,
-  tag: string
+  tag: string,
+  auth: RunpodAuth
 ): Promise<boolean> {
   try {
     const templateId = templateData.id as string;
@@ -403,7 +437,7 @@ export async function updateRunpodTemplate(
     console.log("Updating template with data:");
     console.log(JSON.stringify(updateData, null, 2));
 
-    await makeRunpodApiCall(`templates/${templateId}`, "PATCH", updateData);
+    await makeRunpodApiCall(`templates/${templateId}`, auth, "PATCH", updateData);
     console.log(
       `Template '${templateData.name}' updated with image: ${imageName}:${tag}`
     );
@@ -427,12 +461,13 @@ export async function createOrUpdateRunpodTemplate(
   templateName: string,
   imageName: string,
   tag: string,
+  auth: RunpodAuth,
   env?: Record<string, string>
 ): Promise<string> {
   const envVars = env ?? {};
 
   console.log(`Checking for existing template: ${templateName}`);
-  const existing = await getRunpodTemplateByName(templateName);
+  const existing = await getRunpodTemplateByName(templateName, auth);
 
   if (existing) {
     const templateId = existing.id as string;
@@ -440,7 +475,7 @@ export async function createOrUpdateRunpodTemplate(
     console.log(`Current image: ${existing.imageName ?? "unknown"}`);
     console.log(`Updating with new image: ${imageName}:${tag}`);
 
-    if (await updateRunpodTemplate(existing, imageName, tag)) {
+    if (await updateRunpodTemplate(existing, imageName, tag, auth)) {
       console.log(`Template '${templateName}' updated successfully`);
       return templateId;
     }
@@ -464,7 +499,7 @@ export async function createOrUpdateRunpodTemplate(
   console.log("Creating template with data:");
   console.log(JSON.stringify(templateData, null, 2));
 
-  const result = await makeRunpodApiCall("templates", "POST", templateData);
+  const result = await makeRunpodApiCall("templates", auth, "POST", templateData);
   const templateId = result.id as string | undefined;
 
   if (!templateId) {
@@ -486,9 +521,10 @@ export async function createOrUpdateRunpodTemplate(
  */
 export async function getRunpodEndpointByName(
   endpointName: string,
+  auth: RunpodAuth,
   quiet = false
 ): Promise<Record<string, unknown> | null> {
-  const endpointsResponse = await makeRunpodApiCall("endpoints", "GET");
+  const endpointsResponse = await makeRunpodApiCall("endpoints", auth, "GET");
 
   const endpoints: Record<string, unknown>[] = Array.isArray(endpointsResponse)
     ? endpointsResponse
@@ -542,6 +578,7 @@ export async function getRunpodEndpointByName(
 export async function updateRunpodEndpoint(
   endpointId: string,
   templateId: string,
+  auth: RunpodAuth,
   extra?: Record<string, unknown>
 ): Promise<boolean> {
   try {
@@ -558,7 +595,7 @@ export async function updateRunpodEndpoint(
     }
 
     console.log(`Updating endpoint ${endpointId} with template ${templateId}`);
-    await makeRunpodApiCall(`endpoints/${endpointId}`, "PATCH", updateData);
+    await makeRunpodApiCall(`endpoints/${endpointId}`, auth, "PATCH", updateData);
     console.log(
       `Endpoint '${endpointId}' updated successfully with template: ${templateId}`
     );
@@ -573,10 +610,11 @@ export async function updateRunpodEndpoint(
  * Delete a RunPod endpoint by name.
  */
 export async function deleteRunpodEndpointByName(
-  endpointName: string
+  endpointName: string,
+  auth: RunpodAuth
 ): Promise<boolean> {
   try {
-    const result = await makeRunpodApiCall("endpoints", "GET");
+    const result = await makeRunpodApiCall("endpoints", auth, "GET");
     const endpoints = (result.endpoints as Record<string, unknown>[]) ?? [];
 
     let endpointId: string | undefined;
@@ -614,7 +652,7 @@ export async function deleteRunpodEndpointByName(
       return true;
     }
 
-    await makeRunpodApiCall(`endpoints/${endpointId}`, "DELETE");
+    await makeRunpodApiCall(`endpoints/${endpointId}`, auth, "DELETE");
     console.log(
       `Endpoint '${endpointName}' (ID: ${endpointId}) deleted successfully`
     );
@@ -630,6 +668,8 @@ export async function deleteRunpodEndpointByName(
 // ---------------------------------------------------------------------------
 
 export interface CreateOrUpdateEndpointOptions {
+  /** Per-call RunPod auth (API key from ctx.credentials.RUNPOD_API_KEY). */
+  auth: RunpodAuth;
   templateId: string;
   name: string;
   computeType?: string;
@@ -659,6 +699,7 @@ export async function createOrUpdateRunpodEndpoint(
   opts: CreateOrUpdateEndpointOptions
 ): Promise<string> {
   const {
+    auth,
     templateId,
     name,
     computeType = ComputeType.GPU,
@@ -680,7 +721,7 @@ export async function createOrUpdateRunpodEndpoint(
   // Handle network volume and data center coordination
   if (networkVolumeId) {
     console.log(`Network volume specified: ${networkVolumeId}`);
-    const volumeInfo = await getNetworkVolume(networkVolumeId);
+    const volumeInfo = await getNetworkVolume(networkVolumeId, auth);
     const volumeDataCenter = volumeInfo.dataCenterId as string | undefined;
     if (volumeDataCenter) {
       console.log(`Network volume is in data center: ${volumeDataCenter}`);
@@ -700,7 +741,7 @@ export async function createOrUpdateRunpodEndpoint(
 
   // Check if endpoint already exists
   console.log(`Checking for existing endpoint: ${name}`);
-  const existingEndpoint = await getRunpodEndpointByName(name);
+  const existingEndpoint = await getRunpodEndpointByName(name, auth);
 
   if (existingEndpoint) {
     const endpointId = existingEndpoint.id as string;
@@ -710,12 +751,12 @@ export async function createOrUpdateRunpodEndpoint(
     );
     console.log(`Updating with new template: ${templateId}`);
 
-    if (await updateRunpodEndpoint(endpointId, templateId)) {
+    if (await updateRunpodEndpoint(endpointId, templateId, auth)) {
       console.log(`Endpoint '${name}' updated successfully`);
       return endpointId;
     }
     console.log(`Failed to update endpoint '${name}', creating new one...`);
-    await deleteRunpodEndpointByName(name);
+    await deleteRunpodEndpointByName(name, auth);
   }
 
   console.log(`Creating new endpoint: ${name}`);
@@ -768,7 +809,7 @@ export async function createOrUpdateRunpodEndpoint(
   console.log("\nCreating endpoint with data:");
   console.log(JSON.stringify(endpointData, null, 2));
 
-  const result = await makeRunpodApiCall("endpoints", "POST", endpointData);
+  const result = await makeRunpodApiCall("endpoints", auth, "POST", endpointData);
   const endpointId = result.id as string | undefined;
 
   if (!endpointId) {
@@ -791,6 +832,8 @@ export async function createOrUpdateRunpodEndpoint(
 // ---------------------------------------------------------------------------
 
 export interface CreateEndpointGraphQLOptions {
+  /** Per-call RunPod auth (API key from ctx.credentials.RUNPOD_API_KEY). */
+  auth: RunpodAuth;
   templateId: string;
   name: string;
   computeType?: string;
@@ -819,6 +862,7 @@ export async function createRunpodEndpointGraphql(
   opts: CreateEndpointGraphQLOptions
 ): Promise<string> {
   const {
+    auth,
     templateId,
     name,
     computeType = ComputeType.GPU,
@@ -835,12 +879,12 @@ export async function createRunpodEndpointGraphql(
 
   const dataCenterIds = opts.dataCenterIds ?? [];
 
-  // Ensure API key
-  getApiKey();
+  // Ensure API key is present (sourced from ctx.credentials, not process.env).
+  requireApiKey(auth);
 
   // Delete existing endpoint if it exists
   console.log(`Checking for existing endpoint: ${name}`);
-  if (await deleteRunpodEndpointByName(name)) {
+  if (await deleteRunpodEndpointByName(name, auth)) {
     console.log(`Existing endpoint '${name}' deleted successfully`);
   } else {
     console.log(`Note: Endpoint '${name}' may not have existed`);
@@ -922,7 +966,7 @@ export async function createRunpodEndpointGraphql(
   console.log("\nExecuting GraphQL mutation:");
   console.log(mutation);
 
-  const result = await runGraphqlQuery(mutation);
+  const result = await runGraphqlQuery(mutation, auth);
 
   if ((result as GraphQLResponse).errors) {
     const errors = (result as GraphQLResponse).errors!;

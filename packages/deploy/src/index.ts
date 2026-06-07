@@ -1,6 +1,12 @@
 // Configuration and types
 export * from "./deployment-config.js";
 
+// Per-operation isolation envelope + scoped exec helper
+export * from "./deployment-context.js";
+
+// Provider → secret-key map + credential resolver
+export * from "./provider-credentials.js";
+
 // State management
 export * from "./state.js";
 

@@ -78,7 +78,7 @@ Production deployments require the strictest security posture:
 
 ### Infrastructure
 
-- Set **`idle_timeout`** and per-service resource caps to prevent runaway workloads on multi-tenant hosts
+- Set **`idle_timeout`** and per-service resource caps to prevent runaway workloads on multi-user hosts
 - Use **separate networks** for the proxy, API server, and worker containers
 - Pin container image versions (avoid `latest` tags in production)
 

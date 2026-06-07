@@ -1,19 +1,33 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { sanitizeName, deployToRunpod } from "../src/deploy-to-runpod.js";
 import type { RunPodDeployment } from "../src/deployment-config.js";
+import type { RunpodAuth } from "../src/runpod-api.js";
+import type { DockerAuth } from "../src/docker.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
+//
+// After the multi-tenant refactor deployToRunpod is host-credential-free:
+//   - RunPod API auth arrives as an explicit `auth: RunpodAuth` arg (Bearer from
+//     ctx.credentials.RUNPOD_API_KEY); it never transits process.env.
+//   - Docker registry auth arrives as an explicit scratch-scoped `dockerAuth:
+//     DockerAuth`; build/push run through its scoped runner.
+//   - The docker username is supplied EXPLICITLY by the caller (from the
+//     DOCKER_USERNAME secret via ctx.credentials, or deployment.docker.username)
+//     — never read from process.env.
+//
+// The docker version check goes through `runCommandArgs("docker", ["--version"])`
+// (shell-free argv exec), so that is what we mock and assert on.
 
 vi.mock("../src/docker.js", () => ({
-  buildDockerImage: vi.fn().mockReturnValue(false),
+  buildDockerImage: vi.fn().mockResolvedValue(false),
   formatImageName: vi.fn((name: string, user: string, registry: string) =>
     registry === "docker.io" ? `${user}/${name}` : `${registry}/${user}/${name}`
   ),
   generateImageTag: vi.fn().mockReturnValue("auto-tag-abc123"),
   pushToRegistry: vi.fn(),
-  runCommand: vi.fn().mockReturnValue("Docker version 24.0.0")
+  runCommandArgs: vi.fn().mockReturnValue("Docker version 24.0.0")
 }));
 
 vi.mock("../src/runpod-api.js", () => ({
@@ -26,7 +40,7 @@ import {
   formatImageName,
   generateImageTag,
   pushToRegistry,
-  runCommand
+  runCommandArgs
 } from "../src/docker.js";
 import {
   createOrUpdateRunpodTemplate,
@@ -37,13 +51,27 @@ const mockedBuild = vi.mocked(buildDockerImage);
 const mockedFormat = vi.mocked(formatImageName);
 const mockedGenTag = vi.mocked(generateImageTag);
 const mockedPush = vi.mocked(pushToRegistry);
-const mockedRunCmd = vi.mocked(runCommand);
+const mockedRunCmd = vi.mocked(runCommandArgs);
 const mockedCreateTemplate = vi.mocked(createOrUpdateRunpodTemplate);
 const mockedCreateEndpoint = vi.mocked(createRunpodEndpointGraphql);
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// Per-call RunPod auth bag. In production the apiKey is sourced from
+// ctx.credentials.RUNPOD_API_KEY, never process.env.
+const AUTH: RunpodAuth = { apiKey: "rp-token-123" };
+
+// A fake scratch-scoped docker auth. Its scoped runner is a no-op so build/push
+// never touch the network or filesystem; tests assert build/push were threaded
+// this auth.
+function makeDockerAuth(): DockerAuth {
+  return {
+    run: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
+    dockerConfigDir: "/tmp/scratch/.docker"
+  };
+}
 
 function makeDeployment(overrides: Record<string, any> = {}): RunPodDeployment {
   return {
@@ -66,7 +94,7 @@ function makeDeployment(overrides: Record<string, any> = {}): RunPodDeployment {
 beforeEach(() => {
   vi.clearAllMocks();
   // Re-set mock implementations after clearAllMocks resets them
-  mockedBuild.mockReturnValue(false);
+  mockedBuild.mockResolvedValue(false);
   mockedFormat.mockImplementation(
     (name: string, user: string, registry: string) =>
       registry === "docker.io"
@@ -141,6 +169,7 @@ describe("deployToRunpod", () => {
     const dep = makeDeployment();
     await deployToRunpod({
       deployment: dep,
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -154,9 +183,47 @@ describe("deployToRunpod", () => {
     expect(mockedCreateEndpoint).toHaveBeenCalledOnce();
   });
 
+  it("threads RunpodAuth into template and endpoint creation", async () => {
+    await deployToRunpod({
+      deployment: makeDeployment(),
+      auth: AUTH,
+      dockerUsername: "testuser",
+      imageName: "my-image",
+      tag: "v1",
+      name: "ep"
+    });
+    // Template: (templateName, imageName, tag, auth, env)
+    expect(mockedCreateTemplate.mock.calls[0][3]).toBe(AUTH);
+    // Endpoint: opts.auth
+    expect(mockedCreateEndpoint.mock.calls[0][0].auth).toBe(AUTH);
+  });
+
+  it("threads scratch-scoped dockerAuth into build and push", async () => {
+    const dockerAuth = makeDockerAuth();
+    await deployToRunpod({
+      deployment: makeDeployment(),
+      auth: AUTH,
+      dockerAuth,
+      dockerUsername: "testuser",
+      imageName: "my-image",
+      tag: "v1",
+      name: "ep"
+    });
+    expect(mockedBuild).toHaveBeenCalledWith(
+      expect.objectContaining({ auth: dockerAuth })
+    );
+    expect(mockedPush).toHaveBeenCalledWith(
+      expect.any(String),
+      "v1",
+      "docker.io",
+      dockerAuth
+    );
+  });
+
   it("skips build when skipBuild is true", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -170,6 +237,7 @@ describe("deployToRunpod", () => {
   it("skips push when skipPush is true", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -180,9 +248,10 @@ describe("deployToRunpod", () => {
   });
 
   it("skips push when build already pushed (autoPush)", async () => {
-    mockedBuild.mockReturnValueOnce(true); // imagePushedDuringBuild = true
+    mockedBuild.mockResolvedValueOnce(true); // imagePushedDuringBuild = true
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -194,6 +263,7 @@ describe("deployToRunpod", () => {
   it("skips template when skipTemplate is true", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -206,6 +276,7 @@ describe("deployToRunpod", () => {
   it("skips endpoint when skipEndpoint is true", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -218,6 +289,7 @@ describe("deployToRunpod", () => {
   it("skips endpoint when no templateId (skipTemplate)", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -234,6 +306,7 @@ describe("deployToRunpod", () => {
     });
     await deployToRunpod({
       deployment: dep,
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       name: "ep"
@@ -244,6 +317,7 @@ describe("deployToRunpod", () => {
   it("uses provided tag over auto-generated", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "my-custom-tag",
@@ -262,6 +336,7 @@ describe("deployToRunpod", () => {
     await expect(
       deployToRunpod({
         deployment: makeDeployment(),
+        auth: AUTH,
         dockerUsername: "testuser",
         imageName: "my-image",
         tag: "v1",
@@ -274,6 +349,7 @@ describe("deployToRunpod", () => {
     await expect(
       deployToRunpod({
         deployment: makeDeployment({ image: { name: undefined, tag: "v1" } }),
+        auth: AUTH,
         dockerUsername: "testuser",
         tag: "v1",
         name: "ep",
@@ -284,11 +360,13 @@ describe("deployToRunpod", () => {
   });
 
   it("throws when docker username is missing and build/push needed", async () => {
+    // No dockerUsername opt and no deployment.docker.username — and the username
+    // is no longer sourced from process.env, so this must throw.
     const dep = makeDeployment({ docker: { registry: "docker.io" } });
-    delete process.env.DOCKER_USERNAME;
     await expect(
       deployToRunpod({
         deployment: dep,
+        auth: AUTH,
         imageName: "my-image",
         tag: "v1",
         name: "ep"
@@ -296,44 +374,69 @@ describe("deployToRunpod", () => {
     ).rejects.toThrow("Docker username is required");
   });
 
-  it("uses DOCKER_USERNAME env when no explicit username", async () => {
-    process.env.DOCKER_USERNAME = "envuser";
+  it("uses explicit dockerUsername (from DOCKER_USERNAME secret via ctx.credentials)", async () => {
+    // Replaces the old "uses DOCKER_USERNAME env" test. Env reading was
+    // intentionally removed in the multi-tenant refactor: the username now
+    // arrives as an explicit caller argument (resolved from the DOCKER_USERNAME
+    // secret in ctx.credentials, or deployment.docker.username). We assert the
+    // explicit username flows through to image-name formatting.
     const dep = makeDeployment({ docker: { registry: "docker.io" } });
     await deployToRunpod({
       deployment: dep,
+      auth: AUTH,
+      dockerUsername: "secretuser",
       imageName: "my-image",
       tag: "v1",
       name: "ep"
     });
     expect(mockedFormat).toHaveBeenCalledWith(
       "my-image",
-      "envuser",
+      "secretuser",
       "docker.io"
     );
-    delete process.env.DOCKER_USERNAME;
+  });
+
+  it("falls back to deployment.docker.username when no explicit dockerUsername", async () => {
+    const dep = makeDeployment({
+      docker: { registry: "docker.io", username: "configuser" }
+    });
+    await deployToRunpod({
+      deployment: dep,
+      auth: AUTH,
+      imageName: "my-image",
+      tag: "v1",
+      name: "ep"
+    });
+    expect(mockedFormat).toHaveBeenCalledWith(
+      "my-image",
+      "configuser",
+      "docker.io"
+    );
   });
 
   it("sets PORT and PORT_HEALTH env vars for template", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
       name: "ep"
     });
-    const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
+    const envArg = mockedCreateTemplate.mock.calls[0][4];
     expect(envArg).toMatchObject({ PORT: "8000", PORT_HEALTH: "8000" });
   });
 
   it("sets AUTH_PROVIDER to static when no persistent_paths", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
       name: "ep"
     });
-    const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
+    const envArg = mockedCreateTemplate.mock.calls[0][4];
     expect(envArg?.AUTH_PROVIDER).toBe("static");
   });
 
@@ -349,12 +452,13 @@ describe("deployToRunpod", () => {
     });
     await deployToRunpod({
       deployment: dep,
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
       name: "ep"
     });
-    const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
+    const envArg = mockedCreateTemplate.mock.calls[0][4];
     expect(envArg?.USERS_FILE).toBe("/data/users.json");
     expect(envArg?.DB_PATH).toBe("/data/db");
     expect(envArg?.CHROMA_PATH).toBe("/data/chroma");
@@ -370,6 +474,7 @@ describe("deployToRunpod", () => {
     });
     await deployToRunpod({
       deployment: dep,
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -384,6 +489,7 @@ describe("deployToRunpod", () => {
       flashboot: true
     });
     expect(mockedCreateEndpoint).toHaveBeenCalledWith({
+      auth: AUTH,
       templateId: "tpl-new-1",
       name: "my-ep",
       computeType: "GPU",
@@ -403,6 +509,7 @@ describe("deployToRunpod", () => {
     await expect(
       deployToRunpod({
         deployment: makeDeployment(),
+        auth: AUTH,
         dockerUsername: "testuser",
         imageName: "my-image",
         tag: "v1"
@@ -417,6 +524,7 @@ describe("deployToRunpod", () => {
     });
     await deployToRunpod({
       deployment: dep,
+      auth: AUTH,
       imageName: "my-image",
       tag: "v1",
       name: "ep"
@@ -427,6 +535,7 @@ describe("deployToRunpod", () => {
   it("passes noCache to buildDockerImage", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -443,6 +552,7 @@ describe("deployToRunpod", () => {
     await expect(
       deployToRunpod({
         deployment: makeDeployment(),
+        auth: AUTH,
         dockerUsername: "testuser",
         imageName: "my-image",
         tag: "v1",
@@ -454,6 +564,7 @@ describe("deployToRunpod", () => {
   it("uses imageName as templateName fallback", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -467,6 +578,7 @@ describe("deployToRunpod", () => {
       "ep",
       expect.any(String),
       "v1",
+      AUTH,
       expect.any(Object)
     );
   });
@@ -474,6 +586,7 @@ describe("deployToRunpod", () => {
   it("uses explicit templateName when provided", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
@@ -484,6 +597,7 @@ describe("deployToRunpod", () => {
       "custom-tpl",
       expect.any(String),
       "v1",
+      AUTH,
       expect.any(Object)
     );
   });
@@ -500,13 +614,14 @@ describe("deployToRunpod", () => {
     });
     await deployToRunpod({
       deployment: dep,
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
       name: "ep",
       env: { USERS_FILE: "/custom/users.json", AUTH_PROVIDER: "custom" }
     });
-    const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
+    const envArg = mockedCreateTemplate.mock.calls[0][4];
     expect(envArg?.USERS_FILE).toBe("/custom/users.json");
     expect(envArg?.AUTH_PROVIDER).toBe("custom");
   });
@@ -514,25 +629,27 @@ describe("deployToRunpod", () => {
   it("sets NODETOOL_SERVER_MODE to private by default", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
       name: "ep"
     });
-    const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
+    const envArg = mockedCreateTemplate.mock.calls[0][4];
     expect(envArg?.NODETOOL_SERVER_MODE).toBe("private");
   });
 
   it("preserves existing NODETOOL_SERVER_MODE", async () => {
     await deployToRunpod({
       deployment: makeDeployment(),
+      auth: AUTH,
       dockerUsername: "testuser",
       imageName: "my-image",
       tag: "v1",
       name: "ep",
       env: { NODETOOL_SERVER_MODE: "public" }
     });
-    const [, , , envArg] = mockedCreateTemplate.mock.calls[0];
+    const envArg = mockedCreateTemplate.mock.calls[0][4];
     expect(envArg?.NODETOOL_SERVER_MODE).toBe("public");
   });
 });

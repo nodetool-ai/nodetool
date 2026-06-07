@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ModelObserver } from "../src/base-model.js";
 import { initTestDb } from "../src/db.js";
 import { Secret } from "../src/secret.js";
-import { setMasterKey } from "@nodetool-ai/security";
+import { setMasterKey, decryptFernet } from "@nodetool-ai/security";
 
 const TEST_MASTER_KEY = "dGVzdC1tYXN0ZXIta2V5LWZvci11bml0LXRlc3Rz"; // base64
 
@@ -258,5 +258,42 @@ describe("Secret model", () => {
     });
 
     await expect(secret.getDecryptedValue()).rejects.toBeTruthy();
+  });
+
+  // Encryption-at-rest coverage MIGRATED from DbDeploymentSettingsStore: after
+  // the multi-tenant refactor, deployment credentials are ordinary per-user
+  // Secrets keyed by env name. They must be encrypted at rest with a per-user
+  // derived key so one user's ciphertext is undecryptable by another.
+  describe("deployment credential storage (per-user encryption at rest)", () => {
+    it("encrypts a deployment credential so plaintext is not stored", async () => {
+      const secret = await Secret.upsert({
+        userId: "alice",
+        key: "RUNPOD_API_KEY",
+        value: "alice-secret"
+      });
+      expect(secret.encrypted_value).not.toContain("alice-secret");
+      // Round-trips through the model for the owner.
+      expect(await secret.getDecryptedValue()).toBe("alice-secret");
+    });
+
+    it("derives the encryption key per user — cross-user decryption fails", async () => {
+      await Secret.upsert({
+        userId: "alice",
+        key: "RUNPOD_API_KEY",
+        value: "alice-secret"
+      });
+      const aliceRow = await Secret.find("alice", "RUNPOD_API_KEY");
+      expect(aliceRow).not.toBeNull();
+
+      // Secret.upsert stores a Fernet token salted by user_id. The owner's
+      // user_id derives the working key.
+      expect(
+        decryptFernet(TEST_MASTER_KEY, "alice", aliceRow!.encrypted_value)
+      ).toBe("alice-secret");
+      // A different user's derived key cannot decrypt it.
+      expect(() =>
+        decryptFernet(TEST_MASTER_KEY, "bob", aliceRow!.encrypted_value)
+      ).toThrow();
+    });
   });
 });

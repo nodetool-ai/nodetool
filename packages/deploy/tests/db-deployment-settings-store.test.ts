@@ -1,17 +1,20 @@
 import { describe, it, expect, beforeEach } from "vitest";
 
-import { initTestDb, DeploymentSettings } from "@nodetool-ai/models";
-import { generateMasterKey, decrypt } from "@nodetool-ai/security";
+import { initTestDb } from "@nodetool-ai/models";
 import { DbDeploymentSettingsStore } from "../src/db-deployment-settings-store.js";
 
-describe("DbDeploymentSettingsStore", () => {
-  let masterKey: string;
+// DbDeploymentSettingsStore is QUOTA-ONLY after the multi-tenant refactor.
+// Credential methods (setCredential / deleteCredential / loadCredentials /
+// listCredentialNames / readCredentials / writeCredentials) were removed —
+// deployment credentials are now ordinary per-user `Secret` rows. Encryption-
+// at-rest coverage was migrated to the Secret model test
+// (packages/models/tests/secret.test.ts).
+describe("DbDeploymentSettingsStore (quota-only)", () => {
   let store: DbDeploymentSettingsStore;
 
   beforeEach(() => {
     initTestDb();
-    masterKey = generateMasterKey();
-    store = new DbDeploymentSettingsStore({ getMasterKey: () => masterKey });
+    store = new DbDeploymentSettingsStore();
   });
 
   it("returns default quota for users with no row", async () => {
@@ -32,54 +35,31 @@ describe("DbDeploymentSettingsStore", () => {
     expect(q2.max_workers_per_endpoint).toBe(1);
   });
 
-  it("encrypts credentials at rest with per-user derived key", async () => {
-    await store.setCredential("alice", "RUNPOD_API_KEY", "alice-secret");
-    await store.setCredential("bob", "RUNPOD_API_KEY", "bob-secret");
-
-    const aliceRow = await DeploymentSettings.findByUserId("alice");
-    const aliceCreds = JSON.parse(aliceRow!.credentials_json);
-    expect(aliceCreds.RUNPOD_API_KEY.ciphertext).not.toContain("alice-secret");
-
-    // Round-trip through the store works.
-    const loaded = await store.loadCredentials("alice");
-    expect(loaded.RUNPOD_API_KEY).toBe("alice-secret");
-
-    // Direct decryption with master key + user_id matches.
-    expect(decrypt(masterKey, "alice", aliceCreds.RUNPOD_API_KEY.ciphertext)).toBe(
-      "alice-secret"
-    );
-
-    // Cross-user decryption fails (wrong derived key).
-    expect(() =>
-      decrypt(masterKey, "bob", aliceCreds.RUNPOD_API_KEY.ciphertext)
-    ).toThrow();
+  it("isolates quota between users", async () => {
+    await store.setQuota("alice", { max_deployments: 1 });
+    await store.setQuota("bob", { max_deployments: 9 });
+    expect((await store.getQuota("alice")).max_deployments).toBe(1);
+    expect((await store.getQuota("bob")).max_deployments).toBe(9);
   });
 
-  it("validates credential names", async () => {
-    await expect(
-      store.setCredential("u1", "lowercase", "x")
-    ).rejects.toThrow(/SCREAMING_SNAKE_CASE/);
-    await expect(store.setCredential("u1", "1STARTING_DIGIT", "x")).rejects.toThrow();
-  });
-
-  it("listCredentialNames returns sorted env names", async () => {
-    await store.setCredential("u1", "Z_LAST", "z");
-    await store.setCredential("u1", "A_FIRST", "a");
-    expect(await store.listCredentialNames("u1")).toEqual(["A_FIRST", "Z_LAST"]);
-  });
-
-  it("deleteCredential leaves others intact", async () => {
-    await store.setCredential("u1", "K1", "v1");
-    await store.setCredential("u1", "K2", "v2");
-    await store.deleteCredential("u1", "K1");
-    const loaded = await store.loadCredentials("u1");
-    expect(loaded.K1).toBeUndefined();
-    expect(loaded.K2).toBe("v2");
-  });
-
-  it("remove removes the entire settings row", async () => {
-    await store.setCredential("u1", "K", "v");
+  it("remove deletes the settings row", async () => {
+    await store.setQuota("u1", { max_deployments: 2 });
     expect(await store.remove("u1")).toBe(true);
-    expect(await store.listCredentialNames("u1")).toEqual([]);
+    // Back to defaults after removal.
+    expect((await store.getQuota("u1")).max_deployments).toBe(5);
+  });
+
+  it("exposes no credential methods", () => {
+    const s = store as unknown as Record<string, unknown>;
+    for (const m of [
+      "setCredential",
+      "deleteCredential",
+      "loadCredentials",
+      "listCredentialNames",
+      "readCredentials",
+      "writeCredentials"
+    ]) {
+      expect(s[m]).toBeUndefined();
+    }
   });
 });

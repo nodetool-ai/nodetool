@@ -1,6 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock google-cloud-run-api
+// ---------------------------------------------------------------------------
+// Mocks
+// ---------------------------------------------------------------------------
+//
+// After the multi-tenant refactor, deploy-to-gcp is host-credential-free: every
+// gcloud/docker call routes through an explicit `GcpScope` (a scoped runner +
+// scratch credential env) and the env-vars file is written via the context's
+// `writeScratchFile`. We mock the google-cloud-run-api helpers (asserting they
+// receive the scope), the docker build, and `writeScratchFile` (so nothing
+// touches the filesystem). The Docker availability probe now runs through
+// `scope.run("docker", ["--version"], ...)`, so we control it via the fake
+// scope rather than a `runCommand` mock.
+
 vi.mock("../src/google-cloud-run-api.js", () => ({
   deployToCloudRun: vi.fn(),
   enableRequiredApis: vi.fn(),
@@ -9,13 +21,24 @@ vi.mock("../src/google-cloud-run-api.js", () => ({
   ensureProjectSet: vi.fn(),
   pushToGcr: vi.fn(),
   deleteCloudRunService: vi.fn(),
-  listCloudRunServices: vi.fn()
+  listCloudRunServices: vi.fn(),
+  // gcpEnvVarsToYaml is a pure serializer; the real one is fine for the tests.
+  gcpEnvVarsToYaml: vi.fn((env: Record<string, string>) =>
+    Object.entries(env)
+      .map(([k, v]) => `${k}: "${v}"`)
+      .join("\n")
+  )
 }));
 
-// Mock docker
+// Mock docker (build only — the version probe is handled by the scope).
 vi.mock("../src/docker.js", () => ({
-  buildDockerImage: vi.fn(),
-  runCommand: vi.fn()
+  buildDockerImage: vi.fn()
+}));
+
+// Mock writeScratchFile so the env-vars-file write stays offline. We re-export
+// the real types implicitly; only the side-effecting writer is replaced.
+vi.mock("../src/deployment-context.js", () => ({
+  writeScratchFile: vi.fn(async (_ctx, relPath: string) => `/tmp/scratch/${relPath}`)
 }));
 
 import {
@@ -29,6 +52,8 @@ import {
 } from "../src/deploy-to-gcp.js";
 
 import type { GCPDeployment } from "../src/deployment-config.js";
+import type { DeploymentContext } from "../src/deployment-context.js";
+import type { GcpScope } from "../src/google-cloud-run-api.js";
 
 import {
   deployToCloudRun,
@@ -41,7 +66,8 @@ import {
   listCloudRunServices
 } from "../src/google-cloud-run-api.js";
 
-import { buildDockerImage, runCommand } from "../src/docker.js";
+import { buildDockerImage } from "../src/docker.js";
+import { writeScratchFile } from "../src/deployment-context.js";
 
 const mockEnsureGcloudAuth = vi.mocked(ensureGcloudAuth);
 const mockEnsureProjectSet = vi.mocked(ensureProjectSet);
@@ -50,9 +76,43 @@ const mockEnsureCloudRunPermissions = vi.mocked(ensureCloudRunPermissions);
 const mockPushToGcr = vi.mocked(pushToGcr);
 const mockDeployToCloudRun = vi.mocked(deployToCloudRun);
 const mockBuildDockerImage = vi.mocked(buildDockerImage);
-const mockRunCommand = vi.mocked(runCommand);
 const mockDeleteCloudRunService = vi.mocked(deleteCloudRunService);
 const mockListCloudRunServices = vi.mocked(listCloudRunServices);
+const mockWriteScratchFile = vi.mocked(writeScratchFile);
+
+// ---------------------------------------------------------------------------
+// Helpers — fake DeploymentContext and GcpScope
+// ---------------------------------------------------------------------------
+
+// A per-operation context. Credentials come from here (e.g. the GCP SA key),
+// never process.env. scratchDir is where the env-vars file would be written.
+function makeCtx(
+  credentials: Record<string, string> = {
+    GCP_SERVICE_ACCOUNT_KEY: "{json-sa-key}"
+  }
+): DeploymentContext {
+  return { userId: "u1", credentials, scratchDir: "/tmp/scratch" };
+}
+
+// A fake GcpScope. `run` is a scoped-runner stub that resolves an empty
+// exec result by default (used for `docker --version` and any gcloud the
+// non-mocked helpers might issue — though all gcloud-issuing helpers are
+// themselves mocked here). `env` carries the scratch credential redirection.
+function makeScope(
+  overrides: Partial<GcpScope> = {}
+): GcpScope & { run: ReturnType<typeof vi.fn> } {
+  const run = vi.fn().mockResolvedValue({ stdout: "", stderr: "" });
+  return {
+    run,
+    env: {
+      GOOGLE_APPLICATION_CREDENTIALS: "/tmp/scratch/gcp/sa-key.json",
+      CLOUDSDK_CONFIG: "/tmp/scratch/gcloud",
+      DOCKER_CONFIG: "/tmp/scratch/.docker"
+    },
+    multiUser: true,
+    ...overrides
+  } as GcpScope & { run: ReturnType<typeof vi.fn> };
+}
 
 function makeDeployment(overrides?: Partial<GCPDeployment>): GCPDeployment {
   return {
@@ -89,23 +149,20 @@ function makeDeployment(overrides?: Partial<GCPDeployment>): GCPDeployment {
   } as GCPDeployment;
 }
 
-// Capture and suppress process.exit
-let mockProcessExit: ReturnType<typeof vi.spyOn>;
-
 beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
-  mockProcessExit = vi.spyOn(process, "exit").mockImplementation((() => {
-    throw new Error("process.exit called");
-  }) as any);
 
   // Default mock implementations
   mockEnsureGcloudAuth.mockResolvedValue(undefined);
-  mockEnsureProjectSet.mockImplementation(async (pid) => pid ?? "my-project");
+  mockEnsureProjectSet.mockImplementation(async (_scope, pid) => pid ?? "my-project");
   mockEnableRequiredApis.mockResolvedValue(undefined);
   mockEnsureCloudRunPermissions.mockResolvedValue(undefined);
+  mockWriteScratchFile.mockImplementation(
+    async (_ctx, relPath: string) => `/tmp/scratch/${relPath}`
+  );
 });
 
 afterEach(() => {
@@ -270,8 +327,9 @@ describe("getGcpDefaultEnv", () => {
 describe("deployToGcp", () => {
   it("orchestrates full deployment: auth, build, push, deploy", async () => {
     const dep = makeDeployment();
-    mockRunCommand.mockReturnValue("Docker version 24.0.0");
-    mockBuildDockerImage.mockReturnValue(false);
+    const ctx = makeCtx();
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
     mockPushToGcr.mockResolvedValueOnce(
       "us-central1-docker.pkg.dev/my-project/nodetool/my-repo:v1"
     );
@@ -279,34 +337,67 @@ describe("deployToGcp", () => {
       status: { url: "https://my-svc.run.app" }
     });
 
-    await deployToGcp({ deployment: dep });
+    await deployToGcp({ ctx, scope, deployment: dep });
 
+    // Auth/project/api/permission helpers all receive the scope.
     expect(mockEnsureGcloudAuth).toHaveBeenCalledOnce();
-    expect(mockEnsureProjectSet).toHaveBeenCalled();
-    expect(mockEnableRequiredApis).toHaveBeenCalled();
-    expect(mockEnsureCloudRunPermissions).toHaveBeenCalled();
+    expect(mockEnsureGcloudAuth).toHaveBeenCalledWith(scope);
+    expect(mockEnsureProjectSet).toHaveBeenCalledWith(scope, "my-project");
+    expect(mockEnableRequiredApis).toHaveBeenCalledWith(scope, "my-project");
+    expect(mockEnsureCloudRunPermissions).toHaveBeenCalledWith(
+      scope,
+      "my-project",
+      null
+    );
     expect(mockBuildDockerImage).toHaveBeenCalledOnce();
+    // pushToGcr is invoked with the scope as the first positional arg.
     expect(mockPushToGcr).toHaveBeenCalledOnce();
+    expect(mockPushToGcr.mock.calls[0][0]).toBe(scope);
+    // deployToCloudRun receives the scope on its options bag.
     expect(mockDeployToCloudRun).toHaveBeenCalledOnce();
+    expect(mockDeployToCloudRun.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ scope })
+    );
+  });
+
+  it("probes docker through the scoped runner, not the host env", async () => {
+    const dep = makeDeployment();
+    const ctx = makeCtx();
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
+    mockPushToGcr.mockResolvedValueOnce("image-url");
+    mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
+
+    await deployToGcp({ ctx, scope, deployment: dep });
+
+    // The docker availability probe runs `docker --version` via scope.run with
+    // the scratch credential env — never the ambient host environment.
+    expect(scope.run).toHaveBeenCalledWith(
+      "docker",
+      ["--version"],
+      expect.objectContaining({ env: scope.env })
+    );
   });
 
   it("skips build when skipBuild is true", async () => {
     const dep = makeDeployment();
+    const scope = makeScope();
     mockPushToGcr.mockResolvedValueOnce("image-url");
     mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
 
-    await deployToGcp({ deployment: dep, skipBuild: true });
+    await deployToGcp({ ctx: makeCtx(), scope, deployment: dep, skipBuild: true });
 
     expect(mockBuildDockerImage).not.toHaveBeenCalled();
-    expect(mockRunCommand).not.toHaveBeenCalled();
+    // With build skipped, the docker version probe is skipped too.
+    expect(scope.run).not.toHaveBeenCalled();
   });
 
   it("skips push when skipPush is true", async () => {
     const dep = makeDeployment();
-    mockRunCommand.mockReturnValue("");
-    mockBuildDockerImage.mockReturnValue(false);
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
 
-    await deployToGcp({ deployment: dep, skipPush: true });
+    await deployToGcp({ ctx: makeCtx(), scope, deployment: dep, skipPush: true });
 
     expect(mockPushToGcr).not.toHaveBeenCalled();
     // Also skipDeploy because no gcpImageUrl
@@ -315,23 +406,28 @@ describe("deployToGcp", () => {
 
   it("skips deploy when skipDeploy is true", async () => {
     const dep = makeDeployment();
-    mockRunCommand.mockReturnValue("");
-    mockBuildDockerImage.mockReturnValue(false);
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
     mockPushToGcr.mockResolvedValueOnce("image-url");
 
-    await deployToGcp({ deployment: dep, skipDeploy: true });
+    await deployToGcp({ ctx: makeCtx(), scope, deployment: dep, skipDeploy: true });
 
     expect(mockDeployToCloudRun).not.toHaveBeenCalled();
   });
 
   it("skips permission setup when skipPermissionSetup is true", async () => {
     const dep = makeDeployment();
-    mockRunCommand.mockReturnValue("");
-    mockBuildDockerImage.mockReturnValue(false);
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
     mockPushToGcr.mockResolvedValueOnce("image-url");
     mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
 
-    await deployToGcp({ deployment: dep, skipPermissionSetup: true });
+    await deployToGcp({
+      ctx: makeCtx(),
+      scope,
+      deployment: dep,
+      skipPermissionSetup: true
+    });
 
     expect(mockEnsureCloudRunPermissions).not.toHaveBeenCalled();
   });
@@ -339,12 +435,12 @@ describe("deployToGcp", () => {
   it("infers registry from region when not provided", async () => {
     const dep = makeDeployment();
     dep.image.registry = "";
-    mockRunCommand.mockReturnValue("");
-    mockBuildDockerImage.mockReturnValue(false);
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
     mockPushToGcr.mockResolvedValueOnce("image-url");
     mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
 
-    await deployToGcp({ deployment: dep });
+    await deployToGcp({ ctx: makeCtx(), scope, deployment: dep });
 
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining("Inferred registry from region")
@@ -354,12 +450,12 @@ describe("deployToGcp", () => {
   it("uses provided registry when available", async () => {
     const dep = makeDeployment();
     dep.image.registry = "gcr.io";
-    mockRunCommand.mockReturnValue("");
-    mockBuildDockerImage.mockReturnValue(false);
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
     mockPushToGcr.mockResolvedValueOnce("image-url");
     mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
 
-    await deployToGcp({ deployment: dep });
+    await deployToGcp({ ctx: makeCtx(), scope, deployment: dep });
 
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining("Using provided registry: gcr.io")
@@ -369,12 +465,12 @@ describe("deployToGcp", () => {
   it("sanitizes the service name", async () => {
     const dep = makeDeployment();
     dep.service_name = "My_Service.v1";
-    mockRunCommand.mockReturnValue("");
-    mockBuildDockerImage.mockReturnValue(false);
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
     mockPushToGcr.mockResolvedValueOnce("image-url");
     mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
 
-    await deployToGcp({ deployment: dep });
+    await deployToGcp({ ctx: makeCtx(), scope, deployment: dep });
 
     expect(mockDeployToCloudRun).toHaveBeenCalledWith(
       expect.objectContaining({ serviceName: "my-service-v1" })
@@ -383,12 +479,14 @@ describe("deployToGcp", () => {
 
   it("merges user env with default env (user takes precedence)", async () => {
     const dep = makeDeployment();
-    mockRunCommand.mockReturnValue("");
-    mockBuildDockerImage.mockReturnValue(false);
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
     mockPushToGcr.mockResolvedValueOnce("image-url");
     mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
 
     await deployToGcp({
+      ctx: makeCtx(),
+      scope,
       deployment: dep,
       env: { NODETOOL_SERVER_MODE: "custom" }
     });
@@ -401,39 +499,88 @@ describe("deployToGcp", () => {
     );
   });
 
+  it("writes env vars to a scratch file and passes it via --env-vars-file", async () => {
+    const dep = makeDeployment();
+    const ctx = makeCtx();
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
+    mockPushToGcr.mockResolvedValueOnce("image-url");
+    mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
+
+    await deployToGcp({ ctx, scope, deployment: dep });
+
+    // Env vars are written to a 0600 scratch file (so values never hit argv) and
+    // the resulting path is threaded to deployToCloudRun as envVarsFile.
+    expect(mockWriteScratchFile).toHaveBeenCalledWith(
+      ctx,
+      "gcloud/env-vars.yaml",
+      expect.any(String)
+    );
+    expect(mockDeployToCloudRun.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        envVarsFile: "/tmp/scratch/gcloud/env-vars.yaml"
+      })
+    );
+  });
+
+  it("forwards dockerAuth to the build for the multi-user path", async () => {
+    const dep = makeDeployment();
+    const scope = makeScope();
+    const dockerAuth = {
+      run: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
+      dockerConfigDir: "/tmp/scratch/.docker"
+    };
+    mockBuildDockerImage.mockResolvedValue(false);
+    mockPushToGcr.mockResolvedValueOnce("image-url");
+    mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
+
+    await deployToGcp({
+      ctx: makeCtx(),
+      scope,
+      deployment: dep,
+      dockerAuth: dockerAuth as any
+    });
+
+    expect(mockBuildDockerImage).toHaveBeenCalledWith(
+      expect.objectContaining({ auth: dockerAuth })
+    );
+  });
+
   it("throws on deploy failure", async () => {
     const dep = makeDeployment();
-    mockRunCommand.mockReturnValue("");
-    mockBuildDockerImage.mockReturnValue(false);
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
     mockPushToGcr.mockResolvedValueOnce("image-url");
     mockDeployToCloudRun.mockRejectedValueOnce(new Error("quota exceeded"));
 
-    await expect(deployToGcp({ deployment: dep })).rejects.toThrow(
-      "GCP deployment failed: quota exceeded"
-    );
+    await expect(
+      deployToGcp({ ctx: makeCtx(), scope, deployment: dep })
+    ).rejects.toThrow("GCP deployment failed: quota exceeded");
   });
 
   it("throws when Docker is not available", async () => {
     const dep = makeDeployment();
-    mockRunCommand.mockImplementation(() => {
-      throw new Error("not found");
-    });
+    // The docker probe runs through scope.run; a rejection there means docker
+    // is unavailable in the scoped environment.
+    const scope = makeScope({
+      run: vi.fn().mockRejectedValue(new Error("not found"))
+    } as Partial<GcpScope>);
 
-    await expect(deployToGcp({ deployment: dep })).rejects.toThrow(
-      "Docker is not installed or not running"
-    );
+    await expect(
+      deployToGcp({ ctx: makeCtx(), scope, deployment: dep })
+    ).rejects.toThrow("Docker is not installed or not running");
   });
 
   it("uses service name as image name when repository is empty", async () => {
     const dep = makeDeployment();
     dep.image.repository = "";
     dep.service_name = "my-svc";
-    mockRunCommand.mockReturnValue("");
-    mockBuildDockerImage.mockReturnValue(false);
+    const scope = makeScope();
+    mockBuildDockerImage.mockResolvedValue(false);
     mockPushToGcr.mockResolvedValueOnce("image-url");
     mockDeployToCloudRun.mockResolvedValueOnce({ status: {} });
 
-    await deployToGcp({ deployment: dep });
+    await deployToGcp({ ctx: makeCtx(), scope, deployment: dep });
 
     // The localImageName should use sanitized service name
     expect(mockBuildDockerImage).toHaveBeenCalledWith(
@@ -531,17 +678,22 @@ describe("printGcpDeploymentSummary", () => {
 // ---------------------------------------------------------------------------
 
 describe("deleteGcpService", () => {
-  it("authenticates, resolves project, sanitizes name, and deletes", async () => {
+  it("authenticates, resolves project, sanitizes name, and deletes (scoped)", async () => {
+    const scope = makeScope();
     mockDeleteCloudRunService.mockResolvedValueOnce(true);
 
     const result = await deleteGcpService(
+      scope,
       "My_Service",
       "us-central1",
       "my-project"
     );
     expect(result).toBe(true);
     expect(mockEnsureGcloudAuth).toHaveBeenCalledOnce();
+    expect(mockEnsureGcloudAuth).toHaveBeenCalledWith(scope);
+    // deleteCloudRunService takes the scope as its first positional arg.
     expect(mockDeleteCloudRunService).toHaveBeenCalledWith(
+      scope,
       "my-service",
       "us-central1",
       "my-project"
@@ -549,22 +701,27 @@ describe("deleteGcpService", () => {
   });
 
   it("uses default region when not provided", async () => {
+    const scope = makeScope();
     mockDeleteCloudRunService.mockResolvedValueOnce(true);
 
-    await deleteGcpService("svc");
+    await deleteGcpService(scope, "svc");
     expect(mockDeleteCloudRunService).toHaveBeenCalledWith(
+      scope,
       "svc",
       "us-central1",
       "my-project"
     );
   });
 
-  it("resolves project from default when not provided", async () => {
+  it("resolves project from ensureProjectSet when not provided", async () => {
+    const scope = makeScope();
     mockEnsureProjectSet.mockResolvedValueOnce("default-project");
     mockDeleteCloudRunService.mockResolvedValueOnce(true);
 
-    await deleteGcpService("svc", "us-central1", null);
+    await deleteGcpService(scope, "svc", "us-central1", null);
+    expect(mockEnsureProjectSet).toHaveBeenCalledWith(scope, null);
     expect(mockDeleteCloudRunService).toHaveBeenCalledWith(
+      scope,
       "svc",
       "us-central1",
       "default-project"
@@ -577,21 +734,30 @@ describe("deleteGcpService", () => {
 // ---------------------------------------------------------------------------
 
 describe("listGcpServices", () => {
-  it("authenticates, resolves project, and lists services", async () => {
+  it("authenticates, resolves project, and lists services (scoped)", async () => {
+    const scope = makeScope();
     const services = [{ metadata: { name: "svc1" } }];
     mockListCloudRunServices.mockResolvedValueOnce(services);
 
-    const result = await listGcpServices("us-central1", "my-project");
+    const result = await listGcpServices(scope, "us-central1", "my-project");
     expect(result).toEqual(services);
     expect(mockEnsureGcloudAuth).toHaveBeenCalledOnce();
+    expect(mockEnsureGcloudAuth).toHaveBeenCalledWith(scope);
+    expect(mockListCloudRunServices).toHaveBeenCalledWith(
+      scope,
+      "us-central1",
+      "my-project"
+    );
   });
 
-  it("uses default region and project", async () => {
+  it("uses default region and resolved project", async () => {
+    const scope = makeScope();
     mockEnsureProjectSet.mockResolvedValueOnce("default-proj");
     mockListCloudRunServices.mockResolvedValueOnce([]);
 
-    await listGcpServices();
+    await listGcpServices(scope);
     expect(mockListCloudRunServices).toHaveBeenCalledWith(
+      scope,
       "us-central1",
       "default-proj"
     );

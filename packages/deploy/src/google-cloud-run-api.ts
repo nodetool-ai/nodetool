@@ -5,13 +5,60 @@
  * services and deployments. Handles authentication, request/response processing,
  * and error handling for all Cloud Run operations.
  *
+ * Multi-tenant rule: NO ambient gcloud auth. Every `gcloud`/`docker` call runs
+ * through a {@link GcpScope} — a per-operation scoped runner whose child env
+ * carries `GOOGLE_APPLICATION_CREDENTIALS` (a scratch SA-key file written from
+ * the user's `GCP_SERVICE_ACCOUNT_KEY` secret) and `CLOUDSDK_CONFIG`/
+ * `DOCKER_CONFIG` pointing into the call's scratch dir. The host's ambient
+ * gcloud account, host `~/.docker/config.json`, and host default-project are
+ * NEVER consulted in the multi-user path.
+ *
  * Ported from nodetool.deploy.google_cloud_run_api (Python).
  */
 
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import type { ScopedRunner } from "./deployment-context.js";
+import type { DockerAuth } from "./docker.js";
 
-const execFileAsync = promisify(execFile);
+// ---------------------------------------------------------------------------
+// GCP scope — the per-operation auth/exec envelope threaded into every call.
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-operation GCP auth/exec envelope.
+ *
+ * Replaces ambient gcloud auth. `run` is a {@link ScopedRunner} bound to the
+ * user's `DeploymentContext`; `env` carries the scratch-scoped credential
+ * redirection (`GOOGLE_APPLICATION_CREDENTIALS`, `CLOUDSDK_CONFIG`,
+ * `DOCKER_CONFIG`) so neither gcloud nor docker ever read or write host auth
+ * files. `multiUser` gates host-identity behaviour: in multi-user mode there is
+ * no host default-project fallback and no auto IAM-grant of `run.admin`.
+ */
+export interface GcpScope {
+  /** Scoped runner bound to the user's DeploymentContext. */
+  run: ScopedRunner;
+  /**
+   * Child-env overrides for gcloud: GOOGLE_APPLICATION_CREDENTIALS (scratch SA
+   * key), CLOUDSDK_CONFIG (scratch gcloud config dir), DOCKER_CONFIG (scratch
+   * docker config dir).
+   */
+  env: Record<string, string>;
+  /**
+   * When true, host-identity shortcuts are disabled: ensureProjectSet requires
+   * an explicit project_id, and ensureCloudRunPermissions does NOT auto-grant
+   * IAM roles (which would escalate to whatever `gcloud config get-value
+   * account` returns — cross-tenant escalation). Pre-provisioned SA perms are
+   * required instead. The single-user CLI path sets this false.
+   */
+  multiUser: boolean;
+  /**
+   * Optional registry auth for `docker tag`/`docker push` in {@link pushToGcr}.
+   * For Artifact Registry / GCR the credential helper (`gcloud auth
+   * configure-docker`) is used with the scratch DOCKER_CONFIG, so a registry
+   * login is generally unnecessary; this is here only when an explicit docker
+   * login is also desired.
+   */
+  dockerAuth?: DockerAuth;
+}
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -92,7 +139,7 @@ export function listCloudRunMemory(): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// Helper — run gcloud commands
+// Helper — run gcloud commands through the scoped runner
 // ---------------------------------------------------------------------------
 
 interface ExecResult {
@@ -100,8 +147,20 @@ interface ExecResult {
   stderr: string;
 }
 
-async function gcloud(args: string[]): Promise<ExecResult> {
-  return execFileAsync("gcloud", args);
+/**
+ * Run a `gcloud` command through the scope's scoped runner with the scratch
+ * credential env (GOOGLE_APPLICATION_CREDENTIALS / CLOUDSDK_CONFIG /
+ * DOCKER_CONFIG). Never spawns gcloud with the host's ambient env.
+ */
+async function gcloud(
+  scope: GcpScope,
+  args: string[],
+  opts?: { timeoutMs?: number }
+): Promise<ExecResult> {
+  return scope.run("gcloud", args, {
+    env: scope.env,
+    timeoutMs: opts?.timeoutMs
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -109,68 +168,76 @@ async function gcloud(args: string[]): Promise<ExecResult> {
 // ---------------------------------------------------------------------------
 
 /**
- * Check if gcloud CLI is authenticated.
+ * Verify the SA credentials in the scope can talk to gcloud.
+ *
+ * With GOOGLE_APPLICATION_CREDENTIALS set to the scratch SA key, gcloud uses
+ * Application Default Credentials — there is no interactive login to perform.
+ * This only confirms the gcloud binary is reachable and the credentials load.
  */
-export async function checkGcloudAuth(): Promise<boolean> {
+export async function ensureGcloudAuth(scope: GcpScope): Promise<void> {
   try {
-    const { stdout } = await gcloud([
-      "auth",
-      "list",
-      "--filter=status:ACTIVE",
-      "--format=value(account)"
-    ]);
-    return stdout.trim().length > 0;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Ensure gcloud CLI is authenticated and configured.
- * Throws if authentication fails or gcloud is not installed.
- */
-export async function ensureGcloudAuth(): Promise<void> {
-  // Check if gcloud is installed
-  try {
-    await gcloud(["--version"]);
+    await gcloud(scope, ["--version"]);
   } catch {
     console.error("Google Cloud SDK (gcloud) is not installed");
     console.error("Install it from: https://cloud.google.com/sdk/docs/install");
     throw new Error("gcloud CLI not installed");
   }
 
-  // Check authentication
-  if (!(await checkGcloudAuth())) {
-    console.warn("Not authenticated with Google Cloud");
-    console.warn("Run: gcloud auth login");
+  // Activate the service-account key explicitly so subsequent calls use it
+  // rather than any ambient account. The key path comes from the scratch env.
+  const keyFile = scope.env["GOOGLE_APPLICATION_CREDENTIALS"];
+  if (keyFile) {
+    try {
+      await gcloud(scope, [
+        "auth",
+        "activate-service-account",
+        "--key-file",
+        keyFile,
+        "--quiet"
+      ]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new Error(
+        `Failed to activate the GCP service-account key: ${msg}. ` +
+          `Check that the GCP_SERVICE_ACCOUNT_KEY secret is a valid SA JSON key.`
+      );
+    }
+  } else if (scope.multiUser) {
     throw new Error(
-      "Not authenticated with Google Cloud. Run `gcloud auth login`."
+      "No GCP service-account credentials available. " +
+        "Set the GCP_SERVICE_ACCOUNT_KEY secret for this deployment."
     );
   }
 }
 
 /**
- * Get the default Google Cloud project.
- */
-export async function getDefaultProject(): Promise<string | null> {
-  try {
-    const { stdout } = await gcloud(["config", "get-value", "project"]);
-    const project = stdout.trim();
-    return project && project !== "(unset)" ? project : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Ensure the current user has required Cloud Run permissions.
+ * Ensure the required Cloud Run IAM permissions.
+ *
+ * Multi-user mode SKIPS the auto IAM-grant entirely: granting `run.admin` to
+ * whatever `gcloud config get-value account` returns would escalate to the
+ * host/ambient identity and cross tenant boundaries. The deployment SA must be
+ * pre-provisioned with the necessary roles out of band.
+ *
+ * The single-user CLI path keeps the historical best-effort grant.
  */
 export async function ensureCloudRunPermissions(
+  scope: GcpScope,
   projectId: string,
   serviceAccount?: string | null
 ): Promise<void> {
+  if (scope.multiUser) {
+    // No host-identity IAM mutation in multi-user mode. The deployment's
+    // service account must already hold roles/run.admin (+ optionally
+    // roles/iam.serviceAccountUser). Cross-tenant escalation is not permitted.
+    return;
+  }
+
   try {
-    const { stdout } = await gcloud(["config", "get-value", "account"]);
+    const { stdout } = await gcloud(scope, [
+      "config",
+      "get-value",
+      "account"
+    ]);
     const userAccount = stdout.trim();
 
     if (!userAccount || userAccount === "(unset)") {
@@ -187,7 +254,7 @@ export async function ensureCloudRunPermissions(
     for (const role of requiredRoles) {
       console.log(`Granting ${role}...`);
       try {
-        await gcloud([
+        await gcloud(scope, [
           "projects",
           "add-iam-policy-binding",
           projectId,
@@ -217,28 +284,54 @@ export async function ensureCloudRunPermissions(
 }
 
 /**
- * Ensure a Google Cloud project is set.
- * Returns the project ID.
+ * Resolve the Google Cloud project to use.
+ *
+ * Multi-user mode REQUIRES an explicit `projectId`: there is no host
+ * default-project fallback (it would target whatever the host gcloud config
+ * points at — wrong tenant). The single-user CLI path may fall back to the
+ * gcloud default project.
  */
 export async function ensureProjectSet(
+  scope: GcpScope,
   projectId?: string | null
 ): Promise<string> {
   if (projectId) return projectId;
 
-  const project = await getDefaultProject();
-  if (!project) {
+  if (scope.multiUser) {
     throw new Error(
-      "No Google Cloud project configured. Set a project with: gcloud config set project YOUR_PROJECT_ID"
+      "No Google Cloud project configured. A multi-user GCP deployment must " +
+        "set an explicit project_id in its configuration; the host default " +
+        "project is never used."
     );
   }
 
-  return project;
+  // Single-user CLI fallback: read the host gcloud default project.
+  try {
+    const { stdout } = await gcloud(scope, [
+      "config",
+      "get-value",
+      "project"
+    ]);
+    const project = stdout.trim();
+    if (project && project !== "(unset)") {
+      return project;
+    }
+  } catch {
+    // fall through to the error below
+  }
+
+  throw new Error(
+    "No Google Cloud project configured. Set a project with: gcloud config set project YOUR_PROJECT_ID"
+  );
 }
 
 /**
  * Enable required Google Cloud APIs.
  */
-export async function enableRequiredApis(projectId: string): Promise<void> {
+export async function enableRequiredApis(
+  scope: GcpScope,
+  projectId: string
+): Promise<void> {
   const requiredApis = [
     "run.googleapis.com",
     "cloudbuild.googleapis.com",
@@ -250,7 +343,7 @@ export async function enableRequiredApis(projectId: string): Promise<void> {
 
   for (const api of requiredApis) {
     try {
-      await gcloud(["services", "enable", api, "--project", projectId]);
+      await gcloud(scope, ["services", "enable", api, "--project", projectId]);
       console.log(`Enabled ${api}`);
     } catch (e) {
       console.warn(`Failed to enable ${api}: ${e}`);
@@ -262,7 +355,25 @@ export async function enableRequiredApis(projectId: string): Promise<void> {
 // Service deployment
 // ---------------------------------------------------------------------------
 
+/**
+ * Serialize a flat string→string map to minimal YAML for
+ * `gcloud --env-vars-file`. Values are quoted to survive special characters;
+ * keys are plain identifiers (env-var names). Used to keep env values OUT of
+ * argv (ps/proc-visible) per the multi-tenant rule.
+ */
+function envVarsToYaml(envVars: Record<string, string>): string {
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(envVars)) {
+    // Double-quote and escape backslashes and quotes for YAML double-quoted
+    // scalars. This keeps `=`, spaces, and `:` safe.
+    const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    lines.push(`${key}: "${escaped}"`);
+  }
+  return lines.join("\n") + "\n";
+}
+
 export interface DeployToCloudRunOptions {
+  scope: GcpScope;
   serviceName: string;
   imageUrl: string;
   region: string;
@@ -281,6 +392,13 @@ export interface DeployToCloudRunOptions {
   serviceAccount?: string | null;
   gcsBucket?: string | null;
   gcsMountPath?: string;
+  /**
+   * Absolute path to a scratch env-vars YAML file written by the caller from
+   * `envVars` (via `writeScratchFile`). When set, env vars are passed via
+   * `--env-vars-file` so values never appear in argv. When omitted (single-user
+   * CLI path), env vars fall back to `--set-env-vars`.
+   */
+  envVarsFile?: string;
 }
 
 /**
@@ -291,6 +409,7 @@ export async function deployToCloudRun(
   options: DeployToCloudRunOptions
 ): Promise<Record<string, unknown>> {
   const {
+    scope,
     serviceName,
     imageUrl,
     region,
@@ -308,15 +427,32 @@ export async function deployToCloudRun(
     envVars,
     serviceAccount,
     gcsBucket,
-    gcsMountPath = "/mnt/gcs"
+    gcsMountPath = "/mnt/gcs",
+    envVarsFile
   } = options;
 
   console.log(`Deploying ${serviceName} to Cloud Run...`);
 
+  /** Append env-var flags, preferring an --env-vars-file (no secrets in argv). */
+  const appendEnvVarFlags = (cmd: string[]): void => {
+    if (envVarsFile) {
+      cmd.push("--env-vars-file", envVarsFile);
+    } else if (envVars) {
+      for (const [key, value] of Object.entries(envVars)) {
+        cmd.push("--set-env-vars", `${key}=${value}`);
+      }
+    }
+  };
+
   // Determine whether to create (deploy) or update existing service
   let existingService: Record<string, unknown> | null;
   try {
-    existingService = await getCloudRunService(serviceName, region, projectId);
+    existingService = await getCloudRunService(
+      scope,
+      serviceName,
+      region,
+      projectId
+    );
   } catch {
     existingService = null;
   }
@@ -367,11 +503,7 @@ export async function deployToCloudRun(
     if (gpuCount) {
       cmd.push("--gpu", String(gpuCount));
     }
-    if (envVars) {
-      for (const [key, value] of Object.entries(envVars)) {
-        cmd.push("--set-env-vars", `${key}=${value}`);
-      }
-    }
+    appendEnvVarFlags(cmd);
     if (serviceAccount) {
       cmd.push("--service-account", serviceAccount);
       console.log(`Using service account: ${serviceAccount}`);
@@ -381,7 +513,7 @@ export async function deployToCloudRun(
     }
 
     try {
-      const { stdout } = await gcloud(cmd);
+      const { stdout } = await gcloud(scope, cmd);
       const deploymentInfo = JSON.parse(stdout) as Record<string, unknown>;
       console.log("Successfully deployed to Cloud Run");
       const status = deploymentInfo["status"] as
@@ -445,23 +577,19 @@ export async function deployToCloudRun(
     if (gpuCount) {
       cmd.push("--gpu", String(gpuCount));
     }
-    if (envVars) {
-      for (const [key, value] of Object.entries(envVars)) {
-        cmd.push("--set-env-vars", `${key}=${value}`);
-      }
-    }
+    appendEnvVarFlags(cmd);
     if (serviceAccount) {
       cmd.push("--service-account", serviceAccount);
     }
 
     try {
-      const { stdout } = await gcloud(cmd);
+      const { stdout } = await gcloud(scope, cmd);
       const deploymentInfo = JSON.parse(stdout) as Record<string, unknown>;
 
       // Handle unauthenticated access post-update
       if (allowUnauthenticated) {
         try {
-          await gcloud([
+          await gcloud(scope, [
             "run",
             "services",
             "add-iam-policy-binding",
@@ -504,6 +632,7 @@ export async function deployToCloudRun(
  * Delete a Cloud Run service.
  */
 export async function deleteCloudRunService(
+  scope: GcpScope,
   serviceName: string,
   region: string,
   projectId: string
@@ -511,7 +640,7 @@ export async function deleteCloudRunService(
   console.log(`Deleting Cloud Run service ${serviceName}...`);
 
   try {
-    await gcloud([
+    await gcloud(scope, [
       "run",
       "services",
       "delete",
@@ -534,12 +663,13 @@ export async function deleteCloudRunService(
  * Get information about a Cloud Run service.
  */
 export async function getCloudRunService(
+  scope: GcpScope,
   serviceName: string,
   region: string,
   projectId: string
 ): Promise<Record<string, unknown> | null> {
   try {
-    const { stdout } = await gcloud([
+    const { stdout } = await gcloud(scope, [
       "run",
       "services",
       "describe",
@@ -561,11 +691,12 @@ export async function getCloudRunService(
  * List all Cloud Run services in a region.
  */
 export async function listCloudRunServices(
+  scope: GcpScope,
   region: string,
   projectId: string
 ): Promise<Record<string, unknown>[]> {
   try {
-    const { stdout } = await gcloud([
+    const { stdout } = await gcloud(scope, [
       "run",
       "services",
       "list",
@@ -584,8 +715,15 @@ export async function listCloudRunServices(
 
 /**
  * Push a Docker image to Google Container Registry or Artifact Registry.
+ *
+ * Registry auth uses gcloud as a docker credential helper, configured into the
+ * scratch DOCKER_CONFIG dir (`gcloud auth configure-docker` runs with the
+ * scope's child env so it writes the scratch config, NOT host
+ * `~/.docker/config.json`). The subsequent `docker tag`/`docker push` reuse the
+ * same scratch DOCKER_CONFIG.
  */
 export async function pushToGcr(
+  scope: GcpScope,
   imageName: string,
   tag: string,
   projectId: string,
@@ -604,7 +742,7 @@ export async function pushToGcr(
       console.log(
         `Ensuring Artifact Registry repository '${repoName}' exists in ${region}...`
       );
-      const result = await execFileAsync("gcloud", [
+      const result = await gcloud(scope, [
         "artifacts",
         "repositories",
         "create",
@@ -631,12 +769,14 @@ export async function pushToGcr(
 
   console.log(`Pushing image to ${registry}...`);
 
-  // Configure Docker to use gcloud as credential helper
+  // Configure Docker to use gcloud as credential helper. Runs with the scope's
+  // env (DOCKER_CONFIG points into the scratch dir) so it never writes the host
+  // ~/.docker/config.json.
   try {
-    await execFileAsync("gcloud", ["auth", "configure-docker", "--quiet"]);
+    await gcloud(scope, ["auth", "configure-docker", "--quiet"]);
     if (registry.includes("pkg.dev")) {
       const registryHost = registry.split("/")[0];
-      await execFileAsync("gcloud", [
+      await gcloud(scope, [
         "auth",
         "configure-docker",
         registryHost,
@@ -648,14 +788,22 @@ export async function pushToGcr(
     throw new Error(`Failed to configure Docker authentication: ${msg}`);
   }
 
-  // Tag and push the image
+  // Tag and push the image through the scoped runner, carrying the scratch
+  // DOCKER_CONFIG (set up by configure-docker above) in the child env.
   try {
-    await execFileAsync("docker", ["tag", `${imageName}:${tag}`, fullImageUrl]);
-    await execFileAsync("docker", ["push", fullImageUrl]);
+    await scope.run("docker", ["tag", `${imageName}:${tag}`, fullImageUrl], {
+      env: scope.env
+    });
+    await scope.run("docker", ["push", fullImageUrl], { env: scope.env });
     console.log(`Successfully pushed to ${registry}`);
     return fullImageUrl;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(`Failed to push image: ${msg}`);
   }
+}
+
+/** Build the env-vars YAML body for a scratch `--env-vars-file`. */
+export function gcpEnvVarsToYaml(envVars: Record<string, string>): string {
+  return envVarsToYaml(envVars);
 }

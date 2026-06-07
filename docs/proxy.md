@@ -100,4 +100,4 @@ All proxy commands are exposed by `nodetool cli`:
 - [Self-Hosted Deployment](self-hosted-deployment.md) – end-to-end instructions for pairing the proxy with server containers.  
 - [Deployment Guide](deployment.md) – CLI workflow for applying proxy-enabled deployments.  
 - [Configuration Guide](configuration.md) – how environment variables and secrets are supplied to services.  
-- [Docker Resource Management](docker-resource-management.md) – tuning container limits for multi-tenant setups.
+- [Docker Resource Management](docker-resource-management.md) – tuning container limits for multi-user setups.

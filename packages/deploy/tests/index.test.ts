@@ -29,7 +29,9 @@ describe("deploy index exports", () => {
     expect(mod.buildDockerImage).toBeDefined();
     expect(mod.formatImageName).toBeDefined();
     expect(mod.pushToRegistry).toBeDefined();
-    expect(mod.checkDockerAuth).toBeDefined();
+    // checkDockerAuth / ensureDockerAuth host probes were removed in the
+    // multi-tenant refactor — docker auth now uses a scratch DOCKER_CONFIG.
+    expect(mod.checkDockerAuth).toBeUndefined();
 
     // docker-run
     expect(mod.DockerRunGenerator).toBeDefined();
@@ -58,7 +60,9 @@ describe("deploy index exports", () => {
     expect(mod.GCPDeployer).toBeDefined();
 
     // google-cloud-run-api
-    expect(mod.checkGcloudAuth).toBeDefined();
+    // checkGcloudAuth host probe was removed; ensureGcloudAuth now runs through
+    // the scoped runner with a per-call CLOUDSDK_CONFIG.
+    expect(mod.checkGcloudAuth).toBeUndefined();
     expect(mod.ensureGcloudAuth).toBeDefined();
     expect(mod.CloudRunRegion).toBeDefined();
 
@@ -123,5 +127,27 @@ describe("deploy index exports", () => {
 
     // collection-routes
     expect(mod.handleCollectionIndex).toBeDefined();
+
+    // deployment-context (per-operation isolation envelope + scoped exec)
+    expect(mod.runScopedCommand).toBeDefined();
+    expect(mod.writeScratchFile).toBeDefined();
+    expect(mod.withDeploymentContext).toBeDefined();
+    expect(mod.minimalBaseEnv).toBeDefined();
+    expect(mod.makeScopedRunner).toBeDefined();
+
+    // provider-credentials (provider → secret-key map + resolver)
+    expect(mod.PROVIDER_SECRET_KEYS).toBeDefined();
+    expect(mod.resolveProviderCredentials).toBeDefined();
+    expect(mod.validateDeploymentCredentials).toBeDefined();
+
+    // deployment-quota (moved out of user-deployment-manager)
+    expect(mod.findQuotaViolations).toBeDefined();
+    expect(mod.assertQuotaOk).toBeDefined();
+    expect(mod.QuotaExceededError).toBeDefined();
+
+    // multi-user, DB-backed deployment system
+    expect(mod.DbDeploymentStore).toBeDefined();
+    expect(mod.DbDeploymentSettingsStore).toBeDefined();
+    expect(mod.UserDeploymentManager).toBeDefined();
   });
 });

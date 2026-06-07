@@ -5,23 +5,32 @@
  * 1. Builds a Docker container for RunPod execution
  * 2. Optionally creates RunPod templates and endpoints using the RunPod SDK
  *
+ * Multi-tenant rule: ALL auth material is sourced from the per-user Secret store
+ * via the caller's `DeploymentContext`, never from `process.env` or host auth
+ * files. The RunPod API key reaches the in-process fetch() layer as an explicit
+ * `RunpodAuth` argument; Docker registry credentials reach `docker login` /
+ * `buildx --push` / `docker push` through a scratch-scoped `DockerAuth`
+ * (DOCKER_CONFIG under the context scratch dir) — never `~/.docker/config.json`.
+ *
  * Requirements:
  *   - Docker installed and running
- *   - RunPod API key (for deployment operations)
- *   - Docker registry authentication (docker login)
+ *   - RunPod API key (RUNPOD_API_KEY secret)
+ *   - Docker registry credentials (DOCKER_USERNAME / DOCKER_PASSWORD secrets)
  */
 
 import type { RunPodDeployment } from "./deployment-config.js";
+import type { DockerAuth } from "./docker.js";
 import {
   buildDockerImage,
   formatImageName,
   generateImageTag,
   pushToRegistry,
-  runCommand
+  runCommandArgs
 } from "./docker.js";
 import {
   createOrUpdateRunpodTemplate,
-  createRunpodEndpointGraphql
+  createRunpodEndpointGraphql,
+  type RunpodAuth
 } from "./runpod-api.js";
 
 // ---------------------------------------------------------------------------
@@ -46,28 +55,26 @@ export function sanitizeName(name: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Resolve Docker username from explicit argument, env, or config.
- * Matches Python's `get_docker_username`.
+ * Validate the Docker username for the multi-user path.
+ *
+ * The username is supplied EXPLICITLY by the caller — from the `DOCKER_USERNAME`
+ * secret (via ctx.credentials) or `deployment.docker.username` in the config.
+ * This function no longer reads `process.env.DOCKER_USERNAME` and no longer
+ * consults `~/.docker/config.json`: both are host-ambient sources that would
+ * cross tenant boundaries on a multi-user server.
  */
 function getDockerUsername(
   dockerUsername: string | undefined,
-  _dockerRegistry: string,
   skipBuild: boolean,
   skipPush: boolean
 ): string | undefined {
-  const username = dockerUsername ?? process.env.DOCKER_USERNAME ?? undefined;
+  const username = dockerUsername ?? undefined;
 
   if (!username && !(skipBuild && skipPush)) {
-    console.error(
-      "Error: Docker username is required for building and pushing images."
+    throw new Error(
+      "Docker username is required for building and pushing images. " +
+        "Provide it via the DOCKER_USERNAME secret or deployment.docker.username."
     );
-    console.error("Provide it via one of these methods:");
-    console.error("1. Pass dockerUsername option");
-    console.error("2. Environment variable: export DOCKER_USERNAME=myusername");
-    console.error(
-      "3. Docker login: docker login (will be read from ~/.docker/config.json)"
-    );
-    throw new Error("Docker username is required");
   }
 
   if (username) {
@@ -102,6 +109,19 @@ function printDeploymentSummary(
 
 export interface DeployToRunpodOptions {
   deployment: RunPodDeployment;
+  /**
+   * Per-call RunPod API auth (Bearer token from ctx.credentials.RUNPOD_API_KEY,
+   * plus optional non-secret base URL). Required — the in-process fetch() layer
+   * receives this explicitly; the key never transits process.env.
+   */
+  auth: RunpodAuth;
+  /**
+   * Per-call Docker registry auth scoped to the context scratch dir. When
+   * present, build/push run through the scoped runner with DOCKER_CONFIG
+   * redirected to the scratch dir (multi-user path). When omitted, build/push
+   * fall back to the host's ambient docker config (single-user CLI path).
+   */
+  dockerAuth?: DockerAuth;
   dockerUsername?: string;
   dockerRegistry?: string;
   imageName?: string;
@@ -135,7 +155,7 @@ export interface DeployToRunpodOptions {
 export async function deployToRunpod(
   opts: DeployToRunpodOptions
 ): Promise<void> {
-  const { deployment } = opts;
+  const { deployment, auth, dockerAuth } = opts;
   const env: Record<string, string> = { ...(opts.env ?? {}) };
 
   let dockerUsername: string | undefined =
@@ -170,13 +190,8 @@ export async function deployToRunpod(
   const noCache = opts.noCache ?? false;
   const noAutoPush = opts.noAutoPush ?? false;
 
-  // Get Docker username
-  dockerUsername = getDockerUsername(
-    dockerUsername,
-    dockerRegistry,
-    skipBuild,
-    skipPush
-  );
+  // Validate Docker username (explicit only — no process.env / host config).
+  dockerUsername = getDockerUsername(dockerUsername, skipBuild, skipPush);
 
   // Generate unique tag if not provided
   let imageTag: string;
@@ -188,10 +203,12 @@ export async function deployToRunpod(
     console.log(`Generated unique tag: ${imageTag}`);
   }
 
-  // Check if Docker is running
+  // Check if Docker is installed. The binary itself is host-installed and the
+  // version probe carries no auth/credentials, so a plain (shell-free) exec is
+  // fine here.
   if (!skipBuild) {
     try {
-      runCommand("docker --version", true);
+      runCommandArgs("docker", ["--version"], { captureOutput: true });
     } catch {
       console.error("Error: Docker is not installed or not running");
       throw new Error("Docker is not available");
@@ -220,21 +237,25 @@ export async function deployToRunpod(
   let endpointId: string | undefined;
 
   try {
-    // Build Docker image
+    // Build Docker image. When dockerAuth is present (multi-user path) the
+    // build runs through the scoped runner with DOCKER_CONFIG redirected to the
+    // scratch dir; otherwise it falls back to the host's ambient docker config
+    // (single-user CLI path).
     let imagePushedDuringBuild = false;
     if (!skipBuild) {
-      imagePushedDuringBuild = buildDockerImage({
+      imagePushedDuringBuild = await buildDockerImage({
         imageName: fullImageName,
         tag: imageTag,
         platform,
         useCache: !noCache,
-        autoPush: !noAutoPush
+        autoPush: !noAutoPush,
+        auth: dockerAuth
       });
     }
 
     // Push to registry if needed
     if (!skipPush && !imagePushedDuringBuild) {
-      pushToRegistry(fullImageName, imageTag, dockerRegistry);
+      await pushToRegistry(fullImageName, imageTag, dockerRegistry, dockerAuth);
     } else if (imagePushedDuringBuild) {
       console.log(
         `Image ${fullImageName}:${imageTag} already pushed during optimized build`
@@ -266,6 +287,7 @@ export async function deployToRunpod(
         templateName,
         fullImageName,
         imageTag,
+        auth,
         env
       );
     }
@@ -280,6 +302,7 @@ export async function deployToRunpod(
       }
 
       endpointId = await createRunpodEndpointGraphql({
+        auth,
         templateId,
         name: opts.name,
         computeType,

@@ -76,6 +76,24 @@ describe("models index exports", () => {
     expect(models.RunLease).toBeDefined();
   });
 
+  it("exports deployment models and the conflict error", () => {
+    expect(models.Deployment).toBeDefined();
+    expect(models.DeploymentConflictError).toBeDefined();
+    expect(models.DeploymentSettings).toBeDefined();
+    expect(models.DeploymentAudit).toBeDefined();
+    expect(models.deployments).toBeDefined();
+    expect(models.deploymentSettings).toBeDefined();
+    expect(models.deploymentAudit).toBeDefined();
+  });
+
+  it("DeploymentConflictError is a constructable Error subclass", () => {
+    const err = new models.DeploymentConflictError("u1", "prod");
+    expect(err).toBeInstanceOf(Error);
+    expect(err.name).toBe("DeploymentConflictError");
+    expect(err.user_id).toBe("u1");
+    expect(err.deploymentName).toBe("prod");
+  });
+
   it("exports api-graph utilities", () => {
     expect(models.toApiNode).toBeDefined();
     expect(models.toApiEdge).toBeDefined();

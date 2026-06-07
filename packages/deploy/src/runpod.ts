@@ -9,9 +9,11 @@
  */
 
 import type { RunPodDeployment } from "./deployment-config.js";
+import type { DeploymentContext } from "./deployment-context.js";
 import { StateManager } from "./state.js";
 import { deployToRunpod } from "./deploy-to-runpod.js";
-import { getRunpodEndpointByName } from "./runpod-api.js";
+import { makeDockerAuth } from "./docker.js";
+import { getRunpodEndpointByName, type RunpodAuth } from "./runpod-api.js";
 
 // ---------------------------------------------------------------------------
 // Interfaces for result types
@@ -68,15 +70,41 @@ export class RunPodDeployer {
   readonly deploymentName: string;
   readonly deployment: RunPodDeployment;
   readonly stateManager: StateManager;
+  /**
+   * Per-operation isolation envelope: user id, decrypted credentials, and the
+   * call-scoped scratch dir. ALL auth/exec is sourced from `ctx.credentials`
+   * and the scratch dir — never `process.env` or host auth files.
+   */
+  private readonly ctx: DeploymentContext;
 
   constructor(
     deploymentName: string,
     deployment: RunPodDeployment,
-    stateManager: StateManager
+    stateManager: StateManager,
+    ctx: DeploymentContext
   ) {
     this.deploymentName = deploymentName;
     this.deployment = deployment;
     this.stateManager = stateManager;
+    this.ctx = ctx;
+  }
+
+  /**
+   * Build the per-call RunPod API auth. The Bearer token is sourced from the
+   * user's `RUNPOD_API_KEY` secret (ctx.credentials) and handed to the
+   * in-process fetch() layer as an explicit argument — it never transits
+   * `process.env`. `RUNPOD_API_BASE_URL` remains non-secret config read from
+   * `process.env` (an in-process fetch concern, not a child env var).
+   */
+  private runpodAuth(): RunpodAuth {
+    const apiKey = this.ctx.credentials.RUNPOD_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        "RUNPOD_API_KEY secret is required for RunPod deployments"
+      );
+    }
+    const baseUrl = process.env.RUNPOD_API_BASE_URL ?? undefined;
+    return { apiKey, baseUrl };
   }
 
   /**
@@ -139,10 +167,34 @@ export class RunPodDeployer {
         : {};
       const templateName = this.deployment.template_name ?? this.deploymentName;
 
+      const auth = this.runpodAuth();
+
+      // Resolve the Docker username explicitly from the user's DOCKER_USERNAME
+      // secret, falling back to the deployment config — never process.env or
+      // ~/.docker/config.json.
+      const dockerUsername =
+        this.ctx.credentials.DOCKER_USERNAME ??
+        this.deployment.docker.username ??
+        undefined;
+      const dockerRegistry = this.deployment.docker.registry;
+
+      // Build scratch-scoped Docker registry auth. `makeDockerAuth` runs
+      // `docker login --password-stdin` into a DOCKER_CONFIG dir under the
+      // context scratch dir when both username and password are present; the
+      // password is fed via stdin so it never appears in argv. The host
+      // `~/.docker/config.json` is never touched.
+      const dockerAuth = await makeDockerAuth(this.ctx, {
+        registry: dockerRegistry,
+        username: dockerUsername,
+        password: this.ctx.credentials.DOCKER_PASSWORD
+      });
+
       await deployToRunpod({
         deployment: this.deployment,
-        dockerUsername: this.deployment.docker.username ?? undefined,
-        dockerRegistry: this.deployment.docker.registry,
+        auth,
+        dockerAuth,
+        dockerUsername,
+        dockerRegistry,
         imageName: this.deployment.image.name,
         tag: this.deployment.image.tag,
         templateName,
@@ -204,6 +256,7 @@ export class RunPodDeployer {
     try {
       const liveEndpoint = await getRunpodEndpointByName(
         this.deploymentName,
+        this.runpodAuth(),
         /* quiet */ true
       );
 

@@ -383,6 +383,114 @@ describe("SSHConnection.connect", () => {
   });
 });
 
+// Multi-user (server) path: SSH key MATERIAL comes from the SSH_PRIVATE_KEY
+// secret and is injected straight into connectConfig.privateKey — no host file
+// read, no SSH agent. The keyPath/agent branches remain only as an explicitly-
+// gated single-user/CLI fallback (covered by the SSHConnection.connect tests
+// above).
+describe("SSHConnection.connect — multi-user key material", () => {
+  beforeEach(() => {
+    mockedReadFileSync.mockClear();
+    mockedExistsSync.mockClear();
+  });
+
+  it("injects string privateKey material into connectConfig (no fs read)", async () => {
+    const conn = new SSHConnection({
+      host: "203.0.113.10",
+      user: "ubuntu",
+      privateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\nmaterial\n",
+      retryAttempts: 1,
+      retryDelay: 0
+    });
+    await conn.connect();
+    const config = currentClient.connect.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(config.privateKey).toBe(
+      "-----BEGIN OPENSSH PRIVATE KEY-----\nmaterial\n"
+    );
+    // Never read a host key file and never consulted an SSH agent.
+    expect(mockedReadFileSync).not.toHaveBeenCalled();
+    expect(config.agent).toBeUndefined();
+    conn.disconnect();
+  });
+
+  it("accepts Buffer privateKey material", async () => {
+    const material = Buffer.from("buffer-key-material");
+    const conn = new SSHConnection({
+      host: "203.0.113.10",
+      user: "ubuntu",
+      privateKey: material,
+      retryAttempts: 1,
+      retryDelay: 0
+    });
+    await conn.connect();
+    const config = currentClient.connect.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(config.privateKey).toBe(material);
+    expect(mockedReadFileSync).not.toHaveBeenCalled();
+    conn.disconnect();
+  });
+
+  it("prefers privateKey material over a configured keyPath", async () => {
+    const conn = new SSHConnection({
+      host: "203.0.113.10",
+      user: "ubuntu",
+      privateKey: "material-wins",
+      keyPath: "/home/user/.ssh/id_rsa",
+      retryAttempts: 1,
+      retryDelay: 0
+    });
+    await conn.connect();
+    const config = currentClient.connect.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(config.privateKey).toBe("material-wins");
+    // keyPath fallback is bypassed entirely — no file read, no existence check.
+    expect(mockedReadFileSync).not.toHaveBeenCalled();
+    expect(mockedExistsSync).not.toHaveBeenCalled();
+    conn.disconnect();
+  });
+
+  it("does not fall back to the SSH agent when key material is present", async () => {
+    const original = process.env.SSH_AUTH_SOCK;
+    process.env.SSH_AUTH_SOCK = "/tmp/should-not-be-used.sock";
+    try {
+      const conn = new SSHConnection({
+        host: "203.0.113.10",
+        user: "ubuntu",
+        privateKey: "material",
+        retryAttempts: 1,
+        retryDelay: 0
+      });
+      await conn.connect();
+      const config = currentClient.connect.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(config.agent).toBeUndefined();
+      expect(config.privateKey).toBe("material");
+      conn.disconnect();
+    } finally {
+      if (original === undefined) delete process.env.SSH_AUTH_SOCK;
+      else process.env.SSH_AUTH_SOCK = original;
+    }
+  });
+
+  it("exposes the privateKey on the connection instance", () => {
+    const conn = new SSHConnection({
+      host: "h",
+      user: "u",
+      privateKey: "k"
+    });
+    expect(conn.privateKey).toBe("k");
+  });
+});
+
 describe("SSHConnection.disconnect", () => {
   it("should close client", async () => {
     const conn = new SSHConnection(baseOpts);

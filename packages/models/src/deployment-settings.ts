@@ -1,9 +1,13 @@
 /**
- * DeploymentSettings model — per-user deployment quota + encrypted credentials.
+ * DeploymentSettings model — per-user deployment quota.
  *
- * One row per user. Treats `quota_json` and `credentials_json` as opaque
- * strings so the @nodetool-ai/models package doesn't have to pull in the Zod
- * schemas defined in @nodetool-ai/deploy. Higher layers parse and validate.
+ * One row per user. Treats `quota_json` as an opaque string so the
+ * @nodetool-ai/models package doesn't have to pull in the Zod schemas defined
+ * in @nodetool-ai/deploy. Higher layers parse and validate.
+ *
+ * Provider credentials are NOT stored here — they are ordinary per-user
+ * secrets (see the `Secret` model), keyed by their environment-variable name
+ * (e.g. `RUNPOD_API_KEY`). This table is quota-only.
  */
 
 import { eq } from "drizzle-orm";
@@ -17,7 +21,6 @@ export class DeploymentSettings extends DBModel {
 
   declare user_id: string;
   declare quota_json: string;
-  declare credentials_json: string;
   declare created_at: string;
   declare updated_at: string;
 
@@ -25,7 +28,6 @@ export class DeploymentSettings extends DBModel {
     super(data);
     const now = new Date().toISOString();
     this.quota_json ??= "{}";
-    this.credentials_json ??= "{}";
     this.created_at ??= now;
     this.updated_at ??= now;
   }
@@ -55,21 +57,16 @@ export class DeploymentSettings extends DBModel {
   static async upsert(input: {
     user_id: string;
     quota_json?: string;
-    credentials_json?: string;
   }): Promise<DeploymentSettings> {
     const existing = await DeploymentSettings.findByUserId(input.user_id);
     if (existing) {
       if (input.quota_json !== undefined) existing.quota_json = input.quota_json;
-      if (input.credentials_json !== undefined) {
-        existing.credentials_json = input.credentials_json;
-      }
       await existing.save();
       return existing;
     }
     return DeploymentSettings.create<DeploymentSettings>({
       user_id: input.user_id,
-      quota_json: input.quota_json ?? "{}",
-      credentials_json: input.credentials_json ?? "{}"
+      quota_json: input.quota_json ?? "{}"
     });
   }
 

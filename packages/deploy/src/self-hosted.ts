@@ -28,6 +28,12 @@ import {
   imageConfigFullName
 } from "./deployment-config.js";
 import { StateManager } from "./state.js";
+import {
+  type DeploymentContext,
+  type ScopedRunner,
+  makeScopedRunner,
+  writeScratchFile
+} from "./deployment-context.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -202,8 +208,32 @@ export function isLocalhost(host: string): boolean {
 
 /**
  * Executes commands locally (mimics SSHConnection interface).
+ *
+ * Multi-user path: a {@link ScopedRunner} + a scoped child env are supplied so
+ * every LOCAL docker/podman command runs with the user's curated child env
+ * (`minimalBaseEnv` + the call-scoped `DOCKER_CONFIG`) and never inherits the
+ * host's ambient credentials. The runner shells through `bash -lc` to preserve
+ * the pipes/`&&`/redirect semantics the generated docker commands rely on.
+ *
+ * Single-user / CLI fallback: when no runner is supplied the legacy host
+ * `execSync` path is used (explicitly gated by the absence of a runner).
  */
 export class LocalExecutor {
+  private readonly runner: ScopedRunner | undefined;
+  private readonly env: Record<string, string> | undefined;
+
+  /**
+   * @param runner Scoped runner bound to the operation's DeploymentContext.
+   *   When provided, all local commands run through it with the scoped child
+   *   env. Omit only for the single-user CLI fallback.
+   * @param env Extra child-env entries (e.g. `DOCKER_CONFIG` pointing into the
+   *   scratch dir). Layered on top of the runner's curated base env.
+   */
+  constructor(runner?: ScopedRunner, env?: Record<string, string>) {
+    this.runner = runner;
+    this.env = env;
+  }
+
   /**
    * Open the executor (no-op for local).
    * Provided for symmetry with SSHConnection.
@@ -231,6 +261,34 @@ export class LocalExecutor {
     check = true,
     timeout?: number
   ): Promise<[exitCode: number, stdout: string, stderr: string]> {
+    if (this.runner) {
+      // Multi-user path: run through the scoped runner so the child env is the
+      // curated allowlist + the user's credentials + the scratch DOCKER_CONFIG.
+      try {
+        const { stdout, stderr } = await this.runner(
+          "bash",
+          ["-lc", command],
+          {
+            env: this.env,
+            timeoutMs: timeout ? timeout * 1000 : undefined
+          }
+        );
+        return [0, stdout, stderr];
+      } catch (err) {
+        const stderr = err instanceof Error ? err.message : String(err);
+        if (check) {
+          throw new SSHCommandError(
+            `Command failed: ${command}`,
+            -1,
+            "",
+            stderr
+          );
+        }
+        return [-1, "", stderr];
+      }
+    }
+
+    // Single-user / CLI fallback: host execSync against the ambient env.
     try {
       const result = execSync(command, {
         shell: "/bin/bash",
@@ -304,15 +362,30 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
   readonly deployment: T;
   readonly stateManager: StateManager;
   readonly isLocalhost: boolean;
+  /** Per-operation isolation envelope (user id, decrypted creds, scratch dir). */
+  protected readonly ctx: DeploymentContext;
+  /** Runner bound to {@link ctx} — threaded into every leaf exec call. */
+  protected readonly run: ScopedRunner;
 
+  /**
+   * @param ctx Per-operation deployment context. REQUIRED and last so that the
+   *   user's decrypted credentials and scratch dir reach the leaf exec calls.
+   *   `ctx.credentials.SSH_PRIVATE_KEY` (when present) supplies the SSH key
+   *   material for remote hosts; LOCAL docker commands run with the scoped
+   *   child env. `stateManager` is also required (no implicit host default) so
+   *   the constructor signature stays ergonomically valid.
+   */
   constructor(
     deploymentName: string,
     deployment: T,
-    stateManager?: StateManager
+    stateManager: StateManager,
+    ctx: DeploymentContext
   ) {
     this.deploymentName = deploymentName;
     this.deployment = deployment;
-    this.stateManager = stateManager ?? new StateManager();
+    this.stateManager = stateManager;
+    this.ctx = ctx;
+    this.run = makeScopedRunner(ctx);
     this.isLocalhost = isLocalhost(deployment.host);
   }
 
@@ -328,9 +401,72 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
 
   // ---- Executor ----------------------------------------------------------
 
+  /**
+   * Call-scoped DOCKER_CONFIG dir under the context scratch dir. Threaded into
+   * the LOCAL docker child env so a localhost deploy never reads or writes the
+   * host `~/.docker/config.json`.
+   */
+  protected localDockerConfigDir(): string {
+    return path.join(this.ctx.scratchDir, ".docker");
+  }
+
+  /**
+   * Build the SSH connection options for a remote host.
+   *
+   * Multi-user path: the private-key MATERIAL comes from the per-user
+   * `SSH_PRIVATE_KEY` secret in `ctx.credentials` and is injected straight into
+   * the connection (no host file, no SSH agent). A password from
+   * `ctx.credentials.SSH_PASSWORD` is also honored. `key_path` / config password
+   * remain ONLY as an explicitly-gated single-user / CLI fallback used when no
+   * secret material is present.
+   */
+  protected buildSshConnectionOptions(sshConfig: SSHConfig): {
+    host: string;
+    user: string;
+    privateKey?: string;
+    keyPath?: string;
+    password?: string;
+    port: number;
+  } {
+    const secretKey = this.ctx.credentials["SSH_PRIVATE_KEY"];
+    const secretPassword = this.ctx.credentials["SSH_PASSWORD"];
+
+    if (secretKey) {
+      // Multi-user: in-memory key material only.
+      return {
+        host: this.deployment.host,
+        user: sshConfig.user,
+        privateKey: secretKey,
+        port: sshConfig.port
+      };
+    }
+
+    if (secretPassword) {
+      return {
+        host: this.deployment.host,
+        user: sshConfig.user,
+        password: secretPassword,
+        port: sshConfig.port
+      };
+    }
+
+    // Single-user / CLI fallback: host key file or a config password.
+    return {
+      host: this.deployment.host,
+      user: sshConfig.user,
+      keyPath: sshConfig.key_path,
+      password: sshConfig.password,
+      port: sshConfig.port
+    };
+  }
+
   protected getExecutor(): Executor {
     if (this.isLocalhost) {
-      return new LocalExecutor();
+      // Multi-user LOCAL docker: route through the scoped runner with the
+      // curated child env + the scratch DOCKER_CONFIG so no host auth leaks.
+      return new LocalExecutor(this.run, {
+        DOCKER_CONFIG: this.localDockerConfigDir()
+      });
     }
 
     const sshConfig = (this.deployment as { ssh?: SSHConfig }).ssh;
@@ -340,13 +476,7 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
       );
     }
 
-    const conn = new SSHConnection({
-      host: this.deployment.host,
-      user: sshConfig.user,
-      keyPath: sshConfig.key_path,
-      password: sshConfig.password,
-      port: sshConfig.port
-    });
+    const conn = new SSHConnection(this.buildSshConnectionOptions(sshConfig));
 
     // Wrap SSHConnection to match the async Executor interface.
     return {
@@ -372,7 +502,9 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
     if (sshConn) {
       await sshConn.connect();
     } else {
-      // LocalExecutor
+      // LocalExecutor — ensure the scratch DOCKER_CONFIG dir exists (0700)
+      // before any local docker command runs.
+      await writeScratchFile(this.ctx, ".docker/.keep", "");
       (executor as LocalExecutor).open();
     }
     try {
@@ -439,9 +571,17 @@ export abstract class BaseSSHDeployer<T extends SelfHostedDeployment> {
   // ---- Container runtime helpers -----------------------------------------
 
   protected resolveLocalRuntimeCommand(): string {
+    // NODETOOL_CONTAINER_RUNTIME is non-secret config (part of the
+    // minimalBaseEnv allowlist), not a credential — a plain read is fine.
     const override = process.env["NODETOOL_CONTAINER_RUNTIME"];
     if (override === "docker" || override === "podman") return override;
 
+    // These `which` calls are pure binary-discovery probes: they read no
+    // credentials, write nothing, and produce no auth, so they intentionally
+    // stay as bare host `execFileSync` rather than the scoped runner (which
+    // would add nothing — PATH is already in the curated base env). Tool
+    // BINARIES are allowed to be host-installed; only auth MATERIAL must come
+    // from ctx.credentials / the scratch dir.
     try {
       execFileSync("which", ["docker"], { encoding: "utf-8" });
       return "docker";
@@ -1029,7 +1169,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
     results.steps.push(
       "  Image missing on host; pushing from local Docker daemon..."
     );
-    this.pushImageToRemote(image);
+    await this.pushImageToRemote(image);
 
     const [, stdoutAfter] = await ssh.execute(cmd, false);
     if (stdoutAfter.trim()) {
@@ -1039,7 +1179,20 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
     }
   }
 
-  private pushImageToRemote(image: string): void {
+  /**
+   * Push a locally-built image to the remote host by piping `docker save`
+   * through `ssh ... docker load`.
+   *
+   * Multi-user path: the SSH key MATERIAL comes from the `SSH_PRIVATE_KEY`
+   * secret, written to a 0600 scratch key file (inside the context scratch dir,
+   * torn down by the manager) — never a host key path. The whole pipeline runs
+   * through the scoped runner so the child env is the curated allowlist + the
+   * user's credentials, with no host-ambient secrets.
+   *
+   * Single-user / CLI fallback: when no `SSH_PRIVATE_KEY` secret is present the
+   * host `key_path` is used (explicitly gated by the absence of the secret).
+   */
+  private async pushImageToRemote(image: string): Promise<void> {
     const sshConfig = (this.deployment as { ssh?: SSHConfig }).ssh;
     if (!sshConfig) {
       throw new Error("SSH configuration required to push image.");
@@ -1047,10 +1200,10 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
 
     const localRuntime = this.resolveLocalRuntimeCommand();
 
-    // Check image exists locally
+    // Check image exists locally (binary probe — no auth, no secrets).
     try {
-      execFileSync(localRuntime, ["image", "inspect", image], {
-        stdio: ["pipe", "pipe", "pipe"]
+      await this.run(localRuntime, ["image", "inspect", image], {
+        timeoutMs: 60000
       });
     } catch {
       throw new Error(
@@ -1058,11 +1211,26 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       );
     }
 
-    // Pipe docker save through ssh docker load using a single shell command
+    // Resolve the SSH identity: prefer in-memory secret material written to a
+    // 0600 scratch key file; otherwise fall back to the host key_path.
+    let keyArg = "";
+    const secretKey = this.ctx.credentials["SSH_PRIVATE_KEY"];
+    if (secretKey) {
+      const keyFile = await writeScratchFile(
+        this.ctx,
+        "ssh/id_push",
+        secretKey.endsWith("\n") ? secretKey : `${secretKey}\n`
+      );
+      // writeScratchFile already wrote 0600; keep an explicit chmod for safety.
+      fs.chmodSync(keyFile, 0o600);
+      keyArg = `-i ${shellQuote(keyFile)}`;
+    } else if (sshConfig.key_path) {
+      keyArg = `-i ${shellQuote(expandUser(sshConfig.key_path))}`;
+    }
+
+    // Pipe docker save through ssh docker load using a single shell command,
+    // run via the scoped runner (curated child env, no host-ambient secrets).
     try {
-      const keyArg = sshConfig.key_path
-        ? `-i ${shellQuote(expandUser(sshConfig.key_path))}`
-        : "";
       const portArg =
         sshConfig.port && sshConfig.port !== 22
           ? `-p ${safeShellQuote(String(sshConfig.port))}`
@@ -1073,11 +1241,7 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
       const runtimeForShell = this.runtimeCommandForShell();
 
       const pipeCmd = `${shellQuote(localRuntime)} save ${shellQuote(image)} | ssh -o StrictHostKeyChecking=no ${keyArg} ${portArg} ${sshTarget} sh -lc '${runtimeForShell} load'`;
-      execSync(pipeCmd, {
-        encoding: "utf-8",
-        timeout: 600000,
-        stdio: ["pipe", "pipe", "pipe"]
-      });
+      await this.run("bash", ["-lc", pipeCmd], { timeoutMs: 600000 });
     } catch (err: unknown) {
       const e = err as { stderr?: string; message?: string };
       throw new Error(

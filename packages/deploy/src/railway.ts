@@ -5,13 +5,17 @@
  * - Docker image building and deployment
  * - Environment variable configuration
  * - Service management (create, destroy, status, logs)
+ *
+ * Multi-tenant isolation: the Railway API token is sourced from the per-user
+ * Secret store via {@link DeploymentContext} (`ctx.credentials`), NEVER from
+ * `process.env` or a host `~/.railway` config. Every `railway` invocation runs
+ * through a context-bound {@link ScopedRunner} so the token is passed only via
+ * the explicitly-built child env — there is no reliance on ambient `railway
+ * login` state.
  */
 
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import * as os from "node:os";
 
 import { createLogger } from "@nodetool-ai/config";
 
@@ -19,13 +23,16 @@ const log = createLogger("nodetool.deploy.railway");
 
 import { loadImageSpec } from "./image-spec.js";
 import { generateDockerfile } from "./image-builder.js";
-import { StateManager } from "./state.js";
+import type { StateManager } from "./state.js";
 import { DeploymentStatus } from "./deployment-config.js";
+import {
+  makeScopedRunner,
+  type DeploymentContext,
+  type ScopedRunner
+} from "./deployment-context.js";
 
 import type { RailwayDeployment } from "./deployment-config.js";
 import type { DeployResult } from "./self-hosted.js";
-
-const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -33,15 +40,21 @@ const execFileAsync = promisify(execFile);
 
 /**
  * Run a `railway` CLI command and return stdout.
- * Throws a descriptive error when the CLI is not installed.
+ *
+ * The command runs through the context-bound `run` ({@link ScopedRunner}) so
+ * the user's `RAILWAY_TOKEN` / `RAILWAY_API_TOKEN` (already in
+ * `ctx.credentials`, hence in the child env) authenticate the call. No host
+ * `railway login` state is read. Throws a descriptive error when the CLI is not
+ * installed.
  */
 async function railwayCli(
+  run: ScopedRunner,
   args: string[],
-  opts?: { timeout?: number; cwd?: string }
+  opts?: { timeoutMs?: number; cwd?: string }
 ): Promise<string> {
   try {
-    const { stdout } = await execFileAsync("railway", args, {
-      timeout: opts?.timeout ?? 60_000,
+    const { stdout } = await run("railway", args, {
+      timeoutMs: opts?.timeoutMs ?? 60_000,
       cwd: opts?.cwd
     });
     return stdout;
@@ -75,15 +88,24 @@ export class RailwayDeployer {
   readonly deploymentName: string;
   readonly deployment: RailwayDeployment;
   readonly stateManager: StateManager;
+  private readonly ctx: DeploymentContext;
+  /**
+   * Context-bound runner threaded into every `railway` invocation so the user's
+   * token reaches the leaf exec calls via the scoped child env.
+   */
+  private readonly run: ScopedRunner;
 
   constructor(
     deploymentName: string,
     deployment: RailwayDeployment,
-    stateManager?: StateManager
+    stateManager: StateManager,
+    ctx: DeploymentContext
   ) {
     this.deploymentName = deploymentName;
     this.deployment = deployment;
-    this.stateManager = stateManager ?? new StateManager();
+    this.stateManager = stateManager;
+    this.ctx = ctx;
+    this.run = makeScopedRunner(ctx);
   }
 
   // ---------- Public API ----------
@@ -158,9 +180,11 @@ export class RailwayDeployer {
       throw new Error(`Invalid Railway project: "${this.deployment.project}"`);
     }
 
-    const tmpDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-railway-")
-    );
+    // Work inside the call-scoped scratch dir so the generated Dockerfile and
+    // any railway state live in the per-operation sandbox the manager tears
+    // down afterwards — no shared host temp dir.
+    const workDir = path.join(this.ctx.scratchDir, "railway-build");
+    await fs.mkdir(workDir, { recursive: true, mode: 0o700 });
 
     try {
       await this.stateManager.updateDeploymentStatus(
@@ -174,16 +198,18 @@ export class RailwayDeployer {
 
       results.steps.push("Generating Dockerfile...");
       const dockerfile = generateDockerfile(spec);
-      await fs.writeFile(path.join(tmpDir, "Dockerfile"), dockerfile);
-      results.steps.push("Wrote Dockerfile to temp directory");
+      await fs.writeFile(path.join(workDir, "Dockerfile"), dockerfile);
+      results.steps.push("Wrote Dockerfile to scratch directory");
 
-      // 2. Link to Railway project
+      // 2. Link to Railway project (token comes from the scoped child env)
       results.steps.push(
         `Linking to Railway project: ${this.deployment.project}...`
       );
-      await railwayCli(["link", "--project", this.deployment.project], {
-        cwd: tmpDir
-      });
+      await railwayCli(
+        this.run,
+        ["link", "--project", this.deployment.project],
+        { cwd: workDir }
+      );
       results.steps.push("Linked to Railway project");
 
       // 3. Set environment variables (must be after link)
@@ -192,22 +218,25 @@ export class RailwayDeployer {
         if (envEntries.length > 0) {
           results.steps.push("Setting environment variables...");
           const vars = envEntries.map(([k, v]) => `${k}=${v}`);
-          await railwayCli(["variables", "set", ...vars], { cwd: tmpDir });
+          await railwayCli(this.run, ["variables", "set", ...vars], {
+            cwd: workDir
+          });
           results.steps.push(
             `Set ${envEntries.length} environment variable(s)`
           );
         }
       }
 
-      // 4. Deploy from temp dir (Railway detects Dockerfile)
+      // 4. Deploy from scratch dir (Railway detects Dockerfile)
       results.steps.push(`Deploying service: ${this.deployment.service}...`);
-      await railwayCli(["up", "--service", this.deployment.service], {
-        cwd: tmpDir,
-        timeout: 300_000
-      });
+      await railwayCli(
+        this.run,
+        ["up", "--service", this.deployment.service],
+        { cwd: workDir, timeoutMs: 300_000 }
+      );
       results.steps.push("Railway deployment completed");
 
-      // 4. Update state
+      // 5. Update state
       await this.stateManager.writeState(this.deploymentName, {
         status: DeploymentStatus.SERVING,
         project: this.deployment.project,
@@ -224,8 +253,10 @@ export class RailwayDeployer {
 
       throw e;
     } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true }).catch((err) => {
-        log.debug(`Failed to clean up Railway temp dir ${tmpDir}`, err);
+      // The scratch dir is removed by the manager in its own finally; only the
+      // build subdir is ours to clean eagerly.
+      await fs.rm(workDir, { recursive: true, force: true }).catch((err) => {
+        log.debug(`Failed to clean up Railway build dir ${workDir}`, err);
       });
     }
 
@@ -243,21 +274,23 @@ export class RailwayDeployer {
       errors: []
     };
 
-    const tmpDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-railway-")
-    );
+    const workDir = path.join(this.ctx.scratchDir, "railway-destroy");
+    await fs.mkdir(workDir, { recursive: true, mode: 0o700 });
     try {
       results.steps.push(
         `Deleting Railway service: ${this.deployment.service}...`
       );
 
       // Link to project first so the CLI knows which project to target
-      await railwayCli(["link", "--project", this.deployment.project], {
-        cwd: tmpDir
-      });
       await railwayCli(
+        this.run,
+        ["link", "--project", this.deployment.project],
+        { cwd: workDir }
+      );
+      await railwayCli(
+        this.run,
         ["service", "delete", this.deployment.service, "--yes"],
-        { cwd: tmpDir }
+        { cwd: workDir }
       );
 
       results.steps.push("Service deleted successfully");
@@ -275,8 +308,8 @@ export class RailwayDeployer {
       );
       throw e;
     } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true }).catch((err) => {
-        log.debug(`Failed to clean up Railway temp dir ${tmpDir}`, err);
+      await fs.rm(workDir, { recursive: true, force: true }).catch((err) => {
+        log.debug(`Failed to clean up Railway destroy dir ${workDir}`, err);
       });
     }
 
@@ -302,21 +335,24 @@ export class RailwayDeployer {
     }
 
     // Try to get live status from Railway
-    const tmpDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-railway-")
-    );
+    const workDir = path.join(this.ctx.scratchDir, "railway-status");
+    await fs.mkdir(workDir, { recursive: true, mode: 0o700 });
     try {
-      await railwayCli(["link", "--project", this.deployment.project], {
-        cwd: tmpDir
+      await railwayCli(
+        this.run,
+        ["link", "--project", this.deployment.project],
+        { cwd: workDir }
+      );
+      const output = await railwayCli(this.run, ["status", "--json"], {
+        cwd: workDir
       });
-      const output = await railwayCli(["status", "--json"], { cwd: tmpDir });
       statusInfo["live_status"] = JSON.parse(output);
     } catch (e) {
       statusInfo["live_status_error"] =
         e instanceof Error ? e.message : String(e);
     } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true }).catch((err) => {
-        log.debug(`Failed to clean up Railway temp dir ${tmpDir}`, err);
+      await fs.rm(workDir, { recursive: true, force: true }).catch((err) => {
+        log.debug(`Failed to clean up Railway status dir ${workDir}`, err);
       });
     }
 
@@ -343,21 +379,25 @@ export class RailwayDeployer {
       args.push("--tail", String(opts.tail));
     }
 
-    const tmpDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-railway-")
-    );
+    const workDir = path.join(this.ctx.scratchDir, "railway-logs");
+    await fs.mkdir(workDir, { recursive: true, mode: 0o700 });
     try {
       // Link to project so CLI targets the right one
-      await railwayCli(["link", "--project", this.deployment.project], {
-        cwd: tmpDir
+      await railwayCli(
+        this.run,
+        ["link", "--project", this.deployment.project],
+        { cwd: workDir }
+      );
+      return await railwayCli(this.run, args, {
+        cwd: workDir,
+        timeoutMs: 30_000
       });
-      return await railwayCli(args, { cwd: tmpDir, timeout: 30_000 });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       throw new Error(`Failed to fetch Railway logs: ${msg}`);
     } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true }).catch((err) => {
-        log.debug(`Failed to clean up Railway temp dir ${tmpDir}`, err);
+      await fs.rm(workDir, { recursive: true, force: true }).catch((err) => {
+        log.debug(`Failed to clean up Railway logs dir ${workDir}`, err);
       });
     }
   }

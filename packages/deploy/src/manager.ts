@@ -21,6 +21,7 @@ import type {
   AnyDeployment
 } from "./deployment-config.js";
 import type { StateManager } from "./state.js";
+import type { DeploymentContext } from "./deployment-context.js";
 
 /** Info returned by listDeployments. */
 export interface DeploymentInfo {
@@ -56,11 +57,19 @@ export interface Deployer {
   destroy(): Promise<Record<string, unknown>>;
 }
 
-/** Factory function signature for creating deployers. */
+/**
+ * Factory function signature for creating deployers.
+ *
+ * `ctx` is appended LAST and carries the per-operation isolation envelope —
+ * the user id, decrypted credentials, and scratch dir. Concrete deployers
+ * store it and thread a bound scoped runner down into their leaf exec
+ * functions so every child process runs with the user's scoped child env.
+ */
 export type DeployerFactory = (
   deploymentName: string,
   deployment: AnyDeployment,
-  stateManager: StateManager
+  stateManager: StateManager,
+  ctx: DeploymentContext
 ) => Deployer;
 
 /**
@@ -73,6 +82,7 @@ export class DeploymentManager {
   private config: DeploymentConfig;
   private stateManager: StateManager;
   private deployerFactories: Record<string, DeployerFactory>;
+  private ctx: DeploymentContext;
 
   /**
    * @param config - Loaded deployment configuration
@@ -80,15 +90,22 @@ export class DeploymentManager {
    * @param deployerFactories - Map of deployment type to deployer factory.
    *   Callers provide their own factory map so this module stays decoupled
    *   from concrete deployer implementations.
+   * @param ctx - Per-operation deployment context (user id, decrypted
+   *   credentials, scratch dir). Passed as the last argument to every deployer
+   *   factory so credentials reach the leaf exec calls. The CLI single-user
+   *   path constructs one ctx at its boundary; the server path constructs a
+   *   fresh ctx per operation in the UserDeploymentManager.
    */
   constructor(
     config: DeploymentConfig,
     stateManager: StateManager,
-    deployerFactories: Record<string, DeployerFactory>
+    deployerFactories: Record<string, DeployerFactory>,
+    ctx: DeploymentContext
   ) {
     this.config = config;
     this.stateManager = stateManager;
     this.deployerFactories = deployerFactories;
+    this.ctx = ctx;
   }
 
   /**
@@ -311,6 +328,6 @@ export class DeploymentManager {
     if (!factory) {
       throw new Error(`Unknown deployment type: ${deployment.type}`);
     }
-    return factory(name, deployment, this.stateManager);
+    return factory(name, deployment, this.stateManager, this.ctx);
   }
 }

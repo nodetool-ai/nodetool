@@ -6,10 +6,18 @@
  * 2. Pushes the image to Google Container Registry or Artifact Registry
  * 3. Deploys the service to Google Cloud Run
  *
+ * Multi-tenant rule: every gcloud/docker call runs through the per-operation
+ * {@link GcpScope} (scratch SA key + scratch CLOUDSDK_CONFIG/DOCKER_CONFIG) —
+ * no ambient gcloud auth, no host docker config. Env vars for the service are
+ * written to a 0600 scratch file and passed via `--env-vars-file` so values
+ * never appear in argv.
+ *
  * Ported from nodetool.deploy.deploy_to_gcp (Python).
  */
 
 import type { GCPDeployment } from "./deployment-config.js";
+import type { DeploymentContext } from "./deployment-context.js";
+import { writeScratchFile } from "./deployment-context.js";
 
 import {
   deployToCloudRun,
@@ -19,10 +27,13 @@ import {
   ensureProjectSet,
   pushToGcr,
   deleteCloudRunService,
-  listCloudRunServices
+  listCloudRunServices,
+  gcpEnvVarsToYaml,
+  type GcpScope
 } from "./google-cloud-run-api.js";
 
-import { buildDockerImage, runCommand } from "./docker.js";
+import type { DockerAuth } from "./docker.js";
+import { buildDockerImage } from "./docker.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -120,6 +131,10 @@ export function getGcpDefaultEnv(
 // ---------------------------------------------------------------------------
 
 export interface DeployToGcpOptions {
+  /** Per-user deployment context (carries scratchDir for the env-vars file). */
+  ctx: DeploymentContext;
+  /** Per-operation GCP auth/exec envelope (scratch SA key + config dirs). */
+  scope: GcpScope;
   deployment: GCPDeployment;
   env?: Record<string, string>;
   skipBuild?: boolean;
@@ -127,6 +142,13 @@ export interface DeployToGcpOptions {
   skipDeploy?: boolean;
   noCache?: boolean;
   skipPermissionSetup?: boolean;
+  /**
+   * Optional registry auth for the local Docker build (multi-user path). When
+   * provided, build runs through the scoped runner with DOCKER_CONFIG redirected
+   * to the scratch dir. When omitted (single-user CLI path), build falls back to
+   * the host's ambient docker config.
+   */
+  dockerAuth?: DockerAuth;
 }
 
 /**
@@ -136,13 +158,16 @@ export interface DeployToGcpOptions {
  */
 export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
   const {
+    ctx,
+    scope,
     deployment,
     env: envInput,
     skipBuild = false,
     skipPush = false,
     skipDeploy = false,
     noCache = false,
-    skipPermissionSetup = false
+    skipPermissionSetup = false,
+    dockerAuth
   } = options;
 
   const env: Record<string, string> = envInput ? { ...envInput } : {};
@@ -171,17 +196,17 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
   serviceName = sanitizeServiceName(serviceName);
   console.log(`Using service name: ${serviceName}`);
 
-  // Ensure Google Cloud authentication and configuration
-  await ensureGcloudAuth();
-  projectId = await ensureProjectSet(projectId);
+  // Ensure Google Cloud authentication and configuration (scoped SA key).
+  await ensureGcloudAuth(scope);
+  projectId = await ensureProjectSet(scope, projectId);
   console.log(`Using project: ${projectId}`);
 
   // Enable required APIs
-  await enableRequiredApis(projectId);
+  await enableRequiredApis(scope, projectId);
 
-  // Ensure Cloud Run permissions (unless skipped)
+  // Ensure Cloud Run permissions (skipped automatically in multi-user mode).
   if (!skipPermissionSetup) {
-    await ensureCloudRunPermissions(projectId, serviceAccount);
+    await ensureCloudRunPermissions(scope, projectId, serviceAccount);
   } else {
     console.warn("Skipping automatic permission setup");
   }
@@ -204,10 +229,10 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
 
   const localImageName = `${registry}/${projectId}/${imageName}`;
 
-  // Check if Docker is running
+  // Check if Docker is running (through the scoped runner so no host env leaks).
   if (!skipBuild) {
     try {
-      runCommand("docker --version", true);
+      await scope.run("docker", ["--version"], { env: scope.env });
     } catch {
       throw new Error("Docker is not installed or not running");
     }
@@ -220,12 +245,13 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
   try {
     // Build Docker image
     if (!skipBuild) {
-      buildDockerImage({
+      await buildDockerImage({
         imageName: localImageName,
         tag: imageTag,
         platform,
         useCache: !noCache,
-        autoPush: false // Always disable auto_push for GCP to keep image local
+        autoPush: false, // Always disable auto_push for GCP to keep image local
+        auth: dockerAuth
       });
     }
 
@@ -233,6 +259,7 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
     let gcpImageUrl: string | null = null;
     if (!skipPush) {
       gcpImageUrl = await pushToGcr(
+        scope,
         localImageName,
         imageTag,
         projectId,
@@ -253,7 +280,19 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
     if (!skipDeploy && gcpImageUrl) {
       console.log("Deploying to Cloud Run...");
 
+      // Write the env vars to a 0600 scratch file and pass via
+      // --env-vars-file so no value lands in argv (ps/proc-visible).
+      let envVarsFile: string | undefined;
+      if (Object.keys(env).length > 0) {
+        envVarsFile = await writeScratchFile(
+          ctx,
+          "gcloud/env-vars.yaml",
+          gcpEnvVarsToYaml(env)
+        );
+      }
+
       deploymentInfo = await deployToCloudRun({
+        scope,
         serviceName,
         imageUrl: gcpImageUrl,
         region,
@@ -269,6 +308,7 @@ export async function deployToGcp(options: DeployToGcpOptions): Promise<void> {
         timeout,
         allowUnauthenticated,
         envVars: env,
+        envVarsFile,
         serviceAccount,
         gcsBucket,
         gcsMountPath
@@ -348,24 +388,26 @@ export function printGcpDeploymentSummary(
  * Delete a Google Cloud Run service.
  */
 export async function deleteGcpService(
+  scope: GcpScope,
   serviceName: string,
   region = "us-central1",
   projectId?: string | null
 ): Promise<boolean> {
-  await ensureGcloudAuth();
-  const resolvedProjectId = await ensureProjectSet(projectId);
+  await ensureGcloudAuth(scope);
+  const resolvedProjectId = await ensureProjectSet(scope, projectId);
   const sanitizedName = sanitizeServiceName(serviceName);
-  return deleteCloudRunService(sanitizedName, region, resolvedProjectId);
+  return deleteCloudRunService(scope, sanitizedName, region, resolvedProjectId);
 }
 
 /**
  * List Google Cloud Run services.
  */
 export async function listGcpServices(
+  scope: GcpScope,
   region = "us-central1",
   projectId?: string | null
 ): Promise<Record<string, unknown>[]> {
-  await ensureGcloudAuth();
-  const resolvedProjectId = await ensureProjectSet(projectId);
-  return listCloudRunServices(region, resolvedProjectId);
+  await ensureGcloudAuth(scope);
+  const resolvedProjectId = await ensureProjectSet(scope, projectId);
+  return listCloudRunServices(scope, region, resolvedProjectId);
 }

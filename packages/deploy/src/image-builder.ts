@@ -11,6 +11,7 @@ import { promisify } from "util";
 import * as fs from "fs/promises";
 import * as path from "path";
 import type { ImageBuildSpec } from "./image-spec.js";
+import type { DockerAuth } from "./docker.js";
 
 const execFile = promisify(execFileCb);
 
@@ -163,14 +164,21 @@ export function generateDockerfile(spec: ImageBuildSpec): string {
  * Generates a Dockerfile in the context directory, runs `docker build`,
  * and cleans up the generated Dockerfile afterwards.
  *
+ * When `opts.auth` is provided (multi-user path), the build runs through the
+ * scoped runner with `DOCKER_CONFIG` redirected to the scratch config dir so no
+ * host `~/.docker/config.json` is consulted. When omitted (single-user CLI
+ * path), it falls back to a plain `execFile` against the host's ambient docker
+ * config.
+ *
  * @param spec - The image build specification.
  * @param tag - Docker image tag (e.g. "nodetool:latest").
  * @param opts.contextDir - Build context directory. Defaults to current directory.
+ * @param opts.auth - Per-call docker auth (scoped runner + scratch DOCKER_CONFIG).
  */
 export async function buildImage(
   spec: ImageBuildSpec,
   tag: string,
-  opts?: { contextDir?: string }
+  opts?: { contextDir?: string; auth?: DockerAuth }
 ): Promise<void> {
   const contextDir = opts?.contextDir ?? process.cwd();
   const dockerfile = generateDockerfile(spec);
@@ -179,10 +187,18 @@ export async function buildImage(
   try {
     await fs.writeFile(dockerfilePath, dockerfile, "utf-8");
 
-    await execFile("docker", ["build", "-f", dockerfilePath, "-t", tag, "."], {
-      cwd: contextDir,
-      maxBuffer: 50 * 1024 * 1024 // 50 MB
-    });
+    const buildArgs = ["build", "-f", dockerfilePath, "-t", tag, "."];
+    if (opts?.auth) {
+      await opts.auth.run("docker", buildArgs, {
+        cwd: contextDir,
+        env: { DOCKER_CONFIG: opts.auth.dockerConfigDir }
+      });
+    } else {
+      await execFile("docker", buildArgs, {
+        cwd: contextDir,
+        maxBuffer: 50 * 1024 * 1024 // 50 MB
+      });
+    }
   } finally {
     try {
       await fs.unlink(dockerfilePath);

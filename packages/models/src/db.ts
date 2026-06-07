@@ -458,7 +458,6 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
   nodetool_deployment_settings: {
     user_id: "text",
     quota_json: "text",
-    credentials_json: "text",
     created_at: "text",
     updated_at: "text"
   },
@@ -840,7 +839,6 @@ function getCreateSchemaSql(): string {
     CREATE TABLE IF NOT EXISTS "nodetool_deployment_settings" (
       "user_id" text PRIMARY KEY NOT NULL,
       "quota_json" text NOT NULL DEFAULT '{}',
-      "credentials_json" text NOT NULL DEFAULT '{}',
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );

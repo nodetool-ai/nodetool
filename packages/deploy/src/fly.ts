@@ -7,48 +7,63 @@
  * - Volume provisioning
  * - Secret/environment variable configuration
  * - Service deployment and monitoring
+ *
+ * Multi-tenant rule: the Fly API token NEVER touches `process.env` or `~/.fly`.
+ * It is sourced from the per-user secret store into `ctx.credentials.FLY_API_TOKEN`
+ * and handed to every `flyctl` child via the scoped child env built by
+ * {@link runScopedCommand} — flyctl reads `FLY_API_TOKEN` from its environment.
+ * The Fly Docker registry (`registry.fly.io`) is authed into a call-scoped
+ * `DOCKER_CONFIG` under the context scratch dir via `flyctl auth docker`, so no
+ * host `~/.docker/config.json` is consulted for build/push.
  */
 
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { resolve } from "node:path";
 
 import { loadImageSpec } from "./image-spec.js";
 import { buildImage } from "./image-builder.js";
 import { DeploymentStatus } from "./deployment-config.js";
 import { StateManager } from "./state.js";
+import {
+  makeScopedRunner,
+  writeScratchFile
+} from "./deployment-context.js";
 
 import type { FlyDeployment } from "./deployment-config.js";
+import type { DeploymentContext, ScopedRunner } from "./deployment-context.js";
+import type { DockerAuth } from "./docker.js";
 import type { DeployResult, DeployPlan, DeployStatus } from "./self-hosted.js";
-
-const execFileAsync = promisify(execFile);
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
+const FLY_CLI_TIMEOUT_MS = 60_000;
+
 /**
- * Run a flyctl command and return parsed JSON output.
+ * Run a flyctl command and return its stdout.
  *
- * Throws a descriptive error when flyctl is not installed or the command fails.
+ * Auth comes from the scoped runner's child env (`FLY_API_TOKEN` from
+ * `ctx.credentials`), never from `~/.fly`. Throws a descriptive error when
+ * flyctl is not installed or the command fails.
  */
 async function flyctl(
+  run: ScopedRunner,
   args: string[],
-  opts?: { timeout?: number }
+  opts?: { timeoutMs?: number; env?: Record<string, string> }
 ): Promise<string> {
   try {
-    const { stdout } = await execFileAsync("flyctl", args, {
-      timeout: opts?.timeout ?? 60_000
+    const { stdout } = await run("flyctl", args, {
+      timeoutMs: opts?.timeoutMs ?? FLY_CLI_TIMEOUT_MS,
+      env: opts?.env
     });
     return stdout;
   } catch (e: unknown) {
-    const err = e as NodeJS.ErrnoException;
-    if (err.code === "ENOENT") {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("ENOENT")) {
       throw new Error(
         "flyctl not found — install from https://fly.io/docs/flyctl/install/"
       );
     }
-    const msg = e instanceof Error ? e.message : String(e);
     throw new Error(`flyctl ${args[0]} failed: ${msg}`);
   }
 }
@@ -57,27 +72,53 @@ async function flyctl(
  * Run flyctl and parse the JSON output.
  */
 async function flyctlJson<T = unknown>(
+  run: ScopedRunner,
   args: string[],
-  opts?: { timeout?: number }
+  opts?: { timeoutMs?: number }
 ): Promise<T> {
-  const raw = await flyctl(args, opts);
+  const raw = await flyctl(run, args, opts);
   return JSON.parse(raw) as T;
 }
 
 /**
  * Check whether a Fly app already exists.
  */
-async function appExists(app: string): Promise<boolean> {
+async function appExists(run: ScopedRunner, app: string): Promise<boolean> {
   try {
-    const apps = await flyctlJson<Array<{ Name?: string; name?: string }>>([
-      "apps",
-      "list",
-      "--json"
-    ]);
+    const apps = await flyctlJson<Array<{ Name?: string; name?: string }>>(
+      run,
+      ["apps", "list", "--json"]
+    );
     return apps.some((a) => (a.Name ?? a.name) === app);
   } catch {
     return false;
   }
+}
+
+/**
+ * Configure a call-scoped Docker auth for the Fly registry.
+ *
+ * `flyctl auth docker` installs a credential entry for `registry.fly.io` using
+ * the `FLY_API_TOKEN` carried in the scoped child env. We point `DOCKER_CONFIG`
+ * at a scratch dir so the credential lands there instead of the host
+ * `~/.docker/config.json`, and return a {@link DockerAuth} threading the same
+ * scratch dir into the subsequent build/push.
+ */
+async function makeFlyDockerAuth(
+  ctx: DeploymentContext,
+  run: ScopedRunner
+): Promise<DockerAuth> {
+  // Ensure the scratch docker config dir exists (0700) before any docker call.
+  await writeScratchFile(ctx, ".docker/.keep", "");
+  const dockerConfigDir = resolve(ctx.scratchDir, ".docker");
+
+  // Token comes from ctx.credentials.FLY_API_TOKEN via the scoped child env.
+  await run("flyctl", ["auth", "docker"], {
+    env: { DOCKER_CONFIG: dockerConfigDir },
+    timeoutMs: FLY_CLI_TIMEOUT_MS
+  });
+
+  return { run, dockerConfigDir };
 }
 
 // ============================================================================
@@ -93,20 +134,29 @@ async function appExists(app: string): Promise<boolean> {
  *  destroy() — tear down the Fly app
  *  status()  — query current app status
  *  logs()    — stream or tail app logs
+ *
+ * All `flyctl`/`docker` invocations go through a context-bound
+ * {@link ScopedRunner} so the user's `FLY_API_TOKEN` reaches the child env and
+ * nothing leaks from the host.
  */
 export class FlyDeployer {
   readonly deploymentName: string;
   readonly deployment: FlyDeployment;
   readonly stateManager: StateManager;
+  private readonly ctx: DeploymentContext;
+  private readonly run: ScopedRunner;
 
   constructor(
     deploymentName: string,
     deployment: FlyDeployment,
-    stateManager?: StateManager
+    stateManager: StateManager,
+    ctx: DeploymentContext
   ) {
     this.deploymentName = deploymentName;
     this.deployment = deployment;
-    this.stateManager = stateManager ?? new StateManager();
+    this.stateManager = stateManager;
+    this.ctx = ctx;
+    this.run = makeScopedRunner(ctx);
   }
 
   // ---------- plan ----------
@@ -122,7 +172,7 @@ export class FlyDeployer {
       will_destroy: []
     };
 
-    const exists = await appExists(this.deployment.app);
+    const exists = await appExists(this.run, this.deployment.app);
 
     if (!exists) {
       plan.changes.push("Initial deployment — will create all resources");
@@ -185,18 +235,26 @@ export class FlyDeployer {
       const spec = await loadImageSpec(specPath);
       results.steps.push(`Loaded image spec from ${specPath}`);
 
-      // Build Docker image tagged for Fly registry
-      await buildImage(spec, imageTag);
+      // Authenticate the Fly registry into a scratch DOCKER_CONFIG (token from
+      // ctx.credentials.FLY_API_TOKEN), never the host ~/.docker/config.json.
+      const dockerAuth = await makeFlyDockerAuth(this.ctx, this.run);
+      results.steps.push("Configured Fly registry auth (scoped)");
+
+      // Build Docker image tagged for Fly registry (scoped DOCKER_CONFIG).
+      await buildImage(spec, imageTag, { auth: dockerAuth });
       results.steps.push(`Built Docker image: ${imageTag}`);
 
-      // Push to Fly registry
-      await execFileAsync("docker", ["push", imageTag], { timeout: 600_000 });
+      // Push to Fly registry through the scoped docker config.
+      await dockerAuth.run("docker", ["push", imageTag], {
+        env: { DOCKER_CONFIG: dockerAuth.dockerConfigDir },
+        timeoutMs: 600_000
+      });
       results.steps.push(`Pushed image to Fly registry`);
 
       // 2. Ensure Fly app exists
-      const exists = await appExists(app);
+      const exists = await appExists(this.run, app);
       if (!exists) {
-        await flyctl(["apps", "create", app, "--json"]);
+        await flyctl(this.run, ["apps", "create", app, "--json"]);
         results.steps.push(`Created Fly app: ${app}`);
       } else {
         results.steps.push(`Fly app already exists: ${app}`);
@@ -206,7 +264,7 @@ export class FlyDeployer {
       if (this.deployment.volumes?.length) {
         for (const vol of this.deployment.volumes) {
           try {
-            await flyctl([
+            await flyctl(this.run, [
               "volumes",
               "create",
               vol.name,
@@ -234,20 +292,26 @@ export class FlyDeployer {
         }
       }
 
-      // 4. Set environment variables as secrets
+      // 4. Set environment variables as secrets.
+      //    Secret values are fed via `flyctl secrets import` over stdin so they
+      //    never appear in argv (ps/proc-visible).
       if (this.deployment.environment) {
         const entries = Object.entries(this.deployment.environment);
         if (entries.length > 0) {
-          const secretArgs = entries.map(([k, v]) => `${k}=${v}`);
-          await flyctl(["secrets", "set", "--app", app, ...secretArgs]);
+          const stdin = entries.map(([k, v]) => `${k}=${v}`).join("\n") + "\n";
+          await this.run("flyctl", ["secrets", "import", "--app", app], {
+            input: stdin,
+            timeoutMs: FLY_CLI_TIMEOUT_MS
+          });
           results.steps.push(`Set ${entries.length} secret(s)`);
         }
       }
 
       // 5. Deploy
       await flyctl(
+        this.run,
         ["deploy", "--app", app, "--image", imageTag, "--region", region],
-        { timeout: 600_000 }
+        { timeoutMs: 600_000 }
       );
       results.steps.push("Deployment complete");
 
@@ -286,7 +350,7 @@ export class FlyDeployer {
     try {
       results.steps.push(`Destroying Fly app: ${this.deployment.app}...`);
 
-      await flyctl(["apps", "destroy", this.deployment.app, "--yes"]);
+      await flyctl(this.run, ["apps", "destroy", this.deployment.app, "--yes"]);
 
       results.steps.push("App destroyed successfully");
 
@@ -326,7 +390,7 @@ export class FlyDeployer {
 
     // Get live status from Fly
     try {
-      const raw = await flyctl([
+      const raw = await flyctl(this.run, [
         "status",
         "--app",
         this.deployment.app,
@@ -359,7 +423,7 @@ export class FlyDeployer {
     }
 
     try {
-      const stdout = await flyctl(args, { timeout: 30_000 });
+      const stdout = await flyctl(this.run, args, { timeoutMs: 30_000 });
       return stdout;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

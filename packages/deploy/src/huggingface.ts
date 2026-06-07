@@ -6,65 +6,112 @@
  * - HF Space repository creation and management
  * - Git-based deployment (push Dockerfile to HF repo, Spaces builds it)
  * - Space metadata via README.md frontmatter
+ *
+ * Multi-tenant credentials: the HuggingFace token is sourced from
+ * `ctx.credentials.HF_TOKEN` (a per-user Secret), NEVER from `process.env`.
+ * It reaches the child processes two ways, neither of which puts the token on
+ * argv (where `ps` / `/proc` could read it):
+ *   - `huggingface-cli` honours the `HF_TOKEN` env var, so it is passed via the
+ *     scoped child env.
+ *   - `git` clone/push authenticates via an `http.extraHeader` Bearer header
+ *     injected through `GIT_CONFIG_COUNT` / `GIT_CONFIG_KEY_0` /
+ *     `GIT_CONFIG_VALUE_0` env vars (config-via-env, not via `-c` on argv).
  */
 
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import * as os from "node:os";
+import * as fs from "node:fs/promises";
 
 import { loadImageSpec } from "./image-spec.js";
 import { generateDockerfile } from "./image-builder.js";
 import { StateManager } from "./state.js";
 import { DeploymentStatus } from "./deployment-config.js";
+import {
+  makeScopedRunner,
+  type DeploymentContext,
+  type ScopedRunner
+} from "./deployment-context.js";
 
 import type { HuggingFaceDeployment } from "./deployment-config.js";
 import type { DeployResult } from "./self-hosted.js";
-
-const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Run the `huggingface-cli` command and return stdout.
- * Throws a descriptive error when the CLI is not installed.
+ * Build the child-env entries that carry the HuggingFace token to git as an
+ * `http.extraHeader` Bearer header WITHOUT placing the token on argv.
+ *
+ * Git reads `GIT_CONFIG_KEY_<n>` / `GIT_CONFIG_VALUE_<n>` pairs from the
+ * environment when `GIT_CONFIG_COUNT` is set, so the secret stays out of the
+ * process command line. When no token is present, returns an empty object and
+ * the clone/push proceeds unauthenticated (public spaces / CLI fallback).
+ */
+function gitAuthEnv(token: string | undefined): Record<string, string> {
+  if (!token) {
+    return {};
+  }
+  return {
+    GIT_CONFIG_COUNT: "1",
+    GIT_CONFIG_KEY_0: "http.extraHeader",
+    GIT_CONFIG_VALUE_0: `Authorization: Bearer ${token}`
+  };
+}
+
+/**
+ * Build the child-env entries that authenticate `huggingface-cli`.
+ *
+ * The CLI honours the `HF_TOKEN` env var; the token comes from
+ * `ctx.credentials`, never `process.env`.
+ */
+function hfCliEnv(token: string | undefined): Record<string, string> {
+  return token ? { HF_TOKEN: token } : {};
+}
+
+/**
+ * Run the `huggingface-cli` command (through the scoped runner) and return
+ * stdout. Throws a descriptive error when the CLI is not installed.
  */
 async function hfCli(
+  run: ScopedRunner,
   args: string[],
-  opts?: { timeout?: number; cwd?: string }
+  opts?: { timeoutMs?: number; cwd?: string; env?: Record<string, string> }
 ): Promise<string> {
   try {
-    const { stdout } = await execFileAsync("huggingface-cli", args, {
-      timeout: opts?.timeout ?? 60_000,
-      cwd: opts?.cwd
+    const { stdout } = await run("huggingface-cli", args, {
+      timeoutMs: opts?.timeoutMs ?? 60_000,
+      cwd: opts?.cwd,
+      env: opts?.env
     });
     return stdout;
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes("ENOENT")) {
-      throw new Error(
-        "huggingface-cli not found. Install it with: pip install huggingface_hub[cli]\n" +
-          "See https://huggingface.co/docs/huggingface_hub/guides/cli for details."
-      );
+    if (msg.includes("ENOENT") || msg.includes("huggingface-cli")) {
+      // ENOENT or a command-not-found style failure: surface install guidance.
+      if (msg.includes("ENOENT")) {
+        throw new Error(
+          "huggingface-cli not found. Install it with: pip install huggingface_hub[cli]\n" +
+            "See https://huggingface.co/docs/huggingface_hub/guides/cli for details."
+        );
+      }
     }
     throw new Error(`huggingface-cli failed: ${msg}`);
   }
 }
 
 /**
- * Run a git command and return stdout.
+ * Run a git command (through the scoped runner) and return stdout.
  */
 async function git(
+  run: ScopedRunner,
   args: string[],
-  opts?: { timeout?: number; cwd?: string }
+  opts?: { timeoutMs?: number; cwd?: string; env?: Record<string, string> }
 ): Promise<string> {
   try {
-    const { stdout } = await execFileAsync("git", args, {
-      timeout: opts?.timeout ?? 60_000,
-      cwd: opts?.cwd
+    const { stdout } = await run("git", args, {
+      timeoutMs: opts?.timeoutMs ?? 60_000,
+      cwd: opts?.cwd,
+      env: opts?.env
     });
     return stdout;
   } catch (e: unknown) {
@@ -113,15 +160,21 @@ export class HuggingFaceDeployer {
   readonly deploymentName: string;
   readonly deployment: HuggingFaceDeployment;
   readonly stateManager: StateManager;
+  private readonly ctx: DeploymentContext;
+  /** Runner bound to {@link ctx}; every child process runs with the scoped env. */
+  private readonly run: ScopedRunner;
 
   constructor(
     deploymentName: string,
     deployment: HuggingFaceDeployment,
-    stateManager?: StateManager
+    stateManager: StateManager,
+    ctx: DeploymentContext
   ) {
     this.deploymentName = deploymentName;
     this.deployment = deployment;
-    this.stateManager = stateManager ?? new StateManager();
+    this.stateManager = stateManager;
+    this.ctx = ctx;
+    this.run = makeScopedRunner(ctx);
   }
 
   // ---------- Public API ----------
@@ -202,7 +255,16 @@ export class HuggingFaceDeployer {
       errors: []
     };
 
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-hf-"));
+    // The token is per-user (Secret store), never process.env. It reaches the
+    // CLI via the HF_TOKEN env var and git via an http.extraHeader injected
+    // through GIT_CONFIG_* env vars — neither places it on argv.
+    const token = this.ctx.credentials.HF_TOKEN;
+    const gitEnv = gitAuthEnv(token);
+    const cliEnv = hfCliEnv(token);
+
+    // Clone/build inside the call-scoped scratch dir (owned + torn down by the
+    // manager) rather than a self-managed mkdtemp.
+    const repoDir = path.join(this.ctx.scratchDir, "hf-repo");
 
     try {
       await this.stateManager.updateDeploymentStatus(
@@ -221,13 +283,7 @@ export class HuggingFaceDeployer {
       results.steps.push(
         `Setting up HuggingFace Space: ${this.deployment.repo}...`
       );
-      const token = process.env.HF_TOKEN || process.env.HUGGING_FACE_HUB_TOKEN;
-      const authArgs = token
-        ? ["-c", `http.extraHeader=Authorization: Bearer ${token}`]
-        : [];
-      await this.ensureRepo(tmpDir, results, authArgs);
-
-      const repoDir = path.join(tmpDir, "repo");
+      await this.ensureRepo(repoDir, results, gitEnv, cliEnv);
 
       // 3. Write Dockerfile
       results.steps.push("Writing Dockerfile...");
@@ -244,24 +300,29 @@ export class HuggingFaceDeployer {
 
       // 5. Git commit and push
       results.steps.push("Committing and pushing to HuggingFace...");
-      await git(["config", "user.email", "deploy@nodetool.ai"], {
+      await git(this.run, ["config", "user.email", "deploy@nodetool.ai"], {
         cwd: repoDir
       });
-      await git(["config", "user.name", "NodeTool Deploy"], { cwd: repoDir });
-      await git(["add", "-A"], { cwd: repoDir });
+      await git(this.run, ["config", "user.name", "NodeTool Deploy"], {
+        cwd: repoDir
+      });
+      await git(this.run, ["add", "-A"], { cwd: repoDir });
 
       // Check if there are changes to commit
       try {
-        await git(["diff", "--cached", "--quiet"], { cwd: repoDir });
+        await git(this.run, ["diff", "--cached", "--quiet"], { cwd: repoDir });
         results.steps.push("No changes detected, skipping commit");
       } catch {
         // diff --quiet exits non-zero when there are changes
-        await git(["commit", "-m", "Deploy NodeTool via nodetool deploy"], {
-          cwd: repoDir
-        });
-        await git([...authArgs, "push", "origin", "main"], {
+        await git(
+          this.run,
+          ["commit", "-m", "Deploy NodeTool via nodetool deploy"],
+          { cwd: repoDir }
+        );
+        await git(this.run, ["push", "origin", "main"], {
           cwd: repoDir,
-          timeout: 120_000
+          timeoutMs: 120_000,
+          env: gitEnv
         });
         results.steps.push("Pushed to HuggingFace Space");
       }
@@ -286,13 +347,6 @@ export class HuggingFaceDeployer {
       );
 
       throw e;
-    } finally {
-      // Clean up temp directory
-      try {
-        await fs.rm(tmpDir, { recursive: true, force: true });
-      } catch {
-        // ignore cleanup errors
-      }
     }
 
     return results;
@@ -309,19 +363,18 @@ export class HuggingFaceDeployer {
       errors: []
     };
 
+    const cliEnv = hfCliEnv(this.ctx.credentials.HF_TOKEN);
+
     try {
       results.steps.push(
         `Deleting HuggingFace Space: ${this.deployment.repo}...`
       );
 
-      await hfCli([
-        "repo",
-        "delete",
-        this.deployment.repo,
-        "--type",
-        "space",
-        "--yes"
-      ]);
+      await hfCli(
+        this.run,
+        ["repo", "delete", this.deployment.repo, "--type", "space", "--yes"],
+        { env: cliEnv }
+      );
 
       results.steps.push("Space deleted successfully");
 
@@ -362,13 +415,11 @@ export class HuggingFaceDeployer {
 
     // Try to get live status from HF
     try {
-      const output = await hfCli([
-        "repo",
-        "info",
-        this.deployment.repo,
-        "--type",
-        "space"
-      ]);
+      const output = await hfCli(
+        this.run,
+        ["repo", "info", this.deployment.repo, "--type", "space"],
+        { env: hfCliEnv(this.ctx.credentials.HF_TOKEN) }
+      );
       statusInfo["live_status"] = output.trim();
     } catch (e) {
       statusInfo["live_status_error"] =
@@ -396,26 +447,34 @@ export class HuggingFaceDeployer {
   // ---------- Private helpers ----------
 
   /**
-   * Ensure the HF Space repository exists and is cloned to the target directory.
+   * Ensure the HF Space repository exists and is cloned to `repoDir`.
    * Creates the repo if it does not exist, then clones it.
+   *
+   * @param gitEnv Child-env entries carrying the git Bearer header (off argv).
+   * @param cliEnv Child-env entries carrying HF_TOKEN for `huggingface-cli`.
    */
   private async ensureRepo(
-    targetDir: string,
+    repoDir: string,
     results: DeployResult,
-    authArgs: string[] = []
+    gitEnv: Record<string, string>,
+    cliEnv: Record<string, string>
   ): Promise<void> {
     // Try to create the repo (may already exist)
     try {
-      await hfCli([
-        "repo",
-        "create",
-        this.deployment.repo,
-        "--type",
-        "space",
-        "--space_sdk",
-        "docker",
-        "--yes"
-      ]);
+      await hfCli(
+        this.run,
+        [
+          "repo",
+          "create",
+          this.deployment.repo,
+          "--type",
+          "space",
+          "--space_sdk",
+          "docker",
+          "--yes"
+        ],
+        { env: cliEnv }
+      );
       results.steps.push(`Created HuggingFace Space: ${this.deployment.repo}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -428,10 +487,11 @@ export class HuggingFaceDeployer {
       );
     }
 
-    // Clone into a subdirectory to avoid TOCTOU race on the temp dir
-    const repoDir = path.join(targetDir, "repo");
     const repoUrl = `https://huggingface.co/spaces/${this.deployment.repo}`;
-    await git([...authArgs, "clone", repoUrl, repoDir], { timeout: 120_000 });
+    await git(this.run, ["clone", repoUrl, repoDir], {
+      timeoutMs: 120_000,
+      env: gitEnv
+    });
     results.steps.push(`Cloned Space repository: ${this.deployment.repo}`);
   }
 }

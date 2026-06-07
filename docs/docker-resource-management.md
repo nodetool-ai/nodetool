@@ -4,7 +4,7 @@ title: "Docker Resource Management"
 description: "Practical limits for NodeTool proxy + server containers."
 ---
 
-Use these guidelines to keep multi-tenant or long-running NodeTool deployments stable. All examples reuse the `mem_limit` and `cpus` fields supported by the proxy and self-hosted deployment schemas.
+Use these guidelines to keep multi-user or long-running NodeTool deployments stable. All examples reuse the `mem_limit` and `cpus` fields supported by the proxy and self-hosted deployment schemas.
 
 ## Baseline Settings
 

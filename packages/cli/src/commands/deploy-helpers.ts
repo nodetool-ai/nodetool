@@ -7,6 +7,9 @@
 
 import { createInterface } from "node:readline";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   AdminHTTPClient,
@@ -33,6 +36,7 @@ import {
   type Deployer,
   type DeployerFactory,
   type DeploymentConfig,
+  type DeploymentContext,
   type DeploymentType,
   type DockerDeployment,
   type FlyDeployment,
@@ -117,27 +121,40 @@ export function getDeploymentOrExit(
   return deployment;
 }
 
-/** Deployer factory map — wraps concrete deployers into the Deployer interface. */
+/**
+ * Deployer factory map — wraps concrete deployers into the Deployer interface.
+ *
+ * Each factory receives the per-operation `ctx` as the LAST argument (matching
+ * {@link DeployerFactory}) and passes it as the last constructor argument to the
+ * concrete deployer, so the user's decrypted credentials and scratch dir reach
+ * the leaf exec calls. For the single-user CLI the manager threads one ctx built
+ * at the boundary (see {@link buildSingleUserContext}).
+ */
 export function defaultDeployerFactories(): Record<string, DeployerFactory> {
   return {
-    docker: (name, deployment, state) =>
-      adaptDocker(new DockerDeployer(name, deployment as DockerDeployment, state)),
-    runpod: (name, deployment, state) =>
-      adaptRunPod(new RunPodDeployer(name, deployment as RunPodDeployment, state)),
-    gcp: (name, deployment, state) =>
-      adaptGCP(new GCPDeployer(name, deployment as GCPDeployment, state)),
-    fly: (name, deployment, state) =>
-      adaptFly(new FlyDeployer(name, deployment as FlyDeployment, state)),
-    railway: (name, deployment, state) =>
-      adaptRailway(
-        new RailwayDeployer(name, deployment as RailwayDeployment, state)
+    docker: (name, deployment, state, ctx) =>
+      adaptDocker(
+        new DockerDeployer(name, deployment as DockerDeployment, state, ctx)
       ),
-    huggingface: (name, deployment, state) =>
+    runpod: (name, deployment, state, ctx) =>
+      adaptRunPod(
+        new RunPodDeployer(name, deployment as RunPodDeployment, state, ctx)
+      ),
+    gcp: (name, deployment, state, ctx) =>
+      adaptGCP(new GCPDeployer(name, deployment as GCPDeployment, state, ctx)),
+    fly: (name, deployment, state, ctx) =>
+      adaptFly(new FlyDeployer(name, deployment as FlyDeployment, state, ctx)),
+    railway: (name, deployment, state, ctx) =>
+      adaptRailway(
+        new RailwayDeployer(name, deployment as RailwayDeployment, state, ctx)
+      ),
+    huggingface: (name, deployment, state, ctx) =>
       adaptHuggingFace(
         new HuggingFaceDeployer(
           name,
           deployment as HuggingFaceDeployment,
-          state
+          state,
+          ctx
         )
       )
   };
@@ -185,9 +202,10 @@ function adaptRunPod(d: RunPodDeployer): Deployer {
 function adaptGCP(d: GCPDeployer): Deployer {
   return {
     plan: () => d.plan(),
-    apply: (opts) => d.apply(opts?.dryRun ?? false),
+    apply: (opts) => d.apply({ dryRun: opts?.dryRun }),
     status: () => d.status(),
-    logs: (opts) => d.logs(opts?.service, opts?.follow ?? false, opts?.tail ?? 100),
+    logs: (opts) =>
+      d.logs({ service: opts?.service, follow: opts?.follow, tail: opts?.tail }),
     destroy: () => d.destroy()
   };
 }
@@ -231,10 +249,66 @@ function adaptHuggingFace(d: HuggingFaceDeployer): Deployer {
   };
 }
 
+/**
+ * Secret env-var names the single-user CLI lifts from `process.env` into the
+ * deployment context. This mirrors the keys declared in the deploy package's
+ * PROVIDER_SECRET_KEYS (plus the SSH password/key the self-hosted deployer
+ * reads from ctx.credentials). Reading `process.env` to POPULATE a ctx is
+ * allowed ONLY at this single-user CLI boundary — the multi-user server path
+ * sources these from the per-user Secret store instead and never touches env.
+ *
+ * No `process.env` WRITES happen here; we only copy values into ctx.credentials.
+ */
+const SINGLE_USER_CREDENTIAL_ENV_KEYS = [
+  "RUNPOD_API_KEY",
+  "DOCKER_USERNAME",
+  "DOCKER_PASSWORD",
+  "HF_TOKEN",
+  "HUGGING_FACE_HUB_TOKEN",
+  "GCP_SERVICE_ACCOUNT_KEY",
+  "FLY_API_TOKEN",
+  "RAILWAY_API_TOKEN",
+  "RAILWAY_TOKEN",
+  "SSH_PRIVATE_KEY",
+  "SSH_PASSWORD"
+] as const;
+
+/**
+ * Build the single-user CLI {@link DeploymentContext} once, at the CLI
+ * boundary:
+ *
+ *   - userId is the fixed local user ({@link LOCAL_USER_ID}).
+ *   - credentials are lifted from `process.env` (allowed here only) for the
+ *     keys the deployers may need; absent keys are simply omitted, so the
+ *     deployers' explicitly-gated single-user fallbacks (deployment.ssh.key_path,
+ *     deployment.ssh.password, deployment.docker.username) still apply.
+ *   - scratchDir is an mkdtemp dir under the OS temp dir, removed on process
+ *     exit. The CLI runs one command per process, so process-exit cleanup is
+ *     the natural `finally` for the single-shot lifecycle.
+ */
+function buildSingleUserContext(): DeploymentContext {
+  const credentials: Record<string, string> = {};
+  for (const key of SINGLE_USER_CREDENTIAL_ENV_KEYS) {
+    const value = process.env[key];
+    if (value !== undefined && value !== "") {
+      credentials[key] = value;
+    }
+  }
+
+  const scratchDir = mkdtempSync(join(tmpdir(), "nodetool-deploy-cli-"));
+  const cleanup = (): void => {
+    rmSync(scratchDir, { recursive: true, force: true });
+  };
+  process.once("exit", cleanup);
+
+  return { userId: LOCAL_USER_ID, credentials, scratchDir };
+}
+
 export async function getManager(): Promise<DeploymentManager> {
   const config = await loadConfigOrExit();
   const state = new StateManager();
-  return new DeploymentManager(config, state, defaultDeployerFactories());
+  const ctx = buildSingleUserContext();
+  return new DeploymentManager(config, state, defaultDeployerFactories(), ctx);
 }
 
 // ---------------------------------------------------------------------------

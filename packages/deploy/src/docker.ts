@@ -1,8 +1,14 @@
 /**
  * Docker utilities for NodeTool deployment.
  *
- * This module contains all Docker-related functionality for building, pushing,
- * and managing Docker images for NodeTool deployments.
+ * Multi-tenant rule: registry auth comes from the user's secrets, written into
+ * a call-scoped `DOCKER_CONFIG` dir under the context scratch dir — never the
+ * host `~/.docker/config.json`. Build/push/login all run through a scoped
+ * runner so the child env carries only the user's credentials.
+ *
+ * The single-user CLI path may call build/push without a context: in that case
+ * they fall back to a minimal `execFile` against the host's ambient docker
+ * config (explicitly gated by the absence of a `DockerAuth`).
  */
 
 import { execSync, execFileSync, execFile } from "node:child_process";
@@ -11,12 +17,70 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import type {
+  DeploymentContext,
+  ScopedRunner
+} from "./deployment-context.js";
+import { makeScopedRunner, writeScratchFile } from "./deployment-context.js";
 
 /**
  * Promisified `child_process.execFile` — runs a command with an argument array
  * and no shell, returning `{ stdout, stderr }`.
  */
 export const execFileAsync = promisify(execFile);
+
+// ---------------------------------------------------------------------------
+// Docker auth (scratch-scoped registry credentials)
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-call docker auth handle. Carries a scoped runner and the call-scoped
+ * `DOCKER_CONFIG` directory so build/push/login never touch the host
+ * `~/.docker/config.json`.
+ */
+export interface DockerAuth {
+  /** Scoped runner bound to the user's DeploymentContext. */
+  run: ScopedRunner;
+  /** Absolute path to the call-scoped docker config dir (e.g. <scratch>/.docker). */
+  dockerConfigDir: string;
+}
+
+/**
+ * Build a {@link DockerAuth} from a context and, if registry credentials are
+ * present, run `docker login` into the scratch config dir. The login password
+ * is fed via stdin (`--password-stdin`) so it never appears in argv.
+ *
+ * @param ctx        Per-operation deployment context.
+ * @param registry   Registry host (default docker.io → Docker Hub).
+ * @param username   Registry username (from the DOCKER_USERNAME secret or the
+ *                   deployment config). Required for login.
+ * @param password   Registry password/token (from the DOCKER_PASSWORD secret).
+ *                   When absent, no login is performed (e.g. anonymous pulls or
+ *                   credential-helper-based registries like GCP Artifact
+ *                   Registry handled elsewhere).
+ */
+export async function makeDockerAuth(
+  ctx: DeploymentContext,
+  opts: { registry?: string; username?: string; password?: string }
+): Promise<DockerAuth> {
+  const dockerConfigDir = path.join(ctx.scratchDir, ".docker");
+  // Ensure the scratch docker config dir exists (0700) before any docker call.
+  await writeScratchFile(ctx, ".docker/.keep", "");
+
+  const run = makeScopedRunner(ctx);
+
+  if (opts.username && opts.password) {
+    const registry = opts.registry ?? "docker.io";
+    const loginTarget = registry === "docker.io" ? "docker.io" : registry;
+    await run(
+      "docker",
+      ["--config", dockerConfigDir, "login", "-u", opts.username, "--password-stdin", loginTarget],
+      { env: { DOCKER_CONFIG: dockerConfigDir }, input: opts.password }
+    );
+  }
+
+  return { run, dockerConfigDir };
+}
 
 // ---------------------------------------------------------------------------
 // Shell helpers
@@ -119,46 +183,6 @@ export function runCommandArgs(
 }
 
 // ---------------------------------------------------------------------------
-// Docker authentication
-// ---------------------------------------------------------------------------
-
-/**
- * Check if user is authenticated with the Docker registry.
- */
-export function checkDockerAuth(_registry: string = "docker.io"): boolean {
-  try {
-    execSync("docker system info --format '{{.RegistryConfig.IndexConfigs}}'", {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"]
-    });
-    return true;
-  } catch {
-    try {
-      execSync("docker login --get-login", {
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"]
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-}
-
-/**
- * Ensure user is authenticated with Docker registry.
- * Note: interactive login prompt is not supported in this TS port;
- * the function will throw if not authenticated.
- */
-export function ensureDockerAuth(registry: string = "docker.io"): void {
-  if (!checkDockerAuth(registry)) {
-    throw new Error(
-      `Not authenticated with Docker registry: ${registry}. Please run 'docker login' manually and try again.`
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Image naming & tagging
 // ---------------------------------------------------------------------------
 
@@ -218,20 +242,34 @@ export interface BuildDockerImageOptions {
   platform?: string;
   useCache?: boolean;
   autoPush?: boolean;
+  /**
+   * Per-call docker auth. When provided, build runs through the scoped runner
+   * with `DOCKER_CONFIG` redirected to the scratch dir (multi-user path). When
+   * omitted, build falls back to a host-env `execFile` (single-user CLI path).
+   */
+  auth?: DockerAuth;
 }
 
 /**
  * Build a Docker image for deployment.
  *
+ * Uses the build context's project root (3 levels up from this module) and the
+ * repo `Dockerfile`. The build runs with `cwd` set to the project root via the
+ * exec `cwd` option — no `process.chdir`, which would race across concurrent
+ * per-user operations.
+ *
  * @returns true if the image was pushed to registry, false if only built locally.
  */
-export function buildDockerImage(options: BuildDockerImageOptions): boolean {
+export async function buildDockerImage(
+  options: BuildDockerImageOptions
+): Promise<boolean> {
   const {
     imageName,
     tag,
     platform = "linux/amd64",
     useCache = true,
-    autoPush = true
+    autoPush = true,
+    auth
   } = options;
 
   console.log("Building Docker image");
@@ -247,6 +285,25 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
   const buildDir = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool_build_"));
   console.log(`Using build directory: ${buildDir}`);
 
+  // Choose how to run docker: scoped runner with scratch DOCKER_CONFIG
+  // (multi-user) or a plain host-env execFile (single-user CLI fallback).
+  const dockerConfigEnv: Record<string, string> | undefined = auth
+    ? { DOCKER_CONFIG: auth.dockerConfigDir }
+    : undefined;
+  const runDocker = async (args: string[]): Promise<void> => {
+    if (auth) {
+      await auth.run("docker", args, {
+        cwd: projectRoot,
+        env: dockerConfigEnv
+      });
+    } else {
+      await execFileAsync("docker", args, {
+        cwd: projectRoot,
+        maxBuffer: 64 * 1024 * 1024
+      });
+    }
+  };
+
   try {
     fs.copyFileSync(deployDockerfilePath, path.join(buildDir, "Dockerfile"));
 
@@ -254,74 +311,57 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
     const dockerfileForBuild = path.join(buildDir, "Dockerfile");
     const buildContext = projectRoot;
 
-    const originalDir = process.cwd();
-    process.chdir(projectRoot);
     let imagePushed = false;
 
-    try {
-      if (useCache) {
-        console.log("Building with Docker Hub cache optimization...");
+    if (useCache) {
+      console.log("Building with Docker Hub cache optimization...");
 
-        // Ensure docker buildx builder exists
-        try {
-          runCommandArgs("docker", [
-            "buildx",
-            "create",
-            "--use",
-            "--name",
-            "nodetool-builder",
-            "--driver",
-            "docker-container"
-          ]);
-        } catch {
-          console.log(
-            "Warning: docker buildx create failed; continuing with existing/default builder."
-          );
-        }
-
-        const cacheFrom = `type=registry,ref=${imageName}:buildcache`;
-        const cacheTo = `type=registry,ref=${imageName}:buildcache,mode=max`;
-        const pushFlag = autoPush ? "--push" : "--load";
-
-        const buildxArgs = [
+      // Ensure docker buildx builder exists
+      try {
+        await runDocker([
           "buildx",
-          "build",
-          "-f",
-          dockerfileForBuild,
-          "--platform",
-          platform,
-          "-t",
-          `${imageName}:${tag}`,
-          `--cache-from=${cacheFrom}`,
-          `--cache-to=${cacheTo}`,
-          pushFlag,
-          buildContext
-        ];
+          "create",
+          "--use",
+          "--name",
+          "nodetool-builder",
+          "--driver",
+          "docker-container"
+        ]);
+      } catch {
+        console.log(
+          "Warning: docker buildx create failed; continuing with existing/default builder."
+        );
+      }
 
-        console.log(`Cache image: ${imageName}:buildcache`);
+      const cacheFrom = `type=registry,ref=${imageName}:buildcache`;
+      const cacheTo = `type=registry,ref=${imageName}:buildcache,mode=max`;
+      const pushFlag = autoPush ? "--push" : "--load";
 
-        try {
-          runCommandArgs("docker", buildxArgs);
-          imagePushed = autoPush;
-        } catch {
-          console.log(
-            "Cache/buildx build failed, falling back to standard docker build..."
-          );
-          runCommandArgs("docker", [
-            "build",
-            "-f",
-            dockerfileForBuild,
-            "--platform",
-            platform,
-            "-t",
-            `${imageName}:${tag}`,
-            buildContext
-          ]);
-          imagePushed = false;
-        }
-      } else {
-        console.log("Building without cache optimization...");
-        runCommandArgs("docker", [
+      const buildxArgs = [
+        "buildx",
+        "build",
+        "-f",
+        dockerfileForBuild,
+        "--platform",
+        platform,
+        "-t",
+        `${imageName}:${tag}`,
+        `--cache-from=${cacheFrom}`,
+        `--cache-to=${cacheTo}`,
+        pushFlag,
+        buildContext
+      ];
+
+      console.log(`Cache image: ${imageName}:buildcache`);
+
+      try {
+        await runDocker(buildxArgs);
+        imagePushed = autoPush;
+      } catch {
+        console.log(
+          "Cache/buildx build failed, falling back to standard docker build..."
+        );
+        await runDocker([
           "build",
           "-f",
           dockerfileForBuild,
@@ -333,8 +373,19 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
         ]);
         imagePushed = false;
       }
-    } finally {
-      process.chdir(originalDir);
+    } else {
+      console.log("Building without cache optimization...");
+      await runDocker([
+        "build",
+        "-f",
+        dockerfileForBuild,
+        "--platform",
+        platform,
+        "-t",
+        `${imageName}:${tag}`,
+        buildContext
+      ]);
+      imagePushed = false;
     }
 
     console.log("Docker image built successfully");
@@ -350,90 +401,41 @@ export function buildDockerImage(options: BuildDockerImageOptions): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Push Docker image to a registry with proper authentication checks.
+ * Push a Docker image to a registry.
+ *
+ * Registry auth comes from the scratch `DOCKER_CONFIG` (set up by
+ * {@link makeDockerAuth} via `docker login --password-stdin`). No host
+ * `~/.docker/config.json` is consulted. When `auth` is omitted (single-user CLI
+ * path), falls back to the host's ambient docker config.
  */
-export function pushToRegistry(
+export async function pushToRegistry(
   imageName: string,
   tag: string,
-  registry: string = "docker.io"
-): void {
+  registry: string = "docker.io",
+  auth?: DockerAuth
+): Promise<void> {
   console.log(
     `Pushing Docker image ${imageName}:${tag} to registry ${registry}...`
   );
 
-  ensureDockerAuth(registry);
-
   try {
-    runCommandArgs("docker", ["push", `${imageName}:${tag}`]);
+    if (auth) {
+      await auth.run("docker", ["push", `${imageName}:${tag}`], {
+        env: { DOCKER_CONFIG: auth.dockerConfigDir }
+      });
+    } else {
+      await execFileAsync("docker", ["push", `${imageName}:${tag}`], {
+        maxBuffer: 64 * 1024 * 1024
+      });
+    }
     console.log(`Docker image ${imageName}:${tag} pushed successfully`);
   } catch {
     throw new Error(
       `Failed to push image ${imageName}:${tag}. Common issues: ` +
-        `1. Check your Docker registry authentication: docker login. ` +
+        `1. Check your Docker registry credentials (DOCKER_USERNAME / DOCKER_PASSWORD secrets). ` +
         `2. Verify the image name includes your username: username/image-name. ` +
         `3. Ensure you have push permissions to the repository.`
     );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Get Docker username from config
-// ---------------------------------------------------------------------------
-
-/**
- * Get Docker username from Docker's configuration file.
- */
-export function getDockerUsernameFromConfig(
-  registry: string = "docker.io"
-): string | null {
-  try {
-    const dockerConfigPath = path.join(os.homedir(), ".docker", "config.json");
-
-    if (!fs.existsSync(dockerConfigPath)) {
-      return null;
-    }
-
-    const config = JSON.parse(fs.readFileSync(dockerConfigPath, "utf-8")) as {
-      auths?: Record<string, { username?: string; auth?: string }>;
-      credHelpers?: Record<string, string>;
-    };
-
-    const auths = config.auths ?? {};
-
-    const possibleRegistryKeys = [
-      registry,
-      `https://${registry}/v1/`,
-      registry === "docker.io"
-        ? "https://index.docker.io/v1/"
-        : `https://${registry}/v1/`,
-      registry === "docker.io" ? "index.docker.io" : registry
-    ];
-
-    for (const regKey of possibleRegistryKeys) {
-      const authData = auths[regKey];
-      if (!authData) continue;
-
-      if (authData.username) {
-        return authData.username;
-      }
-
-      if (authData.auth) {
-        try {
-          const decoded = Buffer.from(authData.auth, "base64").toString(
-            "utf-8"
-          );
-          const [username] = decoded.split(":", 2);
-          return username;
-        } catch {
-          continue;
-        }
-      }
-    }
-
-    return null;
-  } catch (err) {
-    console.warn(`Warning: Could not read Docker config: ${err}`);
-    return null;
   }
 }
 
