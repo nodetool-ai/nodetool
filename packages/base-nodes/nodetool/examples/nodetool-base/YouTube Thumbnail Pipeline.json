@@ -196,9 +196,10 @@
       },
       {
         "id": "enhanced",
-        "type": "nodetool.lib.image.enhance.Contrast",
+        "type": "lib.image.color.BrightnessContrast",
         "data": {
-          "factor": 1.2
+          "brightness": 0,
+          "contrast": 1.2
         },
         "ui_properties": {
           "selected": false,
@@ -216,9 +217,10 @@
       },
       {
         "id": "brightened",
-        "type": "nodetool.lib.image.enhance.Brightness",
+        "type": "lib.image.color.BrightnessContrast",
         "data": {
-          "factor": 1.1
+          "brightness": 0.05,
+          "contrast": 1.1
         },
         "ui_properties": {
           "selected": false,

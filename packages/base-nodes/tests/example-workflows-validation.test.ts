@@ -89,8 +89,6 @@ const ALLOWED_UNREGISTERED_TYPES = new Set<string>([
   // ── 4. Stale `nodetool.lib.*` aliases that should be `lib.*` ───────────
   // (Templates haven't been re-saved since the namespace was flattened.)
   "nodetool.lib.image.draw.RenderText",
-  "nodetool.lib.image.enhance.Brightness",
-  "nodetool.lib.image.enhance.Contrast",
 
   // ── 5. Test-only input marker recognised by the kernel runner ──────────
   "test.Input"
