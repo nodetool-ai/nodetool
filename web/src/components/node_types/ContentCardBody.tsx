@@ -622,6 +622,10 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   }, [result, liveResolvedResult, lastJobAssets]);
 
   const isMediaVariant = MEDIA_VARIANTS.includes(variant);
+  // Text generations are persisted as text/plain assets (autoSaveAsset on
+  // Agent/Summarizer/Classifier), so the text card gets the same browsable,
+  // reload-surviving history navigator as media variants.
+  const usesHistoryNavigator = isMediaVariant || variant === "text";
 
   const isDynamic = !!nodeMetadata.supports_dynamic_inputs;
   const hasDynamicProps =
@@ -698,7 +702,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       data-content-card-variant={variant}
     >
       <div className="preview-area">
-        {isMediaVariant ? (
+        {usesHistoryNavigator ? (
           <NodeHistoryViewer
             workflowId={workflowId}
             nodeId={id}
