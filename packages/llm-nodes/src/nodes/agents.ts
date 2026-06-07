@@ -510,19 +510,34 @@ export function expandAssetReferences(prompt: string): MessageContent[] {
   return parts.length > 0 ? parts : [{ type: "text", text: prompt }];
 }
 
+/**
+ * Normalize a list-typed media input to an array. Accepts an array (the
+ * declared `list[image]`/`list[audio]` shape), a lone ref (defensive, in case
+ * coercion didn't run), or null/undefined.
+ */
+function toRefArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (value === null || value === undefined) return [];
+  return [value];
+}
+
 function buildUserMessage(
   prompt: string,
-  image: unknown,
-  audio: unknown
+  images: unknown,
+  audios: unknown
 ): Message {
   const content: MessageContent[] = expandAssetReferences(prompt);
-  const imageRef = normalizeBinaryRef(image);
-  if (imageRef) {
-    content.push({ type: "image_url", image: imageRef });
+  for (const image of toRefArray(images)) {
+    const imageRef = normalizeBinaryRef(image);
+    if (imageRef) {
+      content.push({ type: "image_url", image: imageRef });
+    }
   }
-  const audioRef = normalizeBinaryRef(audio);
-  if (audioRef) {
-    content.push({ type: "audio", audio: audioRef });
+  for (const audio of toRefArray(audios)) {
+    const audioRef = normalizeBinaryRef(audio);
+    if (audioRef) {
+      content.push({ type: "audio", audio: audioRef });
+    }
   }
   return { role: "user", content };
 }
@@ -2376,32 +2391,22 @@ export class AgentNode extends BaseNode {
   declare tools: string[];
 
   @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "The image to analyze"
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description:
+      "Images to attach to the prompt. Wire a list[image] source to send several at once, or a single Image (auto-wrapped into a one-item list). Each image becomes a separate block in the user message sent to the provider."
   })
-  declare image: ImageRef;
+  declare image: ImageRef[];
 
   @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    type: "list[audio]",
+    default: [],
     title: "Audio",
-    description: "The audio to analyze"
+    description:
+      "Audio clips to attach to the prompt. Wire a list[audio] source to send several at once, or a single Audio (auto-wrapped into a one-item list). Each clip becomes a separate block in the user message sent to the provider."
   })
-  declare audio: AudioRef;
+  declare audio: AudioRef[];
 
   @prop({
     type: "list[message]",
@@ -2503,8 +2508,8 @@ export class AgentNode extends BaseNode {
       asText(this.system ?? DEFAULT_SYSTEM_PROMPT),
       dynamicVars
     );
-    const image = this.image;
-    const audio = this.audio;
+    const images = this.image;
+    const audios = this.audio;
     const historyInput = this.history;
     const history = Array.isArray(historyInput)
       ? historyInput
@@ -2556,7 +2561,7 @@ export class AgentNode extends BaseNode {
       { role: "system", content: system },
       ...(await loadThreadMessages(context, threadId)),
       ...history,
-      buildUserMessage(prompt, image, audio)
+      buildUserMessage(prompt, images, audios)
     ];
     log.info("AgentNode prepared messages", {
       nodeId: this.__node_id ?? null,

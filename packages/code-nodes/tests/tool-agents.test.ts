@@ -167,17 +167,17 @@ describe("Agent-specific defaults", () => {
     expect(d.allow_mutation).toBe(false);
   });
 
-  it("FfmpegAgentNode has audio/video refs", () => {
+  it("FfmpegAgentNode has audio/video list inputs", () => {
     const node = new FfmpegAgentNode();
     const d = node.serialize();
-    expect(d.audio).toHaveProperty("type", "audio");
-    expect(d.video).toHaveProperty("type", "video");
+    expect(d.audio).toEqual([]);
+    expect(d.video).toEqual([]);
   });
 
-  it("ImageAgentNode has image ref and timeout 90", () => {
+  it("ImageAgentNode has image list input and timeout 90", () => {
     const node = new ImageAgentNode();
     const d = node.serialize();
-    expect(d.image).toHaveProperty("type", "image");
+    expect(d.image).toEqual([]);
     expect(d.timeout_seconds).toBe(90);
   });
 
@@ -193,6 +193,15 @@ describe("Agent-specific defaults", () => {
     const node = new PdfLibAgentNode();
     const d = node.serialize();
     expect(d.document).toHaveProperty("type", "document");
+  });
+
+  it("media-producing agents auto-save their asset outputs", () => {
+    // Image/audio/video agents persist their generated assets on job completion
+    // (assets table) like other generative media nodes.
+    expect(ImageAgentNode.autoSaveAsset).toBe(true);
+    expect(MediaAgentNode.autoSaveAsset).toBe(true);
+    expect(FfmpegAgentNode.autoSaveAsset).toBe(true);
+    expect(YtDlpDownloaderAgentNode.autoSaveAsset).toBe(true);
   });
 
   it("DocxAgentNode has timeout 300", () => {

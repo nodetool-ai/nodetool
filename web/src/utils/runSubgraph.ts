@@ -1,11 +1,11 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
+import { NodeMetadata } from "../stores/ApiTypes";
 import { resolveExternalEdgeValue } from "./edgeValue";
+import { EdgeOverrideCollector, applyNodeOverrides } from "./edgeOverrides";
 
 type GetResult = (_workflowId: string, _nodeId: string) => unknown;
-type GetMetadata = (
-  _nodeType: string
-) => { auto_save_asset?: boolean; title?: string } | undefined;
+type GetMetadata = (_nodeType: string) => NodeMetadata | undefined;
 
 export interface BlockedUpstream {
   nodeId: string;
@@ -21,34 +21,6 @@ export interface RunSubgraph {
   /** Uncached generative upstreams that must be executed before this run. */
   blocked: BlockedUpstream[];
 }
-
-const applyOverrides = (
-  node: Node<NodeData>,
-  overrides: Record<string, unknown> | undefined
-): Node<NodeData> => {
-  if (!overrides || Object.keys(overrides).length === 0) {
-    return node;
-  }
-  const dynamicProps = node.data?.dynamic_properties || {};
-  const staticProps = node.data?.properties || {};
-  const updatedDynamicProps = { ...dynamicProps };
-  const updatedStaticProps = { ...staticProps };
-  for (const [key, value] of Object.entries(overrides)) {
-    if (Object.prototype.hasOwnProperty.call(dynamicProps, key)) {
-      updatedDynamicProps[key] = value;
-    } else {
-      updatedStaticProps[key] = value;
-    }
-  }
-  return {
-    ...node,
-    data: {
-      ...node.data,
-      properties: updatedStaticProps,
-      dynamic_properties: updatedDynamicProps
-    }
-  };
-};
 
 const nodeTitle = (node: Node<NodeData>, getMetadata: GetMetadata): string => {
   const dataTitle = (node.data as { title?: unknown } | undefined)?.title;
@@ -96,15 +68,9 @@ export const buildRunSubgraph = ({
   }
 
   const included = new Set<string>([targetId]);
-  const overrides = new Map<string, Record<string, unknown>>();
+  const collector = new EdgeOverrideCollector();
   const blocked: BlockedUpstream[] = [];
   const blockedSeen = new Set<string>();
-
-  const setOverride = (nodeId: string, handle: string, value: unknown) => {
-    const existing = overrides.get(nodeId) ?? {};
-    existing[handle] = value;
-    overrides.set(nodeId, existing);
-  };
 
   const stack: string[] = [targetId];
   while (stack.length) {
@@ -122,7 +88,7 @@ export const buildRunSubgraph = ({
         findNode
       );
       if (hasValue) {
-        setOverride(currentId, edge.targetHandle, value);
+        collector.add(currentId, edge.targetHandle, value);
         continue;
       }
 
@@ -150,10 +116,12 @@ export const buildRunSubgraph = ({
     }
   }
 
+  const overrides = collector.resolve(findNode, getMetadata);
+
   const subgraphNodes = [...included]
     .map((id) => findNode(id))
     .filter((n): n is Node<NodeData> => Boolean(n))
-    .map((n) => applyOverrides(n, overrides.get(n.id)));
+    .map((n) => applyNodeOverrides(n, overrides.get(n.id)));
 
   const subgraphEdges = edges.filter(
     (e) => included.has(e.source) && included.has(e.target)
