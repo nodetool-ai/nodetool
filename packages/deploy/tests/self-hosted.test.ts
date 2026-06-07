@@ -712,57 +712,49 @@ describe("DockerDeployer", () => {
       );
     });
 
-    it("should handle stop failure gracefully (timeout)", async () => {
+    it("surfaces a stop failure as a Warning, not a false success", async () => {
       vi.mocked(execSync).mockImplementation((cmd: string) => {
-        const cmdStr = String(cmd);
-        if (cmdStr.includes("stop")) {
-          // Simulate a timeout/failure on the `docker stop` command.
-          const err = new Error("timeout") as any;
-          err.killed = true;
-          err.signal = "SIGTERM";
+        if (String(cmd).includes("stop")) {
+          const err = new Error("stop failed") as any;
+          err.status = 1;
           err.stdout = "";
-          err.stderr = "";
+          err.stderr = "no such container";
           throw err;
         }
         return "";
       });
 
-      // On the localhost (scoped-runner) path, LocalExecutor.execute(check=false)
-      // swallows a failed command and returns [-1, "", stderr] WITHOUT throwing.
-      // destroy() therefore never enters its SSHCommandError catch block, so the
-      // failing stop does not break destroy — it still completes successfully.
-      // (See suspected source divergence noted in the agent report: this differs
-      // from the SSH path, where a failed stop throws and yields a Warning step.)
+      // A failed `stop` is non-fatal, but it must be recorded as a Warning step
+      // — NOT silently reported as "Container stopped". destroy still completes
+      // (rm succeeds) and reaches DESTROYED.
       const result = await deployer.destroy();
       expect(result.status).toBe("success");
+      expect(result.steps.some((s) => /Failed to stop/i.test(s))).toBe(true);
+      expect(result.steps.some((s) => /Container stopped/i.test(s))).toBe(
+        false
+      );
       expect(mockStateManager.updateDeploymentStatus).toHaveBeenCalledWith(
         "test-deploy",
         "destroyed"
       );
     });
 
-    it("should complete destroy even when remove fails (timeout)", async () => {
+    it("fails the destroy when remove fails instead of reporting success", async () => {
       vi.mocked(execSync).mockImplementation((cmd: string) => {
-        const cmdStr = String(cmd);
-        if (cmdStr.includes("rm")) {
-          // Simulate a timeout/failure on the `docker rm` command.
-          const err = new Error("timeout") as any;
-          err.killed = true;
-          err.signal = "SIGTERM";
+        if (String(cmd).includes(" rm ")) {
+          const err = new Error("rm failed") as any;
+          err.status = 1;
           err.stdout = "";
-          err.stderr = "";
+          err.stderr = "no such container";
           throw err;
         }
         return "";
       });
 
-      // Same localhost contract as above: a failed `rm` with check=false is
-      // swallowed by LocalExecutor (returns [-1,...] instead of throwing), so
-      // destroy() does NOT rethrow and reaches DESTROYED. On the SSH path the
-      // same failure would rethrow (see suspected source divergence in report).
-      const result = await deployer.destroy();
-      expect(result.status).toBe("success");
-      expect(mockStateManager.updateDeploymentStatus).toHaveBeenCalledWith(
+      // A failed `rm` must reject the destroy and NOT mark the deployment
+      // destroyed — previously this was swallowed and reported as success.
+      await expect(deployer.destroy()).rejects.toThrow();
+      expect(mockStateManager.updateDeploymentStatus).not.toHaveBeenCalledWith(
         "test-deploy",
         "destroyed"
       );

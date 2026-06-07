@@ -1042,11 +1042,14 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
         const containerName = this.containerName();
         const runtime = this.runtimeCommandForShell();
 
-        // Stop container
+        // Stop container. check=true so a failed `stop` throws and is reported
+        // as a Warning step below — otherwise the failure is swallowed and we
+        // would record a false "Container stopped" success (localhost and SSH
+        // both honor the check flag).
         try {
           await ssh.execute(
             `${runtime} stop ${safeShellQuote(containerName)}`,
-            false,
+            true,
             30
           );
           results.steps.push(`Container stopped: ${containerName}`);
@@ -1058,11 +1061,13 @@ export class DockerDeployer extends BaseSSHDeployer<DockerDeployment> {
           }
         }
 
-        // Remove container
+        // Remove container. check=true so a failed `rm` throws; we record the
+        // error and rethrow to fail the destroy rather than reporting a false
+        // "Container removed" success.
         try {
           await ssh.execute(
             `${runtime} rm ${safeShellQuote(containerName)}`,
-            false,
+            true,
             30
           );
           results.steps.push(`Container removed: ${containerName}`);
