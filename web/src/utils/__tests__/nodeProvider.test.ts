@@ -87,6 +87,10 @@ describe("nodeProvider", () => {
       expect(getProviderKindForNamespace("anthropic")).toBe("api");
       expect(getProviderKindForNamespace("replicate")).toBe("api");
       expect(getProviderKindForNamespace("fal")).toBe("api");
+      expect(getProviderKindForNamespace("atlascloud")).toBe("api");
+      expect(getProviderKindForNamespace("xai")).toBe("api");
+      expect(getProviderKindForNamespace("together")).toBe("api");
+      expect(getProviderKindForNamespace("minimax")).toBe("api");
     });
 
     it('returns "local" for local-only namespaces', () => {
