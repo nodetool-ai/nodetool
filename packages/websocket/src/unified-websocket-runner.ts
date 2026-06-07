@@ -247,12 +247,7 @@ function extractCloudKey(uri: string): string | null {
 
 const ASSET_MEDIA_TYPES = new Set(["image", "audio", "video"]);
 
-/**
- * Cap on the inline-preview text stored in a text generation's asset metadata.
- * The full text is always in the asset bytes; this just bounds the row size so a
- * very large generation doesn't bloat the assets table. ~200 KB comfortably
- * covers normal agent/summarizer output.
- */
+/** Byte cap for inline-preview text stored in a text generation's asset metadata. */
 const TEXT_GENERATION_PREVIEW_CAP = 200_000;
 
 /**
