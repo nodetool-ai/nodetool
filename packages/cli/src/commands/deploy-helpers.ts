@@ -48,9 +48,10 @@ import {
   type WorkflowSyncerDeps,
   type AssetInfo
 } from "@nodetool-ai/deploy";
-import { Asset, Workflow } from "@nodetool-ai/models";
+import { Asset, Workflow, getSecret, initDb } from "@nodetool-ai/models";
 import { FileStorageAdapter } from "@nodetool-ai/runtime";
-import { getDefaultAssetsPath } from "@nodetool-ai/config";
+import { getDefaultAssetsPath, getDefaultDbPath } from "@nodetool-ai/config";
+import { initMasterKey } from "@nodetool-ai/security";
 
 // ---------------------------------------------------------------------------
 // Output helpers (duplicated from nodetool.ts so the CLI root stays simple)
@@ -304,10 +305,71 @@ function buildSingleUserContext(): DeploymentContext {
   return { userId: LOCAL_USER_ID, credentials, scratchDir };
 }
 
-export async function getManager(): Promise<DeploymentManager> {
+let secretStoreReady = false;
+
+/**
+ * Open the local SQLite DB and unlock the master key so per-user secrets can be
+ * decrypted. Idempotent — safe to call from any deploy command that needs the
+ * secret store.
+ */
+async function ensureSecretStore(): Promise<void> {
+  if (secretStoreReady) return;
+  initDb(getDefaultDbPath());
+  try {
+    await initMasterKey();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(
+      `Could not unlock the secret store: ${msg}\n` +
+        `Tip: set SECRETS_MASTER_KEY or grant keychain access.\n`
+    );
+  }
+  secretStoreReady = true;
+}
+
+/**
+ * Build a {@link DeploymentContext} whose credentials come from the per-user
+ * Secret store (DB) instead of `process.env`. Used by the `--user` flag to
+ * exercise the multi-user credential path: each known credential key is
+ * resolved via `getSecret(key, userId)`; absent keys are omitted so the
+ * deployers' config-supplied fallbacks still apply.
+ */
+export async function buildUserContext(
+  userId: string
+): Promise<DeploymentContext> {
+  await ensureSecretStore();
+  const credentials: Record<string, string> = {};
+  for (const key of SINGLE_USER_CREDENTIAL_ENV_KEYS) {
+    const value = await getSecret(key, userId);
+    if (value !== null && value !== "") {
+      credentials[key] = value;
+    }
+  }
+
+  const scratchDir = mkdtempSync(join(tmpdir(), "nodetool-deploy-cli-"));
+  process.once("exit", () => {
+    rmSync(scratchDir, { recursive: true, force: true });
+  });
+
+  return { userId, credentials, scratchDir };
+}
+
+/**
+ * Build a {@link DeploymentManager} for the deployment.yaml config.
+ *
+ * Without `userId`, credentials are lifted from `process.env` (single-user CLI
+ * default). With `userId`, credentials are resolved from that user's Secret
+ * store (DB), so `nodetool deploy apply <name> --user <id>` tests the per-user
+ * credential path with the same deployment definitions.
+ */
+export async function getManager(opts?: {
+  userId?: string;
+}): Promise<DeploymentManager> {
   const config = await loadConfigOrExit();
   const state = new StateManager();
-  const ctx = buildSingleUserContext();
+  const ctx = opts?.userId
+    ? await buildUserContext(opts.userId)
+    : buildSingleUserContext();
   return new DeploymentManager(config, state, defaultDeployerFactories(), ctx);
 }
 

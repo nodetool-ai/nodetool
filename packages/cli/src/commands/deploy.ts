@@ -174,6 +174,11 @@ function parsePort(raw: string, label: string): number {
 // Public registration hooks
 // ---------------------------------------------------------------------------
 
+/** Help text for the shared `--user <id>` credential-source option. */
+const USER_CRED_OPT_DESC =
+  "Resolve credentials from the per-user secret store (DB) for this user id " +
+  "instead of environment variables";
+
 export function registerDeployCommands(program: Command): void {
   const deploy = program
     .command("deploy")
@@ -468,9 +473,10 @@ function registerPlan(deploy: Command): void {
   deploy
     .command("plan <name>")
     .description("Show what 'apply' would do")
+    .option("--user <id>", USER_CRED_OPT_DESC)
     .action(
-      runAction(async (name: string) => {
-        const mgr = await getManager();
+      runAction(async (name: string, opts: { user?: string }) => {
+        const mgr = await getManager({ userId: opts.user });
         const plan = await mgr.plan(name);
         asJson(plan);
       })
@@ -482,13 +488,18 @@ function registerApply(deploy: Command): void {
     .command("apply <name>")
     .description("Deploy to its target platform")
     .option("--dry-run", "Show what would be done without executing")
+    .option("--user <id>", USER_CRED_OPT_DESC)
     .action(
-      runAction(async (name: string, opts: { dryRun?: boolean }) => {
-        const mgr = await getManager();
-        const result = await mgr.apply(name, { dryRun: Boolean(opts.dryRun) });
-        asJson(result);
-        if (result["status"] === "error") process.exit(1);
-      })
+      runAction(
+        async (name: string, opts: { dryRun?: boolean; user?: string }) => {
+          const mgr = await getManager({ userId: opts.user });
+          const result = await mgr.apply(name, {
+            dryRun: Boolean(opts.dryRun)
+          });
+          asJson(result);
+          if (result["status"] === "error") process.exit(1);
+        }
+      )
     );
 }
 
@@ -496,9 +507,10 @@ function registerStatus(deploy: Command): void {
   deploy
     .command("status <name>")
     .description("Show the current status of a deployment")
+    .option("--user <id>", USER_CRED_OPT_DESC)
     .action(
-      runAction(async (name: string) => {
-        const mgr = await getManager();
+      runAction(async (name: string, opts: { user?: string }) => {
+        const mgr = await getManager({ userId: opts.user });
         const status = await mgr.status(name);
         asJson(status);
       })
@@ -514,14 +526,20 @@ function registerLogs(deploy: Command): void {
     .option("--service <service>", "Service/container name")
     .option("-f, --follow", "Follow logs")
     .option("--tail <n>", "Number of lines to tail", "100")
+    .option("--user <id>", USER_CRED_OPT_DESC)
     .action(
       runAction(
         async (
           name: string,
-          opts: { service?: string; follow?: boolean; tail: string }
+          opts: {
+            service?: string;
+            follow?: boolean;
+            tail: string;
+            user?: string;
+          }
         ) => {
           const tail = parsePositiveInt(opts.tail, "--tail");
-          const mgr = await getManager();
+          const mgr = await getManager({ userId: opts.user });
           const text = await mgr.logs(name, {
             service: opts.service,
             follow: Boolean(opts.follow),
@@ -539,19 +557,22 @@ function registerDestroy(deploy: Command): void {
     .command("destroy <name>")
     .description("Tear down a deployment")
     .option("--force", "Skip confirmation")
+    .option("--user <id>", USER_CRED_OPT_DESC)
     .action(
-      runAction(async (name: string, opts: { force?: boolean }) => {
-        const ok = await confirm(
-          `Destroy '${name}'? This action is irreversible.`,
-          { force: Boolean(opts.force) }
-        );
-        if (!ok) return;
-        const mgr = await getManager();
-        const result = await mgr.destroy(name, {
-          force: Boolean(opts.force)
-        });
-        asJson(result);
-      })
+      runAction(
+        async (name: string, opts: { force?: boolean; user?: string }) => {
+          const ok = await confirm(
+            `Destroy '${name}'? This action is irreversible.`,
+            { force: Boolean(opts.force) }
+          );
+          if (!ok) return;
+          const mgr = await getManager({ userId: opts.user });
+          const result = await mgr.destroy(name, {
+            force: Boolean(opts.force)
+          });
+          asJson(result);
+        }
+      )
     );
 }
 
