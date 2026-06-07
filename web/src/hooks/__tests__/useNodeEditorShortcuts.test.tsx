@@ -8,7 +8,8 @@ import {
 const mockOpenNodeMenu = jest.fn();
 
 jest.mock("../../stores/KeyPressedStore", () => ({
-  registerComboCallback: jest.fn(),
+  // registerComboCallback returns a disposer; hand back a no-op so cleanup works
+  registerComboCallback: jest.fn(() => jest.fn()),
   unregisterComboCallback: jest.fn()
 }));
 

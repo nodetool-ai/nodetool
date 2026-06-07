@@ -535,6 +535,96 @@ describe("KeyPressedStore", () => {
     });
   });
 
+  describe("stacked combo registrations (scoping)", () => {
+    // These cover the regression where a single shared slot per combo meant the
+    // last mount overwrote earlier bindings and the first unmount deleted the
+    // binding for every still-mounted component (e.g. several modals + the
+    // toolbar all bind "escape"), so shortcuts intermittently stopped working.
+
+    const pressEscape = () => {
+      (document.body as HTMLElement).focus();
+      const { setKeysPressed } = useKeyPressedStore.getState();
+      act(() => {
+        setKeysPressed(
+          { escape: true },
+          new KeyboardEvent("keydown", { key: "Escape" })
+        );
+        setKeysPressed({ escape: false });
+      });
+    };
+
+    it("fires the most recently registered binding for a shared combo", () => {
+      const first = jest.fn();
+      const second = jest.fn();
+      const disposeFirst = registerComboCallback("escape", { callback: first });
+      const disposeSecond = registerComboCallback("escape", {
+        callback: second
+      });
+
+      pressEscape();
+
+      expect(second).toHaveBeenCalledTimes(1);
+      expect(first).not.toHaveBeenCalled();
+
+      disposeFirst();
+      disposeSecond();
+    });
+
+    it("keeps other bindings for the same combo when one is disposed", () => {
+      const toolbar = jest.fn();
+      const modal = jest.fn();
+      const disposeToolbar = registerComboCallback("escape", {
+        callback: toolbar
+      });
+      const disposeModal = registerComboCallback("escape", { callback: modal });
+
+      // Modal (registered last) unmounts — the toolbar binding must survive.
+      disposeModal();
+      pressEscape();
+
+      expect(toolbar).toHaveBeenCalledTimes(1);
+      expect(modal).not.toHaveBeenCalled();
+
+      disposeToolbar();
+    });
+
+    it("disposes the exact binding by identity, not the newest", () => {
+      const a = jest.fn();
+      const b = jest.fn();
+      const disposeA = registerComboCallback("escape", { callback: a });
+      const disposeB = registerComboCallback("escape", { callback: b });
+
+      // Dispose the FIRST registration; the second (topmost) must still win.
+      disposeA();
+      pressEscape();
+
+      expect(b).toHaveBeenCalledTimes(1);
+      expect(a).not.toHaveBeenCalled();
+
+      disposeB();
+    });
+
+    it("falls through to an active binding when the topmost is inactive", () => {
+      const background = jest.fn();
+      const foreground = jest.fn();
+      const disposeBg = registerComboCallback("escape", {
+        callback: background
+      });
+      const disposeFg = registerComboCallback("escape", {
+        callback: foreground,
+        active: false
+      });
+
+      pressEscape();
+
+      expect(background).toHaveBeenCalledTimes(1);
+      expect(foreground).not.toHaveBeenCalled();
+
+      disposeBg();
+      disposeFg();
+    });
+  });
+
   describe("helper functions", () => {
     it("isKeyPressed returns correct value", () => {
       const { setKeysPressed, isKeyPressed } = useKeyPressedStore.getState();
