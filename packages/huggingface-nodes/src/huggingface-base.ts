@@ -49,8 +49,22 @@ export function isRefSet(ref: MediaRef | undefined | null): ref is MediaRef {
   return !!ref && (!!ref.uri || !!ref.data);
 }
 
+/**
+ * Minimal structural view of the ProcessingContext that a node's `process()`
+ * receives. We only need `resolveAssetBytes` here, which resolves NodeTool's
+ * own reference schemes (`asset://<id>`, `package://<pkg>/<path>`, storage
+ * URIs). Typed structurally to keep this package free of a `@nodetool-ai/runtime`
+ * dependency.
+ */
+export type AssetResolveContext =
+  | { resolveAssetBytes?: (uri: string) => Promise<{ bytes: Uint8Array | null }> }
+  | undefined;
+
 /** Read the raw bytes behind an image/audio/video ref (data URI, base64, or URL). */
-export async function refToBytes(ref: MediaRef): Promise<Uint8Array> {
+export async function refToBytes(
+  ref: MediaRef,
+  context?: AssetResolveContext
+): Promise<Uint8Array> {
   const data = ref.data;
   if (data instanceof Uint8Array) {
     return data;
@@ -67,18 +81,33 @@ export async function refToBytes(ref: MediaRef): Promise<Uint8Array> {
       const base64 = uri.slice(uri.indexOf(",") + 1);
       return new Uint8Array(Buffer.from(base64, "base64"));
     }
-    const res = await fetch(uri);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch media from ${uri}: ${res.status}`);
+    const isHttp = uri.startsWith("http://") || uri.startsWith("https://");
+    // NodeTool reference schemes (asset://, package://) and storage URIs are
+    // not fetchable directly — resolve them through the ProcessingContext.
+    if (!isHttp && context?.resolveAssetBytes) {
+      const { bytes } = await context.resolveAssetBytes(uri);
+      if (bytes) {
+        return bytes;
+      }
+      throw new Error(`Failed to resolve media from ${uri}`);
     }
-    return new Uint8Array(await res.arrayBuffer());
+    if (isHttp) {
+      const res = await fetch(uri);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch media from ${uri}: ${res.status}`);
+      }
+      return new Uint8Array(await res.arrayBuffer());
+    }
   }
   throw new Error("Media input is empty — provide an image/audio/video.");
 }
 
 /** Read a media ref as a base64 string (no `data:` prefix), as the API expects. */
-export async function refToBase64(ref: MediaRef): Promise<string> {
-  const bytes = await refToBytes(ref);
+export async function refToBase64(
+  ref: MediaRef,
+  context?: AssetResolveContext
+): Promise<string> {
+  const bytes = await refToBytes(ref, context);
   return Buffer.from(bytes).toString("base64");
 }
 
