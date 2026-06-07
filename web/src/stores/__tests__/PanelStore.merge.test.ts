@@ -50,11 +50,11 @@ describe("PanelStore merge (legacy migration)", () => {
     expect(result.panel.activeNodeCategory).toBe("all");
   });
 
-  it("migrates node-category ID to nodes view with subcategory", () => {
+  it("migrates a legacy node-category view id to the renamed subcategory", () => {
     const cs = currentState();
     const result = merge({ panel: { activeView: "image-models" } }, cs);
     expect(result.panel.activeView).toBe("nodes");
-    expect(result.panel.activeNodeCategory).toBe("image-models");
+    expect(result.panel.activeNodeCategory).toBe("image-ai");
   });
 
   it("preserves valid view names", () => {
@@ -96,10 +96,19 @@ describe("PanelStore merge (legacy migration)", () => {
   it("preserves valid activeNodeCategory from persisted state", () => {
     const cs = currentState();
     const result = merge(
+      { panel: { activeView: "nodes", activeNodeCategory: "image-ai" } },
+      cs
+    );
+    expect(result.panel.activeNodeCategory).toBe("image-ai");
+  });
+
+  it("aliases a legacy persisted activeNodeCategory (tools → image)", () => {
+    const cs = currentState();
+    const result = merge(
       { panel: { activeView: "nodes", activeNodeCategory: "tools" } },
       cs
     );
-    expect(result.panel.activeNodeCategory).toBe("tools");
+    expect(result.panel.activeNodeCategory).toBe("image");
   });
 
   it("ignores invalid activeNodeCategory", () => {
