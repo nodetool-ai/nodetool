@@ -19,6 +19,9 @@ __pycache__
 build/
 coverage/
 dist/
+# Stryker mutation testing
+**/reports/mutation/
+**/.stryker-tmp/
 electron/dist/
 electron/dist-web/
 electron/dist-electron/
