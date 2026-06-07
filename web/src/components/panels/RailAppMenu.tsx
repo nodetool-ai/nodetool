@@ -10,13 +10,19 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
+import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
+import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
 
+import { isProduction } from "../../lib/env";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import Help from "../content/Help/Help";
 import Logo from "../Logo";
 import { Popover, MenuItemPrimitive, Tooltip } from "../ui_primitives";
+
+const workspacesEnabled = !isProduction;
 
 const logoButtonStyles = (theme: Theme) =>
   css({
@@ -88,6 +94,21 @@ const RailAppMenu: React.FC = () => {
 
   const goCosts = useCallback(() => {
     navigate("/costs");
+    close();
+  }, [navigate, close]);
+
+  const goModels = useCallback(() => {
+    navigate("/models");
+    close();
+  }, [navigate, close]);
+
+  const goCollections = useCallback(() => {
+    navigate("/collections");
+    close();
+  }, [navigate, close]);
+
+  const goWorkspaces = useCallback(() => {
+    navigate("/workspaces");
     close();
   }, [navigate, close]);
 
@@ -165,6 +186,25 @@ const RailAppMenu: React.FC = () => {
             onClick={goCosts}
             dividerAfter
           />
+          <MenuItemPrimitive
+            label="Model Manager"
+            icon={<ViewInArOutlinedIcon />}
+            onClick={goModels}
+          />
+          <MenuItemPrimitive
+            label="Collections"
+            icon={<LibraryBooksOutlinedIcon />}
+            onClick={goCollections}
+            dividerAfter={!workspacesEnabled}
+          />
+          {workspacesEnabled && (
+            <MenuItemPrimitive
+              label="Workspaces"
+              icon={<FolderSpecialOutlinedIcon />}
+              onClick={goWorkspaces}
+              dividerAfter
+            />
+          )}
           <MenuItemPrimitive
             label="Settings"
             icon={<SettingsIcon />}
