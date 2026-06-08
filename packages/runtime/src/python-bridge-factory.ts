@@ -18,6 +18,11 @@
  *
  * `options.wsUrl` takes precedence over the env var, so programmatic and test
  * callers can force the WebSocket transport without mutating the environment.
+ *
+ * Auth: the WebSocket bridge's shared-secret bearer token is sourced the same
+ * way — `options.workerToken ?? process.env.NODETOOL_WORKER_TOKEN`. When set,
+ * the bridge sends `Authorization: Bearer <token>` on connect and every
+ * reconnect; when unset/empty, no header is sent.
  */
 
 import { PythonStdioBridge } from "./python-stdio-bridge.js";
@@ -37,7 +42,13 @@ export function createPythonBridge(
 ): PythonBridgeBase {
   const wsUrl = options.wsUrl ?? process.env["NODETOOL_WORKER_URL"];
   if (wsUrl && wsUrl.trim()) {
-    return new WebsocketPythonBridge({ ...options, wsUrl: wsUrl.trim() });
+    const workerToken =
+      options.workerToken ?? process.env["NODETOOL_WORKER_TOKEN"];
+    return new WebsocketPythonBridge({
+      ...options,
+      wsUrl: wsUrl.trim(),
+      workerToken
+    });
   }
   return new PythonStdioBridge(options);
 }

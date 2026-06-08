@@ -12,6 +12,7 @@ import { AddressInfo } from "node:net";
 import * as msgpack from "@msgpack/msgpack";
 
 import { WebsocketPythonBridge } from "../src/python-websocket-bridge.js";
+import { createPythonBridge } from "../src/python-bridge-factory.js";
 
 const FAKE_NODE = {
   node_type: "fake.TestNode",
@@ -47,6 +48,12 @@ interface FakeWorkerHandle {
   discoverCount: () => number;
   /** Total number of client connections accepted over the worker's lifetime. */
   connectionCount: () => number;
+  /**
+   * The `Authorization` header from each accepted handshake, in connection
+   * order. `undefined` when the client sent no such header. One entry per
+   * connection (so reconnects append further entries).
+   */
+  authHeaders: () => Array<string | undefined>;
   /** Currently connected sockets. */
   sockets: () => Set<WsServerSocket>;
   /** Mutate behavior at runtime (e.g. start answering discover after a drop). */
@@ -63,6 +70,7 @@ function startFakeWorker(
 ): Promise<FakeWorkerHandle> {
   const wss = new WebSocketServer({ port });
   const sockets = new Set<WsServerSocket>();
+  const authHeaders: Array<string | undefined> = [];
   let discovers = 0;
   let connections = 0;
   const opts: Required<FakeWorkerOptions> = {
@@ -72,8 +80,11 @@ function startFakeWorker(
     streamMode: initialOptions.streamMode ?? "chunks"
   };
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", (ws, request) => {
     connections += 1;
+    // Record the handshake Authorization header (one entry per connection, so
+    // reconnects append). The header survives the WS upgrade on request.headers.
+    authHeaders.push(request.headers["authorization"]);
     sockets.add(ws);
     ws.binaryType = "nodebuffer";
     ws.on("close", () => sockets.delete(ws));
@@ -208,6 +219,7 @@ function startFakeWorker(
           }),
         discoverCount: () => discovers,
         connectionCount: () => connections,
+        authHeaders: () => authHeaders,
         sockets: () => sockets,
         setOptions: (next: FakeWorkerOptions) => {
           Object.assign(opts, next);
@@ -613,5 +625,91 @@ describe("WebsocketPythonBridge", () => {
       seen.push(chunk.content);
     }
     expect(seen).toEqual(["p-chunk-1", "p-chunk-2"]);
+  });
+
+  it("sends Authorization: Bearer on connect when a workerToken is set", async () => {
+    worker = await startFakeWorker();
+    bridge = new WebsocketPythonBridge({
+      wsUrl: `ws://127.0.0.1:${worker.port}`,
+      workerToken: "s3cret-token"
+    });
+    await bridge.connect();
+
+    // Non-vacuous: assert the worker actually saw exactly one handshake and that
+    // it carried the bearer header. Guards against a header that is silently
+    // dropped (which would leave authHeaders[0] === undefined).
+    expect(worker.authHeaders()).toEqual(["Bearer s3cret-token"]);
+  });
+
+  it("re-sends Authorization: Bearer on every reconnect", async () => {
+    // The reconnect path builds a fresh socket; the header must be applied there
+    // too, not just on the initial connect.
+    worker = await startFakeWorker();
+    const port = worker.port;
+    bridge = new WebsocketPythonBridge({
+      wsUrl: `ws://127.0.0.1:${port}`,
+      workerToken: "reconnect-token",
+      maxReconnectDelayMs: 50
+    });
+    await bridge.connect();
+    expect(worker.authHeaders()).toEqual(["Bearer reconnect-token"]);
+
+    let reconnected = false;
+    bridge.on("reconnected", () => {
+      reconnected = true;
+    });
+
+    // Drop the worker and bring it back on the same port; the bridge reconnects
+    // on its own, opening a second socket that must also carry the bearer header.
+    await worker.close();
+    worker = await startFakeWorker(port);
+
+    await waitFor(() => reconnected, 10000);
+    expect(bridge.isConnected).toBe(true);
+    // The fresh worker only saw the reconnect handshake — it too is authed.
+    expect(worker.authHeaders()).toEqual(["Bearer reconnect-token"]);
+  });
+
+  it("sends no Authorization header when no workerToken is configured", async () => {
+    worker = await startFakeWorker();
+    bridge = new WebsocketPythonBridge({
+      wsUrl: `ws://127.0.0.1:${worker.port}`
+    });
+    await bridge.connect();
+
+    expect(worker.authHeaders()).toEqual([undefined]);
+  });
+
+  it("treats an empty-string workerToken as unset (no header)", async () => {
+    worker = await startFakeWorker();
+    bridge = new WebsocketPythonBridge({
+      wsUrl: `ws://127.0.0.1:${worker.port}`,
+      workerToken: ""
+    });
+    await bridge.connect();
+
+    expect(worker.authHeaders()).toEqual([undefined]);
+  });
+
+  it("createPythonBridge threads NODETOOL_WORKER_TOKEN into the handshake", async () => {
+    // End-to-end through the factory: with only the env vars set, the bridge it
+    // builds must carry the bearer header on the handshake. Proves the factory
+    // sources the token from NODETOOL_WORKER_TOKEN (not just the constructor).
+    worker = await startFakeWorker();
+    const savedUrl = process.env["NODETOOL_WORKER_URL"];
+    const savedToken = process.env["NODETOOL_WORKER_TOKEN"];
+    process.env["NODETOOL_WORKER_URL"] = `ws://127.0.0.1:${worker.port}`;
+    process.env["NODETOOL_WORKER_TOKEN"] = "env-token";
+    try {
+      bridge = createPythonBridge() as WebsocketPythonBridge;
+      expect(bridge).toBeInstanceOf(WebsocketPythonBridge);
+      await bridge.connect();
+      expect(worker.authHeaders()).toEqual(["Bearer env-token"]);
+    } finally {
+      if (savedUrl === undefined) delete process.env["NODETOOL_WORKER_URL"];
+      else process.env["NODETOOL_WORKER_URL"] = savedUrl;
+      if (savedToken === undefined) delete process.env["NODETOOL_WORKER_TOKEN"];
+      else process.env["NODETOOL_WORKER_TOKEN"] = savedToken;
+    }
   });
 });
