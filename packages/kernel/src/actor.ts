@@ -567,6 +567,7 @@ export class NodeActor {
             const env = bucket.shift()!;
             envelopes.set(h, env);
             values[h] = env.data;
+            // Stryker disable next-line ConditionalExpression,EqualityOperator: deleting an emptied bucket vs leaving it is a memory optimisation — an empty bucket is treated as not-ready, identical to absent
             if (bucket.length === 0) maxBuckets.get(h)!.delete(key);
           }
         } else if (cls === "prefix") {
@@ -624,8 +625,10 @@ export class NodeActor {
     // Pre-seed: if any handle starts with no upstream (closed), nothing
     // arrives. Continue and let the loop terminate.
     for await (const [handle, envelope] of this.inbox.iterAnyWithEnvelope()) {
+      // Stryker disable next-line ConditionalExpression,StringLiteral: redundant with the cls===undefined guard below — __control__ is never in handleClass, so it is skipped either way
       if (handle === "__control__") continue;
       const cls = handleClass.get(handle);
+      // Stryker disable next-line ConditionalExpression: defensive — every yielded data handle was classified above; an unclassified handle cannot occur
       if (cls === undefined) continue;
 
       if (cls === "max") {
@@ -919,6 +922,7 @@ export class NodeActor {
   private _mintIterationFrameOverrides(
     frame: Record<string, unknown>
   ): Record<string, unknown> | null {
+    // Stryker disable next-line ConditionalExpression: defensive — only reached on the correlated streaming path where _correlation is set
     if (!this._correlation) return null;
     const declared = this.node.output_correlation;
     if (!declared) return null;
@@ -1027,6 +1031,7 @@ export class NodeActor {
     const corr = this.node.output_correlation?.[slot];
     if (!corr || corr.kind !== "aggregate") return undefined;
     if (corr.collapse !== "innermost") return undefined;
+    // Stryker disable next-line ConditionalExpression: defensive — aggregate slots only exist under correlation
     if (!this._correlation) return undefined;
 
     // The source input handle's scope ends with the root to collapse.

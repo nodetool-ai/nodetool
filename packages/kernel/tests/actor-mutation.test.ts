@@ -852,3 +852,87 @@ describe("NodeActor – non-iteration output correlation", () => {
     expect("invocationLineage" in hints).toBe(false);
   });
 });
+
+describe("NodeActor – edge cases (batch)", () => {
+  it("emits null properties in node status when properties is not an object", async () => {
+    const node = makeNode({ is_streaming_input: true, properties: "weird" as never });
+    const inbox = new NodeInbox();
+    const executor: NodeExecutor = { async process() { return {}; } };
+    const { actor, messages } = createActor(node, inbox, executor);
+    await actor.run();
+    expect(statusMsg(messages, "running")?.properties).toBeNull();
+  });
+
+  it("skips empty genProcess frames without sending output", async () => {
+    const node = makeNode({ is_streaming_output: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async *genProcess() {
+        yield {}; // empty frame -> skipped
+        yield { real: 1 };
+      }
+    };
+    const { executor: _e } = trackingExecutor(() => ({}));
+    void _e;
+    const { actor, sentOutputs } = createActor(makeNode({ is_streaming_output: true }), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    expect(sentOutputs.map((s) => s.outputs)).toEqual([{ real: 1 }]);
+  });
+
+  it("reuses the frame-minted token across iteration siblings in genProcess", async () => {
+    const node = makeNode({
+      is_streaming_output: true,
+      output_correlation: {
+        output: { kind: "iteration", source: "__execution__", group: "g" },
+        index: { kind: "iteration", source: "__execution__", group: "g" }
+      }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async *genProcess() {
+        yield { output: "item", index: 0 };
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    const ps = (sentOutputs[0].hints as { perSlotLineage: Record<string, Record<string, { index: number }>> }).perSlotLineage;
+    // output and index (same group) share the one minted token.
+    expect(ps.output["n1:g"].index).toBe(0);
+    expect(ps.index["n1:g"].index).toBe(0);
+  });
+
+  it("fires a no-max node with a single prefix-sticky value", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("cfg", 1);
+    inbox.addUpstream("cfg2", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], {
+        cfg: [["r"], false],
+        cfg2: [["r"], false]
+      })
+    });
+    await inbox.put("cfg", "C1", { correlation_lineage: lin({ r: 0 }) });
+    await inbox.put("cfg2", "C2", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("cfg");
+    inbox.markSourceDone("cfg2");
+    await actor.run();
+    expect(calls).toEqual([{ cfg: "C1", cfg2: "C2" }]);
+  });
+});
