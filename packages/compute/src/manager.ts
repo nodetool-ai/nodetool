@@ -14,6 +14,7 @@
 
 import { randomBytes } from "node:crypto";
 
+import { createLogger } from "@nodetool-ai/config";
 import {
   createWorkerInstance as realCreateWorkerInstance,
   createWorkerProfile as realCreateWorkerProfile,
@@ -41,6 +42,8 @@ import type {
   WorkerStatus,
   WorkerTarget,
 } from "./providers/types.js";
+
+const log = createLogger("nodetool.compute.manager");
 
 /** Local desktop user id used for secret-store reads (shared with the CLI). */
 const LOCAL_USER_ID = "1";
@@ -203,18 +206,40 @@ export class WorkerManager {
 
     const result = await provider.provision(spec);
 
-    const instance = await this.deps.createWorkerInstance({
-      profile_name: profile.name,
-      target,
-      provider_ref: result.providerRef,
-      ws_url: result.wsUrl,
-      token: result.token ?? null,
-      estimated_cost_usd: result.costUsd ?? null,
-    });
+    // The provider now holds a billable resource. If persisting it to the
+    // registry fails, the resource would be orphaned — untracked and billing,
+    // recoverable only via reconcile(). Compensate by tearing it down, then
+    // re-throw the original DB error so the caller sees the real cause.
+    try {
+      const instance = await this.deps.createWorkerInstance({
+        profile_name: profile.name,
+        target,
+        provider_ref: result.providerRef,
+        ws_url: result.wsUrl,
+        token: result.token ?? null,
+        estimated_cost_usd: result.costUsd ?? null,
+      });
 
-    return this.deps.updateWorkerInstance(instance.id, {
-      status: result.status,
-    });
+      return await this.deps.updateWorkerInstance(instance.id, {
+        status: result.status,
+      });
+    } catch (error) {
+      log.error(
+        "Failed to persist provisioned worker; tearing down the orphaned " +
+          "provider resource to stop billing",
+        { target, providerRef: result.providerRef, error }
+      );
+      try {
+        await provider.stop(result.providerRef);
+      } catch (stopError) {
+        log.error(
+          "Compensating stop() of the orphaned provider resource also " +
+            "failed; it may still be billing and require manual teardown",
+          { target, providerRef: result.providerRef, error: stopError }
+        );
+      }
+      throw error;
+    }
   }
 
   /** Tear down a worker's provider resource and mark its instance stopped. */

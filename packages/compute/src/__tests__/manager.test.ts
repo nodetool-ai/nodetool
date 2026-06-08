@@ -301,6 +301,49 @@ describe("WorkerManager — provision", () => {
     const { manager } = makeManager();
     await expect(manager.provision("missing")).rejects.toThrow(/missing/);
   });
+
+  it("stops the just-provisioned provider resource when the DB create fails, then re-throws the DB error", async () => {
+    const dbError = new Error("createWorkerInstance failed: constraint");
+    const createWorkerInstance = vi.fn(async () => {
+      throw dbError;
+    });
+    const { manager, provider } = makeManager({ createWorkerInstance });
+    await manager.createProfile(PROFILE_INPUT);
+
+    await expect(manager.provision("hf-a40")).rejects.toThrow(dbError);
+
+    // The provider made a billable pod; with the DB write failed it would be
+    // untracked, so it must be torn down rather than left orphaned.
+    expect(provider.stopped).toEqual(["pod-1"]);
+  });
+
+  it("stops the just-provisioned provider resource when the status update fails, then re-throws", async () => {
+    const dbError = new Error("updateWorkerInstance failed");
+    const updateWorkerInstance = vi.fn(async () => {
+      throw dbError;
+    });
+    const { manager, provider } = makeManager({ updateWorkerInstance });
+    await manager.createProfile(PROFILE_INPUT);
+
+    await expect(manager.provision("hf-a40")).rejects.toThrow(dbError);
+
+    expect(provider.stopped).toEqual(["pod-1"]);
+  });
+
+  it("re-throws the original DB error even when the compensating stop() also fails", async () => {
+    const dbError = new Error("createWorkerInstance failed");
+    const createWorkerInstance = vi.fn(async () => {
+      throw dbError;
+    });
+    const { manager, provider } = makeManager({ createWorkerInstance });
+    provider.stop = vi.fn(async () => {
+      throw new Error("stop also failed");
+    });
+    await manager.createProfile(PROFILE_INPUT);
+
+    // The original DB error is surfaced, not masked by the stop() failure.
+    await expect(manager.provision("hf-a40")).rejects.toThrow(dbError);
+  });
 });
 
 describe("WorkerManager — stop / stopAll", () => {
