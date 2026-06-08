@@ -13,6 +13,7 @@ import type {
   ProviderStreamItem
 } from "./types.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.cohere");
 
 const COHERE_API_BASE_URL = "https://api.cohere.com/v2";
@@ -77,7 +78,11 @@ export class CohereProvider extends BaseProvider {
     this.apiKey = secrets.COHERE_API_KEY ?? "";
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
     this.inputType = options.inputType ?? "search_document";
+    // Diagnostic only; the missing-key contract is enforced (and tested) at call
+    // time in generateEmbedding, so this warn is behaviour-neutral.
+    // Stryker disable next-line ConditionalExpression,BlockStatement,BooleanLiteral
     if (!this.apiKey) {
+      // Stryker disable next-line StringLiteral
       log.warn("Cohere API key not configured");
     }
   }
@@ -125,6 +130,7 @@ export class CohereProvider extends BaseProvider {
       input_type: this.inputType,
       embedding_types: ["float"]
     };
+    // Stryker disable next-line ConditionalExpression: forcing this true is equivalent (JSON.stringify drops the resulting `output_dimension: undefined`); the with/without-dimensions request shapes are asserted by the tests.
     if (args.dimensions) {
       body.output_dimension = args.dimensions;
     }

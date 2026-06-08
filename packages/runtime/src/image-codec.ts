@@ -16,12 +16,19 @@ type SharpModule = SharpFn | { default: SharpFn };
 
 let _sharpPromise: Promise<SharpFn> | null = null;
 async function loadSharp(): Promise<SharpFn> {
+  // The `!_sharpPromise` cache check is a one-time memoization (forcing it true
+  // just reloads — behaviour-preserving), and the `!mod` guard only fires in a
+  // non-Node runtime, which the test environment never is. Both are equivalent
+  // under test, so their mutants are suppressed.
+  // Stryker disable next-line ConditionalExpression
   if (!_sharpPromise) {
     _sharpPromise = (async () => {
       const mod = await importHidden<SharpModule>("sharp");
+      // Stryker disable all
       if (!mod) {
         throw new Error("sharp requires Node (not available in browser/edge)");
       }
+      // Stryker restore all
       const fn = (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
       return fn;
     })();

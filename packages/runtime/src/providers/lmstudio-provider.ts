@@ -87,7 +87,8 @@ export class LMStudioProvider extends OpenAIProvider {
       const payload = (await response.json()) as {
         data?: Array<{ id?: string }>;
       };
-      const rows = payload.data ?? [];
+      // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
+    const rows = payload.data ?? [];
       return rows
         .filter(
           (row): row is { id: string } =>

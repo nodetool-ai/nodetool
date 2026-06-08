@@ -9,6 +9,7 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').mkdirSync('dist/providers',{recursive:true}); require('node:fs').cpSync('src/providers/aki-manifest.json', 'dist/providers/aki-manifest.json')\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:mutation": "stryker run",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -30,6 +31,8 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "typescript": "^5.7.2",

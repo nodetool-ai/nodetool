@@ -23,6 +23,7 @@ import type {
   TextTo3DParams
 } from "./types.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.meshy");
 
 const MESHY_API_BASE_URL = "https://api.meshy.ai";
@@ -85,8 +86,9 @@ export interface MeshyProviderOptions {
 }
 
 /** Detect PNG by magic header; everything else is treated as JPEG. */
-function detectImageMime(image: Uint8Array): string {
+export function detectImageMime(image: Uint8Array): string {
   const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  // Stryker disable next-line ConditionalExpression: pure length fast-path; the loop below already returns jpeg for short inputs (undefined bytes never match), so skipping the guard is equivalent.
   if (image.length < PNG_MAGIC.length) return "image/jpeg";
   for (let i = 0; i < PNG_MAGIC.length; i++) {
     if (image[i] !== PNG_MAGIC[i]) return "image/jpeg";
@@ -94,8 +96,22 @@ function detectImageMime(image: Uint8Array): string {
   return "image/png";
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
+export function bytesToBase64(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("base64");
+}
+
+/** Pure: build the Meshy text-to-3D `preview` submit payload from params. */
+export function buildTextTo3DPayload(
+  params: TextTo3DParams
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    mode: "preview",
+    prompt: params.prompt
+  };
+  if (params.artStyle) payload.art_style = params.artStyle;
+  if (params.negativePrompt) payload.negative_prompt = params.negativePrompt;
+  if (params.seed != null && params.seed >= 0) payload.seed = params.seed;
+  return payload;
 }
 
 export class MeshyProvider extends BaseProvider {
@@ -111,7 +127,9 @@ export class MeshyProvider extends BaseProvider {
     this.apiKey = (secrets["MESHY_API_KEY"] as string) ?? "";
     this.pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
     this.maxPollAttempts = options.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS;
+    // Stryker disable next-line ConditionalExpression,BooleanLiteral,BlockStatement: diagnostic warn only; missing key is enforced at call time.
     if (!this.apiKey) {
+      // Stryker disable next-line StringLiteral: diagnostic log message.
       log.warn("Meshy API key not configured");
     }
   }
@@ -135,6 +153,7 @@ export class MeshyProvider extends BaseProvider {
 
   override async getAvailable3DModels(): Promise<Model3D[]> {
     if (!this.apiKey) {
+      // Stryker disable next-line StringLiteral: diagnostic log message.
       log.debug("No Meshy API key configured, returning empty 3D model list");
       return [];
     }
@@ -147,6 +166,7 @@ export class MeshyProvider extends BaseProvider {
 
     const maxAttempts = this.computeMaxAttempts(params.timeoutSeconds);
     const previewTaskId = await this.submitTextTo3D(params);
+    // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Meshy text-to-3D preview task submitted: ${previewTaskId}`);
 
     const previewResult = await this.pollTaskStatus(
@@ -157,6 +177,7 @@ export class MeshyProvider extends BaseProvider {
 
     if (params.enableTextures) {
       const refineTaskId = await this.submitRefine(previewTaskId);
+      // Stryker disable next-line StringLiteral: diagnostic log message.
       log.debug(`Meshy text-to-3D refine task submitted: ${refineTaskId}`);
       const refineResult = await this.pollTaskStatus(
         refineTaskId,
@@ -180,6 +201,7 @@ export class MeshyProvider extends BaseProvider {
     const maxAttempts = this.computeMaxAttempts(params.timeoutSeconds);
     const imageUrl = this.encodeImageAsDataUri(image);
     const taskId = await this.submitImageTo3D(imageUrl);
+    // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Meshy image-to-3D task submitted: ${taskId}`);
 
     const result = await this.pollTaskStatus(
@@ -200,6 +222,7 @@ export class MeshyProvider extends BaseProvider {
   }
 
   private computeMaxAttempts(timeoutSeconds: number | null | undefined): number {
+    // Stryker disable next-line EqualityOperator: `<= 0` vs `< 0` is equivalent — 0 is already caught by the falsy `!timeoutSeconds` check.
     if (!timeoutSeconds || timeoutSeconds <= 0) {
       return this.maxPollAttempts;
     }
@@ -212,15 +235,7 @@ export class MeshyProvider extends BaseProvider {
   }
 
   private async submitTextTo3D(params: TextTo3DParams): Promise<string> {
-    const payload: Record<string, unknown> = {
-      mode: "preview",
-      prompt: params.prompt
-    };
-    if (params.artStyle) payload.art_style = params.artStyle;
-    if (params.negativePrompt) payload.negative_prompt = params.negativePrompt;
-    if (params.seed != null && params.seed >= 0) payload.seed = params.seed;
-
-    return this.submitTask("/v2/text-to-3d", payload);
+    return this.submitTask("/v2/text-to-3d", buildTextTo3DPayload(params));
   }
 
   private async submitImageTo3D(imageUrl: string): Promise<string> {
@@ -271,6 +286,7 @@ export class MeshyProvider extends BaseProvider {
         throw new Error(`Meshy API poll error (${res.status}): ${errText}`);
       }
       const data = (await res.json()) as Record<string, unknown>;
+      // Stryker disable next-line StringLiteral: empty fallback only applies when status is absent; any non-status string is equivalent (still not SUCCEEDED/FAILED/EXPIRED).
       const status = String(data.status ?? "").toUpperCase();
 
       if (status === "SUCCEEDED") return data;
@@ -282,9 +298,8 @@ export class MeshyProvider extends BaseProvider {
           (taskError?.message as string | undefined) ?? "Unknown error";
         throw new Error(`Meshy task failed: ${message}`);
       }
-      log.debug(
-        `Meshy task ${taskId} status: ${status} (attempt ${attempt + 1}/${maxAttempts})`
-      );
+      // Stryker disable next-line StringLiteral,ArithmeticOperator: diagnostic log message.
+      log.debug(`Meshy task ${taskId} status: ${status} (attempt ${attempt + 1}/${maxAttempts})`);
       await new Promise((r) => setTimeout(r, this.pollIntervalMs));
     }
     throw new Error(
@@ -314,6 +329,7 @@ export class MeshyProvider extends BaseProvider {
       );
     }
     const bytes = new Uint8Array(await dlRes.arrayBuffer());
+    // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Downloaded ${bytes.length} bytes of 3D model data from Meshy`);
     return bytes;
   }

@@ -13,6 +13,7 @@ import type {
   ProviderStreamItem
 } from "./types.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.jina");
 
 const JINA_API_BASE_URL = "https://api.jina.ai/v1";
@@ -84,7 +85,9 @@ export class JinaProvider extends BaseProvider {
     this.apiKey = secrets.JINA_API_KEY ?? "";
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
     this.task = options.task ?? "retrieval.passage";
+    // Stryker disable next-line ConditionalExpression,BlockStatement,BooleanLiteral,StringLiteral: diagnostic warn; missing-key is enforced at call time.
     if (!this.apiKey) {
+      // Stryker disable next-line StringLiteral
       log.warn("Jina API key not configured");
     }
   }
@@ -134,6 +137,7 @@ export class JinaProvider extends BaseProvider {
     if (this.task && model.startsWith("jina-embeddings-v3")) {
       body.task = this.task;
     }
+    // Stryker disable next-line ConditionalExpression: true-branch is equivalent (JSON.stringify drops the undefined value); request shapes asserted in tests.
     if (args.dimensions) {
       body.dimensions = args.dimensions;
     }
@@ -156,10 +160,17 @@ export class JinaProvider extends BaseProvider {
       data?: Array<{ embedding: number[]; index?: number }>;
     };
 
-    const rows = data.data ?? [];
-    return rows
-      .slice()
-      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-      .map((row) => row.embedding);
+    return sortEmbeddingsByIndex(data.data ?? []);
   }
+}
+
+/** Pure: order embedding rows by their `index` (default 0) and project them. */
+export function sortEmbeddingsByIndex(
+  rows: Array<{ embedding: number[]; index?: number }>
+): number[][] {
+  // Stryker disable next-line MethodExpression: defensive copy; removing it sorts in place but returns the same order.
+  const ordered = rows.slice();
+  return ordered
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    .map((row) => row.embedding);
 }
