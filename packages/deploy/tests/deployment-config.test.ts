@@ -111,21 +111,18 @@ describe("ContainerConfigSchema", () => {
       name: "nodetool-api",
       port: 8000,
       gpu: "nvidia",
-      environment: { FOO: "bar" },
-      workflows: ["wf1.json"]
+      environment: { FOO: "bar" }
     });
     expect(result.name).toBe("nodetool-api");
     expect(result.port).toBe(8000);
     expect(result.gpu).toBe("nvidia");
     expect(result.environment).toEqual({ FOO: "bar" });
-    expect(result.workflows).toEqual(["wf1.json"]);
   });
 
   it("accepts minimal required fields", () => {
     const result = ContainerConfigSchema.parse({ name: "c", port: 3000 });
     expect(result.gpu).toBeUndefined();
     expect(result.environment).toBeUndefined();
-    expect(result.workflows).toBeUndefined();
   });
 
   it("rejects missing name", () => {

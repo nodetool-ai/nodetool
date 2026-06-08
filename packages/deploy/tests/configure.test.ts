@@ -160,14 +160,6 @@ describe("configure", () => {
       expect(result.container.gpu).toBe("0,1");
     });
 
-    it("should pass workflows", () => {
-      const result = configureDocker("test", {
-        host: "localhost",
-        workflows: ["wf1", "wf2"]
-      });
-      expect(result.container.workflows).toEqual(["wf1", "wf2"]);
-    });
-
     it("should set default workspace path", () => {
       const result = configureDocker("test", { host: "localhost" });
       expect(result.paths.workspace).toBe(

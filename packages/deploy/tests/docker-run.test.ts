@@ -306,21 +306,15 @@ describe("DockerRunGenerator environment variables", () => {
     expect(cmd).toContain("BAZ=qux");
   });
 
-  it("should include workflow IDs", () => {
+  it("should never emit NODETOOL_WORKFLOWS even if a workflows array leaks in", () => {
     const d = makeDeployment({
       container: {
         name: "c",
         port: 8080,
+        // The `workflows` field was removed from the schema; assert that even a
+        // stray array on the container object never produces the dead env var.
         workflows: ["wf1", "wf2", "wf3"]
-      }
-    });
-    const cmd = generateDockerRunCommand(d);
-    expect(cmd).toContain("NODETOOL_WORKFLOWS=wf1,wf2,wf3");
-  });
-
-  it("should not include NODETOOL_WORKFLOWS when empty", () => {
-    const d = makeDeployment({
-      container: { name: "c", port: 8080, workflows: [] }
+      } as DockerRunDeployment["container"]
     });
     const cmd = generateDockerRunCommand(d);
     expect(cmd).not.toContain("NODETOOL_WORKFLOWS");
