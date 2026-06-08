@@ -313,14 +313,15 @@ export class AkiProvider extends OpenAIProvider {
   }
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
     const prompt = params.prompt.trim();
     if (!prompt) {
       throw new Error("Prompt is required");
     }
-    if (!image.length) {
+    const image = images[0];
+    if (!image?.length) {
       throw new Error("Image is required");
     }
     return this.runImageRequest(

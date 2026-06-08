@@ -235,21 +235,24 @@ export class EvolinkProvider extends OpenAIProvider {
   }
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    if (!image || image.length === 0) {
+    const sources = images.filter((b) => b && b.length > 0);
+    if (sources.length === 0) {
       throw new Error("image must not be empty.");
     }
     if (!params.prompt) {
       throw new Error("The input prompt cannot be empty.");
     }
 
-    const imageUrl = await this.uploadImage(image);
+    const imageUrls = await Promise.all(
+      sources.map((b) => this.uploadImage(b))
+    );
     const body: Record<string, unknown> = {
       model: params.model.id,
       prompt: this.withNegativePrompt(params.prompt, params.negativePrompt),
-      image_urls: [imageUrl]
+      image_urls: imageUrls
     };
 
     const size = this.resolveEvolinkImageSize(
@@ -279,9 +282,10 @@ export class EvolinkProvider extends OpenAIProvider {
   }
 
   override async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("The input image cannot be empty.");
     }

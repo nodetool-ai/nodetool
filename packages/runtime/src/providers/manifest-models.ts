@@ -27,6 +27,15 @@ interface ManifestInputField {
   enumValues?: string[];
 }
 
+/** Kie-style asset upload descriptor (carries the real API param name). */
+interface ManifestUpload {
+  field: string;
+  kind?: string;
+  isList?: boolean;
+  paramName?: string;
+  groupKey?: string;
+}
+
 interface ManifestNode {
   /** Kie uses modelId */
   modelId?: string;
@@ -42,6 +51,8 @@ interface ManifestNode {
   supportedTasks?: string[];
   /** FAL ships per-endpoint input schemas; used to derive option constraints. */
   inputFields?: ManifestInputField[];
+  /** Kie ships asset upload descriptors (field → API param mapping). */
+  uploads?: ManifestUpload[];
 }
 
 function explicitTasks(n: ManifestNode): string[] | undefined {
@@ -215,6 +226,97 @@ export function loadVideoModels(
   }
 
   return [...seen.values()];
+}
+
+/** A model's declared image input, normalized across manifest conventions. */
+export interface ModelImageInput {
+  /** API parameter name to set on the request body. */
+  apiName: string;
+  /** True when the field accepts an array of image URLs. */
+  isList: boolean;
+  /** Declared field/input name, used for primary-vs-auxiliary heuristics. */
+  name: string;
+}
+
+/**
+ * Image inputs a model declares, resolved from its manifest entry. KIE-style
+ * `uploads` (which carry the real API param name) take precedence; otherwise
+ * the FAL/Replicate `inputFields` image/list[image] entries are used.
+ */
+export function getModelImageInputs(
+  packageName: string,
+  exportPath: string,
+  modelId: string
+): ModelImageInput[] {
+  const entry = loadManifest(packageName, exportPath).find(
+    (n) => nodeId(n) === modelId
+  );
+  if (!entry) return [];
+  if (entry.uploads?.length) {
+    return entry.uploads
+      .filter((u) => u.kind === "image")
+      .map((u) => ({
+        apiName: u.paramName ?? `${u.field}_url${u.isList ? "s" : ""}`,
+        isList: Boolean(u.isList),
+        name: u.field
+      }));
+  }
+  return (entry.inputFields ?? [])
+    .filter((f) => {
+      const t = f.propType.toLowerCase();
+      return t === "image" || t === "list[image]";
+    })
+    .map((f) => ({
+      apiName: f.apiParamName ?? f.name,
+      isList: f.propType.toLowerCase().startsWith("list["),
+      name: f.name
+    }));
+}
+
+// Auxiliary image inputs (mask / control / reference / style / end-frame, …)
+// must never receive the primary source image in a generic request.
+const AUXILIARY_IMAGE_RE =
+  /mask|control|reference|style|depth|canny|pose|ip[_-]?adapter|redux|face|last_frame|end_image|end_frame/i;
+
+// Primary source-image field names, best first. Covers i2i (`image`,
+// `input_image`, `image_input`) and i2v first-frame (`first_frame_image`,
+// `start_image`).
+const PRIMARY_IMAGE_PRIORITY = [
+  "image",
+  "input_image",
+  "image_input",
+  "images",
+  "input_images",
+  "img",
+  "first_frame_image",
+  "start_image",
+  "source_image",
+  "image_path",
+  "subject_image",
+  "file"
+];
+
+/**
+ * Choose the primary image input for a generic image-to-image / image-to-video
+ * request. Auxiliary inputs (mask, control, reference/style/end-frame images)
+ * are skipped. When more than one source image is supplied, a list-typed field
+ * is strongly preferred so every image is forwarded.
+ */
+export function selectPrimaryImageInput(
+  inputs: ModelImageInput[],
+  imageCount: number
+): ModelImageInput | undefined {
+  const primary = inputs.filter((i) => !AUXILIARY_IMAGE_RE.test(i.name));
+  const pool = primary.length > 0 ? primary : inputs;
+  if (pool.length === 0) return undefined;
+  const multiple = imageCount > 1;
+  const score = (i: ModelImageInput): number => {
+    let idx = PRIMARY_IMAGE_PRIORITY.indexOf(i.name.toLowerCase());
+    if (idx < 0) idx = PRIMARY_IMAGE_PRIORITY.length;
+    if (multiple) idx += i.isList ? -100 : 10;
+    return idx;
+  };
+  return [...pool].sort((a, b) => score(a) - score(b))[0];
 }
 
 export function loadImageModels(

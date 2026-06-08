@@ -291,7 +291,7 @@ describe("EvolinkProvider", () => {
       { client: {} as any, fetchFn: mockFetch as any }
     );
 
-    const result = await provider.imageToImage(new Uint8Array([1, 2, 3]), {
+    const result = await provider.imageToImage([new Uint8Array([1, 2, 3])], {
       model: { id: "gpt-image-2", name: "GPT Image 2", provider: "evolink" },
       prompt: "make it blue"
     });

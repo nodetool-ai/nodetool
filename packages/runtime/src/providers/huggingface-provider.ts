@@ -439,10 +439,11 @@ export class HuggingFaceProvider extends BaseProvider {
   }
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
     const client = await this.getClient();
+    const image = images[0] ?? new Uint8Array();
 
     log.debug("HuggingFace imageToImage", { model: params.model.id });
 
