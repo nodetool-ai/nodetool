@@ -936,3 +936,61 @@ describe("NodeActor – edge cases (batch)", () => {
     expect(calls).toEqual([{ cfg: "C1", cfg2: "C2" }]);
   });
 });
+
+describe("NodeActor._runCorrelatedImpl – not-ready guards", () => {
+  it("does not fire a max key while its prefix-sticky input is missing", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("deep", 1);
+    inbox.addUpstream("cfg", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], {
+        deep: [["r", "s"], true],
+        cfg: [["r"], false]
+      })
+    });
+    // deep arrives but cfg never does -> the key is not ready.
+    await inbox.put("deep", "D", { correlation_lineage: lin({ r: 0, s: 0 }) });
+    inbox.markSourceDone("deep");
+    inbox.markSourceDone("cfg"); // closed with no value
+    await actor.run();
+    expect(calls).toEqual([]);
+  });
+
+  it("does not fire while a prefix-list input has no value for the parent key", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("deep", 1);
+    inbox.addUpstream("plist", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], {
+        deep: [["r", "s"], true],
+        plist: [["r"], false]
+      }),
+      listInputHandles: new Set(["plist"])
+    });
+    const runP = actor.run();
+    await inbox.put("deep", "D", { correlation_lineage: lin({ r: 0, s: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    inbox.markSourceDone("plist"); // closed empty -> no bucket for parent r=0
+    inbox.markSourceDone("deep");
+    await runP;
+    expect(calls).toEqual([]);
+  });
+
+  it("does not fire a side max input until it produces the key", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    inbox.addUpstream("b", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true], b: [["r"], false] })
+    });
+    // driver "a" produces r=0 but side max "b" never does.
+    await inbox.put("a", "A", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    inbox.markSourceDone("b");
+    await actor.run();
+    expect(calls).toEqual([]);
+  });
+});
