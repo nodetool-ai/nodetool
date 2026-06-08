@@ -320,7 +320,15 @@ export class WorkerManager {
   async attach(instanceId: string): Promise<WorkerConnection> {
     const instance = await this.requireInstance(instanceId);
     await this.deps.setSetting(ACTIVE_WORKER_KEY, instance.id);
-    await this.deps.updateWorkerInstance(instance.id, { status: "attached" });
+    // Attaching is itself activity: reset the idle clock alongside the status.
+    // A worker whose provision + attach outran its idle window still carries a
+    // creation-time `last_activity_at` and has emitted no bridge frame yet, so
+    // without this the reaper would stop the worker on its next pass before any
+    // work runs.
+    await this.deps.updateWorkerInstance(instance.id, {
+      status: "attached",
+      last_activity_at: new Date().toISOString(),
+    });
     return { wsUrl: instance.ws_url, token: instance.token };
   }
 

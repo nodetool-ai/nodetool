@@ -441,6 +441,28 @@ describe("WorkerManager — attach / detach / getActiveWorker", () => {
     expect(conn).toEqual({ wsUrl: instance.ws_url, token: instance.token });
   });
 
+  it("attach refreshes last_activity_at so a slow-to-provision worker is not reaped as idle on the next pass", async () => {
+    const { manager, models } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+
+    // Simulate a worker whose provision + attach took longer than its idle
+    // window: its last_activity_at is still pinned to creation time, far in
+    // the past, and no bridge frame has touched it yet.
+    const stale = "2000-01-01T00:00:00.000Z";
+    const row = models.instances.get(instance.id)!;
+    row.last_activity_at = stale;
+
+    const before = Date.now();
+    await manager.attach(instance.id);
+
+    const attached = models.instances.get(instance.id)!;
+    expect(attached.last_activity_at).not.toBe(stale);
+    expect(new Date(attached.last_activity_at).getTime()).toBeGreaterThanOrEqual(
+      before
+    );
+  });
+
   it("attach throws when the instance is unknown", async () => {
     const { manager } = makeManager();
     await expect(manager.attach("nope")).rejects.toThrow(/nope/);
