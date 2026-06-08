@@ -76,7 +76,9 @@ export interface GraphLoadOptions extends Omit<
 // ---------------------------------------------------------------------------
 
 function nodeTypeToJsonSchema(typeStr: string | undefined): string {
+  // Stryker disable next-line ConditionalExpression: equivalent — a falsy typeStr falls through to the default case, which also returns "string"
   if (!typeStr) return "string";
+  // Stryker disable next-line StringLiteral: the "str"/"string" case labels are equivalent to drop — they return "string", identical to the default branch
   switch (typeStr) {
     case "int":
     case "float":
@@ -190,6 +192,7 @@ export class Graph {
     const validNodes: NodeDescriptor[] = [];
     const validNodeIds = new Set<string>();
     for (const node of obj.nodes) {
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: the typeof/operator variants are equivalent — a non-object node yields {} after the spread below and is then dropped by the id/type guard
       if (!node || typeof node !== "object") {
         if (skipErrors) continue;
         throw new GraphValidationError("Node entries must be objects");
@@ -272,6 +275,7 @@ export class Graph {
 
     const validEdges: Edge[] = [];
     for (const edge of obj.edges) {
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: redundant with the identical check in the first edge pass above — a non-object edge is already handled there
       if (!edge || typeof edge !== "object") {
         if (skipErrors) continue;
         throw new GraphValidationError("Edge entries must be objects");

@@ -220,7 +220,18 @@ describe("Graph.loadFromDict – hydration", () => {
       }
     });
     const g = await Graph.loadFromDict(
-      { nodes: [{ id: "a", type: "t", is_streaming_input: false }], edges: [] },
+      {
+        nodes: [
+          {
+            id: "a",
+            type: "t",
+            is_streaming_input: false,
+            is_streaming_output: false,
+            is_controlled: false
+          }
+        ],
+        edges: []
+      },
       { resolver }
     );
     const node = g.findNode("a")!;
@@ -474,5 +485,70 @@ describe("Graph – validation methods", () => {
   it("validate() runs all three checks", () => {
     const g = new Graph({ nodes: [n("a", "t")], edges: [e("a", "o", "ghost", "i")] });
     expect(() => g.validate()).toThrow(GraphValidationError);
+  });
+});
+
+describe("Graph.fromDict – malformed entry handling", () => {
+  it("skips a null edge without crashing (typeof null === 'object')", () => {
+    const graph = Graph.fromDict({
+      nodes: [{ id: "a", type: "t" }],
+      edges: [null]
+    });
+    expect(graph.edges).toHaveLength(0);
+  });
+
+  it("throws on a null edge when skipErrors is false", () => {
+    expect(() =>
+      Graph.fromDict(
+        { nodes: [{ id: "a", type: "t" }], edges: [null] },
+        { skipErrors: false }
+      )
+    ).toThrow(/Edge entries must be objects/);
+  });
+
+  it("ignores a non-object properties field and falls back to data", () => {
+    const graph = Graph.fromDict({
+      nodes: [{ id: "a", type: "t", properties: 5, data: { d: 1 } }],
+      edges: []
+    });
+    expect(graph.findNode("a")!.properties).toEqual({ d: 1 });
+  });
+
+  it("ignores a non-object dynamic_properties field", () => {
+    const graph = Graph.fromDict({
+      nodes: [{ id: "a", type: "t", properties: { p: 1 }, dynamic_properties: 7 }],
+      edges: []
+    });
+    expect(graph.findNode("a")!.properties).toEqual({ p: 1 });
+  });
+
+  it("does not validate properties when propertyTypes is an empty object", () => {
+    const graph = Graph.fromDict(
+      {
+        nodes: [{ id: "a", type: "t", propertyTypes: {}, properties: { anything: 1 } }],
+        edges: []
+      },
+      { allowUndefinedProperties: false }
+    );
+    expect(graph.findNode("a")!.properties).toEqual({ anything: 1 });
+  });
+});
+
+describe("Graph – controller targeting", () => {
+  it("getControllerNodes(targetId) returns only that target's controllers", () => {
+    const nodes = [n("c1", "t"), n("c2", "t"), n("a", "t"), n("b", "t")];
+    const edges = [ctrl("c1", "a"), ctrl("c2", "b")];
+    const g = new Graph({ nodes, edges });
+    expect(g.getControllerNodes("a").map((x) => x.id)).toEqual(["c1"]);
+    expect(g.getControllerNodes("b").map((x) => x.id)).toEqual(["c2"]);
+    expect(g.getControllerNodes().map((x) => x.id).sort()).toEqual(["c1", "c2"]);
+  });
+
+  it("getControlledNodes(sourceId) lists only that source's targets", () => {
+    const nodes = [n("c1", "t"), n("c2", "t"), n("a", "t"), n("b", "t")];
+    const edges = [ctrl("c1", "a"), ctrl("c2", "b")];
+    const g = new Graph({ nodes, edges });
+    expect(g.getControlledNodes("c1")).toEqual(["a"]);
+    expect(g.getControlledNodes("c2")).toEqual(["b"]);
   });
 });
