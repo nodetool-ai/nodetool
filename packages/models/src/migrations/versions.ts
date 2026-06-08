@@ -1573,5 +1573,65 @@ export const migrations: MigrationDef[] = [
     async down() {
       // no-op: dropping columns is unsafe across dialects and versions
     }
+  },
+
+  // ── Create worker_profiles and worker_instances ─────────────────────
+  // GPU-worker provisioning is DB-native: profiles are declarative presets,
+  // instances are ephemeral, billing-sensitive live handles. See spec §5.
+  {
+    version: "20260608_000000",
+    name: "create_worker_tables",
+    createsTables: ["worker_profiles", "worker_instances"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS worker_profiles (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          target TEXT NOT NULL,
+          image TEXT NOT NULL,
+          spec TEXT NOT NULL,
+          token_policy TEXT NOT NULL,
+          idle_timeout_minutes INTEGER,
+          max_lifetime_minutes INTEGER,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_worker_profiles_name
+        ON worker_profiles (name)
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS worker_instances (
+          id TEXT PRIMARY KEY,
+          profile_name TEXT NOT NULL,
+          target TEXT NOT NULL,
+          provider_ref TEXT NOT NULL,
+          ws_url TEXT NOT NULL,
+          token TEXT,
+          status TEXT NOT NULL,
+          attached_to TEXT,
+          created_at TEXT NOT NULL,
+          last_activity_at TEXT NOT NULL,
+          estimated_cost_usd REAL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_worker_instances_status
+        ON worker_instances (status)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_worker_instances_profile_name
+        ON worker_instances (profile_name)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_worker_instances_profile_name");
+      await db.execute("DROP INDEX IF EXISTS idx_worker_instances_status");
+      await db.execute("DROP TABLE IF EXISTS worker_instances");
+      await db.execute("DROP INDEX IF EXISTS idx_worker_profiles_name");
+      await db.execute("DROP TABLE IF EXISTS worker_profiles");
+    }
   }
 ];

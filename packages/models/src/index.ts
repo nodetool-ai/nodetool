@@ -36,7 +36,9 @@ export {
   teamTasks,
   appSettings,
   timelineSequences,
-  imageDocuments
+  imageDocuments,
+  workerProfiles,
+  workerInstances
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
