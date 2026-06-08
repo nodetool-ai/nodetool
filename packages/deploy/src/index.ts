@@ -16,7 +16,6 @@ export * from "./image-builder.js";
 
 // Deployers
 export * from "./self-hosted.js";
-export * from "./runpod-rest.js";
 
 // Deployment manager
 export * from "./manager.js";
