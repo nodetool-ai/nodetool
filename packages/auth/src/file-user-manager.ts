@@ -70,6 +70,9 @@ export class FileUserManager {
 
   private async load(): Promise<UsersFile> {
     try {
+      // Stryker disable next-line StringLiteral: an empty/invalid encoding yields a
+      // Buffer, which JSON.parse coerces via the default utf8 decoding, so "utf8"
+      // and "" are byte-identical here (equivalent mutant).
       const data = await readFile(this.usersFile, "utf8");
       return JSON.parse(data) as UsersFile;
     } catch {
@@ -79,6 +82,8 @@ export class FileUserManager {
 
   private async save(data: UsersFile): Promise<void> {
     await mkdir(dirname(this.usersFile), { recursive: true });
+    // Stryker disable next-line StringLiteral: writeFile encodes the string as utf8
+    // regardless of an empty encoding argument, so "utf8" vs "" are equivalent.
     await writeFile(this.usersFile, JSON.stringify(data, null, 2), "utf8");
   }
 
