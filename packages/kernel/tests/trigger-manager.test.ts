@@ -135,3 +135,177 @@ describe("TriggerWorkflowManager", () => {
     expect(job).toBeNull();
   });
 });
+
+describe("TriggerWorkflowManager — singleton & lifecycle internals", () => {
+  let startJob: ReturnType<typeof vi.fn<StartJobFn>>;
+  let hasTriggerNodes: ReturnType<typeof vi.fn<HasTriggerNodesFn>>;
+
+  beforeEach(() => {
+    TriggerWorkflowManager.resetInstance();
+    startJob = vi.fn(async () => ({
+      jobId: "job",
+      completion: new Promise<void>(() => {})
+    }));
+    hasTriggerNodes = vi.fn(async () => true);
+  });
+
+  afterEach(() => {
+    TriggerWorkflowManager.resetInstance();
+  });
+
+  it("getInstance returns the same singleton", () => {
+    const a = TriggerWorkflowManager.getInstance({ startJob, hasTriggerNodes });
+    const b = TriggerWorkflowManager.getInstance({ startJob, hasTriggerNodes });
+    expect(b).toBe(a);
+  });
+
+  it("restarts an existing non-running workflow instead of returning it", async () => {
+    const mgr = TriggerWorkflowManager.getInstance({ startJob, hasTriggerNodes });
+    const job1 = await mgr.startTriggerWorkflow("wf-1", "user-1");
+    job1!.status = "failed";
+    const job2 = await mgr.startTriggerWorkflow("wf-1", "user-1");
+    expect(startJob).toHaveBeenCalledTimes(2);
+    expect(job2).not.toBe(job1);
+  });
+
+  it("getRunningWorkflow returns the tracked job or undefined", async () => {
+    const mgr = TriggerWorkflowManager.getInstance({ startJob, hasTriggerNodes });
+    const job = await mgr.startTriggerWorkflow("wf-1", "user-1");
+    expect(mgr.getRunningWorkflow("wf-1")).toBe(job);
+    expect(mgr.getRunningWorkflow("missing")).toBeUndefined();
+  });
+
+  it("marks the job completed when its completion resolves", async () => {
+    let resolveCompletion!: () => void;
+    startJob.mockImplementation(async () => ({
+      jobId: "j",
+      completion: new Promise<void>((r) => {
+        resolveCompletion = r;
+      })
+    }));
+    const mgr = TriggerWorkflowManager.getInstance({ startJob, hasTriggerNodes });
+    const job = await mgr.startTriggerWorkflow("wf-1", "user-1");
+    resolveCompletion();
+    await job!.completion;
+    await Promise.resolve();
+    expect(job!.status).toBe("completed");
+  });
+
+  it("marks the job cancelled when completion rejects with an AbortError", async () => {
+    let rejectCompletion!: (e: Error) => void;
+    startJob.mockImplementation(async () => ({
+      jobId: "j",
+      completion: new Promise<void>((_, rej) => {
+        rejectCompletion = rej;
+      })
+    }));
+    const mgr = TriggerWorkflowManager.getInstance({ startJob, hasTriggerNodes });
+    const job = await mgr.startTriggerWorkflow("wf-1", "user-1");
+    const err = new Error("aborted");
+    err.name = "AbortError";
+    rejectCompletion(err);
+    await job!.completion.catch(() => {});
+    await Promise.resolve();
+    expect(job!.status).toBe("cancelled");
+  });
+
+  it("marks the job failed when completion rejects with a non-abort error", async () => {
+    let rejectCompletion!: (e: Error) => void;
+    startJob.mockImplementation(async () => ({
+      jobId: "j",
+      completion: new Promise<void>((_, rej) => {
+        rejectCompletion = rej;
+      })
+    }));
+    const mgr = TriggerWorkflowManager.getInstance({ startJob, hasTriggerNodes });
+    const job = await mgr.startTriggerWorkflow("wf-1", "user-1");
+    rejectCompletion(new Error("boom"));
+    await job!.completion.catch(() => {});
+    await Promise.resolve();
+    expect(job!.status).toBe("failed");
+  });
+
+  it("stopTriggerWorkflow returns false when aborting throws", async () => {
+    const mgr = TriggerWorkflowManager.getInstance({ startJob, hasTriggerNodes });
+    const job = await mgr.startTriggerWorkflow("wf-1", "user-1");
+    job!.abortController = {
+      abort: () => {
+        throw new Error("abort failed");
+      }
+    } as unknown as AbortController;
+    expect(await mgr.stopTriggerWorkflow("wf-1")).toBe(false);
+  });
+});
+
+describe("TriggerWorkflowManager — watchdog", () => {
+  let startJob: ReturnType<typeof vi.fn<StartJobFn>>;
+  let hasTriggerNodes: ReturnType<typeof vi.fn<HasTriggerNodesFn>>;
+
+  beforeEach(() => {
+    TriggerWorkflowManager.resetInstance();
+    vi.useFakeTimers();
+    startJob = vi.fn(async () => ({
+      jobId: "job",
+      completion: new Promise<void>(() => {})
+    }));
+    hasTriggerNodes = vi.fn(async () => true);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    TriggerWorkflowManager.resetInstance();
+  });
+
+  it("schedules at the configured interval and is idempotent", () => {
+    const spy = vi.spyOn(globalThis, "setInterval");
+    const mgr = TriggerWorkflowManager.getInstance({
+      startJob,
+      hasTriggerNodes,
+      watchdogInterval: 5000
+    });
+    mgr.startWatchdog();
+    mgr.startWatchdog(); // idempotent — no second timer
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(expect.any(Function), 5000);
+    mgr.stopWatchdog();
+  });
+
+  it("can be restarted after stopping", () => {
+    const spy = vi.spyOn(globalThis, "setInterval");
+    const mgr = TriggerWorkflowManager.getInstance({
+      startJob,
+      hasTriggerNodes,
+      watchdogInterval: 5000
+    });
+    mgr.startWatchdog();
+    mgr.stopWatchdog();
+    mgr.startWatchdog();
+    expect(spy).toHaveBeenCalledTimes(2);
+    mgr.stopWatchdog();
+  });
+
+  it("restarts failed and completed jobs and leaves running ones alone", async () => {
+    const mgr = TriggerWorkflowManager.getInstance({
+      startJob,
+      hasTriggerNodes,
+      watchdogInterval: 1000
+    });
+    const failed = await mgr.startTriggerWorkflow("wf-failed", "u");
+    const completed = await mgr.startTriggerWorkflow("wf-completed", "u");
+    await mgr.startTriggerWorkflow("wf-running", "u");
+    failed!.status = "failed";
+    completed!.status = "completed";
+    expect(startJob).toHaveBeenCalledTimes(3);
+
+    mgr.startWatchdog();
+    await vi.advanceTimersByTimeAsync(1000); // fire the watchdog check
+
+    // Both the failed and completed jobs are restarted (2 more startJob calls);
+    // the running one is left untouched.
+    expect(startJob).toHaveBeenCalledTimes(5);
+    expect(mgr.isWorkflowRunning("wf-failed")).toBe(true);
+    expect(mgr.isWorkflowRunning("wf-completed")).toBe(true);
+    expect(mgr.isWorkflowRunning("wf-running")).toBe(true);
+    mgr.stopWatchdog();
+  });
+});
