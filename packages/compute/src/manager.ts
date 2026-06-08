@@ -34,6 +34,7 @@ import {
 } from "@nodetool-ai/models";
 
 import { RunpodPodProvider } from "./providers/runpod.js";
+import { VastProvider } from "./providers/vast.js";
 import type {
   WorkerProvider,
   WorkerSpec,
@@ -86,7 +87,7 @@ export interface ReconcileSummary {
   estimatedCostUsd: number;
 }
 
-/** Construct the concrete provider for a target. Vast is added in Group F. */
+/** Construct the concrete provider for a target. */
 function defaultProviderFactory(
   target: WorkerTarget,
   apiKey: string
@@ -94,6 +95,8 @@ function defaultProviderFactory(
   switch (target) {
     case "runpod":
       return new RunpodPodProvider(apiKey);
+    case "vast":
+      return new VastProvider(apiKey);
     default:
       throw new Error(`Unsupported worker target: ${target}`);
   }

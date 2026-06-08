@@ -9,6 +9,7 @@ export type {
 export { runReaperOnce, startReaper } from "./reaper.js";
 export type { ReaperDeps, ReaperHandle, ReaperManager } from "./reaper.js";
 export { RunpodPodProvider } from "./providers/runpod.js";
+export { VastProvider } from "./providers/vast.js";
 export type {
   ProviderInstance,
   ProvisionResult,
