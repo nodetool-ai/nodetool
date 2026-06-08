@@ -66,6 +66,26 @@ export interface WorkerConnection {
   token: string | null;
 }
 
+/**
+ * A provider-live worker that the DB registry doesn't track — a "true orphan"
+ * billing out-of-band. Surfaced by `reconcile()` for one-click stop-all.
+ */
+export interface WorkerOrphan {
+  target: WorkerTarget;
+  providerRef: string;
+  status: WorkerStatus;
+}
+
+/**
+ * Result of an orphan reconcile pass: the untracked live workers, the number of
+ * tracked instances still live, and their summed estimated cost.
+ */
+export interface ReconcileSummary {
+  orphans: WorkerOrphan[];
+  liveCount: number;
+  estimatedCostUsd: number;
+}
+
 /** Construct the concrete provider for a target. Vast is added in Group F. */
 function defaultProviderFactory(
   target: WorkerTarget,
@@ -226,6 +246,63 @@ export class WorkerManager {
       instance.target as WorkerTarget
     );
     return provider.status(instance.provider_ref);
+  }
+
+  /**
+   * Reconcile the DB registry against what each provider reports live. Tracked
+   * instances that are `running`/`attached` but absent from their provider's
+   * live list died or were killed out-of-band — mark them `stopped`. Live
+   * provider workers with no matching tracked instance are true orphans,
+   * surfaced (with a live-count and estimated-cost summary) so the cost guard
+   * can offer a one-click stop-all. Already-`stopped` rows are left untouched.
+   */
+  async reconcile(): Promise<ReconcileSummary> {
+    const instances = await this.deps.listWorkerInstances();
+    const targets = [
+      ...new Set(instances.map((i) => i.target as WorkerTarget)),
+    ];
+
+    const orphans: WorkerOrphan[] = [];
+    let liveCount = 0;
+    let estimatedCostUsd = 0;
+
+    for (const target of targets) {
+      const provider = await this.resolveProvider(target);
+      const live = await provider.list();
+      const liveRefs = new Set(live.map((l) => l.providerRef));
+      const tracked = instances.filter((i) => i.target === target);
+      const trackedRefs = new Set(tracked.map((i) => i.provider_ref));
+
+      // Tracked-but-dead: running/attached instances missing from the live
+      // list died/were killed out-of-band. The survivors count toward the
+      // live summary; already-stopped rows are skipped entirely.
+      for (const instance of tracked) {
+        if (instance.status !== "running" && instance.status !== "attached") {
+          continue;
+        }
+        if (liveRefs.has(instance.provider_ref)) {
+          liveCount += 1;
+          estimatedCostUsd += instance.estimated_cost_usd ?? 0;
+        } else {
+          await this.deps.updateWorkerInstance(instance.id, {
+            status: "stopped",
+          });
+        }
+      }
+
+      // Live-but-untracked: provider workers with no matching instance row.
+      for (const entry of live) {
+        if (!trackedRefs.has(entry.providerRef)) {
+          orphans.push({
+            target,
+            providerRef: entry.providerRef,
+            status: entry.status,
+          });
+        }
+      }
+    }
+
+    return { orphans, liveCount, estimatedCostUsd };
   }
 
   // --- Attach pointer -----------------------------------------------------

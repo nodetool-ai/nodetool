@@ -466,3 +466,79 @@ describe("WorkerManager — attach / detach / getActiveWorker", () => {
     expect(await manager.getActiveWorker()).toBeNull();
   });
 });
+
+describe("WorkerManager — reconcile", () => {
+  it("marks running/attached instances absent from the provider's live list as stopped", async () => {
+    const { manager, models, provider } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const live = await manager.provision("hf-a40"); // running, provider_ref pod-1
+    const dead = await manager.provision("hf-a40"); // running, provider_ref pod-2
+    await manager.attach(dead.id); // now attached
+
+    // Provider reports only pod-1 as live; pod-2 died out-of-band.
+    provider.liveList = [{ providerRef: live.provider_ref, status: "running" }];
+
+    await manager.reconcile();
+
+    // The instance still live in the provider is untouched.
+    expect(models.instances.get(live.id)?.status).toBe("running");
+    // The instance missing from the live list is marked stopped.
+    expect(models.instances.get(dead.id)?.status).toBe("stopped");
+  });
+
+  it("does not touch already-stopped rows", async () => {
+    const { manager, models, provider } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+    await manager.stop(instance.id); // status stopped, provider torn down
+    provider.stopped.length = 0;
+
+    // Provider reports nothing live.
+    provider.liveList = [];
+
+    await manager.reconcile();
+
+    // The already-stopped row was not re-updated through teardown.
+    expect(provider.stopped).toEqual([]);
+    expect(models.instances.get(instance.id)?.status).toBe("stopped");
+  });
+
+  it("surfaces provider-live refs not tracked in the DB as orphans", async () => {
+    const { manager, provider } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const tracked = await manager.provision("hf-a40"); // pod-1
+
+    // Provider reports the tracked pod plus an untracked one.
+    provider.liveList = [
+      { providerRef: tracked.provider_ref, status: "running" },
+      { providerRef: "pod-orphan", status: "running" },
+    ];
+
+    const summary = await manager.reconcile();
+
+    expect(summary.orphans).toEqual([
+      { target: "runpod", providerRef: "pod-orphan", status: "running" },
+    ]);
+  });
+
+  it("returns a live-count and estimated-cost summary", async () => {
+    const { manager, models, provider } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const a = await manager.provision("hf-a40"); // pod-1
+    const b = await manager.provision("hf-a40"); // pod-2
+    // Give the instances an estimated cost.
+    await models.deps.updateWorkerInstance(a.id, { estimated_cost_usd: 1.5 });
+    await models.deps.updateWorkerInstance(b.id, { estimated_cost_usd: 2 });
+
+    // Both pods live in the provider.
+    provider.liveList = [
+      { providerRef: a.provider_ref, status: "running" },
+      { providerRef: b.provider_ref, status: "running" },
+    ];
+
+    const summary = await manager.reconcile();
+
+    expect(summary.liveCount).toBe(2);
+    expect(summary.estimatedCostUsd).toBeCloseTo(3.5);
+  });
+});
