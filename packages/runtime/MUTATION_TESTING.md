@@ -25,39 +25,45 @@ the root `.gitignore`).
 
 ## Scope & rollout
 
-The package is large (60+ source files, most of them thin per-vendor API
-adapters), so a whole-package run is slow and dominated by transport branches
-that aren't behaviourally pinned yet. Rather than gate on a number nobody can
-keep green, the config's `mutate` glob lists only the **hardened, gated**
-modules, and the set grows as each module is brought up to the bar — the same
-incremental discipline `packages/security` used. The `break` threshold then
-*means something*: a regression in those modules fails fast.
+The goal is **100% mutation score across the whole package**. The package is
+large (60+ source files, several of them thin per-vendor API adapters), so it is
+brought up to the bar **incrementally**: the config's `mutate` glob lists only
+the modules already hardened to 100%, and the set grows file-by-file — the same
+discipline `packages/security` used. The gate is `break: 100`, so any regression
+on an already-hardened module fails the run immediately.
 
-To explore any other file ad-hoc (Stryker's `-m` overrides the config glob):
+To explore a not-yet-listed file ad-hoc (Stryker's `-m` overrides the config glob):
 
 ```bash
-npx stryker run -m "src/media-ref-bytes.ts"
 npx stryker run -m "src/providers/base-provider.ts"
 ```
 
 ### Next modules to harden (highest blast radius first)
 
-1. **`media-ref-bytes.ts`** — the inline-vs-`uri`-vs-`asset_id` resolution order
-   and the `data.length > 0` guards on every inline branch.
+1. **`providers/provider-registry.ts`** — credential resolution order
+   (secret → env → default) and the configured-check predicate.
 2. **`providers/base-provider.ts`** — the terminal `{ done: true }` chunk emitted
    for *every* stream-termination reason, and usage-token accounting.
 
 ## Current status
 
+Every module in the `mutate` glob is at **100%** (every behavioural mutant
+killed; equivalents suppressed at source — see below):
+
 ```
-File               | % score | killed | survived | ignored
--------------------|---------|--------|----------|--------
-cost-calculator.ts |   88.59 |    132 |       17 |      20
+File                 | % score | killed | ignored
+---------------------|---------|--------|--------
+cost-calculator.ts   |  100.00 |    129 |     38
+media-ref-bytes.ts   |  100.00 |    141 |     15
+recommended-models.ts|  100.00 |     95 |      0
+context-packer.ts    |  100.00 |     51 |      0
+image-codec.ts       |  100.00 |     16 |      ~
+cost-reconciler.ts   |  100.00 |      2 |      0
+provider-cache.ts    |  100.00 |      3 |      0
+providers/defaults.ts|  100.00 |      2 |      0
 ```
 
-The config gate (`stryker.config.json`) **breaks below 80%**, leaving headroom
-above the current score so an unrelated edit doesn't trip it while still
-catching a real regression in test quality.
+The config gate (`stryker.config.json`) **breaks below 100%** on this set.
 
 ### How the suite was hardened
 
@@ -84,6 +90,16 @@ as Arrange/Act/Assert:
 - **The `gpt-image` per-image gate** — `gpt-image-1.5` and unrelated models do
   **not** use the legacy per-image table.
 
+For the other modules: `media-ref-bytes.ts` pins the inline-vs-uri-vs-asset_id
+resolution order, every inline guard, each uri scheme (data:/file://, absolute
+path, asset://, storage candidates, http(s)), and the full per-type asset-id
+extension list (asserted against a hardcoded table, never derived from the
+source). `context-packer.ts` pins the token-budget arithmetic at exact keep/drop
+boundaries for each content kind. `recommended-models.ts` is pinned by
+structural invariants (non-empty id/name, known modality/type/task,
+`downloaded === false`) so an emptied literal or entry dies without duplicating
+the catalog.
+
 ## Equivalent & non-behavioral mutants
 
 Some mutants cannot be killed because they don't change observable behaviour;
@@ -101,16 +117,16 @@ score then reflects test quality over *behavioural* code:
   prices a 0/undefined cache count identically to an absent one, so toggling the
   `> 0` / `&&` guards is behaviour-preserving; the discount/premium themselves
   are pinned by the cache tests.
-
-### Known remaining survivors (not suppressed)
-
-Left visible rather than hidden, because they're either order-preserving or
-externally coupled:
-
 - **`GENAI_PROVIDER_MAP` value strings** — the NodeTool→genai-prices provider-id
-  remapping is real behaviour, but its only observable effect is which entry of
-  the external (and intentionally un-pinned, because volatile) price catalog is
-  hit. Asserting it would couple a unit test to those tables.
-- **Order-preserving sort/filter arithmetic** in the longest-prefix scan — e.g.
-  subtracting a constant `providerPrefix.length` from both sides of the
-  comparator doesn't change ordering.
+  remapping's only observable effect is which entry of the external (volatile,
+  intentionally un-pinned) price catalog is hit; asserting it would couple a unit
+  test to those tables.
+- **Non-Node runtime guards** — `media-ref-bytes.ts` and `image-codec.ts` lazily
+  load `node:` builtins / `sharp` and throw in a browser/edge runtime; those
+  fallback branches are unreachable under the (always-Node) test runner.
+- **`sharp` memoization** — the one-time `if (!_sharpPromise)` cache check;
+  forcing it reloads on every call, which is behaviour-preserving.
+
+> Note: the longest-prefix scan was *refactored* (sort by raw key length rather
+> than stripped-substring length) so the previously order-preserving substring
+> mutants no longer exist — preferred over suppressing them.

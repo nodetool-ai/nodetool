@@ -5,14 +5,23 @@
   "reporters": ["html", "json", "clear-text", "progress"],
   "jsonReporter": { "fileName": "reports/mutation/mutation.json" },
   "coverageAnalysis": "perTest",
-  "mutate": ["src/providers/cost-calculator.ts"],
+  "mutate": [
+    "src/providers/cost-calculator.ts",
+    "src/providers/defaults.ts",
+    "src/media-ref-bytes.ts",
+    "src/image-codec.ts",
+    "src/provider-cache.ts",
+    "src/context-packer.ts",
+    "src/cost-reconciler.ts",
+    "src/recommended-models.ts"
+  ],
   "vitest": {
     "configFile": "vitest.config.ts"
   },
   "thresholds": {
-    "high": 90,
-    "low": 80,
-    "break": 80
+    "high": 100,
+    "low": 100,
+    "break": 100
   },
   "timeoutMS": 60000,
   "concurrency": 4

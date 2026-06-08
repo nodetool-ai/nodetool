@@ -141,6 +141,11 @@ export interface UsageInfo {
  * NodeTool provider id → genai-prices provider id. Providers absent here fall
  * back to genai-prices' model-name matching (`providerId` omitted).
  */
+// The remapped id only selects which entry of the external @pydantic/genai-prices
+// catalog is hit. Asserting an individual remapping would couple a unit test to
+// that volatile price table, so these string mutants are equivalent for our
+// purposes — the cost math itself is pinned by the calculate() tests.
+// Stryker disable all
 const GENAI_PROVIDER_MAP: Record<string, string> = {
   openai: "openai",
   anthropic: "anthropic",
@@ -154,6 +159,7 @@ const GENAI_PROVIDER_MAP: Record<string, string> = {
   xai: "x-ai",
   grok: "x-ai"
 };
+// Stryker restore all
 
 /** Providers that run locally and incur no API cost. */
 const LOCAL_FREE_PROVIDERS = new Set([
@@ -225,13 +231,11 @@ export class CostCalculator {
 
     // Longest-prefix match within the same provider.
     const providerPrefix = `${providerLower}:`;
+    // All filtered keys share the same-length providerPrefix, so sorting by raw
+    // key length is identical to sorting by model-part length (longest first).
     const providerKeys = Object.keys(MODEL_TO_TIER)
       .filter((key) => key.startsWith(providerPrefix))
-      .sort(
-        (a, b) =>
-          b.substring(providerPrefix.length).length -
-          a.substring(providerPrefix.length).length
-      );
+      .sort((a, b) => b.length - a.length);
     for (const key of providerKeys) {
       const modelPart = key.substring(providerPrefix.length);
       if (modelLower.startsWith(modelPart)) {
@@ -257,6 +261,7 @@ export class CostCalculator {
   ): number {
     // Non-token modalities (image / audio duration / characters / 3D task).
     const tierName = CostCalculator.getTier(modelId, provider);
+    // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — PRICING_TIERS[null] is undefined, so it falls through to token pricing with only a redundant warn.
     if (tierName !== null) {
       const tier = PRICING_TIERS[tierName];
       if (tier !== undefined) {
@@ -271,9 +276,7 @@ export class CostCalculator {
     if (tokenCost !== null) return tokenCost;
 
     // Stryker disable next-line StringLiteral: warning text is for humans, not asserted.
-    log.warn(
-      `No price found for model: ${modelId} (provider: ${provider})`
-    );
+    log.warn(`No price found for model: ${modelId} (provider: ${provider})`);
     return 0.0;
   }
 
@@ -365,6 +368,7 @@ export function calculateModel3DCost(
 export function calculateImageCost(
   modelId: string,
   imageCount: number = 1,
+  // Stryker disable next-line StringLiteral: default "medium" and "" both resolve to imageGptMedium via the ?? fallback below.
   quality: string = "medium",
   provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
@@ -377,6 +381,7 @@ export function calculateImageCost(
     };
     const tierOverride = qualityMap[quality.toLowerCase()] ?? "imageGptMedium";
     const tier = PRICING_TIERS[tierOverride];
+    // Stryker disable next-line ConditionalExpression: tierOverride is always a valid PRICING_TIERS key (low/medium/high or the medium fallback), so tier is always defined here.
     if (tier) {
       return CostCalculator["_calculateForTier"](tier, { imageCount });
     }

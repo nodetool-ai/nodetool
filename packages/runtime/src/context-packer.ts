@@ -55,6 +55,7 @@ export function packContext(
   let sysTokens = charsToTokens(sysPrompt.length);
 
   // If system prompt alone exceeds budget, truncate it
+  // Stryker disable next-line EqualityOperator: at sysTokens === maxTokens, `>=` truncates to maxChars >= the prompt length (a no-op slice) and sets sysTokens = maxTokens (already the case), so remaining is 0 either way — equivalent.
   if (sysTokens > maxTokens) {
     const maxChars = maxTokens * CHARS_PER_TOKEN;
     sysPrompt = sysPrompt.slice(0, maxChars);

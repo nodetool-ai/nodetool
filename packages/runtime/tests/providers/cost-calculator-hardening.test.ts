@@ -211,4 +211,38 @@ describe("calculateImageCost — gpt-image gate", () => {
       PRICING_TIERS.imageGptMedium.perImage!
     );
   });
+
+  it("scales a non-gpt-image IMAGE tier by imageCount through calculate()", () => {
+    // A non-gpt-image model mapped to an IMAGE_BASED tier flows through the
+    // generic `calculate` path, where usage must carry imageCount. Dropping it
+    // (the `{ imageCount }` → `{}` mutant) would price every count as 0.
+    const tierName = "__test_img__";
+    (PRICING_TIERS as Record<string, unknown>)[tierName] = {
+      costType: CostType.IMAGE_BASED,
+      perImage: 0.5
+    };
+    (MODEL_TO_TIER as Record<string, string>)["test:img-model"] = tierName;
+    try {
+      expect(
+        calculateImageCost("img-model", 3, "medium", "test" as ProviderId)
+      ).toBeCloseTo(1.5);
+    } finally {
+      delete (PRICING_TIERS as Record<string, unknown>)[tierName];
+      delete (MODEL_TO_TIER as Record<string, string>)["test:img-model"];
+    }
+  });
+});
+
+describe("getTier — provider scoping filter", () => {
+  it("ignores an identically-named model under a different provider", () => {
+    // Without the `startsWith(providerPrefix)` filter, the scan would consider
+    // every provider's keys; both prefixes are the same length, so a key under
+    // "yyy" would wrongly match a lookup under "zzz". The filter must scope it.
+    (MODEL_TO_TIER as Record<string, string>)["yyy:abc"] = "whisperStandard";
+    try {
+      expect(CostCalculator.getTier("abc", "zzz" as ProviderId)).toBeNull();
+    } finally {
+      delete (MODEL_TO_TIER as Record<string, string>)["yyy:abc"];
+    }
+  });
 });
