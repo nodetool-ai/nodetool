@@ -348,7 +348,7 @@ describe("NodeActor._runCorrelatedImpl – scheduler", () => {
     inbox.markSourceDone("a");
     inbox.markSourceDone("b");
     const result = await actor.run();
-    expect(result.error).toMatch(/exceeded max_pending_keys/);
+    expect(result.error).toMatch(/Inbox for node "n1" exceeded max_pending_keys \(1\) on handle "a"/);
   });
 
   it("throws when max_pending_messages_per_key is exceeded", async () => {
@@ -364,7 +364,7 @@ describe("NodeActor._runCorrelatedImpl – scheduler", () => {
     inbox.markSourceDone("a");
     inbox.markSourceDone("b");
     const result = await actor.run();
-    expect(result.error).toMatch(/max_pending_messages_per_key/);
+    expect(result.error).toMatch(/max_pending_messages_per_key \(1\) on handle "a" for key "r=0"/);
   });
 });
 

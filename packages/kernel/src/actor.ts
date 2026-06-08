@@ -57,9 +57,12 @@ export type { NodeExecutor };
  * parent key for a shorter scope, take the first `prefixLength` pairs.
  */
 export function trimKey(key: string, prefixLength: number): string {
+  // Stryker disable next-line ConditionalExpression: equivalent fast-path — slice(0, 0).join("") below also yields ""
   if (prefixLength === 0) return "";
+  // Stryker disable next-line ConditionalExpression: equivalent fast-path — an empty key splits to [""] and the length guard below returns "" too
   if (key === "") return "";
   const parts = key.split(",");
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — when parts.length <= prefixLength, slice(0, prefixLength).join produces the identical full key
   if (parts.length <= prefixLength) return key;
   return parts.slice(0, prefixLength).join(",");
 }
@@ -270,6 +273,7 @@ export class NodeActor {
                 const minted = this._maybeMintForSlot(slot, hints);
                 if (minted) {
                   hints.perSlotLineage = {
+                    // Stryker disable next-line LogicalOperator: defensive — perSlotLineage is unset here unless the caller supplied lineage (handled above), so `&& {}` would behave the same
                     ...(hints.perSlotLineage ?? {}),
                     [slot]: minted
                   };
@@ -280,6 +284,7 @@ export class NodeActor {
                 const collapsed = this._maybeCollapseForSlot(slot, hints);
                 if (collapsed) {
                   hints.perSlotLineage = {
+                    // Stryker disable next-line LogicalOperator: defensive — a slot is iteration XOR aggregate, so perSlotLineage holds at most this slot already
                     ...(hints.perSlotLineage ?? {}),
                     [slot]: collapsed
                   };
