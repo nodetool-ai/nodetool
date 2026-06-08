@@ -18,6 +18,7 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/agents": "*",
+    "@nodetool-ai/compute": "*",
     "@nodetool-ai/deploy": "*",
     "@nodetool-ai/huggingface": "*",
     "@nodetool-ai/vectorstore": "*",
