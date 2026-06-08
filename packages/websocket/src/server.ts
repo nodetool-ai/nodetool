@@ -31,6 +31,12 @@ import {
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import {
+  WorkerManager,
+  startReaper,
+  type WorkerConnection
+} from "@nodetool-ai/compute";
+import {
+  getWorkerProfile,
   initDb,
   initPostgresDb,
   migrateSqliteDb,
@@ -393,6 +399,35 @@ const pythonBridge = createPythonBridge({
 
 let pythonBridgeReady = false;
 
+// ---------------------------------------------------------------------------
+// Worker provisioning (GPU workers via @nodetool-ai/compute)
+// ---------------------------------------------------------------------------
+
+const workerManager = new WorkerManager();
+
+/**
+ * Re-point the live Python bridge for worker attach/detach. Only the remote
+ * WebSocket bridge supports re-pointing; a local stdio bridge has no remote
+ * target to swap, so this is a no-op there. On detach (`null`) the bridge goes
+ * back to the `NODETOOL_WORKER_URL` env default when one is configured.
+ */
+function repointPythonBridge(target: WorkerConnection | null): void {
+  const settable = pythonBridge as {
+    setTarget?: (url: string, token?: string) => void;
+  };
+  if (typeof settable.setTarget !== "function") {
+    return;
+  }
+  if (target) {
+    settable.setTarget(target.wsUrl, target.token ?? undefined);
+    return;
+  }
+  const envUrl = process.env["NODETOOL_WORKER_URL"]?.trim();
+  if (envUrl) {
+    settable.setTarget(envUrl, process.env["NODETOOL_WORKER_TOKEN"]);
+  }
+}
+
 function logPythonBridgeDiagnostics(context: string): void {
   const loadErrors = (
     pythonBridge as {
@@ -709,7 +744,9 @@ const createContext = createContextFactory({
   registry,
   apiOptions,
   pythonBridge,
-  getPythonBridgeReady: () => pythonBridgeReady
+  getPythonBridgeReady: () => pythonBridgeReady,
+  workerManager,
+  repointPythonBridge
 });
 
 await app.register(fastifyTRPCPlugin, {
@@ -983,6 +1020,40 @@ app.listen({ port, host }, (err) => {
 });
 
 // ---------------------------------------------------------------------------
+// Worker cost guard — reconcile orphaned GPU pods on boot, then reap on a loop
+// ---------------------------------------------------------------------------
+
+const WORKER_REAPER_INTERVAL_MS = 60_000;
+
+workerManager
+  .reconcile()
+  .then((summary) => {
+    if (summary.liveCount > 0 || summary.orphans.length > 0) {
+      log.info(
+        `Worker reconcile: ${summary.liveCount} live, ` +
+          `${summary.orphans.length} orphaned, ~$${summary.estimatedCostUsd.toFixed(2)}`
+      );
+    }
+  })
+  .catch((reconcileErr) => {
+    log.warn(
+      "Worker reconcile failed at startup",
+      reconcileErr instanceof Error
+        ? reconcileErr
+        : new Error(String(reconcileErr))
+    );
+  });
+
+const stopReaper = startReaper(
+  {
+    manager: workerManager,
+    getProfile: (name) => getWorkerProfile(name),
+    now: () => Date.now()
+  },
+  WORKER_REAPER_INTERVAL_MS
+);
+
+// ---------------------------------------------------------------------------
 // Graceful shutdown — ensure child processes (Python worker, etc.) are killed
 // ---------------------------------------------------------------------------
 
@@ -994,6 +1065,7 @@ async function shutdown(signal: string): Promise<void> {
   } catch {
     // best-effort cleanup
   }
+  stopReaper();
   pythonBridge.close();
   try {
     await app.close();

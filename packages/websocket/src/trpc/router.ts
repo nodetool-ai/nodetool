@@ -18,6 +18,7 @@ import { threadsRouter } from "./routers/threads.js";
 import { sketchRouter } from "./routers/sketch.js";
 import { timelineRouter } from "./routers/timeline.js";
 import { usersRouter } from "./routers/users.js";
+import { workerRouter } from "./routers/worker.js";
 import { workflowsRouter } from "./routers/workflows.js";
 import { workspaceRouter } from "./routers/workspace.js";
 
@@ -44,6 +45,7 @@ export const appRouter = router({
   threads: threadsRouter,
   timeline: timelineRouter,
   users: usersRouter,
+  worker: workerRouter,
   workflows: workflowsRouter,
   workspace: workspaceRouter
 });
