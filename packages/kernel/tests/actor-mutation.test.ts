@@ -720,3 +720,95 @@ describe("NodeActor._runCorrelatedImpl – driver & key edge cases", () => {
     expect(calls).toEqual([{ a: "A0", cfg: "C" }]);
   });
 });
+
+describe("NodeActor._executeWithInputs – property merge & control context", () => {
+  it("merges properties and dynamic_properties as defaults (edge input wins)", async () => {
+    const node = makeNode({
+      properties: { threshold: 0.5, label: "p" },
+      dynamic_properties: { extra: 9, label: "dyn" }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(node, inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    await inbox.put("a", "edgeval", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    // dynamic_properties override properties; edge input is added.
+    expect(calls).toEqual([
+      { threshold: 0.5, label: "dyn", extra: 9, a: "edgeval" }
+    ]);
+  });
+
+  it("injects _control_context for controller nodes", async () => {
+    const node = makeNode();
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(node, inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] }),
+      controlContext: { mode: "ctl" }
+    });
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    expect(calls[0]._control_context).toEqual({ mode: "ctl" });
+  });
+});
+
+describe("NodeActor._runCorrelatedImpl – no-max list aggregation", () => {
+  it("aggregates a prefix-list in the no-max fire-once path", async () => {
+    // invocation [r,s]; only a prefix-list input [r] -> no max handle.
+    const inbox = new NodeInbox();
+    inbox.addUpstream("plist", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], { plist: [["r"], false] }),
+      listInputHandles: new Set(["plist"])
+    });
+    const runP = actor.run();
+    await inbox.put("plist", "p1", { correlation_lineage: lin({ r: 0 }) });
+    await inbox.put("plist", "p2", { correlation_lineage: lin({ r: 1 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    inbox.markSourceDone("plist");
+    await runP;
+    expect(calls).toEqual([{ plist: ["p1", "p2"] }]);
+  });
+
+  it("aggregates an empty-list in the no-max fire-once path", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("elist", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { elist: [[], false] }),
+      listInputHandles: new Set(["elist"])
+    });
+    const runP = actor.run();
+    await inbox.put("elist", "e1", {});
+    await inbox.put("elist", "e2", {});
+    await new Promise((r) => setTimeout(r, 0));
+    inbox.markSourceDone("elist");
+    await runP;
+    expect(calls).toEqual([{ elist: ["e1", "e2"] }]);
+  });
+});
+
+describe("NodeActor – multi-root invocation lineage", () => {
+  it("builds the invocation lineage from a multi-root max envelope", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const { executor } = trackingExecutor(() => ({ out: 1 }));
+    const { actor, sentOutputs } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], { a: [["r", "s"], true] })
+    });
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 1, s: 2 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    const hints = sentOutputs[0].hints as {
+      invocationLineage: Record<string, { index: number }>;
+    };
+    expect(hints.invocationLineage).toEqual({ r: { index: 1 }, s: { index: 2 } });
+  });
+});

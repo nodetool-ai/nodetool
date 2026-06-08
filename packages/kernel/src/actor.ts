@@ -1093,6 +1093,7 @@ export class NodeActor {
   private _currentHints(
     emittedHandles?: ReadonlyArray<string>
   ): OutputRoutingHints | undefined {
+    // Stryker disable next-line ConditionalExpression: defensive — _currentHints is only consulted on the correlated execute path where _currentInvocationLineage is always set (EMPTY_LINEAGE for empty scope)
     if (this._currentInvocationLineage === undefined) return undefined;
     if (this._correlation && emittedHandles && emittedHandles.length > 0) {
       const perSlot = this._correlatedOutputLineage(
@@ -1130,6 +1131,7 @@ export class NodeActor {
       (h) => h !== "__control__" && !this._listInputHandles.has(h)
     );
     if (dataHandles.length !== 1) return undefined;
+    // Stryker disable next-line OptionalChaining: dataHandles[0] is a key of _lastEnvelopes, so get() is always defined here
     return this._lastEnvelopes.get(dataHandles[0])?.correlation_lineage;
   }
 
