@@ -25,7 +25,10 @@
     "src/providers/groq-provider.ts",
     "src/providers/xai-provider.ts",
     "src/providers/deepseek-provider.ts",
-    "src/providers/moonshot-provider.ts"
+    "src/providers/moonshot-provider.ts",
+    "src/providers/mistral-provider.ts",
+    "src/providers/lmstudio-provider.ts",
+    "src/providers/vllm-provider.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"

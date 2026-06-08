@@ -70,6 +70,7 @@ export class MistralProvider extends OpenAIProvider {
     const payload = (await response.json()) as {
       data?: Array<{ id?: string; name?: string }>;
     };
+    // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
     const rows = payload.data ?? [];
     return rows
       .filter(
@@ -100,7 +101,8 @@ export class MistralProvider extends OpenAIProvider {
     dimensions?: number;
   }): Promise<number[][]> {
     const input = Array.isArray(args.text) ? args.text : [args.text];
-    if (input.length === 0 || input.every((v) => !v)) {
+    // `[].every(...)` is vacuously true, so this also rejects an empty array.
+    if (input.every((v) => !v)) {
       throw new Error("text must not be empty");
     }
 
