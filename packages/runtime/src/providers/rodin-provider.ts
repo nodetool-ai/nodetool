@@ -25,6 +25,7 @@ import type {
   TextTo3DParams
 } from "./types.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.rodin");
 
 const RODIN_API_BASE_URL = "https://hyperhuman.deemos.com/api";
@@ -73,36 +74,65 @@ interface RodinEncodedImage {
   data: string;
 }
 
-function detectImageType(image: Uint8Array): "png" | "jpeg" {
-  if (
-    image.length >= 8 &&
-    image[0] === 0x89 &&
-    image[1] === 0x50 &&
-    image[2] === 0x4e &&
-    image[3] === 0x47 &&
-    image[4] === 0x0d &&
-    image[5] === 0x0a &&
-    image[6] === 0x1a &&
-    image[7] === 0x0a
-  ) {
-    return "png";
-  }
-  if (
-    image.length >= 3 &&
-    image[0] === 0xff &&
-    image[1] === 0xd8 &&
-    image[2] === 0xff
-  ) {
+export function detectImageType(image: Uint8Array): "png" | "jpeg" {
+  // JPEG starts with the SOI + marker bytes FF D8 FF. Everything else —
+  // including PNG and unknown formats — defaults to "png" (matches the Python
+  // provider's default). No explicit length guard is needed: a short input has
+  // `undefined` at the missing indices, which never equals the marker bytes.
+  if (image[0] === 0xff && image[1] === 0xd8 && image[2] === 0xff) {
     return "jpeg";
   }
-  return "png"; // Match Python default
+  return "png";
 }
 
-function encodeImageForRodin(image: Uint8Array): RodinEncodedImage {
+export function encodeImageForRodin(image: Uint8Array): RodinEncodedImage {
   return {
     type: detectImageType(image),
     data: Buffer.from(image).toString("base64")
   };
+}
+
+/** Pure: normalize a requested 3D output format to Rodin's upper-cased value. */
+export function rodinOutputFormat(outputFormat: string | undefined): string {
+  return (outputFormat ?? DEFAULT_OUTPUT_FORMAT).toUpperCase();
+}
+
+/** Pure: attach a non-negative `seed` to a request payload (in place). */
+export function applyRodinSeed(
+  payload: Record<string, unknown>,
+  seed: number | null | undefined
+): void {
+  if (seed != null && seed >= 0) payload.seed = seed;
+}
+
+/** Pure: build the Rodin text-to-3D submit payload. */
+export function buildRodinTextPayload(
+  prompt: string,
+  format: string,
+  seed: number | null | undefined
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    prompt,
+    geometry_file_format: format
+  };
+  applyRodinSeed(payload, seed);
+  return payload;
+}
+
+/** Pure: build the Rodin image-to-3D submit payload. */
+export function buildRodinImagePayload(
+  encoded: RodinEncodedImage,
+  format: string,
+  prompt: string | undefined,
+  seed: number | null | undefined
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    images: [encoded],
+    geometry_file_format: format
+  };
+  if (prompt) payload.prompt = prompt;
+  applyRodinSeed(payload, seed);
+  return payload;
 }
 
 export class RodinProvider extends BaseProvider {
@@ -118,7 +148,9 @@ export class RodinProvider extends BaseProvider {
     this.apiKey = (secrets["RODIN_API_KEY"] as string) ?? "";
     this.pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
     this.maxPollAttempts = options.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS;
+    // Stryker disable next-line ConditionalExpression,BooleanLiteral,BlockStatement: diagnostic warn only; missing key is enforced at call time.
     if (!this.apiKey) {
+      // Stryker disable next-line StringLiteral: diagnostic log message.
       log.warn("Rodin API key not configured");
     }
   }
@@ -142,6 +174,7 @@ export class RodinProvider extends BaseProvider {
 
   override async getAvailable3DModels(): Promise<Model3D[]> {
     if (!this.apiKey) {
+      // Stryker disable next-line StringLiteral: diagnostic log message.
       log.debug("No Rodin API key configured, returning empty 3D model list");
       return [];
     }
@@ -153,15 +186,12 @@ export class RodinProvider extends BaseProvider {
     if (!this.apiKey) throw new Error("Rodin API key is not configured");
 
     const maxAttempts = this.computeMaxAttempts(params.timeoutSeconds);
-    const format = (params.outputFormat ?? DEFAULT_OUTPUT_FORMAT).toUpperCase();
+    const format = rodinOutputFormat(params.outputFormat);
 
-    const payload: Record<string, unknown> = {
-      prompt: params.prompt,
-      geometry_file_format: format
-    };
-    if (params.seed != null && params.seed >= 0) payload.seed = params.seed;
+    const payload = buildRodinTextPayload(params.prompt, format, params.seed);
 
     const submit = await this.submitTask(payload);
+    // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Rodin text-to-3D task submitted: ${submit.uuid}`);
 
     await this.pollTaskStatus(submit.subscriptionKey, maxAttempts);
@@ -177,17 +207,18 @@ export class RodinProvider extends BaseProvider {
     if (!this.apiKey) throw new Error("Rodin API key is not configured");
 
     const maxAttempts = this.computeMaxAttempts(params.timeoutSeconds);
-    const format = (params.outputFormat ?? DEFAULT_OUTPUT_FORMAT).toUpperCase();
+    const format = rodinOutputFormat(params.outputFormat);
     const encoded = encodeImageForRodin(image);
 
-    const payload: Record<string, unknown> = {
-      images: [encoded],
-      geometry_file_format: format
-    };
-    if (params.prompt) payload.prompt = params.prompt;
-    if (params.seed != null && params.seed >= 0) payload.seed = params.seed;
+    const payload = buildRodinImagePayload(
+      encoded,
+      format,
+      params.prompt,
+      params.seed
+    );
 
     const submit = await this.submitTask(payload);
+    // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Rodin image-to-3D task submitted: ${submit.uuid}`);
 
     await this.pollTaskStatus(submit.subscriptionKey, maxAttempts);
@@ -204,6 +235,7 @@ export class RodinProvider extends BaseProvider {
   }
 
   private computeMaxAttempts(timeoutSeconds: number | null | undefined): number {
+    // Stryker disable next-line EqualityOperator: `<= 0` vs `< 0` is equivalent — 0 is already caught by the falsy `!timeoutSeconds` check.
     if (!timeoutSeconds || timeoutSeconds <= 0) {
       return this.maxPollAttempts;
     }
@@ -256,15 +288,16 @@ export class RodinProvider extends BaseProvider {
         throw new Error(`Rodin API poll error (${res.status}): ${errText}`);
       }
       const data = (await res.json()) as Record<string, unknown>;
+      // Stryker disable next-line ArrayDeclaration: a non-empty fallback is equivalent — a synthetic first "job" with no status string is not terminal, so the loop polls on exactly as the empty-array path does.
       const jobs = (data.jobs as Record<string, unknown>[] | undefined) ?? [];
       const job = jobs[0];
       if (!job) {
-        log.debug(
-          `Rodin task: no jobs yet (attempt ${attempt + 1}/${maxAttempts})`
-        );
+        // Stryker disable next-line StringLiteral,ArithmeticOperator: diagnostic log message.
+        log.debug(`Rodin task: no jobs yet (attempt ${attempt + 1}/${maxAttempts})`);
         await new Promise((r) => setTimeout(r, this.pollIntervalMs));
         continue;
       }
+      // Stryker disable next-line StringLiteral: empty fallback only applies when status is absent; any non-status string is equivalent (still not DONE/FAILED/ERROR/CANCELLED).
       const status = String(job.status ?? "").toUpperCase();
       if (status === "DONE") return job;
       if (
@@ -275,9 +308,8 @@ export class RodinProvider extends BaseProvider {
         const errMsg = (job.error as string | undefined) ?? "Unknown error";
         throw new Error(`Rodin task failed: ${errMsg}`);
       }
-      log.debug(
-        `Rodin task status: ${status} (attempt ${attempt + 1}/${maxAttempts})`
-      );
+      // Stryker disable next-line StringLiteral,ArithmeticOperator: diagnostic log message.
+      log.debug(`Rodin task status: ${status} (attempt ${attempt + 1}/${maxAttempts})`);
       await new Promise((r) => setTimeout(r, this.pollIntervalMs));
     }
     throw new Error(
@@ -313,6 +345,7 @@ export class RodinProvider extends BaseProvider {
       );
     }
     const bytes = new Uint8Array(await dlRes.arrayBuffer());
+    // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Downloaded ${bytes.length} bytes of 3D model data from Rodin`);
     return bytes;
   }
