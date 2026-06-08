@@ -10,6 +10,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.durable-inbox");
 
 /**
@@ -76,6 +77,7 @@ export interface DurableInboxStore {
  * Suitable for single-process / testing scenarios.
  */
 export class MemoryDurableInboxStore implements DurableInboxStore {
+  // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus entry matches no runId/nodeId/handle/messageId and is excluded by every query
   private messages: DurableMessage[] = [];
 
   async findByMessageId(messageId: string): Promise<DurableMessage | null> {
@@ -117,6 +119,7 @@ export class MemoryDurableInboxStore implements DurableInboxStore {
         m.runId === runId &&
         m.nodeId === nodeId &&
         m.handle === handle &&
+        // Stryker disable next-line EqualityOperator: `>=` is equivalent — reassigning max to an equal seq leaves it unchanged
         m.seq > max
       ) {
         max = m.seq;
@@ -201,6 +204,7 @@ export class DurableInbox {
 
     const existing = await this.store.findByMessageId(finalId);
     if (existing) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("Message already exists (idempotent)", { messageId: finalId });
       return existing;
     }
@@ -219,6 +223,7 @@ export class DurableInbox {
     };
 
     await this.store.save(message);
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Appended message to inbox", {
       messageId: finalId,
       runId: this.runId,
@@ -252,6 +257,7 @@ export class DurableInbox {
    */
   async markConsumed(message: DurableMessage): Promise<void> {
     await this.store.markConsumed(message.messageId);
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Marked message as consumed", {
       messageId: message.messageId,
       handle: message.handle,
@@ -276,7 +282,9 @@ export class DurableInbox {
       handle,
       olderThanSeq
     );
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement: the guard only gates a diagnostic log; `count` is returned regardless
     if (count > 0) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Cleaned up consumed messages", {
         count,
         runId: this.runId,
