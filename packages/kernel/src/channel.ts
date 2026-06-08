@@ -11,6 +11,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.channel");
 
 // ---------------------------------------------------------------------------
@@ -85,6 +86,7 @@ export class Channel<T = unknown> {
 
   async publish(item: T): Promise<void> {
     if (this._closed) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.error("Publish to closed channel", { channel: this.name });
       throw new Error(`Channel ${this.name} is closed`);
     }
@@ -108,6 +110,7 @@ export class Channel<T = unknown> {
   }
 
   async *subscribe(subscriberId: string): AsyncGenerator<T> {
+    // Stryker disable next-line ConditionalExpression: equivalent — without this early return the closed check at the wait branch yields the same empty result (the subscriber registers then immediately breaks)
     if (this._closed) return;
 
     const sub: SubscriberQueue<T> = { buffer: [], waiters: [] };
@@ -122,6 +125,7 @@ export class Channel<T = unknown> {
           continue;
         }
         // Nothing buffered – wait for data
+        // Stryker disable next-line ConditionalExpression: equivalent — close() always pushes STOP_SIGNAL into a registered subscriber's buffer (handled above) and new subscribers return early, so this branch is never reached with _closed === true
         if (this._closed) break;
         const d = deferred<void>();
         sub.waiters.push(d);
@@ -171,6 +175,7 @@ export class ChannelManager {
     messageType?: new (...args: unknown[]) => T
   ): Promise<Channel<T>> {
     if (this._channels.has(name) && !replace) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.error("Channel already exists", { channel: name });
       throw new Error(`Channel '${name}' already exists`);
     }
@@ -179,9 +184,11 @@ export class ChannelManager {
       await this._channels.get(name)!.close();
     }
 
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Channel created", { channel: name, bufferLimit });
     const channel = new Channel<T>(name, bufferLimit, messageType);
     this._channels.set(name, channel as unknown as Channel<unknown>);
+    // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — set(name, undefined) and the else delete both make getChannelType() / lookups return undefined (no consumer uses _channelTypes.has)
     if (messageType !== undefined) {
       this._channelTypes.set(name, messageType);
     } else {
@@ -198,6 +205,7 @@ export class ChannelManager {
     if (!this._channels.has(name)) {
       const channel = new Channel<T>(name, bufferLimit, messageType);
       this._channels.set(name, channel as unknown as Channel<unknown>);
+      // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — set(name, undefined) is indistinguishable from leaving it unset for every _channelTypes consumer (all use get(), never has())
       if (messageType !== undefined) {
         this._channelTypes.set(name, messageType);
       }
@@ -265,6 +273,7 @@ export class ChannelManager {
   async closeChannel(name: string): Promise<void> {
     const channel = this._channels.get(name);
     if (channel) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("Channel closed", { channel: name });
       await channel.close();
       this._channels.delete(name);
