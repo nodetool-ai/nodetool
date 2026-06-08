@@ -29,7 +29,12 @@ import type {
   ToolCall,
   VideoModel
 } from "./types.js";
-import { loadVideoModels, loadImageModels } from "./manifest-models.js";
+import {
+  loadVideoModels,
+  loadImageModels,
+  getModelImageInputs,
+  selectPrimaryImageInput
+} from "./manifest-models.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 
@@ -621,9 +626,10 @@ export class KieProvider extends BaseProvider {
   }
 
   /**
-   * Edit/transform one or more source images. KIE's image-edit models accept
-   * the inputs as `image_urls` (an array), so every supplied image is uploaded
-   * and forwarded — enabling multi-image editing/composition.
+   * Edit/transform one or more source images. Uses the model's schema to route
+   * the uploaded image(s) to the correct input field — single-image models
+   * (`image_url`) and multi-image edit/composition models (`image_urls` /
+   * `image_input`) are both supported.
    */
   override async imageToImage(
     images: Uint8Array[],
@@ -637,7 +643,7 @@ export class KieProvider extends BaseProvider {
 
     const input: Record<string, unknown> = {
       prompt: params.prompt,
-      image_urls: imageUrls
+      ...this.imageInput(params.model.id, imageUrls)
     };
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
@@ -651,8 +657,8 @@ export class KieProvider extends BaseProvider {
   }
 
   /**
-   * Animate one or more source images into a video. Images are uploaded and
-   * passed as `image_urls`; models that take a single frame use the first.
+   * Animate one or more source images into a video. The model schema decides
+   * whether the frame goes to a single field (`image_url`) or a list.
    */
   override async imageToVideo(
     images: Uint8Array[],
@@ -664,7 +670,10 @@ export class KieProvider extends BaseProvider {
       throw new Error("The input image is empty.");
     }
 
-    const input: Record<string, unknown> = { image_urls: imageUrls };
+    const input: Record<string, unknown> = this.imageInput(
+      params.model.id,
+      imageUrls
+    );
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
@@ -678,6 +687,27 @@ export class KieProvider extends BaseProvider {
     const taskId = await submitTask(apiKey, modelId, input);
     await pollUntilDone(apiKey, taskId);
     return downloadResultBytes(apiKey, taskId);
+  }
+
+  /**
+   * Map uploaded image URLs to the model's declared input field. Single-image
+   * models get `image_url` (string); multi-image models get `image_urls` /
+   * `image_input` (array). Falls back to KIE's conventions for unknown models.
+   */
+  private imageInput(
+    modelId: string,
+    urls: string[]
+  ): Record<string, unknown> {
+    const field = selectPrimaryImageInput(
+      getModelImageInputs(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId),
+      urls.length
+    );
+    if (field) {
+      return { [field.apiName]: field.isList ? urls : urls[0] };
+    }
+    return urls.length === 1
+      ? { image_url: urls[0] }
+      : { image_urls: urls };
   }
 
   /** Upload every non-empty image to KIE's file store, returning hosted URLs. */

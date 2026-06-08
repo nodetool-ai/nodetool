@@ -81,6 +81,34 @@ describe("KieProvider — imageToImage", () => {
     expect(createdInputs[0].prompt).toBe("merge the two");
   });
 
+  it("routes a single-image model to image_url (schema-based)", async () => {
+    const { createdInputs } = mockKieFlow(["https://kie.cdn/only.png"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+
+    // qwen/image-to-image declares a single `image` upload (paramName image_url).
+    await provider.imageToImage([new Uint8Array([1])], {
+      model: { id: "qwen/image-to-image", name: "Qwen", provider: "kie" },
+      prompt: "tweak"
+    });
+
+    expect(createdInputs[0].image_url).toBe("https://kie.cdn/only.png");
+    expect(createdInputs[0].image_urls).toBeUndefined();
+  });
+
+  it("skips the auxiliary mask input when picking the primary image", async () => {
+    const { createdInputs } = mockKieFlow(["https://kie.cdn/src.png"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+
+    // ideogram/v3-edit declares `image` (image_url) plus a `mask` (mask_url).
+    await provider.imageToImage([new Uint8Array([1])], {
+      model: { id: "ideogram/v3-edit", name: "Ideogram Edit", provider: "kie" },
+      prompt: "edit"
+    });
+
+    expect(createdInputs[0].image_url).toBe("https://kie.cdn/src.png");
+    expect(createdInputs[0].mask_url).toBeUndefined();
+  });
+
   it("throws when no image bytes are supplied", async () => {
     mockKieFlow([]);
     const provider = new KieProvider({ KIE_API_KEY: "k" });
@@ -94,19 +122,24 @@ describe("KieProvider — imageToImage", () => {
 });
 
 describe("KieProvider — imageToVideo", () => {
-  it("uploads images and submits them as image_urls", async () => {
+  it("routes a single-frame model to image_url (schema-based)", async () => {
     const { createdInputs } = mockKieFlow(["https://kie.cdn/frame.png"]);
     const provider = new KieProvider({ KIE_API_KEY: "k" });
 
     const params: ImageToVideoParams = {
-      model: { id: "kling/v2", name: "Kling", provider: "kie" },
+      // kling/v2-1-master-image-to-video uses a single `image` (image_url).
+      model: {
+        id: "kling/v2-1-master-image-to-video",
+        name: "Kling",
+        provider: "kie"
+      },
       prompt: "pan left",
       durationSeconds: 5
     };
     const result = await provider.imageToVideo([new Uint8Array([9])], params);
 
     expect(result).toEqual(new Uint8Array([7, 7, 7]));
-    expect(createdInputs[0].image_urls).toEqual(["https://kie.cdn/frame.png"]);
+    expect(createdInputs[0].image_url).toBe("https://kie.cdn/frame.png");
     expect(createdInputs[0].prompt).toBe("pan left");
     expect(createdInputs[0].duration).toBe(5);
   });

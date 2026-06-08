@@ -198,7 +198,67 @@ describe("ReplicateProvider", () => {
     });
   });
 
-  it("imageToImage sends a single image under `image`", async () => {
+  it("imageToImage uses the model schema's single image field (input_image)", async () => {
+    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
+      })
+    );
+    const provider = createProvider({ run: runMock });
+
+    // flux-kontext-pro declares `input_image` (single), not `image`.
+    await provider.imageToImage([new Uint8Array([1, 2, 3])], {
+      model: {
+        id: "black-forest-labs/flux-kontext-pro",
+        name: "Kontext Pro",
+        provider: "replicate"
+      },
+      prompt: "make it blue"
+    });
+
+    const input = runMock.mock.calls[0][1].input;
+    expect(input.input_image).toMatch(/^data:image\/png;base64,/);
+    expect(input.image).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("imageToImage uses the model schema's list field for multiple images", async () => {
+    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
+      })
+    );
+    const provider = createProvider({ run: runMock });
+
+    // bytedance/seedream-4 declares `image_input` (list[image]).
+    await provider.imageToImage(
+      [new Uint8Array([1, 2, 3]), new Uint8Array([4, 5, 6])],
+      {
+        model: {
+          id: "bytedance/seedream-4",
+          name: "Seedream 4",
+          provider: "replicate"
+        },
+        prompt: "compose"
+      }
+    );
+
+    const input = runMock.mock.calls[0][1].input;
+    expect(Array.isArray(input.image_input)).toBe(true);
+    expect((input.image_input as string[]).length).toBe(2);
+    expect(input.image).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("imageToImage falls back to `image` for models not in the manifest", async () => {
     const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
     vi.stubGlobal(
       "fetch",
@@ -210,41 +270,13 @@ describe("ReplicateProvider", () => {
     const provider = createProvider({ run: runMock });
 
     await provider.imageToImage([new Uint8Array([1, 2, 3])], {
-      model: { id: "owner/edit-model", name: "Edit", provider: "replicate" },
-      prompt: "make it blue"
+      model: { id: "owner/unknown-model", name: "Unknown", provider: "replicate" },
+      prompt: "x"
     });
 
     const input = runMock.mock.calls[0][1].input;
-    expect(typeof input.image).toBe("string");
     expect(input.image).toMatch(/^data:image\/png;base64,/);
     expect(input.image_input).toBeUndefined();
-
-    vi.unstubAllGlobals();
-  });
-
-  it("imageToImage sends multiple images under `image_input`", async () => {
-    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
-      })
-    );
-    const provider = createProvider({ run: runMock });
-
-    await provider.imageToImage(
-      [new Uint8Array([1, 2, 3]), new Uint8Array([4, 5, 6])],
-      {
-        model: { id: "owner/multi-edit", name: "Multi", provider: "replicate" },
-        prompt: "compose"
-      }
-    );
-
-    const input = runMock.mock.calls[0][1].input;
-    expect(Array.isArray(input.image_input)).toBe(true);
-    expect((input.image_input as string[]).length).toBe(2);
-    expect(input.image).toBeUndefined();
 
     vi.unstubAllGlobals();
   });
