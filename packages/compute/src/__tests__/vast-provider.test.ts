@@ -146,6 +146,23 @@ describe("VastProvider.provision", () => {
     expect((destroyInit as RequestInit).method).toBe("DELETE");
   });
 
+  it("surfaces the actual response body when launch returns no contract id", async () => {
+    // 1) PUT /bundles/ → an offer matching the GPU
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    // 2) PUT /asks/555/ → Vast reports failure with no new_contract; the error
+    //    surfaced to the developer must include this body so it is debuggable.
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: false, error: "no_such_ask", message: "gone" })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    await expect(provider.provision(baseSpec())).rejects.toThrow(
+      /no_such_ask/
+    );
+  });
+
   it("reports the chosen offer's hourly cost from dph_total", async () => {
     // 1) PUT /bundles/ → the cheapest offer carries its dollars-per-hour total.
     mockFetch.mockResolvedValueOnce(

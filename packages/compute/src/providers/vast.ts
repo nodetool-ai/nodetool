@@ -192,9 +192,14 @@ export class VastProvider implements WorkerProvider {
       runtype: "args",
       args: ["-p", `${WORKER_PORT}:${WORKER_PORT}`],
     });
+    // The launch response is `{success, new_contract}` per the Vast HTTP API
+    // (https://console.vast.ai/api/v0). On failure it carries `error`/`message`
+    // instead, so include the whole body to keep the failure debuggable.
     const contract = (res as { new_contract?: number }).new_contract;
     if (!contract) {
-      throw new Error("Vast.ai launch returned no instance id");
+      throw new Error(
+        `Vast.ai launch returned no instance id: ${JSON.stringify(res)}`
+      );
     }
     return String(contract);
   }
