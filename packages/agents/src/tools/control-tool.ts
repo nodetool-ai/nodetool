@@ -25,11 +25,16 @@ export function sanitizeToolName(name: string): string {
     .replace(/([a-z])([A-Z])/g, "$1_$2")
     .toLowerCase()
     // Collapse consecutive underscores
-    .replace(/_+/g, "_")
-    // Strip leading/trailing underscores
-    .replace(/^_+|_+$/g, "");
+    .replace(/_+/g, "_");
+  // Strip leading/trailing underscores.
+  // Stryker disable next-line Regex: after the collapse above, the edges hold at
+  // most one underscore, so `_+`→`_` at the edges matches identical text.
+  s = s.replace(/^_+|_+$/g, "");
 
   if (!s) return "control_node";
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: at the
+  // 64-char boundary slice(0, 64) is a no-op, so `> 64`→`>= 64` and the
+  // always-truthy guard produce byte-identical output (equivalent mutants).
   if (s.length > 64) s = s.slice(0, 64);
   return s;
 }
