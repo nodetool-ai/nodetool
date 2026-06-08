@@ -29,7 +29,8 @@
     "src/providers/mistral-provider.ts",
     "src/providers/lmstudio-provider.ts",
     "src/providers/vllm-provider.ts",
-    "src/providers/openrouter-provider.ts"
+    "src/providers/openrouter-provider.ts",
+    "src/providers/aki-provider.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"
