@@ -100,21 +100,21 @@ export interface WorkflowGraphInput {
   }>;
 }
 
-export function normalizeWorkflow(workflow: Record<string, unknown>): AppWorkflow {
+export function normalizeWorkflow(workflow: { description?: string | null; [key: string]: unknown }): AppWorkflow {
   return {
     ...workflow,
-    description: (workflow.description as string | null | undefined) ?? '',
+    description: workflow.description ?? '',
   } as AppWorkflow;
 }
 
 export function normalizeModels<T extends { id: string; name: string }>(
-  models: Array<Record<string, unknown>>,
+  models: Array<{ id: string; name: string; type?: string | null; [key: string]: unknown }>,
   provider: string
 ): T[] {
   return models.map((model) => ({
     ...model,
     provider,
-    type: (model.type as string | null | undefined) ?? null,
+    type: model.type ?? null,
   })) as unknown as T[];
 }
 
@@ -180,7 +180,7 @@ class ApiService {
     return {
       ...result,
       workflows: result.workflows.map((workflow) =>
-        normalizeWorkflow(workflow as unknown as Record<string, unknown>)
+        normalizeWorkflow(workflow)
       ),
     };
   }
@@ -188,7 +188,7 @@ class ApiService {
   async getWorkflow(id: string) {
     const trpc = createMobileTRPCClient();
     const workflow = await trpc.workflows.get.query({ id });
-    return normalizeWorkflow(workflow as unknown as Record<string, unknown>);
+    return normalizeWorkflow(workflow);
   }
 
   async runWorkflow(id: string, params: Record<string, unknown>) {
@@ -213,46 +213,31 @@ class ApiService {
   async getLanguageModels(provider: string): Promise<AppLanguageModel[]> {
     const trpc = createMobileTRPCClient();
     const models = await trpc.models.llmByProvider.query({ provider });
-    return normalizeModels<AppLanguageModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
+    return normalizeModels<AppLanguageModel>(models, provider);
   }
 
   async getImageModels(provider: string): Promise<AppImageModel[]> {
     const trpc = createMobileTRPCClient();
     const models = await trpc.models.imageByProvider.query({ provider });
-    return normalizeModels<AppImageModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
+    return normalizeModels<AppImageModel>(models, provider);
   }
 
   async getTTSModels(provider: string): Promise<AppTTSModel[]> {
     const trpc = createMobileTRPCClient();
     const models = await trpc.models.ttsByProvider.query({ provider });
-    return normalizeModels<AppTTSModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
+    return normalizeModels<AppTTSModel>(models, provider);
   }
 
   async getASRModels(provider: string): Promise<AppASRModel[]> {
     const trpc = createMobileTRPCClient();
     const models = await trpc.models.asrByProvider.query({ provider });
-    return normalizeModels<AppASRModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
+    return normalizeModels<AppASRModel>(models, provider);
   }
 
   async getVideoModels(provider: string): Promise<AppVideoModel[]> {
     const trpc = createMobileTRPCClient();
     const models = await trpc.models.videoByProvider.query({ provider });
-    return normalizeModels<AppVideoModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
+    return normalizeModels<AppVideoModel>(models, provider);
   }
 
   async getNodeMetadata() {

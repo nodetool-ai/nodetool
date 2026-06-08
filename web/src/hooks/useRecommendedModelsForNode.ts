@@ -39,19 +39,19 @@ async function fetchRecommendedByTask(
   if (!task) return [];
   switch (task) {
     case "recommendedImageTextToImage":
-      return trpc.models.recommendedImageTextToImage.query() as Promise<UnifiedModel[]>;
+      return trpc.models.recommendedImageTextToImage.query();
     case "recommendedImageImageToImage":
-      return trpc.models.recommendedImageImageToImage.query() as Promise<UnifiedModel[]>;
+      return trpc.models.recommendedImageImageToImage.query();
     case "recommendedVideoTextToVideo":
-      return trpc.models.recommendedVideoTextToVideo.query() as Promise<UnifiedModel[]>;
+      return trpc.models.recommendedVideoTextToVideo.query();
     case "recommendedVideoImageToVideo":
-      return trpc.models.recommendedVideoImageToVideo.query() as Promise<UnifiedModel[]>;
+      return trpc.models.recommendedVideoImageToVideo.query();
     case "recommendedLanguageEmbedding":
-      return trpc.models.recommendedLanguageEmbedding.query() as Promise<UnifiedModel[]>;
+      return trpc.models.recommendedLanguageEmbedding.query();
     case "recommendedAsr":
-      return trpc.models.recommendedAsr.query() as Promise<UnifiedModel[]>;
+      return trpc.models.recommendedAsr.query();
     case "recommendedTts":
-      return trpc.models.recommendedTts.query() as Promise<UnifiedModel[]>;
+      return trpc.models.recommendedTts.query();
     default:
       return [];
   }
