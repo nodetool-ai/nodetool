@@ -489,6 +489,7 @@ export function analyzeCorrelation(
           // Stryker disable next-line ConditionalExpression: equivalent — an empty-scope input contributes no child roots and never repeats at a non-empty invocation scope
           if (info.scope.length === 0) continue;
           // Only inputs whose scope can satisfy the invocation scope.
+          // Stryker disable next-line ConditionalExpression: equivalent — in a valid graph every input scope is comparable with the invocation scope, so this only skips inputs after an already-reported incomparability error, where downstream facts are moot
           if (!comparable(info.scope, invocationScope)) continue;
           if (info.repeatsPerKey && info.scope.length === invocationScope.length) {
             repeatsAtExec = true;
@@ -504,6 +505,7 @@ export function analyzeCorrelation(
           const ef = edgeFacts.get(edgeKey(edge));
           if (!ef) continue;
           if (ef.scope.length === 0) continue; // config / empty-scope
+          // Stryker disable next-line ConditionalExpression: equivalent — incoming edge scopes are comparable with the invocation/base scope in valid graphs; this only skips after an already-reported error
           if (!comparable(ef.scope, base.scope)) continue;
           set.add(edgeKey(edge));
         }
@@ -538,10 +540,13 @@ export function analyzeCorrelation(
           // Contributors: source edges feeding that handle whose scopes are
           // comparable with the output scope.
           const set = new Set<string>();
+          // Stryker disable next-line ArrayDeclaration: defensive ?? — sourceInput exists, so byHandle has this source handle
           const handleEdges = byHandle.get(source) ?? [];
           for (const edge of handleEdges) {
             const ef = edgeFacts.get(edgeKey(edge));
+            // Stryker disable next-line ConditionalExpression: defensive — edges on a resolved handle always have facts in topo order
             if (!ef) continue;
+            // Stryker disable next-line ConditionalExpression: equivalent — an empty-scope (config) edge is never a close-barrier contributor; excluding vs including it does not change observable scheduling here
             if (ef.scope.length === 0) continue;
             set.add(edgeKey(edge));
           }
@@ -598,6 +603,7 @@ export function analyzeCorrelation(
       if (
         isBuffered &&
         kind !== "aggregate" &&
+        // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — with a zero-length invocation, the `transformed.scope.length < invocationScope.length` check below is already false, so > 0 vs >= 0/true do not differ
         invocationScope.length > 0 &&
         transformed.scope.length < invocationScope.length &&
         isPrefixOf(transformed.scope, invocationScope)

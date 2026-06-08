@@ -774,3 +774,305 @@ describe("analyzeCorrelation – formatScope rendering", () => {
     expect(issue!.message).toContain("[F1:items, R:r]");
   });
 });
+
+describe("analyzeCorrelation – buffered repeats edge cases", () => {
+  // A node nested two iteration levels deep, fed a repeating value from only
+  // the OUTER level — a strict-prefix sticky repeat the buffered rules reject.
+  function nestedRepeat(sinkMode: NodeDescriptor["input_mode"]) {
+    const nodes = [
+      iterSource("F1"),
+      node("F2", "test.ForEach", {
+        outputs: { output: "any" },
+        output_correlation: {
+          output: { kind: "iteration", source: "in", group: "items" }
+        }
+      }),
+      node("rep", "t", {
+        outputs: { chunk: "any" },
+        output_correlation: { chunk: { kind: "chunk", source: "in" } }
+      }),
+      node("sink", "t", { input_mode: sinkMode, outputs: {} })
+    ];
+    const edges = [
+      dataEdge("F1", "output", "F2", "in", "e0"),
+      dataEdge("F1", "output", "rep", "in", "e1"), // rep.chunk scope [F1:items] repeats
+      dataEdge("rep", "chunk", "sink", "sticky", "e2"), // [F1:items] repeats (strict prefix)
+      dataEdge("F2", "output", "sink", "deep", "e3") // [F1:items, F2:items] -> invocation
+    ];
+    return analyzeCorrelation({ nodes, edges });
+  }
+
+  it("rejects a repeating strict-prefix sticky input on a buffered node", () => {
+    const issue = issueWith(nestedRepeat("buffered"), "strict-prefix sticky value");
+    expect(issue).toBeDefined();
+    expect(issue!.nodeId).toBe("sink");
+    expect(issue!.handle).toBe("sticky");
+  });
+
+  it("applies the same buffered rules to a controlled-mode node", () => {
+    // input_mode "controlled" is treated as buffered, so the same issue fires.
+    expect(
+      issueWith(nestedRepeat("controlled"), "strict-prefix sticky value")
+    ).toBeDefined();
+  });
+
+  it("does NOT apply buffered rules to a stream-mode node", () => {
+    expect(
+      issueWith(nestedRepeat("stream"), "strict-prefix sticky value")
+    ).toBeUndefined();
+  });
+
+  it("rejects a buffered node whose sole repeats execution-scope input is a multi-edge list", () => {
+    // Two chunk sources feed one list handle at the invocation scope.
+    const nodes = [
+      node("c1", "test.LLM", {
+        outputs: { chunk: "any" },
+        output_correlation: { chunk: { kind: "chunk", source: "__execution__" } }
+      }),
+      node("c2", "test.LLM", {
+        outputs: { chunk: "any" },
+        output_correlation: { chunk: { kind: "chunk", source: "__execution__" } }
+      }),
+      node("sink", "t", {
+        input_mode: "buffered",
+        outputs: {},
+        propertyTypes: { items: "list[any]" }
+      })
+    ];
+    const edges = [
+      dataEdge("c1", "chunk", "sink", "items", "e1"),
+      dataEdge("c2", "chunk", "sink", "items", "e2")
+    ];
+    const issue = issueWith(
+      analyzeCorrelation({ nodes, edges }),
+      "is a multi-edge list handle"
+    );
+    expect(issue).toBeDefined();
+    expect(issue!.handle).toBe("items");
+  });
+});
+
+describe("analyzeCorrelation – output source defaults & base", () => {
+  it("defaults a missing source to __execution__ (scope = invocation)", () => {
+    const nodes = [
+      iterSource("F1"),
+      // declared output but NO output_correlation entry -> source defaults
+      node("sink", "t", { outputs: { value: "any" } })
+    ];
+    const edges = [dataEdge("F1", "output", "sink", "in", "e1")];
+    const out = analyzeCorrelation({ nodes, edges }).nodes
+      .get("sink")!
+      .outputs.get("value")!;
+    expect(out.scope).toEqual(["F1:items"]); // invocation, not [] (else branch)
+  });
+
+  it("gives an empty, non-repeating base when the named source has no edge", () => {
+    const nodes = [
+      node("n", "t", {
+        input_mode: "stream",
+        outputs: { value: "any" },
+        output_correlation: { value: { kind: "forward", source: "missing" } }
+      })
+    ];
+    const out = analyzeCorrelation({ nodes, edges: [] }).nodes
+      .get("n")!
+      .outputs.get("value")!;
+    expect(out.scope).toEqual([]);
+    expect(out.repeatsPerKey).toBe(false);
+  });
+
+  it("does not flag a forward output naming a single-edge source", () => {
+    const nodes = [
+      iterSource("F1"),
+      node("n", "t", {
+        outputs: { value: "any" },
+        output_correlation: { value: { kind: "forward", source: "in" } }
+      })
+    ];
+    const edges = [dataEdge("F1", "output", "n", "in", "e1")];
+    const result = analyzeCorrelation({ nodes, edges });
+    expect(issueWith(result, "may not name a multi-edge list handle")).toBeUndefined();
+  });
+});
+
+describe("analyzeCorrelation – __execution__ repeats & contributors (edge cases)", () => {
+  it("does not propagate repeats from a strict-prefix repeating input", () => {
+    const nodes = [
+      iterSource("F1"),
+      node("F2", "test.ForEach", {
+        outputs: { output: "any" },
+        output_correlation: {
+          output: { kind: "iteration", source: "in", group: "items" }
+        }
+      }),
+      node("rep", "t", {
+        outputs: { chunk: "any" },
+        output_correlation: { chunk: { kind: "chunk", source: "in" } }
+      }),
+      node("snk", "t", {
+        input_mode: "stream",
+        outputs: { value: "any" },
+        output_correlation: { value: { kind: "single", source: "__execution__" } }
+      })
+    ];
+    const edges = [
+      dataEdge("F1", "output", "F2", "in", "e0"),
+      dataEdge("F1", "output", "rep", "in", "e1"),
+      dataEdge("rep", "chunk", "snk", "sticky", "e2"), // [F1:items] repeats (strict prefix)
+      dataEdge("F2", "output", "snk", "deep", "e3") // [F1:items, F2:items] -> invocation
+    ];
+    const out = analyzeCorrelation({ nodes, edges }).nodes
+      .get("snk")!
+      .outputs.get("value")!;
+    expect(out.repeatsPerKey).toBe(false);
+  });
+
+  it("excludes empty-scope (config) edges from close-barrier contributors", () => {
+    const nodes = [
+      iterSource("F1"),
+      node("cfg", "t", {
+        outputs: { value: "any" },
+        output_correlation: { value: { kind: "single", source: "__execution__" } }
+      }),
+      node("sink", "t", {
+        outputs: { value: "any" },
+        output_correlation: { value: { kind: "single", source: "__execution__" } }
+      })
+    ];
+    const edges = [
+      dataEdge("F1", "output", "sink", "iter", "e1"), // scope [F1:items]
+      dataEdge("cfg", "value", "sink", "cfg", "e2") // scope [] -> excluded
+    ];
+    const contributors = analyzeCorrelation({ nodes, edges }).nodes
+      .get("sink")!
+      .outputs.get("value")!.closeBarrierContributors;
+    expect(Array.from(contributors)).toEqual(["e1"]);
+  });
+});
+
+describe("analyzeCorrelation – strict-prefix output guard by mode/kind", () => {
+  it("does not flag a stream node's strict-prefix output", () => {
+    const nodes = [
+      iterSource("F1"),
+      node("F2", "test.ForEach", {
+        outputs: { output: "any" },
+        output_correlation: {
+          output: { kind: "iteration", source: "in", group: "items" }
+        }
+      }),
+      node("sink", "t", {
+        input_mode: "stream",
+        outputs: { rolled: "any" },
+        output_correlation: { rolled: { kind: "forward", source: "shallow" } }
+      })
+    ];
+    const edges = [
+      dataEdge("F1", "output", "F2", "in", "e0"),
+      dataEdge("F1", "output", "sink", "shallow", "e1"), // [F1:items]
+      dataEdge("F2", "output", "sink", "deep", "e2") // [F1:items, F2:items] -> invocation
+    ];
+    expect(
+      issueWith(analyzeCorrelation({ nodes, edges }), "strict prefix")
+    ).toBeUndefined();
+  });
+
+  it("does not add a strict-prefix issue for a buffered aggregate output", () => {
+    const nodes = [
+      iterSource("F1"),
+      node("sink", "t", {
+        input_mode: "buffered",
+        outputs: { rolled: "any" },
+        output_correlation: {
+          rolled: { kind: "aggregate", source: "in", collapse: "innermost" }
+        }
+      })
+    ];
+    const edges = [dataEdge("F1", "output", "sink", "in", "e1")];
+    const result = analyzeCorrelation({ nodes, edges });
+    // aggregate-on-buffered is reported, but NOT a strict-prefix issue.
+    expect(issueWith(result, "only valid on input_mode")).toBeDefined();
+    expect(issueWith(result, "strict prefix")).toBeUndefined();
+  });
+});
+
+describe("analyzeCorrelation – final guard branches", () => {
+  it("does not flag a non-forward output that names a multi-edge source", () => {
+    const nodes = [
+      node("a", "t", { outputs: { value: "any" } }),
+      node("b", "t", { outputs: { value: "any" } }),
+      node("n", "t", {
+        outputs: { out: "any" },
+        propertyTypes: { items: "list[any]" },
+        // kind "single" (not forward) naming a multi-edge handle: allowed
+        output_correlation: { out: { kind: "single", source: "items" } }
+      })
+    ];
+    const edges = [
+      dataEdge("a", "value", "n", "items", "e1"),
+      dataEdge("b", "value", "n", "items", "e2")
+    ];
+    expect(
+      issueWith(analyzeCorrelation({ nodes, edges }), "may not name a multi-edge list handle")
+    ).toBeUndefined();
+  });
+
+  it("counts only invocation-scope repeats (a strict-prefix repeat is not a second one)", () => {
+    // cA repeats at the invocation scope [F1,F2]; cB repeats at the strict
+    // prefix [F1]. Only cA counts, so there is NO ">1 repeats" issue.
+    const nodes = [
+      iterSource("F1"),
+      node("F2", "test.ForEach", {
+        outputs: { output: "any" },
+        output_correlation: {
+          output: { kind: "iteration", source: "in", group: "items" }
+        }
+      }),
+      node("cA", "t", {
+        outputs: { chunk: "any" },
+        output_correlation: { chunk: { kind: "chunk", source: "in" } }
+      }),
+      node("cB", "t", {
+        outputs: { chunk: "any" },
+        output_correlation: { chunk: { kind: "chunk", source: "in" } }
+      }),
+      node("sink", "t", { input_mode: "buffered", outputs: {} })
+    ];
+    const edges = [
+      dataEdge("F1", "output", "F2", "in", "e0"),
+      dataEdge("F2", "output", "cA", "in", "e1"), // cA.chunk -> [F1,F2] repeats
+      dataEdge("F1", "output", "cB", "in", "e2"), // cB.chunk -> [F1] repeats
+      dataEdge("cA", "chunk", "sink", "a", "e3"), // [F1,F2] repeats (invocation)
+      dataEdge("cB", "chunk", "sink", "b", "e4"), // [F1] repeats (strict prefix)
+      dataEdge("F2", "output", "sink", "deep", "e5") // sets invocation [F1,F2]
+    ];
+    expect(
+      issueWith(
+        analyzeCorrelation({ nodes, edges }),
+        "more than one repeats_per_key input"
+      )
+    ).toBeUndefined();
+  });
+
+  it("does not flag an empty-scope (config) repeating input as a sticky value", () => {
+    // llm emits a repeats_per_key chunk at the empty scope; the node is nested
+    // one iteration deep. The empty-scope repeat must NOT be flagged sticky.
+    const nodes = [
+      node("llm", "test.LLM", {
+        outputs: { chunk: "any" },
+        output_correlation: { chunk: { kind: "chunk", source: "__execution__" } }
+      }),
+      iterSource("F1"),
+      node("sink", "t", { input_mode: "buffered", outputs: {} })
+    ];
+    const edges = [
+      dataEdge("llm", "chunk", "sink", "cfg", "e1"), // scope [] repeats
+      dataEdge("F1", "output", "sink", "deep", "e2") // invocation [F1:items]
+    ];
+    expect(
+      issueWith(
+        analyzeCorrelation({ nodes, edges }),
+        "strict-prefix sticky value"
+      )
+    ).toBeUndefined();
+  });
+});
