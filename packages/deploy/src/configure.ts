@@ -51,8 +51,6 @@ export interface DockerConfigParams {
   containerPort?: number;
   /** GPU device(s) (e.g., "0" or "0,1"). */
   gpu?: string;
-  /** Workflow IDs to assign. */
-  workflows?: string[];
   /** Workspace folder path. */
   workspacePath?: string;
   /** HuggingFace cache folder path. */
@@ -94,8 +92,7 @@ export function configureDocker(
     container: {
       name: params.containerName ?? `nodetool-${name}`,
       port: params.containerPort ?? 8000,
-      gpu: params.gpu,
-      workflows: params.workflows
+      gpu: params.gpu
     },
     paths: {
       workspace: params.workspacePath ?? join(homedir(), ".nodetool-workspace"),

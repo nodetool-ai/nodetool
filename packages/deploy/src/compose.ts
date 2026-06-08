@@ -151,10 +151,6 @@ export class ComposeGenerator {
     env["PORT"] = String(APP_ENV_PORT);
     env["NODETOOL_API_URL"] = `http://localhost:${container.port}`;
 
-    if (container.workflows && container.workflows.length > 0) {
-      env["NODETOOL_WORKFLOWS"] = container.workflows.join(",");
-    }
-
     return Object.entries(env).map(([key, value]) => `${key}=${value}`);
   }
 

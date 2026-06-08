@@ -92,8 +92,7 @@ export const ContainerConfigSchema = z.object({
   name: z.string(),
   port: z.number().int(),
   gpu: z.string().optional(),
-  environment: z.record(z.string(), z.string()).optional(),
-  workflows: z.array(z.string()).optional()
+  environment: z.record(z.string(), z.string()).optional()
 });
 export type ContainerConfig = z.infer<typeof ContainerConfigSchema>;
 
