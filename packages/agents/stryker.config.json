@@ -11,7 +11,8 @@
     "src/utils/wrap-generators-parallel.ts",
     "src/tools/tool-permissions.ts",
     "src/tools/control-tool.ts",
-    "src/tools/calculator-tool.ts"
+    "src/tools/calculator-tool.ts",
+    "src/tools/math-tools.ts"
   ],
   "vitest": {
     "configFile": "vitest.mutation.config.ts"

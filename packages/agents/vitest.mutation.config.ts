@@ -18,7 +18,9 @@ export default defineConfig({
       "tests/tools/control-tool.test.ts",
       "tests/tools/control-tool-hardening.test.ts",
       "tests/tools/calculator-tool.test.ts",
-      "tests/tools/calculator-tool-hardening.test.ts"
+      "tests/tools/calculator-tool-hardening.test.ts",
+      "tests/math-tools.test.ts",
+      "tests/math-tools-hardening.test.ts"
     ],
     testTimeout: 30000
   }

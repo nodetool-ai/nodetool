@@ -28,6 +28,7 @@ with strong unit suites**, the analog of the security package's crypto/key core:
 src/tools/tool-permissions.ts      # the chat permission gate (security-critical)
 src/tools/control-tool.ts          # control-edge tool name/schema construction
 src/tools/calculator-tool.ts       # safe expression evaluation
+src/tools/math-tools.ts            # statistics / geometry / trig / unit conversion
 src/utils/json-parser.ts           # extractJSON from LLM text
 src/utils/remove-base64-images.ts  # message-content filtering
 src/utils/wrap-generators-parallel.ts  # async-generator merge
@@ -37,11 +38,6 @@ A dedicated `vitest.mutation.config.ts` restricts the runner to the fast,
 hermetic unit tests covering these files so the dry-run stays quick and never
 touches the network / LLM-backed e2e suites.
 
-`src/tools/math-tools.ts` is a deliberate **future-work** exclusion: it is ~450
-lines of trig/statistics/geometry formulas whose ~190 surviving mutants would
-need a proportionally huge table of exact-value assertions. It's a good next
-candidate but out of scope for the initial gate.
-
 ## Current status
 
 ```
@@ -49,12 +45,13 @@ File                        | % score | killed | survived
 ----------------------------|---------|--------|---------
 calculator-tool.ts          |  100.00 |     40 |        0
 control-tool.ts             |  100.00 |     83 |        0
+math-tools.ts               |  100.00 |    540 |        0
 tool-permissions.ts         |  100.00 |    156 |        0
 json-parser.ts              |  100.00 |     43 |        0
 remove-base64-images.ts     |  100.00 |     21 |        0
 wrap-generators-parallel.ts |  100.00 |     18 |        0
 ----------------------------|---------|--------|---------
-All files                   |  100.00 |    361 |        0
+All files                   |  100.00 |    901 |        0
 ```
 
 (Timeouts count as killed — they are infinite-loop mutants the scheduler tests
@@ -86,6 +83,12 @@ one externally-meaningful property and reads as Arrange/Act/Assert):
 - **Calculator result guard** (`calculator-tool-hardening.test.ts`): the input
   schema shape and a *boolean* result (finite when coerced, so only the
   `typeof result !== "number"` operand rejects it).
+- **Math tools** (`math-tools-hardening.test.ts`): exact formula results (with
+  inputs chosen so each operator matters — non-zero distance origins, a Heron's
+  triangle where `s - c !== 1`, asymmetric data), every per-statistic / shape /
+  trig-function / unit branch, the schema/enum/description contracts, and the
+  non-numeric guard paths (driven with `BigInt` inputs that throw inside the
+  `try`).
 
 ## Equivalent & non-behavioral mutants
 
@@ -109,6 +112,9 @@ with a line-scoped `// Stryker disable` comment that documents *why*:
   a no-op, so `> 64`→`>= 64` and the always-truthy guard are byte-identical.
 - **`wrapGeneratorsParallel` empty-array guard** — falling through runs the loop,
   which immediately breaks on zero active slots.
+- **`StatisticsTool` mode sentinel** — the `"No unique mode"` initial value is
+  always overwritten by the first value (count ≥ 1 > 0) for the guaranteed
+  non-empty data, so it is never returned.
 
 Each suppression is line-scoped and carries a reason, so the headline score
 reflects the quality of the tests over *behavioural* code rather than being
