@@ -641,3 +641,41 @@ describe("Graph.loadFromDict – streaming flag from saved data only", () => {
     expect(g.findNode("a")!.is_streaming_input).toBe(true);
   });
 });
+
+describe("Graph.fromDict – non-string field rejection (batch 5)", () => {
+  it("rejects a numeric id or type when skipErrors is false", () => {
+    expect(() =>
+      Graph.fromDict({ nodes: [{ id: 5, type: "t" }], edges: [] }, { skipErrors: false })
+    ).toThrow(/string 'id' and 'type'/);
+    expect(() =>
+      Graph.fromDict({ nodes: [{ id: "a", type: 9 }], edges: [] }, { skipErrors: false })
+    ).toThrow(/string 'id' and 'type'/);
+  });
+
+  it("rejects a non-string edge field when skipErrors is false", () => {
+    expect(() =>
+      Graph.fromDict(
+        { nodes: [{ id: "a", type: "t" }], edges: [{ source: "a", sourceHandle: 1, target: "a", targetHandle: "i" }] },
+        { skipErrors: false }
+      )
+    ).toThrow(/Each edge must have string/);
+  });
+});
+
+describe("Graph.validateEdgeTypes – missing endpoints", () => {
+  it("skips (does not crash on) an edge whose source node is missing", () => {
+    const g = new Graph({
+      nodes: [n("b", "t", { properties: { in: "int" } })],
+      edges: [e("ghost", "out", "b", "in")]
+    });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
+
+  it("skips an edge whose source output type is undefined", () => {
+    const g = new Graph({
+      nodes: [n("a", "t"), n("b", "t", { properties: { in: "int" } })],
+      edges: [e("a", "out", "b", "in")]
+    });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
+});

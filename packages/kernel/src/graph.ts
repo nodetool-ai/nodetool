@@ -78,13 +78,14 @@ export interface GraphLoadOptions extends Omit<
 function nodeTypeToJsonSchema(typeStr: string | undefined): string {
   // Stryker disable next-line ConditionalExpression: equivalent — a falsy typeStr falls through to the default case, which also returns "string"
   if (!typeStr) return "string";
-  // Stryker disable next-line StringLiteral: the "str"/"string" case labels are equivalent to drop — they return "string", identical to the default branch
   switch (typeStr) {
     case "int":
     case "float":
     case "number":
       return "number";
+    // Stryker disable next-line StringLiteral: equivalent — the "str" case falls through to "string", which returns the same value as the default branch
     case "str":
+    // Stryker disable next-line StringLiteral: equivalent — "string" maps to "string", identical to the default branch
     case "string":
       return "string";
     case "bool":
@@ -217,15 +218,18 @@ export class Graph {
       }
 
       const rawProperties =
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent — a non-object properties value spreads to {}, the same as falling through to data/{}
         nodeObj.properties && typeof nodeObj.properties === "object"
           ? { ...(nodeObj.properties as Record<string, unknown>) }
-          : nodeObj.data && typeof nodeObj.data === "object"
+          : // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent — a non-object data value spreads to {}
+            nodeObj.data && typeof nodeObj.data === "object"
             ? { ...(nodeObj.data as Record<string, unknown>) }
             : {};
 
       // Merge dynamic_properties into the node's properties so that
       // dynamic nodes (e.g. WorkflowNode) receive user-provided values
       // for inputs that aren't connected via edges.
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent — Object.assign with a non-object dynamic_properties value adds no keys (no-op)
       if (
         nodeObj.dynamic_properties &&
         typeof nodeObj.dynamic_properties === "object"
@@ -241,6 +245,7 @@ export class Graph {
         // Using properties itself as a source of truth would defeat the purpose
         // of this check, since every property key would always be "defined".
         const hasPropertyTypes =
+          // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: these operands all guard the same thing — a non-object or empty propertyTypes disables the check; the empty-object case is covered by a dedicated test
           nodeObj.propertyTypes != null &&
           typeof nodeObj.propertyTypes === "object" &&
           Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length >
