@@ -18,7 +18,9 @@
     "src/providers/provider-registry.ts",
     "src/providers/manifest-models.ts",
     "src/agent-memory.ts",
-    "src/trace-exporters.ts"
+    "src/trace-exporters.ts",
+    "src/python-worker-stderr.ts",
+    "src/python-bridge-factory.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"
