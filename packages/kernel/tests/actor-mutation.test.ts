@@ -653,3 +653,70 @@ describe("NodeActor._runControlled – data waiting", () => {
     ]);
   });
 });
+
+describe("NodeActor._runCorrelatedImpl – driver & key edge cases", () => {
+  it("re-fires the same key for a repeating driver", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const { executor, calls } = trackingExecutor((i) => ({ out: i.a }));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    // Two values at the SAME key — a repeating driver fires for each.
+    await inbox.put("a", "v0", { correlation_lineage: lin({ r: 0 }) });
+    await inbox.put("a", "v1", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    expect(calls).toEqual([{ a: "v0" }, { a: "v1" }]);
+  });
+
+  it("fires once per non-repeating max key (no re-fire)", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    // non-repeating max handle: each key consumed once; the fired-set guards
+    // against double-fire.
+    const { executor, calls } = trackingExecutor((i) => ({ out: i.a }));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], false] })
+    });
+    await inbox.put("a", "only", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    expect(calls).toEqual([{ a: "only" }]);
+  });
+
+  it("buckets a max envelope with incomplete lineage under the empty key", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const { executor, calls } = trackingExecutor((i) => ({ out: i.a }));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], { a: [["r", "s"], true] })
+    });
+    // lineage lacks "s" -> projectKey returns null -> key "".
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    expect(calls).toEqual([{ a: "v" }]);
+  });
+
+  it("an empty-scope arrival unblocks a pending max key", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    inbox.addUpstream("cfg", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true], cfg: [[], false] })
+    });
+    const runP = actor.run();
+    // max key arrives while cfg is still open -> not ready, stays pending...
+    await inbox.put("a", "A0", { correlation_lineage: lin({ r: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    // ...then the empty-scope sticky arrives and unblocks the pending key.
+    await inbox.put("cfg", "C");
+    await new Promise((r) => setTimeout(r, 0));
+    inbox.markSourceDone("a");
+    inbox.markSourceDone("cfg");
+    await runP;
+    expect(calls).toEqual([{ a: "A0", cfg: "C" }]);
+  });
+});

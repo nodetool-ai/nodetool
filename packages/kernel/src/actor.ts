@@ -505,17 +505,9 @@ export class NodeActor {
         const cls = handleClass.get(h);
         if (cls === "max") {
           const bucket = maxBuckets.get(h)!.get(key);
-          if (!bucket || bucket.length === 0) {
-            // No driver value: not ready unless a non-driver max handle has
-            // sticky from a side-input semantic — which only applies when a
-            // repeating driver exists.
-            if (driverHandle && h !== driverHandle) {
-              // Side input must have produced for this exact key. v1: still
-              // wait for it to arrive.
-              return false;
-            }
-            return false;
-          }
+          // A missing or empty bucket means this key has not produced a
+          // value on this max handle yet, so the node cannot fire.
+          if (!bucket || bucket.length === 0) return false;
           // Multi-edge list inputs aggregate every envelope: wait for the
           // handle to close so we capture the full set.
           if (isListInput(h) && this.inbox.isOpen(h)) return false;
