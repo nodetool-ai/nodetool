@@ -554,3 +554,102 @@ describe("NodeActor – aggregate & frame-index minting", () => {
     expect(sentOutputs[0].outputs.index).toBe(0); // minted token, not 99
   });
 });
+
+describe("NodeActor._runCorrelatedImpl – list & no-max paths", () => {
+  it("aggregates a prefix-scope multi-edge list per parent key", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("deep", 1);
+    inbox.addUpstream("plist", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], {
+        deep: [["r", "s"], true],
+        plist: [["r"], false]
+      }),
+      listInputHandles: new Set(["plist"])
+    });
+    const runP = actor.run();
+    await inbox.put("plist", "p1", { correlation_lineage: lin({ r: 0 }) });
+    await inbox.put("plist", "p2", { correlation_lineage: lin({ r: 0 }) });
+    await inbox.put("deep", "D00", { correlation_lineage: lin({ r: 0, s: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    inbox.markSourceDone("plist");
+    inbox.markSourceDone("deep");
+    await runP;
+    expect(calls).toEqual([{ deep: "D00", plist: ["p1", "p2"] }]);
+  });
+
+  it("aggregates an empty-scope multi-edge list on close", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    inbox.addUpstream("elist", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true], elist: [[], false] }),
+      listInputHandles: new Set(["elist"])
+    });
+    const runP = actor.run();
+    await inbox.put("elist", "e1", {});
+    await inbox.put("elist", "e2", {});
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    inbox.markSourceDone("elist");
+    inbox.markSourceDone("a");
+    await runP;
+    expect(calls).toEqual([{ a: "v", elist: ["e1", "e2"] }]);
+  });
+
+  it("fires once for a node with no max-scope input", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("cfg", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], { cfg: [["r"], false] })
+    });
+    await inbox.put("cfg", "C", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("cfg");
+    await actor.run();
+    expect(calls).toEqual([{ cfg: "C" }]);
+  });
+});
+
+describe("NodeActor._runControlled – data waiting", () => {
+  it("waits for and caches a data input that arrives after run starts", async () => {
+    const node = makeNode({ is_controlled: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+    inbox.addUpstream("x", 1);
+    const { executor, calls } = trackingExecutor((i) => ({ out: i.x }));
+    const { actor, sentOutputs } = createActor(node, inbox, executor);
+    const runP = actor.run();
+    // Data arrives AFTER run starts -> _waitForDataInputs drains it.
+    await inbox.put("x", 100);
+    await inbox.put("__control__", { event_type: "run", properties: { p: 1 } });
+    await inbox.put("__control__", { event_type: "stop" });
+    inbox.markSourceDone("x");
+    inbox.markSourceDone("__control__");
+    await runP;
+    expect(calls).toEqual([{ x: 100, p: 1 }]);
+    expect(sentOutputs).toHaveLength(1);
+  });
+
+  it("processes multiple run events and stops on a stop event", async () => {
+    const node = makeNode({ is_controlled: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+    inbox.addUpstream("x", 1);
+    const { executor, calls } = trackingExecutor((i) => ({ out: i.threshold }));
+    const { actor } = createActor(node, inbox, executor);
+    await inbox.put("x", 5);
+    await inbox.put("__control__", { event_type: "run", properties: { threshold: 1 } });
+    await inbox.put("__control__", { event_type: "run", properties: { threshold: 2 } });
+    await inbox.put("__control__", { event_type: "stop" });
+    inbox.markSourceDone("x");
+    inbox.markSourceDone("__control__");
+    await actor.run();
+    expect(calls).toEqual([
+      { x: 5, threshold: 1 },
+      { x: 5, threshold: 2 }
+    ]);
+  });
+});
