@@ -81,6 +81,21 @@ export {
 
 export { Setting } from "./setting.js";
 
+export {
+  createWorkerProfile,
+  getWorkerProfile,
+  listWorkerProfiles,
+  updateWorkerProfile,
+  deleteWorkerProfile
+} from "./worker-profiles.js";
+export type {
+  WorkerProfile,
+  WorkerTarget,
+  TokenPolicy,
+  CreateWorkerProfileInput,
+  WorkerProfilePatch
+} from "./worker-profiles.js";
+
 export { TimelineSequence } from "./timeline-sequence.js";
 export type { TimelineDocument } from "./timeline-sequence.js";
 
