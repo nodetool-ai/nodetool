@@ -1060,3 +1060,74 @@ describe("NodeActor – more scheduler/lineage coverage", () => {
     expect(calls).toEqual([{ x: 7 }, { x: 7 }]);
   });
 });
+
+describe("NodeActor._maybeCollapseForSlot – aggregate edges", () => {
+  function aggNode(corr: Record<string, unknown>) {
+    return makeNode({ is_streaming_input: true, output_correlation: corr as never });
+  }
+  async function emitAgg(node: NodeDescriptor, inScope: string[], inLineage: Record<string, number>) {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("in", 1);
+    const executor: NodeExecutor = {
+      async process() { return {}; },
+      async run(inputs, outputs) {
+        for await (const _ of inputs.stream("in")) void _;
+        await outputs.emit("rolled", "s");
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis(inScope, { in: [inScope, false] })
+    });
+    const runP = actor.run();
+    await inbox.put("in", "v", { correlation_lineage: lin(inLineage) });
+    inbox.markSourceDone("in");
+    await runP;
+    return sentOutputs[0].hints as { perSlotLineage?: Record<string, unknown>; invocationLineage?: unknown };
+  }
+
+  it("is identity when collapse is not innermost", async () => {
+    const node = aggNode({ rolled: { kind: "aggregate", source: "in", collapse: "outer" } });
+    const hints = await emitAgg(node, ["r", "x:s"], { r: 0, "x:s": 2 });
+    // collapse !== innermost -> no collapse -> emit inherits the full invocation
+    // lineage with no per-slot override.
+    expect(hints.invocationLineage).toEqual({ r: { index: 0 }, "x:s": { index: 2 } });
+    expect(hints.perSlotLineage).toBeUndefined();
+  });
+
+  it("returns the base lineage when the collapsed root is absent", async () => {
+    const node = aggNode({ rolled: { kind: "aggregate", source: "in", collapse: "innermost" } });
+    // source scope ends in "x:s" but the lineage only has "r" -> base returned unchanged
+    const hints = await emitAgg(node, ["r", "x:s"], { r: 0 });
+    // collapsed root "x:s" absent from the lineage -> base returned (perSlot set).
+    expect(hints.perSlotLineage?.rolled).toEqual({ r: { index: 0 } });
+  });
+});
+
+describe("NodeActor._maybeMintForSlot – non-iteration", () => {
+  it("does not mint or attach a root for a single-kind streaming output", async () => {
+    const node = makeNode({
+      is_streaming_input: true,
+      output_correlation: { out: { kind: "single", source: "__execution__" } }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("in", 1);
+    const executor: NodeExecutor = {
+      async process() { return {}; },
+      async run(inputs, outputs) {
+        for await (const _ of inputs.stream("in")) void _;
+        await outputs.emit("out", 1);
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis(["r"], { in: [["r"], false] })
+    });
+    const runP = actor.run();
+    await inbox.put("in", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("in");
+    await runP;
+    const hints = sentOutputs[0].hints as { invocationLineage?: unknown; perSlotLineage?: Record<string, unknown> };
+    // single output inherits invocation lineage with no minted root.
+    expect(hints.invocationLineage).toEqual({ r: { index: 0 } });
+    expect(hints.perSlotLineage).toBeUndefined();
+  });
+});

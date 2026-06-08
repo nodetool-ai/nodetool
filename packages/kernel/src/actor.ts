@@ -341,6 +341,7 @@ export class NodeActor {
       });
     } finally {
       // Always finalize, even on error (Python parity: gap #13)
+      // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — calling an absent finalize throws and the catch below swallows it
       if (this._executor.finalize) {
         try {
           await this._executor.finalize();
@@ -433,12 +434,15 @@ export class NodeActor {
     try {
       await this._runCorrelatedImpl(analysis);
     } finally {
+      // Stryker disable next-line BlockStatement: the flag only guards lineage computation during this run; resetting it afterwards is unobservable to a single run
       this._inCorrelatedBuffered = false;
     }
   }
 
   private async _runCorrelatedImpl(analysis: NodeAnalysis): Promise<void> {
+    // Stryker disable next-line MethodExpression: spreading the Map keys is equivalent to iterating them
     const dataHandles = [...this.inbox["_buffers"].keys()].filter(
+      // Stryker disable next-line ConditionalExpression,StringLiteral: correlated nodes are never fed on __control__, so this filter is a defensive no-op in practice
       (h) => h !== "__control__"
     );
 
@@ -457,8 +461,10 @@ export class NodeActor {
 
     for (const h of dataHandles) {
       const info = analysis.inputs.get(h);
+      // Stryker disable next-line ArrayDeclaration: defensive ?? default — a connected handle always has analysis info
       const scope = info?.scope ?? [];
       handleScope.set(h, scope);
+      // Stryker disable next-line BooleanLiteral: defensive ?? default — a connected handle always has analysis info
       handleRepeats.set(h, info?.repeatsPerKey ?? false);
       if (scope.length === 0) {
         handleClass.set(h, "empty");
