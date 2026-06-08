@@ -17,24 +17,6 @@ import {
   NginxConfigSchema,
   DockerDeploymentSchema,
   dockerDeploymentGetServerUrl,
-  RunPodBuildConfigSchema,
-  RunPodImageConfigSchema,
-  runPodImageConfigFullName,
-  RunPodTemplateConfigSchema,
-  RunPodEndpointConfigSchema,
-  RunPodStateSchema,
-  RunPodDockerConfigSchema,
-  RunPodDeploymentSchema,
-  runPodDeploymentGetServerUrl,
-  GCPBuildConfigSchema,
-  GCPImageConfigSchema,
-  gcpImageConfigFullName,
-  GCPResourceConfigSchema,
-  GCPStorageConfigSchema,
-  GCPIAMConfigSchema,
-  GCPStateSchema,
-  GCPDeploymentSchema,
-  gcpDeploymentGetServerUrl,
   DefaultsConfigSchema,
   DeploymentConfigSchema,
   parseDeploymentConfig,
@@ -54,11 +36,6 @@ import {
 describe("DeploymentType", () => {
   it("has all expected values", () => {
     expect(DeploymentType.DOCKER).toBe("docker");
-    expect(DeploymentType.RUNPOD).toBe("runpod");
-    expect(DeploymentType.GCP).toBe("gcp");
-    expect(DeploymentType.FLY).toBe("fly");
-    expect(DeploymentType.RAILWAY).toBe("railway");
-    expect(DeploymentType.HUGGINGFACE).toBe("huggingface");
   });
 });
 
@@ -367,221 +344,6 @@ describe("dockerDeploymentGetServerUrl", () => {
 });
 
 // ============================================================================
-// RunPod Schemas
-// ============================================================================
-
-describe("RunPodBuildConfigSchema", () => {
-  it("uses defaults", () => {
-    const result = RunPodBuildConfigSchema.parse({});
-    expect(result.platform).toBe("linux/amd64");
-    expect(result.no_cache).toBe(false);
-  });
-});
-
-describe("RunPodImageConfigSchema", () => {
-  it("parses with defaults", () => {
-    const result = RunPodImageConfigSchema.parse({ name: "img", tag: "v1" });
-    expect(result.registry).toBe("docker.io");
-    expect(result.build.platform).toBe("linux/amd64");
-  });
-});
-
-describe("runPodImageConfigFullName", () => {
-  it("returns name:tag", () => {
-    const image = RunPodImageConfigSchema.parse({ name: "myimg", tag: "v2" });
-    expect(runPodImageConfigFullName(image)).toBe("myimg:v2");
-  });
-});
-
-describe("RunPodTemplateConfigSchema", () => {
-  it("defaults arrays to empty", () => {
-    const result = RunPodTemplateConfigSchema.parse({ name: "tmpl" });
-    expect(result.gpu_types).toEqual([]);
-    expect(result.data_centers).toEqual([]);
-    expect(result.allowed_cuda_versions).toEqual([]);
-  });
-});
-
-describe("RunPodEndpointConfigSchema", () => {
-  it("uses correct defaults", () => {
-    const result = RunPodEndpointConfigSchema.parse({ name: "ep" });
-    expect(result.workers_min).toBe(0);
-    expect(result.workers_max).toBe(3);
-    expect(result.idle_timeout).toBe(60);
-    expect(result.flashboot).toBe(false);
-  });
-});
-
-describe("RunPodStateSchema", () => {
-  it("defaults all to null/unknown", () => {
-    const result = RunPodStateSchema.parse({});
-    expect(result.template_id).toBeNull();
-    expect(result.endpoint_id).toBeNull();
-    expect(result.endpoint_url).toBeNull();
-    expect(result.last_deployed).toBeNull();
-    expect(result.status).toBe("unknown");
-    expect(result.last_build_hash).toBeNull();
-  });
-});
-
-describe("RunPodDeploymentSchema", () => {
-  it("parses valid RunPod deployment", () => {
-    const result = RunPodDeploymentSchema.parse({
-      image: { name: "img", tag: "v1" }
-    });
-    expect(result.type).toBe("runpod");
-    expect(result.enabled).toBe(true);
-    expect(result.workers_min).toBe(0);
-    expect(result.workers_max).toBe(3);
-    expect(result.idle_timeout).toBe(5);
-    expect(result.compute_type).toBe("GPU");
-    expect(result.platform).toBe("linux/amd64");
-  });
-});
-
-describe("runPodDeploymentGetServerUrl", () => {
-  it("returns endpoint_url when present", () => {
-    const d = RunPodDeploymentSchema.parse({
-      image: { name: "img", tag: "v1" }
-    });
-    d.state.endpoint_url = "https://api.runpod.io/v2/abc123";
-    expect(runPodDeploymentGetServerUrl(d)).toBe(
-      "https://api.runpod.io/v2/abc123"
-    );
-  });
-
-  it("returns undefined when no endpoint_url", () => {
-    const d = RunPodDeploymentSchema.parse({
-      image: { name: "img", tag: "v1" }
-    });
-    expect(runPodDeploymentGetServerUrl(d)).toBeUndefined();
-  });
-});
-
-// ============================================================================
-// GCP Schemas
-// ============================================================================
-
-describe("GCPBuildConfigSchema", () => {
-  it("defaults platform", () => {
-    expect(GCPBuildConfigSchema.parse({}).platform).toBe("linux/amd64");
-  });
-});
-
-describe("GCPImageConfigSchema", () => {
-  it("defaults registry", () => {
-    const result = GCPImageConfigSchema.parse({
-      repository: "my-project/my-repo",
-      tag: "v1"
-    });
-    expect(result.registry).toBe("us-docker.pkg.dev");
-  });
-});
-
-describe("gcpImageConfigFullName", () => {
-  it("returns registry/repository:tag", () => {
-    const image = GCPImageConfigSchema.parse({
-      repository: "proj/repo",
-      tag: "v1"
-    });
-    expect(gcpImageConfigFullName(image)).toBe(
-      "us-docker.pkg.dev/proj/repo:v1"
-    );
-  });
-});
-
-describe("GCPResourceConfigSchema", () => {
-  it("uses correct defaults", () => {
-    const result = GCPResourceConfigSchema.parse({});
-    expect(result.cpu).toBe("4");
-    expect(result.memory).toBe("16Gi");
-    expect(result.min_instances).toBe(0);
-    expect(result.max_instances).toBe(3);
-    expect(result.concurrency).toBe(80);
-    expect(result.timeout).toBe(3600);
-  });
-});
-
-describe("GCPStorageConfigSchema", () => {
-  it("defaults mount path", () => {
-    const result = GCPStorageConfigSchema.parse({});
-    expect(result.gcs_mount_path).toBe("/mnt/gcs");
-    expect(result.gcs_bucket).toBeUndefined();
-  });
-});
-
-describe("GCPIAMConfigSchema", () => {
-  it("defaults allow_unauthenticated to false", () => {
-    const result = GCPIAMConfigSchema.parse({});
-    expect(result.allow_unauthenticated).toBe(false);
-  });
-});
-
-describe("GCPStateSchema", () => {
-  it("defaults all to null/unknown", () => {
-    const result = GCPStateSchema.parse({});
-    expect(result.service_url).toBeNull();
-    expect(result.last_deployed).toBeNull();
-    expect(result.status).toBe("unknown");
-    expect(result.revision).toBeNull();
-  });
-});
-
-describe("GCPDeploymentSchema", () => {
-  it("parses valid GCP deployment", () => {
-    const result = GCPDeploymentSchema.parse({
-      project_id: "my-project",
-      service_name: "nodetool",
-      image: { repository: "proj/repo", tag: "v1" }
-    });
-    expect(result.type).toBe("gcp");
-    expect(result.region).toBe("us-central1");
-    expect(result.resources.cpu).toBe("4");
-    expect(result.iam.allow_unauthenticated).toBe(false);
-  });
-
-  it("parses environment variables", () => {
-    const result = GCPDeploymentSchema.parse({
-      project_id: "my-project",
-      service_name: "nodetool",
-      image: { repository: "proj/repo", tag: "v1" },
-      environment: { SECRETS_MASTER_KEY: "key" }
-    });
-    expect(result.environment).toEqual({ SECRETS_MASTER_KEY: "key" });
-  });
-
-  it("rejects missing project_id", () => {
-    expect(() =>
-      GCPDeploymentSchema.parse({
-        service_name: "s",
-        image: { repository: "r", tag: "t" }
-      })
-    ).toThrow();
-  });
-});
-
-describe("gcpDeploymentGetServerUrl", () => {
-  it("returns service_url when present", () => {
-    const d = GCPDeploymentSchema.parse({
-      project_id: "p",
-      service_name: "s",
-      image: { repository: "r", tag: "t" }
-    });
-    d.state.service_url = "https://s-abc.run.app";
-    expect(gcpDeploymentGetServerUrl(d)).toBe("https://s-abc.run.app");
-  });
-
-  it("returns undefined when no service_url", () => {
-    const d = GCPDeploymentSchema.parse({
-      project_id: "p",
-      service_name: "s",
-      image: { repository: "r", tag: "t" }
-    });
-    expect(gcpDeploymentGetServerUrl(d)).toBeUndefined();
-  });
-});
-
-// ============================================================================
 // DefaultsConfigSchema
 // ============================================================================
 
@@ -650,7 +412,7 @@ describe("parseDeploymentConfig", () => {
     expect(() => parseDeploymentConfig("string")).toThrow();
   });
 
-  it("parses config with multiple deployment types", () => {
+  it("parses config with multiple docker deployments", () => {
     const result = parseDeploymentConfig({
       deployments: {
         docker1: {
@@ -659,22 +421,29 @@ describe("parseDeploymentConfig", () => {
           image: { name: "img" },
           container: { name: "c", port: 8000 }
         },
-        runpod1: {
-          type: "runpod",
-          image: { name: "img", tag: "v1" }
-        },
-        gcp1: {
-          type: "gcp",
-          project_id: "p",
-          service_name: "s",
-          image: { repository: "r", tag: "t" }
+        docker2: {
+          type: "docker",
+          host: "h2",
+          image: { name: "img2" },
+          container: { name: "c2", port: 9000 }
         }
       }
     });
-    expect(Object.keys(result.deployments)).toHaveLength(3);
+    expect(Object.keys(result.deployments)).toHaveLength(2);
     expect(result.deployments.docker1.type).toBe("docker");
-    expect(result.deployments.runpod1.type).toBe("runpod");
-    expect(result.deployments.gcp1.type).toBe("gcp");
+    expect(result.deployments.docker2.type).toBe("docker");
+  });
+
+  it("rejects the removed non-Docker targets", () => {
+    for (const type of ["runpod", "gcp", "fly", "railway", "huggingface"]) {
+      expect(() =>
+        parseDeploymentConfig({
+          deployments: {
+            bad: { type, image: { name: "img", tag: "v1" } }
+          }
+        })
+      ).toThrow();
+    }
   });
 
   it("rejects invalid deployment type", () => {
@@ -732,25 +501,20 @@ describe("ensureDeploymentMasterKey", () => {
   });
 
   it("preserves an existing master key", () => {
-    const deployment = RunPodDeploymentSchema.parse({
-      image: { name: "img", tag: "latest" },
-      environment: { SECRETS_MASTER_KEY: "existing" }
+    const deployment = DockerDeploymentSchema.parse({
+      host: "localhost",
+      image: { name: "ghcr.io/nodetool-ai/nodetool", tag: "latest" },
+      container: {
+        name: "nodetool-dev",
+        port: 8000,
+        environment: { SECRETS_MASTER_KEY: "existing" }
+      }
     });
 
     expect(ensureDeploymentMasterKey(deployment)).toBe(false);
-    expect(deployment.environment?.SECRETS_MASTER_KEY).toBe("existing");
-  });
-
-  it("adds SECRETS_MASTER_KEY to platform deployment environment", () => {
-    const deployment = GCPDeploymentSchema.parse({
-      project_id: "p",
-      service_name: "s",
-      image: { repository: "r", tag: "t" }
-    });
-
-    expect(ensureDeploymentMasterKey(deployment)).toBe(true);
-    const key = deployment.environment?.SECRETS_MASTER_KEY;
-    expect(Buffer.from(key ?? "", "base64")).toHaveLength(32);
+    expect(deployment.container.environment?.SECRETS_MASTER_KEY).toBe(
+      "existing"
+    );
   });
 });
 
@@ -821,18 +585,6 @@ describe("mergeDefaultsWithEnv", () => {
 });
 
 // ============================================================================
-// RunPodDockerConfigSchema
-// ============================================================================
-
-describe("RunPodDockerConfigSchema", () => {
-  it("defaults registry", () => {
-    const result = RunPodDockerConfigSchema.parse({});
-    expect(result.registry).toBe("docker.io");
-    expect(result.username).toBeUndefined();
-  });
-});
-
-// ============================================================================
 // Edge cases and boundary conditions
 // ============================================================================
 
@@ -856,46 +608,6 @@ describe("Edge cases", () => {
     expect(imageConfigFullName(result)).toBe(
       "us-docker.pkg.dev/project/repo/image:sha-abc123"
     );
-  });
-
-  it("RunPod deployment with all optional fields", () => {
-    const result = RunPodDeploymentSchema.parse({
-      image: { name: "img", tag: "v1" },
-      gpu_types: ["NVIDIA A100"],
-      gpu_count: 2,
-      cpu_flavors: ["c5.xlarge"],
-      vcpu_count: 4,
-      data_centers: ["US-TX-3"],
-      network_volume_id: "vol-123",
-      environment: { KEY: "val" },
-      workflows: ["wf.json"],
-      template_name: "my-tmpl",
-      flashboot: true,
-      execution_timeout: 300
-    });
-    expect(result.gpu_types).toEqual(["NVIDIA A100"]);
-    expect(result.gpu_count).toBe(2);
-    expect(result.flashboot).toBe(true);
-  });
-
-  it("GCP deployment with full resource config", () => {
-    const result = GCPDeploymentSchema.parse({
-      project_id: "p",
-      service_name: "s",
-      image: { repository: "r", tag: "t" },
-      resources: {
-        cpu: "8",
-        memory: "32Gi",
-        min_instances: 1,
-        max_instances: 10,
-        concurrency: 100,
-        timeout: 7200,
-        gpu_type: "nvidia-l4",
-        gpu_count: 1
-      }
-    });
-    expect(result.resources.cpu).toBe("8");
-    expect(result.resources.gpu_type).toBe("nvidia-l4");
   });
 
   it("parseDeploymentConfig with version override", () => {
