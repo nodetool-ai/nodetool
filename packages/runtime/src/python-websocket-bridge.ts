@@ -116,8 +116,10 @@ function crashSafeTerminate(ws: WebSocket): void {
 
 export class WebsocketPythonBridge extends PythonBridgeBase {
   private _ws: WebSocket | null = null;
-  private readonly _wsUrl: string;
-  private readonly _workerToken: string | undefined;
+  // Mutable so the bridge can be re-pointed at a different worker at runtime via
+  // setTarget(); both are captured from options at construction as the default.
+  private _wsUrl: string;
+  private _workerToken: string | undefined;
   private readonly _maxReconnectDelayMs: number;
   private readonly _reconnectRpcTimeoutMs: number;
   private readonly _autoReconnect: boolean;
@@ -174,6 +176,41 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
   /** The remote worker WebSocket URL this bridge connects to. */
   get wsUrl(): string {
     return this._wsUrl;
+  }
+
+  /**
+   * Re-point the bridge at a different worker without restarting the process.
+   * Used by the worker-attach flow: attaching a provisioned GPU worker hands its
+   * `{wsUrl, token}` here so the live bridge adopts it.
+   *
+   * No-op when `url` matches the current target (avoids a needless reconnect).
+   * Otherwise the current socket is torn down — rejecting any in-flight requests
+   * — the new url/token replace the instance fields, and a reconnect is forced
+   * through the existing reconnect path so `_openSocket` uses the new values and
+   * a successful re-point emits "reconnected" like any other reconnect. An empty
+   * or missing token sends no `Authorization` header (worker accepts all).
+   */
+  setTarget(url: string, token?: string): void {
+    if (url === this._wsUrl) return;
+
+    this._wsUrl = url;
+    // Match the constructor: an empty string means "no token" (no auth header).
+    this._workerToken = token || undefined;
+
+    // Cancel any pending/in-flight reconnect so the next attempt uses the new
+    // target and backoff timing is deterministic.
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    this._reconnecting = false;
+    this._reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS;
+
+    // Tear down the current socket (detaches listeners → no spurious
+    // _onUnexpectedClose) and reject in-flight requests, then drive a fresh
+    // connect against the new target via the reconnect path.
+    this._teardownSocket("Python worker re-pointed via setTarget");
+    void this._attemptReconnect();
   }
 
   // ── Connection lifecycle ────────────────────────────────────────────

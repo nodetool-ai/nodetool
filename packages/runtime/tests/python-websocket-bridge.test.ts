@@ -712,4 +712,131 @@ describe("WebsocketPythonBridge", () => {
       else process.env["NODETOOL_WORKER_TOKEN"] = savedToken;
     }
   });
+
+  describe("setTarget", () => {
+    it("reconnects against the new url with a bearer header", async () => {
+      // Start on worker A, then re-point at worker B with a token. The bridge
+      // must close the A socket and open a fresh socket against B carrying the
+      // Authorization: Bearer header on the handshake.
+      worker = await startFakeWorker();
+      bridge = new WebsocketPythonBridge({
+        wsUrl: `ws://127.0.0.1:${worker.port}`,
+        maxReconnectDelayMs: 50
+      });
+      await bridge.connect();
+      expect(bridge.wsUrl).toBe(`ws://127.0.0.1:${worker.port}`);
+
+      const workerB = await startFakeWorker();
+      try {
+        let reconnected = false;
+        bridge.on("reconnected", () => {
+          reconnected = true;
+        });
+
+        bridge.setTarget(`ws://127.0.0.1:${workerB.port}`, "b-token");
+
+        await waitFor(() => reconnected, 10000);
+        expect(bridge.isConnected).toBe(true);
+        expect(bridge.wsUrl).toBe(`ws://127.0.0.1:${workerB.port}`);
+        // The new worker saw exactly one handshake, carrying the bearer header.
+        expect(workerB.authHeaders()).toEqual(["Bearer b-token"]);
+
+        // RPC now flows to worker B.
+        const result = await bridge.execute(
+          "fake.TestNode",
+          { value: "on-b" },
+          {},
+          {}
+        );
+        expect(result.outputs).toEqual({ out: "on-b" });
+      } finally {
+        await workerB.close();
+      }
+    });
+
+    it("is a no-op when the url is unchanged (no reconnect)", async () => {
+      worker = await startFakeWorker();
+      bridge = new WebsocketPythonBridge({
+        wsUrl: `ws://127.0.0.1:${worker.port}`,
+        maxReconnectDelayMs: 50
+      });
+      await bridge.connect();
+      expect(worker.connectionCount()).toBe(1);
+
+      let reconnected = false;
+      bridge.on("reconnected", () => {
+        reconnected = true;
+      });
+
+      bridge.setTarget(`ws://127.0.0.1:${worker.port}`, undefined);
+
+      // Give a reconnect ample time to (incorrectly) fire.
+      await new Promise((r) => setTimeout(r, 200));
+      expect(reconnected).toBe(false);
+      // No second handshake — the original socket was never torn down.
+      expect(worker.connectionCount()).toBe(1);
+      expect(bridge.isConnected).toBe(true);
+    });
+
+    it("sends no Authorization header when re-pointed with an empty token", async () => {
+      // Start authed against worker A, then re-point at worker B with an empty
+      // token: the new handshake must carry NO Authorization header.
+      worker = await startFakeWorker();
+      bridge = new WebsocketPythonBridge({
+        wsUrl: `ws://127.0.0.1:${worker.port}`,
+        workerToken: "a-token",
+        maxReconnectDelayMs: 50
+      });
+      await bridge.connect();
+      expect(worker.authHeaders()).toEqual(["Bearer a-token"]);
+
+      const workerB = await startFakeWorker();
+      try {
+        let reconnected = false;
+        bridge.on("reconnected", () => {
+          reconnected = true;
+        });
+
+        bridge.setTarget(`ws://127.0.0.1:${workerB.port}`, "");
+
+        await waitFor(() => reconnected, 10000);
+        expect(workerB.authHeaders()).toEqual([undefined]);
+      } finally {
+        await workerB.close();
+      }
+    });
+
+    it("rejects in-flight requests on the forced reconnect", async () => {
+      // Worker A accepts the socket and answers connect, but never answers
+      // execute, so the request stays pending. setTarget must reject it (the
+      // socket is torn down) rather than leaving it hung.
+      worker = await startFakeWorker(0, { answerExecute: false });
+      bridge = new WebsocketPythonBridge({
+        wsUrl: `ws://127.0.0.1:${worker.port}`,
+        maxReconnectDelayMs: 50
+      });
+      await bridge.connect();
+
+      let inflightError: Error | null = null;
+      const inflight = bridge
+        .execute("fake.TestNode", { value: "x" }, {}, {})
+        .catch((err: Error) => {
+          inflightError = err;
+        });
+      // Let the execute frame reach the worker before re-pointing.
+      await new Promise((r) => setTimeout(r, 50));
+
+      const workerB = await startFakeWorker();
+      try {
+        bridge.setTarget(`ws://127.0.0.1:${workerB.port}`, undefined);
+        await inflight;
+        expect(inflightError).not.toBeNull();
+        expect((inflightError as unknown as Error).message).not.toContain(
+          "Not connected"
+        );
+      } finally {
+        await workerB.close();
+      }
+    });
+  });
 });
