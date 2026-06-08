@@ -123,7 +123,7 @@ export function buildRodinTextPayload(
 export function buildRodinImagePayload(
   encoded: RodinEncodedImage,
   format: string,
-  prompt: string | undefined,
+  prompt: string | null | undefined,
   seed: number | null | undefined
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {
