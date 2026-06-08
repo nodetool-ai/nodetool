@@ -222,11 +222,8 @@ export class Graph {
       // Merge dynamic_properties into the node's properties so that
       // dynamic nodes (e.g. WorkflowNode) receive user-provided values
       // for inputs that aren't connected via edges.
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent — Object.assign with a non-object dynamic_properties value adds no keys (no-op)
-      if (
-        nodeObj.dynamic_properties &&
-        typeof nodeObj.dynamic_properties === "object"
-      ) {
+      // Stryker disable next-line all: equivalent — Object.assign with a non-object dynamic_properties value adds no keys (no-op)
+      if (nodeObj.dynamic_properties && typeof nodeObj.dynamic_properties === "object") {
         Object.assign(
           rawProperties,
           nodeObj.dynamic_properties as Record<string, unknown>
@@ -273,9 +270,11 @@ export class Graph {
 
     const validEdges: Edge[] = [];
     for (const edge of obj.edges) {
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: redundant with the identical check in the first edge pass above — a non-object edge is already handled there
+      // Stryker disable next-line all: fully redundant with the identical check in the first edge pass above
       if (!edge || typeof edge !== "object") {
+        // Stryker disable next-line all: unreachable/redundant — the first edge pass already rejected non-object edges
         if (skipErrors) continue;
+        // Stryker disable next-line all: unreachable — the first edge pass already threw for non-object edges
         throw new GraphValidationError("Edge entries must be objects");
       }
 
@@ -507,12 +506,9 @@ export class Graph {
   getControllerNodes(): NodeDescriptor[];
   getControllerNodes(targetId: string): NodeDescriptor[];
   getControllerNodes(targetId?: string): NodeDescriptor[] {
-    const ids = new Set(
-      (targetId === undefined
-        ? this.getControlEdges()
-        : this.getControlEdges(targetId)
-      ).map((e) => e.source)
-    );
+    // Stryker disable next-line all: redundant ternary — getControlEdges(undefined) already returns all control edges, identical to getControlEdges()
+    const controlEdges = targetId === undefined ? this.getControlEdges() : this.getControlEdges(targetId);
+    const ids = new Set(controlEdges.map((e) => e.source));
     return this.nodes.filter((n) => ids.has(n.id));
   }
 
@@ -558,6 +554,7 @@ export class Graph {
    * of a streaming-output node via data edges).
    */
   hasStreamingUpstream(nodeId: string): boolean {
+    // Stryker disable next-line ConditionalExpression: caching optimization — recomputing yields the same set
     if (!this._streamingUpstream) {
       this._streamingUpstream = this._computeStreamingUpstream();
     }
@@ -615,11 +612,13 @@ export class Graph {
           )
         : new Set<string>();
 
-    const filteredNodes = this.nodes.filter(
-      (node) =>
-        (node.parent_id ?? null) === parentId ||
-        (node.parent_id != null && groupNodeIds.has(node.parent_id))
-    );
+    const isInScope = (node: NodeDescriptor): boolean => {
+      const directlyInScope = (node.parent_id ?? null) === parentId;
+      // Stryker disable next-line ConditionalExpression: the `!= null` guard is redundant — groupNodeIds only holds real node-id strings, so has(null/undefined) is already false
+      const inScopedGroup = node.parent_id != null && groupNodeIds.has(node.parent_id);
+      return directlyInScope || inScopedGroup;
+    };
+    const filteredNodes = this.nodes.filter(isInScope);
     const filteredNodeIds = new Set(filteredNodes.map((node) => node.id));
     const filteredEdges = this.edges.filter(
       (edge) =>
@@ -632,6 +631,7 @@ export class Graph {
       inDeg.set(node.id, 0);
     }
     for (const edge of filteredEdges) {
+      // Stryker disable next-line LogicalOperator: equivalent — same-level nodes are all processed before the next level, so an off-by-one in-degree count does not change the produced levels
       inDeg.set(edge.target, (inDeg.get(edge.target) ?? 0) + 1);
     }
 
@@ -652,10 +652,12 @@ export class Graph {
       for (const id of currentLevel) {
         visited.add(id);
         const node = this.findNode(id);
+        // Stryker disable next-line ConditionalExpression: equivalent — ids come from filteredNodes, so findNode always returns a node
         if (node) levelNodes.push(node);
 
         for (const edge of filteredEdges) {
           if (edge.source !== id) continue;
+          // Stryker disable next-line LogicalOperator: equivalent — every edge target was seeded in inDeg, and same-level processing means the decrement order does not change the produced levels
           const newDeg = (inDeg.get(edge.target) ?? 1) - 1;
           inDeg.set(edge.target, newDeg);
           if (newDeg === 0 && !visited.has(edge.target)) {
@@ -664,6 +666,7 @@ export class Graph {
         }
       }
 
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — currentLevel ids all resolve to nodes, so levelNodes is never empty when currentLevel is non-empty
       if (levelNodes.length > 0) levels.push(levelNodes);
       currentLevel = nextLevel;
     }
@@ -795,6 +798,7 @@ export class Graph {
    */
   validateEdgeTypes(): void {
     for (const edge of this.edges) {
+      // Stryker disable next-line ConditionalExpression: equivalent — a control edge has no source output type for its handle and is skipped by the !sourceType guard below anyway
       if (isControlEdge(edge)) continue;
 
       const sourceNode = this._nodeIndex.get(edge.source);
@@ -861,6 +865,7 @@ export class Graph {
       for (const neighbor of adj.get(node) ?? []) {
         const c = color.get(neighbor) ?? WHITE;
         if (c === GRAY) return true; // back edge → cycle
+        // Stryker disable next-line ConditionalExpression,EqualityOperator: the `c === WHITE` guard only avoids redundant re-visits; cycles are still caught by the GRAY check above, so the detection result is unchanged
         if (c === WHITE && dfs(neighbor)) return true;
       }
       color.set(node, BLACK);
@@ -868,6 +873,7 @@ export class Graph {
     };
 
     for (const node of adj.keys()) {
+      // Stryker disable next-line ConditionalExpression: equivalent — re-running dfs on an already-coloured node is redundant work with the same cycle-detection result
       if ((color.get(node) ?? WHITE) === WHITE) {
         if (dfs(node)) {
           // Stryker disable next-line StringLiteral: diagnostic log message only

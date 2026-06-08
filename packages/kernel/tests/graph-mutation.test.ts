@@ -704,3 +704,183 @@ describe("Graph – remaining edge/control coverage (batch 6)", () => {
     expect(() => new Graph({ nodes, edges }).validateControlEdges()).not.toThrow();
   });
 });
+
+describe("Graph – topologicalSort & streaming (batch 7)", () => {
+  it("excludes children whose parent is not a GroupNode", () => {
+    const nodes = [n("top", "t"), n("x", "t", { parent_id: "ghost" })];
+    // "ghost" is referenced as a parent but is not a GroupNode (and absent)
+    const ids = new Graph({ nodes, edges: [] })
+      .topologicalSort(null)
+      .flat()
+      .map((node) => node.id);
+    expect(ids).toEqual(["top"]);
+  });
+
+  it("treats only exact/dotted GroupNode types as groups", () => {
+    const nodes = [
+      n("reg", "Regular"),
+      n("child", "t", { parent_id: "reg" }) // reg is NOT a group -> child excluded
+    ];
+    const ids = new Graph({ nodes, edges: [] })
+      .topologicalSort(null)
+      .flat()
+      .map((node) => node.id);
+    expect(ids).toEqual(["reg"]);
+  });
+
+  it("does not mark a node fed only by non-streaming sources", () => {
+    const nodes = [
+      n("s", "t", { is_streaming_output: true }),
+      n("a", "t"),
+      n("p", "t"),
+      n("q", "t")
+    ];
+    const edges = [e("s", "o", "a", "i"), e("p", "o", "q", "i")]; // p->q is non-streaming
+    const g = new Graph({ nodes, edges });
+    expect(g.hasStreamingUpstream("a")).toBe(true);
+    expect(g.hasStreamingUpstream("q")).toBe(false);
+  });
+});
+
+describe("Graph.loadFromDict – edge retention", () => {
+  it("keeps edges whose endpoints both resolve", async () => {
+    const resolver = { resolveNodeType: (nodeType: string) => ({ nodeType }) };
+    const g = await Graph.loadFromDict(
+      {
+        nodes: [{ id: "a", type: "t" }, { id: "b", type: "t" }],
+        edges: [{ source: "a", sourceHandle: "o", target: "b", targetHandle: "i" }]
+      },
+      { resolver }
+    );
+    expect(g.edges).toHaveLength(1);
+  });
+});
+
+describe("Graph – final coverage (batch 8)", () => {
+  it("fromDict defaults allowUndefinedProperties to true (keeps extra props)", () => {
+    const graph = Graph.fromDict({
+      nodes: [{ id: "a", type: "t", propertyTypes: { known: "int" }, properties: { known: 1, extra: 2 } }],
+      edges: []
+    });
+    expect(graph.findNode("a")!.properties).toEqual({ known: 1, extra: 2 });
+  });
+
+  it("loadFromDict defaults allowUndefinedProperties to true", async () => {
+    const resolver = { resolveNodeType: (nodeType: string) => ({ nodeType, propertyTypes: { known: "int" } }) };
+    const g = await Graph.loadFromDict(
+      { nodes: [{ id: "a", type: "t", data: { known: 1, extra: 2 } }], edges: [] },
+      { resolver }
+    );
+    expect(g.findNode("a")!.properties).toEqual({ known: 1, extra: 2 });
+  });
+
+  it("collects every handle fed by an edge to the same target", () => {
+    const graph = Graph.fromDict({
+      nodes: [
+        { id: "a", type: "t", outputs: { out: "any" } },
+        { id: "b", type: "t", properties: { h1: 1, h2: 2, keep: 3 } }
+      ],
+      edges: [
+        { source: "a", sourceHandle: "out", target: "b", targetHandle: "h1" },
+        { source: "a", sourceHandle: "out", target: "b", targetHandle: "h2" }
+      ]
+    });
+    expect(graph.findNode("b")!.properties).toEqual({ keep: 3 });
+  });
+
+  it("computes group membership even for a non-null parentId scope", () => {
+    const nodes = [
+      n("g", "GroupNode"),
+      n("child", "t", { parent_id: "g" }),
+      n("x", "t", { parent_id: "other" })
+    ];
+    const ids = new Graph({ nodes, edges: [] })
+      .topologicalSort("other")
+      .flat()
+      .map((node) => node.id);
+    expect(ids).toEqual(["x"]); // child (parent is group g) is NOT pulled in
+  });
+
+  it("control-edge handle error includes (no id) when the edge has no id", () => {
+    const nodes = [n("a", "t"), n("b", "t")];
+    const bad = e("a", "o", "b", "wrong", { edge_type: "control" }); // no id
+    expect(() => new Graph({ nodes, edges: [bad] }).validateControlEdges()).toThrow(
+      /\(no id\)/
+    );
+  });
+
+  it("type-mismatch message uses the source->target descriptor when the edge has no id", () => {
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", { properties: { in: { type: "int" } } })
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "in")] }); // no id
+    expect(() => g.validateEdgeTypes()).toThrow(/a:out->b:in/);
+  });
+
+  it("validateEdgeTypes does not crash on a null target property", () => {
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", { properties: { in: null } } as never)
+    ];
+    expect(() => new Graph({ nodes, edges: [e("a", "out", "b", "in")] }).validateEdgeTypes()).not.toThrow();
+  });
+
+  it("detects a control cycle that runs through a non-first edge of a source", () => {
+    // a has edges to b and c; the cycle runs a -> c -> a (c is a's SECOND edge),
+    // so dropping non-first adjacency entries would hide it.
+    const nodes = [n("a", "t"), n("b", "t"), n("c", "t")];
+    const edges = [ctrl("a", "b"), ctrl("a", "c"), ctrl("c", "a")];
+    expect(() => new Graph({ nodes, edges }).validateControlEdges()).toThrow(
+      /cycle in control edges/
+    );
+  });
+});
+
+describe("Graph – final coverage (batch 9)", () => {
+  it("loadFromDict forwards skipErrors:false to the normalize pass", async () => {
+    const resolver = { resolveNodeType: (nodeType: string) => ({ nodeType }) };
+    await expect(
+      Graph.loadFromDict(
+        { nodes: [42], edges: [] }, // malformed node, caught by fromDict
+        { resolver, skipErrors: false }
+      )
+    ).rejects.toThrow(/Node entries must be objects/);
+  });
+
+  it("null-mode topo includes only the requested parent scope", () => {
+    // top-level node + a node parented to a non-group: only the top-level one.
+    const nodes = [n("top", "t"), n("orphan", "t", { parent_id: "nope" })];
+    const ids = new Graph({ nodes, edges: [] })
+      .topologicalSort(null)
+      .flat()
+      .map((node) => node.id);
+    expect(ids).toEqual(["top"]);
+  });
+});
+
+describe("Graph – final coverage (batch 10)", () => {
+  it("detects a control cycle through a source's first edge", () => {
+    // a -> b is a's FIRST edge and is part of the cycle a -> b -> a; an
+    // adjacency overwrite that keeps only the last edge would hide it.
+    const nodes = [n("a", "t"), n("b", "t"), n("c", "t")];
+    const edges = [ctrl("a", "b"), ctrl("a", "c"), ctrl("b", "a")];
+    expect(() => new Graph({ nodes, edges }).validateControlEdges()).toThrow(
+      /cycle in control edges/
+    );
+  });
+
+  it("null-mode topo includes a group's child but excludes a non-group's child", () => {
+    const nodes = [
+      n("g", "GroupNode"),
+      n("ingroup", "t", { parent_id: "g" }), // included (g is a group)
+      n("outgroup", "t", { parent_id: "plain" }) // excluded (plain is not a group)
+    ];
+    const ids = new Graph({ nodes, edges: [] })
+      .topologicalSort(null)
+      .flat()
+      .map((node) => node.id)
+      .sort();
+    expect(ids).toEqual(["g", "ingroup"]);
+  });
+});
