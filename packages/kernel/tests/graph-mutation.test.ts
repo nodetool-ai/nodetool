@@ -679,3 +679,28 @@ describe("Graph.validateEdgeTypes – missing endpoints", () => {
     expect(() => g.validateEdgeTypes()).not.toThrow();
   });
 });
+
+describe("Graph – remaining edge/control coverage (batch 6)", () => {
+  it("rejects a non-string edge source when skipErrors is false", () => {
+    expect(() =>
+      Graph.fromDict(
+        { nodes: [{ id: "a", type: "t" }], edges: [{ source: 1, sourceHandle: "o", target: "a", targetHandle: "i" }] },
+        { skipErrors: false }
+      )
+    ).toThrow(/Each edge must have string/);
+  });
+
+  it("detects a longer control cycle (a->b->c->a)", () => {
+    const nodes = [n("a", "t"), n("b", "t"), n("c", "t")];
+    const edges = [ctrl("a", "b"), ctrl("b", "c"), ctrl("c", "a")];
+    expect(() => new Graph({ nodes, edges }).validateControlEdges()).toThrow(
+      /cycle in control edges/
+    );
+  });
+
+  it("control validation passes for a self-disjoint forest", () => {
+    const nodes = [n("a", "t"), n("b", "t"), n("c", "t"), n("d", "t")];
+    const edges = [ctrl("a", "b"), ctrl("c", "d")];
+    expect(() => new Graph({ nodes, edges }).validateControlEdges()).not.toThrow();
+  });
+});

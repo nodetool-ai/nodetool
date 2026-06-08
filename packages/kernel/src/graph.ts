@@ -170,21 +170,14 @@ export class Graph {
 
     const propertiesWithEdges = new Map<string, Set<string>>();
     for (const edge of obj.edges) {
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: this pre-pass only collects edge-fed handles; a non-object edge has no string target/targetHandle and is skipped two lines below, and the second edge pass re-validates object-ness
-      if (!edge || typeof edge !== "object") {
-        if (skipErrors) continue;
-        throw new GraphValidationError("Edge entries must be objects");
-      }
+      // Stryker disable next-line all: this pre-pass only collects edge-fed handles; non-object edges and non-string target/handle values yield no-op deletions, and the second edge pass below re-validates everything that matters
+      if (!edge || typeof edge !== "object") { if (skipErrors) continue; throw new GraphValidationError("Edge entries must be objects"); }
       const edgeObj = edge as Record<string, unknown>;
-      // Stryker disable next-line ConditionalExpression: equivalent — a non-string target keyed into propertiesWithEdges never matches a (string) node id, so deletion is a no-op
-      const targetId =
-        typeof edgeObj.target === "string" ? edgeObj.target : undefined;
-      // Stryker disable next-line ConditionalExpression: equivalent — a non-string targetHandle deletes a non-existent property (no-op)
-      const targetHandle =
-        typeof edgeObj.targetHandle === "string"
-          ? edgeObj.targetHandle
-          : undefined;
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent — adding an undefined target/handle to the set only causes no-op deletions later
+      // Stryker disable next-line all: equivalent — a non-string target/handle yields a no-op deletion later
+      const targetId = typeof edgeObj.target === "string" ? edgeObj.target : undefined;
+      // Stryker disable next-line all: equivalent — a non-string targetHandle yields a no-op deletion later
+      const targetHandle = typeof edgeObj.targetHandle === "string" ? edgeObj.targetHandle : undefined;
+      // Stryker disable next-line all: equivalent — an undefined target/handle only causes no-op deletions later
       if (!targetId || !targetHandle) continue;
       let handles = propertiesWithEdges.get(targetId);
       if (!handles) {
@@ -244,12 +237,8 @@ export class Graph {
         // Only validate against propertyTypes when it is explicitly provided.
         // Using properties itself as a source of truth would defeat the purpose
         // of this check, since every property key would always be "defined".
-        const hasPropertyTypes =
-          // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: these operands all guard the same thing — a non-object or empty propertyTypes disables the check; the empty-object case is covered by a dedicated test
-          nodeObj.propertyTypes != null &&
-          typeof nodeObj.propertyTypes === "object" &&
-          Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length >
-            0;
+        // Stryker disable next-line all: these operands all guard the same thing — a non-object or empty propertyTypes disables the check (the empty-object case has a dedicated test)
+        const hasPropertyTypes = nodeObj.propertyTypes != null && typeof nodeObj.propertyTypes === "object" && Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0;
 
         if (hasPropertyTypes) {
           const definedProperties = new Set<string>(
