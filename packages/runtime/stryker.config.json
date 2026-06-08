@@ -34,7 +34,8 @@
     "src/providers/cohere-provider.ts",
     "src/providers/jina-provider.ts",
     "src/providers/voyage-provider.ts",
-    "src/providers/reve-provider.ts"
+    "src/providers/reve-provider.ts",
+    "src/providers/meshy-provider.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"
