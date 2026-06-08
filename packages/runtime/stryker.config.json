@@ -30,7 +30,11 @@
     "src/providers/lmstudio-provider.ts",
     "src/providers/vllm-provider.ts",
     "src/providers/openrouter-provider.ts",
-    "src/providers/aki-provider.ts"
+    "src/providers/aki-provider.ts",
+    "src/providers/cohere-provider.ts",
+    "src/providers/jina-provider.ts",
+    "src/providers/voyage-provider.ts",
+    "src/providers/reve-provider.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"
