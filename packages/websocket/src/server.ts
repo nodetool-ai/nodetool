@@ -40,7 +40,8 @@ import {
   initDb,
   initPostgresDb,
   migrateSqliteDb,
-  runSeeds
+  runSeeds,
+  touchWorkerInstance
 } from "@nodetool-ai/models";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
@@ -468,6 +469,27 @@ pythonBridge.on("error", (err: Error) => {
 pythonBridge.on("exit", (code: number) => {
   log.warn(`Python worker exited with code ${code}`);
   pythonBridgeReady = false;
+});
+
+// Keep the attached worker's `last_activity_at` fresh so the cost guard's
+// reaper measures idle time from real bridge traffic, not from creation. The
+// remote WebSocket bridge emits "activity" on every outbound frame; we touch
+// the active worker instance, throttled so high-frequency traffic doesn't turn
+// into a DB write per frame (the reaper runs every 60s; second-level freshness
+// is ample). A local stdio bridge never emits "activity", so this is inert
+// there. Failures are swallowed — a touch must never break execution.
+const WORKER_TOUCH_THROTTLE_MS = 10_000;
+let lastWorkerTouchAt = 0;
+pythonBridge.on("activity", () => {
+  const nowMs = Date.now();
+  if (nowMs - lastWorkerTouchAt < WORKER_TOUCH_THROTTLE_MS) return;
+  lastWorkerTouchAt = nowMs;
+  void workerManager
+    .getActiveWorker()
+    .then((active) => (active ? touchWorkerInstance(active.id) : undefined))
+    .catch(() => {
+      // best-effort: keeping the idle clock fresh must not crash the runner
+    });
 });
 
 // ---------------------------------------------------------------------------

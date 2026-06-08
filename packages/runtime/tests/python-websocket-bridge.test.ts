@@ -321,6 +321,25 @@ describe("WebsocketPythonBridge", () => {
     expect(result.blobs).toEqual({});
   });
 
+  it("emits 'activity' on each outbound RPC so the cost guard can keep last_activity_at fresh", async () => {
+    // The reaper measures idle time from last_activity_at; the bridge is the
+    // designated source of activity heartbeats. Every frame sent to the remote
+    // worker (execute, in particular) must surface as an "activity" event so the
+    // server can touch the attached worker instance and the idle window resets.
+    worker = await startFakeWorker();
+    bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });
+    await bridge.connect();
+
+    let activity = 0;
+    bridge.on("activity", () => {
+      activity += 1;
+    });
+
+    await bridge.execute("fake.TestNode", { value: "hello" }, {}, {});
+
+    expect(activity).toBeGreaterThan(0);
+  });
+
   it("executeStream() yields streamed chunks", async () => {
     worker = await startFakeWorker();
     bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });

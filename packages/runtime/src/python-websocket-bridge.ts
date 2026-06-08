@@ -451,6 +451,12 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     }
     // Send as a single binary frame — no length prefix on WebSocket.
     this._ws.send(payload, { binary: true });
+    // Every outbound frame to the remote worker is fresh activity. The cost
+    // guard's reaper measures idle time from `last_activity_at`, and this bridge
+    // is its designated heartbeat source: the server listens for "activity" and
+    // touches the attached worker instance so an actively-executing worker is
+    // never reaped as idle (see WorkerManager.getActiveWorker / touchWorkerInstance).
+    this.emit("activity");
   }
 
   // ── Unexpected close → reject + reconnect ───────────────────────────
