@@ -10,6 +10,7 @@
 import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
 import type { ImageModel, VideoModel } from "./types.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.manifest-models");
 
 const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
@@ -44,17 +45,18 @@ interface ManifestNode {
   inputFields?: ManifestInputField[];
 }
 
-function explicitTasks(n: ManifestNode): string[] | undefined {
+export function explicitTasks(n: ManifestNode): string[] | undefined {
   return Array.isArray(n.supportedTasks) && n.supportedTasks.length > 0
     ? n.supportedTasks
     : undefined;
 }
 
 /** Enum values declared for a manifest input field, by canonical API name. */
-function enumValuesFor(
+export function enumValuesFor(
   n: ManifestNode,
   apiName: string
 ): string[] | undefined {
+  // Stryker disable next-line ArrayDeclaration: the fallback's contents are irrelevant — a non-array node yields no matching field either way.
   const field = (n.inputFields ?? []).find(
     (f) => (f.apiParamName ?? f.name) === apiName
   );
@@ -63,7 +65,7 @@ function enumValuesFor(
 }
 
 /** Option constraints (duration/resolution/aspect) for a video endpoint. */
-function videoConstraints(n: ManifestNode): {
+export function videoConstraints(n: ManifestNode): {
   durations?: number[];
   resolutions?: string[];
   aspectRatios?: string[];
@@ -79,27 +81,29 @@ function videoConstraints(n: ManifestNode): {
   };
 }
 
-function nodeId(n: ManifestNode): string {
+export function nodeId(n: ManifestNode): string {
   return n.modelId ?? n.endpointId ?? "";
 }
 
-function nodeName(n: ManifestNode): string {
+export function nodeName(n: ManifestNode): string {
   // className often looks like "FluxSchnellRedux" — split on caps
   const raw = n.title ?? n.className ?? nodeId(n);
   // If it's PascalCase with no spaces, add spaces before capitals
+  // Stryker disable next-line Regex: the test is an optimization gate; the replaces below are a no-op without a [a-z][A-Z] boundary, so widening it is behaviour-preserving.
   if (raw && !raw.includes(" ") && /[a-z][A-Z]/.test(raw)) {
-    return raw.replace(/([a-z])([A-Z])/g, "$1 $2")
-      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
+    const spaced = raw.replace(/([a-z])([A-Z])/g, "$1 $2");
+    // Stryker disable next-line Regex: collapsing the acronym group [A-Z]+ -> [A-Z] leaves the unmatched leading uppercase chars in place, producing identical output.
+    return spaced.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
   }
   return raw;
 }
 
 /** Match a list of keyword fragments against id + name (both lowercased). */
-function matchesAny(haystack: string, ...needles: string[]): boolean {
+export function matchesAny(haystack: string, ...needles: string[]): boolean {
   return needles.some((n) => haystack.includes(n));
 }
 
-function inferVideoTasks(name: string, id: string): string[] {
+export function inferVideoTasks(name: string, id: string): string[] {
   const hay = `${id} ${name}`.toLowerCase();
   const tasks: string[] = [];
   // Specialized video transforms — kept out of the text/image generation lists.
@@ -131,7 +135,7 @@ function inferVideoTasks(name: string, id: string): string[] {
  * every entry means generation filtering is strict for these providers — no
  * reliance on the untagged-passes-everything fallback.
  */
-function inferImageTasks(name: string, id: string): string[] {
+export function inferImageTasks(name: string, id: string): string[] {
   const hay = `${id} ${name}`.toLowerCase();
   if (matchesAny(hay, "upscal", "super-resolution", "super resolution", "superres", "esrgan", "seedvr", "clarity")) {
     return ["upscale"];
@@ -154,20 +158,29 @@ function inferImageTasks(name: string, id: string): string[] {
 
 const _cache = new Map<string, ManifestNode[]>();
 
-function loadManifest(packageName: string, exportPath: string): ManifestNode[] {
+export function loadManifest(
+  packageName: string,
+  exportPath: string
+): ManifestNode[] {
   const key = `${packageName}/${exportPath}`;
+  // Stryker disable next-line ConditionalExpression: this cache short-circuit is a pure memoization; skipping it just re-resolves the same manifest — behaviour-preserving.
   if (_cache.has(key)) return _cache.get(key)!;
 
+  // _nodeModule is absent only in a non-Node runtime (browser/edge), which the
+  // test environment never is — this fallback is unreachable here.
+  // Stryker disable all
   if (!_nodeModule) {
     _cache.set(key, []);
     return [];
   }
+  // Stryker restore all
   try {
     const req = _nodeModule.createRequire(import.meta.url);
     const data = req(`${packageName}/${exportPath}`) as ManifestNode[];
     _cache.set(key, data);
     return data;
   } catch (err) {
+    // Stryker disable next-line StringLiteral: diagnostic log, not asserted.
     log.warn(`Could not load ${key}: ${err}`);
     _cache.set(key, []);
     return [];
@@ -183,7 +196,14 @@ export function loadVideoModels(
   exportPath: string,
   provider: string
 ): VideoModel[] {
-  const manifest = loadManifest(packageName, exportPath);
+  return buildVideoModels(loadManifest(packageName, exportPath), provider);
+}
+
+/** Pure transform: manifest nodes → deduplicated, task-tagged video models. */
+export function buildVideoModels(
+  manifest: ManifestNode[],
+  provider: string
+): VideoModel[] {
   const seen = new Map<string, VideoModel>();
 
   for (const n of manifest) {
@@ -195,6 +215,7 @@ export function loadVideoModels(
 
     const existing = seen.get(id);
     if (existing) {
+      // Stryker disable next-line ArrayDeclaration: existing entries always carry a non-empty supportedTasks (set when first created), so the `?? []` fallback is dead.
       const merged = new Set([...(existing.supportedTasks ?? []), ...tasks]);
       existing.supportedTasks = [...merged];
       // Prefer the first entry that actually declares constraints (image- and
@@ -222,7 +243,14 @@ export function loadImageModels(
   exportPath: string,
   provider: string
 ): ImageModel[] {
-  const manifest = loadManifest(packageName, exportPath);
+  return buildImageModels(loadManifest(packageName, exportPath), provider);
+}
+
+/** Pure transform: manifest nodes → deduplicated, task-tagged image models. */
+export function buildImageModels(
+  manifest: ManifestNode[],
+  provider: string
+): ImageModel[] {
   const seen = new Map<string, ImageModel>();
 
   for (const n of manifest) {
@@ -236,6 +264,7 @@ export function loadImageModels(
     // them under upscale/remove-background/relight/vectorize.
     const qualifies =
       n.outputType === "image" ||
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: tasks is always non-empty (infer* returns >=1, explicit is non-empty), so `tasks.length > 0` is invariantly true here.
       (n.outputType === "dict" && tasks.length > 0);
     if (!qualifies) continue;
     seen.set(id, { id, name, provider, supportedTasks: tasks });

@@ -5,6 +5,7 @@
   "reporters": ["html", "json", "clear-text", "progress"],
   "jsonReporter": { "fileName": "reports/mutation/mutation.json" },
   "coverageAnalysis": "perTest",
+  "ignorePatterns": [".agents", ".claude", ".stryker-tmp", "reports", "dist"],
   "mutate": [
     "src/providers/cost-calculator.ts",
     "src/providers/defaults.ts",
@@ -14,7 +15,8 @@
     "src/context-packer.ts",
     "src/cost-reconciler.ts",
     "src/recommended-models.ts",
-    "src/providers/provider-registry.ts"
+    "src/providers/provider-registry.ts",
+    "src/providers/manifest-models.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"
