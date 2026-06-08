@@ -15,31 +15,15 @@ import {
   StateManager,
   WorkflowSyncer,
   dockerDeploymentGetServerUrl,
-  gcpDeploymentGetServerUrl,
-  runPodDeploymentGetServerUrl,
   loadDeploymentConfig,
-  GCPDeployer,
-  RunPodDeployer,
-  FlyDeployer,
-  RailwayDeployer,
-  HuggingFaceDeployer,
   DockerDeployer,
   DockerDeploymentSchema,
-  FlyDeploymentSchema,
-  HuggingFaceDeploymentSchema,
-  RailwayDeploymentSchema,
-  RunPodDeploymentSchema,
   type AnyDeployment,
   type Deployer,
   type DeployerFactory,
   type DeploymentConfig,
   type DeploymentType,
   type DockerDeployment,
-  type FlyDeployment,
-  type GCPDeployment,
-  type HuggingFaceDeployment,
-  type RailwayDeployment,
-  type RunPodDeployment,
   type SyncerAssetStorage,
   type WorkflowSyncerDeps,
   type AssetInfo
@@ -121,25 +105,7 @@ export function getDeploymentOrExit(
 export function defaultDeployerFactories(): Record<string, DeployerFactory> {
   return {
     docker: (name, deployment, state) =>
-      adaptDocker(new DockerDeployer(name, deployment as DockerDeployment, state)),
-    runpod: (name, deployment, state) =>
-      adaptRunPod(new RunPodDeployer(name, deployment as RunPodDeployment, state)),
-    gcp: (name, deployment, state) =>
-      adaptGCP(new GCPDeployer(name, deployment as GCPDeployment, state)),
-    fly: (name, deployment, state) =>
-      adaptFly(new FlyDeployer(name, deployment as FlyDeployment, state)),
-    railway: (name, deployment, state) =>
-      adaptRailway(
-        new RailwayDeployer(name, deployment as RailwayDeployment, state)
-      ),
-    huggingface: (name, deployment, state) =>
-      adaptHuggingFace(
-        new HuggingFaceDeployer(
-          name,
-          deployment as HuggingFaceDeployment,
-          state
-        )
-      )
+      adaptDocker(new DockerDeployer(name, deployment as DockerDeployment, state))
   };
 }
 
@@ -161,76 +127,6 @@ function adaptDocker(d: DockerDeployer): Deployer {
   };
 }
 
-function adaptRunPod(d: RunPodDeployer): Deployer {
-  return {
-    plan: () => d.plan() as unknown as Promise<Record<string, unknown>>,
-    apply: (opts) =>
-      d.apply(opts?.dryRun ?? false) as unknown as Promise<
-        Record<string, unknown>
-      >,
-    status: () => d.status() as unknown as Promise<Record<string, unknown>>,
-    logs: async () => {
-      // RunPod serverless doesn't provide log access
-      try {
-        d.logs();
-      } catch (e) {
-        return `${String(e)}\n`;
-      }
-      return "";
-    },
-    destroy: () => d.destroy() as unknown as Promise<Record<string, unknown>>
-  };
-}
-
-function adaptGCP(d: GCPDeployer): Deployer {
-  return {
-    plan: () => d.plan(),
-    apply: (opts) => d.apply(opts?.dryRun ?? false),
-    status: () => d.status(),
-    logs: (opts) => d.logs(opts?.service, opts?.follow ?? false, opts?.tail ?? 100),
-    destroy: () => d.destroy()
-  };
-}
-
-function adaptFly(d: FlyDeployer): Deployer {
-  return {
-    plan: () => d.plan() as unknown as Promise<Record<string, unknown>>,
-    apply: (opts) =>
-      d.apply({ dryRun: opts?.dryRun }) as unknown as Promise<
-        Record<string, unknown>
-      >,
-    status: () => d.status() as unknown as Promise<Record<string, unknown>>,
-    logs: (opts) => d.logs({ follow: opts?.follow, tail: opts?.tail }),
-    destroy: () => d.destroy() as unknown as Promise<Record<string, unknown>>
-  };
-}
-
-function adaptRailway(d: RailwayDeployer): Deployer {
-  return {
-    plan: () => d.plan(),
-    apply: (opts) =>
-      d.apply({ dryRun: opts?.dryRun }) as unknown as Promise<
-        Record<string, unknown>
-      >,
-    status: () => d.status(),
-    logs: (opts) => d.logs({ follow: opts?.follow, tail: opts?.tail }),
-    destroy: () => d.destroy() as unknown as Promise<Record<string, unknown>>
-  };
-}
-
-function adaptHuggingFace(d: HuggingFaceDeployer): Deployer {
-  return {
-    plan: () => d.plan(),
-    apply: (opts) =>
-      d.apply({ dryRun: opts?.dryRun }) as unknown as Promise<
-        Record<string, unknown>
-      >,
-    status: () => d.status(),
-    logs: (opts) => d.logs({ follow: opts?.follow, tail: opts?.tail }),
-    destroy: () => d.destroy() as unknown as Promise<Record<string, unknown>>
-  };
-}
-
 export async function getManager(): Promise<DeploymentManager> {
   const config = await loadConfigOrExit();
   const state = new StateManager();
@@ -247,16 +143,6 @@ export function resolveServerUrl(
   switch (deployment.type) {
     case "docker":
       return dockerDeploymentGetServerUrl(deployment);
-    case "runpod":
-      return runPodDeploymentGetServerUrl(deployment);
-    case "gcp":
-      return gcpDeploymentGetServerUrl(deployment);
-    case "fly":
-      return deployment.state.url ?? undefined;
-    case "railway":
-      return deployment.state.url ?? undefined;
-    case "huggingface":
-      return deployment.state.space_url ?? undefined;
   }
 }
 
@@ -393,7 +279,7 @@ export async function confirm(
 }
 
 // ---------------------------------------------------------------------------
-// Deployment stubs (for `deploy add` on types without configure* helpers)
+// Deployment stubs (for `deploy add`)
 // ---------------------------------------------------------------------------
 
 export function buildStubDeployment(
@@ -401,25 +287,6 @@ export function buildStubDeployment(
   name: string
 ): AnyDeployment {
   switch (type) {
-    case "fly":
-      return FlyDeploymentSchema.parse({
-        type: "fly",
-        app: `nodetool-${name}`,
-        image: "nodetool-image.yaml"
-      });
-    case "railway":
-      return RailwayDeploymentSchema.parse({
-        type: "railway",
-        project: "your-project-id",
-        service: `nodetool-${name}`,
-        image: "nodetool-image.yaml"
-      });
-    case "huggingface":
-      return HuggingFaceDeploymentSchema.parse({
-        type: "huggingface",
-        repo: `your-org/nodetool-${name}`,
-        image: "nodetool-image.yaml"
-      });
     case "docker":
       return DockerDeploymentSchema.parse({
         type: "docker",
@@ -433,18 +300,6 @@ export function buildStubDeployment(
           port: 8000
         }
       });
-    case "runpod":
-      return RunPodDeploymentSchema.parse({
-        type: "runpod",
-        image: {
-          name: "your-dockerhub-user/nodetool",
-          tag: "latest"
-        }
-      });
-    case "gcp":
-      throw new Error(
-        "GCP deployments must be configured via interactive prompts — no stub available."
-      );
   }
 }
 

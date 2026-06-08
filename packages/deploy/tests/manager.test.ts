@@ -85,31 +85,6 @@ function makeLocalDockerDeployment(): AnyDeployment {
   } as unknown as AnyDeployment;
 }
 
-function makeRunPodDeployment(): AnyDeployment {
-  return {
-    type: "runpod",
-    enabled: true,
-    image: { name: "nodetool/api", tag: "latest" },
-    state: {
-      status: "active",
-      pod_id: "pod-123",
-      last_deployed: "2025-06-01T00:00:00Z"
-    }
-  } as unknown as AnyDeployment;
-}
-
-function makeGCPDeployment(): AnyDeployment {
-  return {
-    type: "gcp",
-    enabled: true,
-    project_id: "my-project",
-    region: "us-central1",
-    service_name: "nodetool-api",
-    image: { registry: "gcr.io", repository: "my-project/api", tag: "v1" },
-    state: { status: "serving", last_deployed: "2025-03-01T00:00:00Z" }
-  } as unknown as AnyDeployment;
-}
-
 function makeConfig(
   deployments: Record<string, AnyDeployment>
 ): DeploymentConfig {
@@ -142,11 +117,6 @@ function makeManager(
 
   const factories: Record<string, DeployerFactory> = {
     docker: defaultFactory,
-    runpod: defaultFactory,
-    gcp: defaultFactory,
-    fly: defaultFactory,
-    railway: defaultFactory,
-    huggingface: defaultFactory,
     ...factoryOverrides
   };
 
@@ -205,27 +175,6 @@ describe("DeploymentManager", () => {
       expect(result[0].container).toBe("nodetool-local");
     });
 
-    it("lists a RunPod deployment with pod_id from state", async () => {
-      const { manager } = makeManager(
-        { rp: makeRunPodDeployment() },
-        { rp: { status: "active", pod_id: "pod-abc" } }
-      );
-      const result = await manager.listDeployments();
-      expect(result[0].type).toBe("runpod");
-      expect(result[0].pod_id).toBe("pod-abc");
-    });
-
-    it("lists a GCP deployment with project and region", async () => {
-      const { manager } = makeManager(
-        { gcp: makeGCPDeployment() },
-        { gcp: { status: "serving", last_deployed: "2025-03-01T00:00:00Z" } }
-      );
-      const result = await manager.listDeployments();
-      expect(result[0].type).toBe("gcp");
-      expect(result[0].project).toBe("my-project");
-      expect(result[0].region).toBe("us-central1");
-    });
-
     it("shows status as unknown when no state exists", async () => {
       const { manager } = makeManager({ web: makeDockerDeployment() });
       const result = await manager.listDeployments();
@@ -237,7 +186,7 @@ describe("DeploymentManager", () => {
       const { manager } = makeManager({
         a: makeDockerDeployment(),
         b: makeSSHDockerDeployment(),
-        c: makeGCPDeployment()
+        c: makeLocalDockerDeployment()
       });
       const result = await manager.listDeployments();
       expect(result).toHaveLength(3);
@@ -245,15 +194,6 @@ describe("DeploymentManager", () => {
       expect(names).toContain("a");
       expect(names).toContain("b");
       expect(names).toContain("c");
-    });
-
-    it("shows null pod_id for RunPod when state has no pod_id", async () => {
-      const { manager } = makeManager(
-        { rp: makeRunPodDeployment() },
-        { rp: { status: "pending" } }
-      );
-      const result = await manager.listDeployments();
-      expect(result[0].pod_id).toBeNull();
     });
   });
 
@@ -489,18 +429,6 @@ describe("DeploymentManager", () => {
       const result = manager.validate("missing");
       expect(result.valid).toBe(false);
       expect(result.errors[0]).toContain("missing");
-    });
-
-    it("returns valid for GCP deployment", () => {
-      const { manager } = makeManager({ gcp: makeGCPDeployment() });
-      const result = manager.validate("gcp");
-      expect(result.valid).toBe(true);
-    });
-
-    it("returns valid for RunPod deployment", () => {
-      const { manager } = makeManager({ rp: makeRunPodDeployment() });
-      const result = manager.validate("rp");
-      expect(result.valid).toBe(true);
     });
   });
 

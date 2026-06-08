@@ -10,13 +10,7 @@ import * as fsp from "node:fs/promises";
 import * as yaml from "js-yaml";
 
 import {
-  ComputeType,
-  CPUFlavor,
-  DataCenter,
-  GPUType,
   configureDocker,
-  configureGCP,
-  configureRunPod,
   getDeploymentConfigPath,
   initDeploymentConfig,
   loadDeploymentConfig,
@@ -30,7 +24,6 @@ import {
 
 import {
   asJson,
-  buildStubDeployment,
   confirm,
   getAdminClient,
   getDeploymentOrExit,
@@ -45,21 +38,13 @@ import {
 } from "./deploy-helpers.js";
 import type { DeploymentType } from "@nodetool-ai/deploy";
 
-const SUPPORTED_TYPES: DeploymentType[] = [
-  "docker",
-  "runpod",
-  "gcp",
-  "fly",
-  "railway",
-  "huggingface"
-];
+const SUPPORTED_TYPES: DeploymentType[] = ["docker"];
 
 interface DeploymentWithEnvironment {
   type: string;
   container?: {
     environment?: Record<string, string>;
   };
-  environment?: Record<string, string>;
 }
 
 function generateDeploymentMasterKey(): string {
@@ -69,7 +54,7 @@ function generateDeploymentMasterKey(): string {
 function ensureAddedDeploymentMasterKey(
   deployment: DeploymentWithEnvironment
 ): void {
-  if (deployment.type === "docker" && deployment.container) {
+  if (deployment.container) {
     const env = deployment.container.environment ?? {};
     if (!env["SECRETS_MASTER_KEY"]) {
       deployment.container.environment = {
@@ -77,61 +62,8 @@ function ensureAddedDeploymentMasterKey(
         SECRETS_MASTER_KEY: generateDeploymentMasterKey()
       };
     }
-    return;
-  }
-
-  const env = deployment.environment ?? {};
-  if (!env["SECRETS_MASTER_KEY"]) {
-    deployment.environment = {
-      ...env,
-      SECRETS_MASTER_KEY: generateDeploymentMasterKey()
-    };
   }
 }
-
-/** Common GCP Cloud Run regions. Hardcoded because not exported by @nodetool-ai/deploy. */
-const GCP_REGIONS = [
-  "us-central1",
-  "us-east1",
-  "us-east4",
-  "us-east5",
-  "us-south1",
-  "us-west1",
-  "us-west2",
-  "us-west3",
-  "us-west4",
-  "northamerica-northeast1",
-  "northamerica-northeast2",
-  "southamerica-east1",
-  "southamerica-west1",
-  "europe-central2",
-  "europe-north1",
-  "europe-southwest1",
-  "europe-west1",
-  "europe-west2",
-  "europe-west3",
-  "europe-west4",
-  "europe-west6",
-  "europe-west8",
-  "europe-west9",
-  "europe-west10",
-  "europe-west12",
-  "asia-east1",
-  "asia-east2",
-  "asia-northeast1",
-  "asia-northeast2",
-  "asia-northeast3",
-  "asia-south1",
-  "asia-south2",
-  "asia-southeast1",
-  "asia-southeast2",
-  "australia-southeast1",
-  "australia-southeast2",
-  "me-central1",
-  "me-central2",
-  "me-west1",
-  "africa-south1"
-];
 
 // ---------------------------------------------------------------------------
 // Wrapper to unify error handling on every sub-command
@@ -177,7 +109,7 @@ function parsePort(raw: string, label: string): number {
 export function registerDeployCommands(program: Command): void {
   const deploy = program
     .command("deploy")
-    .description("Manage deployments (docker, runpod, gcp, fly, railway, huggingface)");
+    .description("Manage Docker self-host server deployments");
 
   registerInit(deploy);
   registerList(deploy);
@@ -193,41 +125,6 @@ export function registerDeployCommands(program: Command): void {
   registerDatabase(deploy);
   registerCollections(deploy);
   registerUsers(deploy);
-}
-
-export function registerListGcpOptions(program: Command): void {
-  program
-    .command("list-gcp-options")
-    .description(
-      "List supported GCP Cloud Run regions and RunPod GPU/CPU/data-center options"
-    )
-    .option("--json", "Output as JSON")
-    .action(
-      runAction(async (opts: { json?: boolean }) => {
-        const data = {
-          gcp_regions: GCP_REGIONS,
-          runpod_gpu_types: Object.values(GPUType),
-          runpod_cpu_flavors: Object.values(CPUFlavor),
-          runpod_data_centers: Object.values(DataCenter),
-          runpod_compute_types: Object.values(ComputeType)
-        };
-        if (opts.json) {
-          asJson(data);
-          return;
-        }
-        console.log("\nGCP Cloud Run regions:");
-        printTable(data.gcp_regions.map((r) => ({ region: r })));
-        console.log("\nRunPod GPU types:");
-        printTable(data.runpod_gpu_types.map((g) => ({ gpu_type: g })));
-        console.log("\nRunPod CPU flavors:");
-        printTable(data.runpod_cpu_flavors.map((c) => ({ cpu_flavor: c })));
-        console.log("\nRunPod compute types:");
-        printTable(data.runpod_compute_types.map((c) => ({ compute_type: c })));
-        console.log("\nRunPod data centers:");
-        printTable(data.runpod_data_centers.map((d) => ({ data_center: d })));
-        console.log();
-      })
-    );
 }
 
 // ---------------------------------------------------------------------------
@@ -251,9 +148,7 @@ function registerInit(deploy: Command): void {
         await initDeploymentConfig();
         console.log(`Created ${configPath}`);
         console.log("\nNext steps:");
-        console.log(
-          "  nodetool deploy add <name> --type docker|runpod|gcp|fly|railway|huggingface"
-        );
+        console.log("  nodetool deploy add <name> --type docker");
         console.log("  nodetool deploy plan <name>");
         console.log("  nodetool deploy apply <name>");
       })
@@ -386,58 +281,12 @@ function registerAdd(deploy: Command): void {
             });
             break;
           }
-          case "runpod": {
-            const imageName = await promptLine(
-              "RunPod Docker image name (e.g. user/nodetool)"
-            );
-            const imageTag = await promptLine("Image tag", {
-              default: "latest"
-            });
-            const registry = await promptLine("Registry", {
-              default: "docker.io"
-            });
-            deployment = configureRunPod(name, { imageName, imageTag, registry });
-            break;
-          }
-          case "gcp": {
-            const projectId = await promptLine("GCP project ID");
-            const region = await promptLine("Region", {
-              default: "us-central1"
-            });
-            const serviceName = await promptLine("Cloud Run service name", {
-              default: name
-            });
-            const imageRepository = await promptLine(
-              "Image repository (e.g. project/repo/image)"
-            );
-            const imageTag = await promptLine("Image tag", {
-              default: "latest"
-            });
-            deployment = configureGCP(name, {
-              projectId,
-              region,
-              serviceName,
-              imageRepository,
-              imageTag
-            });
-            break;
-          }
-          case "fly":
-          case "railway":
-          case "huggingface":
-            deployment = buildStubDeployment(type, name);
-            break;
         }
 
         ensureAddedDeploymentMasterKey(deployment);
         config.deployments[name] = deployment;
         await saveDeploymentConfig(config);
         console.log(`Added '${name}' to ${getDeploymentConfigPath()}`);
-        if (type === "fly" || type === "railway" || type === "huggingface") {
-          console.log(
-            `Stub deployment written — run 'nodetool deploy edit ${name}' to finish configuring.`
-          );
-        }
       })
     );
 }
