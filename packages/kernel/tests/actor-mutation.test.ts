@@ -27,15 +27,15 @@ function createActor(
   executor: NodeExecutor,
   opts: Partial<ConstructorParameters<typeof NodeActor>[0]> = {}
 ) {
-  const sentOutputs: Array<{ nodeId: string; outputs: Record<string, unknown> }> = [];
+  const sentOutputs: Array<{ nodeId: string; outputs: Record<string, unknown>; hints?: unknown }> = [];
   const messages: unknown[] = [];
   const actor = new NodeActor({
     node,
     inbox,
     executor,
     correlation: EMPTY_ANALYSIS,
-    sendOutputs: async (nodeId, outputs) => {
-      sentOutputs.push({ nodeId, outputs });
+    sendOutputs: async (nodeId, outputs, hints) => {
+      sentOutputs.push({ nodeId, outputs, hints });
     },
     emitMessage: (msg) => messages.push(msg),
     ...opts
@@ -365,5 +365,192 @@ describe("NodeActor._runCorrelatedImpl – scheduler", () => {
     inbox.markSourceDone("b");
     const result = await actor.run();
     expect(result.error).toMatch(/max_pending_messages_per_key/);
+  });
+});
+
+// --- Output lineage / iteration / aggregate / drop -------------------------
+
+describe("NodeActor – correlated output lineage", () => {
+  it("attaches the consumed invocation lineage to single outputs", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const { executor } = trackingExecutor(() => ({ out: 1 }));
+    const { actor, sentOutputs } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    const hints = sentOutputs[0].hints as {
+      invocationLineage: Record<string, { index: number }>;
+      perSlotLineage: Record<string, Record<string, { index: number }>>;
+    };
+    expect(hints.invocationLineage).toEqual({ r: { index: 0 } });
+    expect(hints.perSlotLineage.out).toEqual({ r: { index: 0 } });
+  });
+
+  it("mints a per-frame iteration token for iteration outputs", async () => {
+    const node = makeNode({
+      output_correlation: {
+        out: { kind: "iteration", source: "__execution__", group: "g" }
+      }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const { executor } = trackingExecutor(() => ({ out: "item" }));
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    await inbox.put("a", "v0", { correlation_lineage: lin({ r: 0 }) });
+    await inbox.put("a", "v1", { correlation_lineage: lin({ r: 0 }) }); // same parent
+    inbox.markSourceDone("a");
+    await actor.run();
+    const slot0 = (sentOutputs[0].hints as { perSlotLineage: Record<string, Record<string, { index: number }>> }).perSlotLineage.out;
+    const slot1 = (sentOutputs[1].hints as { perSlotLineage: Record<string, Record<string, { index: number }>> }).perSlotLineage.out;
+    // Two firings at the same parent key mint indices 0 then 1 for the group root.
+    expect(slot0).toEqual({ r: { index: 0 }, "n1:g": { index: 0 } });
+    expect(slot1).toEqual({ r: { index: 0 }, "n1:g": { index: 1 } });
+  });
+});
+
+describe("NodeActor – streaming-input emit lineage", () => {
+  it("mints a fresh iteration token on each outputs.emit()", async () => {
+    const node = makeNode({
+      is_streaming_input: true,
+      output_correlation: {
+        pair: { kind: "iteration", source: "__execution__", group: "z" }
+      }
+    });
+    const inbox = new NodeInbox();
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(_inputs, outputs) {
+        await outputs.emit("pair", "a");
+        await outputs.emit("pair", "b");
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis([], {})
+    });
+    await actor.run();
+    const root = "n1:z";
+    expect((sentOutputs[0].hints as { perSlotLineage: Record<string, Record<string, { index: number }>> }).perSlotLineage.pair[root].index).toBe(0);
+    expect((sentOutputs[1].hints as { perSlotLineage: Record<string, Record<string, { index: number }>> }).perSlotLineage.pair[root].index).toBe(1);
+  });
+
+  it("emitGroup mints one shared token across sibling iteration slots", async () => {
+    const node = makeNode({
+      is_streaming_input: true,
+      output_correlation: {
+        left: { kind: "iteration", source: "__execution__", group: "zip" },
+        right: { kind: "iteration", source: "__execution__", group: "zip" }
+      }
+    });
+    const inbox = new NodeInbox();
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(_inputs, outputs) {
+        await outputs.emitGroup({ left: 1, right: 2 });
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis([], {})
+    });
+    await actor.run();
+    const hints = sentOutputs[0].hints as { perSlotLineage: Record<string, Record<string, { index: number }>> };
+    const root = "n1:zip";
+    // Both siblings share the SAME minted token.
+    expect(hints.perSlotLineage.left[root].index).toBe(0);
+    expect(hints.perSlotLineage.right[root].index).toBe(0);
+  });
+
+  it("drop() emits a lineage_done signal for the slot", async () => {
+    const node = makeNode({ is_streaming_input: true });
+    const inbox = new NodeInbox();
+    const env = {
+      data: 1,
+      metadata: {},
+      timestamp: 0,
+      event_id: "e",
+      correlation_lineage: lin({ r: 3 }),
+      source_edge_id: "edge"
+    };
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(_inputs, outputs) {
+        await outputs.drop("done_slot", env as never);
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor);
+    await actor.run();
+    const sent = sentOutputs[0];
+    const hints = sent.hints as { lineageDoneSlots: Set<string>; perSlotLineage: Record<string, unknown> };
+    expect(Array.from(hints.lineageDoneSlots)).toEqual(["done_slot"]);
+    expect(hints.perSlotLineage.done_slot).toEqual({ r: { index: 3 } });
+  });
+});
+
+describe("NodeActor – aggregate & frame-index minting", () => {
+  it("collapses the innermost root for aggregate outputs", async () => {
+    const node = makeNode({
+      is_streaming_input: true,
+      output_correlation: {
+        rolled: { kind: "aggregate", source: "in", collapse: "innermost" }
+      }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("in", 1);
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(inputs, outputs) {
+        for await (const _ of inputs.stream("in")) void _; // populate lineage tracker
+        await outputs.emit("rolled", "summary");
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis(["r", "x:s"], { in: [["r", "x:s"], false] })
+    });
+    const runP = actor.run();
+    await inbox.put("in", "v", { correlation_lineage: lin({ r: 0, "x:s": 2 }) });
+    inbox.markSourceDone("in");
+    await runP;
+    const hints = sentOutputs[0].hints as { perSlotLineage: Record<string, Record<string, { index: number }>> };
+    // innermost root "x:s" is dropped from the emitted lineage.
+    expect(hints.perSlotLineage.rolled).toEqual({ r: { index: 0 } });
+  });
+
+  it("overrides a genProcess-supplied index with the actor-minted token", async () => {
+    const node = makeNode({
+      is_streaming_output: true,
+      output_correlation: {
+        output: { kind: "iteration", source: "__execution__", group: "g" },
+        index: { kind: "iteration", source: "__execution__", group: "g" }
+      }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async *genProcess() {
+        yield { output: "item", index: 99 }; // node-supplied index must be overwritten
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    expect(sentOutputs[0].outputs.index).toBe(0); // minted token, not 99
   });
 });
