@@ -92,6 +92,36 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     expect(result.error).toBe("Invalid Supabase token");
   });
 
+  it("returns 'Invalid Supabase token' when the response data is null", async () => {
+    // `data?.user` must tolerate a null data object: optional chaining yields the
+    // domain error rather than throwing a TypeError (kills the `data?.user` →
+    // `data.user` mutant, which would surface a "Cannot read properties of null").
+    const provider = makeProvider({
+      getUser: async () =>
+        ({ data: null, error: null }) as unknown as {
+          data: { user: { id: string } | null };
+          error: unknown;
+        }
+    });
+    const result = await provider.verifyToken("null-data-token");
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("Invalid Supabase token");
+  });
+
+  it("stringifies a Supabase error object that has no message field", async () => {
+    // An object error without `message` falls to the String(error) branch
+    // (kills the `"message" in error` → always-true mutant).
+    const provider = makeProvider({
+      getUser: async () => ({
+        data: { user: null },
+        error: { code: 500 } as unknown
+      })
+    });
+    const result = await provider.verifyToken("obj-no-message");
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe("[object Object]");
+  });
+
   it("returns error when getUser throws", async () => {
     const provider = makeProvider({
       getUser: async () => {
@@ -217,6 +247,28 @@ describe("T-SEC-4: SupabaseAuthProvider", () => {
     const r2 = await provider.verifyToken("tok-ttl");
     expect(r2.ok).toBe(true);
     expect(r2.userId).toBe("ttl-user");
+    expect(getUser).toHaveBeenCalledTimes(2);
+
+    vi.restoreAllMocks();
+  });
+
+  it("treats an entry as expired at the exact TTL boundary (>=)", async () => {
+    // The expiry check is `now >= expiresAt`. At now === expiresAt the entry must
+    // count as expired and trigger a refetch (kills the `>=` → `>` mutant, which
+    // would keep serving a just-expired token).
+    const getUser = vi.fn(async () => ({
+      data: { user: { id: "boundary-user" } },
+      error: null
+    }));
+    const provider = makeProvider({ getUser, cacheTtl: 10 });
+
+    const base = 1_000_000;
+    const nowSpy = vi.spyOn(performance, "now").mockReturnValue(base);
+    await provider.verifyToken("tok-boundary"); // cached, expiresAt = base + 10_000
+    expect(getUser).toHaveBeenCalledTimes(1);
+
+    nowSpy.mockReturnValue(base + 10_000); // now === expiresAt exactly
+    await provider.verifyToken("tok-boundary");
     expect(getUser).toHaveBeenCalledTimes(2);
 
     vi.restoreAllMocks();

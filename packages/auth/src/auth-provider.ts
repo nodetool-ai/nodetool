@@ -37,9 +37,14 @@ export abstract class AuthProvider {
 
     let authHeader: string | null | undefined;
     if (headers instanceof Headers) {
+      // Stryker disable all: Headers.get is case-insensitive, so the capitalized
+      // fallback always resolves to the same value as the primary lookup. Every
+      // mutant on these two lines (`??`→`&&`, the regex, the callback) is
+      // therefore equivalent — no input produces an observable difference.
       authHeader =
         headers.get(headerName) ??
         headers.get(headerName.replace(/\b\w/g, (c) => c.toUpperCase()));
+      // Stryker restore all
     } else {
       authHeader =
         headers[headerName] ??
@@ -56,6 +61,8 @@ export abstract class AuthProvider {
       return null;
     }
 
+    // Stryker disable next-line MethodExpression: split(/\s+/) yields tokens with
+    // no surrounding whitespace, so trim() is a no-op here (equivalent mutant).
     const token = parts[1].trim();
     return token || null;
   }

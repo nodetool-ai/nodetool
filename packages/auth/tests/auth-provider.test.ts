@@ -92,6 +92,14 @@ describe("AuthProvider.extractTokenFromHeaders", () => {
     });
     expect(token).toBe("capital");
   });
+
+  it("collapses runs of whitespace between scheme and token", () => {
+    // Two spaces: split(/\s+/) must treat the run as a single delimiter so the
+    // header still parses to exactly two parts (kills the /\s+/ → /\s/ mutant).
+    expect(
+      provider.extractTokenFromHeaders({ authorization: "Bearer  tok" })
+    ).toBe("tok");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -349,4 +357,3 @@ describe("AuthProvider.preferHeader", () => {
     expect(AuthProvider.preferHeader()).toBe("authorization");
   });
 });
-

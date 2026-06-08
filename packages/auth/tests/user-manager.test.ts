@@ -60,8 +60,10 @@ describe("T-SEC-6: UserManager", () => {
     expect(found!.role).toBe("admin");
   });
 
-  it("setRole throws for unknown user", () => {
-    expect(() => manager.setRole("nonexistent", "admin")).toThrow();
+  it("setRole throws a 'User not found' error naming the missing user", () => {
+    expect(() => manager.setRole("nonexistent", "admin")).toThrow(
+      "User not found: nonexistent"
+    );
   });
 
   it("multiple users are independent", () => {
