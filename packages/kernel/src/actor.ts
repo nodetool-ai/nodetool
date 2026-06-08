@@ -59,7 +59,7 @@ export type { NodeExecutor };
 export function trimKey(key: string, prefixLength: number): string {
   // Stryker disable next-line ConditionalExpression: equivalent fast-path — slice(0, 0).join("") below also yields ""
   if (prefixLength === 0) return "";
-  // Stryker disable next-line ConditionalExpression: equivalent fast-path — an empty key splits to [""] and the length guard below returns "" too
+  // Stryker disable next-line ConditionalExpression,StringLiteral: equivalent fast-path — an empty key is returned as "" by the length guard below either way
   if (key === "") return "";
   const parts = key.split(",");
   // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — when parts.length <= prefixLength, slice(0, prefixLength).join produces the identical full key
@@ -776,7 +776,7 @@ export class NodeActor {
     // Stryker disable next-line ConditionalExpression: defensive — only called from the correlated path where _correlation is set
     if (!this._correlation) return undefined;
     const invocationScope = this._correlation.invocationScope;
-    // Stryker disable next-line ConditionalExpression: equivalent — for an empty scope the loop below also yields {}, identical to EMPTY_LINEAGE
+    // Stryker disable next-line ConditionalExpression,BlockStatement: equivalent — for an empty scope the loop below also yields {}, identical to EMPTY_LINEAGE
     if (invocationScope.length === 0) {
       // For empty-scope nodes the lineage is also empty.
       return EMPTY_LINEAGE;
