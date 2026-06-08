@@ -686,6 +686,28 @@ describe("NodeActor._runCorrelatedImpl – driver & key edge cases", () => {
     expect(calls).toEqual([{ a: "only" }]);
   });
 
+  it("does not re-fire the same key on a non-repeating max handle (fired-set dedup)", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    // A non-repeating handle that receives the SAME key twice via separate
+    // puts (the bucket is recreated after the first fire, so isReady alone
+    // would let it through). Only the driverHandle===null / fired-set guard
+    // suppresses the duplicate — exercising it pins driver detection.
+    const { executor, calls } = trackingExecutor((i) => ({ out: i.a }));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], false] })
+    });
+    const runP = actor.run();
+    await inbox.put("a", "first", { correlation_lineage: lin({ r: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    await inbox.put("a", "again", { correlation_lineage: lin({ r: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    inbox.markSourceDone("a");
+    await runP;
+    // Non-repeating: the second envelope at the already-fired key is dropped.
+    expect(calls).toEqual([{ a: "first" }]);
+  });
+
   it("buckets a max envelope with incomplete lineage under the empty key", async () => {
     const inbox = new NodeInbox();
     inbox.addUpstream("a", 1);

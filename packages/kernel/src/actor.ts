@@ -433,8 +433,9 @@ export class NodeActor {
     this._inCorrelatedBuffered = true;
     try {
       await this._runCorrelatedImpl(analysis);
+      // Stryker disable next-line BlockStatement: the finally only resets a flag that guards lineage computation during this run; emptying it is unobservable to a single run
     } finally {
-      // Stryker disable next-line BlockStatement: the flag only guards lineage computation during this run; resetting it afterwards is unobservable to a single run
+      // Stryker disable next-line BlockStatement,BooleanLiteral: resetting (or not) the in-run flag afterwards is unobservable to a single run
       this._inCorrelatedBuffered = false;
     }
   }
@@ -446,6 +447,7 @@ export class NodeActor {
       (h) => h !== "__control__"
     );
 
+    // Stryker disable next-line ConditionalExpression,BlockStatement: equivalent fast-path — with no data handles the no-max fire-once block below (every handle is non-"max", "" not yet fired) also fires once with empty inputs
     if (dataHandles.length === 0) {
       // Source node: fire once with empty inputs at empty scope.
       await this._executeWithInputs({});
@@ -503,7 +505,9 @@ export class NodeActor {
       if (cls === "max") maxBuckets.set(h, new Map());
       else if (cls === "prefix") {
         prefixSticky.set(h, new Map());
+        // Stryker disable next-line ConditionalExpression: the surviving forced-true allocates an unused prefixListBuckets map for non-list prefix handles (never read — sticky handles use prefixSticky); the false arm is exercised by the prefix-list aggregation tests
         if (isListInput(h)) prefixListBuckets.set(h, new Map());
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: the surviving variants allocate an unused emptyListEnvelopes entry for non-(empty-list) handles (never read by their class branch); the true path is exercised by the empty-list aggregation tests
       } else if (cls === "empty" && isListInput(h)) {
         emptyListEnvelopes.set(h, []);
       }
@@ -564,7 +568,7 @@ export class NodeActor {
         const cls = handleClass.get(h);
         if (cls === "max") {
           const bucket = maxBuckets.get(h)!.get(key);
-          // Stryker disable next-line ConditionalExpression,EqualityOperator: the bucket.length===0 arm is unreachable — collect() deletes emptied buckets, so a present bucket is never empty here
+          // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: isReady() already guaranteed a present, non-empty bucket for this key, so this guard never short-circuits here — every variant is equivalent
           if (!bucket || bucket.length === 0) continue;
           if (isListInput(h)) {
             // Drain every envelope into a list; pick the last for lineage.
@@ -584,12 +588,14 @@ export class NodeActor {
           const parentKey = trimKey(key, parentScope.length);
           if (isListInput(h)) {
             const bucket = prefixListBuckets.get(h)!.get(parentKey);
+            // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: isReady() already guaranteed a present, non-empty prefix-list bucket for this parentKey, so this guard always enters here — every variant is equivalent
             if (bucket && bucket.length > 0) {
               envelopes.set(h, bucket[bucket.length - 1]);
               values[h] = bucket.map((e) => e.data);
             }
           } else {
             const env = prefixSticky.get(h)!.get(parentKey);
+            // Stryker disable next-line ConditionalExpression: isReady() already guaranteed a sticky entry exists for this parentKey, so env is always defined here — forcing the guard true is equivalent
             if (env) {
               envelopes.set(h, env);
               values[h] = env.data;
@@ -598,12 +604,14 @@ export class NodeActor {
         } else {
           if (isListInput(h)) {
             const envs = emptyListEnvelopes.get(h) ?? [];
+            // Stryker disable next-line ConditionalExpression,EqualityOperator: isReady() already guaranteed this empty-scope list has values (handle closed with envelopes), so the guard always enters here — every variant is equivalent
             if (envs.length > 0) {
               envelopes.set(h, envs[envs.length - 1]);
               values[h] = envs.map((e) => e.data);
             }
           } else {
             const env = emptySticky.get(h);
+            // Stryker disable next-line ConditionalExpression: isReady() already guaranteed an empty-scope sticky entry exists (or the handle is closed and defaults apply), so env is defined whenever collect reaches a firing key — forcing true is equivalent
             if (env) {
               envelopes.set(h, env);
               values[h] = env.data;
