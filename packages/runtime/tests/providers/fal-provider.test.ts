@@ -184,6 +184,54 @@ describe("FalProvider", () => {
     vi.unstubAllGlobals();
   });
 
+  it("imageToImage forwards multiple images as image_urls for list endpoints", async () => {
+    const uploadMock = vi
+      .fn()
+      .mockResolvedValueOnce("https://fal.media/files/a.png")
+      .mockResolvedValueOnce("https://fal.media/files/b.png");
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { image: { url: "https://fal.ai/result.png" } }
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+      })
+    );
+
+    const p = createProvider();
+    (p as any)._client = {
+      subscribe: subscribeMock,
+      storage: { upload: uploadMock }
+    };
+
+    const params: ImageToImageParams = {
+      prompt: "merge",
+      // qwen-image-edit-2509 declares an `image_urls` (list[image]) input.
+      model: {
+        id: "fal-ai/qwen-image-edit-2509",
+        name: "Qwen Image Edit",
+        provider: "fal_ai"
+      }
+    };
+
+    await p.imageToImage(
+      [new Uint8Array([1, 2]), new Uint8Array([3, 4])],
+      params
+    );
+
+    expect(uploadMock).toHaveBeenCalledTimes(2);
+    const input = subscribeMock.mock.calls[0][1].input;
+    expect(input.image_urls).toEqual([
+      "https://fal.media/files/a.png",
+      "https://fal.media/files/b.png"
+    ]);
+    expect(input.image_url).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
   // --- extractImageUrl edge cases ---
 
   it("textToImage handles response with result.image.url format", async () => {

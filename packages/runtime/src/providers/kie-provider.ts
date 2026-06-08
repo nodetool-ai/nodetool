@@ -15,6 +15,8 @@ import { BaseProvider } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageModel,
+  ImageToImageParams,
+  ImageToVideoParams,
   LanguageModel,
   Message,
   MessageContent,
@@ -34,6 +36,8 @@ import { AnthropicProvider } from "./anthropic-provider.js";
 const log = createLogger("nodetool.runtime.providers.kie");
 
 const KIE_API_BASE = "https://api.kie.ai";
+const KIE_UPLOAD_URL =
+  "https://kieai.redpandaai.co/api/file-stream-upload";
 
 type KieChatApi = "openai" | "anthropic" | "responses";
 
@@ -92,6 +96,40 @@ function headers(apiKey: string): Record<string, string> {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json"
   };
+}
+
+/**
+ * Upload raw image bytes to KIE's file store and return the hosted URL.
+ * Mirrors the upload flow used by the KIE factory nodes (multipart POST →
+ * `downloadUrl`).
+ */
+async function uploadImageBytes(
+  apiKey: string,
+  bytes: Uint8Array
+): Promise<string> {
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([new Uint8Array(bytes)], { type: "image/png" }),
+    `upload-${Date.now()}.png`
+  );
+  form.append("uploadPath", "images/user-uploads");
+  form.append("fileName", `upload-${Date.now()}.png`);
+  const res = await fetch(KIE_UPLOAD_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form
+  });
+  const data = (await res.json()) as Record<string, unknown>;
+  if (!res.ok || !data.success) {
+    throw new Error(`Kie upload failed: ${res.status} ${JSON.stringify(data)}`);
+  }
+  const downloadUrl = (data.data as Record<string, unknown>)
+    ?.downloadUrl as string;
+  if (!downloadUrl) {
+    throw new Error(`No downloadUrl in Kie upload response`);
+  }
+  return downloadUrl;
 }
 
 async function submitTask(
@@ -580,5 +618,74 @@ export class KieProvider extends BaseProvider {
     const taskId = await submitTask(this.requireApiKey(), modelId, input);
     await pollUntilDone(this.requireApiKey(), taskId);
     return downloadResultBytes(this.requireApiKey(), taskId);
+  }
+
+  /**
+   * Edit/transform one or more source images. KIE's image-edit models accept
+   * the inputs as `image_urls` (an array), so every supplied image is uploaded
+   * and forwarded — enabling multi-image editing/composition.
+   */
+  override async imageToImage(
+    images: Uint8Array[],
+    params: ImageToImageParams
+  ): Promise<Uint8Array> {
+    const apiKey = this.requireApiKey();
+    const imageUrls = await this.uploadImages(apiKey, images);
+    if (imageUrls.length === 0) {
+      throw new Error("The input image is empty.");
+    }
+
+    const input: Record<string, unknown> = {
+      prompt: params.prompt,
+      image_urls: imageUrls
+    };
+    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+
+    const modelId = params.model.id;
+    log.debug("Kie imageToImage", { model: modelId, images: imageUrls.length });
+
+    const taskId = await submitTask(apiKey, modelId, input);
+    await pollUntilDone(apiKey, taskId);
+    return downloadResultBytes(apiKey, taskId);
+  }
+
+  /**
+   * Animate one or more source images into a video. Images are uploaded and
+   * passed as `image_urls`; models that take a single frame use the first.
+   */
+  override async imageToVideo(
+    images: Uint8Array[],
+    params: ImageToVideoParams
+  ): Promise<Uint8Array> {
+    const apiKey = this.requireApiKey();
+    const imageUrls = await this.uploadImages(apiKey, images);
+    if (imageUrls.length === 0) {
+      throw new Error("The input image is empty.");
+    }
+
+    const input: Record<string, unknown> = { image_urls: imageUrls };
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+    if (params.durationSeconds) {
+      input.duration = Math.ceil(params.durationSeconds);
+    }
+
+    const modelId = params.model.id;
+    log.debug("Kie imageToVideo", { model: modelId, images: imageUrls.length });
+
+    const taskId = await submitTask(apiKey, modelId, input);
+    await pollUntilDone(apiKey, taskId);
+    return downloadResultBytes(apiKey, taskId);
+  }
+
+  /** Upload every non-empty image to KIE's file store, returning hosted URLs. */
+  private async uploadImages(
+    apiKey: string,
+    images: Uint8Array[]
+  ): Promise<string[]> {
+    const valid = images.filter((b) => b && b.length > 0);
+    return Promise.all(valid.map((b) => uploadImageBytes(apiKey, b)));
   }
 }

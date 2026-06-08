@@ -198,6 +198,57 @@ describe("ReplicateProvider", () => {
     });
   });
 
+  it("imageToImage sends a single image under `image`", async () => {
+    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
+      })
+    );
+    const provider = createProvider({ run: runMock });
+
+    await provider.imageToImage([new Uint8Array([1, 2, 3])], {
+      model: { id: "owner/edit-model", name: "Edit", provider: "replicate" },
+      prompt: "make it blue"
+    });
+
+    const input = runMock.mock.calls[0][1].input;
+    expect(typeof input.image).toBe("string");
+    expect(input.image).toMatch(/^data:image\/png;base64,/);
+    expect(input.image_input).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("imageToImage sends multiple images under `image_input`", async () => {
+    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
+      })
+    );
+    const provider = createProvider({ run: runMock });
+
+    await provider.imageToImage(
+      [new Uint8Array([1, 2, 3]), new Uint8Array([4, 5, 6])],
+      {
+        model: { id: "owner/multi-edit", name: "Multi", provider: "replicate" },
+        prompt: "compose"
+      }
+    );
+
+    const input = runMock.mock.calls[0][1].input;
+    expect(Array.isArray(input.image_input)).toBe(true);
+    expect((input.image_input as string[]).length).toBe(2);
+    expect(input.image).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
   it("textToImage handles string URL output", async () => {
     const fakeBytes = new Uint8Array([0xff, 0xd8]);
     vi.stubGlobal(

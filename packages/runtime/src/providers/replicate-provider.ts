@@ -495,10 +495,7 @@ export class ReplicateProvider extends BaseProvider {
     images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    const base64 = Buffer.from(images[0] ?? new Uint8Array()).toString("base64");
-    const dataUri = `data:image/png;base64,${base64}`;
-
-    const input: Record<string, unknown> = { image: dataUri };
+    const input: Record<string, unknown> = this.imageInput(images);
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.guidanceScale != null)
@@ -539,10 +536,7 @@ export class ReplicateProvider extends BaseProvider {
     images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
-    const base64 = Buffer.from(images[0] ?? new Uint8Array()).toString("base64");
-    const dataUri = `data:image/png;base64,${base64}`;
-
-    const input: Record<string, unknown> = { image: dataUri };
+    const input: Record<string, unknown> = this.imageInput(images);
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
@@ -561,6 +555,23 @@ export class ReplicateProvider extends BaseProvider {
 
   private dataUri(bytes: Uint8Array, mimeType: string): string {
     return `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
+  }
+
+  /**
+   * Build the image portion of a Replicate prediction input from one or more
+   * source images. A single image is sent as `image` (the field the majority of
+   * single-image i2i / i2v models declare); multiple images are sent as
+   * `image_input` — the array field used by current multi-reference models
+   * (e.g. nano-banana, seedream). Empty buffers are dropped.
+   */
+  private imageInput(images: Uint8Array[]): Record<string, unknown> {
+    const dataUris = images
+      .filter((b) => b && b.length > 0)
+      .map((b) => this.dataUri(b, "image/png"));
+    if (dataUris.length === 0) return {};
+    return dataUris.length === 1
+      ? { image: dataUris[0] }
+      : { image_input: dataUris };
   }
 
   private async runWithInput(

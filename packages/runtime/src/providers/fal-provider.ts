@@ -184,6 +184,34 @@ class FalArgsBuilder {
   }
 
   /**
+   * Attach one or more uploaded asset URLs to whatever field (image/video/
+   * audio) the endpoint declares. When the endpoint declares a list-typed field
+   * (e.g. `image_urls`), every URL is sent; otherwise only the first URL is
+   * attached to the single-valued field. Falls back to `${kind}_url` (first
+   * URL) for endpoints not in the manifest.
+   */
+  attachAssets(
+    kind: "image" | "video" | "audio",
+    urls: string[],
+    fallbackApiName?: string
+  ): this {
+    if (urls.length === 0) return this;
+    const field = this.fields.find((f) => {
+      const t = f.propType.toLowerCase();
+      return t === kind || t === `list[${kind}]`;
+    });
+    if (field) {
+      const apiName = field.apiParamName ?? field.name;
+      this.args[apiName] = field.propType.toLowerCase().startsWith("list[")
+        ? urls
+        : urls[0];
+    } else {
+      this.args[fallbackApiName ?? `${kind}_url`] = urls[0];
+    }
+    return this;
+  }
+
+  /**
    * Set `image_size`. fal endpoints typically declare it as an enum string
    * ("square_hd", ...) — passing `{width, height}` to those returns 422. Only
    * write the dict shape when the manifest field exists and isn't enum.
@@ -369,15 +397,13 @@ if (update.status === "IN_PROGRESS") {
 
   private async buildImageToImageArgs(
     modelId: string,
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Record<string, unknown>> {
-    const client = await this.getClient();
-    const blob = new Blob([new Uint8Array(image) as Uint8Array<ArrayBuffer>], { type: "image/png" });
-    const uploadedUrl = await client.storage.upload(blob);
+    const urls = await this.uploadImages(images);
 
     const b = new FalArgsBuilder(modelId);
-    b.attachAsset("image", uploadedUrl)
+    b.attachAssets("image", urls)
       .force("prompt", params.prompt)
       .set("output_format", "png")
       .set("negative_prompt", params.negativePrompt)
@@ -407,15 +433,13 @@ if (update.status === "IN_PROGRESS") {
 
   private async buildImageToVideoArgs(
     modelId: string,
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Record<string, unknown>> {
-    const client = await this.getClient();
-    const blob = new Blob([new Uint8Array(image) as Uint8Array<ArrayBuffer>], { type: "image/png" });
-    const uploadedUrl = await client.storage.upload(blob);
+    const urls = await this.uploadImages(images);
 
     const b = new FalArgsBuilder(modelId);
-    b.attachAsset("image", uploadedUrl)
+    b.attachAssets("image", urls)
       .set("prompt", params.prompt)
       .set("negative_prompt", params.negativePrompt)
       .set("num_frames", params.numFrames)
@@ -446,7 +470,7 @@ if (update.status === "IN_PROGRESS") {
   ): Promise<Uint8Array> {
     const client = await this.getClient();
     const modelId = params.model.id;
-    const args = await this.buildImageToImageArgs(modelId, images[0], params);
+    const args = await this.buildImageToImageArgs(modelId, images, params);
     log.debug("FAL imageToImage", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -481,7 +505,7 @@ if (update.status === "IN_PROGRESS") {
     }
     const client = await this.getClient();
     const modelId = params.model.id;
-    const args = await this.buildImageToImageArgs(modelId, images[0], params);
+    const args = await this.buildImageToImageArgs(modelId, images, params);
     if (new FalArgsBuilder(modelId).has("num_images")) {
       args.num_images = numImages;
     }
@@ -526,7 +550,7 @@ if (update.status === "IN_PROGRESS") {
   ): Promise<Uint8Array> {
     const client = await this.getClient();
     const modelId = params.model.id;
-    const args = await this.buildImageToVideoArgs(modelId, images[0], params);
+    const args = await this.buildImageToVideoArgs(modelId, images, params);
     log.debug("FAL imageToVideo", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -545,6 +569,12 @@ if (update.status === "IN_PROGRESS") {
       { type: mimeType }
     );
     return client.storage.upload(blob);
+  }
+
+  /** Upload every non-empty image to FAL storage, returning the hosted URLs. */
+  private async uploadImages(images: Uint8Array[]): Promise<string[]> {
+    const valid = images.filter((b) => b && b.length > 0);
+    return Promise.all(valid.map((b) => this.upload(b, "image/png")));
   }
 
   /** Run an endpoint that takes a single uploaded image and returns an image. */
