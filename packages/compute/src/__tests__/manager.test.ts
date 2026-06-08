@@ -141,6 +141,8 @@ class FakeProvider implements WorkerProvider {
   public readonly stopped: string[] = [];
   public statuses: Record<string, WorkerStatus> = {};
   public liveList: ProviderInstance[] = [];
+  /** Hourly cost the provider reports back from provision(), if any. */
+  public costUsd: number | undefined;
 
   async provision(spec: WorkerSpec): Promise<ProvisionResult> {
     this.provisioned.push(spec);
@@ -149,6 +151,7 @@ class FakeProvider implements WorkerProvider {
       wsUrl: "wss://pod-1-7777.proxy.runpod.net",
       token: spec.token,
       status: "running",
+      costUsd: this.costUsd,
     };
   }
 
@@ -278,6 +281,20 @@ describe("WorkerManager — provision", () => {
     await manager.provision("hf-a40");
 
     expect(provider.provisioned[0].token).toBeUndefined();
+  });
+
+  it("persists the provider-reported hourly cost on the instance", async () => {
+    const { manager, models, provider } = makeManager();
+    provider.costUsd = 0.39;
+    await manager.createProfile(PROFILE_INPUT);
+
+    const instance = await manager.provision("hf-a40");
+
+    // The cost the provider reported was passed through to instance creation.
+    expect(models.deps.createWorkerInstance).toHaveBeenCalledWith(
+      expect.objectContaining({ estimated_cost_usd: 0.39 })
+    );
+    expect(instance.estimated_cost_usd).toBe(0.39);
   });
 
   it("throws when the profile does not exist", async () => {
@@ -540,5 +557,23 @@ describe("WorkerManager — reconcile", () => {
 
     expect(summary.liveCount).toBe(2);
     expect(summary.estimatedCostUsd).toBeCloseTo(3.5);
+  });
+
+  it("sums the cost auto-populated at provision time", async () => {
+    const { manager, provider } = makeManager();
+    provider.costUsd = 0.5;
+    await manager.createProfile(PROFILE_INPUT);
+    const a = await manager.provision("hf-a40"); // pod-1
+    const b = await manager.provision("hf-a40"); // pod-2
+
+    provider.liveList = [
+      { providerRef: a.provider_ref, status: "running" },
+      { providerRef: b.provider_ref, status: "running" },
+    ];
+
+    const summary = await manager.reconcile();
+
+    // No manual cost injection — reconcile sees the cost stored on provision.
+    expect(summary.estimatedCostUsd).toBeCloseTo(1.0);
   });
 });

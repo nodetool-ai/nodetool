@@ -52,6 +52,13 @@ export interface ProvisionResult {
   token?: string;
   /** Status at the moment provisioning returned (typically `running`). */
   status: WorkerStatus;
+  /**
+   * Estimated hourly cost (USD) of the provisioned worker, when the provider
+   * reports it (RunPod `costPerHr`, Vast `dph_total`). Drives the cost guard's
+   * reconcile aggregation and the workers-panel display; `undefined` when the
+   * provider exposes no price.
+   */
+  costUsd?: number;
 }
 
 /** A live worker as reported by the provider, for orphan reconciliation. */

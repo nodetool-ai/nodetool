@@ -90,6 +90,28 @@ describe("VastProvider.provision", () => {
     expect(launchBody.image).toBe("ghcr.io/nodetool-ai/worker:0.7.3");
     expect(launchBody.env.NODETOOL_WORKER_TOKEN).toBe("worker-secret");
   });
+
+  it("reports the chosen offer's hourly cost from dph_total", async () => {
+    // 1) PUT /bundles/ → the cheapest offer carries its dollars-per-hour total.
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        offers: [{ id: 555, gpu_name: "RTX 4090", dph_total: 0.31 }],
+      })
+    );
+    // 2) PUT /asks/555/ → launched
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    // 3) GET /instances/9001/ → running
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ instances: readyInstance() })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    const result = await provider.provision(baseSpec());
+
+    expect(result.costUsd).toBe(0.31);
+  });
 });
 
 describe("VastProvider.status", () => {

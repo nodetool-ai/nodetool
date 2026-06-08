@@ -55,6 +55,8 @@ export interface RunpodPod {
   /** Internal→external port map, e.g. {"7777": 41021}. */
   portMappings?: Record<string, number> | null;
   ports?: string[];
+  /** Hourly cost (USD) RunPod bills for this pod's compute. */
+  costPerHr?: number;
   [k: string]: unknown;
 }
 

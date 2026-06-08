@@ -209,6 +209,7 @@ export class WorkerManager {
       provider_ref: result.providerRef,
       ws_url: result.wsUrl,
       token: result.token ?? null,
+      estimated_cost_usd: result.costUsd ?? null,
     });
 
     return this.deps.updateWorkerInstance(instance.id, {

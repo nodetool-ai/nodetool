@@ -92,8 +92,8 @@ export class VastProvider implements WorkerProvider {
   constructor(private readonly apiKey: string) {}
 
   async provision(spec: WorkerSpec): Promise<ProvisionResult> {
-    const offerId = await this.findOffer(spec);
-    const instanceId = await this.launch(offerId, spec);
+    const offer = await this.findOffer(spec);
+    const instanceId = await this.launch(offer.id, spec);
     const instance = await this.waitForReady(instanceId);
 
     const ip = instance.public_ipaddr;
@@ -110,6 +110,7 @@ export class VastProvider implements WorkerProvider {
       wsUrl: `ws://${ip}:${port}`,
       token: spec.token,
       status: "running",
+      costUsd: offer.dphTotal,
     };
   }
 
@@ -134,8 +135,14 @@ export class VastProvider implements WorkerProvider {
 
   // --- Internals ----------------------------------------------------------
 
-  /** Search the marketplace for a rentable offer matching the spec's GPU. */
-  private async findOffer(spec: WorkerSpec): Promise<string> {
+  /**
+   * Search the marketplace for the cheapest rentable offer matching the spec's
+   * GPU. Returns the offer id plus its `dph_total` (total dollars-per-hour), the
+   * estimated cost the cost guard records on the instance.
+   */
+  private async findOffer(
+    spec: WorkerSpec
+  ): Promise<{ id: string; dphTotal: number | undefined }> {
     const query: Record<string, unknown> = {
       rentable: { eq: true },
       verified: { eq: true },
@@ -150,14 +157,14 @@ export class VastProvider implements WorkerProvider {
     });
     const offers = (res as { offers?: unknown }).offers;
     const first = Array.isArray(offers)
-      ? (offers[0] as { id?: number } | undefined)
+      ? (offers[0] as { id?: number; dph_total?: number } | undefined)
       : undefined;
     if (!first?.id) {
       throw new Error(
         `No rentable Vast.ai offer found for GPU "${spec.gpu ?? "any"}"`
       );
     }
-    return String(first.id);
+    return { id: String(first.id), dphTotal: first.dph_total };
   }
 
   /** Launch the worker image on the chosen offer; return the new contract id. */

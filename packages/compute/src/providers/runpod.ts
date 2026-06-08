@@ -44,7 +44,7 @@ export class RunpodPodProvider implements WorkerProvider {
 
   async provision(spec: WorkerSpec): Promise<ProvisionResult> {
     const useGpu = Boolean(spec.gpu);
-    const { podId, wsUrl } = await deployWorkerPod(this.apiKey, {
+    const { podId, wsUrl, pod } = await deployWorkerPod(this.apiKey, {
       name: spec.name,
       image: spec.image,
       workerToken: spec.token,
@@ -60,6 +60,7 @@ export class RunpodPodProvider implements WorkerProvider {
       wsUrl,
       token: spec.token,
       status: "running",
+      costUsd: pod.costPerHr,
     };
   }
 

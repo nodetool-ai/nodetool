@@ -67,6 +67,20 @@ describe("RunpodPodProvider.provision", () => {
     expect(createBody.imageName).toBe("ghcr.io/nodetool-ai/worker:0.7.3");
     expect(createBody.env.NODETOOL_WORKER_TOKEN).toBe("worker-secret");
   });
+
+  it("reports the pod's hourly cost from costPerHr", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "pod-123", desiredStatus: "EXITED" })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "pod-123", desiredStatus: "RUNNING", costPerHr: 0.44 })
+    );
+
+    const provider = new RunpodPodProvider(API_KEY);
+    const result = await provider.provision(baseSpec());
+
+    expect(result.costUsd).toBe(0.44);
+  });
 });
 
 describe("RunpodPodProvider.status", () => {
