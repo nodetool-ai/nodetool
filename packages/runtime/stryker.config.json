@@ -20,7 +20,12 @@
     "src/agent-memory.ts",
     "src/trace-exporters.ts",
     "src/python-worker-stderr.ts",
-    "src/python-bridge-factory.ts"
+    "src/python-bridge-factory.ts",
+    "src/providers/cerebras-provider.ts",
+    "src/providers/groq-provider.ts",
+    "src/providers/xai-provider.ts",
+    "src/providers/deepseek-provider.ts",
+    "src/providers/moonshot-provider.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"
